@@ -15,69 +15,43 @@ vi.mock("../hooks/usePrayerManager", () => ({
   usePrayerManager: vi.fn(),
 }));
 
-vi.mock("../lib/supabase", () => {
-  // Create shared spies so we can export both `supabase` (object) and named helpers
-  const mockDirectMutation = vi.fn(() =>
-    Promise.resolve({ data: null, error: null }),
-  );
-  const mockDirectQuery = vi.fn(() =>
-    Promise.resolve({ data: null, error: null }),
-  );
-  const mockFunctionsInvoke = vi.fn(() =>
-    Promise.resolve({ data: null, error: null }),
-  );
+// Use the shared supabase mock factory so every test gets a consistent, chainable
+// supabase-like API. Keep this mock hoisted so Vitest can properly replace the module.
+vi.mock("../lib/supabase", async () => {
+  // Create the supabase mock inside the vi.mock factory to avoid hoisting /
+  // initialization-order ReferenceErrors. This ensures a fresh, chainable
+  // mock instance is available to modules that import it.
+  const mod = await import("../testUtils/supabaseMock");
+  const createSupabaseMock =
+    (mod as any).default ?? (mod as any).createSupabaseMock;
 
-  const supabaseMock = {
-    from: vi.fn(() => ({
-      insert: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      select: vi.fn(() => ({
-        order: vi.fn(() => Promise.resolve({ data: [], error: null })),
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({ data: [], error: null })),
-          maybeSingle: vi.fn(() =>
-            Promise.resolve({ data: null, error: null }),
-          ),
-        })),
-      })),
-    })),
-    channel: vi.fn(() => ({
-      on: vi.fn(function (this: any) {
-        return this;
-      }),
-      subscribe: vi.fn(() => ({})),
-    })),
-    removeChannel: vi.fn(),
-    auth: {
-      getSession: vi.fn(() =>
-        Promise.resolve({ data: { session: null }, error: null }),
-      ),
-      onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      })),
+  const supabase = createSupabaseMock({
+    fromData: {
+      prayers: [],
+      profiles: [],
+      prayer_updates: [],
     },
-    // Keep the helpers on the supabase object for tests that access them there
-    directMutation: mockDirectMutation,
-    directQuery: mockDirectQuery,
-    functions: {
-      invoke: mockFunctionsInvoke,
-    },
-  };
+    // functionsInvoke can be customized per-test by overriding the mock below if needed.
+    functionsInvoke: async () => ({ data: null, error: null }),
+  }) as any;
+
+  // Lightweight named helpers that some modules import directly. They delegate to
+  // the shared spies where appropriate (or are simple stubs).
+  const directMutation = vi.fn(async () => ({ data: null, error: null }));
+  const directQuery = vi.fn(async () => ({ data: null, error: null }));
 
   return {
-    // default export used throughout the codebase
-    supabase: supabaseMock,
-    // named exports expected by many modules (App.tsx and others)
-    directMutation: mockDirectMutation,
-    directQuery: mockDirectQuery,
+    supabase,
+    directMutation,
+    directQuery,
     getSupabaseConfig: () => ({
       url: "https://test.supabase.co",
       anonKey: "test-anon-key",
     }),
-    // re-export functions.invoke at top-level for tests that import it directly
-    functions: { invoke: mockFunctionsInvoke },
-    // lightweight isNetworkError helper (can be overridden in other tests)
-    isNetworkError: (e: any) => false,
-  };
+    // Keep functions.invoke available to modules that import it directly.
+    functions: { invoke: supabase.functions.invoke },
+    isNetworkError: (_e: unknown) => false,
+  } as any;
 });
 
 // Mock components
