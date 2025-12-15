@@ -23,7 +23,7 @@ export default defineConfig({
     // Enable minification and compression
     minify: 'terser',
     terserOptions: {
-      output: {
+      format: {
         comments: false,
       },
       compress: {
