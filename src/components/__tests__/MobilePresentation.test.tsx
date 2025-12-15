@@ -170,7 +170,7 @@ describe.skip('MobilePresentation Component', () => {
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
-  it.skip('handles swipe navigation', async () => {
+  it('handles swipe navigation', async () => {
     const mockPrayers = [
       {
         id: '1',
@@ -263,7 +263,7 @@ describe.skip('MobilePresentation Component', () => {
     expect(screen.getByText('Stop Timer')).toBeInTheDocument();
   });
 
-  it.skip('toggles controls visibility on double tap', async () => {
+  it('toggles controls visibility on double tap', async () => {
     render(<MobilePresentation />);
 
     await waitFor(() => {
