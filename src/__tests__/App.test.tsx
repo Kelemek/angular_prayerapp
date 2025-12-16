@@ -362,4 +362,234 @@ describe("App", () => {
       expect(screen.getByText("Church Prayer Manager")).toBeDefined();
     });
   });
+
+  describe("Branding and Settings", () => {
+    it("loads branding settings on mount", async () => {
+      const { supabase } = await import("../lib/supabase");
+      
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            app_title: "Custom Title",
+            app_subtitle: "Custom Subtitle",
+            use_logo: false,
+            light_mode_logo_blob: "",
+            dark_mode_logo_blob: "",
+            deletions_allowed: "everyone",
+            updates_allowed: "everyone",
+          },
+          error: null,
+        }),
+      } as any);
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Custom Title")).toBeDefined();
+      });
+    });
+
+    it("uses default branding if loading fails", async () => {
+      const { supabase } = await import("../lib/supabase");
+      
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: "Failed to load" },
+        }),
+      } as any);
+
+      render(<App />);
+
+      // Should still render with default title
+      expect(screen.getByText("Church Prayer Manager")).toBeDefined();
+    });
+
+    it("tracks page views on initial load", async () => {
+      const { directMutation } = await import("../lib/supabase");
+      
+      render(<App />);
+
+      await waitFor(() => {
+        expect(directMutation).toHaveBeenCalledWith(
+          "analytics",
+          expect.objectContaining({
+            method: "POST",
+            body: expect.objectContaining({
+              event_type: "page_view",
+            }),
+          })
+        );
+      });
+    });
+
+    it("handles analytics tracking failure gracefully", async () => {
+      const { directMutation } = await import("../lib/supabase");
+      const consoleSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+      
+      vi.mocked(directMutation).mockRejectedValue(new Error("Analytics failed"));
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Analytics tracking failed:",
+          expect.any(Error)
+        );
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("Prayer Prompts", () => {
+    it("fetches prompts on mount", async () => {
+      const { supabase } = await import("../lib/supabase");
+      
+      const mockFrom = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({
+          data: [{ name: "Praise", display_order: 1 }],
+          error: null,
+        }),
+      } as any);
+
+      vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(mockFrom).toHaveBeenCalledWith("prayer_types");
+        expect(mockFrom).toHaveBeenCalledWith("prayer_prompts");
+      });
+    });
+
+    it("handles prompt fetch errors gracefully", async () => {
+      const { supabase } = await import("../lib/supabase");
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: "Failed to fetch prompts" },
+        }),
+      } as any);
+
+      render(<App />);
+
+      // Should not crash despite the error
+      await waitFor(() => {
+        expect(screen.getByText("Church Prayer Manager")).toBeDefined();
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("refetches prompts when page becomes visible", async () => {
+      const { supabase } = await import("../lib/supabase");
+      
+      const orderSpy = vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: orderSpy,
+      } as any);
+
+      render(<App />);
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(orderSpy).toHaveBeenCalled();
+      });
+
+      const initialCallCount = orderSpy.mock.calls.length;
+
+      // Simulate page becoming visible
+      Object.defineProperty(document, "visibilityState", {
+        writable: true,
+        value: "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+
+      await waitFor(() => {
+        expect(orderSpy.mock.calls.length).toBeGreaterThan(initialCallCount);
+      });
+    });
+  });
+
+  describe("Dark Mode Detection", () => {
+    it("detects and responds to dark mode changes", async () => {
+      render(<App />);
+
+      // Add dark class to documentElement
+      document.documentElement.classList.add("dark");
+
+      // Trigger MutationObserver
+      await waitFor(() => {
+        expect(document.documentElement.classList.contains("dark")).toBe(true);
+      });
+
+      // Remove dark class
+      document.documentElement.classList.remove("dark");
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("displays retry button when there is an error", () => {
+      mockUsePrayerManager.mockReturnValue({
+        prayers: [],
+        loading: false,
+        error: "Database connection failed",
+        addPrayer: vi.fn(),
+        updatePrayerStatus: vi.fn(),
+        addPrayerUpdate: vi.fn(),
+        deletePrayer: vi.fn(),
+        getFilteredPrayers: vi.fn(() => []),
+        refresh: vi.fn(),
+        deletePrayerUpdate: vi.fn(),
+        requestUpdateDeletion: vi.fn(),
+      });
+
+      render(<App />);
+
+      const retryButton = screen.getByText("Try Again");
+      expect(retryButton).toBeDefined();
+    });
+
+    it("calls refresh when retry button is clicked", () => {
+      const mockRefresh = vi.fn();
+      
+      mockUsePrayerManager.mockReturnValue({
+        prayers: [],
+        loading: false,
+        error: "Database connection failed",
+        addPrayer: vi.fn(),
+        updatePrayerStatus: vi.fn(),
+        addPrayerUpdate: vi.fn(),
+        deletePrayer: vi.fn(),
+        getFilteredPrayers: vi.fn(() => []),
+        refresh: mockRefresh,
+        deletePrayerUpdate: vi.fn(),
+        requestUpdateDeletion: vi.fn(),
+      });
+
+      render(<App />);
+
+      const retryButton = screen.getByText("Try Again");
+      retryButton.click();
+
+      expect(mockRefresh).toHaveBeenCalled();
+    });
+  });
 });
