@@ -773,4 +773,479 @@ describe("UserSettings", () => {
       });
     });
   });
+
+  describe("Print Dropdown Functionality", () => {
+    it("opens print range dropdown when chevron is clicked", async () => {
+      const user = userEvent.setup();
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      // Find the chevron button next to Print Prayer List
+      const buttons = screen.getAllByRole("button");
+      const chevronButton = buttons.find((btn) =>
+        btn.className.includes("rounded-r-lg"),
+      );
+
+      if (chevronButton) {
+        await user.click(chevronButton);
+
+        // Dropdown should now be visible
+        await waitFor(() => {
+          expect(screen.getByText("Last Week")).toBeDefined();
+          expect(screen.getByText("Last 2 Weeks")).toBeDefined();
+          expect(screen.getByText("Last Month")).toBeDefined();
+          expect(screen.getByText("Last Year")).toBeDefined();
+          expect(screen.getByText("All Prayers")).toBeDefined();
+        });
+      }
+    });
+
+    it("closes print range dropdown when overlay is clicked", async () => {
+      const user = userEvent.setup();
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      // Open dropdown
+      const buttons = screen.getAllByRole("button");
+      const chevronButton = buttons.find(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") &&
+          btn.textContent === "" &&
+          !btn.className.includes("border-l border-green-500") &&
+          btn.parentElement?.querySelector('[class*="Print Prompts"]') === null,
+      );
+
+      if (chevronButton) {
+        await user.click(chevronButton);
+
+        await waitFor(() => {
+          expect(screen.getByText("Last Week")).toBeDefined();
+        });
+
+        // Click the overlay (find by className)
+        const overlay = document.querySelector(".fixed.inset-0.z-10");
+        if (overlay) {
+          await user.click(overlay as HTMLElement);
+
+          // Dropdown should be closed
+          await waitFor(() => {
+            expect(screen.queryByText("Last Week")).toBeNull();
+          });
+        }
+      }
+    });
+
+    it("selects 'twoweeks' print range", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePrayerList } =
+        await import("../../utils/printablePrayerList");
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      // Open dropdown
+      const buttons = screen.getAllByRole("button");
+      const chevronButton = buttons.find(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") &&
+          btn.textContent === "" &&
+          !btn.className.includes("border-l border-green-500") &&
+          btn.parentElement?.querySelector('[class*="Print Prompts"]') === null,
+      );
+
+      if (chevronButton) {
+        await user.click(chevronButton);
+
+        await waitFor(() => {
+          expect(screen.getByText("Last 2 Weeks")).toBeDefined();
+        });
+
+        // Click "Last 2 Weeks"
+        await user.click(screen.getByText("Last 2 Weeks"));
+
+        // Dropdown should close
+        await waitFor(() => {
+          expect(screen.queryByText("Last 2 Weeks")).toBeNull();
+        });
+
+        // Now click print button and verify the range was set
+        await user.click(screen.getByText("Print Prayer List"));
+
+        await waitFor(() => {
+          expect(downloadPrintablePrayerList).toHaveBeenCalledWith(
+            "twoweeks",
+            expect.anything(),
+          );
+        });
+      }
+    });
+
+    it("selects 'month' print range", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePrayerList } =
+        await import("../../utils/printablePrayerList");
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      // Open dropdown
+      const buttons = screen.getAllByRole("button");
+      const chevronButton = buttons.find(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") &&
+          btn.textContent === "" &&
+          !btn.className.includes("border-l border-green-500") &&
+          btn.parentElement?.querySelector('[class*="Print Prompts"]') === null,
+      );
+
+      if (chevronButton) {
+        await user.click(chevronButton);
+
+        await waitFor(() => {
+          expect(screen.getByText("Last Month")).toBeDefined();
+        });
+
+        // Click "Last Month"
+        await user.click(screen.getByText("Last Month"));
+
+        // Now click print button and verify the range was set
+        await user.click(screen.getByText("Print Prayer List"));
+
+        await waitFor(() => {
+          expect(downloadPrintablePrayerList).toHaveBeenCalledWith(
+            "month",
+            expect.anything(),
+          );
+        });
+      }
+    });
+
+    it("selects 'year' print range", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePrayerList } =
+        await import("../../utils/printablePrayerList");
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      // Open dropdown
+      const buttons = screen.getAllByRole("button");
+      const chevronButton = buttons.find(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") &&
+          btn.textContent === "" &&
+          !btn.className.includes("border-l border-green-500") &&
+          btn.parentElement?.querySelector('[class*="Print Prompts"]') === null,
+      );
+
+      if (chevronButton) {
+        await user.click(chevronButton);
+
+        await waitFor(() => {
+          expect(screen.getByText("Last Year")).toBeDefined();
+        });
+
+        // Click "Last Year"
+        await user.click(screen.getByText("Last Year"));
+
+        // Now click print button and verify the range was set
+        await user.click(screen.getByText("Print Prayer List"));
+
+        await waitFor(() => {
+          expect(downloadPrintablePrayerList).toHaveBeenCalledWith(
+            "year",
+            expect.anything(),
+          );
+        });
+      }
+    });
+
+    it("selects 'all' print range", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePrayerList } =
+        await import("../../utils/printablePrayerList");
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      // Open dropdown
+      const buttons = screen.getAllByRole("button");
+      const chevronButton = buttons.find(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") &&
+          btn.textContent === "" &&
+          !btn.className.includes("border-l border-green-500") &&
+          btn.parentElement?.querySelector('[class*="Print Prompts"]') === null,
+      );
+
+      if (chevronButton) {
+        await user.click(chevronButton);
+
+        await waitFor(() => {
+          expect(screen.getByText("All Prayers")).toBeDefined();
+        });
+
+        // Click "All Prayers"
+        await user.click(screen.getByText("All Prayers"));
+
+        // Now click print button and verify the range was set
+        await user.click(screen.getByText("Print Prayer List"));
+
+        await waitFor(() => {
+          expect(downloadPrintablePrayerList).toHaveBeenCalledWith(
+            "all",
+            expect.anything(),
+          );
+        });
+      }
+    });
+  });
+
+  describe("Prompt Types Dropdown Functionality", () => {
+    it("opens prompt types dropdown when chevron is clicked", async () => {
+      const user = userEvent.setup();
+
+      // Set up prayer types data
+      (supabase as any).__testData.prayer_types = [
+        { name: "General", display_order: 1, is_active: true },
+        { name: "Healing", display_order: 2, is_active: true },
+        { name: "Thanksgiving", display_order: 3, is_active: true },
+      ];
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      // Wait for prayer types to load
+      await waitFor(
+        () => {
+          const buttons = screen.getAllByRole("button");
+          expect(buttons.length).toBeGreaterThan(0);
+        },
+        { timeout: 1000 },
+      );
+
+      // Find the chevron button next to Print Prompts (second chevron)
+      const allButtons = screen.getAllByRole("button");
+      const chevronButtons = allButtons.filter(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") && btn.textContent === "",
+      );
+
+      // The second chevron is for prompts
+      const promptChevron = chevronButtons[1];
+
+      if (promptChevron) {
+        await user.click(promptChevron);
+
+        // Dropdown should now be visible
+        await waitFor(() => {
+          expect(screen.getByText("All Types")).toBeDefined();
+          expect(screen.getByText("General")).toBeDefined();
+          expect(screen.getByText("Healing")).toBeDefined();
+          expect(screen.getByText("Thanksgiving")).toBeDefined();
+        });
+      }
+    });
+
+    it("closes prompt types dropdown when overlay is clicked", async () => {
+      const user = userEvent.setup();
+
+      // Set up prayer types data
+      (supabase as any).__testData.prayer_types = [
+        { name: "General", display_order: 1, is_active: true },
+      ];
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      await waitFor(
+        () => {
+          expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
+        },
+        { timeout: 1000 },
+      );
+
+      // Open dropdown
+      const allButtons = screen.getAllByRole("button");
+      const chevronButtons = allButtons.filter(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") && btn.textContent === "",
+      );
+      const promptChevron = chevronButtons[1];
+
+      if (promptChevron) {
+        await user.click(promptChevron);
+
+        await waitFor(() => {
+          expect(screen.getByText("All Types")).toBeDefined();
+        });
+
+        // Click the overlay
+        const overlays = document.querySelectorAll(".fixed.inset-0.z-10");
+        const overlay = overlays[overlays.length - 1]; // Get the last one (for prompts)
+        if (overlay) {
+          await user.click(overlay as HTMLElement);
+
+          // Dropdown should be closed
+          await waitFor(() => {
+            expect(screen.queryByText("All Types")).toBeNull();
+          });
+        }
+      }
+    });
+
+    it("selects 'All Types' in prompt types dropdown", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePromptList } =
+        await import("../../utils/printablePromptList");
+
+      // Set up prayer types data
+      (supabase as any).__testData.prayer_types = [
+        { name: "General", display_order: 1, is_active: true },
+        { name: "Healing", display_order: 2, is_active: true },
+      ];
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      await waitFor(
+        () => {
+          expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
+        },
+        { timeout: 1000 },
+      );
+
+      // Open dropdown
+      const allButtons = screen.getAllByRole("button");
+      const chevronButtons = allButtons.filter(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") && btn.textContent === "",
+      );
+      const promptChevron = chevronButtons[1];
+
+      if (promptChevron) {
+        await user.click(promptChevron);
+
+        await waitFor(() => {
+          expect(screen.getByText("All Types")).toBeDefined();
+        });
+
+        // Click "All Types"
+        await user.click(screen.getByText("All Types"));
+
+        // Now click print prompts button
+        await user.click(screen.getByText("Print Prompts"));
+
+        await waitFor(() => {
+          expect(downloadPrintablePromptList).toHaveBeenCalledWith(
+            [],
+            expect.anything(),
+          );
+        });
+      }
+    });
+
+    it("selects and deselects individual prompt types", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePromptList } =
+        await import("../../utils/printablePromptList");
+
+      // Set up prayer types data
+      (supabase as any).__testData.prayer_types = [
+        { name: "General", display_order: 1, is_active: true },
+        { name: "Healing", display_order: 2, is_active: true },
+      ];
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      await waitFor(
+        () => {
+          expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
+        },
+        { timeout: 1000 },
+      );
+
+      // Open dropdown
+      const allButtons = screen.getAllByRole("button");
+      const chevronButtons = allButtons.filter(
+        (btn) =>
+          btn.className.includes("rounded-r-lg") && btn.textContent === "",
+      );
+      const promptChevron = chevronButtons[1];
+
+      if (promptChevron) {
+        await user.click(promptChevron);
+
+        await waitFor(() => {
+          expect(screen.getByText("General")).toBeDefined();
+          expect(screen.getByText("Healing")).toBeDefined();
+        });
+
+        // Select "General"
+        const generalButtons = screen.getAllByText("General");
+        await user.click(generalButtons[0]);
+
+        // Select "Healing"
+        const healingButtons = screen.getAllByText("Healing");
+        await user.click(healingButtons[0]);
+
+        // Deselect "General"
+        const generalButtonsAgain = screen.getAllByText("General");
+        await user.click(generalButtonsAgain[0]);
+
+        // Now click print prompts button
+        await user.click(screen.getByText("Print Prompts"));
+
+        await waitFor(() => {
+          expect(downloadPrintablePromptList).toHaveBeenCalledWith(
+            ["Healing"],
+            expect.anything(),
+          );
+        });
+      }
+    });
+  });
+
+  describe("Print Error Handling", () => {
+    const createMockWindow = () => ({
+      close: vi.fn(),
+      document: {
+        write: vi.fn(),
+        close: vi.fn(),
+      },
+    });
+
+    it("handles error when printing prayers fails", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePrayerList } =
+        await import("../../utils/printablePrayerList");
+      
+      const mockWindow = createMockWindow();
+      window.open = vi.fn(() => mockWindow) as any;
+
+      vi.mocked(downloadPrintablePrayerList).mockRejectedValue(
+        new Error("Print failed"),
+      );
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      await user.click(screen.getByText("Print Prayer List"));
+
+      await waitFor(() => {
+        expect(mockWindow.close).toHaveBeenCalled();
+      });
+    });
+
+    it("handles error when printing prompts fails", async () => {
+      const user = userEvent.setup();
+      const { downloadPrintablePromptList } =
+        await import("../../utils/printablePromptList");
+      
+      const mockWindow = createMockWindow();
+      window.open = vi.fn(() => mockWindow) as any;
+
+      vi.mocked(downloadPrintablePromptList).mockRejectedValue(
+        new Error("Print failed"),
+      );
+
+      render(<UserSettings isOpen={true} onClose={mockOnClose} />);
+
+      await user.click(screen.getByText("Print Prompts"));
+
+      await waitFor(() => {
+        expect(mockWindow.close).toHaveBeenCalled();
+      });
+    });
+  });
 });
