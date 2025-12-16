@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -32,7 +32,6 @@ describe('SessionTimeoutSettings', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    cleanup(); // Clean up any previous renders
     // Reset mocks to default behavior
     mockMaybeSingle = vi.fn(async () => ({ data: null, error: null }));
     mockUpsert = vi.fn(async () => ({ error: null }));
@@ -40,8 +39,7 @@ describe('SessionTimeoutSettings', () => {
   });
 
   afterEach(() => {
-    cleanup();
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('loads defaults and allows saving valid settings', async () => {
@@ -82,7 +80,7 @@ describe('SessionTimeoutSettings', () => {
     expect(await screen.findByText(/Database heartbeat must be less frequent than inactivity timeout/i)).toBeInTheDocument();
   });
 
-  it('loads settings from localStorage and saves them successfully', async () => {
+  it('saves settings successfully when localStorage has cached data', async () => {
     // Set localStorage with cached settings
     const cachedSettings = {
       inactivityTimeoutMinutes: 45,
@@ -98,7 +96,7 @@ describe('SessionTimeoutSettings', () => {
       expect(screen.queryByText(/Loading settings/i)).not.toBeInTheDocument();
     });
 
-    // Verify the component loaded (even if cached values don't match due to module state)
+    // Verify the component loaded
     expect(screen.getByText(/Session Timeout Configuration/i)).toBeInTheDocument();
     
     // Try to save the settings
@@ -193,9 +191,8 @@ describe('SessionTimeoutSettings', () => {
   });
 
   it('handles localStorage storage error gracefully', async () => {
-    // Mock localStorage.setItem to throw an error
-    const originalSetItem = Storage.prototype.setItem;
-    Storage.prototype.setItem = vi.fn(() => {
+    // Spy on localStorage.setItem to throw an error
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('QuotaExceededError');
     });
 
@@ -214,8 +211,8 @@ describe('SessionTimeoutSettings', () => {
     // Should still show success even if localStorage fails
     expect(await screen.findByText(/Settings saved successfully/i)).toBeInTheDocument();
 
-    // Restore original setItem
-    Storage.prototype.setItem = originalSetItem;
+    // Restore is automatic via afterEach restoreAllMocks
+    setItemSpy.mockRestore();
   });
 
   it('handles general error during save', async () => {
