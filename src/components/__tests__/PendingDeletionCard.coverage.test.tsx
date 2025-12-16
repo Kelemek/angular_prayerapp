@@ -56,11 +56,11 @@ describe('PendingDeletionCard - Coverage Tests', () => {
   describe('Planning Center Lookup', () => {
     it('shows loading state while looking up Planning Center', async () => {
       // Mock a slow lookup
-      let resolvePromise: any;
+      let resolvePromise: ((value: any) => void) | undefined;
       const lookupPromise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      (lookupPersonByEmail as any).mockReturnValue(lookupPromise);
+      vi.mocked(lookupPersonByEmail).mockReturnValue(lookupPromise);
 
       render(
         <PendingDeletionCard
@@ -80,7 +80,7 @@ describe('PendingDeletionCard - Coverage Tests', () => {
     });
 
     it('shows Planning Center person when found', async () => {
-      (lookupPersonByEmail as any).mockResolvedValue({
+      vi.mocked(lookupPersonByEmail).mockResolvedValue({
         people: [{
           id: 'pc-person-1',
           type: 'person',
@@ -112,7 +112,7 @@ describe('PendingDeletionCard - Coverage Tests', () => {
     });
 
     it('shows "Not in Planning Center" when person not found', async () => {
-      (lookupPersonByEmail as any).mockResolvedValue({
+      vi.mocked(lookupPersonByEmail).mockResolvedValue({
         people: [],
         count: 0
       });
@@ -133,7 +133,7 @@ describe('PendingDeletionCard - Coverage Tests', () => {
 
     it('shows error message when Planning Center lookup fails', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      (lookupPersonByEmail as any).mockRejectedValue(new Error('PC API error'));
+      vi.mocked(lookupPersonByEmail).mockRejectedValue(new Error('PC API error'));
 
       render(
         <PendingDeletionCard
@@ -178,7 +178,7 @@ describe('PendingDeletionCard - Coverage Tests', () => {
     });
 
     it('displays email when provided without Planning Center lookup result', async () => {
-      (lookupPersonByEmail as any).mockResolvedValue({
+      vi.mocked(lookupPersonByEmail).mockResolvedValue({
         people: [],
         count: 0
       });
@@ -215,7 +215,7 @@ describe('PendingDeletionCard - Coverage Tests', () => {
     });
 
     it('displays MessageSquare icon when email is provided', async () => {
-      (lookupPersonByEmail as any).mockResolvedValue({
+      vi.mocked(lookupPersonByEmail).mockResolvedValue({
         people: [],
         count: 0
       });
