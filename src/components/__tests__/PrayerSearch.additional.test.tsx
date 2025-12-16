@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 import { PrayerSearch } from '../PrayerSearch';
 import userEvent from '@testing-library/user-event';
 
@@ -16,8 +16,15 @@ global.fetch = vi.fn();
 describe('PrayerSearch Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  beforeAll(() => {
     vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
+  });
+
+  afterAll(() => {
+    vi.unstubAllEnvs();
   });
 
   it('renders the prayer search component', () => {
