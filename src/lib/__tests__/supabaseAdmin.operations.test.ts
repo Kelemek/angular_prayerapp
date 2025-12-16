@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { supabaseAdmin } from '../supabaseAdmin';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Type helper for test assertions
+type SupabaseClientAny = SupabaseClient<any, 'public', any>;
 
 /**
  * Tests for supabaseAdmin operations
@@ -8,8 +12,8 @@ import { supabaseAdmin } from '../supabaseAdmin';
 describe('supabaseAdmin - Operation Tests', () => {
   describe('Table Operations', () => {
     it('supports from() method for table selection', () => {
-      // Access the from method
-      const fromMethod = (supabaseAdmin as any).from;
+      // Access the from method with proper typing
+      const fromMethod = (supabaseAdmin as SupabaseClientAny).from;
       
       expect(fromMethod).toBeDefined();
       expect(typeof fromMethod).toBe('function');
@@ -17,7 +21,7 @@ describe('supabaseAdmin - Operation Tests', () => {
 
     it('supports chained query operations', () => {
       // The mock should support chaining
-      const query = (supabaseAdmin as any)
+      const query = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .select('*');
       
@@ -25,21 +29,21 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('supports insert operations via from().insert()', () => {
-      const query = (supabaseAdmin as any).from('prayer_requests');
+      const query = (supabaseAdmin as SupabaseClientAny).from('prayer_requests');
       const insertQuery = query.insert({ title: 'Test' });
       
       expect(insertQuery).toBeDefined();
     });
 
     it('supports update operations via from().update()', () => {
-      const query = (supabaseAdmin as any).from('prayer_requests');
+      const query = (supabaseAdmin as SupabaseClientAny).from('prayer_requests');
       const updateQuery = query.update({ status: 'approved' });
       
       expect(updateQuery).toBeDefined();
     });
 
     it('supports delete operations via from().delete()', () => {
-      const query = (supabaseAdmin as any).from('prayer_requests');
+      const query = (supabaseAdmin as SupabaseClientAny).from('prayer_requests');
       const deleteQuery = query.delete();
       
       expect(deleteQuery).toBeDefined();
@@ -48,7 +52,7 @@ describe('supabaseAdmin - Operation Tests', () => {
 
   describe('Prayer Request Admin Operations', () => {
     it('can access prayer_requests table', () => {
-      const query = (supabaseAdmin as any).from('prayer_requests');
+      const query = (supabaseAdmin as SupabaseClientAny).from('prayer_requests');
       
       expect(query).toBeDefined();
       expect(query).toHaveProperty('select');
@@ -69,7 +73,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('can call update on prayer requests', () => {
-      const updateQuery = (supabaseAdmin as any)
+      const updateQuery = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .update({ status: 'approved' });
       
@@ -79,7 +83,7 @@ describe('supabaseAdmin - Operation Tests', () => {
 
   describe('Admin User Management', () => {
     it('can access admin_users table', () => {
-      const query = (supabaseAdmin as any).from('admin_users');
+      const query = (supabaseAdmin as SupabaseClientAny).from('admin_users');
       
       expect(query).toBeDefined();
       expect(query).toHaveProperty('select');
@@ -99,7 +103,7 @@ describe('supabaseAdmin - Operation Tests', () => {
 
   describe('Preference Changes', () => {
     it('can access pending_preference_changes table', () => {
-      const query = (supabaseAdmin as any).from('pending_preference_changes');
+      const query = (supabaseAdmin as SupabaseClientAny).from('pending_preference_changes');
       
       expect(query).toBeDefined();
       expect(query).toHaveProperty('select');
@@ -117,7 +121,7 @@ describe('supabaseAdmin - Operation Tests', () => {
 
   describe('Functions Support', () => {
     it('supports functions.invoke for edge functions', () => {
-      const functions = (supabaseAdmin as any).functions;
+      const functions = (supabaseAdmin as SupabaseClientAny).functions;
       
       expect(functions).toBeDefined();
       expect(functions.invoke).toBeDefined();
@@ -125,7 +129,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('can call edge functions with parameters', async () => {
-      const result = await (supabaseAdmin as any).functions.invoke('test_function', {
+      const result = await (supabaseAdmin as SupabaseClientAny).functions.invoke('test_function', {
         body: { param1: 'value1', param2: 'value2' },
       });
       
@@ -137,13 +141,13 @@ describe('supabaseAdmin - Operation Tests', () => {
 
   describe('Auth Operations', () => {
     it('provides access to auth module', () => {
-      const auth = (supabaseAdmin as any).auth;
+      const auth = (supabaseAdmin as SupabaseClientAny).auth;
       
       expect(auth).toBeDefined();
     });
 
     it('auth module has getSession method', async () => {
-      const auth = (supabaseAdmin as any).auth;
+      const auth = (supabaseAdmin as SupabaseClientAny).auth;
       
       expect(auth).toHaveProperty('getSession');
       expect(typeof auth.getSession).toBe('function');
@@ -154,7 +158,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('auth module has onAuthStateChange method', () => {
-      const auth = (supabaseAdmin as any).auth;
+      const auth = (supabaseAdmin as SupabaseClientAny).auth;
       
       expect(auth).toHaveProperty('onAuthStateChange');
       expect(typeof auth.onAuthStateChange).toBe('function');
@@ -163,7 +167,7 @@ describe('supabaseAdmin - Operation Tests', () => {
 
   describe('Query Filters', () => {
     it('supports eq filter', () => {
-      const query = (supabaseAdmin as any)
+      const query = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .select('*')
         .eq('id', '123');
@@ -172,7 +176,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('supports order filter', () => {
-      const query = (supabaseAdmin as any)
+      const query = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .select('*')
         .order('created_at', { ascending: false });
@@ -181,7 +185,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('supports limit filter', () => {
-      const query = (supabaseAdmin as any)
+      const query = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .select('*')
         .limit(10);
@@ -190,7 +194,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('supports range filter', () => {
-      const query = (supabaseAdmin as any)
+      const query = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .select('*')
         .range(0, 9);
@@ -202,17 +206,17 @@ describe('supabaseAdmin - Operation Tests', () => {
   describe('Batch Operations', () => {
     it('supports multiple operations in sequence', () => {
       // First operation: select
-      const query1 = (supabaseAdmin as any)
+      const query1 = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .select('*');
       
       // Second operation: insert
-      const query2 = (supabaseAdmin as any)
+      const query2 = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .insert({ title: 'Test' });
       
       // Third operation: update
-      const query3 = (supabaseAdmin as any)
+      const query3 = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .update({ status: 'approved' });
       
@@ -222,7 +226,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     });
 
     it('supports complex query chains', () => {
-      const complexQuery = (supabaseAdmin as any)
+      const complexQuery = (supabaseAdmin as SupabaseClientAny)
         .from('prayer_requests')
         .select('id, title, status, created_at')
         .eq('status', 'pending')
@@ -243,7 +247,7 @@ describe('supabaseAdmin - Operation Tests', () => {
     it('provides Database type support', () => {
       // This is primarily a TypeScript compile-time check
       // At runtime, we verify the client structure exists
-      const hasFrom = (supabaseAdmin as any).from;
+      const hasFrom = (supabaseAdmin as SupabaseClientAny).from;
       expect(hasFrom).toBeDefined();
     });
   });
