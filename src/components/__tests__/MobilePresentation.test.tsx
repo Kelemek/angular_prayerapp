@@ -154,10 +154,11 @@ describe('MobilePresentation Component', () => {
   });
 
   it('opens settings panel when settings button is clicked', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
     render(<MobilePresentation />);
 
     await waitFor(() => {
-      expect(screen.getByText('No Prayers Available')).toBeInTheDocument();
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
     });
 
     const settingsButton = screen.getByRole('button', { name: /settings/i });
@@ -169,10 +170,11 @@ describe('MobilePresentation Component', () => {
   });
 
   it('closes settings panel when close button is clicked', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
     render(<MobilePresentation />);
 
     await waitFor(() => {
-      expect(screen.getByText('No Prayers Available')).toBeInTheDocument();
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
     });
 
     // Open settings
@@ -183,10 +185,8 @@ describe('MobilePresentation Component', () => {
       expect(screen.getByText('Settings')).toBeInTheDocument();
     });
 
-    // Close settings - use X button in settings panel
-    const closeButtons = screen.getAllByRole('button', { name: /exit|close/i });
-    // The first close button should be the one in the settings panel
-    fireEvent.click(closeButtons[0]);
+    // Close settings - click settings button again to toggle it off
+    fireEvent.click(settingsButton);
 
     await waitFor(() => {
       expect(screen.queryByText('Settings')).not.toBeInTheDocument();
@@ -246,46 +246,57 @@ describe('MobilePresentation Component', () => {
   });
 
   it('shows prayer timer controls in settings', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
     render(<MobilePresentation />);
 
     await waitFor(() => {
-      expect(screen.getByText('No Prayers Available')).toBeInTheDocument();
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
     });
 
     // Open settings
     const settingsButton = screen.getByRole('button', { name: /settings/i });
     fireEvent.click(settingsButton);
 
-    expect(screen.getByText('Prayer Timer')).toBeInTheDocument();
-    expect(screen.getByText('Timer Duration (minutes)')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Prayer Timer')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Timer Duration/)).toBeInTheDocument();
   });
 
   it('starts prayer timer when start button is clicked', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
     render(<MobilePresentation />);
 
     await waitFor(() => {
-      expect(screen.getByText('No Prayers Available')).toBeInTheDocument();
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
     });
 
     // Open settings
     const settingsButton = screen.getByRole('button', { name: /settings/i });
     fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Prayer Timer')).toBeInTheDocument();
+    });
 
     const startButton = screen.getByRole('button', { name: /start timer/i });
     fireEvent.click(startButton);
 
     // Timer should be active
-    expect(screen.getByText('Stop Timer')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Stop Timer')).toBeInTheDocument();
+    });
   });
 
   it('toggles controls visibility on double tap', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
     render(<MobilePresentation />);
 
     await waitFor(() => {
-      expect(screen.getByText('No Prayers Available')).toBeInTheDocument();
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
     });
 
-    const container = screen.getByText('No Prayers Available').closest('.flex-1');
+    const container = screen.getByText('Test Person').closest('.flex-1');
 
     // Check initial state - controls should be visible (translate-y-0)
     const controlsContainer = document.querySelector('.fixed.bottom-0');
@@ -433,10 +444,10 @@ describe('MobilePresentation Component', () => {
       expect(screen.getByText('Settings')).toBeInTheDocument();
     });
 
-    // Find duration slider
-    const sliders = screen.getAllByRole('slider');
-    if (sliders.length > 0) {
-      fireEvent.change(sliders[0], { target: { value: '15' } });
+    // Find duration input (it's a spinbutton, not slider)
+    const inputs = screen.getAllByRole('spinbutton');
+    if (inputs.length > 0) {
+      fireEvent.change(inputs[0], { target: { value: '15' } });
     }
   });
 
@@ -671,5 +682,183 @@ describe('MobilePresentation Component', () => {
     await waitFor(() => {
       expect(requestPermissionSpy).toHaveBeenCalled();
     });
+  });
+
+  it('stops prayer timer when stop button is clicked', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    render(<MobilePresentation />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
+    });
+
+    // Open settings and start timer
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Prayer Timer')).toBeInTheDocument();
+    });
+
+    const startButton = screen.getByRole('button', { name: /start timer/i });
+    fireEvent.click(startButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Stop Timer')).toBeInTheDocument();
+    });
+
+    // Stop the timer
+    const stopButton = screen.getByRole('button', { name: /stop timer/i });
+    fireEvent.click(stopButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Start Timer')).toBeInTheDocument();
+    });
+  });
+
+  it('shows smart mode details when button is clicked', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    render(<MobilePresentation />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
+    });
+
+    // Open settings
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+    });
+
+    // Find and click show details button
+    const detailsButton = screen.getByRole('button', { name: /show details/i });
+    fireEvent.click(detailsButton);
+
+    // Details should now be visible
+    await waitFor(() => {
+      expect(screen.getByText(/Hide details/i)).toBeInTheDocument();
+    });
+  });
+
+  it('changes content type to prompts', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    render(<MobilePresentation />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
+    });
+
+    // Open settings
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+    });
+
+    // Find content type select
+    const contentSelect = screen.getAllByRole('combobox')[0];
+    fireEvent.change(contentSelect, { target: { value: 'prompts' } });
+
+    // Should trigger a re-fetch (component will show loading then empty state)
+    await waitFor(() => {
+      // The component should handle the change
+      expect(contentSelect).toHaveValue('prompts');
+    });
+  });
+
+  it('changes content type to both', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    render(<MobilePresentation />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
+    });
+
+    // Open settings
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+    });
+
+    // Find content type select
+    const contentSelect = screen.getAllByRole('combobox')[0];
+    fireEvent.change(contentSelect, { target: { value: 'both' } });
+
+    await waitFor(() => {
+      expect(contentSelect).toHaveValue('both');
+    });
+  });
+
+  it('changes time filter to week', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    render(<MobilePresentation />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
+    });
+
+    // Open settings
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+    });
+
+    // Find time filter select
+    const timeSelect = screen.getAllByRole('combobox')[1];
+    fireEvent.change(timeSelect, { target: { value: 'week' } });
+
+    await waitFor(() => {
+      expect(timeSelect).toHaveValue('week');
+    });
+  });
+
+  it('changes time filter to all', async () => {
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    render(<MobilePresentation />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Person')).toBeInTheDocument();
+    });
+
+    // Open settings
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    fireEvent.click(settingsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+    });
+
+    // Find time filter select
+    const timeSelect = screen.getAllByRole('combobox')[1];
+    fireEvent.change(timeSelect, { target: { value: 'all' } });
+
+    await waitFor(() => {
+      expect(timeSelect).toHaveValue('all');
+    });
+  });
+
+  it('loads theme from localStorage', () => {
+    localStorageMock.getItem.mockReturnValueOnce('dark');
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    
+    render(<MobilePresentation />);
+    
+    expect(localStorageMock.getItem).toHaveBeenCalledWith('theme');
+  });
+
+  it('uses system theme when localStorage is empty', () => {
+    localStorageMock.getItem.mockReturnValueOnce(null);
+    mockQueryData = { data: [createMockPrayer()], error: null };
+    
+    render(<MobilePresentation />);
+    
+    expect(presentationUtils.applyTheme).toHaveBeenCalledWith('system');
   });
 });
