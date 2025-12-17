@@ -292,4 +292,105 @@ describe('downloadPrintablePromptList', () => {
     expect(written).toContain('Evening Praise');
     expect(written).toContain('Daily Confession');
   });
+
+  it('filters prompts by selected types', async () => {
+    const now = new Date().toISOString();
+    const prompts = [
+      { id: 'pp11', title: 'Praise Prompt', type: 'Praise', description: 'Praise God', created_at: now },
+      { id: 'pp12', title: 'Confession Prompt', type: 'Confession', description: 'Confess sins', created_at: now },
+      { id: 'pp13', title: 'Thanksgiving Prompt', type: 'Thanksgiving', description: 'Give thanks', created_at: now }
+    ];
+
+    const types = [
+      { name: 'Praise', display_order: 1 },
+      { name: 'Confession', display_order: 2 },
+      { name: 'Thanksgiving', display_order: 3 }
+    ];
+
+    const chainPrompts = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: prompts, error: null })
+    } as any;
+
+    const chainTypes = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: types, error: null })
+    } as any;
+
+    vi.mocked(supabase.from).mockImplementation((table: string) => table === 'prayer_prompts' ? chainPrompts : chainTypes as any);
+
+    const fakeDoc = {
+      open: vi.fn(),
+      write: vi.fn(),
+      close: vi.fn()
+    } as any;
+
+    const fakeWin: any = { document: fakeDoc, focus: vi.fn() };
+
+    const mod = await import('../printablePromptList');
+    // Only request Praise and Thanksgiving types
+    await mod.downloadPrintablePromptList(['Praise', 'Thanksgiving'], fakeWin as any);
+
+    const written = (fakeDoc.write as any).mock.calls[0][0] as string;
+    // Should include Praise and Thanksgiving
+    expect(written).toContain('Praise Prompt');
+    expect(written).toContain('Thanksgiving Prompt');
+    // Should NOT include Confession (not in selected types)
+    expect(written).not.toContain('Confession Prompt');
+  });
+
+  it('alerts and closes window when no prompts match selected types', async () => {
+    const now = new Date().toISOString();
+    const prompts = [
+      { id: 'pp14', title: 'Praise Prompt', type: 'Praise', description: 'Praise God', created_at: now },
+      { id: 'pp15', title: 'Confession Prompt', type: 'Confession', description: 'Confess sins', created_at: now }
+    ];
+
+    const types = [
+      { name: 'Praise', display_order: 1 },
+      { name: 'Confession', display_order: 2 }
+    ];
+
+    const chainPrompts = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: prompts, error: null })
+    } as any;
+
+    const chainTypes = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: types, error: null })
+    } as any;
+
+    vi.mocked(supabase.from).mockImplementation((table: string) => table === 'prayer_prompts' ? chainPrompts : chainTypes as any);
+
+    const alertSpy = vi.spyOn(globalThis, 'alert').mockImplementation(() => {});
+    const closeSpy = vi.fn();
+    const fakeWin = { close: closeSpy } as any;
+
+    const mod = await import('../printablePromptList');
+    // Request a type that doesn't exist in the data
+    await mod.downloadPrintablePromptList(['Thanksgiving'], fakeWin as any);
+
+    expect(alertSpy).toHaveBeenCalledWith('No prayer prompts found for the selected types.');
+    expect(closeSpy).toHaveBeenCalled();
+  });
+
+  it('handles unexpected errors in the catch block', async () => {
+    // Make supabase.from throw an error
+    vi.mocked(supabase.from).mockImplementation(() => {
+      throw new Error('Unexpected database error');
+    });
+
+    const alertSpy = vi.spyOn(globalThis, 'alert').mockImplementation(() => {});
+    const closeSpy = vi.fn();
+    const fakeWin = { close: closeSpy } as any;
+
+    const mod = await import('../printablePromptList');
+    await mod.downloadPrintablePromptList([], fakeWin as any);
+
+    expect(alertSpy).toHaveBeenCalledWith('An error occurred while generating the prayer prompts list.');
+    expect(closeSpy).toHaveBeenCalled();
+  });
 });
