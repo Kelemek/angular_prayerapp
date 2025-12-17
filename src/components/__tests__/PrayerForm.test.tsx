@@ -3,11 +3,46 @@ import { act } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PrayerForm } from '../PrayerForm';
 import * as userInfoStorage from '../../utils/userInfoStorage';
+import { useVerification } from '../../hooks/useVerification';
 
 // Mock the user info storage
 vi.mock('../../utils/userInfoStorage', () => ({
   getUserInfo: vi.fn(),
   saveUserInfo: vi.fn()
+}));
+
+// Mock the verification hook
+vi.mock('../../hooks/useVerification', () => ({
+  useVerification: vi.fn()
+}));
+
+// Mock the VerificationDialog component
+vi.mock('../VerificationDialog', () => ({
+  VerificationDialog: ({ isOpen, onVerified, onClose, onResend, email }: any) => {
+    if (!isOpen) return null;
+    return (
+      <div data-testid="verification-dialog">
+        <h3>Verification Code</h3>
+        <p>Email: {email}</p>
+        <input placeholder="Enter verification code" data-testid="code-input" />
+        <button onClick={async () => {
+          try {
+            await onVerified({ test: 'data' });
+          } catch (e) {
+            // Catch any errors thrown by onVerified
+          }
+        }}>Verify</button>
+        <button onClick={onClose}>Cancel</button>
+        <button onClick={async () => {
+          try {
+            await onResend();
+          } catch (e) {
+            // Catch any errors thrown by onResend
+          }
+        }}>Resend Code</button>
+      </div>
+    );
+  }
 }));
 
 describe('PrayerForm', () => {
@@ -20,6 +55,12 @@ describe('PrayerForm', () => {
       firstName: '',
       lastName: '',
       email: ''
+    });
+    // Default: verification disabled
+    vi.mocked(useVerification).mockReturnValue({
+      isEnabled: false,
+      requestCode: vi.fn(),
+      verifyCode: vi.fn()
     });
   });
 
@@ -456,6 +497,462 @@ describe('PrayerForm', () => {
     // Wait for submission to complete
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalled();
+    });
+  });
+
+  describe('Email Verification Flow', () => {
+    beforeEach(() => {
+      // By default, verification is disabled
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: false,
+        requestCode: vi.fn(),
+        verifyCode: vi.fn()
+      });
+    });
+
+    it('shows verification dialog when verification is enabled and code is requested', async () => {
+      const mockRequestCode = vi.fn().mockResolvedValue({
+        codeId: 'test-code-123',
+        expiresAt: '2030-01-01T00:00:00Z'
+      });
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: vi.fn()
+      });
+
+      mockOnSubmit.mockResolvedValue(undefined);
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Should call requestCode
+      await waitFor(() => {
+        expect(mockRequestCode).toHaveBeenCalledWith(
+          'john@example.com',
+          'prayer_submission',
+          expect.objectContaining({
+            requester: 'John Doe',
+            prayer_for: 'Test'
+          })
+        );
+      });
+
+      // Verification dialog should appear
+      await waitFor(() => {
+        expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+      });
+    });
+
+    it('submits directly when verification returns null (recently verified)', async () => {
+      const mockRequestCode = vi.fn().mockResolvedValue(null);
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: vi.fn()
+      });
+
+      mockOnSubmit.mockResolvedValue(undefined);
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Should call requestCode which returns null
+      await waitFor(() => {
+        expect(mockRequestCode).toHaveBeenCalled();
+      });
+
+      // Should submit prayer directly without showing verification dialog
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalled();
+      });
+    });
+
+    it('handles verification dialog cancel', async () => {
+      const mockRequestCode = vi.fn().mockResolvedValue({
+        codeId: 'test-code-123',
+        expiresAt: '2030-01-01T00:00:00Z'
+      });
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: vi.fn()
+      });
+
+      mockOnSubmit.mockResolvedValue(undefined);
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Wait for verification dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+      });
+
+      // Cancel the verification dialog
+      const cancelButton = screen.getByRole('button', { name: /cancel/i });
+      act(() => {
+        fireEvent.click(cancelButton);
+      });
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(screen.queryByTestId('verification-dialog')).not.toBeInTheDocument();
+      });
+
+      // onSubmit should not have been called
+      expect(mockOnSubmit).not.toHaveBeenCalled();
+    });
+
+    it('handles verification success and submits prayer', async () => {
+      const mockRequestCode = vi.fn().mockResolvedValue({
+        codeId: 'test-code-123',
+        expiresAt: '2030-01-01T00:00:00Z'
+      });
+
+      const mockVerifyCode = vi.fn().mockResolvedValue({ success: true });
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: mockVerifyCode
+      });
+
+      mockOnSubmit.mockResolvedValue(undefined);
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Wait for verification dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+      });
+
+      // Click verify button (which triggers onVerified callback)
+      const verifyButton = screen.getByRole('button', { name: /verify/i });
+      act(() => {
+        fireEvent.click(verifyButton);
+      });
+
+      // Should submit prayer
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalled();
+      });
+
+      // Verification dialog should close
+      await waitFor(() => {
+        expect(screen.queryByTestId('verification-dialog')).not.toBeInTheDocument();
+      });
+    });
+
+    it('handles verification error without closing dialog', async () => {
+      const mockRequestCode = vi.fn().mockResolvedValue({
+        codeId: 'test-code-123',
+        expiresAt: '2030-01-01T00:00:00Z'
+      });
+
+      const mockVerifyCode = vi.fn().mockResolvedValue({ success: true });
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: mockVerifyCode
+      });
+
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockOnSubmit.mockRejectedValue(new Error('Submission failed'));
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Wait for verification dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+      });
+
+      // Click verify button
+      const verifyButton = screen.getByRole('button', { name: /verify/i });
+      act(() => {
+        fireEvent.click(verifyButton);
+      });
+
+      // Should verify code but fail submission
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to submit verified prayer:', expect.any(Error));
+      });
+
+      // Verification dialog should remain open because submission failed
+      expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('handles resend verification code', async () => {
+      const mockRequestCode = vi.fn()
+        .mockResolvedValueOnce({
+          codeId: 'test-code-123',
+          expiresAt: '2030-01-01T00:00:00Z'
+        })
+        .mockResolvedValueOnce({
+          codeId: 'test-code-456',
+          expiresAt: '2030-01-01T00:05:00Z'
+        });
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: vi.fn()
+      });
+
+      mockOnSubmit.mockResolvedValue(undefined);
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Wait for verification dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+      });
+
+      // Click resend button
+      const resendButton = screen.getByRole('button', { name: /resend/i });
+      act(() => {
+        fireEvent.click(resendButton);
+      });
+
+      // Should call requestCode again
+      await waitFor(() => {
+        expect(mockRequestCode).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('handles resend code with null response (recently verified)', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockRequestCode = vi.fn()
+        .mockResolvedValueOnce({
+          codeId: 'test-code-123',
+          expiresAt: '2030-01-01T00:00:00Z'
+        })
+        .mockResolvedValueOnce(null); // Second call returns null
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: vi.fn()
+      });
+
+      mockOnSubmit.mockResolvedValue(undefined);
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Wait for verification dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+      });
+
+      // Click resend button
+      const resendButton = screen.getByRole('button', { name: /resend/i });
+      act(() => {
+        fireEvent.click(resendButton);
+      });
+
+      // Should call requestCode again and log warning
+      await waitFor(() => {
+        expect(mockRequestCode).toHaveBeenCalledTimes(2);
+      });
+
+      await waitFor(() => {
+        expect(consoleWarnSpy).toHaveBeenCalledWith('User was recently verified, no need to resend code');
+      });
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('handles resend code error', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const mockRequestCode = vi.fn()
+        .mockResolvedValueOnce({
+          codeId: 'test-code-123',
+          expiresAt: '2030-01-01T00:00:00Z'
+        })
+        .mockRejectedValueOnce(new Error('Network error'));
+
+      vi.mocked(useVerification).mockReturnValue({
+        isEnabled: true,
+        requestCode: mockRequestCode,
+        verifyCode: vi.fn()
+      });
+
+      mockOnSubmit.mockResolvedValue(undefined);
+
+      render(
+        <PrayerForm
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isOpen={true}
+        />
+      );
+
+      // Fill out the form
+      fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'John' } });
+      fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByPlaceholderText('Your email address'), { target: { value: 'john@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Who or what this prayer is for'), { target: { value: 'Test' } });
+      fireEvent.change(screen.getByPlaceholderText('Describe the prayer request in detail'), { target: { value: 'Test description' } });
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      act(() => {
+        fireEvent.click(submitButton);
+      });
+
+      // Wait for verification dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('verification-dialog')).toBeInTheDocument();
+      });
+
+      // Click resend button - the error will be logged but component continues
+      const resendButton = screen.getByRole('button', { name: /resend/i });
+      act(() => {
+        fireEvent.click(resendButton);
+      });
+
+      // Should call requestCode again which throws error
+      await waitFor(() => {
+        expect(mockRequestCode).toHaveBeenCalledTimes(2);
+      });
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to resend verification code:', expect.any(Error));
+      });
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });
