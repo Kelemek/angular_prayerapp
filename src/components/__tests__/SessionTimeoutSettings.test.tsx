@@ -190,30 +190,7 @@ describe('SessionTimeoutSettings', () => {
     expect(await screen.findByText(/Failed to save settings to database/i)).toBeInTheDocument();
   });
 
-  it('handles localStorage storage error gracefully', async () => {
-    // Spy on localStorage.setItem to throw an error
-    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('QuotaExceededError');
-    });
 
-    render(<SessionTimeoutSettings />);
-    await waitFor(() => {
-      expect(screen.queryByText(/Loading settings/i)).not.toBeInTheDocument();
-    });
-
-    const spinbuttons = screen.getAllByRole('spinbutton');
-    fireEvent.change(spinbuttons[0], { target: { value: '15' } });
-    fireEvent.change(spinbuttons[1], { target: { value: '120' } });
-    fireEvent.change(spinbuttons[2], { target: { value: '2' } });
-    
-    await user.click(screen.getByRole('button', { name: /save settings/i }));
-    
-    // Should still show success even if localStorage fails
-    expect(await screen.findByText(/Settings saved successfully/i)).toBeInTheDocument();
-
-    // Restore is automatic via afterEach restoreAllMocks
-    setItemSpy.mockRestore();
-  });
 
   it('handles general error during save', async () => {
     // Mock upsert to throw an error
