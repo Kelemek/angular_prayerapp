@@ -160,6 +160,97 @@ describe("usePrayerManager - Coverage Tests", () => {
       expect(response).toEqual({ ok: true, data: { id: "req-123" } });
     });
 
+    it("handles sendAdminNotification failure gracefully", async () => {
+      const { sendAdminNotification } = await import("../../lib/emailNotifications");
+      
+      // Mock sendAdminNotification to reject
+      vi.mocked(sendAdminNotification).mockRejectedValueOnce(new Error("Email service down"));
+
+      const mockEq2 = vi.fn(() => ({
+        order: vi.fn(() => ({
+          data: [],
+          error: null,
+        })),
+      }));
+
+      const mockEq1 = vi.fn(() => ({
+        eq: mockEq2,
+      }));
+
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === "prayers") {
+          return {
+            select: vi.fn(() => ({
+              eq: mockEq1,
+            })),
+          };
+        }
+        if (table === "update_deletion_requests") {
+          return {
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(() => ({
+                  data: { id: "req-456" },
+                  error: null,
+                })),
+              })),
+            })),
+          };
+        }
+        if (table === "prayer_updates") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => ({
+                  data: {
+                    id: "update-123",
+                    content: "Update content",
+                    author: "Author",
+                    prayer_id: "prayer-123",
+                  },
+                  error: null,
+                })),
+              })),
+            })),
+          };
+        }
+        if (table === "email_subscribers") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  eq: vi.fn(() => ({
+                    data: [{ email: "admin@example.com" }],
+                    error: null,
+                  })),
+                })),
+              })),
+            })),
+          };
+        }
+      });
+
+      const { result } = renderHook(() => usePrayerManager());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Request update deletion - should succeed even if email fails
+      let response;
+      await act(async () => {
+        response = await result.current.requestUpdateDeletion(
+          "update-123",
+          "Spam",
+          "User",
+          "user@example.com"
+        );
+      });
+
+      // Should return success despite email failure
+      expect(response).toEqual({ ok: true, data: { id: "req-456" } });
+    });
+
     it("handles error in requestUpdateDeletion", async () => {
       const mockEq2 = vi.fn(() => ({
         order: vi.fn(() => ({
@@ -362,6 +453,78 @@ describe("usePrayerManager - Coverage Tests", () => {
 
       // Should have triggered a reload
       expect(loadCallCount).toBeGreaterThan(initialLoadCount);
+    });
+  });
+
+  describe("getFilteredPrayers with non-array updates", () => {
+    it("handles prayers where updates is not an array", async () => {
+      const mockPrayers = [
+        {
+          id: "1",
+          title: "Prayer One",
+          description: "Description one",
+          status: "active" as const,
+          requester: "John",
+          prayer_for: "Jane",
+          email: null,
+          is_anonymous: false,
+          date_requested: "2024-01-01",
+          date_answered: null,
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+          prayer_updates: null as any, // Not an array
+        },
+        {
+          id: "2",
+          title: "Prayer with matching term",
+          description: "This has the healing keyword",
+          status: "active" as const,
+          requester: "Bob",
+          prayer_for: "Alice",
+          email: null,
+          is_anonymous: false,
+          date_requested: "2024-01-01",
+          date_answered: null,
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+          prayer_updates: [],
+        },
+      ];
+
+      const mockEq2 = vi.fn(() => ({
+        order: vi.fn(() => ({
+          data: mockPrayers,
+          error: null,
+        })),
+      }));
+
+      const mockEq1 = vi.fn(() => ({
+        eq: mockEq2,
+      }));
+
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === "prayers") {
+          return {
+            select: vi.fn(() => ({
+              eq: mockEq1,
+            })),
+          };
+        }
+      });
+
+      const { result } = renderHook(() => usePrayerManager());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+        expect(result.current.prayers.length).toBe(2);
+      });
+
+      // Filter with a search term - should handle null updates gracefully
+      const filtered = result.current.getFilteredPrayers(undefined, "healing");
+
+      // Should find the prayer with matching title/description, not crash on null updates
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].id).toBe("2");
     });
   });
 
