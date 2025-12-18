@@ -114,10 +114,9 @@ describe('emailNotifications', () => {
       title: 'T',
       description: 'D',
       requester: 'Alice',
-      requesterEmail: 'alice@example.com',
       prayerFor: 'World',
       status: 'open'
-    } as any);
+    });
 
     expect(sendEmailToAllSubscribers).toHaveBeenCalled();
   });
@@ -188,7 +187,7 @@ describe('emailNotifications', () => {
       content: 'C',
       author: 'A',
       markedAsAnswered: false
-    } as any);
+    });
 
     expect(sendEmailToAllSubscribers).toHaveBeenCalled();
 
@@ -211,7 +210,7 @@ describe('emailNotifications', () => {
       content: 'C2',
       author: 'A2',
       markedAsAnswered: true
-    } as any);
+    });
 
     expect(consoleError).toHaveBeenCalled();
   });
@@ -419,10 +418,9 @@ describe('emailNotifications', () => {
         title: 'Approved Prayer',
         description: 'Now showing to everyone',
         requester: 'John',
-        requesterEmail: 'john@example.com',
         prayerFor: 'World',
         status: 'open'
-      } as any);
+      });
 
       expect(sendEmailToAllSubscribers).toHaveBeenCalled();
     });
@@ -434,10 +432,9 @@ describe('emailNotifications', () => {
         title: 'T',
         description: 'D',
         requester: 'R',
-        requesterEmail: 'r@example.com',
         prayerFor: 'All',
         status: 'open'
-      } as any);
+      });
 
       expect(consoleError).toHaveBeenCalled();
     });
@@ -526,7 +523,7 @@ describe('emailNotifications', () => {
         content: 'Update text',
         author: 'Author',
         markedAsAnswered: false
-      } as any);
+      });
 
       expect(sendEmailToAllSubscribers).toHaveBeenCalled();
     });
@@ -549,7 +546,7 @@ describe('emailNotifications', () => {
         content: 'Update',
         author: 'Author',
         markedAsAnswered: true
-      } as any);
+      });
 
       expect(sendEmailToAllSubscribers).toHaveBeenCalled();
     });
