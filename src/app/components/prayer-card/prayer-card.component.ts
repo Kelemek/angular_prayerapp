@@ -192,10 +192,10 @@ import { PrayerRequest } from '../../services/prayer.service';
       <div *ngIf="prayer.updates && prayer.updates.length > 0" class="pt-4">
         <div class="flex items-center justify-between mb-3">
           <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Recent Updates <span *ngIf="prayer.updates.length > 2">({{ showAllUpdates ? prayer.updates.length : 2 }} of {{ prayer.updates.length }})</span>
+            Recent Updates <span *ngIf="!showAllUpdates && getDisplayedUpdates().length < prayer.updates.length">({{ getDisplayedUpdates().length }} of {{ prayer.updates.length }})</span>
           </h4>
           <button
-            *ngIf="prayer.updates.length > 2"
+            *ngIf="shouldShowToggleButton()"
             (click)="showAllUpdates = !showAllUpdates"
             class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
           >
@@ -359,7 +359,28 @@ export class PrayerCardComponent implements OnInit {
 
   getDisplayedUpdates() {
     if (!this.prayer.updates) return [];
-    return this.showAllUpdates ? this.prayer.updates : this.prayer.updates.slice(0, 2);
+    const sortedUpdates = [...this.prayer.updates].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    if (this.showAllUpdates) return sortedUpdates;
+    
+    // Get updates from the last week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const recentUpdates = sortedUpdates.filter(update => 
+      new Date(update.created_at).getTime() > oneWeekAgo.getTime()
+    );
+    
+    // If there are updates less than 1 week old, show all of them
+    // Otherwise, show only the most recent update
+    return recentUpdates.length > 0 ? recentUpdates : sortedUpdates.slice(0, 1);
+  }
+
+  shouldShowToggleButton(): boolean {
+    if (!this.prayer.updates) return false;
+    const displayed = this.getDisplayedUpdates();
+    return displayed.length < this.prayer.updates.length || this.showAllUpdates;
   }
 
   formatDate(dateString: string): string {

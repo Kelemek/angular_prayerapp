@@ -470,11 +470,22 @@ export class PrintService {
       : null;
 
     // Sort updates by date (newest first)
-    const updates = Array.isArray(prayer.prayer_updates) 
+    const sortedUpdates = Array.isArray(prayer.prayer_updates) 
       ? [...prayer.prayer_updates].sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
       : [];
+    
+    // Get updates from the last week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const recentUpdates = sortedUpdates.filter(update => 
+      new Date(update.created_at).getTime() > oneWeekAgo.getTime()
+    );
+    
+    // If there are updates less than 1 week old, show all of them
+    // Otherwise, show only the most recent update
+    const updates = recentUpdates.length > 0 ? recentUpdates : sortedUpdates.slice(0, 1);
     
     // Show updates in condensed format with minimal spacing
     const updatesHTML = updates.length > 0 ? `

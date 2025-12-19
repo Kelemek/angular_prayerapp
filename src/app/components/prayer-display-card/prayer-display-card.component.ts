@@ -61,8 +61,20 @@ interface PrayerPrompt {
       <!-- Updates Section -->
       <div *ngIf="prayer.prayer_updates && prayer.prayer_updates.length > 0" 
         class="border-t border-gray-300 dark:border-gray-600 pt-6">
-        <div class="text-lg md:text-xl lg:text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-          Recent Updates ({{ getRecentUpdates().length }})
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            Recent Updates <span *ngIf="!showAllUpdates && getRecentUpdates().length < prayer.prayer_updates.length">({{ getRecentUpdates().length }} of {{ prayer.prayer_updates.length }})</span>
+          </div>
+          <button
+            *ngIf="shouldShowToggleButton()"
+            (click)="showAllUpdates = !showAllUpdates"
+            class="text-sm md:text-base text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
+          >
+            {{ showAllUpdates ? 'Show less' : 'Show all' }}
+            <svg [class]="'transform transition-transform ' + (showAllUpdates ? 'rotate-180' : '')" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
         </div>
         <div class="space-y-4">
           <div *ngFor="let update of getRecentUpdates()" 
@@ -80,7 +92,7 @@ interface PrayerPrompt {
     <div *ngIf="prompt" class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto">
       <!-- Type Badge -->
       <div class="mb-6">
-        <span class="inline-block px-3 md:px-4 lg:px-5 py-1 md:py-1.5 lg:py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-sm md:text-base lg:text-xl font-semibold border border-yellow-300 dark:border-yellow-700">
+        <span class="inline-block px-3 md:px-4 lg:px-5 py-1 md:py-1.5 lg:py-2 bg-[#988F83] text-white rounded-full text-sm md:text-base lg:text-xl font-semibold">
           {{ prompt.type }}
         </span>
       </div>
@@ -105,6 +117,8 @@ interface PrayerPrompt {
 export class PrayerDisplayCardComponent {
   @Input() prayer?: Prayer;
   @Input() prompt?: PrayerPrompt;
+  
+  showAllUpdates = false;
 
   getStatusBadgeClasses(status: string): string {
     const baseClasses = 'px-5 py-2 rounded-full border ';
@@ -120,9 +134,27 @@ export class PrayerDisplayCardComponent {
 
   getRecentUpdates() {
     if (!this.prayer?.prayer_updates) return [];
-    return this.prayer.prayer_updates
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 3);
+    const sortedUpdates = [...this.prayer.prayer_updates]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    if (this.showAllUpdates) return sortedUpdates;
+    
+    // Get updates from the last week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const recentUpdates = sortedUpdates.filter(update => 
+      new Date(update.created_at).getTime() > oneWeekAgo.getTime()
+    );
+    
+    // If there are updates less than 1 week old, show all of them
+    // Otherwise, show only the most recent update
+    return recentUpdates.length > 0 ? recentUpdates : sortedUpdates.slice(0, 1);
+  }
+
+  shouldShowToggleButton(): boolean {
+    if (!this.prayer?.prayer_updates) return false;
+    const displayed = this.getRecentUpdates();
+    return displayed.length < this.prayer.prayer_updates.length || this.showAllUpdates;
   }
 
   formatDate(dateString: string): string {
