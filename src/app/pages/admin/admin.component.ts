@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { AdminDataService } from '../../services/admin-data.service';
+import { AnalyticsService, AnalyticsStats } from '../../services/analytics.service';
 import { PendingPrayerCardComponent } from '../../components/pending-prayer-card/pending-prayer-card.component';
 import { PendingUpdateCardComponent } from '../../components/pending-update-card/pending-update-card.component';
 import { PendingDeletionCardComponent } from '../../components/pending-deletion-card/pending-deletion-card.component';
@@ -10,6 +11,7 @@ import { PendingUpdateDeletionCardComponent } from '../../components/pending-upd
 import { PendingPreferenceChangeCardComponent } from '../../components/pending-preference-change-card/pending-preference-change-card.component';
 
 type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings';
+type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'timeouts';
 
 @Component({
   selector: 'app-admin',
@@ -54,7 +56,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
         <!-- Stats Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-8">
           <button
-            (click)="activeTab = 'prayers'"
+            (click)="onTabChange('prayers')"
             [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 ' + (activeTab === 'prayers' ? 'ring-2 ring-blue-500' : '')"
           >
             <div class="text-center">
@@ -66,7 +68,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
           </button>
 
           <button
-            (click)="activeTab = 'updates'"
+            (click)="onTabChange('updates')"
             [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 ' + (activeTab === 'updates' ? 'ring-2 ring-blue-500' : '')"
           >
             <div class="text-center">
@@ -78,7 +80,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
           </button>
 
           <button
-            (click)="activeTab = 'deletions'"
+            (click)="onTabChange('deletions')"
             [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 ' + (activeTab === 'deletions' ? 'ring-2 ring-blue-500' : '')"
           >
             <div class="text-center">
@@ -90,7 +92,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
           </button>
 
           <button
-            (click)="activeTab = 'preferences'"
+            (click)="onTabChange('preferences')"
             [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 ' + (activeTab === 'preferences' ? 'ring-2 ring-blue-500' : '')"
           >
             <div class="text-center">
@@ -102,7 +104,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
           </button>
 
           <button
-            (click)="activeTab = 'settings'"
+            (click)="onTabChange('settings')"
             [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 ' + (activeTab === 'settings' ? 'ring-2 ring-blue-500' : '')"
           >
             <div class="text-center">
@@ -295,14 +297,200 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
             </div>
           </div>
 
-          <!-- Other tabs placeholder -->
-          <div *ngIf="activeTab !== 'prayers' && activeTab !== 'updates' && activeTab !== 'deletions' && activeTab !== 'preferences'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-              {{ activeTab | titlecase }} Tab
-            </h3>
-            <p class="text-gray-500 dark:text-gray-400">
-              This section is being built. Check back soon!
-            </p>
+          <!-- Settings Tab -->
+          <div *ngIf="activeTab === 'settings'">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+              Admin Settings
+            </h2>
+            
+            <!-- Settings Sub-Navigation -->
+            <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+              <button
+                (click)="onSettingsTabChange('analytics')"
+                [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'analytics' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                  <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+                Analytics
+              </button>
+              <button
+                (click)="onSettingsTabChange('content')"
+                [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'content' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Content
+              </button>
+              <button
+                (click)="onSettingsTabChange('email')"
+                [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'email' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                Email
+              </button>
+              <button
+                (click)="onSettingsTabChange('users')"
+                [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'users' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Users
+              </button>
+              <button
+                (click)="onSettingsTabChange('tools')"
+                [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'tools' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                Tools
+              </button>
+              <button
+                (click)="onSettingsTabChange('timeouts')"
+                [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'timeouts' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Timeouts
+              </button>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div *ngIf="activeSettingsTab === 'analytics'" class="space-y-6">
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 mb-4">
+                  <svg class="text-blue-600 dark:text-blue-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                    <polyline points="17 6 23 6 23 12"></polyline>
+                  </svg>
+                  <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100">
+                    Site Analytics
+                  </h3>
+                </div>
+                
+                <div *ngIf="analyticsStats.loading" class="text-center py-4">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                </div>
+
+                <div *ngIf="!analyticsStats.loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <!-- Today -->
+                  <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-blue-600 dark:text-blue-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <div class="text-sm font-medium text-blue-900 dark:text-blue-100">Today</div>
+                    </div>
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                      {{ analyticsStats.todayPageViews.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">page views</div>
+                  </div>
+
+                  <!-- This Week -->
+                  <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-purple-600 dark:text-purple-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      <div class="text-sm font-medium text-purple-900 dark:text-purple-100">This Week</div>
+                    </div>
+                    <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                      {{ analyticsStats.weekPageViews.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">page views</div>
+                  </div>
+
+                  <!-- This Month -->
+                  <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-green-600 dark:text-green-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                        <polyline points="17 6 23 6 23 12"></polyline>
+                      </svg>
+                      <div class="text-sm font-medium text-green-900 dark:text-green-100">This Month</div>
+                    </div>
+                    <div class="text-3xl font-bold text-green-600 dark:text-green-400">
+                      {{ analyticsStats.monthPageViews.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-green-600/70 dark:text-green-400/70 mt-1">page views</div>
+                  </div>
+
+                  <!-- All Time -->
+                  <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-orange-600 dark:text-orange-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                      <div class="text-sm font-medium text-orange-900 dark:text-orange-100">All Time</div>
+                    </div>
+                    <div class="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                      {{ analyticsStats.totalPageViews.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-orange-600/70 dark:text-orange-400/70 mt-1">total page views</div>
+                  </div>
+
+                  <!-- Total Prayers -->
+                  <div class="bg-rose-50 dark:bg-rose-900/20 rounded-lg p-4 border border-rose-200 dark:border-rose-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-rose-600 dark:text-rose-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                      </svg>
+                      <div class="text-sm font-medium text-rose-900 dark:text-rose-100">Total Prayers</div>
+                    </div>
+                    <div class="text-3xl font-bold text-rose-600 dark:text-rose-400">
+                      {{ analyticsStats.totalPrayers.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-rose-600/70 dark:text-rose-400/70 mt-1">in database</div>
+                  </div>
+
+                  <!-- Subscribers -->
+                  <div class="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-cyan-600 dark:text-cyan-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <polyline points="17 11 19 13 23 9"></polyline>
+                      </svg>
+                      <div class="text-sm font-medium text-cyan-900 dark:text-cyan-100">Subscribers</div>
+                    </div>
+                    <div class="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                      {{ analyticsStats.totalSubscribers.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-cyan-600/70 dark:text-cyan-400/70 mt-1">email subscribers</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Other Settings Tabs Placeholder -->
+            <div *ngIf="activeSettingsTab !== 'analytics'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                {{ activeSettingsTab | titlecase }} Settings
+              </h3>
+              <p class="text-gray-500 dark:text-gray-400">
+                This section is being built. Check back soon!
+              </p>
+            </div>
           </div>
         </div>
       </main>
@@ -312,12 +500,23 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
 })
 export class AdminComponent implements OnInit, OnDestroy {
   activeTab: AdminTab = 'prayers';
+  activeSettingsTab: SettingsTab = 'analytics';
   adminData: any = null;
+  analyticsStats: AnalyticsStats = {
+    todayPageViews: 0,
+    weekPageViews: 0,
+    monthPageViews: 0,
+    totalPageViews: 0,
+    totalPrayers: 0,
+    totalSubscribers: 0,
+    loading: false
+  };
   private destroy$ = new Subject<void>();
 
   constructor(
     private router: Router,
-    private adminDataService: AdminDataService
+    private adminDataService: AdminDataService,
+    private analyticsService: AnalyticsService
   ) {}
 
   ngOnInit() {
@@ -330,6 +529,36 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     // Initial fetch
     this.adminDataService.fetchAdminData();
+    
+    // Load analytics if settings tab is already active
+    if (this.activeTab === 'settings' && this.activeSettingsTab === 'analytics') {
+      this.loadAnalytics();
+    }
+  }
+
+  async loadAnalytics() {
+    this.analyticsStats.loading = true;
+    try {
+      this.analyticsStats = await this.analyticsService.getStats();
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    } finally {
+      this.analyticsStats.loading = false;
+    }
+  }
+
+  onTabChange(tab: AdminTab) {
+    this.activeTab = tab;
+    if (tab === 'settings' && this.activeSettingsTab === 'analytics' && this.analyticsStats.totalPageViews === 0) {
+      this.loadAnalytics();
+    }
+  }
+
+  onSettingsTabChange(tab: SettingsTab) {
+    this.activeSettingsTab = tab;
+    if (tab === 'analytics' && this.analyticsStats.totalPageViews === 0) {
+      this.loadAnalytics();
+    }
   }
 
   ngOnDestroy() {
