@@ -227,7 +227,7 @@ import { PrayerRequest } from '../../services/prayer.service';
                   </svg>
                 </button>
               </div>
-              <span class="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-3 text-xs text-gray-500 dark:text-gray-400">
+              <span class="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 {{ formatDate(update.created_at) }}
               </span>
             </div>
