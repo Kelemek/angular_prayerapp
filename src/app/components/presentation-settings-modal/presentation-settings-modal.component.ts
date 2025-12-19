@@ -11,25 +11,25 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div *ngIf="visible" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full shadow-2xl max-h-[90vh] flex flex-col">
-        <div class="flex items-center justify-between p-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h2>
+    <div *ngIf="visible" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div class="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl max-w-md w-full shadow-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-4 sm:p-6 lg:p-8 pb-3 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h2>
           <button
             (click)="close.emit()"
             class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
         </div>
 
-        <div class="space-y-6 px-8 pb-8 overflow-y-auto">
+        <div class="space-y-4 sm:space-y-5 lg:space-y-6 px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 overflow-y-auto">
           <!-- Theme Selection -->
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mt-4">
-            <div class="flex items-start gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5">
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 mt-3 sm:mt-4">
+            <div class="flex items-start gap-2 sm:gap-3">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5">
                 <circle cx="12" cy="12" r="5"></circle>
                 <line x1="12" y1="1" x2="12" y2="3"></line>
                 <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -41,18 +41,18 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
               </svg>
               <div class="flex-1">
-                <div class="font-medium text-gray-800 dark:text-gray-100 mb-3 text-base">
+                <div class="font-medium text-gray-800 dark:text-gray-100 mb-2 sm:mb-3 text-sm sm:text-base">
                   Theme Preference
                 </div>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-3 gap-1.5 sm:gap-2">
                   <button
                     (click)="themeChange.emit('light')"
-                    class="flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all"
+                    class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all"
                     [ngClass]="{
                       'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'light',
                       'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600': theme !== 'light'
                     }">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600">
+                    <svg width="18" height="18" class="text-amber-600 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <circle cx="12" cy="12" r="5"></circle>
                       <line x1="12" y1="1" x2="12" y2="3"></line>
                       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -63,32 +63,32 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                       <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                       <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg>
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-100">Light</span>
+                    <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100">Light</span>
                   </button>
                   <button
                     (click)="themeChange.emit('dark')"
-                    class="flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all"
+                    class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all"
                     [ngClass]="{
                       'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'dark',
                       'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600': theme !== 'dark'
                     }">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-600 dark:text-blue-400">
+                    <svg width="18" height="18" class="text-blue-600 dark:text-blue-400 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-100">Dark</span>
+                    <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100">Dark</span>
                   </button>
                   <button
                     (click)="themeChange.emit('system')"
-                    class="flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all"
+                    class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all"
                     [ngClass]="{
                       'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'system',
                       'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600': theme !== 'system'
                     }">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-600 dark:text-gray-400">
+                    <svg width="18" height="18" class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                       <line x1="8" y1="21" x2="16" y2="21"></line>
                     </svg>
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-100">System</span>
+                    <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100">System</span>
                   </button>
                 </div>
                 <p class="text-sm text-gray-700 dark:text-gray-300 mt-2">
@@ -100,15 +100,15 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 
           <!-- Smart Mode -->
           <div>
-            <label class="flex items-start gap-3 cursor-pointer mb-6">
-              <input type="checkbox" [(ngModel)]="localSmartMode" (ngModelChange)="smartModeChange.emit($event)" class="w-6 h-6 rounded text-blue-600 mt-0.5">
-              <span class="text-xl text-gray-900 dark:text-gray-100">Smart Mode (adjust time based on content length)</span>
+            <label class="flex items-start gap-2 sm:gap-3 cursor-pointer mb-4 sm:mb-6">
+              <input type="checkbox" [(ngModel)]="localSmartMode" (ngModelChange)="smartModeChange.emit($event)" class="w-5 h-5 sm:w-6 sm:h-6 rounded text-blue-600 mt-0.5 flex-shrink-0">
+              <span class="text-base sm:text-lg lg:text-xl text-gray-900 dark:text-gray-100">Smart Mode (adjust time based on content length)</span>
             </label>
           </div>
 
           <!-- Duration Slider and Quick Buttons (when not smart mode) -->
           <div *ngIf="!localSmartMode">
-            <label class="block text-xl mb-3 text-gray-900 dark:text-gray-100">Auto-advance interval (seconds)</label>
+            <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Auto-advance interval (seconds)</label>
             <input
               type="range"
               min="5"
@@ -116,24 +116,24 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               step="5"
               [(ngModel)]="localDisplayDuration"
               (ngModelChange)="displayDurationChange.emit($event)"
-              class="w-full h-3 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600">
-            <div class="text-center text-2xl mt-2 font-semibold text-gray-900 dark:text-gray-100">{{ localDisplayDuration }}s</div>
+              class="w-full h-2.5 sm:h-3 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600">
+            <div class="text-center text-xl sm:text-2xl mt-2 font-semibold text-gray-900 dark:text-gray-100">{{ localDisplayDuration }}s</div>
             
             <!-- Quick Duration Buttons -->
-            <div class="flex gap-3 mt-4">
+            <div class="flex gap-2 sm:gap-3 mt-3 sm:mt-4">
               <button
                 (click)="setDuration(10)"
-                class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-lg transition-colors">
+                class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-base sm:text-lg transition-colors">
                 10s
               </button>
               <button
                 (click)="setDuration(20)"
-                class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-lg transition-colors">
+                class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-base sm:text-lg transition-colors">
                 20s
               </button>
               <button
                 (click)="setDuration(30)"
-                class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-lg transition-colors">
+                class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-base sm:text-lg transition-colors">
                 30s
               </button>
             </div>
@@ -165,12 +165,12 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 
           <!-- Content Type -->
           <div>
-            <label class="block text-xl mb-3 text-gray-900 dark:text-gray-100">Content Type</label>
+            <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Content Type</label>
             <div class="relative">
               <select
                 [(ngModel)]="localContentType"
                 (ngModelChange)="contentTypeChange.emit($event)"
-                class="w-full appearance-none px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0047AB] focus:border-transparent pr-12">
+                class="w-full appearance-none px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-base sm:text-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0047AB] focus:border-transparent pr-10 sm:pr-12">
                 <option value="prayers">Prayers</option>
                 <option value="prompts">Prayer Prompts</option>
                 <option value="both">Both</option>
@@ -184,7 +184,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           <!-- Randomize Toggle -->
           <div>
             <label class="flex items-center justify-between cursor-pointer">
-              <span class="text-xl text-gray-900 dark:text-gray-100">Randomize Order</span>
+              <span class="text-base sm:text-lg lg:text-xl text-gray-900 dark:text-gray-100">Randomize Order</span>
               <div class="relative">
                 <input
                   type="checkbox"
@@ -201,12 +201,12 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 
           <!-- Time Filter (for prayers only) -->
           <div *ngIf="localContentType === 'prayers'">
-            <label class="block text-xl mb-3 text-gray-900 dark:text-gray-100">Time Period</label>
+            <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Time Period</label>
             <div class="relative">
               <select
                 [(ngModel)]="localTimeFilter"
                 (ngModelChange)="timeFilterChange.emit($event)"
-                class="w-full appearance-none px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0047AB] focus:border-transparent pr-12">
+                class="w-full appearance-none px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-base sm:text-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0047AB] focus:border-transparent pr-10 sm:pr-12">
                 <option value="week">Last Week</option>
                 <option value="twoweeks">Last 2 Weeks</option>
                 <option value="month">Last Month</option>
@@ -221,18 +221,17 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 
           <!-- Prayer Status (for prayers only) -->
           <div *ngIf="localContentType === 'prayers'">
-            <label class="block text-xl mb-3 text-gray-900 dark:text-gray-100">Prayer Status</label>
+            <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Prayer Status</label>
             <div class="relative">
               <div class="flex">
-                <div class="flex-1 flex items-center px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-l-lg text-lg border border-r-0 border-gray-300 dark:border-gray-600">
+                <div class="flex-1 flex items-center px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-l-lg text-base sm:text-lg border border-r-0 border-gray-300 dark:border-gray-600">
                   <span>{{ getStatusFilterDisplay() }}</span>
                 </div>
                 <button
                   (click)="toggleStatusDropdown()"
-                  class="flex items-center justify-center px-3 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-r-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    [class.rotate-180]="showStatusDropdown"
-                    class="transition-transform">
+                  class="flex items-center justify-center px-2.5 sm:px-3 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-r-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    [class.rotate-180]="showStatusDropdown">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </button>
@@ -243,13 +242,13 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                   <div
                     *ngFor="let status of ['current', 'answered', 'archived']"
                     (mousedown)="togglePendingStatus(status); $event.preventDefault()"
-                    class="w-full text-left px-4 py-3 text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between capitalize cursor-pointer">
+                    class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between capitalize cursor-pointer">
                     <span>{{ status }}</span>
                     <span *ngIf="isPendingStatusSelected(status)" class="text-green-600 dark:text-green-400">✓</span>
                   </div>
                   <div
                     (mousedown)="clearPendingStatus(); $event.preventDefault()"
-                    class="w-full text-left px-4 py-3 text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer border-t border-gray-200 dark:border-gray-700">
+                    class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer border-t border-gray-200 dark:border-gray-700">
                     <span>All Statuses</span>
                     <span *ngIf="pendingStatusFilter.length === 0" class="text-green-600 dark:text-green-400">✓</span>
                   </div>
@@ -259,23 +258,23 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
 
           <!-- Prayer Timer -->
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="flex items-start gap-3 mb-4">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#2F5F54] dark:text-[#5FB876] flex-shrink-0 mt-0.5">
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+            <div class="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#2F5F54] dark:text-[#5FB876] flex-shrink-0 mt-0.5">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
               <div class="flex-1">
-                <div class="font-medium text-gray-800 dark:text-gray-100 mb-2 text-base">
+                <div class="font-medium text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 text-sm sm:text-base">
                   Prayer Timer
                 </div>
-                <p class="text-sm text-gray-700 dark:text-gray-300">
+                <p class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                   Set a dedicated time for focused prayer
                 </p>
               </div>
             </div>
             
-            <label class="block text-lg mb-3 text-gray-900 dark:text-gray-100">Duration (minutes)</label>
+            <label class="block text-base sm:text-lg mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Duration (minutes)</label>
             <input
               type="range"
               min="1"
@@ -283,12 +282,12 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               step="1"
               [(ngModel)]="localPrayerTimerMinutes"
               (ngModelChange)="prayerTimerMinutesChange.emit($event)"
-              class="w-full h-3 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#2F5F54]">
-            <div class="text-center text-2xl mt-2 font-semibold text-gray-900 dark:text-gray-100">{{ localPrayerTimerMinutes }} min</div>
+              class="w-full h-2.5 sm:h-3 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#2F5F54]">
+            <div class="text-center text-xl sm:text-2xl mt-2 font-semibold text-gray-900 dark:text-gray-100">{{ localPrayerTimerMinutes }} min</div>
             
             <button
               (click)="startPrayerTimer.emit()"
-              class="w-full mt-4 px-6 py-3 bg-[#2F5F54] hover:bg-[#1a3a2e] text-white rounded-lg text-lg font-semibold transition-colors">
+              class="w-full mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 bg-[#2F5F54] hover:bg-[#1a3a2e] text-white rounded-lg text-base sm:text-lg font-semibold transition-colors">
               Start Prayer Timer
             </button>
           </div>
@@ -296,7 +295,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           <!-- Refresh Button -->
           <button
             (click)="refresh.emit()"
-            class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-gray-100 rounded-lg text-lg font-semibold transition-colors">
+            class="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-gray-100 rounded-lg text-base sm:text-lg font-semibold transition-colors">
             Refresh Prayers
           </button>
         </div>
