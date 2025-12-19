@@ -14,6 +14,7 @@ import { PromptManagerComponent } from '../../components/prompt-manager/prompt-m
 import { PrayerTypesManagerComponent } from '../../components/prayer-types-manager/prayer-types-manager.component';
 import { EmailSettingsComponent } from '../../components/email-settings/email-settings.component';
 import { AdminUserManagementComponent } from '../../components/admin-user-management/admin-user-management.component';
+import { PrayerSearchComponent } from '../../components/prayer-search/prayer-search.component';
 
 type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings';
 type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'timeouts';
@@ -32,7 +33,8 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'time
     PromptManagerComponent,
     PrayerTypesManagerComponent,
     EmailSettingsComponent,
-    AdminUserManagementComponent
+    AdminUserManagementComponent,
+    PrayerSearchComponent
   ],
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
@@ -524,7 +526,14 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'time
               </div>
             </div>
 
-            <div *ngIf="activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email' && activeSettingsTab !== 'users'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+            <!-- Tools Tab -->
+            <div *ngIf="activeSettingsTab === 'tools'" class="space-y-6">
+              <div class="mb-4">
+                <app-prayer-search></app-prayer-search>
+              </div>
+            </div>
+
+            <div *ngIf="activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email' && activeSettingsTab !== 'users' && activeSettingsTab !== 'tools'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
               <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
                 {{ activeSettingsTab | titlecase }} Settings
               </h3>

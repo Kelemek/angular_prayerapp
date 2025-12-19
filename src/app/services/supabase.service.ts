@@ -56,6 +56,18 @@ export class SupabaseService {
     };
   }
 
+  getSupabaseUrl(): string {
+    return environment.supabaseUrl;
+  }
+
+  getSupabaseKey(): string {
+    return environment.supabaseAnonKey;
+  }
+
+  getClient(): SupabaseClient {
+    return this.supabase;
+  }
+
   isNetworkError(error: unknown): boolean {
     if (!error) return false;
     
