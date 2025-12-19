@@ -431,6 +431,37 @@ export class AdminDataService {
     await this.fetchAdminData(true);
   }
 
+  async approvePreferenceChange(id: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    const { error } = await supabaseClient
+      .from('pending_preference_changes')
+      .update({ 
+        approval_status: 'approved',
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    await this.fetchAdminData(true);
+  }
+
+  async denyPreferenceChange(id: string, reason: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    const { error } = await supabaseClient
+      .from('pending_preference_changes')
+      .update({ 
+        approval_status: 'denied',
+        reviewed_at: new Date().toISOString(),
+        denial_reason: reason
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    await this.fetchAdminData(true);
+  }
+
   silentRefresh(): void {
     this.fetchAdminData(true);
   }

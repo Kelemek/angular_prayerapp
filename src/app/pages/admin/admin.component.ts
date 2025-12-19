@@ -5,13 +5,15 @@ import { Subject, takeUntil } from 'rxjs';
 import { AdminDataService } from '../../services/admin-data.service';
 import { PendingPrayerCardComponent } from '../../components/pending-prayer-card/pending-prayer-card.component';
 import { PendingUpdateCardComponent } from '../../components/pending-update-card/pending-update-card.component';
+import { PendingDeletionCardComponent } from '../../components/pending-deletion-card/pending-deletion-card.component';
+import { PendingPreferenceChangeCardComponent } from '../../components/pending-preference-change-card/pending-preference-change-card.component';
 
 type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, PendingPrayerCardComponent, PendingUpdateCardComponent],
+  imports: [CommonModule, PendingPrayerCardComponent, PendingUpdateCardComponent, PendingDeletionCardComponent, PendingPreferenceChangeCardComponent],
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
       <!-- Header -->
@@ -207,8 +209,89 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
             </div>
           </div>
 
+          <!-- Deletions Tab -->
+          <div *ngIf="activeTab === 'deletions'">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+              Pending Deletion Requests ({{ (adminData?.pendingDeletionRequests?.length || 0) + (adminData?.pendingUpdateDeletionRequests?.length || 0) }})
+            </h2>
+            
+            <div *ngIf="(adminData?.pendingDeletionRequests?.length || 0) === 0 && (adminData?.pendingUpdateDeletionRequests?.length || 0) === 0" 
+                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+              <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                No pending deletion requests
+              </h3>
+              <p class="text-gray-500 dark:text-gray-400">
+                All deletion requests have been reviewed.
+              </p>
+            </div>
+            
+            <div class="space-y-6" *ngIf="(adminData?.pendingDeletionRequests?.length || 0) > 0 || (adminData?.pendingUpdateDeletionRequests?.length || 0) > 0">
+              <!-- Prayer Deletions -->
+              <div *ngIf="(adminData?.pendingDeletionRequests?.length || 0) > 0">
+                <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
+                  Prayer Deletions ({{ adminData?.pendingDeletionRequests?.length || 0 }})
+                </h3>
+
+                <div class="space-y-4">
+                  <app-pending-deletion-card
+                    *ngFor="let request of adminData?.pendingDeletionRequests"
+                    [deletionRequest]="request"
+                    (approve)="approveDeletionRequest($event)"
+                    (deny)="denyDeletionRequest($event.id, $event.reason)"
+                  ></app-pending-deletion-card>
+                </div>
+              </div>
+
+              <!-- Update Deletions -->
+              <div *ngIf="(adminData?.pendingUpdateDeletionRequests?.length || 0) > 0">
+                <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
+                  Update Deletions ({{ adminData?.pendingUpdateDeletionRequests?.length || 0 }})
+                </h3>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center border border-gray-200 dark:border-gray-700">
+                  <p class="text-gray-500 dark:text-gray-400">
+                    Update deletion requests will be displayed here
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preferences Tab -->
+          <div *ngIf="activeTab === 'preferences'">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+              Pending Preference Changes ({{ adminData?.pendingPreferenceChanges?.length || 0 }})
+            </h2>
+            
+            <div *ngIf="(adminData?.pendingPreferenceChanges?.length || 0) === 0" 
+                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+              <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                No pending preference changes
+              </h3>
+              <p class="text-gray-500 dark:text-gray-400">
+                All notification preference requests have been reviewed.
+              </p>
+            </div>
+
+            <div class="space-y-4">
+              <app-pending-preference-change-card
+                *ngFor="let change of adminData?.pendingPreferenceChanges"
+                [change]="change"
+                (approve)="approvePreferenceChange($event)"
+                (deny)="denyPreferenceChange($event.id, $event.reason)"
+              ></app-pending-preference-change-card>
+            </div>
+          </div>
+
           <!-- Other tabs placeholder -->
-          <div *ngIf="activeTab !== 'prayers' && activeTab !== 'updates'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+          <div *ngIf="activeTab !== 'prayers' && activeTab !== 'updates' && activeTab !== 'deletions' && activeTab !== 'preferences'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
               {{ activeTab | titlecase }} Tab
             </h3>
@@ -311,6 +394,38 @@ export class AdminComponent implements OnInit, OnDestroy {
       await this.adminDataService.editUpdate(id, updates);
     } catch (error) {
       console.error('Error editing update:', error);
+    }
+  }
+
+  async approveDeletionRequest(id: string) {
+    try {
+      await this.adminDataService.approveDeletionRequest(id);
+    } catch (error) {
+      console.error('Error approving deletion request:', error);
+    }
+  }
+
+  async denyDeletionRequest(id: string, reason: string) {
+    try {
+      await this.adminDataService.denyDeletionRequest(id, reason);
+    } catch (error) {
+      console.error('Error denying deletion request:', error);
+    }
+  }
+
+  async approvePreferenceChange(id: string) {
+    try {
+      await this.adminDataService.approvePreferenceChange(id);
+    } catch (error) {
+      console.error('Error approving preference change:', error);
+    }
+  }
+
+  async denyPreferenceChange(id: string, reason: string) {
+    try {
+      await this.adminDataService.denyPreferenceChange(id, reason);
+    } catch (error) {
+      console.error('Error denying preference change:', error);
     }
   }
 }
