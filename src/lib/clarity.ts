@@ -1,52 +1,29 @@
-/**
- * Microsoft Clarity Integration
- * 
- * Clarity provides:
- * - Session replays (watch user sessions)
- * - Heatmaps (see where users click)
- * - Crash detection
- * - Rage click detection
- * 
- * Setup: Go to https://clarity.microsoft.com and create a project
- * Then add your Project ID to VITE_CLARITY_PROJECT_ID in .env
- */
+// import clarity from '@microsoft/clarity';
 
-import Clarity from '@microsoft/clarity';
-
-export const initializeClarity = (): void => {
-  // Check if we're in a browser environment
-  if (typeof window === 'undefined') {
+export function initializeClarity(): void {
+  // TODO: Port from react-backup/lib/clarity.ts
+  // For now, just log that Clarity would be initialized
+  console.log('Microsoft Clarity initialization placeholder - to be implemented');
+  
+  // Uncomment and configure when ready:
+  /*
+  const clarityProjectId = environment.clarityProjectId;
+  
+  if (!clarityProjectId) {
+    console.warn('Clarity project ID not configured');
     return;
   }
 
   try {
-    const clarityProjectId = import.meta.env.VITE_CLARITY_PROJECT_ID;
-    
-    // Debug logging to verify environment variable is loaded
-    if (clarityProjectId) {
-      console.debug('Clarity environment check:', {
-        projectId: clarityProjectId,
-        hasValue: !!clarityProjectId,
-        isDefined: clarityProjectId !== undefined,
-        isEmpty: clarityProjectId === '',
-        type: typeof clarityProjectId,
-        mode: import.meta.env.MODE
-      });
-    }
-    
-    // Only initialize if project ID is explicitly set and not empty
-    // In production on Vercel, if not set, just skip silently
-    if (!clarityProjectId || clarityProjectId === '' || clarityProjectId === 'undefined') {
-      console.debug('Clarity not configured - skipping initialization');
-      return;
-    }
-
-    // Initialize Clarity using the official npm package
-    Clarity.init(clarityProjectId);
-    console.log('✓ Clarity initialized with project:', clarityProjectId);
+    clarity.start({
+      projectId: clarityProjectId,
+      upload: 'https://www.clarity.ms/collect',
+      track: true,
+      content: true
+    });
+    console.log('Clarity initialized');
   } catch (error) {
-    console.error('✗ Failed to initialize Clarity:', error instanceof Error ? error.message : String(error));
+    console.error('Failed to initialize Clarity:', error);
   }
-};
-
-export default initializeClarity;
+  */
+}

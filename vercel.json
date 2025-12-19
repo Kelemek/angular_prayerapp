@@ -1,9 +1,9 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "devCommand": "npm run dev",
+  "outputDirectory": "dist/prayerapp/browser",
+  "devCommand": "npm start",
   "installCommand": "npm install",
-  "framework": "vite",
+  "framework": "angular",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

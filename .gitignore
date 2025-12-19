@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Angular build cache
+.angular/
+.angular/*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -36,3 +40,19 @@ coverage/
 # Temporary build/runtime files
 /.temp
 supabase/.temp
+
+# React code - kept for reference but not committed
+react-backup/
+src/components/
+src/hooks/
+src/contexts/
+src/__tests__/
+src/**/__tests__/
+src/**/*.tsx
+src/**/*.test.tsx
+src/**/*.test.ts
+src/App.css
+src/main.tsx
+src/vite-env.d.ts
+vite.config.ts
+vitest.config.ts
