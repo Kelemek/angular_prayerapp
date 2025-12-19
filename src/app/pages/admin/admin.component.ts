@@ -13,6 +13,7 @@ import { AppBrandingComponent } from '../../components/app-branding/app-branding
 import { PromptManagerComponent } from '../../components/prompt-manager/prompt-manager.component';
 import { PrayerTypesManagerComponent } from '../../components/prayer-types-manager/prayer-types-manager.component';
 import { EmailSettingsComponent } from '../../components/email-settings/email-settings.component';
+import { AdminUserManagementComponent } from '../../components/admin-user-management/admin-user-management.component';
 
 type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings';
 type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'timeouts';
@@ -30,7 +31,8 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'time
     AppBrandingComponent,
     PromptManagerComponent,
     PrayerTypesManagerComponent,
-    EmailSettingsComponent
+    EmailSettingsComponent,
+    AdminUserManagementComponent
   ],
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
@@ -516,7 +518,13 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'time
               </div>
             </div>
 
-            <div *ngIf="activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+            <div *ngIf="activeSettingsTab === 'users'" class="space-y-6">
+              <div class="mb-4">
+                <app-admin-user-management (onSave)="handleUserManagementSave()"></app-admin-user-management>
+              </div>
+            </div>
+
+            <div *ngIf="activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email' && activeSettingsTab !== 'users'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
               <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
                 {{ activeSettingsTab | titlecase }} Settings
               </h3>
@@ -607,6 +615,16 @@ export class AdminComponent implements OnInit, OnDestroy {
   handlePrayerTypesManagerSave() {
     // Could refresh data or show notification
     console.log('Prayer types manager action completed');
+  }
+
+  handleEmailSettingsSave() {
+    // Could refresh data or show notification
+    console.log('Email settings saved');
+  }
+
+  handleUserManagementSave() {
+    // Could refresh data or show notification
+    console.log('User management action completed');
   }
 
   ngOnDestroy() {
@@ -725,10 +743,5 @@ export class AdminComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error denying preference change:', error);
     }
-  }
-
-  handleEmailSettingsSave() {
-    // Email settings component handles its own save feedback
-    console.log('Email settings saved');
   }
 }
