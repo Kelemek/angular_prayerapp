@@ -8,11 +8,11 @@ import { Observable } from 'rxjs';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <!-- Toast Container: bottom-right on small screens, top-right on md+ -->
-    <div class="fixed right-4 bottom-4 md:top-4 md:bottom-auto z-50 space-y-2">
+    <!-- Toast Container: centered at top -->
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 space-y-2 w-full max-w-md px-4">
       <div
         *ngFor="let toast of toasts$ | async"
-        [class]="'flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg animate-slide-in ' + toastService.getToastStyles(toast.type)"
+        [class]="'flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg animate-slide-down ' + toastService.getToastStyles(toast.type)"
       >
         <!-- Icon -->
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,19 +35,19 @@ import { Observable } from 'rxjs';
     </div>
   `,
   styles: [`
-    @keyframes slide-in {
+    @keyframes slide-down {
       from {
-        transform: translateX(100%);
+        transform: translateY(-120%);
         opacity: 0;
       }
       to {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
       }
     }
     
-    .animate-slide-in {
-      animation: slide-in 0.3s ease-out;
+    .animate-slide-down {
+      animation: slide-down 0.3s ease-out;
     }
   `]
 })

@@ -216,7 +216,7 @@ import { PrayerRequest } from '../../services/prayer.service';
                   Requested by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.author }}</span>
                 </span>
                 <button
-                  *ngIf="isAdmin"
+                  *ngIf="showUpdateDeleteButton()"
                   (click)="handleDeleteUpdate(update.id)"
                   class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
                   title="Delete update"
@@ -288,10 +288,8 @@ export class PrayerCardComponent implements OnInit {
 
   showDeleteButton(): boolean {
     if (this.isAdmin) return true;
-    
     if (this.deletionsAllowed === 'everyone') return true;
-    if (this.deletionsAllowed === 'email-only' && this.prayer.email) return true;
-    
+    if (this.deletionsAllowed === 'email-only') return true;
     return false;
   }
 
@@ -301,6 +299,13 @@ export class PrayerCardComponent implements OnInit {
     if (this.updatesAllowed === 'everyone') return true;
     if (this.updatesAllowed === 'email-only') return true;
     
+    return false;
+  }
+
+  showUpdateDeleteButton(): boolean {
+    if (this.isAdmin) return true;
+    if (this.deletionsAllowed === 'everyone') return true;
+    if (this.deletionsAllowed === 'email-only') return true;
     return false;
   }
 

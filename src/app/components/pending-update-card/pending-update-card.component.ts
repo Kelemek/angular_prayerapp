@@ -8,7 +8,7 @@ import type { PrayerUpdate } from '../../types/prayer';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-4">
       <!-- Header -->
       <div *ngIf="!isEditing" class="flex items-start justify-between mb-4">
         <div class="flex-1">

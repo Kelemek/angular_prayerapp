@@ -167,7 +167,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
               </p>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-6">
               <app-pending-prayer-card
                 *ngFor="let prayer of adminData?.pendingPrayers"
                 [prayer]="prayer"
@@ -198,7 +198,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
               </p>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-6">
               <app-pending-update-card
                 *ngFor="let update of adminData?.pendingUpdates"
                 [update]="update"
@@ -236,7 +236,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
                   Prayer Deletions ({{ adminData?.pendingDeletionRequests?.length || 0 }})
                 </h3>
 
-                <div class="space-y-4">
+                <div class="space-y-6">
                   <app-pending-deletion-card
                     *ngFor="let request of adminData?.pendingDeletionRequests"
                     [deletionRequest]="request"
@@ -280,7 +280,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
               </p>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-6">
               <app-pending-preference-change-card
                 *ngFor="let change of adminData?.pendingPreferenceChanges"
                 [change]="change"

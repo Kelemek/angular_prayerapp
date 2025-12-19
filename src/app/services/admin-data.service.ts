@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { SupabaseService } from './supabase.service';
+import { PrayerService } from './prayer.service';
 import type { 
   PrayerRequest, 
   PrayerUpdate, 
@@ -86,7 +87,10 @@ export class AdminDataService {
   public data$: Observable<AdminData> = this.dataSubject.asObservable();
   private isFetching = false;
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(
+    private supabase: SupabaseService,
+    private prayerService: PrayerService
+  ) {}
 
   async fetchAdminData(silent = false): Promise<void> {
     if (this.isFetching) return;
@@ -326,7 +330,10 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Refresh admin data and main prayer list
     await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
   }
 
   async denyPrayer(id: string, reason: string): Promise<void> {
@@ -343,6 +350,7 @@ export class AdminDataService {
 
     if (error) throw error;
     await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
   }
 
   async editPrayer(id: string, updates: Partial<PrayerRequest>): Promise<void> {
@@ -355,6 +363,7 @@ export class AdminDataService {
 
     if (error) throw error;
     await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
   }
 
   async approveUpdate(id: string): Promise<void> {
@@ -370,6 +379,7 @@ export class AdminDataService {
 
     if (error) throw error;
     await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
   }
 
   async denyUpdate(id: string, reason: string): Promise<void> {
@@ -386,6 +396,7 @@ export class AdminDataService {
 
     if (error) throw error;
     await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
   }
 
   async editUpdate(id: string, updates: Partial<PrayerUpdate>): Promise<void> {
@@ -397,8 +408,7 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);
-  }
+    await this.fetchAdminData(true);    await this.prayerService.loadPrayers();  }
 
   async approveDeletionRequest(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
@@ -412,8 +422,7 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);
-  }
+    await this.fetchAdminData(true);    await this.prayerService.loadPrayers();  }
 
   async denyDeletionRequest(id: string, reason: string): Promise<void> {
     const supabaseClient = this.supabase.client;
@@ -428,8 +437,7 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);
-  }
+    await this.fetchAdminData(true);    await this.prayerService.loadPrayers();  }
 
   async approvePreferenceChange(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;

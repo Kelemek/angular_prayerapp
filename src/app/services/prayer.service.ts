@@ -71,6 +71,7 @@ export class PrayerService {
    */
   async loadPrayers(): Promise<void> {
     try {
+      console.log('[PrayerService] Loading prayers...');
       this.loadingSubject.next(true);
       this.errorSubject.next(null);
 
@@ -84,6 +85,8 @@ export class PrayerService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      console.log(`[PrayerService] Loaded ${prayersData?.length || 0} approved prayers`);
 
       const formattedPrayers = (prayersData || []).map((prayer: any) => {
         const updates = (prayer.prayer_updates || [])
@@ -361,6 +364,8 @@ export class PrayerService {
    * Set up real-time subscription for prayer changes
    */
   private setupRealtimeSubscription(): void {
+    console.log('[PrayerService] Setting up realtime subscription...');
+    
     this.realtimeChannel = this.supabase.client
       .channel('prayers-channel')
       .on(
@@ -370,8 +375,8 @@ export class PrayerService {
           schema: 'public',
           table: 'prayers'
         },
-        () => {
-          console.log('Prayer changed, reloading...');
+        (payload) => {
+          console.log('[PrayerService] Prayer changed:', payload);
           this.loadPrayers();
         }
       )
@@ -382,12 +387,14 @@ export class PrayerService {
           schema: 'public',
           table: 'prayer_updates'
         },
-        () => {
-          console.log('Prayer update changed, reloading...');
+        (payload) => {
+          console.log('[PrayerService] Prayer update changed:', payload);
           this.loadPrayers();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[PrayerService] Realtime subscription status:', status);
+      });
   }
 
   /**
@@ -457,7 +464,7 @@ export class PrayerService {
   async requestDeletion(requestData: any): Promise<boolean> {
     try {
       const { error } = await this.supabase.client
-        .from('pending_deletions')
+        .from('deletion_requests')
         .insert({
           prayer_id: requestData.prayer_id,
           requester_first_name: requestData.requester_first_name,

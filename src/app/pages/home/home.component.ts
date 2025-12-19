@@ -305,6 +305,7 @@ export class HomeComponent implements OnInit {
   selectedPromptTypes: string[] = [];
   
   isVerificationEnabled = false;
+  isAdmin = false;
   verificationState = {
     isOpen: false,
     codeId: '',
@@ -350,6 +351,11 @@ export class HomeComponent implements OnInit {
     this.verificationService.isEnabled$.subscribe(enabled => {
       this.isVerificationEnabled = enabled;
       console.log('Home Component - Verification enabled status:', enabled);
+    });
+    
+    // Subscribe to admin status
+    this.adminAuthService.isAdmin$.subscribe(isAdmin => {
+      this.isAdmin = isAdmin;
     });
 
     // Apply default filter
@@ -402,9 +408,9 @@ export class HomeComponent implements OnInit {
 
   async addUpdate(updateData: any): Promise<void> {
     try {
-      console.log('Home - About to add update. isVerificationEnabled:', this.isVerificationEnabled);
+      console.log('Home - About to add update. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', this.isAdmin);
       
-      if (this.isVerificationEnabled && updateData.author_email) {
+      if (this.isVerificationEnabled && !this.isAdmin && updateData.author_email) {
         console.log('Home - Requesting verification code for update:', updateData.author_email);
         const verificationResult = await this.verificationService.requestCode(
           updateData.author_email,
@@ -437,7 +443,6 @@ export class HomeComponent implements OnInit {
   async deleteUpdate(updateId: string): Promise<void> {
     try {
       await this.prayerService.deleteUpdate(updateId);
-      this.toastService.success('Update deleted');
     } catch (error) {
       console.error('Error deleting update:', error);
       this.toastService.error('Failed to delete update');
@@ -446,9 +451,9 @@ export class HomeComponent implements OnInit {
 
   async requestDeletion(requestData: any): Promise<void> {
     try {
-      console.log('Home - About to request deletion. isVerificationEnabled:', this.isVerificationEnabled);
+      console.log('Home - About to request deletion. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', this.isAdmin);
       
-      if (this.isVerificationEnabled && requestData.requester_email) {
+      if (this.isVerificationEnabled && !this.isAdmin && requestData.requester_email) {
         console.log('Home - Requesting verification code for deletion:', requestData.requester_email);
         const verificationResult = await this.verificationService.requestCode(
           requestData.requester_email,
@@ -606,12 +611,10 @@ export class HomeComponent implements OnInit {
   
   private async submitUpdate(updateData: any): Promise<void> {
     await this.prayerService.addUpdate(updateData);
-    this.toastService.success('Update submitted for approval');
   }
 
   private async submitDeletion(requestData: any): Promise<void> {
     await this.prayerService.requestDeletion(requestData);
-    this.toastService.success('Deletion request submitted');
   }
 
   async logout(): Promise<void> {

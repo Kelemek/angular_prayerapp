@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PrayerService } from '../../services/prayer.service';
 import { VerificationService } from '../../services/verification.service';
+import { AdminAuthService } from '../../services/admin-auth.service';
 import { VerificationDialogComponent } from '../verification-dialog/verification-dialog.component';
 
 @Component({
@@ -192,6 +193,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   isSubmitting = false;
   showSuccessMessage = false;
   isVerificationEnabled = false;
+  isAdmin = false;
 
   verificationState = {
     isOpen: false,
@@ -202,7 +204,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   constructor(
     private prayerService: PrayerService,
-    private verificationService: VerificationService
+    private verificationService: VerificationService,
+    private adminAuthService: AdminAuthService
   ) {}
 
   ngOnInit(): void {
@@ -210,6 +213,9 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     this.verificationService.isEnabled$.subscribe(enabled => {
       this.isVerificationEnabled = enabled;
       console.log('Prayer Form - Verification enabled status:', enabled);
+    });
+    this.adminAuthService.isAdmin$.subscribe(isAdmin => {
+      this.isAdmin = isAdmin;
     });
   }
 
@@ -272,9 +278,9 @@ export class PrayerFormComponent implements OnInit, OnChanges {
         status: 'current' as const
       };
 
-      // Check if verification is required
-      console.log('Prayer Form - About to check verification. isVerificationEnabled:', this.isVerificationEnabled);
-      if (this.isVerificationEnabled) {
+      // Check if verification is required (skip if admin is logged in)
+      console.log('Prayer Form - About to check verification. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', this.isAdmin);
+      if (this.isVerificationEnabled && !this.isAdmin) {
         console.log('Prayer Form - Requesting verification code for:', this.formData.email);
         const verificationResult = await this.verificationService.requestCode(
           this.formData.email,
