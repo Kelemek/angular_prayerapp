@@ -219,7 +219,7 @@ import { PrayerRequest } from '../../services/prayer.service';
                   *ngIf="showUpdateDeleteButton()"
                   (click)="handleDeleteUpdate(update.id)"
                   class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
-                  title="Delete update"
+                  [title]="isAdmin ? 'Delete update' : 'Request update deletion'"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -232,6 +232,61 @@ import { PrayerRequest } from '../../services/prayer.service';
               </span>
             </div>
             <p class="text-sm text-gray-700 dark:text-gray-300">{{ update.content }}</p>
+            
+            <!-- Update Deletion Request Form -->
+            <form *ngIf="showUpdateDeleteRequestForm === update.id && !isAdmin" (ngSubmit)="handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <h4 class="text-sm font-medium text-red-800 dark:text-red-200 mb-2">Request Update Deletion</h4>
+              <div class="space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="First name"
+                    [(ngModel)]="updateDeleteFirstName"
+                    name="updateDeleteFirstName"
+                    class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Last name"
+                    [(ngModel)]="updateDeleteLastName"
+                    name="updateDeleteLastName"
+                    class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    required
+                  />
+                </div>
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  [(ngModel)]="updateDeleteEmail"
+                  name="updateDeleteEmail"
+                  class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  required
+                />
+                <textarea
+                  placeholder="Reason for deletion request..."
+                  [(ngModel)]="updateDeleteReason"
+                  name="updateDeleteReason"
+                  class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 h-20"
+                  required
+                ></textarea>
+                <div class="flex gap-2">
+                  <button
+                    type="submit"
+                    class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                  >
+                    Submit Request
+                  </button>
+                  <button
+                    type="button"
+                    (click)="showUpdateDeleteRequestForm = null"
+                    class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -249,9 +304,11 @@ export class PrayerCardComponent implements OnInit {
   @Output() addUpdate = new EventEmitter<any>();
   @Output() deleteUpdate = new EventEmitter<string>();
   @Output() requestDeletion = new EventEmitter<any>();
+  @Output() requestUpdateDeletion = new EventEmitter<any>();
 
   showAddUpdateForm = false;
   showDeleteRequestForm = false;
+  showUpdateDeleteRequestForm: string | null = null;
   showAllUpdates = false;
 
   // Update form fields
@@ -267,6 +324,12 @@ export class PrayerCardComponent implements OnInit {
   deleteLastName = '';
   deleteEmail = '';
   deleteReason = '';
+
+  // Update deletion request form fields
+  updateDeleteFirstName = '';
+  updateDeleteLastName = '';
+  updateDeleteEmail = '';
+  updateDeleteReason = '';
 
   ngOnInit(): void {
     // Any initialization logic
@@ -357,8 +420,19 @@ export class PrayerCardComponent implements OnInit {
   }
 
   handleDeleteUpdate(updateId: string): void {
-    if (confirm('Are you sure you want to delete this update? This action cannot be undone.')) {
-      this.deleteUpdate.emit(updateId);
+    if (this.isAdmin) {
+      if (confirm('Are you sure you want to delete this update? This action cannot be undone.')) {
+        this.deleteUpdate.emit(updateId);
+      }
+    } else {
+      // Toggle the form - close if already open for this update, open if closed
+      if (this.showUpdateDeleteRequestForm === updateId) {
+        this.showUpdateDeleteRequestForm = null;
+      } else {
+        this.showUpdateDeleteRequestForm = updateId;
+        this.showAddUpdateForm = false;
+        this.showDeleteRequestForm = false;
+      }
     }
   }
 
@@ -415,5 +489,28 @@ export class PrayerCardComponent implements OnInit {
     this.deleteEmail = '';
     this.deleteReason = '';
     this.showDeleteRequestForm = false;
+  }
+
+  handleUpdateDeletionRequest(): void {
+    if (!this.showUpdateDeleteRequestForm) return;
+    
+    const requestData = {
+      update_id: this.showUpdateDeleteRequestForm,
+      requester_first_name: this.updateDeleteFirstName,
+      requester_last_name: this.updateDeleteLastName,
+      requester_email: this.updateDeleteEmail,
+      reason: this.updateDeleteReason
+    };
+
+    this.requestUpdateDeletion.emit(requestData);
+    this.resetUpdateDeleteForm();
+  }
+
+  private resetUpdateDeleteForm(): void {
+    this.updateDeleteFirstName = '';
+    this.updateDeleteLastName = '';
+    this.updateDeleteEmail = '';
+    this.updateDeleteReason = '';
+    this.showUpdateDeleteRequestForm = null;
   }
 }

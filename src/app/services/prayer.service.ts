@@ -463,13 +463,14 @@ export class PrayerService {
    */
   async requestDeletion(requestData: any): Promise<boolean> {
     try {
+      const fullName = `${requestData.requester_first_name} ${requestData.requester_last_name}`;
+      
       const { error } = await this.supabase.client
         .from('deletion_requests')
         .insert({
           prayer_id: requestData.prayer_id,
-          requester_first_name: requestData.requester_first_name,
-          requester_last_name: requestData.requester_last_name,
-          requester_email: requestData.requester_email,
+          requested_by: fullName,
+          requested_email: requestData.requester_email,
           reason: requestData.reason
         });
 
@@ -480,6 +481,33 @@ export class PrayerService {
     } catch (error) {
       console.error('Error requesting deletion:', error);
       this.toast.error('Failed to submit deletion request');
+      return false;
+    }
+  }
+
+  /**
+   * Request deletion of a prayer update
+   */
+  async requestUpdateDeletion(requestData: any): Promise<boolean> {
+    try {
+      const fullName = `${requestData.requester_first_name} ${requestData.requester_last_name}`;
+      
+      const { error } = await this.supabase.client
+        .from('update_deletion_requests')
+        .insert({
+          update_id: requestData.update_id,
+          requested_by: fullName,
+          requested_email: requestData.requester_email,
+          reason: requestData.reason
+        });
+
+      if (error) throw error;
+
+      this.toast.success('Update deletion request submitted for review');
+      return true;
+    } catch (error) {
+      console.error('Error requesting update deletion:', error);
+      this.toast.error('Failed to submit update deletion request');
       return false;
     }
   }

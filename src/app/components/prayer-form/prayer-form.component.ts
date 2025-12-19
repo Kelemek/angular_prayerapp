@@ -279,8 +279,9 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       };
 
       // Check if verification is required (skip if admin is logged in)
-      console.log('Prayer Form - About to check verification. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', this.isAdmin);
-      if (this.isVerificationEnabled && !this.isAdmin) {
+      const isAdmin = this.adminAuthService.getIsAdmin();
+      console.log('Prayer Form - About to check verification. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', isAdmin);
+      if (this.isVerificationEnabled && !isAdmin) {
         console.log('Prayer Form - Requesting verification code for:', this.formData.email);
         const verificationResult = await this.verificationService.requestCode(
           this.formData.email,

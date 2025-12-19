@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../services/theme.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { PrintService } from '../../services/print.service';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
@@ -298,6 +298,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 type="email"
                 id="email"
                 [(ngModel)]="email"
+                (ngModelChange)="onEmailChange()"
                 placeholder="your.email@example.com"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -447,6 +448,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   selectedPromptTypes: string[] = [];
 
   private destroy$ = new Subject<void>();
+  private emailChange$ = new Subject<string>();
+  private isInitialLoad = false;
 
   themeOptions = [
     {
@@ -490,11 +493,53 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       this.name = `${userInfo.firstName} ${userInfo.lastName}`;
     }
     this.email = userInfo.email;
+
+    // Set up email change debounce listener
+    this.emailChange$
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(800),
+        distinctUntilChanged()
+      )
+      .subscribe((email) => {
+        if (!this.isInitialLoad) {
+          this.loadPreferencesAutomatically(email);
+        }
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen'] && this.isOpen) {
       this.loadPromptTypes();
+      
+      // Mark that we're doing initial load
+      this.isInitialLoad = true;
+      
+      // Load user info from localStorage
+      const userInfo = this.getUserInfo();
+      if (userInfo.firstName && userInfo.lastName) {
+        this.name = `${userInfo.firstName} ${userInfo.lastName}`;
+      }
+      this.email = userInfo.email;
+      
+      // Don't set receiveNotifications here - let the database load set it
+      // Only set to true if there's no email (no database lookup will happen)
+      if (!userInfo.email.trim()) {
+        this.receiveNotifications = true;
+      }
+      
+      this.error = null;
+      this.success = null;
+      
+      // If we have an email, try to load preferences from database
+      if (userInfo.email.trim()) {
+        this.loadPreferencesAutomatically(userInfo.email);
+      }
+      
+      // Reset flag after a short delay
+      setTimeout(() => {
+        this.isInitialLoad = false;
+      }, 100);
     }
   }
 
@@ -597,6 +642,75 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
         this.onClose.emit();
       }, 1500);
     }, 1000);
+  }
+
+  private async loadPreferencesAutomatically(emailAddress: string): Promise<void> {
+    if (!emailAddress.trim()) return;
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailAddress)) return;
+
+    console.log('Loading preferences for email:', emailAddress);
+
+    try {
+      // Check for pending preference changes first (most recent user intent)
+      const { data: pendingData, error: pendingError } = await this.supabase.client
+        .from('pending_preference_changes')
+        .select('*')
+        .eq('email', emailAddress.toLowerCase().trim())
+        .eq('approval_status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (pendingError) {
+        console.error('Error loading pending preferences:', pendingError);
+      } else {
+        console.log('Pending preferences data:', pendingData);
+      }
+      
+      // Check for approved preferences in email_subscribers
+      const { data: subscriberData, error } = await this.supabase.client
+        .from('email_subscribers')
+        .select('*')
+        .eq('email', emailAddress.toLowerCase().trim())
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading subscriber preferences:', error);
+        return;
+      }
+
+      console.log('Subscriber data:', subscriberData);
+
+      // Priority: pending changes > approved subscriber data > defaults
+      if (pendingData) {
+        console.log('Using pending preferences');
+        // User has pending changes, show what they requested
+        if (pendingData.name && pendingData.name.trim()) {
+          this.name = pendingData.name;
+        }
+        this.receiveNotifications = pendingData.receive_new_prayer_notifications;
+      } else if (subscriberData) {
+        console.log('Using subscriber preferences');
+        // User has approved preferences
+        if (subscriberData.name && subscriberData.name.trim()) {
+          this.name = subscriberData.name;
+        }
+        this.receiveNotifications = subscriberData.is_active;
+      } else {
+        console.log('No preferences found, using defaults');
+        // New user - set defaults
+        this.receiveNotifications = true;
+      }
+    } catch (err) {
+      console.error('Error loading preferences:', err);
+    }
+  }
+
+  onEmailChange(): void {
+    this.emailChange$.next(this.email);
   }
 
   private getUserInfo(): { firstName: string; lastName: string; email: string } {

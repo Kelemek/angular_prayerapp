@@ -439,6 +439,39 @@ export class AdminDataService {
     if (error) throw error;
     await this.fetchAdminData(true);    await this.prayerService.loadPrayers();  }
 
+  async approveUpdateDeletionRequest(id: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    const { error } = await supabaseClient
+      .from('update_deletion_requests')
+      .update({ 
+        approval_status: 'approved',
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
+  }
+
+  async denyUpdateDeletionRequest(id: string, reason: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    const { error } = await supabaseClient
+      .from('update_deletion_requests')
+      .update({ 
+        approval_status: 'denied',
+        reviewed_at: new Date().toISOString(),
+        denial_reason: reason
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
+  }
+
   async approvePreferenceChange(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     

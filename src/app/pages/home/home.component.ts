@@ -244,6 +244,7 @@ import { Observable } from 'rxjs';
               (addUpdate)="addUpdate($event)"
               (deleteUpdate)="deleteUpdate($event)"
               (requestDeletion)="requestDeletion($event)"
+              (requestUpdateDeletion)="requestUpdateDeletion($event)"
             ></app-prayer-card>
           </ng-container>
 
@@ -311,7 +312,7 @@ export class HomeComponent implements OnInit {
     codeId: '',
     expiresAt: '',
     email: '',
-    actionType: '' as 'update' | 'deletion' | '',
+    actionType: '' as 'update' | 'deletion' | 'update_deletion' | '',
     actionData: null as any
   };
 
@@ -408,9 +409,10 @@ export class HomeComponent implements OnInit {
 
   async addUpdate(updateData: any): Promise<void> {
     try {
-      console.log('Home - About to add update. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', this.isAdmin);
+      const isAdmin = this.adminAuthService.getIsAdmin();
+      console.log('Home - About to add update. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', isAdmin);
       
-      if (this.isVerificationEnabled && !this.isAdmin && updateData.author_email) {
+      if (this.isVerificationEnabled && !isAdmin && updateData.author_email) {
         console.log('Home - Requesting verification code for update:', updateData.author_email);
         const verificationResult = await this.verificationService.requestCode(
           updateData.author_email,
@@ -451,9 +453,10 @@ export class HomeComponent implements OnInit {
 
   async requestDeletion(requestData: any): Promise<void> {
     try {
-      console.log('Home - About to request deletion. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', this.isAdmin);
+      const isAdmin = this.adminAuthService.getIsAdmin();
+      console.log('Home - About to request deletion. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', isAdmin);
       
-      if (this.isVerificationEnabled && !this.isAdmin && requestData.requester_email) {
+      if (this.isVerificationEnabled && !isAdmin && requestData.requester_email) {
         console.log('Home - Requesting verification code for deletion:', requestData.requester_email);
         const verificationResult = await this.verificationService.requestCode(
           requestData.requester_email,
@@ -480,6 +483,41 @@ export class HomeComponent implements OnInit {
     } catch (error) {
       console.error('Error requesting deletion:', error);
       this.toastService.error('Failed to submit deletion request');
+    }
+  }
+
+  async requestUpdateDeletion(requestData: any): Promise<void> {
+    try {
+      const isAdmin = this.adminAuthService.getIsAdmin();
+      console.log('Home - About to request update deletion. isVerificationEnabled:', this.isVerificationEnabled, 'isAdmin:', isAdmin);
+      
+      if (this.isVerificationEnabled && !isAdmin && requestData.requester_email) {
+        console.log('Home - Requesting verification code for update deletion:', requestData.requester_email);
+        const verificationResult = await this.verificationService.requestCode(
+          requestData.requester_email,
+          'update_deletion_request',
+          requestData
+        );
+
+        if (verificationResult === null) {
+          await this.submitUpdateDeletion(requestData);
+          return;
+        }
+
+        this.verificationState = {
+          isOpen: true,
+          codeId: verificationResult.codeId,
+          expiresAt: verificationResult.expiresAt,
+          email: requestData.requester_email,
+          actionType: 'update_deletion',
+          actionData: requestData
+        };
+      } else {
+        await this.submitUpdateDeletion(requestData);
+      }
+    } catch (error) {
+      console.error('Error requesting update deletion:', error);
+      this.toastService.error('Failed to submit update deletion request');
     }
   }
 
@@ -557,6 +595,8 @@ export class HomeComponent implements OnInit {
         await this.submitUpdate(this.verificationState.actionData);
       } else if (this.verificationState.actionType === 'deletion') {
         await this.submitDeletion(this.verificationState.actionData);
+      } else if (this.verificationState.actionType === 'update_deletion') {
+        await this.submitUpdateDeletion(this.verificationState.actionData);
       }
       
       this.verificationState = {
@@ -589,7 +629,13 @@ export class HomeComponent implements OnInit {
     try {
       if (!this.verificationState.email || !this.verificationState.actionData) return;
 
-      const actionType = this.verificationState.actionType === 'update' ? 'update_submission' : 'deletion_request';
+      let actionType = 'update_submission';
+      if (this.verificationState.actionType === 'deletion') {
+        actionType = 'deletion_request';
+      } else if (this.verificationState.actionType === 'update_deletion') {
+        actionType = 'update_deletion_request';
+      }
+      
       const verificationResult = await this.verificationService.requestCode(
         this.verificationState.email,
         actionType,
@@ -615,6 +661,10 @@ export class HomeComponent implements OnInit {
 
   private async submitDeletion(requestData: any): Promise<void> {
     await this.prayerService.requestDeletion(requestData);
+  }
+
+  private async submitUpdateDeletion(requestData: any): Promise<void> {
+    await this.prayerService.requestUpdateDeletion(requestData);
   }
 
   async logout(): Promise<void> {

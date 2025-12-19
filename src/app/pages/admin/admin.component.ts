@@ -6,6 +6,7 @@ import { AdminDataService } from '../../services/admin-data.service';
 import { PendingPrayerCardComponent } from '../../components/pending-prayer-card/pending-prayer-card.component';
 import { PendingUpdateCardComponent } from '../../components/pending-update-card/pending-update-card.component';
 import { PendingDeletionCardComponent } from '../../components/pending-deletion-card/pending-deletion-card.component';
+import { PendingUpdateDeletionCardComponent } from '../../components/pending-update-deletion-card/pending-update-deletion-card.component';
 import { PendingPreferenceChangeCardComponent } from '../../components/pending-preference-change-card/pending-preference-change-card.component';
 
 type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings';
@@ -13,7 +14,7 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, PendingPrayerCardComponent, PendingUpdateCardComponent, PendingDeletionCardComponent, PendingPreferenceChangeCardComponent],
+  imports: [CommonModule, PendingPrayerCardComponent, PendingUpdateCardComponent, PendingDeletionCardComponent, PendingUpdateDeletionCardComponent, PendingPreferenceChangeCardComponent],
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
       <!-- Header -->
@@ -251,10 +252,14 @@ type AdminTab = 'prayers' | 'updates' | 'deletions' | 'preferences' | 'settings'
                 <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
                   Update Deletions ({{ adminData?.pendingUpdateDeletionRequests?.length || 0 }})
                 </h3>
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center border border-gray-200 dark:border-gray-700">
-                  <p class="text-gray-500 dark:text-gray-400">
-                    Update deletion requests will be displayed here
-                  </p>
+                
+                <div class="space-y-6">
+                  <app-pending-update-deletion-card
+                    *ngFor="let request of adminData?.pendingUpdateDeletionRequests"
+                    [deletionRequest]="request"
+                    (approve)="approveUpdateDeletionRequest($event)"
+                    (deny)="denyUpdateDeletionRequest($event.id, $event.reason)"
+                  ></app-pending-update-deletion-card>
                 </div>
               </div>
             </div>
@@ -410,6 +415,22 @@ export class AdminComponent implements OnInit, OnDestroy {
       await this.adminDataService.denyDeletionRequest(id, reason);
     } catch (error) {
       console.error('Error denying deletion request:', error);
+    }
+  }
+
+  async approveUpdateDeletionRequest(id: string) {
+    try {
+      await this.adminDataService.approveUpdateDeletionRequest(id);
+    } catch (error) {
+      console.error('Error approving update deletion request:', error);
+    }
+  }
+
+  async denyUpdateDeletionRequest(id: string, reason: string) {
+    try {
+      await this.adminDataService.denyUpdateDeletionRequest(id, reason);
+    } catch (error) {
+      console.error('Error denying update deletion request:', error);
     }
   }
 
