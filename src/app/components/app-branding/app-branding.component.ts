@@ -53,6 +53,8 @@ interface BrandingSettings {
             type="text"
             id="appTitle"
             [(ngModel)]="appTitle"
+            name="appTitle"
+            aria-label="Application title"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Church Prayer Manager"
           />
@@ -70,6 +72,8 @@ interface BrandingSettings {
             type="text"
             id="appSubtitle"
             [(ngModel)]="appSubtitle"
+            name="appSubtitle"
+            aria-label="Application subtitle or tagline"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Keeping our community connected in prayer"
           />
@@ -85,7 +89,9 @@ interface BrandingSettings {
               type="checkbox"
               id="useLogo"
               [(ngModel)]="useLogo"
-              class="h-4 w-4 text-blue-600 border-gray-300 bg-white dark:bg-gray-800 rounded focus:ring-blue-500 cursor-pointer"
+              name="useLogo"
+              aria-label="Use custom logo instead of app title"
+              class="h-4 w-4 text-blue-600 border-gray-300 bg-white dark:bg-gray-800 rounded focus:ring-blue-500 cursor-pointer focus:ring-2"
             />
             <label for="useLogo" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
               Use custom logo instead of app title
@@ -109,7 +115,8 @@ interface BrandingSettings {
                 <button
                   (click)="lightLogoInput.click()"
                   [disabled]="uploading"
-                  class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                  class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Upload light mode logo"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -121,7 +128,8 @@ interface BrandingSettings {
                 <button
                   *ngIf="lightModeLogoUrl"
                   (click)="lightModeLogoUrl = ''"
-                  class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                  aria-label="Remove light mode logo"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -156,7 +164,8 @@ interface BrandingSettings {
                 <button
                   (click)="darkLogoInput.click()"
                   [disabled]="uploading"
-                  class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                  class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Upload dark mode logo"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -168,7 +177,8 @@ interface BrandingSettings {
                 <button
                   *ngIf="darkModeLogoUrl"
                   (click)="darkModeLogoUrl = ''"
-                  class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                  aria-label="Remove dark mode logo"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -197,8 +207,8 @@ interface BrandingSettings {
             <div class="relative">
               <select
                 id="deletionsAllowed"
-                [(ngModel)]="deletionsAllowed"
-                class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
+                [(ngModel)]="deletionsAllowed"                name="deletionsAllowed"
+                aria-label="Policy for prayer and update deletions"                class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
               >
                 <option value="everyone">Everyone</option>
                 <option value="original-requestor">Original Requestor Only</option>

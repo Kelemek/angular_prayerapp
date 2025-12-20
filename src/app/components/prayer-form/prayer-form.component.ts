@@ -19,15 +19,19 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
       <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         (click)="$event.stopPropagation()"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prayer-form-title"
       >
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+          <h2 id="prayer-form-title" class="text-xl font-semibold text-gray-800 dark:text-gray-200">
             New Prayer Request
           </h2>
           <button
             (click)="cancel()"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            aria-label="Close prayer form dialog"
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -41,6 +45,9 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
           <div
             *ngIf="showSuccessMessage"
             class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           >
             <div class="flex items-center gap-2 text-green-800 dark:text-green-200">
               <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -56,27 +63,33 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
           <!-- First and Last Name Grid -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                First Name *
+              <label for="firstName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                First Name <span aria-label="required">*</span>
               </label>
               <input
                 type="text"
+                id="firstName"
                 [(ngModel)]="firstName"
                 name="firstName"
                 required
+                aria-required="true"
+                aria-label="First Name"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="First name"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Last Name *
+              <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Last Name <span aria-label="required">*</span>
               </label>
               <input
                 type="text"
+                id="lastName"
                 [(ngModel)]="lastName"
                 name="lastName"
                 required
+                aria-required="true"
+                aria-label="Last Name"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Last name"
               />
@@ -85,14 +98,17 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
 
           <!-- Email -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email Address *
+            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Email Address <span aria-label="required">*</span>
             </label>
             <input
               type="email"
+              id="email"
               [(ngModel)]="formData.email"
               name="email"
               required
+              aria-required="true"
+              aria-label="Email Address"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder="Your email address"
             />
@@ -100,14 +116,17 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
 
           <!-- Prayer For -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Prayer For *
+            <label for="prayer_for" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Prayer For <span aria-label="required">*</span>
             </label>
             <input
               type="text"
+              id="prayer_for"
               [(ngModel)]="formData.prayer_for"
               name="prayer_for"
               required
+              aria-required="true"
+              aria-label="Prayer For"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder="Who or what this prayer is for"
             />
@@ -129,13 +148,16 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
 
           <!-- Description -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Prayer Request Details *
+            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Prayer Request Details <span aria-label="required">*</span>
             </label>
             <textarea
+              id="description"
               [(ngModel)]="formData.description"
               name="description"
               required
+              aria-required="true"
+              aria-label="Prayer Request Details"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 h-24"
               placeholder="Describe the prayer request in detail"
             ></textarea>
@@ -146,7 +168,8 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
             <button
               type="submit"
               [disabled]="!prayerForm.valid || !isFormValid() || isSubmitting || showSuccessMessage"
-              class="flex-1 bg-blue-600 dark:bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="flex-1 bg-blue-600 dark:bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Submit prayer request"
             >
               {{ isSubmitting ? 'Submitting...' : (showSuccessMessage ? 'Submitted' : 'Submit Prayer Request') }}
             </button>
@@ -154,7 +177,8 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
               type="button"
               (click)="cancel()"
               [disabled]="showSuccessMessage"
-              class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Cancel and close form"
             >
               {{ showSuccessMessage ? 'Closing...' : 'Done' }}
             </button>

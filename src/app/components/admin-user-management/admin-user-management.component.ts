@@ -51,7 +51,7 @@ interface AdminUser {
       </div>
 
       <!-- Success Message -->
-      <div *ngIf="success" class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+      <div *ngIf="success" class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md" role="status" aria-live="polite" aria-atomic="true">
         <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
           <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -59,7 +59,7 @@ interface AdminUser {
         <div class="flex-1">
           <p class="text-green-800 dark:text-green-200 text-sm">{{ success }}</p>
         </div>
-        <button (click)="success = null" class="text-green-600 dark:text-green-400">
+        <button (click)="success = null" class="text-green-600 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md p-1" aria-label="Close success message">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -68,7 +68,7 @@ interface AdminUser {
       </div>
 
       <!-- Error Message -->
-      <div *ngIf="error" class="mb-4 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+      <div *ngIf="error" class="mb-4 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md" role="alert" aria-live="assertive" aria-atomic="true">
         <svg class="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -77,7 +77,7 @@ interface AdminUser {
         <div class="flex-1">
           <p class="text-red-800 dark:text-red-200 text-sm">{{ error }}</p>
         </div>
-        <button (click)="error = null" class="text-red-600 dark:text-red-400">
+        <button (click)="error = null" class="text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md p-1" aria-label="Close error message">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -104,25 +104,31 @@ interface AdminUser {
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Name *
+            <label for="adminName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Name <span aria-label="required">*</span>
             </label>
             <input
               type="text"
+              id="adminName"
               [(ngModel)]="newAdminName"
               placeholder="Admin's full name"
+              aria-label="Admin's full name"
+              aria-required="true"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-red-500"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email Address *
+            <label for="adminEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email Address <span aria-label="required">*</span>
             </label>
             <input
               type="email"
+              id="adminEmail"
               [(ngModel)]="newAdminEmail"
               placeholder="admin@example.com"
+              aria-label="Admin's email address"
+              aria-required="true"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-red-500"
             />
           </div>
@@ -131,7 +137,8 @@ interface AdminUser {
             <button
               (click)="addAdmin()"
               [disabled]="adding"
-              class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Add new admin user"
             >
               <div *ngIf="adding" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               <svg *ngIf="!adding" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -143,7 +150,8 @@ interface AdminUser {
             <button
               (click)="cancelAddForm()"
               [disabled]="adding"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label="Cancel adding new admin"
             >
               Cancel
             </button>
@@ -199,13 +207,15 @@ interface AdminUser {
             <span class="text-sm text-gray-600 dark:text-gray-400">Remove admin access?</span>
             <button
               (click)="deleteAdmin(admin.email)"
-              class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
+              class="px-3 py-1 bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-white text-sm rounded transition-colors"
+              aria-label="Confirm deletion of admin access"
             >
               Confirm
             </button>
             <button
               (click)="deletingEmail = null"
-              class="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label="Cancel deletion"
             >
               Cancel
             </button>
@@ -215,8 +225,9 @@ interface AdminUser {
             <!-- Receive Admin Emails Toggle -->
             <button
               (click)="toggleReceiveEmails(admin.email, admin.receive_admin_emails)"
-              [class]="'p-2 rounded-lg transition-colors ' + (admin.receive_admin_emails ? 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30' : 'text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700')"
-              [title]="admin.receive_admin_emails ? 'Receiving admin emails' : 'Not receiving admin emails'"
+              [class]="'p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ' + (admin.receive_admin_emails ? 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 focus:ring-green-500' : 'text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-gray-500')"
+              [attr.aria-label]="'Email notifications for ' + admin.name + ' are ' + (admin.receive_admin_emails ? 'enabled' : 'disabled')"
+              [attr.aria-pressed]="admin.receive_admin_emails"
             >
               <svg *ngIf="admin.receive_admin_emails" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -233,8 +244,8 @@ interface AdminUser {
             <button
               (click)="deletingEmail = admin.email"
               [disabled]="admins.length === 1"
-              class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              [title]="admins.length === 1 ? 'Cannot delete the last admin' : 'Remove admin access'"
+              class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              [attr.aria-label]="admins.length === 1 ? 'Cannot delete, this is the last admin' : 'Remove admin access for ' + admin.name"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>

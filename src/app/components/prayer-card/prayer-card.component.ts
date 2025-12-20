@@ -26,8 +26,8 @@ import { PrayerRequest } from '../../services/prayer.service';
         <button
           *ngIf="showDeleteButton()"
           (click)="handleDeleteClick()"
-          class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
-          [title]="isAdmin ? 'Delete prayer' : 'Request deletion'"
+          aria-label="Delete prayer request"
+          class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
@@ -55,39 +55,47 @@ import { PrayerRequest } from '../../services/prayer.service';
       </div>
 
       <!-- Add Update Form -->
-      <form *ngIf="showAddUpdateForm" #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg">
-        <h4 class="text-sm font-medium text-[#39704D] dark:text-[#5FB876] mb-3">Add Prayer Update</h4>
+      <form *ngIf="showAddUpdateForm" #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg" role="region" [attr.aria-labelledby]="'addUpdateTitle-' + prayer.id">
+        <h4 [id]="'addUpdateTitle-' + prayer.id" class="text-sm font-medium text-[#39704D] dark:text-[#5FB876] mb-3">Add Prayer Update</h4>
         <div class="space-y-2">
           <div class="grid grid-cols-2 gap-2">
             <input
               type="text"
+              [id]="'updateFirstName-' + prayer.id"
               placeholder="First name"
               [(ngModel)]="updateFirstName"
               name="updateFirstName"
+              aria-label="First name"
               class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D]"
               required
             />
             <input
               type="text"
+              [id]="'updateLastName-' + prayer.id"
               placeholder="Last name"
               [(ngModel)]="updateLastName"
               name="updateLastName"
+              aria-label="Last name"
               class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D]"
               required
             />
           </div>
           <input
             type="email"
+            [id]="'updateEmail-' + prayer.id"
             placeholder="Your email"
             [(ngModel)]="updateEmail"
             name="updateEmail"
+            aria-label="Email address"
             class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D]"
             required
           />
           <textarea
+            [id]="'updateContent-' + prayer.id"
             placeholder="Prayer update..."
             [(ngModel)]="updateContent"
             name="updateContent"
+            aria-label="Prayer update details"
             class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D] h-20"
             required
           ></textarea>
@@ -97,7 +105,7 @@ import { PrayerRequest } from '../../services/prayer.service';
               id="updateIsAnonymous-{{prayer.id}}"
               [(ngModel)]="updateIsAnonymous"
               name="updateIsAnonymous"
-              class="rounded border-gray-900 dark:border-white"
+              class="rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
             />
             <label [for]="'updateIsAnonymous-' + prayer.id" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               Post update anonymously
@@ -109,7 +117,7 @@ import { PrayerRequest } from '../../services/prayer.service';
               id="updateMarkAsAnswered-{{prayer.id}}"
               [(ngModel)]="updateMarkAsAnswered"
               name="updateMarkAsAnswered"
-              class="rounded border-gray-900 dark:border-white"
+              class="rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
             />
             <label [for]="'updateMarkAsAnswered-' + prayer.id" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               Mark this prayer as answered
@@ -119,14 +127,16 @@ import { PrayerRequest } from '../../services/prayer.service';
             <button
               type="submit"
               [disabled]="!updateForm.valid"
-              class="px-3 py-1 text-sm bg-[#39704D] text-white rounded-md hover:bg-[#2d5a3f] disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-3 py-1 text-sm bg-[#39704D] text-white rounded-md hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Submit prayer update"
             >
               Add Update
             </button>
             <button
               type="button"
               (click)="showAddUpdateForm = false"
-              class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+              class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label="Cancel prayer update form"
             >
               Cancel
             </button>
@@ -135,39 +145,47 @@ import { PrayerRequest } from '../../services/prayer.service';
       </form>
 
       <!-- Delete Request Form -->
-      <form *ngIf="showDeleteRequestForm" #deleteForm="ngForm" (ngSubmit)="deleteForm.valid && handleDeleteRequest()" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg">
-        <h4 class="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Request Prayer Deletion</h4>
+      <form *ngIf="showDeleteRequestForm" #deleteForm="ngForm" (ngSubmit)="deleteForm.valid && handleDeleteRequest()" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg" role="region" [attr.aria-labelledby]="'deleteFormTitle-' + prayer.id">
+        <h4 [id]="'deleteFormTitle-' + prayer.id" class="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Request Prayer Deletion</h4>
         <div class="space-y-2">
           <div class="grid grid-cols-2 gap-2">
             <input
               type="text"
+              [id]="'deleteFirstName-' + prayer.id"
               placeholder="First name"
               [(ngModel)]="deleteFirstName"
               name="deleteFirstName"
+              aria-label="First name"
               class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             />
             <input
               type="text"
+              [id]="'deleteLastName-' + prayer.id"
               placeholder="Last name"
               [(ngModel)]="deleteLastName"
               name="deleteLastName"
+              aria-label="Last name"
               class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             />
           </div>
           <input
             type="email"
+            [id]="'deleteEmail-' + prayer.id"
             placeholder="Your email"
             [(ngModel)]="deleteEmail"
             name="deleteEmail"
+            aria-label="Email address"
             class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
             required
           />
           <textarea
+            [id]="'deleteReason-' + prayer.id"
             placeholder="Reason for deletion request..."
             [(ngModel)]="deleteReason"
             name="deleteReason"
+            aria-label="Reason for deletion"
             class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 h-20"
             required
           ></textarea>
@@ -175,14 +193,16 @@ import { PrayerRequest } from '../../services/prayer.service';
             <button
               type="submit"
               [disabled]="!deleteForm.valid"
-              class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Submit deletion request"
             >
               Submit Request
             </button>
             <button
               type="button"
               (click)="showDeleteRequestForm = false"
-              class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+              class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label="Cancel deletion request form"
             >
               Cancel
             </button>
@@ -220,8 +240,8 @@ import { PrayerRequest } from '../../services/prayer.service';
                 <button
                   *ngIf="showUpdateDeleteButton()"
                   (click)="handleDeleteUpdate(update.id)"
-                  class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
-                  [title]="isAdmin ? 'Delete update' : 'Request update deletion'"
+                  aria-label="Delete prayer update"
+                  class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -235,39 +255,47 @@ import { PrayerRequest } from '../../services/prayer.service';
             </div>
             <p class="text-sm text-gray-700 dark:text-gray-300">{{ update.content }}</p>
             
-            <form *ngIf="showUpdateDeleteRequestForm === update.id && !isAdmin" #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <h4 class="text-xs font-medium text-red-700 dark:text-red-400 mb-2">Request Update Deletion</h4>
+            <form *ngIf="showUpdateDeleteRequestForm === update.id && !isAdmin" #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="region" [attr.aria-labelledby]="'updateDeleteFormTitle-' + update.id">
+              <h4 [id]="'updateDeleteFormTitle-' + update.id" class="text-xs font-medium text-red-700 dark:text-red-400 mb-2">Request Update Deletion</h4>
               <div class="space-y-2">
                 <div class="grid grid-cols-2 gap-2">
                   <input
                     type="text"
+                    [id]="'updateDeleteFirstName-' + update.id"
                     placeholder="First name"
                     [(ngModel)]="updateDeleteFirstName"
                     name="updateDeleteFirstName"
+                    aria-label="First name"
                     class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
                     required
                   />
                   <input
                     type="text"
+                    [id]="'updateDeleteLastName-' + update.id"
                     placeholder="Last name"
                     [(ngModel)]="updateDeleteLastName"
                     name="updateDeleteLastName"
+                    aria-label="Last name"
                     class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
                     required
                   />
                 </div>
                 <input
                   type="email"
+                  [id]="'updateDeleteEmail-' + update.id"
                   placeholder="Your email"
                   [(ngModel)]="updateDeleteEmail"
                   name="updateDeleteEmail"
+                  aria-label="Email address"
                   class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
                   required
                 />
                 <textarea
+                  [id]="'updateDeleteReason-' + update.id"
                   placeholder="Reason for deletion request..."
                   [(ngModel)]="updateDeleteReason"
                   name="updateDeleteReason"
+                  aria-label="Reason for deletion"
                   class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 h-20"
                   required
                 ></textarea>
@@ -275,14 +303,16 @@ import { PrayerRequest } from '../../services/prayer.service';
                   <button
                     type="submit"
                     [disabled]="!updateDeleteForm.valid"
-                    class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Submit update deletion request"
                   >
                     Submit Request
                   </button>
                   <button
                     type="button"
                     (click)="showUpdateDeleteRequestForm = null"
-                    class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                    class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    aria-label="Cancel update deletion request form"
                   >
                     Cancel
                   </button>

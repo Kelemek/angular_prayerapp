@@ -59,6 +59,9 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
                   <div class="relative">
                     <select
                       [(ngModel)]="verificationCodeLength"
+                      id="codeLength"
+                      name="codeLength"
+                      aria-label="Verification code length"
                       class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
                     >
                       <option [value]="4">4 digits</option>
@@ -82,6 +85,9 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
                   <div class="relative">
                     <select
                       [(ngModel)]="verificationCodeExpiryMinutes"
+                      id="codeExpiry"
+                      name="codeExpiry"
+                      aria-label="Code expiration time in minutes"
                       class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
                     >
                       <option [value]="5">5 minutes</option>
@@ -105,7 +111,7 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
           </div>
         </div>
 
-        <div *ngIf="successVerification" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md p-4 mt-4">
+        <div *ngIf="successVerification" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md p-4 mt-4" role="status" aria-live="polite" aria-atomic="true">
           <p class="text-sm text-green-800 dark:text-green-200">
             Email verification settings saved successfully!
           </p>
@@ -115,7 +121,8 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
           <button
             (click)="saveVerificationSettings()"
             [disabled]="savingVerification"
-            class="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="Save verification settings"
           >
             <div *ngIf="savingVerification" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             <svg *ngIf="!savingVerification" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -150,7 +157,10 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
             <input
               type="checkbox"
               [(ngModel)]="enableReminders"
-              class="mt-0.5 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+              id="enableReminders"
+              name="enableReminders"
+              aria-label="Enable prayer update reminders"
+              class="mt-0.5 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
             />
             <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Enable prayer update reminders</span>
           </label>
@@ -168,12 +178,15 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
                   min="1"
                   max="90"
                   [(ngModel)]="reminderIntervalDays"
+                  name="reminderIntervalDays"
                   (ngModelChange)="validateReminderDays()"
+                  aria-label="Days before sending reminder"
+                  aria-describedby="reminderDaysHelp"
                   class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
                 <span class="text-sm text-gray-700 dark:text-gray-300">days</span>
               </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <p id="reminderDaysHelp" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 Send reminder email after this many days without any updates to the prayer.
               </p>
             </div>
@@ -184,7 +197,10 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
                 <input
                   type="checkbox"
                   [(ngModel)]="enableAutoArchive"
-                  class="mt-0.5 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  id="enableAutoArchive"
+                  name="enableAutoArchive"
+                  aria-label="Auto-archive prayers after reminder"
+                  class="mt-0.5 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
                 />
                 <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Auto-archive prayers after reminder if still no update</span>
               </label>
@@ -217,7 +233,7 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
           </div>
         </div>
 
-        <div *ngIf="successReminders" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md p-4 mb-4">
+        <div *ngIf="successReminders" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md p-4 mb-4" role="status" aria-live="polite" aria-atomic="true">
           <p class="text-sm text-green-800 dark:text-green-200">
             Reminder settings saved successfully!
           </p>
@@ -227,7 +243,8 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
           <button
             (click)="saveReminderSettings()"
             [disabled]="savingReminders"
-            class="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="Save reminder settings"
           >
             <div *ngIf="savingReminders" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             <svg *ngIf="!savingReminders" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -241,7 +258,7 @@ import { EmailTemplatesManagerComponent } from '../email-templates-manager/email
       </div>
 
       <!-- Global Error Message -->
-      <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4">
+      <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4" role="alert" aria-live="assertive" aria-atomic="true">
         <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
       </div>
 
