@@ -6,8 +6,8 @@ export default defineConfig({
   
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 2 : undefined,
 
   reporter: [
     ['html'],
@@ -21,14 +21,19 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
-  webServer: {
+  webServer: process.env.CI ? undefined : {
     command: 'npm run start',
     url: 'http://localhost:4200',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120000,
   },
 
-  projects: [
+  projects: process.env.CI ? [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ] : [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
@@ -43,7 +48,7 @@ export default defineConfig({
     },
   ],
 
-  timeout: 30000,
+  timeout: process.env.CI ? 20000 : 30000,
   expect: {
     timeout: 5000,
   },
