@@ -189,6 +189,14 @@ export class AdminAuthService {
     });
   }
 
+  /**
+   * Record user activity to prevent inactivity timeout
+   * Call this whenever user interacts with the admin panel
+   */
+  recordActivity(): void {
+    this.lastActivity = Date.now();
+  }
+
   private setupSessionTimeouts(): void {
     // Check every minute for timeouts
     interval(60000).subscribe(() => {
@@ -200,14 +208,12 @@ export class AdminAuthService {
 
       // Check inactivity timeout
       if (inactivityTime > this.timeoutSettings.inactivityTimeoutMinutes * 60000) {
-          console.log('[AdminAuth] Session expired due to inactivity');
         this.logout();
         return;
       }
 
       // Check max session duration
       if (sessionDuration > this.timeoutSettings.maxSessionDurationMinutes * 60000) {
-          console.log('[AdminAuth] Session expired due to max duration');
         this.logout();
         return;
       }

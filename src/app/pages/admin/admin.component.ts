@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { AdminDataService } from '../../services/admin-data.service';
+import { AdminAuthService } from '../../services/admin-auth.service';
 import { AnalyticsService, AnalyticsStats } from '../../services/analytics.service';
 import { PendingPrayerCardComponent } from '../../components/pending-prayer-card/pending-prayer-card.component';
 import { PendingUpdateCardComponent } from '../../components/pending-update-card/pending-update-card.component';
@@ -580,8 +581,21 @@ export class AdminComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private adminDataService: AdminDataService,
-    private analyticsService: AnalyticsService
+    private analyticsService: AnalyticsService,
+    private adminAuthService: AdminAuthService
   ) {}
+
+  /**
+   * Track user activity to prevent inactivity timeout
+   * Records activity on mouse clicks, keyboard input, and touch events
+   */
+  @HostListener('document:click')
+  @HostListener('document:keypress')
+  @HostListener('document:mousemove')
+  @HostListener('document:touchstart')
+  recordActivity(): void {
+    this.adminAuthService.recordActivity();
+  }
 
   ngOnInit() {
     // Subscribe to admin data
