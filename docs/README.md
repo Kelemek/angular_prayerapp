@@ -1,6 +1,6 @@
 # Prayer App Documentation
 
-Complete documentation for the Church Prayer Management System built with React, TypeScript, Supabase, and Microsoft Graph API.
+Complete documentation for the Church Prayer Management System built with Angular, TypeScript, Supabase, and Microsoft Graph API.
 
 ---
 
@@ -107,13 +107,13 @@ All technical details are consolidated in the main documentation files:
 
 ## 📦 Tech Stack
 
-- **Frontend**: React + TypeScript + Vite
+- **Frontend**: Angular 19+ with standalone components, TypeScript, Vite
 - **Backend**: Supabase (PostgreSQL + Edge Functions)
 - **Email**: Microsoft Graph API / Microsoft 365 SMTP
 - **Real-time**: Supabase Realtime
 - **Hosting**: Vercel / Netlify
 - **Styling**: Tailwind CSS
-- **Testing**: Vitest + React Testing Library
+- **Testing**: Jasmine + Karma (Angular default testing framework)
 
 ---
 
