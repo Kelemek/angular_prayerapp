@@ -290,7 +290,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
 
           <!-- User Information -->
-          <div class="space-y-4">
+          <form #settingsForm="ngForm" class="space-y-4">
             <div>
               <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Your Email Address
@@ -298,9 +298,11 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               <input
                 type="email"
                 id="email"
+                name="email"
                 [(ngModel)]="email"
                 (ngModelChange)="onEmailChange()"
                 placeholder="your.email@example.com"
+                required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -316,8 +318,10 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               <input
                 type="text"
                 id="name"
+                name="name"
                 [(ngModel)]="name"
                 placeholder="John Doe"
+                required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -401,13 +405,13 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
               </div>
             </div>
-          </div>
+          </form>
 
         <!-- Footer -->
           <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
             <button
               (click)="savePreferences()"
-              [disabled]="saving || !email.trim() || !name.trim()"
+              [disabled]="!settingsForm.valid || saving || !email.trim() || !name.trim()"
               class="flex-1 px-4 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium"
             >
               {{ saving ? 'Submitting...' : 'Submit for Approval' }}

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
+import { ApprovalLinksService } from './approval-links.service';
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -96,7 +97,10 @@ export interface DeniedPreferenceChangePayload {
   providedIn: 'root'
 })
 export class EmailNotificationService {
-  constructor(private supabase: SupabaseService) {}
+  constructor(
+    private supabase: SupabaseService,
+    private approvalLinks: ApprovalLinksService
+  ) {}
 
   /**
    * Send a single email using Supabase edge function
@@ -417,11 +421,29 @@ export class EmailNotificationService {
   }
 
   /**
-   * Send notification to a single admin
+   * Send notification to a single admin with personalized approval link
    */
   private async sendAdminNotificationToEmail(payload: AdminNotificationPayload, adminEmail: string): Promise<void> {
     try {
-      const adminLink = `${window.location.origin}#admin`;
+      // Generate approval link if requestId is provided
+      let adminLink = `${window.location.origin}#admin`;
+      
+      if (payload.requestId) {
+        console.log('🔗 Generating approval link for', { type: payload.type, adminEmail, requestId: payload.requestId });
+        const link = await this.approvalLinks.generateApprovalLink(
+          payload.type,
+          payload.requestId,
+          adminEmail
+        );
+        if (link) {
+          console.log('✅ Approval link generated:', link);
+          adminLink = link;
+        } else {
+          console.warn('⚠️ Approval link generation returned null, using fallback');
+        }
+      } else {
+        console.log('⏭️ Skipping approval code generation: no requestId provided');
+      }
 
       let subject: string;
       let body: string;
@@ -482,15 +504,15 @@ export class EmailNotificationService {
         // Fallback templates
         if (payload.type === 'prayer') {
           subject = `New Prayer Request: ${payload.title}`;
-          body = `A new prayer request has been submitted and is pending approval.\n\nTitle: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nDescription: ${payload.description || 'No description provided'}\n\nPlease review in the admin portal: ${adminLink}`;
+          body = `A new prayer request has been submitted and is pending approval.\n\nTitle: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nDescription: ${payload.description || 'No description provided'}\n\nApprove this request here: ${adminLink}`;
           html = this.generateAdminNotificationPrayerHTML(payload, adminLink);
         } else if (payload.type === 'update') {
           subject = `New Prayer Update: ${payload.title}`;
-          body = `A new prayer update has been submitted and is pending approval.\n\nPrayer: ${payload.title}\nUpdate by: ${payload.author || 'Anonymous'}\n\nContent: ${payload.content || 'No content provided'}\n\nPlease review in the admin portal: ${adminLink}`;
+          body = `A new prayer update has been submitted and is pending approval.\n\nPrayer: ${payload.title}\nUpdate by: ${payload.author || 'Anonymous'}\n\nContent: ${payload.content || 'No content provided'}\n\nApprove this request here: ${adminLink}`;
           html = this.generateAdminNotificationUpdateHTML(payload, adminLink);
         } else if (payload.type === 'deletion') {
           subject = `Deletion Request: ${payload.title}`;
-          body = `A deletion request has been submitted for a prayer.\n\nPrayer: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nReason: ${payload.reason || 'No reason provided'}\n\nPlease review in the admin portal: ${adminLink}`;
+          body = `A deletion request has been submitted for a prayer.\n\nPrayer: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nReason: ${payload.reason || 'No reason provided'}\n\nApprove this request here: ${adminLink}`;
           html = this.generateAdminNotificationDeletionHTML(payload, adminLink);
         } else {
           subject = `New Admin Action Required`;

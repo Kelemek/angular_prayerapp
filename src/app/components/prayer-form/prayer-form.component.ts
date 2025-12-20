@@ -36,7 +36,7 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
         </div>
 
         <!-- Form -->
-        <form (ngSubmit)="handleSubmit()" class="p-6 space-y-4">
+        <form #prayerForm="ngForm" (ngSubmit)="prayerForm.valid && handleSubmit()" class="p-6 space-y-4">
           <!-- Success Message -->
           <div
             *ngIf="showSuccessMessage"
@@ -145,7 +145,7 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
           <div class="flex gap-3 pt-4">
             <button
               type="submit"
-              [disabled]="!isFormValid() || isSubmitting || showSuccessMessage"
+              [disabled]="!prayerForm.valid || !isFormValid() || isSubmitting || showSuccessMessage"
               class="flex-1 bg-blue-600 dark:bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {{ isSubmitting ? 'Submitting...' : (showSuccessMessage ? 'Submitted' : 'Submit Prayer Request') }}

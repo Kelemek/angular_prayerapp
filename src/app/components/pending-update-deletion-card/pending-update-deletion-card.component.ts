@@ -159,10 +159,12 @@ export class PendingUpdateDeletionCardComponent {
   denialReason = '';
   isApproving = false;
 
-  handleApprove(): void {
-    if (confirm('Are you sure you want to approve this update deletion request? The update will be permanently deleted.')) {
-      this.isApproving = true;
+  async handleApprove() {
+    this.isApproving = true;
+    try {
       this.approve.emit(this.deletionRequest.id);
+    } finally {
+      this.isApproving = false;
     }
   }
 

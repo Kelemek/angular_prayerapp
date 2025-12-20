@@ -55,7 +55,7 @@ import { PrayerRequest } from '../../services/prayer.service';
       </div>
 
       <!-- Add Update Form -->
-      <form *ngIf="showAddUpdateForm" (ngSubmit)="handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg">
+      <form *ngIf="showAddUpdateForm" #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg">
         <h4 class="text-sm font-medium text-[#39704D] dark:text-[#5FB876] mb-3">Add Prayer Update</h4>
         <div class="space-y-2">
           <div class="grid grid-cols-2 gap-2">
@@ -118,7 +118,8 @@ import { PrayerRequest } from '../../services/prayer.service';
           <div class="flex gap-2">
             <button
               type="submit"
-              class="px-3 py-1 text-sm bg-[#39704D] text-white rounded-md hover:bg-[#2d5a3f]"
+              [disabled]="!updateForm.valid"
+              class="px-3 py-1 text-sm bg-[#39704D] text-white rounded-md hover:bg-[#2d5a3f] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add Update
             </button>
@@ -134,7 +135,7 @@ import { PrayerRequest } from '../../services/prayer.service';
       </form>
 
       <!-- Delete Request Form -->
-      <form *ngIf="showDeleteRequestForm" (ngSubmit)="handleDeleteRequest()" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg">
+      <form *ngIf="showDeleteRequestForm" #deleteForm="ngForm" (ngSubmit)="deleteForm.valid && handleDeleteRequest()" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg">
         <h4 class="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Request Prayer Deletion</h4>
         <div class="space-y-2">
           <div class="grid grid-cols-2 gap-2">
@@ -173,7 +174,8 @@ import { PrayerRequest } from '../../services/prayer.service';
           <div class="flex gap-2">
             <button
               type="submit"
-              class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+              [disabled]="!deleteForm.valid"
+              class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Submit Request
             </button>
@@ -233,9 +235,8 @@ import { PrayerRequest } from '../../services/prayer.service';
             </div>
             <p class="text-sm text-gray-700 dark:text-gray-300">{{ update.content }}</p>
             
-            <!-- Update Deletion Request Form -->
-            <form *ngIf="showUpdateDeleteRequestForm === update.id && !isAdmin" (ngSubmit)="handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <h4 class="text-sm font-medium text-red-800 dark:text-red-200 mb-2">Request Update Deletion</h4>
+            <form *ngIf="showUpdateDeleteRequestForm === update.id && !isAdmin" #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <h4 class="text-xs font-medium text-red-700 dark:text-red-400 mb-2">Request Update Deletion</h4>
               <div class="space-y-2">
                 <div class="grid grid-cols-2 gap-2">
                   <input
@@ -273,7 +274,8 @@ import { PrayerRequest } from '../../services/prayer.service';
                 <div class="flex gap-2">
                   <button
                     type="submit"
-                    class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                    [disabled]="!updateDeleteForm.valid"
+                    class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Submit Request
                   </button>
@@ -397,7 +399,7 @@ export class PrayerCardComponent implements OnInit {
       prayer_id: this.prayer.id,
       content: this.updateContent,
       author: this.updateIsAnonymous ? 'Anonymous' : `${this.updateFirstName} ${this.updateLastName}`,
-      author_email: this.updateEmail || null,
+      author_email: this.updateEmail || '',
       is_anonymous: this.updateIsAnonymous,
       mark_as_answered: this.updateMarkAsAnswered
     };

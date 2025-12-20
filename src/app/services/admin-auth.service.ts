@@ -41,6 +41,19 @@ export class AdminAuthService {
     // Load timeout settings
     await this.loadTimeoutSettings();
 
+    // Check for approval code session first
+    const approvalEmail = localStorage.getItem('approvalAdminEmail');
+    const sessionValidated = localStorage.getItem('approvalSessionValidated');
+    
+    if (approvalEmail && sessionValidated === 'true') {
+      console.log('[AdminAuth] Found approval code session for:', approvalEmail);
+      this.isAdminSubject.next(true);
+      this.sessionStart = this.getPersistedSessionStart() || Date.now();
+      this.persistSessionStart(this.sessionStart);
+      this.loadingSubject.next(false);
+      return;
+    }
+
     // Check current session
     const { data: { session } } = await this.supabase.client.auth.getSession();
     
@@ -138,6 +151,16 @@ export class AdminAuthService {
 
   private async checkAdminStatus(user: User): Promise<void> {
     if (!user?.email) {
+      // Check for approval code session
+      const approvalEmail = localStorage.getItem('approvalAdminEmail');
+      const sessionValidated = localStorage.getItem('approvalSessionValidated');
+      
+      if (approvalEmail && sessionValidated === 'true') {
+        console.log('[AdminAuth] Approval code session found for:', approvalEmail);
+        this.isAdminSubject.next(true);
+        return;
+      }
+      
       this.isAdminSubject.next(false);
       return;
     }
@@ -247,6 +270,16 @@ export class AdminAuthService {
   }
 
   /**
+   * Set approval code session (called when approval code is validated)
+   */
+  setApprovalSession(email: string): void {
+    console.log('[AdminAuth] Setting approval session for:', email);
+    this.isAdminSubject.next(true);
+    this.sessionStart = Date.now();
+    this.persistSessionStart(this.sessionStart);
+  }
+
+  /**
    * Logout current user
    */
   async logout(): Promise<void> {
@@ -256,6 +289,12 @@ export class AdminAuthService {
       this.isAdminSubject.next(false);
       this.sessionStart = null;
       this.persistSessionStart(null);
+      
+      // Clear approval code session data
+      localStorage.removeItem('approvalAdminEmail');
+      localStorage.removeItem('approvalSessionValidated');
+      localStorage.removeItem('approvalApprovalType');
+      localStorage.removeItem('approvalApprovalId');
     } catch (error) {
       console.error('Error during logout:', error);
     }

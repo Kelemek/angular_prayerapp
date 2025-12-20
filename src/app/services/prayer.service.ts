@@ -444,7 +444,7 @@ export class PrayerService {
    */
   async addUpdate(updateData: any): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
+      const { data, error } = await this.supabase.client
         .from('prayer_updates')
         .insert({
           prayer_id: updateData.prayer_id,
@@ -454,9 +454,29 @@ export class PrayerService {
           is_anonymous: updateData.is_anonymous,
           mark_as_answered: updateData.mark_as_answered,
           approval_status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Get prayer title for admin notification
+      const { data: prayer } = await this.supabase.client
+        .from('prayers')
+        .select('title')
+        .eq('id', updateData.prayer_id)
+        .single();
+
+      // Send email notification to admins (don't let email failures block update submission)
+      if (prayer) {
+        this.emailNotification.sendAdminNotification({
+          type: 'update',
+          title: prayer.title,
+          author: updateData.author,
+          content: updateData.content,
+          requestId: data.id
+        }).catch(err => console.error('Failed to send admin notification:', err));
+      }
 
       this.toast.success('Update submitted for approval');
       return true;

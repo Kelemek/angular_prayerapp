@@ -416,7 +416,7 @@ export class HomeComponent implements OnInit {
         console.log('Home - Requesting verification code for update:', updateData.author_email);
         const verificationResult = await this.verificationService.requestCode(
           updateData.author_email,
-          'update_submission',
+          'prayer_update',
           updateData
         );
 
@@ -629,7 +629,7 @@ export class HomeComponent implements OnInit {
     try {
       if (!this.verificationState.email || !this.verificationState.actionData) return;
 
-      let actionType = 'update_submission';
+      let actionType = 'prayer_update';
       if (this.verificationState.actionType === 'deletion') {
         actionType = 'deletion_request';
       } else if (this.verificationState.actionType === 'update_deletion') {

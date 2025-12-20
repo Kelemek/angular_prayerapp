@@ -534,12 +534,25 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);    await this.prayerService.loadPrayers();  }
+    await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
+  }
 
   async approveDeletionRequest(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
-    const { error } = await supabaseClient
+    // First, get the prayer_id from the deletion request
+    const { data: deletionRequest, error: fetchError } = await supabaseClient
+      .from('deletion_requests')
+      .select('prayer_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!deletionRequest) throw new Error('Deletion request not found');
+    
+    // Mark the deletion request as approved
+    const { error: approveError } = await supabaseClient
       .from('deletion_requests')
       .update({ 
         approval_status: 'approved',
@@ -547,8 +560,19 @@ export class AdminDataService {
       })
       .eq('id', id);
 
-    if (error) throw error;
-    await this.fetchAdminData(true);    await this.prayerService.loadPrayers();  }
+    if (approveError) throw approveError;
+    
+    // Actually delete the prayer
+    const { error: deleteError } = await supabaseClient
+      .from('prayers')
+      .delete()
+      .eq('id', deletionRequest.prayer_id);
+
+    if (deleteError) throw deleteError;
+    
+    await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
+  }
 
   async denyDeletionRequest(id: string, reason: string): Promise<void> {
     const supabaseClient = this.supabase.client;
@@ -563,12 +587,25 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);    await this.prayerService.loadPrayers();  }
+    await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
+  }
 
   async approveUpdateDeletionRequest(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
-    const { error } = await supabaseClient
+    // First, get the update_id from the deletion request
+    const { data: deletionRequest, error: fetchError } = await supabaseClient
+      .from('update_deletion_requests')
+      .select('update_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!deletionRequest) throw new Error('Update deletion request not found');
+    
+    // Mark the deletion request as approved
+    const { error: approveError } = await supabaseClient
       .from('update_deletion_requests')
       .update({ 
         approval_status: 'approved',
@@ -576,7 +613,16 @@ export class AdminDataService {
       })
       .eq('id', id);
 
-    if (error) throw error;
+    if (approveError) throw approveError;
+    
+    // Actually delete the update
+    const { error: deleteError } = await supabaseClient
+      .from('prayer_updates')
+      .delete()
+      .eq('id', deletionRequest.update_id);
+
+    if (deleteError) throw deleteError;
+    
     await this.fetchAdminData(true);
     await this.prayerService.loadPrayers();
   }
