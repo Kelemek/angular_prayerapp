@@ -33,19 +33,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Build application
-        run: npm run build
+      - name: Run E2E tests
+        run: npx playwright test
         env:
           CI: true
-
-      - name: Start preview server & Run E2E tests
-        run: |
-          npx http-server dist/prayerapp/browser -p 4200 --silent &
-          sleep 3
-          npx playwright test
-        env:
-          CI: true
-          BASE_URL: http://localhost:4200
 
       - name: Upload test report
         if: always()
