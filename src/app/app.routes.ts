@@ -13,11 +13,13 @@ export const routes: Routes = [
   {
     path: 'admin',
     loadComponent: () => import('./pages/admin/admin.component').then(m => m.AdminComponent),
-    canActivate: [adminGuard]
+    canActivate: [adminGuard],
+    data: { preload: true } // Hint for preloading strategy if implemented
   },
   {
     path: 'presentation',
-    loadComponent: () => import('./pages/presentation/presentation.component').then(m => m.PresentationComponent)
+    loadComponent: () => import('./pages/presentation/presentation.component').then(m => m.PresentationComponent),
+    data: { preload: false }
   },
   {
     path: '**',
