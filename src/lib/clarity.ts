@@ -1,29 +1,37 @@
-// import clarity from '@microsoft/clarity';
+import clarity from '@microsoft/clarity';
+import { environment } from '../environments/environment';
 
 export function initializeClarity(): void {
-  // TODO: Port from react-backup/lib/clarity.ts
-  // For now, just log that Clarity would be initialized
-  console.log('Microsoft Clarity initialization placeholder - to be implemented');
-  
-  // Uncomment and configure when ready:
-  /*
-  const clarityProjectId = environment.clarityProjectId;
-  
-  if (!clarityProjectId) {
-    console.warn('Clarity project ID not configured');
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined') {
     return;
   }
 
   try {
-    clarity.start({
-      projectId: clarityProjectId,
-      upload: 'https://www.clarity.ms/collect',
-      track: true,
-      content: true
-    });
-    console.log('Clarity initialized');
+    const clarityProjectId = environment.clarityProjectId;
+    
+    // Debug logging to verify environment variable is loaded
+    if (clarityProjectId) {
+      console.debug('Clarity environment check:', {
+        projectId: clarityProjectId,
+        hasValue: !!clarityProjectId,
+        isDefined: clarityProjectId !== undefined,
+        isEmpty: clarityProjectId === '',
+        type: typeof clarityProjectId,
+        production: environment.production
+      });
+    }
+    
+    // Only initialize if project ID is explicitly set and not empty
+    if (!clarityProjectId || clarityProjectId === '' || clarityProjectId === 'undefined') {
+      console.debug('Clarity not configured - skipping initialization');
+      return;
+    }
+
+    // Initialize Clarity using the official npm package
+    clarity.init(clarityProjectId);
+    console.log('✓ Clarity initialized with project:', clarityProjectId);
   } catch (error) {
-    console.error('Failed to initialize Clarity:', error);
+    console.error('✗ Failed to initialize Clarity:', error instanceof Error ? error.message : String(error));
   }
-  */
 }
