@@ -30,6 +30,7 @@ dist-ssr
 
 # Playwright
 test-results/
+test-results.json
 playwright-report/
 playwright/.cache/
 # Database backups - not synced to repository
