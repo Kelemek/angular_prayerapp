@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../services/theme.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { PrintService } from '../../services/print.service';
+import { EmailNotificationService } from '../../services/email-notification.service';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 
 type ThemeOption = 'light' | 'dark' | 'system';
@@ -480,7 +481,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   constructor(
     private themeService: ThemeService,
     private printService: PrintService,
-    private supabase: SupabaseService
+    private supabase: SupabaseService,
+    private emailNotification: EmailNotificationService
   ) {}
 
   ngOnInit(): void {
@@ -613,35 +615,79 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  savePreferences(): void {
+  async savePreferences(): Promise<void> {
+    if (!this.email.trim()) {
+      this.error = 'Please enter your email address';
+      return;
+    }
+
+    if (!this.name.trim()) {
+      this.error = 'Please enter your name';
+      return;
+    }
+
     this.saving = true;
     this.error = null;
     this.success = null;
 
-    // Save user info to localStorage
-    const names = this.name.trim().split(' ');
-    const firstName = names[0] || '';
-    const lastName = names.slice(1).join(' ') || '';
+    try {
+      // Save user info to localStorage
+      const names = this.name.trim().split(' ');
+      const firstName = names[0] || '';
+      const lastName = names.slice(1).join(' ') || '';
 
-    const userInfo = {
-      firstName,
-      lastName,
-      email: this.email.trim()
-    };
+      const userInfo = {
+        firstName,
+        lastName,
+        email: this.email.trim()
+      };
 
-    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
 
-    // TODO: Save to database if email is provided
-    // TODO: Implement email verification flow
+      const emailLower = this.email.toLowerCase().trim();
 
-    setTimeout(() => {
-      this.saving = false;
-      this.success = 'Preferences saved successfully!';
+      const preferenceData = {
+        name: this.name.trim(),
+        email: emailLower,
+        receive_new_prayer_notifications: this.receiveNotifications
+      };
+
+      // Submit as pending preference change for admin approval
+      const { data, error } = await this.supabase.client
+        .from('pending_preference_changes')
+        .insert(preferenceData)
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      // Send admin notification email (don't let this block the save)
+      try {
+        const requestId = data?.id;
+        await this.emailNotification.sendPreferenceChangeNotification({
+          name: preferenceData.name,
+          email: preferenceData.email,
+          receiveNotifications: preferenceData.receive_new_prayer_notifications,
+          requestId
+        });
+      } catch (emailError) {
+        console.warn('⚠️ Admin notification email failed (but preference was saved):', emailError);
+        // Don't throw - preference was already saved
+      }
+
+      this.success = 
+        '✅ Your preference change has been submitted for approval! ' +
+        'You will receive an email once approved. After approval, your preferences will be automatically updated the next time you open this settings panel.';
       
       setTimeout(() => {
         this.onClose.emit();
-      }, 1500);
-    }, 1000);
+      }, 2500);
+    } catch (err) {
+      console.error('Error saving preferences:', err);
+      this.error = err instanceof Error ? err.message : 'Failed to save preferences';
+    } finally {
+      this.saving = false;
+    }
   }
 
   private async loadPreferencesAutomatically(emailAddress: string): Promise<void> {

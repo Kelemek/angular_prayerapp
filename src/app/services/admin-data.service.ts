@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { PrayerService } from './prayer.service';
+import { EmailNotificationService } from './email-notification.service';
 import type { 
   PrayerRequest, 
   PrayerUpdate, 
@@ -89,7 +90,8 @@ export class AdminDataService {
 
   constructor(
     private supabase: SupabaseService,
-    private prayerService: PrayerService
+    private prayerService: PrayerService,
+    private emailNotification: EmailNotificationService
   ) {}
 
   async fetchAdminData(silent = false): Promise<void> {
@@ -321,6 +323,16 @@ export class AdminDataService {
   async approvePrayer(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
+    // First get the prayer details before approving
+    const { data: prayer, error: fetchError } = await supabaseClient
+      .from('prayers')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!prayer) throw new Error('Prayer not found');
+    
     const { error } = await supabaseClient
       .from('prayers')
       .update({ 
@@ -331,6 +343,23 @@ export class AdminDataService {
 
     if (error) throw error;
     
+    // Send email notifications (don't let email failures block the approval)
+    this.emailNotification.sendApprovedPrayerNotification({
+      title: prayer.title,
+      description: prayer.description,
+      requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+      prayerFor: prayer.prayer_for,
+      status: prayer.status
+    }).catch(err => console.error('Failed to send broadcast notification:', err));
+
+    this.emailNotification.sendRequesterApprovalNotification({
+      title: prayer.title,
+      description: prayer.description,
+      requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+      requesterEmail: prayer.email,
+      prayerFor: prayer.prayer_for
+    }).catch(err => console.error('Failed to send requester notification:', err));
+    
     // Refresh admin data and main prayer list
     await this.fetchAdminData(true);
     await this.prayerService.loadPrayers();
@@ -338,6 +367,16 @@ export class AdminDataService {
 
   async denyPrayer(id: string, reason: string): Promise<void> {
     const supabaseClient = this.supabase.client;
+    
+    // First get the prayer details before denying
+    const { data: prayer, error: fetchError } = await supabaseClient
+      .from('prayers')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!prayer) throw new Error('Prayer not found');
     
     const { error } = await supabaseClient
       .from('prayers')
@@ -349,6 +388,18 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Send email notification to the requester (don't let email failures block the denial)
+    if (prayer.email) {
+      this.emailNotification.sendDeniedPrayerNotification({
+        title: prayer.title,
+        description: prayer.description,
+        requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+        requesterEmail: prayer.email,
+        denialReason: reason
+      }).catch(err => console.error('Failed to send denial notification:', err));
+    }
+    
     await this.fetchAdminData(true);
     await this.prayerService.loadPrayers();
   }
@@ -369,6 +420,16 @@ export class AdminDataService {
   async approveUpdate(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
+    // First get the update details, prayer title, and prayer status before approving
+    const { data: update, error: fetchError } = await supabaseClient
+      .from('prayer_updates')
+      .select('*, prayers(title, status)')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!update) throw new Error('Update not found');
+    
     const { error } = await supabaseClient
       .from('prayer_updates')
       .update({ 
@@ -378,12 +439,62 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
+
+    // Get the prayer's current status
+    const prayerData = update.prayers && typeof update.prayers === 'object' ? update.prayers : null;
+    const currentPrayerStatus = prayerData && 'status' in prayerData ? String(prayerData.status) : null;
+
+    // Update prayer status based on the logic:
+    // 1. If mark_as_answered is true, set to 'answered'
+    // 2. If current status is 'answered' or 'archived' and NOT marked as answered, set to 'current'
+    // 3. Otherwise, leave status unchanged
+    let newPrayerStatus: string | null = null;
+    
+    if (update.mark_as_answered) {
+      newPrayerStatus = 'answered';
+    } else if (currentPrayerStatus === 'answered' || currentPrayerStatus === 'archived') {
+      newPrayerStatus = 'current';
+    }
+
+    // Update the prayer status if needed
+    if (newPrayerStatus) {
+      const { error: prayerError } = await supabaseClient
+        .from('prayers')
+        .update({ status: newPrayerStatus })
+        .eq('id', update.prayer_id);
+      
+      if (prayerError) {
+        console.error('Failed to update prayer status:', prayerError);
+      }
+    }
+
+    // Send mass email notification to all subscribers (don't let email failures block the approval)
+    const prayerTitle = prayerData && 'title' in prayerData
+      ? String(prayerData.title)
+      : 'Prayer';
+    this.emailNotification.sendApprovedUpdateNotification({
+      prayerTitle,
+      content: update.content,
+      author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
+      markedAsAnswered: update.mark_as_answered || false
+    }).catch(err => console.error('Failed to send update notification:', err));
+    
     await this.fetchAdminData(true);
     await this.prayerService.loadPrayers();
   }
 
   async denyUpdate(id: string, reason: string): Promise<void> {
     const supabaseClient = this.supabase.client;
+    
+    // First get the update details and prayer title before denying
+    const { data: update, error: fetchError } = await supabaseClient
+      .from('prayer_updates')
+      .select('*, prayers(title)')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!update) throw new Error('Update not found');
     
     const { error } = await supabaseClient
       .from('prayer_updates')
@@ -395,6 +506,21 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Send email notification to the author (don't let email failures block the denial)
+    if (update.author_email) {
+      const prayerTitle = update.prayers && typeof update.prayers === 'object' && 'title' in update.prayers
+        ? String(update.prayers.title)
+        : 'Prayer';
+      this.emailNotification.sendDeniedUpdateNotification({
+        prayerTitle,
+        content: update.content,
+        author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
+        authorEmail: update.author_email,
+        denialReason: reason
+      }).catch(err => console.error('Failed to send denial notification:', err));
+    }
+    
     await this.fetchAdminData(true);
     await this.prayerService.loadPrayers();
   }
@@ -475,6 +601,16 @@ export class AdminDataService {
   async approvePreferenceChange(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
+    // First get the preference change details before approving
+    const { data: preferenceChange, error: fetchError } = await supabaseClient
+      .from('pending_preference_changes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!preferenceChange) throw new Error('Preference change not found');
+    
     const { error } = await supabaseClient
       .from('pending_preference_changes')
       .update({ 
@@ -484,11 +620,29 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Send email notification to user (don't let email failures block approval)
+    this.emailNotification.sendApprovedPreferenceChangeNotification({
+      name: preferenceChange.name,
+      email: preferenceChange.email,
+      receiveNotifications: preferenceChange.receive_new_prayer_notifications
+    }).catch(err => console.error('Failed to send preference approval notification:', err));
+    
     await this.fetchAdminData(true);
   }
 
   async denyPreferenceChange(id: string, reason: string): Promise<void> {
     const supabaseClient = this.supabase.client;
+    
+    // First get the preference change details before denying
+    const { data: preferenceChange, error: fetchError } = await supabaseClient
+      .from('pending_preference_changes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!preferenceChange) throw new Error('Preference change not found');
     
     const { error } = await supabaseClient
       .from('pending_preference_changes')
@@ -500,6 +654,15 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Send email notification to user (don't let email failures block denial)
+    this.emailNotification.sendDeniedPreferenceChangeNotification({
+      name: preferenceChange.name,
+      email: preferenceChange.email,
+      receiveNotifications: preferenceChange.receive_new_prayer_notifications,
+      denialReason: reason
+    }).catch(err => console.error('Failed to send preference denial notification:', err));
+    
     await this.fetchAdminData(true);
   }
 

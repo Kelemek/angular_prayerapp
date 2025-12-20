@@ -1,0 +1,1069 @@
+import { Injectable } from '@angular/core';
+import { SupabaseService } from './supabase.service';
+
+export interface SendEmailOptions {
+  to: string | string[];
+  subject: string;
+  htmlBody?: string;
+  textBody?: string;
+  replyTo?: string;
+  fromName?: string;
+}
+
+export interface EmailTemplate {
+  id: string;
+  template_key: string;
+  name: string;
+  subject: string;
+  html_body: string;
+  text_body: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApprovedPrayerPayload {
+  title: string;
+  description: string;
+  requester: string;
+  prayerFor: string;
+  status: string;
+}
+
+export interface ApprovedUpdatePayload {
+  prayerTitle: string;
+  content: string;
+  author: string;
+  markedAsAnswered?: boolean;
+}
+
+export interface RequesterApprovalPayload {
+  title: string;
+  description: string;
+  requester: string;
+  requesterEmail: string;
+  prayerFor: string;
+}
+
+export interface DeniedPrayerPayload {
+  title: string;
+  description: string;
+  requester: string;
+  requesterEmail: string;
+  denialReason: string;
+}
+
+export interface DeniedUpdatePayload {
+  prayerTitle: string;
+  content: string;
+  author: string;
+  authorEmail: string;
+  denialReason: string;
+}
+
+export interface AdminNotificationPayload {
+  type: 'prayer' | 'update' | 'deletion';
+  title: string;
+  description?: string;
+  requester?: string;
+  author?: string;
+  content?: string;
+  reason?: string;
+  requestId?: string;
+}
+
+export interface PreferenceChangeNotificationPayload {
+  name: string;
+  email: string;
+  receiveNotifications: boolean;
+  requestId?: string;
+}
+
+export interface ApprovedPreferenceChangePayload {
+  name: string;
+  email: string;
+  receiveNotifications: boolean;
+}
+
+export interface DeniedPreferenceChangePayload {
+  name: string;
+  email: string;
+  receiveNotifications: boolean;
+  denialReason: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class EmailNotificationService {
+  constructor(private supabase: SupabaseService) {}
+
+  /**
+   * Send a single email using Supabase edge function
+   */
+  async sendEmail(options: SendEmailOptions): Promise<void> {
+    const { data, error } = await this.supabase.client.functions.invoke('send-email', {
+      body: {
+        to: options.to,
+        subject: options.subject,
+        htmlBody: options.htmlBody,
+        textBody: options.textBody,
+        replyTo: options.replyTo,
+        fromName: options.fromName
+      }
+    });
+
+    if (error) {
+      console.error('Failed to send email:', error);
+      throw new Error(error.message || 'Failed to send email');
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to send email');
+    }
+  }
+
+  /**
+   * Get email template by key
+   */
+  async getTemplate(templateKey: string): Promise<EmailTemplate | null> {
+    const { data, error } = await this.supabase.client
+      .from('email_templates')
+      .select('*')
+      .eq('template_key', templateKey)
+      .single();
+
+    if (error) {
+      console.error('Error fetching template:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  /**
+   * Apply template variables to a string with {{variableName}} syntax
+   */
+  applyTemplateVariables(content: string, variables: Record<string, string>): string {
+    let result = content;
+    for (const [key, value] of Object.entries(variables)) {
+      const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+      result = result.replace(placeholder, value || '');
+    }
+    return result;
+  }
+
+  /**
+   * Send email to all active subscribers
+   */
+  async sendEmailToAllSubscribers(options: {
+    subject: string;
+    htmlBody?: string;
+    textBody?: string;
+    replyTo?: string;
+    fromName?: string;
+  }): Promise<void> {
+    const { data, error } = await this.supabase.client.functions.invoke('send-email', {
+      body: {
+        action: 'send_to_all_subscribers',
+        subject: options.subject,
+        htmlBody: options.htmlBody,
+        textBody: options.textBody,
+        replyTo: options.replyTo,
+        fromName: options.fromName
+      }
+    });
+
+    if (error) {
+      console.error('Failed to send bulk email:', error);
+      throw new Error(error.message || 'Failed to send bulk email');
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to send bulk email');
+    }
+  }
+
+  /**
+   * Send notification when a prayer is approved
+   * Sends to all active subscribers
+   */
+  async sendApprovedPrayerNotification(payload: ApprovedPrayerPayload): Promise<void> {
+    try {
+      let subject: string;
+      let htmlContent: string;
+      let textContent: string;
+
+      try {
+        const template = await this.getTemplate('approved_prayer');
+        if (template) {
+          const variables = {
+            prayerTitle: payload.title,
+            prayerFor: payload.prayerFor,
+            requesterName: payload.requester,
+            prayerDescription: payload.description,
+            status: payload.status,
+            appLink: `${window.location.origin}/`
+          };
+          subject = this.applyTemplateVariables(template.subject, variables);
+          htmlContent = this.applyTemplateVariables(template.html_body, variables);
+          textContent = this.applyTemplateVariables(template.text_body, variables);
+        } else {
+          throw new Error('Template not found');
+        }
+      } catch (error) {
+        console.warn('Failed to load approved_prayer template, using fallback:', error);
+        subject = `New Prayer Request: ${payload.title}`;
+        htmlContent = this.generateApprovedPrayerHTML(payload);
+        textContent = `A new prayer request has been approved and is now live.\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\nRequested by: ${payload.requester}\n\nDescription: ${payload.description}`;
+      }
+
+      await this.sendEmailToAllSubscribers({
+        subject,
+        htmlBody: htmlContent,
+        textBody: textContent
+      });
+    } catch (error) {
+      console.error('Error in sendApprovedPrayerNotification:', error);
+      // Don't re-throw - let the error be logged but don't block approval
+    }
+  }
+
+  /**
+   * Send notification when a prayer update is approved
+   * Sends to all active subscribers
+   */
+  async sendApprovedUpdateNotification(payload: ApprovedUpdatePayload): Promise<void> {
+    try {
+      const isAnswered = payload.markedAsAnswered || false;
+      const templateKey = isAnswered ? 'prayer_answered' : 'approved_update';
+      const template = await this.getTemplate(templateKey);
+
+      let subject: string;
+      let htmlContent: string;
+      let textContent: string;
+
+      if (template) {
+        const variables = {
+          prayerTitle: payload.prayerTitle,
+          authorName: payload.author,
+          updateContent: payload.content,
+          appLink: window.location.origin
+        };
+
+        subject = this.applyTemplateVariables(template.subject, variables);
+        htmlContent = this.applyTemplateVariables(template.html_body, variables);
+        textContent = this.applyTemplateVariables(template.text_body, variables);
+      } else {
+        // Fallback
+        subject = isAnswered ? `Prayer Answered: ${payload.prayerTitle}` : `Prayer Update: ${payload.prayerTitle}`;
+        htmlContent = this.generateApprovedUpdateHTML(payload);
+        textContent = `A new update has been posted for "${payload.prayerTitle}".\n\nPosted by: ${payload.author}\n\nUpdate: ${payload.content}`;
+      }
+
+      await this.sendEmailToAllSubscribers({
+        subject,
+        htmlBody: htmlContent,
+        textBody: textContent
+      });
+    } catch (error) {
+      console.error('Error in sendApprovedUpdateNotification:', error);
+    }
+  }
+
+  /**
+   * Send notification to requester when their prayer is approved
+   */
+  async sendRequesterApprovalNotification(payload: RequesterApprovalPayload): Promise<void> {
+    try {
+      if (!payload.requesterEmail) {
+        console.warn('No email address for prayer requester');
+        return;
+      }
+
+      const subject = `Your Prayer Request Has Been Approved: ${payload.title}`;
+      const body = `Great news! Your prayer request has been approved and is now live on the prayer app.\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\n\nYour prayer is now being lifted up by our community. You will receive updates via email when the prayer status changes or when updates are posted.`;
+      const html = this.generateRequesterApprovalHTML(payload);
+
+      await this.sendEmail({
+        to: [payload.requesterEmail],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendRequesterApprovalNotification:', error);
+    }
+  }
+
+  /**
+   * Send notification when a prayer is denied
+   */
+  async sendDeniedPrayerNotification(payload: DeniedPrayerPayload): Promise<void> {
+    try {
+      if (!payload.requesterEmail) {
+        console.warn('No email address for denied prayer requester');
+        return;
+      }
+
+      let subject = `Prayer Request Not Approved: ${payload.title}`;
+      let body = `Unfortunately, your prayer request could not be approved at this time.\n\nTitle: ${payload.title}\nRequested by: ${payload.requester}\n\nReason: ${payload.denialReason}\n\nIf you have questions, please contact the administrator.`;
+      let html = this.generateDeniedPrayerHTML(payload);
+
+      try {
+        const template = await this.getTemplate('denied_prayer');
+        if (template) {
+          const variables = {
+            prayerTitle: payload.title,
+            prayerDescription: payload.description,
+            denialReason: payload.denialReason,
+            appLink: `${window.location.origin}/`
+          };
+          subject = this.applyTemplateVariables(template.subject, variables);
+          body = this.applyTemplateVariables(template.text_body, variables);
+          html = this.applyTemplateVariables(template.html_body, variables);
+        }
+      } catch (templateError) {
+        console.warn('Failed to fetch denied_prayer template, using fallback:', templateError);
+      }
+
+      await this.sendEmail({
+        to: [payload.requesterEmail],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendDeniedPrayerNotification:', error);
+    }
+  }
+
+  /**
+   * Send notification when an update is denied
+   */
+  async sendDeniedUpdateNotification(payload: DeniedUpdatePayload): Promise<void> {
+    try {
+      if (!payload.authorEmail) {
+        console.warn('No email address for denied update author');
+        return;
+      }
+
+      let subject = `Prayer Update Not Approved: ${payload.prayerTitle}`;
+      let body = `Unfortunately, your update for "${payload.prayerTitle}" could not be approved at this time.\n\nUpdate by: ${payload.author}\n\nReason: ${payload.denialReason}\n\nIf you have questions, please contact the administrator.`;
+      let html = this.generateDeniedUpdateHTML(payload);
+
+      try {
+        const template = await this.getTemplate('denied_update');
+        if (template) {
+          const variables = {
+            prayerTitle: payload.prayerTitle,
+            updateContent: payload.content,
+            denialReason: payload.denialReason,
+            appLink: `${window.location.origin}/`
+          };
+          subject = this.applyTemplateVariables(template.subject, variables);
+          body = this.applyTemplateVariables(template.text_body, variables);
+          html = this.applyTemplateVariables(template.html_body, variables);
+        }
+      } catch (templateError) {
+        console.warn('Failed to fetch denied_update template, using fallback:', templateError);
+      }
+
+      await this.sendEmail({
+        to: [payload.authorEmail],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendDeniedUpdateNotification:', error);
+    }
+  }
+
+  /**
+   * Send notification to admins when new items need approval
+   * Sends individual emails to each admin with personalized approval links
+   */
+  async sendAdminNotification(payload: AdminNotificationPayload): Promise<void> {
+    try {
+      // Get admin emails from email_subscribers table
+      const { data: admins, error: adminsError } = await this.supabase.client
+        .from('email_subscribers')
+        .select('email')
+        .eq('is_admin', true)
+        .eq('is_active', true)
+        .eq('receive_admin_emails', true);
+
+      if (adminsError) {
+        console.error('Error fetching admin emails:', adminsError);
+        return;
+      }
+
+      if (!admins || admins.length === 0) {
+        console.warn('No admins configured to receive notifications. Please enable admin email notifications in Admin User Management.');
+        return;
+      }
+
+      const adminEmails = admins.map(admin => admin.email);
+
+      // Send individual emails to each admin
+      for (const adminEmail of adminEmails) {
+        await this.sendAdminNotificationToEmail(payload, adminEmail);
+      }
+    } catch (error) {
+      console.error('Error in sendAdminNotification:', error);
+      // Don't throw - we don't want email failures to break the app
+    }
+  }
+
+  /**
+   * Send notification to a single admin
+   */
+  private async sendAdminNotificationToEmail(payload: AdminNotificationPayload, adminEmail: string): Promise<void> {
+    try {
+      const adminLink = `${window.location.origin}#admin`;
+
+      let subject: string;
+      let body: string;
+      let html: string | undefined;
+
+      // Load appropriate template based on payload type
+      try {
+        let templateKey: string;
+        let variables: Record<string, string>;
+        
+        switch (payload.type) {
+          case 'prayer':
+            templateKey = 'admin_notification_prayer';
+            variables = {
+              prayerTitle: payload.title,
+              requesterName: payload.requester || 'Anonymous',
+              prayerDescription: payload.description || 'No description provided',
+              adminLink
+            };
+            break;
+            
+          case 'update':
+            templateKey = 'admin_notification_update';
+            variables = {
+              prayerTitle: payload.title,
+              authorName: payload.author || 'Anonymous',
+              updateContent: payload.content || 'No content provided',
+              adminLink
+            };
+            break;
+            
+          case 'deletion':
+            templateKey = 'admin_notification_deletion';
+            variables = {
+              prayerTitle: payload.title,
+              requestedBy: payload.requester || 'Anonymous',
+              reason: payload.reason || 'No reason provided',
+              adminLink
+            };
+            break;
+            
+          default:
+            subject = `New Admin Action Required: ${payload.title}`;
+            body = `A new item requires your attention in the admin portal.`;
+            throw new Error('Unknown payload type');
+        }
+        
+        const template = await this.getTemplate(templateKey);
+        
+        if (template) {
+          subject = this.applyTemplateVariables(template.subject, variables);
+          body = this.applyTemplateVariables(template.text_body, variables);
+          html = this.applyTemplateVariables(template.html_body, variables);
+        } else {
+          throw new Error(`Template ${templateKey} not found`);
+        }
+      } catch (error) {
+        // Fallback templates
+        if (payload.type === 'prayer') {
+          subject = `New Prayer Request: ${payload.title}`;
+          body = `A new prayer request has been submitted and is pending approval.\n\nTitle: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nDescription: ${payload.description || 'No description provided'}\n\nPlease review in the admin portal: ${adminLink}`;
+          html = this.generateAdminNotificationPrayerHTML(payload, adminLink);
+        } else if (payload.type === 'update') {
+          subject = `New Prayer Update: ${payload.title}`;
+          body = `A new prayer update has been submitted and is pending approval.\n\nPrayer: ${payload.title}\nUpdate by: ${payload.author || 'Anonymous'}\n\nContent: ${payload.content || 'No content provided'}\n\nPlease review in the admin portal: ${adminLink}`;
+          html = this.generateAdminNotificationUpdateHTML(payload, adminLink);
+        } else if (payload.type === 'deletion') {
+          subject = `Deletion Request: ${payload.title}`;
+          body = `A deletion request has been submitted for a prayer.\n\nPrayer: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nReason: ${payload.reason || 'No reason provided'}\n\nPlease review in the admin portal: ${adminLink}`;
+          html = this.generateAdminNotificationDeletionHTML(payload, adminLink);
+        } else {
+          subject = `New Admin Action Required`;
+          body = `A new item requires your attention in the admin portal: ${adminLink}`;
+        }
+      }
+
+      // Send email
+      await this.sendEmail({
+        to: [adminEmail],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendAdminNotificationToEmail:', error);
+      // Don't throw - we don't want email failures to break the app
+    }
+  }
+
+  // HTML template generators (fallbacks when templates not found in DB)
+
+  private generateApprovedPrayerHTML(payload: ApprovedPrayerPayload): string {
+    const appUrl = `${window.location.origin}/`;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Prayer Request</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🙏 New Prayer Request</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
+            <div style="margin-bottom: 15px;">
+              <p style="margin: 5px 0;"><strong>For:</strong> ${payload.prayerFor}</p>
+              <p style="margin: 5px 0;"><strong>Requested by:</strong> ${payload.requester}</p>
+              <p style="margin: 5px 0;"><strong>Status:</strong> ${payload.status}</p>
+            </div>
+            <p><strong>Description:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981;">${payload.description}</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Prayer</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This prayer has been approved and is now active. Join us in prayer!</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateApprovedUpdateHTML(payload: ApprovedUpdatePayload): string {
+    const appUrl = `${window.location.origin}/`;
+    const isAnswered = payload.markedAsAnswered || false;
+
+    const gradientColors = isAnswered ? '#10b981, #059669' : '#3b82f6, #2563eb';
+    const icon = isAnswered ? '🎉' : '💬';
+    const title = isAnswered ? 'Prayer Answered!' : 'Prayer Update';
+    const borderColor = isAnswered ? '#10b981' : '#3b82f6';
+    const buttonColor = isAnswered ? '#10b981' : '#3b82f6';
+    const statusBadge = isAnswered
+      ? '<div style="display: inline-block; background: #10b981; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 15px;">✓ Answered Prayer</div>'
+      : '';
+    const closingMessage = isAnswered
+      ? "Let's give thanks and praise for this answered prayer!"
+      : "Let's continue to lift this prayer up together.";
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${title}</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, ${gradientColors}); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">${icon} ${title}</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            ${statusBadge}
+            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${payload.prayerTitle}</h2>
+            <p style="margin: 5px 0 15px 0;"><strong>Posted by:</strong> ${payload.author}</p>
+            <p><strong>Update:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid ${borderColor};">${payload.content}</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: ${buttonColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Prayer</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>${closingMessage}</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateRequesterApprovalHTML(payload: RequesterApprovalPayload): string {
+    const appUrl = `${window.location.origin}/`;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Prayer Request Approved</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">✅ Prayer Request Approved!</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Great news, ${payload.requester}!</h2>
+            <p style="margin-bottom: 20px;">Your prayer request has been approved and is now active in our prayer community.</p>
+            
+            <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0; color: #065f46; font-size: 14px;"><strong>Your Prayer Request:</strong></p>
+              <p style="margin: 0 0 10px 0; color: #065f46; font-weight: 600; font-size: 18px;">${payload.title}</p>
+              <p style="margin: 0; color: #047857;">${payload.description}</p>
+            </div>
+            
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0; color: #0c4a6e; font-size: 14px;">
+                <strong>What happens next?</strong><br>
+                • Your prayer is now visible to our community<br>
+                • People can pray for this request and post updates<br>
+                • You'll receive email notifications when updates are posted<br>
+                • You can visit the app anytime to see the latest
+              </p>
+            </div>
+
+            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">Thank you for sharing this prayer need with our community. We are honored to pray alongside you!</p>
+            
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Your Prayer</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>You're receiving this because you submitted a prayer request to our prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateDeniedPrayerHTML(payload: DeniedPrayerPayload): string {
+    const appUrl = `${window.location.origin}/`;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Prayer Request Not Approved</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">📋 Prayer Request Status</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
+            <p style="margin-bottom: 15px;">Thank you for submitting your prayer request. After careful review, we are unable to approve this request at this time.</p>
+            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong></p>
+              <p style="margin: 10px 0 0 0; color: #991b1b;">${payload.denialReason}</p>
+            </div>
+            <p style="margin-top: 20px;"><strong>Your Submission:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">${payload.description}</p>
+            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">If you have questions or would like to discuss this decision, please feel free to contact the administrator.</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: #6b7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateDeniedUpdateHTML(payload: DeniedUpdatePayload): string {
+    const appUrl = `${window.location.origin}/`;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Prayer Update Not Approved</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">💬 Update Status</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${payload.prayerTitle}</h2>
+            <p style="margin-bottom: 15px;">Thank you for submitting an update. After careful review, we are unable to approve this update at this time.</p>
+            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong></p>
+              <p style="margin: 10px 0 0 0; color: #991b1b;">${payload.denialReason}</p>
+            </div>
+            <p style="margin-top: 20px;"><strong>Your Update:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">${payload.content}</p>
+            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">If you have questions or would like to discuss this decision, please feel free to contact the administrator.</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: #6b7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+  
+  private generateAdminNotificationPrayerHTML(payload: AdminNotificationPayload, adminLink: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Prayer Request</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🙏 New Prayer Request</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
+            <p><strong>Requested by:</strong> ${payload.requester || 'Anonymous'}</p>
+            <p><strong>Description:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6;">${payload.description || 'No description provided'}</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${adminLink}" style="background: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateAdminNotificationUpdateHTML(payload: AdminNotificationPayload, adminLink: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Prayer Update</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #3b82f6, #2563eb); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">💬 New Prayer Update</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${payload.title}</h2>
+            <p><strong>Update by:</strong> ${payload.author || 'Anonymous'}</p>
+            <p><strong>Content:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6;">${payload.content || 'No content provided'}</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${adminLink}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateAdminNotificationDeletionHTML(payload: AdminNotificationPayload, adminLink: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Deletion Request</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #dc2626, #991b1b); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🗑️ Deletion Request</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
+            <p><strong>Requested by:</strong> ${payload.requester || 'Anonymous'}</p>
+            <p><strong>Reason:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #dc2626;">${payload.reason || 'No reason provided'}</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${adminLink}" style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Send notification to admins when a preference change is submitted
+   */
+  async sendPreferenceChangeNotification(payload: PreferenceChangeNotificationPayload): Promise<void> {
+    try {
+      // Get admin emails from email_subscribers table
+      const { data: admins, error: adminsError } = await this.supabase.client
+        .from('email_subscribers')
+        .select('email')
+        .eq('is_admin', true)
+        .eq('is_active', true)
+        .eq('receive_admin_emails', true);
+
+      if (adminsError) {
+        console.error('Error fetching admin emails:', adminsError);
+        return;
+      }
+
+      if (!admins || admins.length === 0) {
+        console.warn('No admins configured to receive notifications. Please enable admin email notifications in Admin User Management.');
+        return;
+      }
+
+      const adminEmails = admins.map(admin => admin.email);
+
+      // Send individual emails to each admin
+      for (const adminEmail of adminEmails) {
+        await this.sendPreferenceChangeNotificationToAdmin(payload, adminEmail);
+      }
+    } catch (error) {
+      console.error('Error in sendPreferenceChangeNotification:', error);
+      // Don't throw - we don't want email failures to break the app
+    }
+  }
+
+  /**
+   * Send preference change notification to a single admin
+   */
+  private async sendPreferenceChangeNotificationToAdmin(payload: PreferenceChangeNotificationPayload, adminEmail: string): Promise<void> {
+    try {
+      const adminLink = `${window.location.origin}#admin`;
+      const notificationStatus = payload.receiveNotifications ? 'Opt IN' : 'Opt OUT';
+      const preferenceDescription = payload.receiveNotifications 
+        ? `${payload.name} wants to opt IN to receiving new prayer notifications.`
+        : `${payload.name} wants to opt OUT of receiving new prayer notifications.`;
+
+      let subject: string;
+      let body: string;
+      let html: string | undefined;
+
+      // Try to load template
+      try {
+        const templateKey = 'admin_notification_preference_change';
+        const variables: Record<string, string> = {
+          name: payload.name,
+          email: payload.email,
+          preferenceStatus: notificationStatus,
+          preferenceDescription,
+          adminLink
+        };
+
+        const template = await this.getTemplate(templateKey);
+        
+        if (template) {
+          subject = this.applyTemplateVariables(template.subject, variables);
+          body = this.applyTemplateVariables(template.text_body, variables);
+          html = this.applyTemplateVariables(template.html_body, variables);
+        } else {
+          throw new Error(`Template ${templateKey} not found`);
+        }
+      } catch (error) {
+        // Fallback
+        subject = `New Notification Preference Change: ${payload.name}`;
+        body = `A new notification preference change has been submitted and is pending approval.\n\nName: ${payload.name}\nEmail: ${payload.email}\nPreference: ${notificationStatus} of new prayer notifications\n\n${preferenceDescription}\n\nPlease review in the admin portal: ${adminLink}`;
+        html = this.generatePreferenceChangeNotificationHTML(payload, adminLink);
+      }
+
+      // Send email
+      await this.sendEmail({
+        to: [adminEmail],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendPreferenceChangeNotificationToAdmin:', error);
+      // Don't throw - we don't want email failures to break the app
+    }
+  }
+
+  /**
+   * Send notification to user when their preference change is approved
+   */
+  async sendApprovedPreferenceChangeNotification(payload: ApprovedPreferenceChangePayload): Promise<void> {
+    try {
+      const notificationStatus = payload.receiveNotifications ? 'opted IN to' : 'opted OUT of';
+      const subject = `Notification Preferences Updated`;
+      const body = `Hello ${payload.name},\n\nYour notification preference change has been approved!\n\nYou have successfully ${notificationStatus} receiving new prayer notifications.\n\n${payload.receiveNotifications 
+        ? 'You will now receive email notifications when new prayers are posted to the prayer list.' 
+        : 'You will no longer receive email notifications when new prayers are posted. You will still receive approval/denial notifications for prayers you submit.'}\n\nThank you for being part of our prayer community!`;
+      const html = this.generateApprovedPreferenceChangeHTML(payload);
+
+      await this.sendEmail({
+        to: [payload.email],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendApprovedPreferenceChangeNotification:', error);
+    }
+  }
+
+  /**
+   * Send notification to user when their preference change is denied
+   */
+  async sendDeniedPreferenceChangeNotification(payload: DeniedPreferenceChangePayload): Promise<void> {
+    try {
+      const notificationStatus = payload.receiveNotifications ? 'opt IN to' : 'opt OUT of';
+      const subject = `Notification Preference Change - Unable to Process`;
+      const body = `Hello ${payload.name},\n\nThank you for your notification preference change request. After careful review, we are unable to process this change at this time.\n\nRequested Change: ${notificationStatus} new prayer notifications\n\nReason: ${payload.denialReason}\n\nIf you have questions or would like to discuss this decision, please feel free to contact the administrator.`;
+      const html = this.generateDeniedPreferenceChangeHTML(payload);
+
+      await this.sendEmail({
+        to: [payload.email],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendDeniedPreferenceChangeNotification:', error);
+    }
+  }
+
+  private generatePreferenceChangeNotificationHTML(payload: PreferenceChangeNotificationPayload, adminLink: string): string {
+    const notificationStatus = payload.receiveNotifications ? 'Opt IN' : 'Opt OUT';
+    const statusColor = payload.receiveNotifications ? '#10b981' : '#f59e0b';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Notification Preference Change</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #8b5cf6, #7c3aed); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">📧 New Preference Change Request</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p style="margin-top: 0; font-size: 16px;">A new notification preference change has been submitted and requires your review.</p>
+            <div style="background: white; padding: 20px; border-radius: 6px; border: 1px solid #e5e7eb; margin: 20px 0;">
+              <h2 style="margin: 0 0 15px 0; color: #1f2937; font-size: 18px;">User Information</h2>
+              <p style="margin: 5px 0;"><strong>Name:</strong> ${payload.name}</p>
+              <p style="margin: 5px 0;"><strong>Email:</strong> ${payload.email}</p>
+              <div style="margin-top: 15px; padding: 15px; background: #f3f4f6; border-radius: 6px; border-left: 4px solid ${statusColor};">
+                <p style="margin: 0;"><strong>Requested Preference:</strong></p>
+                <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: 600; color: ${statusColor};">${notificationStatus}</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #6b7280;">
+                  ${payload.receiveNotifications 
+                    ? 'User wants to receive notifications when new prayers are posted' 
+                    : 'User wants to stop receiving new prayer notifications'}
+                </p>
+              </div>
+            </div>
+            <p style="font-size: 14px; color: #6b7280;">Please review this request in the admin portal and approve or deny accordingly.</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${adminLink}" style="background: #8b5cf6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Review in Admin Portal</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app admin system.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateApprovedPreferenceChangeHTML(payload: ApprovedPreferenceChangePayload): string {
+    const appUrl = `${window.location.origin}/`;
+    const notificationStatus = payload.receiveNotifications ? 'opted IN to' : 'opted OUT of';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Preference Change Approved</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">✅ Preferences Updated</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p style="margin-top: 0; font-size: 16px;">Hello ${payload.name},</p>
+            <p>Great news! Your notification preference change has been approved.</p>
+            <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 20px; border-radius: 6px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #059669;">✓ You have successfully ${notificationStatus} new prayer notifications</h3>
+              <p style="margin: 10px 0 0 0; color: #047857;">
+                ${payload.receiveNotifications 
+                  ? '📬 You will now receive email notifications when new prayers are posted to the prayer list.' 
+                  : '🔕 You will no longer receive email notifications when new prayers are posted. Note: You will still receive approval/denial notifications for prayers you submit.'}
+              </p>
+            </div>
+            <p style="font-size: 14px; color: #6b7280;">You can change your notification preferences at any time by clicking the settings icon in the prayer app.</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
+            </div>
+            <p style="margin-top: 30px; font-size: 14px; color: #6b7280; text-align: center;">Thank you for being part of our prayer community! 🙏</p>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateDeniedPreferenceChangeHTML(payload: DeniedPreferenceChangePayload): string {
+    const appUrl = `${window.location.origin}/`;
+    const notificationStatus = payload.receiveNotifications ? 'opt IN to' : 'opt OUT of';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Preference Change Request</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">📋 Preference Change Request</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p style="margin-top: 0; font-size: 16px;">Hello ${payload.name},</p>
+            <p>Thank you for your notification preference change request. After careful review, we are unable to process this change at this time.</p>
+            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; margin: 15px 0;">
+              <p style="margin: 5px 0;"><strong>Requested Change:</strong> ${notificationStatus} new prayer notifications</p>
+            </div>
+            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong></p>
+              <p style="margin: 10px 0 0 0; color: #991b1b;">${payload.denialReason}</p>
+            </div>
+            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">If you have questions or would like to discuss this decision, please feel free to contact the administrator.</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: #6b7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your prayer app.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+}

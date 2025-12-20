@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, fromEvent } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
+import { EmailNotificationService } from './email-notification.service';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type PrayerStatus = 'current' | 'answered';
@@ -55,7 +56,8 @@ export class PrayerService {
 
   constructor(
     private supabase: SupabaseService,
-    private toast: ToastService
+    private toast: ToastService,
+    private emailNotification: EmailNotificationService
   ) {
     this.initializePrayers();
   }
@@ -223,6 +225,15 @@ export class PrayerService {
         }
       }
 
+      // Send email notification to admins (don't let email failures block prayer submission)
+      this.emailNotification.sendAdminNotification({
+        type: 'prayer',
+        title: prayer.title,
+        description: prayer.description,
+        requester: prayer.requester,
+        requestId: data.id
+      }).catch(err => console.error('Failed to send admin notification:', err));
+
       this.toast.success('Prayer request submitted for approval');
       return true;
     } catch (error) {
@@ -268,16 +279,36 @@ export class PrayerService {
    */
   async addPrayerUpdate(prayerId: string, content: string, author: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
+      const { data, error } = await this.supabase.client
         .from('prayer_updates')
         .insert({
           prayer_id: prayerId,
           content,
           author,
           approval_status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Get prayer title for notification
+      const { data: prayer } = await this.supabase.client
+        .from('prayers')
+        .select('title')
+        .eq('id', prayerId)
+        .single();
+
+      // Send email notification to admins (don't let email failures block update submission)
+      if (prayer) {
+        this.emailNotification.sendAdminNotification({
+          type: 'update',
+          title: prayer.title,
+          author,
+          content,
+          requestId: data.id
+        }).catch(err => console.error('Failed to send admin notification:', err));
+      }
 
       this.toast.success('Update submitted for approval');
       return true;
@@ -465,16 +496,40 @@ export class PrayerService {
     try {
       const fullName = `${requestData.requester_first_name} ${requestData.requester_last_name}`;
       
-      const { error } = await this.supabase.client
+      const { data, error } = await this.supabase.client
         .from('deletion_requests')
         .insert({
           prayer_id: requestData.prayer_id,
           requested_by: fullName,
           requested_email: requestData.requester_email,
           reason: requestData.reason
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // Fetch the prayer info for admin notification (best-effort)
+      try {
+        const { data: prayerRow } = await this.supabase.client
+          .from('prayers')
+          .select('title')
+          .eq('id', requestData.prayer_id)
+          .single();
+
+        const title = prayerRow?.title || 'Unknown Prayer';
+
+        // Send admin notification (don't let email failures block the request)
+        this.emailNotification.sendAdminNotification({
+          type: 'deletion',
+          title,
+          reason: requestData.reason,
+          requester: fullName,
+          requestId: data?.id
+        }).catch(err => console.error('Failed to send admin notification for prayer deletion request:', err));
+      } catch (notifyErr) {
+        console.warn('Could not fetch prayer details for notification:', notifyErr);
+      }
 
       this.toast.success('Deletion request submitted for review');
       return true;
@@ -492,16 +547,44 @@ export class PrayerService {
     try {
       const fullName = `${requestData.requester_first_name} ${requestData.requester_last_name}`;
       
-      const { error } = await this.supabase.client
+      const { data, error } = await this.supabase.client
         .from('update_deletion_requests')
         .insert({
           update_id: requestData.update_id,
           requested_by: fullName,
           requested_email: requestData.requester_email,
           reason: requestData.reason
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // Fetch the update/prayer info for admin notification (best-effort)
+      try {
+        const { data: updateRow } = await this.supabase.client
+          .from('prayer_updates')
+          .select('*, prayers!inner(title)')
+          .eq('id', requestData.update_id)
+          .single();
+
+        const title = updateRow?.prayers?.title || 'Unknown Prayer';
+        const author = updateRow?.author || undefined;
+        const content = updateRow?.content || undefined;
+
+        // Send admin notification (don't let email failures block the request)
+        this.emailNotification.sendAdminNotification({
+          type: 'deletion',
+          title,
+          reason: requestData.reason,
+          requester: fullName,
+          author,
+          content,
+          requestId: data?.id
+        }).catch(err => console.error('Failed to send admin notification for update deletion request:', err));
+      } catch (notifyErr) {
+        console.warn('Could not fetch update/prayer details for notification:', notifyErr);
+      }
 
       this.toast.success('Update deletion request submitted for review');
       return true;
