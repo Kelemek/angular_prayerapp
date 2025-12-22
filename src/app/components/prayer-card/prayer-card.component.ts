@@ -58,38 +58,6 @@ import { PrayerRequest } from '../../services/prayer.service';
       <form *ngIf="showAddUpdateForm" #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg" role="region" [attr.aria-labelledby]="'addUpdateTitle-' + prayer.id">
         <h4 [id]="'addUpdateTitle-' + prayer.id" class="text-sm font-medium text-[#39704D] dark:text-[#5FB876] mb-3">Add Prayer Update</h4>
         <div class="space-y-2">
-          <div class="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              [id]="'updateFirstName-' + prayer.id"
-              placeholder="First name"
-              [(ngModel)]="updateFirstName"
-              name="updateFirstName"
-              aria-label="First name"
-              class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D]"
-              required
-            />
-            <input
-              type="text"
-              [id]="'updateLastName-' + prayer.id"
-              placeholder="Last name"
-              [(ngModel)]="updateLastName"
-              name="updateLastName"
-              aria-label="Last name"
-              class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D]"
-              required
-            />
-          </div>
-          <input
-            type="email"
-            [id]="'updateEmail-' + prayer.id"
-            placeholder="Your email"
-            [(ngModel)]="updateEmail"
-            name="updateEmail"
-            aria-label="Email address"
-            class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D]"
-            required
-          />
           <textarea
             [id]="'updateContent-' + prayer.id"
             placeholder="Prayer update..."
@@ -148,38 +116,6 @@ import { PrayerRequest } from '../../services/prayer.service';
       <form *ngIf="showDeleteRequestForm" #deleteForm="ngForm" (ngSubmit)="deleteForm.valid && handleDeleteRequest()" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg" role="region" [attr.aria-labelledby]="'deleteFormTitle-' + prayer.id">
         <h4 [id]="'deleteFormTitle-' + prayer.id" class="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Request Prayer Deletion</h4>
         <div class="space-y-2">
-          <div class="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              [id]="'deleteFirstName-' + prayer.id"
-              placeholder="First name"
-              [(ngModel)]="deleteFirstName"
-              name="deleteFirstName"
-              aria-label="First name"
-              class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-              required
-            />
-            <input
-              type="text"
-              [id]="'deleteLastName-' + prayer.id"
-              placeholder="Last name"
-              [(ngModel)]="deleteLastName"
-              name="deleteLastName"
-              aria-label="Last name"
-              class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-              required
-            />
-          </div>
-          <input
-            type="email"
-            [id]="'deleteEmail-' + prayer.id"
-            placeholder="Your email"
-            [(ngModel)]="deleteEmail"
-            name="deleteEmail"
-            aria-label="Email address"
-            class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-            required
-          />
           <textarea
             [id]="'deleteReason-' + prayer.id"
             placeholder="Reason for deletion request..."
@@ -258,38 +194,6 @@ import { PrayerRequest } from '../../services/prayer.service';
             <form *ngIf="showUpdateDeleteRequestForm === update.id && !isAdmin" #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="region" [attr.aria-labelledby]="'updateDeleteFormTitle-' + update.id">
               <h4 [id]="'updateDeleteFormTitle-' + update.id" class="text-xs font-medium text-red-700 dark:text-red-400 mb-2">Request Update Deletion</h4>
               <div class="space-y-2">
-                <div class="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    [id]="'updateDeleteFirstName-' + update.id"
-                    placeholder="First name"
-                    [(ngModel)]="updateDeleteFirstName"
-                    name="updateDeleteFirstName"
-                    aria-label="First name"
-                    class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    required
-                  />
-                  <input
-                    type="text"
-                    [id]="'updateDeleteLastName-' + update.id"
-                    placeholder="Last name"
-                    [(ngModel)]="updateDeleteLastName"
-                    name="updateDeleteLastName"
-                    aria-label="Last name"
-                    class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    required
-                  />
-                </div>
-                <input
-                  type="email"
-                  [id]="'updateDeleteEmail-' + update.id"
-                  placeholder="Your email"
-                  [(ngModel)]="updateDeleteEmail"
-                  name="updateDeleteEmail"
-                  aria-label="Email address"
-                  class="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                  required
-                />
                 <textarea
                   [id]="'updateDeleteReason-' + update.id"
                   placeholder="Reason for deletion request..."
@@ -344,23 +248,14 @@ export class PrayerCardComponent implements OnInit {
   showAllUpdates = false;
 
   // Update form fields
-  updateFirstName = '';
-  updateLastName = '';
-  updateEmail = '';
   updateContent = '';
   updateIsAnonymous = false;
   updateMarkAsAnswered = false;
 
   // Delete request form fields
-  deleteFirstName = '';
-  deleteLastName = '';
-  deleteEmail = '';
   deleteReason = '';
 
   // Update deletion request form fields
-  updateDeleteFirstName = '';
-  updateDeleteLastName = '';
-  updateDeleteEmail = '';
   updateDeleteReason = '';
 
   ngOnInit(): void {
@@ -428,8 +323,8 @@ export class PrayerCardComponent implements OnInit {
     const updateData = {
       prayer_id: this.prayer.id,
       content: this.updateContent,
-      author: this.updateIsAnonymous ? 'Anonymous' : `${this.updateFirstName} ${this.updateLastName}`,
-      author_email: this.updateEmail || '',
+      author: this.updateIsAnonymous ? 'Anonymous' : this.getCurrentUserName(),
+      author_email: this.getCurrentUserEmail(),
       is_anonymous: this.updateIsAnonymous,
       mark_as_answered: this.updateMarkAsAnswered
     };
@@ -439,11 +334,12 @@ export class PrayerCardComponent implements OnInit {
   }
 
   handleDeleteRequest(): void {
+    const nameParts = this.getCurrentUserName().split(' ');
     const requestData = {
       prayer_id: this.prayer.id,
-      requester_first_name: this.deleteFirstName,
-      requester_last_name: this.deleteLastName,
-      requester_email: this.deleteEmail,
+      requester_first_name: nameParts[0] || '',
+      requester_last_name: nameParts.slice(1).join(' ') || '',
+      requester_email: this.getCurrentUserEmail(),
       reason: this.deleteReason
     };
 
@@ -506,9 +402,6 @@ export class PrayerCardComponent implements OnInit {
   }
 
   private resetUpdateForm(): void {
-    this.updateFirstName = '';
-    this.updateLastName = '';
-    this.updateEmail = '';
     this.updateContent = '';
     this.updateIsAnonymous = false;
     this.updateMarkAsAnswered = false;
@@ -516,21 +409,40 @@ export class PrayerCardComponent implements OnInit {
   }
 
   private resetDeleteForm(): void {
-    this.deleteFirstName = '';
-    this.deleteLastName = '';
-    this.deleteEmail = '';
     this.deleteReason = '';
     this.showDeleteRequestForm = false;
+  }
+
+  private getCurrentUserEmail(): string {
+    // Try to get from localStorage (approval code flow)
+    const approvalEmail = localStorage.getItem('approvalAdminEmail');
+    if (approvalEmail) return approvalEmail;
+    
+    // Try other possible localStorage keys
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) return userEmail;
+    
+    const prayerappEmail = localStorage.getItem('prayerapp_user_email');
+    if (prayerappEmail) return prayerappEmail;
+    
+    return '';
+  }
+
+  private getCurrentUserName(): string {
+    const firstName = localStorage.getItem('userFirstName') || '';
+    const lastName = localStorage.getItem('userLastName') || '';
+    return `${firstName} ${lastName}`.trim();
   }
 
   handleUpdateDeletionRequest(): void {
     if (!this.showUpdateDeleteRequestForm) return;
     
+    const nameParts = this.getCurrentUserName().split(' ');
     const requestData = {
       update_id: this.showUpdateDeleteRequestForm,
-      requester_first_name: this.updateDeleteFirstName,
-      requester_last_name: this.updateDeleteLastName,
-      requester_email: this.updateDeleteEmail,
+      requester_first_name: nameParts[0] || '',
+      requester_last_name: nameParts.slice(1).join(' ') || '',
+      requester_email: this.getCurrentUserEmail(),
       reason: this.updateDeleteReason
     };
 
@@ -539,9 +451,6 @@ export class PrayerCardComponent implements OnInit {
   }
 
   private resetUpdateDeleteForm(): void {
-    this.updateDeleteFirstName = '';
-    this.updateDeleteLastName = '';
-    this.updateDeleteEmail = '';
     this.updateDeleteReason = '';
     this.showUpdateDeleteRequestForm = null;
   }

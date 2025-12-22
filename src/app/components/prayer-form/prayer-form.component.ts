@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Observable } from 'rxjs';
+import type { User } from '@supabase/supabase-js';
 import { PrayerService } from '../../services/prayer.service';
 import { VerificationService } from '../../services/verification.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
@@ -60,60 +62,6 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
             </div>
           </div>
 
-          <!-- First and Last Name Grid -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label for="firstName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                First Name <span aria-label="required">*</span>
-              </label>
-              <input
-                type="text"
-                id="firstName"
-                [(ngModel)]="firstName"
-                name="firstName"
-                required
-                aria-required="true"
-                aria-label="First Name"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="First name"
-              />
-            </div>
-            <div>
-              <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Last Name <span aria-label="required">*</span>
-              </label>
-              <input
-                type="text"
-                id="lastName"
-                [(ngModel)]="lastName"
-                name="lastName"
-                required
-                aria-required="true"
-                aria-label="Last Name"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="Last name"
-              />
-            </div>
-          </div>
-
-          <!-- Email -->
-          <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email Address <span aria-label="required">*</span>
-            </label>
-            <input
-              type="email"
-              id="email"
-              [(ngModel)]="formData.email"
-              name="email"
-              required
-              aria-required="true"
-              aria-label="Email Address"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              placeholder="Your email address"
-            />
-          </div>
-
           <!-- Prayer For -->
           <div>
             <label for="prayer_for" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -130,20 +78,6 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder="Who or what this prayer is for"
             />
-          </div>
-
-          <!-- Anonymous Checkbox -->
-          <div class="flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              [(ngModel)]="formData.is_anonymous"
-              name="is_anonymous"
-              id="is_anonymous"
-              class="w-4 h-4 text-blue-600 border-gray-900 dark:border-white rounded focus:ring-blue-500 bg-white dark:bg-gray-800"
-            />
-            <label for="is_anonymous" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-              Make this prayer anonymous (your name will not be shown publicly)
-            </label>
           </div>
 
           <!-- Description -->
@@ -163,6 +97,20 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
             ></textarea>
           </div>
 
+          <!-- Anonymous Checkbox -->
+          <div class="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              [(ngModel)]="formData.is_anonymous"
+              name="is_anonymous"
+              id="is_anonymous"
+              class="w-4 h-4 text-blue-600 border-gray-900 dark:border-white rounded focus:ring-blue-500 bg-white dark:bg-gray-800"
+            />
+            <label for="is_anonymous" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              Make this prayer anonymous (your name will not be shown publicly)
+            </label>
+          </div>
+
           <!-- Buttons -->
           <div class="flex gap-3 pt-4">
             <button
@@ -180,7 +128,7 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
               class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               aria-label="Cancel and close form"
             >
-              {{ showSuccessMessage ? 'Closing...' : 'Done' }}
+              {{ showSuccessMessage ? 'Closing...' : 'Close' }}
             </button>
           </div>
         </form>
@@ -204,13 +152,10 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   @Input() isOpen = false;
   @Output() close = new EventEmitter<void>();
 
-  firstName = '';
-  lastName = '';
   formData = {
     title: '',
     description: '',
     prayer_for: '',
-    email: '',
     is_anonymous: false
   };
 
@@ -218,6 +163,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   showSuccessMessage = false;
   isVerificationEnabled = false;
   isAdmin = false;
+  currentUserEmail = '';
+  user$!: Observable<User | null>;
 
   verificationState = {
     isOpen: false,
@@ -235,6 +182,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.loadUserInfo();
+    this.user$ = this.adminAuthService.user$;
     this.verificationService.isEnabled$.subscribe(enabled => {
       this.isVerificationEnabled = enabled;
     });
@@ -251,33 +199,35 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   private loadUserInfo(): void {
     try {
-      const firstName = localStorage.getItem('userFirstName');
-      const lastName = localStorage.getItem('userLastName');
-      const email = localStorage.getItem('userEmail');
-
-      if (firstName) this.firstName = firstName;
-      if (lastName) this.lastName = lastName;
-      if (email) this.formData.email = email;
+      // Get current user's email from Supabase user or localStorage fallback
+      this.adminAuthService.user$.subscribe(user => {
+        if (user?.email) {
+          this.currentUserEmail = user.email;
+        } else {
+          // Fallback to localStorage for approval code flow
+          const approvalEmail = localStorage.getItem('approvalAdminEmail');
+          const userEmail = localStorage.getItem('userEmail');
+          this.currentUserEmail = approvalEmail || userEmail || '';
+        }
+      });
     } catch (error) {
       console.error('Error loading user info:', error);
     }
   }
 
   private saveUserInfo(): void {
-    try {
-      localStorage.setItem('userFirstName', this.firstName);
-      localStorage.setItem('userLastName', this.lastName);
-      localStorage.setItem('userEmail', this.formData.email);
-    } catch (error) {
-      console.error('Error saving user info:', error);
-    }
+    // Names are no longer saved - they come from localStorage managed by home component
+  }
+
+  private getCurrentUserName(): string {
+    const firstName = localStorage.getItem('userFirstName') || '';
+    const lastName = localStorage.getItem('userLastName') || '';
+    return `${firstName} ${lastName}`.trim();
   }
 
   isFormValid(): boolean {
     return !!(
-      this.firstName.trim() &&
-      this.lastName.trim() &&
-      this.formData.email.trim() &&
+      this.currentUserEmail.trim() &&
       this.formData.prayer_for.trim() &&
       this.formData.description.trim()
     );
@@ -290,15 +240,14 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       this.isSubmitting = true;
       this.cdr.markForCheck();
 
-      const fullName = `${this.firstName.trim()} ${this.lastName.trim()}`;
-      this.saveUserInfo();
+      const fullName = this.getCurrentUserName();
 
       const prayerData = {
         title: `Prayer for ${this.formData.prayer_for}`,
         description: this.formData.description,
         requester: fullName,
         prayer_for: this.formData.prayer_for,
-        email: this.formData.email,
+        email: this.currentUserEmail,
         is_anonymous: this.formData.is_anonymous,
         status: 'current' as const
       };
@@ -307,7 +256,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       const isAdmin = this.adminAuthService.getIsAdmin();
       if (this.isVerificationEnabled && !isAdmin) {
         const verificationResult = await this.verificationService.requestCode(
-          this.formData.email,
+          this.currentUserEmail,
           'prayer_submission',
           prayerData
         );
@@ -318,12 +267,13 @@ export class PrayerFormComponent implements OnInit, OnChanges {
           return;
         }
 
-        // Show verification dialog
+        // Show verification dialog - reset submitting flag since we're waiting for user to verify
+        this.isSubmitting = false;
         this.verificationState = {
           isOpen: true,
           codeId: verificationResult.codeId,
           expiresAt: verificationResult.expiresAt,
-          email: this.formData.email
+          email: this.currentUserEmail
         };
         this.cdr.detectChanges();
       } else {
@@ -346,12 +296,11 @@ export class PrayerFormComponent implements OnInit, OnChanges {
         this.showSuccessMessage = true;
         this.cdr.markForCheck();
         
-        // Reset form but keep name and email
+        // Reset form but keep name
         this.formData = {
           title: '',
           description: '',
           prayer_for: '',
-          email: this.formData.email,
           is_anonymous: false
         };
 
@@ -401,43 +350,52 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   async handleResendCode(): Promise<void> {
     try {
-      if (!this.formData.email) return;
+      if (!this.currentUserEmail) return;
 
-      const fullName = `${this.firstName.trim()} ${this.lastName.trim()}`;
+      const fullName = this.getCurrentUserName();
 
       const prayerData = {
         title: `Prayer for ${this.formData.prayer_for}`,
         description: this.formData.description,
         requester: fullName,
         prayer_for: this.formData.prayer_for,
-        email: this.formData.email,
+        email: this.currentUserEmail,
         is_anonymous: this.formData.is_anonymous,
         status: 'current' as const
       };
 
-      const verificationResult = await this.verificationService.requestCode(
-        this.formData.email,
-        'prayer_submission',
-        prayerData
-      );
+      // Check if verification is required (skip if admin is logged in)
+      const isAdmin = this.adminAuthService.getIsAdmin();
+      if (this.isVerificationEnabled && !isAdmin) {
+        const verificationResult = await this.verificationService.requestCode(
+          this.currentUserEmail,
+          'prayer_submission',
+          prayerData
+        );
 
-      if (verificationResult === null) {
-        console.warn('User was recently verified, no need to resend code');
-        return;
+        // If null, user was recently verified - skip verification dialog
+        if (verificationResult === null) {
+          await this.submitPrayer(prayerData);
+          return;
+        }
+
+        // Show verification dialog
+        this.verificationState = {
+          isOpen: true,
+          codeId: verificationResult.codeId,
+          expiresAt: verificationResult.expiresAt,
+          email: this.currentUserEmail
+        };
+        this.cdr.detectChanges();
+      } else {
+        // No verification required, submit directly
+        await this.submitPrayer(prayerData);
       }
-
-      // Update verification state with new code
-      this.verificationState = {
-        ...this.verificationState,
-        codeId: verificationResult.codeId,
-        expiresAt: verificationResult.expiresAt
-      };
     } catch (error) {
-      console.error('Failed to resend verification code:', error);
-      throw error
-      console.error('Failed to submit prayer:', error);
-    } finally {
+      console.error('Failed to initiate prayer submission:', error);
       this.isSubmitting = false;
+      this.cdr.markForCheck();
+      alert('Failed to submit prayer request. Please try again.');
     }
   }
 
