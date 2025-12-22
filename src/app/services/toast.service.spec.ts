@@ -12,6 +12,7 @@ describe('ToastService', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -198,8 +199,9 @@ describe('ToastService', () => {
       expect(styles).toContain('dark:bg-blue-900/30');
     });
 
-    it('should return default info styles for unknown type', () => {
-      const styles = service.getToastStyles('unknown');
+    it('should return default info styles for any other type', () => {
+      // Testing default case by passing any string that's not a recognized type
+      const styles = service.getToastStyles('custom');
       expect(styles).toContain('bg-blue-100');
       expect(styles).toContain('text-blue-800');
       expect(styles).toContain('border-blue-200');
