@@ -162,11 +162,11 @@ describe('presentationUtils', () => {
         id: '1',
         title: 'Test Prayer',
         prayer_for: 'John',
-        description: undefined as any,
+        description: undefined,
         requester: 'Jane',
         status: 'current',
         created_at: '2024-01-01T00:00:00Z',
-      };
+      } as any;
       
       const result = calculateSmartDurationPrayer(prayer, true, 30);
       
@@ -202,12 +202,12 @@ describe('presentationUtils', () => {
         prayer_updates: [
           {
             id: 'u1',
-            content: undefined as any,
+            content: undefined,
             author: 'Jane',
             created_at: '2024-01-02T00:00:00Z',
           },
         ],
-      };
+      } as any;
       
       const result = calculateSmartDurationPrayer(prayer, true, 30);
       
@@ -291,9 +291,9 @@ describe('presentationUtils', () => {
         id: '1',
         title: 'Test Prompt',
         type: 'praise',
-        description: undefined as any,
+        description: undefined,
         created_at: '2024-01-01T00:00:00Z',
-      };
+      } as any;
       
       const result = calculateSmartDurationPrompt(prompt, true, 25);
       
