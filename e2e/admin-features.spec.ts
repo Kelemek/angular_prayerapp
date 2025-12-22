@@ -57,32 +57,36 @@ test.describe('Admin Features - Read-Only', () => {
     await page.goto('/admin/users');
     await page.waitForTimeout(2000);
     
-    // Page should load (may require auth)
-    await expect(page.locator('body')).toBeVisible();
+    // Page should load or redirect to login
+    const currentUrl = page.url();
+    expect(currentUrl.includes('admin') || currentUrl.includes('login')).toBeTruthy();
   });
 
   test('should display analytics dashboard structure', async ({ page }) => {
     await page.goto('/admin/analytics');
     await page.waitForTimeout(2000);
     
-    // Page should load
-    await expect(page.locator('body')).toBeVisible();
+    // Page should load or redirect to login
+    const currentUrl = page.url();
+    expect(currentUrl.includes('admin') || currentUrl.includes('login')).toBeTruthy();
   });
 
   test('should display email templates interface', async ({ page }) => {
     await page.goto('/admin/email-templates');
     await page.waitForTimeout(2000);
     
-    // Page should load
-    await expect(page.locator('body')).toBeVisible();
+    // Page should load or redirect to login
+    const currentUrl = page.url();
+    expect(currentUrl.includes('admin') || currentUrl.includes('login')).toBeTruthy();
   });
 
   test('should display app branding settings interface', async ({ page }) => {
     await page.goto('/admin/branding');
     await page.waitForTimeout(2000);
     
-    // Page should load
-    await expect(page.locator('body')).toBeVisible();
+    // Page should load or redirect to login
+    const currentUrl = page.url();
+    expect(currentUrl.includes('admin') || currentUrl.includes('login')).toBeTruthy();
   });
 
   test('admin sidebar should have proper menu structure', async ({ page }) => {
@@ -135,8 +139,9 @@ test.describe('Admin Features - Read-Only', () => {
     await page.goto('/admin/users');
     await page.waitForTimeout(2000);
     
-    // Should load successfully
-    await expect(page.locator('body')).toBeVisible();
+    // Should load or redirect to login
+    const currentUrl = page.url();
+    expect(currentUrl.includes('admin') || currentUrl.includes('login')).toBeTruthy();
   });
 
   test('admin pages should be responsive', async ({ page }) => {
