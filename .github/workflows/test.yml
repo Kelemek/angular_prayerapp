@@ -38,7 +38,7 @@ jobs:
 
       - name: Run tests (fast, no coverage)
         if: matrix.os != 'ubuntu-latest'
-        run: npm run test:run
+        run: npm run test
       
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v4
