@@ -51,7 +51,8 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
       <!-- Header -->
       <header class="w-full bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-6xl mx-auto w-full px-4 py-6">
-          <div class="flex items-center justify-between">
+          <div class="flex items-start justify-between gap-4">
+            <!-- Left side: Logo and title -->
             <div class="flex items-center gap-3">
               <svg class="text-red-600 dark:text-red-400" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -62,8 +63,19 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
               </div>
             </div>
             
-            <!-- Navigation Controls -->
-            <div class="flex items-center gap-3">
+            <!-- Right side: Email indicator and navigation controls -->
+            <div class="flex flex-col items-end gap-3">
+              <!-- Email Indicator -->
+              <div *ngIf="(adminAuthService.user$ | async) as user; else storedEmail" class="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
+                {{ user.email }}
+              </div>
+              <ng-template #storedEmail>
+                <div class="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
+                  {{ getAdminEmail() }}
+                </div>
+              </ng-template>
+              
+              <!-- Navigation Controls -->
               <button
                 (click)="goToHome()"
                 class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-900 transition-colors"
@@ -72,7 +84,7 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                   <line x1="19" y1="12" x2="5" y2="12"></line>
                   <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
-                Back to Main Page
+                Main
               </button>
             </div>
           </div>
@@ -592,7 +604,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     private router: Router,
     private adminDataService: AdminDataService,
     private analyticsService: AnalyticsService,
-    private adminAuthService: AdminAuthService,
+    public adminAuthService: AdminAuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -895,5 +907,20 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   trackByPreferenceChangeId(index: number, change: any): string {
     return change.id;
+  }
+
+  getAdminEmail(): string {
+    // Try to get email from localStorage (approval code flow)
+    const approvalEmail = localStorage.getItem('approvalAdminEmail');
+    if (approvalEmail) return approvalEmail;
+    
+    // Try other possible localStorage keys
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) return userEmail;
+    
+    const prayerappEmail = localStorage.getItem('prayerapp_user_email');
+    if (prayerappEmail) return prayerappEmail;
+    
+    return '';
   }
 }
