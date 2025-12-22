@@ -49,6 +49,7 @@
     "@testing-library/angular": "^18.1.1",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.0.3",
+    "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "angular-eslint": "^21.1.0",
     "autoprefixer": "^10.4.23",
