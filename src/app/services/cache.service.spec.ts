@@ -44,6 +44,35 @@ describe('CacheService', () => {
       await new Promise(resolve => setTimeout(resolve, ttl + 50));
       expect(service.get('test_key')).toBeNull();
     });
+
+    it('should handle TTL expiration without localStorage', async () => {
+      // Mock localStorage to throw on operations
+      const originalSetItem = localStorage.setItem;
+      const originalRemoveItem = localStorage.removeItem;
+      
+      localStorage.setItem = () => {
+        throw new Error('localStorage not available');
+      };
+      localStorage.removeItem = () => {
+        throw new Error('localStorage not available');
+      };
+
+      // Create a new service instance with unavailable localStorage
+      const serviceWithoutStorage = new CacheService();
+      const testData = { id: 1, name: 'Test' };
+      const ttl = 100; // 100ms
+
+      serviceWithoutStorage.set('test_key', testData, ttl);
+      expect(serviceWithoutStorage.get('test_key')).toEqual(testData);
+
+      // Wait for TTL to expire
+      await new Promise(resolve => setTimeout(resolve, ttl + 50));
+      expect(serviceWithoutStorage.get('test_key')).toBeNull();
+
+      // Restore original methods
+      localStorage.setItem = originalSetItem;
+      localStorage.removeItem = originalRemoveItem;
+    });
   });
 
   describe('clear', () => {
@@ -87,6 +116,31 @@ describe('CacheService', () => {
       service.invalidate(key);
       
       expect(localStorage.getItem(key)).toBeNull();
+    });
+
+    it('should work without localStorage', () => {
+      // Mock localStorage to throw on operations
+      const originalSetItem = localStorage.setItem;
+      const originalRemoveItem = localStorage.removeItem;
+      
+      localStorage.setItem = () => {
+        throw new Error('localStorage not available');
+      };
+      localStorage.removeItem = () => {
+        throw new Error('localStorage not available');
+      };
+
+      // Create a new service instance with unavailable localStorage
+      const serviceWithoutStorage = new CacheService();
+      serviceWithoutStorage.set('test_key', { data: 'test' }, 60000);
+      
+      // Should still be able to invalidate from in-memory cache
+      serviceWithoutStorage.invalidate('test_key');
+      expect(serviceWithoutStorage.get('test_key')).toBeNull();
+
+      // Restore original methods
+      localStorage.setItem = originalSetItem;
+      localStorage.removeItem = originalRemoveItem;
     });
   });
 
@@ -201,9 +255,46 @@ describe('CacheService', () => {
       const source2$ = of({ id: 2, name: 'New Data' });
       const cached2$ = service.cacheObservable('test_observable', source2$);
 
-      cached2$.subscribe(data => {
-        // Should return the cached data from first call
-        expect(data).toEqual(testData);
+      // Verify it returns cached data by subscribing
+      await new Promise<void>(resolve => {
+        cached2$.subscribe(data => {
+          // Should return the cached data from first call
+          expect(data).toEqual(testData);
+          resolve();
+        });
+      });
+    });
+
+    it('should refresh observable when data cache expires', async () => {
+      const { of } = await import('rxjs');
+      const testData1 = { id: 1, name: 'Test1' };
+      const testData2 = { id: 2, name: 'Test2' };
+      
+      // Cache observable with short TTL
+      const source1$ = of(testData1);
+      const cached1$ = service.cacheObservable('test_observable', source1$, 50);
+      
+      // Subscribe to trigger caching
+      await new Promise<void>(resolve => {
+        cached1$.subscribe(data => {
+          expect(data).toEqual(testData1);
+          resolve();
+        });
+      });
+      
+      // Wait for data cache to expire but observableCache still has reference
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Call cacheObservable again - should create new observable since data expired
+      const source2$ = of(testData2);
+      const cached2$ = service.cacheObservable('test_observable', source2$, 60000);
+
+      await new Promise<void>(resolve => {
+        cached2$.subscribe(data => {
+          // Should get new data since cache expired
+          expect(data).toEqual(testData2);
+          resolve();
+        });
       });
     });
   });
@@ -317,6 +408,16 @@ describe('CacheService', () => {
       serviceWithoutStorage.set('test_key', { data: 'test' }, 60000);
       const retrieved = serviceWithoutStorage.get('test_key');
       expect(retrieved).toEqual({ data: 'test' });
+
+      // Test invalidateAll without localStorage
+      serviceWithoutStorage.invalidateAll();
+      expect(serviceWithoutStorage.get('test_key')).toBeNull();
+
+      // Test getStats without localStorage
+      serviceWithoutStorage.set('test_key2', { data: 'test2' }, 60000);
+      const stats = serviceWithoutStorage.getStats();
+      expect(stats.localStorageCount).toBe(0);
+      expect(stats.inMemoryCount).toBeGreaterThan(0);
 
       // Restore original methods
       localStorage.setItem = originalSetItem;
