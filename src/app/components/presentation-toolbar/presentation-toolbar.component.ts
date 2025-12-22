@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-presentation-toolbar',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.Default,
   template: `
     <div [class]="'fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-4 md:p-5 lg:p-6 border-t border-gray-200 dark:border-gray-700 transition-transform duration-300 ' + (visible ? 'translate-y-0' : 'translate-y-full')">
       <div class="container mx-auto flex items-center justify-between">
@@ -39,15 +40,15 @@ import { CommonModule } from '@angular/common';
             </svg>
           </button>
           
-          <div *ngIf="isPlaying && showTimer" class="flex items-center gap-1.5 md:gap-2 px-3 md:px-3.5 lg:px-4 py-2 md:py-2.5 lg:py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg ml-2">
-            <svg class="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-600 dark:text-blue-400">
+          <div *ngIf="isPlaying && showTimer" class="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 lg:px-4 py-1.5 md:py-2.5 lg:py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg ml-1 md:ml-2">
+            <svg class="w-3.5 h-3.5 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-600 dark:text-blue-400">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
-            <span class="text-sm font-mono font-semibold text-blue-900 dark:text-blue-100">
+            <span class="text-xs md:text-sm font-mono font-semibold text-blue-900 dark:text-blue-100">
               {{ countdownRemaining }}s
             </span>
-            <span class="text-sm text-gray-600 dark:text-gray-400">
+            <span class="text-xs md:text-sm text-gray-600 dark:text-gray-400">
               / {{ currentDuration }}s
             </span>
           </div>
@@ -84,7 +85,7 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class PresentationToolbarComponent {
+export class PresentationToolbarComponent implements OnChanges {
   @Input() visible = true;
   @Input() isPlaying = false;
   @Input() showTimer = true;
@@ -96,4 +97,12 @@ export class PresentationToolbarComponent {
   @Output() togglePlay = new EventEmitter<void>();
   @Output() settingsToggle = new EventEmitter<void>();
   @Output() exit = new EventEmitter<void>();
+
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['countdownRemaining']) {
+      this.cdr.detectChanges();
+    }
+  }
 }

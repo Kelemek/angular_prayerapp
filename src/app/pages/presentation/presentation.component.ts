@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { interval, Subscription } from 'rxjs';
 import { SupabaseService } from '../../services/supabase.service';
 import { ThemeService } from '../../services/theme.service';
 import { PresentationToolbarComponent } from '../../components/presentation-toolbar/presentation-toolbar.component';
@@ -179,8 +180,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
   showSmartModeDetails = false;
   
   private autoAdvanceInterval: any;
-  private countdownInterval: any;
-  private prayerTimerInterval: any;
+  private countdownSubscription: Subscription | null = null;
+  private prayerTimerSubscription: Subscription | null = null;
   private initialTimerHandle: any;
   private initialPeriodElapsed = false;
   
@@ -195,7 +196,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
     private router: Router,
     private supabase: SupabaseService,
     private themeService: ThemeService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
@@ -208,6 +210,9 @@ export class PresentationComponent implements OnInit, OnDestroy {
     this.clearIntervals();
     if (this.initialTimerHandle) {
       clearTimeout(this.initialTimerHandle);
+    }
+    if (this.prayerTimerSubscription) {
+      this.prayerTimerSubscription.unsubscribe();
     }
   }
 
@@ -517,11 +522,14 @@ export class PresentationComponent implements OnInit, OnDestroy {
       }
     }, duration * 1000);
     
-    this.countdownInterval = setInterval(() => {
-      if (this.countdownRemaining > 0) {
-        this.countdownRemaining--;
-      }
-    }, 1000);
+    this.countdownSubscription = interval(1000).subscribe(() => {
+      this.ngZone.run(() => {
+        if (this.countdownRemaining > 0) {
+          this.countdownRemaining--;
+          this.cdr.detectChanges();
+        }
+      });
+    });
   }
 
   calculateCurrentDuration(): number {
@@ -555,9 +563,9 @@ export class PresentationComponent implements OnInit, OnDestroy {
       clearTimeout(this.autoAdvanceInterval);
       this.autoAdvanceInterval = null;
     }
-    if (this.countdownInterval) {
-      clearInterval(this.countdownInterval);
-      this.countdownInterval = null;
+    if (this.countdownSubscription) {
+      this.countdownSubscription.unsubscribe();
+      this.countdownSubscription = null;
     }
   }
 
@@ -643,8 +651,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   startPrayerTimer(): void {
     // Clear any existing prayer timer
-    if (this.prayerTimerInterval) {
-      clearInterval(this.prayerTimerInterval);
+    if (this.prayerTimerSubscription) {
+      this.prayerTimerSubscription.unsubscribe();
     }
 
     // Close settings modal
@@ -655,16 +663,20 @@ export class PresentationComponent implements OnInit, OnDestroy {
     this.prayerTimerRemaining = this.prayerTimerMinutes * 60; // Convert minutes to seconds
 
     // Start countdown
-    this.prayerTimerInterval = setInterval(() => {
-      this.prayerTimerRemaining--;
-      
-      if (this.prayerTimerRemaining <= 0) {
-        clearInterval(this.prayerTimerInterval);
-        this.prayerTimerInterval = null;
-        this.prayerTimerActive = false;
-        this.showTimerNotification = true;
-      }
-    }, 1000);
+    this.prayerTimerSubscription = interval(1000).subscribe(() => {
+      this.ngZone.run(() => {
+        this.prayerTimerRemaining--;
+        this.cdr.detectChanges();
+        
+        if (this.prayerTimerRemaining <= 0) {
+          this.prayerTimerSubscription?.unsubscribe();
+          this.prayerTimerSubscription = null;
+          this.prayerTimerActive = false;
+          this.showTimerNotification = true;
+          this.cdr.detectChanges();
+        }
+      });
+    });
   }
 
   exitPresentation(): void {
