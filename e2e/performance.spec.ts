@@ -117,7 +117,7 @@ test.describe('Performance and Load Times', () => {
   test('admin login page should load quickly', async ({ page }) => {
     const startTime = Date.now();
     
-    await page.goto('/admin/login');
+    await page.goto('/login');
     
     // Wait for form to appear
     await page.waitForSelector('input[type="email"], body', { timeout: 5000 });

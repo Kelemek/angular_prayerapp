@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Admin Portal', () => {
   test('should load admin login page', async ({ page }) => {
-    await page.goto('/admin/login');
+    await page.goto('/login');
     
     // Check for admin login heading
     await expect(page.locator('h1, h2')).toContainText(/Admin|Login/i);
@@ -13,7 +13,7 @@ test.describe('Admin Portal', () => {
   });
 
   test('should show validation error for invalid email', async ({ page }) => {
-    await page.goto('/admin/login');
+    await page.goto('/login');
     
     // Find email input
     const emailInput = page.locator('input[type="email"], input[placeholder*="email" i]').first();
@@ -35,7 +35,7 @@ test.describe('Admin Portal', () => {
   });
 
   test('should display admin login form elements', async ({ page }) => {
-    await page.goto('/admin/login');
+    await page.goto('/login');
     
     // Check for form elements
     const form = page.locator('form, [role="form"]').first();

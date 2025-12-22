@@ -97,7 +97,7 @@ test.describe('Navigation and Routing', () => {
 
   test('should handle direct URL navigation', async ({ page }) => {
     // Navigate directly to various routes
-    const routes = ['/', '/presentation', '/admin/login'];
+    const routes = ['/', '/presentation', '/login'];
     
     for (const route of routes) {
       await page.goto(route);

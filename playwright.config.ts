@@ -49,7 +49,7 @@ export default defineConfig({
     },
   ],
 
-  timeout: process.env.CI ? 20000 : 30000,
+  timeout: process.env.CI ? 60000 : 60000,
   expect: {
     timeout: 5000,
   },

@@ -12,7 +12,7 @@ test.describe('Admin Features - Read-Only', () => {
   });
 
   test('admin login page should display complete form', async ({ page }) => {
-    await page.goto('/admin/login');
+    await page.goto('/login');
     await page.waitForTimeout(2000);
     
     // Check for login form elements
