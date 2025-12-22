@@ -121,8 +121,80 @@ import { Subject, takeUntil } from 'rxjs';
               </form>
             </div>
 
+            <!-- Subscriber Information Form (New Users) -->
+            <div *ngIf="showSubscriberForm" class="mt-4">
+              <div class="bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800 space-y-4">
+                <div>
+                  <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                    Welcome! Please provide your information
+                  </h4>
+                  <p class="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                    We need your name to complete your account registration.
+                  </p>
+                </div>
+
+                <!-- First Name -->
+                <div>
+                  <label for="first-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    id="first-name"
+                    type="text"
+                    [(ngModel)]="firstName"
+                    placeholder="Your first name"
+                    [disabled]="loading"
+                    class="w-full px-4 py-3 border-2 rounded-lg
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                           border-emerald-400 dark:border-emerald-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200
+                           disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                  <label for="last-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    id="last-name"
+                    type="text"
+                    [(ngModel)]="lastName"
+                    placeholder="Your last name"
+                    [disabled]="loading"
+                    class="w-full px-4 py-3 border-2 rounded-lg
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                           border-emerald-400 dark:border-emerald-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200
+                           disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <!-- Error Message -->
+                <div *ngIf="error" class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                  <svg class="text-red-600 dark:text-red-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-red-800 dark:text-red-200 text-sm">{{error}}</span>
+                </div>
+
+                <!-- Save Button -->
+                <button
+                  (click)="saveNewSubscriber()"
+                  [disabled]="loading || !firstName.trim() || !lastName.trim()"
+                  type="button"
+                  class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#2F5F54] hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2F5F54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <div *ngIf="loading" class="flex items-center justify-center gap-2">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Saving...
+                  </div>
+                  <span *ngIf="!loading">Complete Registration</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Step-by-step instructions (when not waiting for code) -->
-            <div *ngIf="!waitingForMfaCode" class="mt-4 bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800">
+            <div *ngIf="!waitingForMfaCode && !showSubscriberForm" class="mt-4 bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800">
               <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Here's what to do:
               </h4>
@@ -233,6 +305,11 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   requireSiteLogin = false; // Track if site-wide protection is enabled
   useLogo = false;
   logoUrl = '';
+  // Subscriber form state
+  showSubscriberForm = false;
+  firstName = '';
+  lastName = '';
+  isAdmin = false; // Track if user is admin
   private isDarkMode = false;
   private returnUrl: string = '/';
   
@@ -388,9 +465,29 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
 
       if (result.success) {
         console.log('[AdminLogin] MFA verification successful');
+        this.isAdmin = result.isAdmin || false;
+        
+        // Preserve email before clearing sessionStorage
+        const userEmail = this.email;
+        console.log('[AdminLogin] User email:', userEmail);
+        
         // Clear sessionStorage
         sessionStorage.removeItem('mfa_email_sent');
         sessionStorage.removeItem('mfa_email');
+        
+        // Check if user is already in email_subscribers table
+        console.log('[AdminLogin] Checking if subscriber:', userEmail);
+        const isSubscriber = await this.checkEmailSubscriber(userEmail);
+        console.log('[AdminLogin] Is subscriber result:', isSubscriber);
+        
+        if (!isSubscriber) {
+          // Show subscriber form for new users
+          console.log('[AdminLogin] Showing subscriber form');
+          this.showSubscriberForm = true;
+          this.loading = false;
+          this.cdr.markForCheck();
+          return;
+        }
         
         // Route based on admin status
         // If user is an admin, go to returnUrl (admin or specified page)
@@ -704,6 +801,98 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Failed to fetch branding settings:', error);
+    }
+  }
+
+  private async checkEmailSubscriber(email: string): Promise<boolean> {
+    try {
+      console.log('[AdminLogin] Checking if user is already a subscriber:', email);
+      const { data, error } = await this.supabaseService.directQuery<{
+        id: string;
+        email: string;
+      }>(
+        'email_subscribers',
+        {
+          select: 'id, email',
+          eq: { email: email.toLowerCase() },
+          limit: 1
+        }
+      );
+
+      if (error) {
+        console.error('[AdminLogin] Error checking subscriber status:', error);
+        return false;
+      }
+
+      const isSubscriber = data && Array.isArray(data) && data.length > 0;
+      console.log('[AdminLogin] Subscriber check result:', isSubscriber);
+      return isSubscriber || false;
+    } catch (err) {
+      console.error('[AdminLogin] Exception checking subscriber:', err);
+      return false;
+    }
+  }
+
+  async saveNewSubscriber(): Promise<boolean> {
+    try {
+      if (!this.firstName.trim() || !this.lastName.trim()) {
+        this.error = 'Please enter your first and last name';
+        this.cdr.markForCheck();
+        return false;
+      }
+
+      this.loading = true;
+      this.cdr.markForCheck();
+
+      console.log('[AdminLogin] Saving new subscriber:', this.email);
+
+      const { data, error } = await this.supabaseService.directMutation<{
+        id: string;
+      }>(
+        'email_subscribers',
+        {
+          method: 'POST',
+          body: {
+            email: this.email.toLowerCase(),
+            name: `${this.firstName.trim()} ${this.lastName.trim()}`,
+            is_active: true,
+            is_admin: false
+          },
+          returning: true
+        }
+      );
+
+      if (error) {
+        console.error('[AdminLogin] Error saving subscriber:', error);
+        console.error('[AdminLogin] Error details:', {
+          message: error.message,
+          status: (error as any).status,
+          statusText: (error as any).statusText
+        });
+        this.error = `Failed to save subscriber: ${error.message || 'Unknown error'}`;
+        this.loading = false;
+        this.cdr.markForCheck();
+        return false;
+      }
+
+      console.log('[AdminLogin] Subscriber saved successfully');
+      this.showSubscriberForm = false;
+      this.firstName = '';
+      this.lastName = '';
+      this.loading = false;
+      
+      // Now route to the appropriate page
+      const destination = this.isAdmin ? this.returnUrl : '/';
+      console.log('[AdminLogin] Routing to:', destination, '(isAdmin:', this.isAdmin, ')');
+      this.router.navigate([destination]);
+      
+      return true;
+    } catch (err) {
+      console.error('[AdminLogin] Exception saving subscriber:', err);
+      this.error = err instanceof Error ? err.message : 'An error occurred. Please try again.';
+      this.loading = false;
+      this.cdr.markForCheck();
+      return false;
     }
   }
 }
