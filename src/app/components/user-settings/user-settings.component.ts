@@ -5,9 +5,7 @@ import { ThemeService } from '../../services/theme.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { PrintService } from '../../services/print.service';
 import { EmailNotificationService } from '../../services/email-notification.service';
-import { VerificationService } from '../../services/verification.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
-import { VerificationDialogComponent } from '../verification-dialog/verification-dialog.component';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 
 type ThemeOption = 'light' | 'dark' | 'system';
@@ -16,7 +14,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 @Component({
   selector: 'app-user-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, VerificationDialogComponent],
+  imports: [CommonModule, FormsModule],
   template: `
     <!-- Modal Overlay -->
     <div 
@@ -448,17 +446,6 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
         </div>
       </div>
     </div>
-
-    <!-- Verification Dialog -->
-    <app-verification-dialog
-      [isOpen]="verificationState.isOpen"
-      [email]="verificationState.email"
-      [codeId]="verificationState.codeId"
-      [expiresAt]="verificationState.expiresAt"
-      (onClose)="handleVerificationCancel()"
-      (onVerified)="handleVerified($event)"
-      (onResend)="handleResendCode()">
-    </app-verification-dialog>
   `,
   styles: [`
     :host {
@@ -478,15 +465,6 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   error: string | null = null;
   success: string | null = null;
   
-  verificationState = {
-    isOpen: false,
-    codeId: '',
-    expiresAt: '',
-    email: '',
-    actionType: '',
-    actionData: null as any
-  };
-  isVerificationEnabled = false;
   isPrinting = false;
   isPrintingPrompts = false;
   printRange: PrintRange = 'week';
@@ -530,7 +508,6 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     private printService: PrintService,
     private supabase: SupabaseService,
     private emailNotification: EmailNotificationService,
-    private verificationService: VerificationService,
     private adminAuthService: AdminAuthService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -538,11 +515,6 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Load current theme from service
     this.theme = this.themeService.getTheme() as ThemeOption;
-    
-    // Subscribe to verification enabled state
-    this.verificationService.isEnabled$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(enabled => this.isVerificationEnabled = enabled);
 
     // Load user info from localStorage if available
     const userInfo = this.getUserInfo();
@@ -707,40 +679,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
         receive_new_prayer_notifications: this.receiveNotifications
       };
 
-      // Check if verification is required (skip if admin is logged in)
-      const isAdmin = this.adminAuthService.getIsAdmin();
-      if (this.isVerificationEnabled && !isAdmin) {
-        console.log('Requesting verification for preference change');
-        const verificationResult = await this.verificationService.requestCode(
-          emailLower,
-          'preference_change',
-          preferenceData
-        );
-
-        // If null, user was recently verified - skip verification dialog
-        if (verificationResult === null) {
-          console.log('User recently verified, skipping MFA');
-          await this.submitPreferenceChange(preferenceData);
-          return;
-        }
-
-        console.log('Showing verification dialog', verificationResult);
-        // Show verification dialog
-        this.verificationState = {
-          isOpen: true,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt,
-          email: emailLower,
-          actionType: 'preference_change',
-          actionData: preferenceData
-        };
-        this.saving = false; // Reset saving flag so UI isn't blocked
-        this.cdr.detectChanges();
-        console.log('Verification state set:', this.verificationState);
-      } else {
-        // No verification required, submit directly
-        await this.submitPreferenceChange(preferenceData);
-      }
+      // User is logged in - submit directly without verification
+      await this.submitPreferenceChange(preferenceData);
     } catch (err) {
       console.error('Error saving preferences:', err);
       this.error = err instanceof Error ? err.message : 'Failed to save preferences';
@@ -858,40 +798,6 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       console.error('Error loading user info:', error);
     }
     return { firstName: '', lastName: '', email: '' };
-  }
-
-  async handleVerified(actionData: any): Promise<void> {
-    this.verificationState.isOpen = false;
-    this.saving = true; // Re-enable saving flag when submitting after verification
-    
-    if (this.verificationState.actionType === 'preference_change') {
-      await this.submitPreferenceChange(this.verificationState.actionData);
-    }
-  }
-
-  handleVerificationCancel(): void {
-    this.verificationState.isOpen = false;
-    this.saving = false;
-  }
-
-  async handleResendCode(): Promise<void> {
-    try {
-      const verificationResult = await this.verificationService.requestCode(
-        this.verificationState.email,
-        this.verificationState.actionType,
-        this.verificationState.actionData
-      );
-
-      if (verificationResult) {
-        this.verificationState = {
-          ...this.verificationState,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt
-        };
-      }
-    } catch (error) {
-      console.error('Error resending code:', error);
-    }
   }
 
   async logout(): Promise<void> {

@@ -4,14 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
 import { PrayerService } from '../../services/prayer.service';
-import { VerificationService } from '../../services/verification.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
-import { VerificationDialogComponent } from '../verification-dialog/verification-dialog.component';
 
 @Component({
   selector: 'app-prayer-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, VerificationDialogComponent],
+  imports: [CommonModule, FormsModule],
   template: `
     <div
       *ngIf="isOpen"
@@ -134,17 +132,6 @@ import { VerificationDialogComponent } from '../verification-dialog/verification
         </form>
       </div>
     </div>
-
-    <!-- Verification Dialog -->
-    <app-verification-dialog
-      [isOpen]="verificationState.isOpen"
-      [email]="verificationState.email"
-      [codeId]="verificationState.codeId"
-      [expiresAt]="verificationState.expiresAt"
-      (onClose)="handleVerificationCancel()"
-      (onVerified)="handleVerified($event)"
-      (onResend)="handleResendCode()">
-    </app-verification-dialog>
   `,
   styles: []
 })
@@ -161,21 +148,12 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   isSubmitting = false;
   showSuccessMessage = false;
-  isVerificationEnabled = false;
   isAdmin = false;
   currentUserEmail = '';
   user$!: Observable<User | null>;
 
-  verificationState = {
-    isOpen: false,
-    codeId: '',
-    expiresAt: '',
-    email: ''
-  };
-
   constructor(
     private prayerService: PrayerService,
-    private verificationService: VerificationService,
     private adminAuthService: AdminAuthService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -183,9 +161,6 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.loadUserInfo();
     this.user$ = this.adminAuthService.user$;
-    this.verificationService.isEnabled$.subscribe(enabled => {
-      this.isVerificationEnabled = enabled;
-    });
     this.adminAuthService.isAdmin$.subscribe(isAdmin => {
       this.isAdmin = isAdmin;
     });
@@ -252,34 +227,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
         status: 'current' as const
       };
 
-      // Check if verification is required (skip if admin is logged in)
-      const isAdmin = this.adminAuthService.getIsAdmin();
-      if (this.isVerificationEnabled && !isAdmin) {
-        const verificationResult = await this.verificationService.requestCode(
-          this.currentUserEmail,
-          'prayer_submission',
-          prayerData
-        );
-
-        // If null, user was recently verified - skip verification dialog
-        if (verificationResult === null) {
-          await this.submitPrayer(prayerData);
-          return;
-        }
-
-        // Show verification dialog - reset submitting flag since we're waiting for user to verify
-        this.isSubmitting = false;
-        this.verificationState = {
-          isOpen: true,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt,
-          email: this.currentUserEmail
-        };
-        this.cdr.detectChanges();
-      } else {
-        // No verification required, submit directly
-        await this.submitPrayer(prayerData);
-      }
+      // User is logged in - submit directly without verification
+      await this.submitPrayer(prayerData);
     } catch (error) {
       console.error('Failed to initiate prayer submission:', error);
       this.isSubmitting = false;
@@ -320,84 +269,9 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     }
   }
 
-  async handleVerified(actionData: any): Promise<void> {
-    try {
-      await this.submitPrayer(actionData);
-      
-      // Close verification dialog
-      this.verificationState = {
-        isOpen: false,
-        codeId: '',
-        expiresAt: '',
-        email: ''
-      };
-    } catch (error) {
-      console.error('Failed to submit verified prayer:', error);
-      // Don't close verification dialog on error
-      throw error;
-    }
-  }
 
-  handleVerificationCancel(): void {
-    this.verificationState = {
-      isOpen: false,
-      codeId: '',
-      expiresAt: '',
-      email: ''
-    };
-    this.isSubmitting = false;
-  }
 
-  async handleResendCode(): Promise<void> {
-    try {
-      if (!this.currentUserEmail) return;
 
-      const fullName = this.getCurrentUserName();
-
-      const prayerData = {
-        title: `Prayer for ${this.formData.prayer_for}`,
-        description: this.formData.description,
-        requester: fullName,
-        prayer_for: this.formData.prayer_for,
-        email: this.currentUserEmail,
-        is_anonymous: this.formData.is_anonymous,
-        status: 'current' as const
-      };
-
-      // Check if verification is required (skip if admin is logged in)
-      const isAdmin = this.adminAuthService.getIsAdmin();
-      if (this.isVerificationEnabled && !isAdmin) {
-        const verificationResult = await this.verificationService.requestCode(
-          this.currentUserEmail,
-          'prayer_submission',
-          prayerData
-        );
-
-        // If null, user was recently verified - skip verification dialog
-        if (verificationResult === null) {
-          await this.submitPrayer(prayerData);
-          return;
-        }
-
-        // Show verification dialog
-        this.verificationState = {
-          isOpen: true,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt,
-          email: this.currentUserEmail
-        };
-        this.cdr.detectChanges();
-      } else {
-        // No verification required, submit directly
-        await this.submitPrayer(prayerData);
-      }
-    } catch (error) {
-      console.error('Failed to initiate prayer submission:', error);
-      this.isSubmitting = false;
-      this.cdr.markForCheck();
-      alert('Failed to submit prayer request. Please try again.');
-    }
-  }
 
   cancel(): void {
     this.close.emit();

@@ -14,7 +14,6 @@ import { PrayerService, PrayerRequest } from '../../services/prayer.service';
 import { PromptService } from '../../services/prompt.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { ToastService } from '../../services/toast.service';
-import { VerificationService } from '../../services/verification.service';
 import { AnalyticsService } from '../../services/analytics.service';
 import { Observable, take } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
@@ -22,7 +21,7 @@ import type { User } from '@supabase/supabase-js';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, PrayerFormComponent, PrayerFiltersComponent, SkeletonLoaderComponent, AppLogoComponent, PrayerCardComponent, PromptCardComponent, UserSettingsComponent, VerificationDialogComponent],
+  imports: [CommonModule, RouterModule, PrayerFormComponent, PrayerFiltersComponent, SkeletonLoaderComponent, AppLogoComponent, PrayerCardComponent, PromptCardComponent, UserSettingsComponent],
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       <!-- Header -->
@@ -263,17 +262,6 @@ import type { User } from '@supabase/supabase-js';
 
       <!-- No Footer Links -->
     </div>
-
-    <!-- Verification Dialog -->
-    <app-verification-dialog
-      [isOpen]="verificationState.isOpen"
-      [email]="verificationState.email"
-      [codeId]="verificationState.codeId"
-      [expiresAt]="verificationState.expiresAt"
-      (onClose)="handleVerificationCancel()"
-      (onVerified)="handleVerified($event)"
-      (onResend)="handleResendCode()">
-    </app-verification-dialog>
   `,
   styles: []
 })
@@ -299,23 +287,13 @@ export class HomeComponent implements OnInit {
   activeFilter: 'current' | 'answered' | 'total' | 'prompts' = 'current';
   selectedPromptTypes: string[] = [];
   
-  isVerificationEnabled = false;
   isAdmin = false;
-  verificationState = {
-    isOpen: false,
-    codeId: '',
-    expiresAt: '',
-    email: '',
-    actionType: '' as 'update' | 'deletion' | 'update_deletion' | 'delete_update' | '',
-    actionData: null as any
-  };
 
   constructor(
     public prayerService: PrayerService,
     public promptService: PromptService,
     public adminAuthService: AdminAuthService,
     private toastService: ToastService,
-    private verificationService: VerificationService,
     private analyticsService: AnalyticsService,
     private cdr: ChangeDetectorRef,
     private router: Router
@@ -349,11 +327,6 @@ export class HomeComponent implements OnInit {
     // Subscribe to prompts for count
     this.prompts$.subscribe(prompts => {
       this.promptsCount = prompts.length;
-    });
-    
-    // Subscribe to verification status
-    this.verificationService.isEnabled$.subscribe(enabled => {
-      this.isVerificationEnabled = enabled;
     });
     
     // Subscribe to admin status
@@ -411,32 +384,8 @@ export class HomeComponent implements OnInit {
 
   async addUpdate(updateData: any): Promise<void> {
     try {
-      const isAdmin = this.adminAuthService.getIsAdmin();
-      
-      if (this.isVerificationEnabled && !isAdmin && updateData.author_email) {
-        const verificationResult = await this.verificationService.requestCode(
-          updateData.author_email,
-          'prayer_update',
-          updateData
-        );
-
-        if (verificationResult === null) {
-          await this.submitUpdate(updateData);
-          return;
-        }
-
-        this.verificationState = {
-          isOpen: true,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt,
-          email: updateData.author_email,
-          actionType: 'update',
-          actionData: updateData
-        };
-        this.cdr.detectChanges();
-      } else {
-        await this.submitUpdate(updateData);
-      }
+      // User is logged in - submit directly without verification
+      await this.submitUpdate(updateData);
     } catch (error) {
       console.error('Error adding update:', error);
       this.toastService.error('Failed to submit update');
@@ -445,106 +394,28 @@ export class HomeComponent implements OnInit {
 
   async deleteUpdate(updateId: string): Promise<void> {
     try {
-      // Get user email - try both possible keys
-      let userEmail = localStorage.getItem('userEmail');
-      if (!userEmail) {
-        userEmail = localStorage.getItem('prayerapp_user_email');
-      }
-      
-      if (!userEmail) {
-        this.toastService.error('Please enter your email first');
-        return;
-      }
-
-      // Request verification code
-      const verificationResult = await this.verificationService.requestCode(
-        userEmail,
-        'user_delete_update',
-        { updateId }
-      );
-
-      if (!verificationResult) {
-        this.toastService.error('Failed to send verification code');
-        return;
-      }
-
-      // Update verification state
-      this.verificationState = {
-        isOpen: true,
-        email: userEmail,
-        actionType: 'delete_update',
-        codeId: verificationResult.codeId,
-        expiresAt: verificationResult.expiresAt,
-        actionData: { updateId }
-      };
-      this.cdr.detectChanges();
+      // User is logged in - submit directly without verification
+      await this.prayerService.deleteUpdate(updateId);
+      this.toastService.success('Update deleted successfully');
     } catch (error) {
-      console.error('Error requesting verification code:', error);
-      this.toastService.error('Failed to request verification code');
+      console.error('Error deleting update:', error);
+      this.toastService.error('Failed to delete update');
     }
   }
 
   async requestDeletion(requestData: any): Promise<void> {
     try {
-      const isAdmin = this.adminAuthService.getIsAdmin();
-      
-      if (this.isVerificationEnabled && !isAdmin && requestData.requester_email) {
-        const verificationResult = await this.verificationService.requestCode(
-          requestData.requester_email,
-          'deletion_request',
-          requestData
-        );
-
-        if (verificationResult === null) {
-          await this.submitDeletion(requestData);
-          return;
-        }
-
-        this.verificationState = {
-          isOpen: true,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt,
-          email: requestData.requester_email,
-          actionType: 'deletion',
-          actionData: requestData
-        };
-      } else {
-        await this.submitDeletion(requestData);
-      }
+      // User is logged in - submit directly without verification
+      await this.submitDeletion(requestData);
     } catch (error) {
       console.error('Error requesting deletion:', error);
       this.toastService.error('Failed to submit deletion request');
     }
   }
-
   async requestUpdateDeletion(requestData: any): Promise<void> {
     try {
-      const isAdmin = this.adminAuthService.getIsAdmin();
-      
-      if (this.isVerificationEnabled && !isAdmin && requestData.requester_email) {
-        const verificationResult = await this.verificationService.requestCode(
-          requestData.requester_email,
-          'update_deletion_request',
-          requestData
-        );
-
-        if (verificationResult === null) {
-          await this.submitUpdateDeletion(requestData);
-          return;
-        }
-
-        this.verificationState = {
-          isOpen: true,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt,
-          email: requestData.requester_email,
-          actionType: 'update_deletion',
-          actionData: requestData
-        };
-        this.cdr.detectChanges();
-      } else {
-        await this.submitUpdateDeletion(requestData);
-      }
+      // User is logged in - submit directly without verification
+      await this.submitUpdateDeletion(requestData);
     } catch (error) {
       console.error('Error requesting update deletion:', error);
       this.toastService.error('Failed to submit update deletion request');
@@ -619,95 +490,6 @@ export class HomeComponent implements OnInit {
     });
   }
   
-  async handleVerified(actionData: any): Promise<void> {
-    try {
-      if (this.verificationState.actionType === 'update') {
-        // Check if this is an admin re-auth action
-        if (this.verificationState.actionData?.action === 'admin_reauth') {
-          // Re-authenticate admin session - code has been verified by backend
-          // Set up admin session and navigate to admin panel
-          const email = this.verificationState.email;
-          
-          // Use the existing setApprovalSession to activate admin session
-          await this.adminAuthService.setApprovalSession(email);
-          
-          // Clean up MFA session info
-          localStorage.removeItem('mfa_code_id');
-          localStorage.removeItem('mfa_user_email');
-          
-          this.router.navigate(['/admin']);
-          this.toastService.success('Admin session restarted');
-        } else {
-          await this.submitUpdate(this.verificationState.actionData);
-        }
-      } else if (this.verificationState.actionType === 'deletion') {
-        await this.submitDeletion(this.verificationState.actionData);
-      } else if (this.verificationState.actionType === 'update_deletion') {
-        await this.submitUpdateDeletion(this.verificationState.actionData);
-      } else if (this.verificationState.actionType === 'delete_update') {
-        // Get the update ID from action data and perform deletion
-        const updateId = this.verificationState.actionData?.updateId;
-        if (updateId) {
-          await this.prayerService.deleteUpdate(updateId);
-        }
-      }
-      
-      this.verificationState = {
-        isOpen: false,
-        codeId: '',
-        expiresAt: '',
-        email: '',
-        actionType: '',
-        actionData: null
-      };
-    } catch (error) {
-      console.error('Error handling verified action:', error);
-      this.toastService.error('Failed to complete action');
-    }
-  }
-
-  handleVerificationCancel(): void {
-    this.verificationState = {
-      isOpen: false,
-      codeId: '',
-      expiresAt: '',
-      email: '',
-      actionType: '',
-      actionData: null
-    };
-    this.toastService.error('Verification cancelled');
-  }
-
-  async handleResendCode(): Promise<void> {
-    try {
-      if (!this.verificationState.email || !this.verificationState.actionData) return;
-
-      let actionType = 'prayer_update';
-      if (this.verificationState.actionType === 'deletion') {
-        actionType = 'deletion_request';
-      } else if (this.verificationState.actionType === 'update_deletion') {
-        actionType = 'update_deletion_request';
-      }
-      
-      const verificationResult = await this.verificationService.requestCode(
-        this.verificationState.email,
-        actionType,
-        this.verificationState.actionData
-      );
-
-      if (verificationResult) {
-        this.verificationState = {
-          ...this.verificationState,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt
-        };
-      }
-    } catch (error) {
-      console.error('Error resending code:', error);
-      this.toastService.error('Failed to resend code');
-    }
-  }
-  
   private async submitUpdate(updateData: any): Promise<void> {
     await this.prayerService.addUpdate(updateData);
   }
@@ -750,34 +532,6 @@ export class HomeComponent implements OnInit {
       this.toastService.error('Email not found. Please log in again.');
       return;
     }
-
-    // Request verification code for admin re-authentication
-    this.verificationService.requestCode(
-      userEmail,
-      'admin_reauth',
-      { action: 'admin_reauth' }
-    ).then(verificationResult => {
-      if (verificationResult) {
-        // Set MFA session info in localStorage for verifyMfaCode to use
-        localStorage.setItem('mfa_code_id', verificationResult.codeId);
-        localStorage.setItem('mfa_user_email', userEmail);
-        
-        this.verificationState = {
-          isOpen: true,
-          codeId: verificationResult.codeId,
-          expiresAt: verificationResult.expiresAt,
-          email: userEmail!,
-          actionType: 'update', // Reuse update action type for now
-          actionData: { action: 'admin_reauth' }
-        };
-        this.cdr.detectChanges();
-      } else {
-        this.toastService.error('Failed to send verification code');
-      }
-    }).catch(error => {
-      console.error('Error requesting verification code:', error);
-      this.toastService.error('Failed to request verification code');
-    });
   }
 
   getUserEmail(): string {
