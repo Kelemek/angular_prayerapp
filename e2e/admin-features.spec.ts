@@ -113,8 +113,21 @@ test.describe('Admin Features - Read-Only', () => {
     await page.goto('/admin');
     await page.waitForTimeout(2000);
     
-    // No fatal errors
-    expect(consoleErrors.length).toBeLessThan(5);
+    // Filter out expected errors in test environment
+    const fatalErrors = consoleErrors.filter(error => {
+      // Network errors for external resources are expected in CI
+      if (error.includes('ERR_NAME_NOT_RESOLVED') || error.includes('Failed to load resource')) {
+        return false;
+      }
+      // Supabase lock errors are expected in test environment
+      if (error.includes('NavigatorLockAcquireTimeoutError') || error.includes('lock:sb-')) {
+        return false;
+      }
+      return true;
+    });
+    
+    // No fatal application errors
+    expect(fatalErrors.length).toBeLessThan(5);
   });
 
   test('admin prayer list should display prayer data', async ({ page }) => {

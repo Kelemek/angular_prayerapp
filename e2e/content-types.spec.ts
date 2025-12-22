@@ -146,13 +146,6 @@ test.describe('Content Types & Display', () => {
     // Page should still be visible
     await expect(page.locator('body')).toBeVisible();
   });
-    
-    // Content should load after filter
-    const afterFilter = await page.locator('[class*="prayer"], [class*="card"]').count();
-    
-    // Both states should be valid
-    expect(beforeFilter + afterFilter).toBeGreaterThanOrEqual(0);
-  });
 
   test('should handle content type switching without losing state', async ({ page }) => {
     await page.goto('/');
