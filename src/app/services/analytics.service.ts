@@ -246,6 +246,8 @@ export class AnalyticsService {
 
     } catch (error) {
       console.error('Error fetching analytics stats:', error);
+    } finally {
+      stats.loading = false;
     }
 
     return stats;
