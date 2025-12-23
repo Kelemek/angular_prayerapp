@@ -5,9 +5,14 @@ export interface AnalyticsStats {
   todayPageViews: number;
   weekPageViews: number;
   monthPageViews: number;
+  yearPageViews: number;
   totalPageViews: number;
   totalPrayers: number;
+  currentPrayers: number;
+  answeredPrayers: number;
+  archivedPrayers: number;
   totalSubscribers: number;
+  activeEmailSubscribers: number;
   loading: boolean;
 }
 
@@ -47,10 +52,15 @@ export class AnalyticsService {
       todayPageViews: 0,
       weekPageViews: 0,
       monthPageViews: 0,
+      yearPageViews: 0,
       totalPageViews: 0,
       totalPrayers: 0,
+      currentPrayers: 0,
+      answeredPrayers: 0,
+      archivedPrayers: 0,
       totalSubscribers: 0,
-      loading: false
+      activeEmailSubscribers: 0,
+      loading: true
     };
 
     try {
@@ -71,11 +81,18 @@ export class AnalyticsService {
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
 
+      // Year: Jan 1 of current year 12 AM to current time
+      const yearStart = new Date();
+      yearStart.setMonth(0); // January
+      yearStart.setDate(1);
+      yearStart.setHours(0, 0, 0, 0);
+
       // Convert local times to ISO strings for database queries
       // The database stores created_at in UTC, but we need to query based on local time
       const todayStartISO = todayStart.toISOString();
       const weekStartISO = weekStart.toISOString();
       const monthStartISO = monthStart.toISOString();
+      const yearStartISO = yearStart.toISOString();
 
       // Execute all queries in parallel for better performance
       const [
@@ -83,8 +100,13 @@ export class AnalyticsService {
         todayResult,
         weekResult,
         monthResult,
+        yearResult,
         prayersResult,
-        subscribersResult
+        currentPrayersResult,
+        answeredPrayersResult,
+        archivedPrayersResult,
+        subscribersResult,
+        activeSubscribersResult
       ] = await Promise.all([
         // Total page views
         this.supabase.client
@@ -113,15 +135,46 @@ export class AnalyticsService {
           .eq('event_type', 'page_view')
           .gte('created_at', monthStartISO),
 
+        // Year's page views (current year - Jan 1 to now)
+        this.supabase.client
+          .from('analytics')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_type', 'page_view')
+          .gte('created_at', yearStartISO),
+
         // Total prayers count
         this.supabase.client
           .from('prayers')
           .select('*', { count: 'exact', head: true }),
 
+        // Current prayers (status = 'current')
+        this.supabase.client
+          .from('prayers')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'current'),
+
+        // Answered prayers (status = 'answered')
+        this.supabase.client
+          .from('prayers')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'answered'),
+
+        // Archived prayers (status = 'archived')
+        this.supabase.client
+          .from('prayers')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'archived'),
+
         // Total subscribers
         this.supabase.client
           .from('email_subscribers')
+          .select('*', { count: 'exact', head: true }),
+
+        // Active email subscribers (is_active = true)
+        this.supabase.client
+          .from('email_subscribers')
           .select('*', { count: 'exact', head: true })
+          .eq('is_active', true)
       ]);
 
       // Process results
@@ -149,16 +202,46 @@ export class AnalyticsService {
         stats.monthPageViews = monthResult.count || 0;
       }
 
+      if (yearResult.error) {
+        console.error('Error fetching year page views:', yearResult.error);
+      } else {
+        stats.yearPageViews = yearResult.count || 0;
+      }
+
       if (prayersResult.error) {
         console.error('Error fetching prayers count:', prayersResult.error);
       } else {
         stats.totalPrayers = prayersResult.count || 0;
       }
 
+      if (currentPrayersResult.error) {
+        console.error('Error fetching current prayers count:', currentPrayersResult.error);
+      } else {
+        stats.currentPrayers = currentPrayersResult.count || 0;
+      }
+
+      if (answeredPrayersResult.error) {
+        console.error('Error fetching answered prayers count:', answeredPrayersResult.error);
+      } else {
+        stats.answeredPrayers = answeredPrayersResult.count || 0;
+      }
+
+      if (archivedPrayersResult.error) {
+        console.error('Error fetching archived prayers count:', archivedPrayersResult.error);
+      } else {
+        stats.archivedPrayers = archivedPrayersResult.count || 0;
+      }
+
       if (subscribersResult.error) {
         console.error('Error fetching subscribers count:', subscribersResult.error);
       } else {
         stats.totalSubscribers = subscribersResult.count || 0;
+      }
+
+      if (activeSubscribersResult.error) {
+        console.error('Error fetching active subscribers count:', activeSubscribersResult.error);
+      } else {
+        stats.activeEmailSubscribers = activeSubscribersResult.count || 0;
       }
 
     } catch (error) {

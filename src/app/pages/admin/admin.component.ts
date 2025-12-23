@@ -427,6 +427,21 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                     <div class="text-xs text-green-600/70 dark:text-green-400/70 mt-1">page views</div>
                   </div>
 
+                  <!-- This Year -->
+                  <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-indigo-600 dark:text-indigo-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <polyline points="12 7 12 12 16 14"></polyline>
+                      </svg>
+                      <div class="text-sm font-medium text-indigo-900 dark:text-indigo-100">This Year</div>
+                    </div>
+                    <div class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {{ analyticsStats.yearPageViews.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-1">page views</div>
+                  </div>
+
                   <!-- All Time -->
                   <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-700">
                     <div class="flex items-center gap-2 mb-2">
@@ -458,6 +473,51 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                     <div class="text-xs text-rose-600/70 dark:text-rose-400/70 mt-1">in database</div>
                   </div>
 
+                  <!-- Current Prayers -->
+                  <div class="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4 border border-teal-200 dark:border-teal-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-teal-600 dark:text-teal-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <div class="text-sm font-medium text-teal-900 dark:text-teal-100">Current</div>
+                    </div>
+                    <div class="text-3xl font-bold text-teal-600 dark:text-teal-400">
+                      {{ analyticsStats.currentPrayers.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-teal-600/70 dark:text-teal-400/70 mt-1">active prayers</div>
+                  </div>
+
+                  <!-- Answered Prayers -->
+                  <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-emerald-600 dark:text-emerald-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <div class="text-sm font-medium text-emerald-900 dark:text-emerald-100">Answered</div>
+                    </div>
+                    <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {{ analyticsStats.answeredPrayers.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">answered prayers</div>
+                  </div>
+
+                  <!-- Archived Prayers -->
+                  <div class="bg-slate-50 dark:bg-slate-900/20 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-slate-600 dark:text-slate-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                        <path d="M7 15h10"></path>
+                        <path d="M7 7h10"></path>
+                      </svg>
+                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Archived</div>
+                    </div>
+                    <div class="text-3xl font-bold text-slate-600 dark:text-slate-400">
+                      {{ analyticsStats.archivedPrayers.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-slate-600/70 dark:text-slate-400/70 mt-1">archived prayers</div>
+                  </div>
+
                   <!-- Subscribers -->
                   <div class="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-700">
                     <div class="flex items-center gap-2 mb-2">
@@ -472,6 +532,21 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                       {{ analyticsStats.totalSubscribers.toLocaleString() }}
                     </div>
                     <div class="text-xs text-cyan-600/70 dark:text-cyan-400/70 mt-1">email subscribers</div>
+                  </div>
+
+                  <!-- Active Email Subscribers -->
+                  <div class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-700">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="text-amber-600 dark:text-amber-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
+                      <div class="text-sm font-medium text-amber-900 dark:text-amber-100">Active Email</div>
+                    </div>
+                    <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                      {{ analyticsStats.activeEmailSubscribers.toLocaleString() }}
+                    </div>
+                    <div class="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">active subscribers</div>
                   </div>
                 </div>
               </div>
@@ -548,9 +623,14 @@ export class AdminComponent implements OnInit, OnDestroy {
     todayPageViews: 0,
     weekPageViews: 0,
     monthPageViews: 0,
+    yearPageViews: 0,
     totalPageViews: 0,
     totalPrayers: 0,
+    currentPrayers: 0,
+    answeredPrayers: 0,
+    archivedPrayers: 0,
     totalSubscribers: 0,
+    activeEmailSubscribers: 0,
     loading: false
   };
   
