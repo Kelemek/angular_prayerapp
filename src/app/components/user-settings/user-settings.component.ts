@@ -40,6 +40,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
           <button
             (click)="onClose.emit()"
+            title="Close settings"
             class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -58,6 +59,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               <div class="flex">
                 <button
                   (click)="handlePrint()"
+                  title="Print all prayers"
                   [disabled]="isPrinting"
                   class="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-3 bg-green-600 text-white rounded-l-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
                 >

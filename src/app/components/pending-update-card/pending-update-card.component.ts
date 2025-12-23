@@ -113,6 +113,7 @@ import { environment } from '../../../environments/environment';
         <button
           *ngIf="!isEditing && !isDenying"
           (click)="handleApprove()"
+          title="Approve this update"
           [disabled]="isApproving"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
@@ -125,6 +126,7 @@ import { environment } from '../../../environments/environment';
         <button
           *ngIf="!isEditing && !isDenying"
           (click)="isEditing = true"
+          title="Edit this update"
           class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -137,6 +139,7 @@ import { environment } from '../../../environments/environment';
         <button
           *ngIf="isEditing"
           (click)="handleSaveEdit()"
+          title="Save changes"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

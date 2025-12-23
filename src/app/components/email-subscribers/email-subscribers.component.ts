@@ -53,6 +53,7 @@ interface CSVRow {
           </button>
           <button
             (click)="toggleCSVUpload()"
+            title="Toggle CSV upload"
             class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm"
           >
             <svg *ngIf="!showCSVUpload" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -68,6 +69,7 @@ interface CSVRow {
           </button>
           <button
             (click)="toggleAddForm()"
+            title="Add new subscriber"
             class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
           >
             <svg *ngIf="!showAddForm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

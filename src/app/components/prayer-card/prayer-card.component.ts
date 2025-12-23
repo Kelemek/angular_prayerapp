@@ -27,6 +27,7 @@ import { PrayerRequest } from '../../services/prayer.service';
           *ngIf="showDeleteButton()"
           (click)="handleDeleteClick()"
           aria-label="Delete prayer request"
+          title="Delete prayer request"
           class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -48,6 +49,7 @@ import { PrayerRequest } from '../../services/prayer.service';
       <div *ngIf="showAddUpdateButton()" class="flex flex-wrap gap-1 mb-4">
         <button
           (click)="toggleAddUpdate()"
+          title="Add an update to this prayer"
           class="px-3 py-1 text-xs bg-[#39704D] bg-opacity-10 dark:bg-opacity-20 text-[#39704D] dark:text-[#5FB876] rounded-md border border-[#39704D] hover:bg-opacity-20 dark:hover:bg-opacity-30"
         >
           Add Update
@@ -177,6 +179,7 @@ import { PrayerRequest } from '../../services/prayer.service';
                   *ngIf="showUpdateDeleteButton()"
                   (click)="handleDeleteUpdate(update.id)"
                   aria-label="Delete prayer update"
+                  title="Delete this update"
                   class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
