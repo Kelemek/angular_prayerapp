@@ -304,16 +304,70 @@ interface CSVRow {
           </div>
         </div>
 
-        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
           <div class="flex items-center justify-between text-sm">
             <span class="text-gray-600 dark:text-gray-400">
-              Found: <span class="font-semibold">{{ subscribers.length }}</span> subscriber(s)
+              Found: <span class="font-semibold">{{ totalItems }}</span> subscriber(s) | 
+              Showing: <span class="font-semibold">{{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }}</span>
             </span>
             <span class="text-gray-600 dark:text-gray-400">
               Active: <span class="font-semibold text-green-600 dark:text-green-400">
                 {{ getActiveCount() }}
               </span>
             </span>
+          </div>
+
+          <!-- Page Size Selector -->
+          <div class="flex items-center gap-2">
+            <label for="pageSize" class="text-sm text-gray-600 dark:text-gray-400">Items per page:</label>
+            <select
+              id="pageSize"
+              [(ngModel)]="pageSize"
+              (change)="changePageSize()"
+              class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+            >
+              <option [value]="10">10</option>
+              <option [value]="50">50</option>
+              <option [value]="100">100</option>
+            </select>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div *ngIf="totalPages > 1" class="flex items-center justify-between">
+            <div class="flex gap-2">
+              <button
+                (click)="previousPage()"
+                [disabled]="isFirstPage"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                ← Previous
+              </button>
+              <button
+                (click)="nextPage()"
+                [disabled]="isLastPage"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                Next →
+              </button>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <span class="text-gray-600 dark:text-gray-400 text-sm">
+                Page <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
+              </span>
+              
+              <div class="flex gap-1">
+                <button
+                  *ngFor="let page of getPaginationRange()"
+                  (click)="goToPage(page)"
+                  [class]="page === currentPage ? 
+                    'px-3 py-1 bg-blue-600 text-white rounded-lg text-sm' :
+                    'px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm'"
+                >
+                  {{ page }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -340,6 +394,12 @@ export class EmailSubscribersComponent implements OnInit {
   error: string | null = null;
   csvSuccess: string | null = null;
 
+  // Pagination properties
+  currentPage = 1;
+  pageSize = 10;
+  totalItems = 0;
+  allSubscribers: EmailSubscriber[] = [];
+
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
@@ -347,7 +407,8 @@ export class EmailSubscribersComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // Don't auto-load subscribers - user must click search
+    // Auto-load first 10 subscribers on component init
+    this.handleSearch();
   }
 
   toggleAddForm() {
@@ -374,40 +435,119 @@ export class EmailSubscribersComponent implements OnInit {
       this.searching = true;
       this.error = null;
       this.csvSuccess = null;
-      this.subscribers = []; // Clear existing data first
+      this.currentPage = 1; // Reset to first page on new search
       this.cdr.markForCheck();
 
       // Build query without caching
       let query = this.supabase.client
         .from('email_subscribers')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (this.searchQuery.trim()) {
         query = query.or(`email.ilike.%${this.searchQuery}%,name.ilike.%${this.searchQuery}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
 
       if (error) {
         console.error('Error fetching subscribers:', error);
         throw error;
       }
 
-      this.subscribers = data || [];
+      this.allSubscribers = data || [];
+      this.totalItems = count || 0;
       this.hasSearched = true;
-      console.log('Loaded subscribers:', this.subscribers.length);
+      this.loadPageData();
+      console.log('Loaded subscribers:', this.allSubscribers.length);
       this.cdr.markForCheck();
-    } catch (err: any) {
-      console.error('Error searching subscribers:', err);
-      this.error = err.message || 'Failed to search subscribers';
+    } catch (error) {
+      console.error('Error:', error);
+      this.error = error instanceof Error ? error.message : 'Failed to fetch subscribers';
       this.subscribers = [];
+      this.totalItems = 0;
       this.cdr.markForCheck();
     } finally {
       this.searching = false;
-      this.cdr.markForCheck();
     }
   }
+
+  loadPageData() {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.subscribers = this.allSubscribers.slice(startIndex, endIndex);
+    this.cdr.markForCheck();
+  }
+
+  goToPage(page: number) {
+    const totalPages = Math.ceil(this.totalItems / this.pageSize);
+    if (page >= 1 && page <= totalPages) {
+      this.currentPage = page;
+      this.loadPageData();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  changePageSize() {
+    this.currentPage = 1;
+    this.loadPageData();
+    this.cdr.markForCheck();
+  }
+
+  previousPage() {
+    if (this.currentPage > 1) {
+      this.goToPage(this.currentPage - 1);
+    }
+  }
+
+  nextPage() {
+    const totalPages = Math.ceil(this.totalItems / this.pageSize);
+    if (this.currentPage < totalPages) {
+      this.goToPage(this.currentPage + 1);
+    }
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.totalItems / this.pageSize);
+  }
+
+  get isFirstPage(): boolean {
+    return this.currentPage === 1;
+  }
+
+  get isLastPage(): boolean {
+    return this.currentPage === this.totalPages;
+  }
+
+  getPaginationRange(): number[] {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+    const totalPages = this.totalPages;
+    
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages if total is less than or equal to max
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show pages with ellipsis
+      const half = Math.floor(maxPagesToShow / 2);
+      let start = Math.max(1, this.currentPage - half);
+      let end = Math.min(totalPages, start + maxPagesToShow - 1);
+      
+      if (end - start + 1 < maxPagesToShow) {
+        start = Math.max(1, end - maxPagesToShow + 1);
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+    }
+    
+    return pages;
+  }
+
+  readonly Math = Math;
 
   async handleAddSubscriber() {
     if (!this.newName.trim() || !this.newEmail.trim()) {

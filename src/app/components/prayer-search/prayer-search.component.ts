@@ -392,8 +392,8 @@ interface NewUpdate {
     <p class="text-gray-600 dark:text-gray-400">Loading prayer data...</p>
   </div>
 
-  <div *ngIf="!searching && searchResults.length > 0" class="space-y-1">
-    <div *ngFor="let prayer of searchResults" 
+  <div *ngIf="!searching && displayPrayers.length > 0" class="space-y-1">
+    <div *ngFor="let prayer of displayPrayers" 
          [class]="'border rounded-lg transition-all duration-200 ' + (selectedPrayers.has(prayer.id) ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')">
       
       <!-- Compact Header - Always Visible -->
@@ -852,7 +852,7 @@ interface NewUpdate {
   </div>
 
   <!-- Empty States -->
-  <div *ngIf="!searching && searchResults.length === 0 && searchTerm && !statusFilter && !approvalFilter" class="text-center py-8 text-gray-500 dark:text-gray-400">
+  <div *ngIf="!searching && allPrayers.length === 0 && searchTerm && !statusFilter && !approvalFilter" class="text-center py-8 text-gray-500 dark:text-gray-400">
     <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
       <line x1="12" y1="9" x2="12" y2="13"></line>
@@ -862,7 +862,7 @@ interface NewUpdate {
     <p class="text-sm mt-1">Try a different search term</p>
   </div>
 
-  <div *ngIf="!searching && searchResults.length === 0 && !searchTerm && !statusFilter && !approvalFilter" class="text-center py-8 text-gray-500 dark:text-gray-400">
+  <div *ngIf="!searching && allPrayers.length === 0 && !searchTerm && !statusFilter && !approvalFilter" class="text-center py-8 text-gray-500 dark:text-gray-400">
     <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="8"></circle>
       <path d="m21 21-4.35-4.35"></path>
@@ -876,14 +876,68 @@ interface NewUpdate {
   </div>
 
   <!-- Results Summary -->
-  <div *ngIf="searchResults.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+  <div *ngIf="allPrayers.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
     <div class="flex items-center justify-between text-sm">
       <span class="text-gray-600 dark:text-gray-400">
-        Found: <span class="font-semibold">{{ searchResults.length }}</span> prayer(s)
+        Found: <span class="font-semibold">{{ totalItems }}</span> prayer(s) | 
+        Showing: <span class="font-semibold">{{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }}</span>
       </span>
       <span *ngIf="selectedPrayers.size > 0" class="text-red-600 dark:text-red-400">
         Selected: <span class="font-semibold">{{ selectedPrayers.size }}</span>
       </span>
+    </div>
+
+    <!-- Page Size Selector -->
+    <div class="flex items-center gap-2">
+      <label for="pageSize" class="text-sm text-gray-600 dark:text-gray-400">Items per page:</label>
+      <select
+        id="pageSize"
+        [(ngModel)]="pageSize"
+        (change)="changePageSize()"
+        class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+      >
+        <option [value]="10">10</option>
+        <option [value]="50">50</option>
+        <option [value]="100">100</option>
+      </select>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div *ngIf="totalPages > 1" class="flex items-center justify-between">
+      <div class="flex gap-2">
+        <button
+          (click)="previousPage()"
+          [disabled]="isFirstPage"
+          class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          ← Previous
+        </button>
+        <button
+          (click)="nextPage()"
+          [disabled]="isLastPage"
+          class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          Next →
+        </button>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <span class="text-gray-600 dark:text-gray-400 text-sm">
+          Page <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
+        </span>
+        
+        <div class="flex gap-1">
+          <button
+            *ngFor="let page of getPaginationRange()"
+            (click)="goToPage(page)"
+            [class]="page === currentPage ? 
+              'px-3 py-1 bg-red-600 text-white rounded-lg text-sm' :
+              'px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm'"
+          >
+            {{ page }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -902,6 +956,7 @@ interface NewUpdate {
   `
 })
 export class PrayerSearchComponent implements OnInit {
+  Math = Math;
   searchTerm = '';
   statusFilter = '';
   approvalFilter = '';
@@ -935,6 +990,13 @@ export class PrayerSearchComponent implements OnInit {
   addingUpdate: string | null = null;
   newUpdate: NewUpdate = { content: '', firstName: '', lastName: '', author_email: '' };
   savingUpdate = false;
+  
+  // Pagination properties
+  currentPage = 1;
+  pageSize = 10;
+  totalItems = 0;
+  allPrayers: Prayer[] = [];
+  displayPrayers: Prayer[] = [];
 
   constructor(
     private supabaseService: SupabaseService,
@@ -943,8 +1005,21 @@ export class PrayerSearchComponent implements OnInit {
     private prayerService: PrayerService
   ) {}
 
+  get totalPages(): number {
+    return Math.ceil(this.totalItems / this.pageSize);
+  }
+
+  get isFirstPage(): boolean {
+    return this.currentPage === 1;
+  }
+
+  get isLastPage(): boolean {
+    return this.currentPage >= this.totalPages;
+  }
+
   ngOnInit(): void {
-    // Initial load is not automatic - user must search or select a filter
+    // Load initial results with default 10 items
+    this.handleSearch();
   }
 
   async handleSearch(): Promise<void> {
@@ -1030,7 +1105,10 @@ export class PrayerSearchComponent implements OnInit {
         });
       }
 
-      this.searchResults = results;
+      this.allPrayers = results;
+      this.totalItems = results.length;
+      this.currentPage = 1;
+      this.loadPageData();
       this.cdr.markForCheck();
     } catch (err: unknown) {
       console.error('Error searching prayers:', err);
@@ -1042,6 +1120,52 @@ export class PrayerSearchComponent implements OnInit {
       this.searching = false;
       this.cdr.markForCheck();
     }
+  }
+
+  loadPageData(): void {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.displayPrayers = this.allPrayers.slice(startIndex, endIndex);
+  }
+
+  goToPage(page: number): void {
+    this.currentPage = Math.max(1, Math.min(page, Math.ceil(this.totalItems / this.pageSize)));
+    this.loadPageData();
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.goToPage(this.currentPage - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.goToPage(this.currentPage + 1);
+    }
+  }
+
+  getPaginationRange(): number[] {
+    const totalPages = Math.ceil(this.totalItems / this.pageSize);
+    const maxPages = 5;
+    let startPage = Math.max(1, this.currentPage - Math.floor(maxPages / 2));
+    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+    
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1);
+    }
+    
+    const pages: number[] = [];
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  changePageSize(): void {
+    this.currentPage = 1;
+    this.loadPageData();
+    this.cdr.markForCheck();
   }
 
   onKeyPress(event: KeyboardEvent): void {
@@ -1073,10 +1197,10 @@ export class PrayerSearchComponent implements OnInit {
   }
 
   toggleSelectAll(): void {
-    if (this.selectedPrayers.size === this.searchResults.length) {
+    if (this.selectedPrayers.size === this.displayPrayers.length) {
       this.selectedPrayers = new Set();
     } else {
-      this.selectedPrayers = new Set(this.searchResults.map(p => p.id));
+      this.selectedPrayers = new Set(this.displayPrayers.map(p => p.id));
     }
   }
 
@@ -1369,9 +1493,10 @@ export class PrayerSearchComponent implements OnInit {
         throw new Error(`Failed to update prayer statuses: ${updateError.message}`);
       }
 
-      this.searchResults = this.searchResults.map(p =>
+      this.allPrayers = this.allPrayers.map(p =>
         this.selectedPrayers.has(p.id) ? { ...p, status: this.bulkStatus } : p
       );
+      this.loadPageData();
 
       this.selectedPrayers = new Set();
       this.bulkStatus = '';
@@ -1416,7 +1541,7 @@ export class PrayerSearchComponent implements OnInit {
         throw new Error(`Failed to create update: ${insertError.message}`);
       }
 
-      this.searchResults = this.searchResults.map(p => {
+      this.allPrayers = this.allPrayers.map(p => {
         if (p.id === prayerId) {
           return {
             ...p,
@@ -1425,6 +1550,7 @@ export class PrayerSearchComponent implements OnInit {
         }
         return p;
       });
+      this.loadPageData();
 
       this.newUpdate = { content: '', firstName: '', lastName: '', author_email: '' };
       this.addingUpdate = null;
@@ -1475,7 +1601,7 @@ export class PrayerSearchComponent implements OnInit {
         throw new Error(`Failed to delete update: ${deleteError.message}`);
       }
 
-      this.searchResults = this.searchResults.map(p => {
+      this.allPrayers = this.allPrayers.map(p => {
         if (p.id === prayerId && p.prayer_updates) {
           return {
             ...p,
@@ -1484,6 +1610,7 @@ export class PrayerSearchComponent implements OnInit {
         }
         return p;
       });
+      this.loadPageData();
 
       this.toast.success('Update deleted successfully');
     } catch (err: unknown) {
@@ -1498,9 +1625,12 @@ export class PrayerSearchComponent implements OnInit {
 
   clearSearch(): void {
     this.searchTerm = '';
-    this.searchResults = [];
+    this.allPrayers = [];
+    this.displayPrayers = [];
     this.selectedPrayers = new Set();
     this.error = null;
+    this.currentPage = 1;
+    this.totalItems = 0;
   }
 
   getStatusColor(status: string): string {
