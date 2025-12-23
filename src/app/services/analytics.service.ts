@@ -54,17 +54,28 @@ export class AnalyticsService {
     };
 
     try {
-      // Use UTC dates for consistency with database (which stores created_at in UTC)
       const now = new Date();
       
-      // Today's start in UTC (midnight UTC)
-      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+      // Today: from 12 AM to 12 AM (00:00:00 to 23:59:59.999) local time
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
       
-      // Week start (7 days ago from now, in UTC)
-      const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // Week: Sunday 12 AM to current time (current calendar week)
+      const weekStart = new Date();
+      const dayOfWeek = weekStart.getDay(); // 0 = Sunday
+      weekStart.setDate(weekStart.getDate() - dayOfWeek);
+      weekStart.setHours(0, 0, 0, 0);
       
-      // Month start (30 days ago from now, in UTC)
-      const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      // Month: 1st of current month 12 AM to current time
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      // Convert local times to ISO strings for database queries
+      // The database stores created_at in UTC, but we need to query based on local time
+      const todayStartISO = todayStart.toISOString();
+      const weekStartISO = weekStart.toISOString();
+      const monthStartISO = monthStart.toISOString();
 
       // Execute all queries in parallel for better performance
       const [
@@ -86,21 +97,21 @@ export class AnalyticsService {
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view')
-          .gte('created_at', todayStart.toISOString()),
+          .gte('created_at', todayStartISO),
 
-        // Week's page views
+        // Week's page views (current calendar week - Sunday to now)
         this.supabase.client
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view')
-          .gte('created_at', weekStart.toISOString()),
+          .gte('created_at', weekStartISO),
 
-        // Month's page views
+        // Month's page views (current calendar month - 1st to now)
         this.supabase.client
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view')
-          .gte('created_at', monthStart.toISOString()),
+          .gte('created_at', monthStartISO),
 
         // Total prayers count
         this.supabase.client
