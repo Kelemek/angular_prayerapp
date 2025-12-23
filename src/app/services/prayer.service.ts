@@ -179,6 +179,8 @@ export class PrayerService {
       });
     }
   }
+
+  /**
    * Apply filters to prayers list
    */
   applyFilters(filters: PrayerFilters): void {

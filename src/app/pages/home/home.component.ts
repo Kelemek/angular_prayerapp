@@ -13,9 +13,9 @@ import { VerificationDialogComponent } from '../../components/verification-dialo
 import { PrayerService, PrayerRequest } from '../../services/prayer.service';
 import { PromptService } from '../../services/prompt.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { Observable, fromEvent, take } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 import { AnalyticsService } from '../../services/analytics.service';
-import { Observable, take } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
 
 @Component({
@@ -297,7 +297,6 @@ export class HomeComponent implements OnInit {
   error$!: Observable<string | null>;
   isAdmin$!: Observable<boolean>;
   hasAdminEmail$!: Observable<boolean>;
-  isAuthenticated$!: Observable<User | null>;
   user$!: Observable<User | null>;
 
   currentPrayersCount = 0;
@@ -339,7 +338,6 @@ export class HomeComponent implements OnInit {
     this.error$ = this.prayerService.error$;
     this.isAdmin$ = this.adminAuthService.isAdmin$;
     this.hasAdminEmail$ = this.adminAuthService.hasAdminEmail$;
-    this.isAuthenticated$ = this.adminAuthService.isAuthenticated$;
     this.user$ = this.adminAuthService.user$;
 
     // Listen for user activity and attempt to refresh data
