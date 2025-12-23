@@ -7,6 +7,7 @@ import { PrintService } from '../../services/print.service';
 import { EmailNotificationService } from '../../services/email-notification.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { getUserInfo } from '../../../utils/userInfoStorage';
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
@@ -662,15 +663,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   }
 
   private getUserInfo(): { firstName: string; lastName: string; email: string } {
-    try {
-      const stored = localStorage.getItem('userInfo');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (error) {
-      console.error('Error loading user info:', error);
-    }
-    return { firstName: '', lastName: '', email: '' };
+    return getUserInfo();
   }
 
   async logout(): Promise<void> {

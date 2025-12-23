@@ -6,6 +6,7 @@ import { AdminAuthService } from '../../services/admin-auth.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { ThemeService } from '../../services/theme.service';
 import { Subject, takeUntil } from 'rxjs';
+import { saveUserInfo } from '../../../utils/userInfoStorage';
 
 @Component({
   selector: 'app-login',
@@ -492,6 +493,10 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Route based on admin status
         // If user is an admin, go to returnUrl (admin or specified page)
         // If user is not an admin, go to home page
+        
+        // Save user email to localStorage for later use
+        saveUserInfo('', '', userEmail.toLowerCase());
+        
         const destination = result.isAdmin ? this.returnUrl : '/';
         console.log('[AdminLogin] Routing to:', destination, '(isAdmin:', result.isAdmin, ')');
         this.router.navigate([destination]);
@@ -886,6 +891,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
 
       console.log('[AdminLogin] Subscriber saved successfully');
+      
+      // Save user info to localStorage for later use
+      saveUserInfo(this.firstName.trim(), this.lastName.trim(), this.email.toLowerCase());
+      
       this.showSubscriberForm = false;
       this.firstName = '';
       this.lastName = '';
