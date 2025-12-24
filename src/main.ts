@@ -54,6 +54,25 @@ const initVercelSpeedInsights = async () => {
 
 initVercelSpeedInsights();
 
+// Add a global visibility check to ensure content stays visible during background refresh
+const setupVisibilityRecovery = () => {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // Just verify router outlet exists - don't reload the page
+      // The PrayerService will silently refresh data in the background
+      const routerOutlet = document.querySelector('router-outlet');
+      if (!routerOutlet) {
+        console.warn('[AppInitialization] Router outlet not found when page became visible');
+        // Don't reload - let services handle the refresh
+      } else {
+        console.log('[AppInitialization] Page visible and router outlet intact');
+      }
+    }
+  });
+};
+
+setupVisibilityRecovery();
+
 bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(routes),
@@ -67,4 +86,23 @@ bootstrapApplication(AppComponent, {
       }
     }
   ]
-}).catch(err => console.error(err));
+}).catch(err => {
+  console.error('[AppInitialization] Bootstrap error:', err);
+  // Ensure user sees something instead of blank page
+  const rootElement = document.querySelector('app-root');
+  if (rootElement) {
+    rootElement.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="text-align: center; padding: 2rem; background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <h1 style="color: #374151; margin-bottom: 1rem;">Oops, something went wrong</h1>
+          <p style="color: #6b7280; margin-bottom: 1.5rem;">The application encountered an error. Attempting to recover...</p>
+          <button onclick="window.location.reload()" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;">Reload Page</button>
+        </div>
+      </div>
+    `;
+  }
+  // Attempt automatic reload
+  setTimeout(() => {
+    window.location.reload();
+  }, 3000);
+});

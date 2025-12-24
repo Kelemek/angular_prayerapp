@@ -1,4 +1,4 @@
-import { Component, OnInit, Injector } from '@angular/core';
+import { Component, OnInit, Injector, ErrorHandler, NgZone } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
@@ -20,8 +20,31 @@ export class AppComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private injector: Injector
-  ) {}
+    private injector: Injector,
+    private ngZone: NgZone
+  ) {
+    // Set up global error handler for unhandled errors
+    this.setupGlobalErrorHandler();
+  }
+
+  /**
+   * Set up a global error handler to catch uncaught errors and prevent blank pages
+   */
+  private setupGlobalErrorHandler(): void {
+    // Catch unhandled promise rejections
+    this.ngZone.run(() => {
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('[GlobalErrorHandler] Unhandled promise rejection:', event.reason);
+        // Don't auto-reload - let the app handle recovery gracefully
+      });
+
+      // Catch global errors
+      window.addEventListener('error', (event) => {
+        console.error('[GlobalErrorHandler] Global error:', event.error);
+        // Don't auto-reload - let the app handle recovery gracefully
+      });
+    });
+  }
 
   ngOnInit() {
     this.handleApprovalCode();

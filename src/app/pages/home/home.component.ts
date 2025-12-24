@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { ChangeDetectorRef } from '@angular/core';
@@ -13,7 +13,7 @@ import { VerificationDialogComponent } from '../../components/verification-dialo
 import { PrayerService, PrayerRequest } from '../../services/prayer.service';
 import { PromptService } from '../../services/prompt.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
-import { Observable, take } from 'rxjs';
+import { Observable, take, Subject, takeUntil } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 import { AnalyticsService } from '../../services/analytics.service';
 import type { User } from '@supabase/supabase-js';
@@ -290,7 +290,7 @@ import type { User } from '@supabase/supabase-js';
   `,
   styles: []
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   prayers$!: Observable<PrayerRequest[]>;
   prompts$!: Observable<PrayerPrompt[]>;
   loading$!: Observable<boolean>;
@@ -312,6 +312,9 @@ export class HomeComponent implements OnInit {
   selectedPromptTypes: string[] = [];
   
   isAdmin = false;
+
+  // Subject for managing subscriptions
+  private destroy$ = new Subject<void>();
 
   constructor(
     public prayerService: PrayerService,
@@ -340,26 +343,38 @@ export class HomeComponent implements OnInit {
     this.hasAdminEmail$ = this.adminAuthService.hasAdminEmail$;
     this.user$ = this.adminAuthService.user$;
 
-    // Subscribe to ALL prayers to update counts (not filtered)
-    this.prayerService.allPrayers$.subscribe(prayers => {
-      this.currentPrayersCount = prayers.filter(p => p.status === 'current').length;
-      this.answeredPrayersCount = prayers.filter(p => p.status === 'answered').length;
-      this.totalPrayersCount = prayers.length;
-    });
+    // Subscribe to ALL prayers to update counts (not filtered) - with cleanup
+    this.prayerService.allPrayers$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(prayers => {
+        this.currentPrayersCount = prayers.filter(p => p.status === 'current').length;
+        this.answeredPrayersCount = prayers.filter(p => p.status === 'answered').length;
+        this.totalPrayersCount = prayers.length;
+      });
 
-    // Subscribe to prompts for count
-    this.prompts$.subscribe(prompts => {
-      this.promptsCount = prompts.length;
-      this.cdr.markForCheck();
-    });
+    // Subscribe to prompts for count - with cleanup
+    this.prompts$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(prompts => {
+        this.promptsCount = prompts.length;
+        this.cdr.markForCheck();
+      });
     
-    // Subscribe to admin status
-    this.adminAuthService.isAdmin$.subscribe(isAdmin => {
-      this.isAdmin = isAdmin;
-    });
+    // Subscribe to admin status - with cleanup
+    this.adminAuthService.isAdmin$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(isAdmin => {
+        this.isAdmin = isAdmin;
+      });
 
     // Apply default filter
     this.prayerService.applyFilters(this.filters);
+  }
+
+  ngOnDestroy(): void {
+    // Complete the subject to unsubscribe from all observables
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   onFiltersChange(filters: PrayerFilters): void {

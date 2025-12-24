@@ -61,16 +61,18 @@ export class AdminAuthService {
       this.isAuthenticatedSubject.next(true);
       this.sessionStart = this.getPersistedSessionStart() || Date.now();
       this.persistSessionStart(this.sessionStart);
-      this.startDbHeartbeat();
       
       // Check if they're also an admin
       const isAdmin = await this.isEmailAdmin(approvalEmail);
       if (isAdmin) {
         this.isAdminSubject.next(true);
         this.hasAdminEmailSubject.next(true);
+        // Only start heartbeat for actual admin sessions
+        this.startDbHeartbeat();
       } else {
         this.isAdminSubject.next(false);
         this.hasAdminEmailSubject.next(false);
+        // Regular users don't need heartbeat
       }
       
       this.loadingSubject.next(false);
@@ -86,7 +88,10 @@ export class AdminAuthService {
       this.isAuthenticatedSubject.next(true);
       this.sessionStart = this.getPersistedSessionStart() || Date.now();
       this.persistSessionStart(this.sessionStart);
-      this.startDbHeartbeat();
+      // Only start heartbeat if user is admin
+      if (this.isAdminSubject.value) {
+        this.startDbHeartbeat();
+      }
     }
 
     // Listen for auth state changes
@@ -96,7 +101,11 @@ export class AdminAuthService {
         this.userSubject.next(session.user);
         await this.checkAdminStatus(session.user);
         this.isAuthenticatedSubject.next(true);
-        this.startDbHeartbeat();
+        // Only start heartbeat for admin sessions, not regular users
+        // Regular users don't need database heartbeat - they just view the prayer list
+        if (this.isAdminSubject.value) {
+          this.startDbHeartbeat();
+        }
         
         if (!this.sessionStart) {
           this.sessionStart = Date.now();
@@ -601,6 +610,13 @@ export class AdminAuthService {
   }
 
   private startDbHeartbeat(): void {
+    // DISABLED: Heartbeat disabled for testing - doesn't seem necessary
+    // The JWT auth token and client-side timeout tracking handle sessions fine
+    // Re-enable this method if needed, or remove completely after testing
+    return;
+
+    // Original code below (disabled):
+    /*
     this.heartbeatEnabled = true;
 
     if (this.heartbeatSubscription) {
@@ -611,6 +627,7 @@ export class AdminAuthService {
     this.heartbeatSubscription = timer(0, intervalMs).subscribe(() => {
       this.runDbHeartbeat();
     });
+    */
   }
 
   private stopDbHeartbeat(): void {

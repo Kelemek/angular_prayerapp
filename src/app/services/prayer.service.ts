@@ -461,46 +461,88 @@ export class PrayerService {
    * Set up real-time subscription for prayer changes
    */
   private setupRealtimeSubscription(): void {
-    console.log('[PrayerService] Setting up realtime subscription...');
-    
-    this.realtimeChannel = this.supabase.client
-      .channel('prayers-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'prayers'
-        },
-        (payload) => {
-          console.log('[PrayerService] Prayer changed:', payload);
-          this.loadPrayers();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'prayer_updates'
-        },
-        (payload) => {
-          console.log('[PrayerService] Prayer update changed:', payload);
-          this.loadPrayers();
-        }
-      )
-      .subscribe((status) => {
-        console.log('[PrayerService] Realtime subscription status:', status);
-      });
+    try {
+      console.log('[PrayerService] Setting up realtime subscription...');
+      
+      this.realtimeChannel = this.supabase.client
+        .channel('prayers-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'prayers'
+          },
+          (payload) => {
+            console.log('[PrayerService] Prayer changed:', payload);
+            this.loadPrayers(true).catch(err => {
+              console.error('[PrayerService] Error reloading after prayer change:', err);
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'prayer_updates'
+          },
+          (payload) => {
+            console.log('[PrayerService] Prayer update changed:', payload);
+            this.loadPrayers(true).catch(err => {
+              console.error('[PrayerService] Error reloading after update change:', err);
+            });
+          }
+        )
+        .subscribe((status) => {
+          console.log('[PrayerService] Realtime subscription status:', status);
+          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            console.warn('[PrayerService] Realtime subscription disconnected, will retry on next activity');
+          }
+        });
+    } catch (error) {
+      console.error('[PrayerService] Error setting up realtime subscription:', error);
+      // Continue without realtime - fallback to polling
+    }
   }
 
   /**
-   * Reload prayers when page becomes visible
+   * Clean up subscriptions and resources when service is destroyed
+   */
+  async cleanup(): Promise<void> {
+    console.log('[PrayerService] Cleaning up...');
+    try {
+      if (this.realtimeChannel) {
+        await this.supabase.client.removeChannel(this.realtimeChannel);
+        this.realtimeChannel = null;
+      }
+      if (this.inactivityTimeout) {
+        clearTimeout(this.inactivityTimeout);
+      }
+    } catch (error) {
+      console.error('[PrayerService] Error during cleanup:', error);
+    }
+  }
+
+  /**
+   * Reload prayers when page becomes visible (ALWAYS silent refresh in background)
+   * This keeps the UI visible with cached data while fetching fresh data
    */
   private setupVisibilityListener(): void {
     fromEvent(document, 'visibilitychange').subscribe(() => {
       if (document.visibilityState === 'visible') {
-        this.loadPrayers();
+        console.log('[PrayerService] Page became visible, silently refreshing data in background');
+        // ALWAYS use silent refresh (true) to keep UI visible - never show loading state for auto-refresh
+        this.loadPrayers(true).catch(err => {
+          console.debug('[PrayerService] Silent refresh failed, keeping cached data visible:', err);
+          // Fallback: show cached data if available
+          const cached = this.cache.get<PrayerRequest[]>('prayers');
+          if (cached && cached.length > 0) {
+            console.log('[PrayerService] Showing cached data while refresh failed');
+            this.allPrayersSubject.next(cached);
+            this.applyFilters(this.currentFilters);
+          }
+        });
       }
     });
   }
