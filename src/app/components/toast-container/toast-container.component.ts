@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService, Toast } from '../../services/toast.service';
 import { Observable } from 'rxjs';
@@ -53,8 +53,7 @@ import { Observable } from 'rxjs';
 })
 export class ToastContainerComponent implements OnInit {
   toasts$!: Observable<Toast[]>;
-
-  constructor(public toastService: ToastService) {}
+  public toastService = inject(ToastService);
 
   ngOnInit(): void {
     this.toasts$ = this.toastService.toasts$;
