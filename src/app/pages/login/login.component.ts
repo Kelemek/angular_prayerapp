@@ -5,8 +5,11 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { ThemeService } from '../../services/theme.service';
+import { EmailNotificationService } from '../../services/email-notification.service';
 import { Subject, takeUntil } from 'rxjs';
 import { saveUserInfo } from '../../../utils/userInfoStorage';
+import { lookupPersonByEmail } from '../../../lib/planning-center';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -123,7 +126,7 @@ import { saveUserInfo } from '../../../utils/userInfoStorage';
             </div>
 
             <!-- Subscriber Information Form (New Users) -->
-            <div *ngIf="showSubscriberForm" class="mt-4">
+            <div *ngIf="showSubscriberForm && !showPendingApproval" class="mt-4">
               <div class="bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800 space-y-4">
                 <div>
                   <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
@@ -132,6 +135,17 @@ import { saveUserInfo } from '../../../utils/userInfoStorage';
                   <p class="text-xs text-gray-600 dark:text-gray-400 mb-4">
                     We need your name to complete your account registration.
                   </p>
+                  
+                  <!-- Approval Required Warning -->
+                  <div *ngIf="requiresApproval" class="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md mb-4">
+                    <svg class="text-amber-600 dark:text-amber-400 w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div class="text-xs text-amber-800 dark:text-amber-200">
+                      <p class="font-medium mb-1">Admin Approval Required</p>
+                      <p>Your email was not found in our system. After submitting your information, an administrator will need to approve your account before you can access the application.</p>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- First Name -->
@@ -191,6 +205,28 @@ import { saveUserInfo } from '../../../utils/userInfoStorage';
                   </div>
                   <span *ngIf="!loading">Complete Registration</span>
                 </button>
+              </div>
+            </div>
+
+            <!-- Pending Approval Message -->
+            <div *ngIf="showPendingApproval" class="mt-4">
+              <div class="bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800 space-y-4">
+                <div class="flex items-start gap-3">
+                  <svg class="text-emerald-600 dark:text-emerald-400 w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <div>
+                    <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      Account Approval Request Submitted
+                    </h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                      Your account request has been submitted successfully. An administrator will review your information and you'll receive an email notification once your account has been approved or if additional information is needed.
+                    </p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                      You can close this window now. Please check your email for updates on your account status.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -308,6 +344,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   logoUrl = '';
   // Subscriber form state
   showSubscriberForm = false;
+  showPendingApproval = false; // Show pending approval message
+  requiresApproval = false; // Track if user needs admin approval
   firstName = '';
   lastName = '';
   isAdmin = false; // Track if user is admin
@@ -319,6 +357,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   constructor(
     private adminAuthService: AdminAuthService,
     private supabaseService: SupabaseService,
+    private emailNotificationService: EmailNotificationService,
     private themeService: ThemeService,
     private router: Router,
     private route: ActivatedRoute,
@@ -488,6 +527,27 @@ export class LoginComponent implements OnInit, OnDestroy {
           console.log('[AdminLogin] Is subscriber result:', isSubscriber);
           
           if (!isSubscriber) {
+            // User not in email_subscribers - check Planning Center
+            console.log('[AdminLogin] User not a subscriber, checking Planning Center');
+            const pcResult = await lookupPersonByEmail(
+              userEmail,
+              environment.supabaseUrl,
+              environment.supabaseAnonKey
+            );
+            
+            const isInPlanningCenter = pcResult.count > 0;
+            console.log('[AdminLogin] Planning Center result:', { count: pcResult.count, isInPlanningCenter });
+            
+            if (isInPlanningCenter) {
+              // User is in Planning Center - proceed with normal signup (no approval needed)
+              console.log('[AdminLogin] User found in Planning Center, showing subscriber form');
+              this.requiresApproval = false;
+            } else {
+              // User NOT in Planning Center - require admin approval
+              console.log('[AdminLogin] User NOT in Planning Center, requires admin approval');
+              this.requiresApproval = true;
+            }
+            
             // Show subscriber form for new users
             console.log('[AdminLogin] Showing subscriber form');
             this.showSubscriberForm = true;
@@ -884,8 +944,73 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.loading = true;
       this.cdr.markForCheck();
 
-      console.log('[AdminLogin] Saving new subscriber:', this.email);
+      console.log('[AdminLogin] Saving new subscriber or approval request:', this.email, { requiresApproval: this.requiresApproval });
 
+      if (this.requiresApproval) {
+        // User requires admin approval - create approval request instead
+        console.log('[AdminLogin] Creating account approval request');
+        console.log('[AdminLogin] Request params:', {
+          email: this.email.toLowerCase(),
+          firstName: this.firstName.trim(),
+          lastName: this.lastName.trim()
+        });
+        
+        const { data, error } = await this.supabaseService.client
+          .rpc('create_account_approval_request', {
+            p_email: this.email.toLowerCase(),
+            p_first_name: this.firstName.trim(),
+            p_last_name: this.lastName.trim()
+          });
+
+        console.log('[AdminLogin] RPC result:', { data, error });
+
+        if (error) {
+          console.error('[AdminLogin] Error creating approval request:', error);
+          console.error('[AdminLogin] Error details:', {
+            message: error.message,
+            status: (error as any).status,
+            statusText: (error as any).statusText,
+            details: (error as any).details,
+            hint: (error as any).hint,
+            code: (error as any).code
+          });
+          
+          // Check if it's a duplicate email error
+          if (error.message?.includes('duplicate key') || error.message?.includes('unique constraint')) {
+            this.error = 'An approval request already exists for this email address. Please check your email or contact an administrator.';
+          } else {
+            this.error = `Failed to submit approval request: ${error.message || 'Unknown error'}`;
+          }
+          
+          this.loading = false;
+          this.cdr.markForCheck();
+          return false;
+        }
+
+        console.log('[AdminLogin] Approval request created with ID:', data);
+
+        // Send admin notification email
+        try {
+          await this.emailNotificationService.sendAccountApprovalNotification(
+            this.email.toLowerCase(),
+            this.firstName.trim(),
+            this.lastName.trim()
+          );
+          console.log('[AdminLogin] Admin notification email sent');
+        } catch (emailError) {
+          console.error('[AdminLogin] Failed to send admin notification:', emailError);
+          // Don't fail the request if email fails
+        }
+
+        // Show pending approval message
+        this.showSubscriberForm = false;
+        this.showPendingApproval = true;
+        this.loading = false;
+        this.cdr.markForCheck();
+        return true;
+      }
+
+      // Normal subscriber flow - user is in Planning Center
       const { data, error } = await this.supabaseService.directMutation<{
         id: string;
       }>(

@@ -37,7 +37,13 @@ export class AppComponent implements OnInit {
 
     if (!code) return;
 
-    // Check if already validated
+    // Check for account approval/denial codes first
+    if (code.startsWith('account_approve_') || code.startsWith('account_deny_')) {
+      await this.handleAccountApprovalCode(code);
+      return;
+    }
+
+    // Check if already validated (for prayer/update approvals)
     const existingEmail = localStorage.getItem('approvalAdminEmail');
     if (existingEmail) {
       // Clear URL params and navigate to admin
@@ -90,6 +96,181 @@ export class AppComponent implements OnInit {
     } catch (error) {
       // Validation error - user can use normal login page
       console.error('Approval code validation failed:', error);
+      this.router.navigate(['/login']);
+    }
+  }
+
+  private async handleAccountApprovalCode(code: string) {
+    try {
+      // Lazy load required services
+      const { ApprovalLinksService } = await import('./services/approval-links.service');
+      const { SupabaseService } = await import('./services/supabase.service');
+      const { EmailNotificationService } = await import('./services/email-notification.service');
+      const { ToastService } = await import('./services/toast.service');
+      
+      const approvalLinks = this.injector.get(ApprovalLinksService);
+      const supabase = this.injector.get(SupabaseService);
+      const emailService = this.injector.get(EmailNotificationService);
+      const toast = this.injector.get(ToastService);
+      
+      // Decode the code to get email and action type
+      const decoded = approvalLinks.decodeAccountCode(code);
+      
+      if (!decoded) {
+        console.error('Invalid account approval code format');
+        toast.showToast('Invalid approval link', 'error');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      // Get the approval request from database
+      const { data: requests, error: fetchError } = await supabase.directQuery<{
+        id: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+        approval_status: string;
+      }>(
+        'account_approval_requests',
+        {
+          select: 'id, email, first_name, last_name, approval_status',
+          eq: { email: decoded.email.toLowerCase() },
+          limit: 1
+        }
+      );
+
+      if (fetchError || !requests || !Array.isArray(requests) || requests.length === 0) {
+        console.error('Account approval request not found:', fetchError);
+        toast.showToast('Approval request not found', 'error');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      const request = requests[0];
+
+      if (request.approval_status !== 'pending') {
+        toast.showToast(`This request has already been ${request.approval_status}`, 'info');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      if (decoded.type === 'approve') {
+        // Approve the account - add to email_subscribers
+        const { error: insertError } = await supabase.directMutation(
+          'email_subscribers',
+          {
+            method: 'POST',
+            body: {
+              email: request.email.toLowerCase(),
+              name: `${request.first_name} ${request.last_name}`,
+              is_active: true,
+              is_admin: false,
+              receive_admin_emails: false
+            },
+            returning: false
+          }
+        );
+
+        if (insertError) {
+          console.error('Failed to create subscriber:', insertError);
+          toast.showToast('Failed to approve account', 'error');
+          this.router.navigate(['/login']);
+          return;
+        }
+
+        // Delete the approval request
+        await supabase.directMutation(
+          'account_approval_requests',
+          {
+            method: 'DELETE',
+            eq: { id: request.id },
+            returning: false
+          }
+        );
+
+        // Send approval email to user
+        try {
+          const template = await emailService.getTemplate('account_approved');
+          if (template) {
+            const subject = emailService.applyTemplateVariables(template.subject, {
+              firstName: request.first_name
+            });
+            const html = emailService.applyTemplateVariables(template.html_body, {
+              firstName: request.first_name,
+              lastName: request.last_name,
+              email: request.email,
+              loginLink: `${window.location.origin}/login`
+            });
+            const text = emailService.applyTemplateVariables(template.text_body, {
+              firstName: request.first_name,
+              lastName: request.last_name,
+              email: request.email,
+              loginLink: `${window.location.origin}/login`
+            });
+
+            await emailService.sendEmail({
+              to: request.email,
+              subject,
+              htmlBody: html,
+              textBody: text
+            });
+          }
+        } catch (emailError) {
+          console.error('Failed to send approval email:', emailError);
+        }
+
+        toast.showToast(`Account approved for ${request.first_name} ${request.last_name}`, 'success');
+      } else {
+        // Deny the account - delete the request
+        await supabase.directMutation(
+          'account_approval_requests',
+          {
+            method: 'DELETE',
+            eq: { id: request.id },
+            returning: false
+          }
+        );
+
+        // Send denial email to user
+        try {
+          const template = await emailService.getTemplate('account_denied');
+          if (template) {
+            const subject = emailService.applyTemplateVariables(template.subject, {
+              firstName: request.first_name
+            });
+            const html = emailService.applyTemplateVariables(template.html_body, {
+              firstName: request.first_name,
+              lastName: request.last_name,
+              supportEmail: 'support@example.com' // TODO: Get from settings
+            });
+            const text = emailService.applyTemplateVariables(template.text_body, {
+              firstName: request.first_name,
+              lastName: request.last_name,
+              supportEmail: 'support@example.com'
+            });
+
+            await emailService.sendEmail({
+              to: request.email,
+              subject,
+              htmlBody: html,
+              textBody: text
+            });
+          }
+        } catch (emailError) {
+          console.error('Failed to send denial email:', emailError);
+        }
+
+        toast.showToast(`Account denied for ${request.first_name} ${request.last_name}`, 'info');
+      }
+
+      // Clear URL params and navigate
+      window.history.replaceState({}, '', window.location.pathname);
+      this.router.navigate(['/login']);
+    } catch (error) {
+      console.error('Error handling account approval code:', error);
+      const { ToastService } = await import('./services/toast.service');
+      const toast = this.injector.get(ToastService);
+      toast.showToast('Failed to process approval', 'error');
       this.router.navigate(['/login']);
     }
   }

@@ -9,6 +9,7 @@ import { PendingPrayerCardComponent } from '../../components/pending-prayer-card
 import { PendingUpdateCardComponent } from '../../components/pending-update-card/pending-update-card.component';
 import { PendingDeletionCardComponent } from '../../components/pending-deletion-card/pending-deletion-card.component';
 import { PendingUpdateDeletionCardComponent } from '../../components/pending-update-deletion-card/pending-update-deletion-card.component';
+import { PendingAccountApprovalCardComponent } from '../../components/pending-account-approval-card/pending-account-approval-card.component';
 import { AppBrandingComponent } from '../../components/app-branding/app-branding.component';
 import { PromptManagerComponent } from '../../components/prompt-manager/prompt-manager.component';
 import { PrayerTypesManagerComponent } from '../../components/prayer-types-manager/prayer-types-manager.component';
@@ -20,7 +21,7 @@ import { SessionTimeoutSettingsComponent } from '../../components/session-timeou
 import { SecurityPolicySettingsComponent } from '../../components/security-policy-settings/security-policy-settings.component';
 import { EmailVerificationSettingsComponent } from '../../components/email-verification-settings/email-verification-settings.component';
 
-type AdminTab = 'prayers' | 'updates' | 'deletions' | 'settings';
+type AdminTab = 'prayers' | 'updates' | 'deletions' | 'accounts' | 'settings';
 type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'security';
 
 @Component({
@@ -33,6 +34,7 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
     PendingUpdateCardComponent,
     PendingDeletionCardComponent,
     PendingUpdateDeletionCardComponent,
+    PendingAccountApprovalCardComponent,
     AppBrandingComponent,
     PromptManagerComponent,
     PrayerTypesManagerComponent,
@@ -92,7 +94,7 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
       <!-- Content -->
       <main class="w-full max-w-6xl mx-auto px-4 py-6">
         <!-- Stats Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-8">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-8">
           <button
             (click)="onTabChange('prayers')"
             [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 ' + (activeTab === 'prayers' ? 'ring-2 ring-blue-500' : '')"
@@ -126,6 +128,18 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                 {{ (adminData?.pendingDeletionRequests?.length || 0) + (adminData?.pendingUpdateDeletionRequests?.length || 0) }}
               </div>
               <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Pending Deletions</div>
+            </div>
+          </button>
+
+          <button
+            (click)="onTabChange('accounts')"
+            [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 ' + (activeTab === 'accounts' ? 'ring-2 ring-blue-500' : '')"
+          >
+            <div class="text-center">
+              <div class="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                {{ adminData?.pendingAccountRequests?.length || 0 }}
+              </div>
+              <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Pending Accounts</div>
             </div>
           </button>
 
@@ -290,6 +304,36 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                   ></app-pending-update-deletion-card>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Accounts Tab -->
+          <div *ngIf="activeTab === 'accounts'">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+              Pending Account Approvals ({{ adminData?.pendingAccountRequests?.length || 0 }})
+            </h2>
+
+            <div *ngIf="(adminData?.pendingAccountRequests?.length || 0) === 0" 
+                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+              <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                No pending account approval requests
+              </h3>
+              <p class="text-gray-500 dark:text-gray-400">
+                All account requests have been reviewed.
+              </p>
+            </div>
+
+            <div class="space-y-6">
+              <app-pending-account-approval-card
+                *ngFor="let request of adminData?.pendingAccountRequests; trackBy: trackByAccountRequestId"
+                [request]="request"
+                (approve)="approveAccountRequest($event)"
+                (deny)="denyAccountRequest($event.id, $event.reason)"
+              ></app-pending-account-approval-card>
             </div>
           </div>
 
@@ -662,6 +706,12 @@ export class AdminComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(data => {
         this.adminData = data;
+        console.log('[Admin] Admin data updated:', {
+          pendingPrayers: data.pendingPrayers?.length,
+          pendingUpdates: data.pendingUpdates?.length,
+          pendingDeletions: data.pendingDeletionRequests?.length,
+          pendingAccounts: data.pendingAccountRequests?.length
+        });
         this.cdr.markForCheck();
         
         // Auto-progress through tabs when each section is complete
@@ -787,7 +837,8 @@ export class AdminComponent implements OnInit, OnDestroy {
     return (this.adminData.pendingPrayers?.length || 0) +
            (this.adminData.pendingUpdates?.length || 0) +
            (this.adminData.pendingDeletionRequests?.length || 0) +
-           (this.adminData.pendingUpdateDeletionRequests?.length || 0);
+           (this.adminData.pendingUpdateDeletionRequests?.length || 0) +
+           (this.adminData.pendingAccountRequests?.length || 0);
   }
 
   goToHome() {
@@ -897,6 +948,30 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   trackByDeletionRequestId(index: number, request: any): string {
     return request.id;
+  }
+
+  trackByAccountRequestId(index: number, request: any): string {
+    return request.id;
+  }
+
+  async approveAccountRequest(requestId: string) {
+    try {
+      await this.adminDataService.approveAccountRequest(requestId);
+      // Reload admin data - will automatically update via subscription
+      this.cdr.markForCheck();
+    } catch (error) {
+      console.error('Error approving account request:', error);
+    }
+  }
+
+  async denyAccountRequest(requestId: string, reason: string) {
+    try {
+      await this.adminDataService.denyAccountRequest(requestId, reason);
+      // Reload admin data - will automatically update via subscription
+      this.cdr.markForCheck();
+    } catch (error) {
+      console.error('Error denying account request:', error);
+    }
   }
 
   getAdminEmail(): string {

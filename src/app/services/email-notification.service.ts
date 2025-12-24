@@ -423,6 +423,100 @@ export class EmailNotificationService {
   }
 
   /**
+   * Send account approval request notification to all admins
+   */
+  async sendAccountApprovalNotification(email: string, firstName: string, lastName: string): Promise<void> {
+    try {
+      // Get all admin emails
+      const { data: admins, error: adminsError } = await this.supabase.directQuery<{ email: string }>(
+        'email_subscribers',
+        {
+          select: 'email',
+          eq: { is_admin: true, is_active: true }
+        }
+      );
+
+      if (adminsError || !admins || !Array.isArray(admins) || admins.length === 0) {
+        console.error('No admins found for account approval notification:', adminsError);
+        return;
+      }
+
+      // Send notification to each admin
+      for (const admin of admins) {
+        await this.sendAccountApprovalNotificationToEmail(email, firstName, lastName, admin.email);
+      }
+    } catch (error) {
+      console.error('Error in sendAccountApprovalNotification:', error);
+      // Don't throw - we don't want email failures to break the app
+    }
+  }
+
+  /**
+   * Send account approval notification to a single admin
+   */
+  private async sendAccountApprovalNotificationToEmail(email: string, firstName: string, lastName: string, adminEmail: string): Promise<void> {
+    try {
+      // Generate approval/denial codes
+      const approvalCode = this.approvalLinks.generateCode('account_approve', email);
+      const denialCode = this.approvalLinks.generateCode('account_deny', email);
+      
+      const appUrl = window.location.origin;
+      const approveLink = `${appUrl}?code=${approvalCode}`;
+      const denyLink = `${appUrl}?code=${denialCode}`;
+      
+      // Get template from database
+      const template = await this.getTemplate('account_approval_request');
+      
+      if (!template) {
+        console.error('Account approval request template not found');
+        return;
+      }
+      
+      const requestedDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // Replace variables in template
+      const subject = this.applyTemplateVariables(template.subject, {
+        firstName,
+        lastName,
+        email
+      });
+      
+      const html = this.applyTemplateVariables(template.html_body, {
+        firstName,
+        lastName,
+        email,
+        requestedDate,
+        approveLink,
+        denyLink
+      });
+      
+      const body = this.applyTemplateVariables(template.text_body, {
+        firstName,
+        lastName,
+        email,
+        requestedDate,
+        approveLink,
+        denyLink
+      });
+      
+      await this.sendEmail({
+        to: [adminEmail],
+        subject,
+        textBody: body,
+        htmlBody: html
+      });
+    } catch (error) {
+      console.error('Error in sendAccountApprovalNotificationToEmail:', error);
+      // Don't throw - we don't want email failures to break the app
+    }
+  }
+
+  /**
    * Send notification to a single admin with personalized approval link
    */
   private async sendAdminNotificationToEmail(payload: AdminNotificationPayload, adminEmail: string): Promise<void> {

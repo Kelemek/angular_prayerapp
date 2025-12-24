@@ -24,6 +24,14 @@ interface AdminData {
       prayers?: { title?: string };
     };
   })[];
+  pendingAccountRequests?: Array<{
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    approval_status: string;
+    created_at: string;
+  }>;
   approvedPrayers: PrayerRequest[];
   approvedUpdates: (PrayerUpdate & { prayer_title?: string })[];
   deniedPrayers: PrayerRequest[];
@@ -56,6 +64,7 @@ export class AdminDataService {
     pendingDeletionRequests: [],
     pendingStatusChangeRequests: [],
     pendingUpdateDeletionRequests: [],
+    pendingAccountRequests: [],
     approvedPrayers: [],
     approvedUpdates: [],
     deniedPrayers: [],
@@ -103,7 +112,8 @@ export class AdminDataService {
         pendingUpdatesResult,
         pendingDeletionRequestsResult,
         pendingStatusChangeRequestsResult,
-        pendingUpdateDeletionRequestsResult
+        pendingUpdateDeletionRequestsResult,
+        pendingAccountRequestsResult
       ] = await Promise.all([
         // Pending prayers
         supabaseClient
@@ -138,12 +148,43 @@ export class AdminDataService {
           .from('update_deletion_requests')
           .select('*, prayer_updates(*, prayers(title))')
           .eq('approval_status', 'pending')
+          .order('created_at', { ascending: false }),
+        
+        // Pending account approval requests
+        supabaseClient
+          .from('account_approval_requests')
+          .select('*')
+          .eq('approval_status', 'pending')
           .order('created_at', { ascending: false })
+          .then(async (result) => {
+            // Debug: Check auth status
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            console.log('[AdminDataService] Auth session for account requests:', {
+              hasSession: !!session,
+              userId: session?.user?.id,
+              role: session?.user?.role,
+              email: session?.user?.email
+            });
+            console.log('[AdminDataService] Account requests query result:', result);
+            return result;
+          })
       ]);
 
       // Check for errors
       if (pendingPrayersResult.error) throw pendingPrayersResult.error;
       if (pendingUpdatesResult.error) throw pendingUpdatesResult.error;
+      if (pendingAccountRequestsResult.error) {
+        console.error('[AdminDataService] Error fetching account approval requests:', pendingAccountRequestsResult.error);
+        throw pendingAccountRequestsResult.error;
+      }
+
+      console.log('[AdminDataService] Account approval requests raw result:', {
+        count: pendingAccountRequestsResult.data?.length || 0,
+        data: pendingAccountRequestsResult.data,
+        error: pendingAccountRequestsResult.error,
+        status: (pendingAccountRequestsResult as any).status,
+        statusText: (pendingAccountRequestsResult as any).statusText
+      });
 
       // Transform data
       const pendingUpdates = (pendingUpdatesResult.data || []).map((u: any) => ({
@@ -168,6 +209,7 @@ export class AdminDataService {
         pendingDeletionRequests,
         pendingStatusChangeRequests,
         pendingUpdateDeletionRequests: pendingUpdateDeletionRequestsResult.data || [],
+        pendingAccountRequests: pendingAccountRequestsResult.data || [],
         approvedPrayers: [],
         approvedUpdates: [],
         deniedPrayers: [],
@@ -181,6 +223,12 @@ export class AdminDataService {
         deniedUpdatesCount: 0,
         loading: false,
         error: null
+      });
+
+      console.log('[AdminDataService] Pending account requests fetched:', {
+        count: pendingAccountRequestsResult.data?.length || 0,
+        data: pendingAccountRequestsResult.data,
+        error: pendingAccountRequestsResult.error
       });
 
       // PHASE 2: Fetch approved/denied data in background (non-blocking)
@@ -652,6 +700,127 @@ export class AdminDataService {
     if (error) throw error;
     await this.fetchAdminData(true);
     await this.prayerService.loadPrayers();
+  }
+
+  async approveAccountRequest(id: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    // Get the account request
+    const { data: request, error: fetchError } = await supabaseClient
+      .from('account_approval_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!request) throw new Error('Account approval request not found');
+    
+    // Create the email subscriber
+    const { error: insertError } = await supabaseClient
+      .from('email_subscribers')
+      .insert({
+        email: request.email.toLowerCase(),
+        name: `${request.first_name} ${request.last_name}`,
+        is_active: true,
+        is_admin: false,
+        receive_admin_emails: false
+      });
+
+    if (insertError) throw insertError;
+    
+    // Delete the approval request
+    const { error: deleteError } = await supabaseClient
+      .from('account_approval_requests')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+    
+    // Send approval email to user
+    try {
+      const template = await this.emailNotification.getTemplate('account_approved');
+      if (template) {
+        const subject = this.emailNotification.applyTemplateVariables(template.subject, {
+          firstName: request.first_name
+        });
+        const html = this.emailNotification.applyTemplateVariables(template.html_body, {
+          firstName: request.first_name,
+          lastName: request.last_name,
+          email: request.email,
+          loginLink: `${window.location.origin}/login`
+        });
+        const text = this.emailNotification.applyTemplateVariables(template.text_body, {
+          firstName: request.first_name,
+          lastName: request.last_name,
+          email: request.email,
+          loginLink: `${window.location.origin}/login`
+        });
+
+        await this.emailNotification.sendEmail({
+          to: request.email,
+          subject,
+          htmlBody: html,
+          textBody: text
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send approval email:', emailError);
+    }
+    
+    await this.fetchAdminData(true);
+  }
+
+  async denyAccountRequest(id: string, reason: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    // Get the account request
+    const { data: request, error: fetchError } = await supabaseClient
+      .from('account_approval_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!request) throw new Error('Account approval request not found');
+    
+    // Delete the approval request
+    const { error: deleteError } = await supabaseClient
+      .from('account_approval_requests')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+    
+    // Send denial email to user
+    try {
+      const template = await this.emailNotification.getTemplate('account_denied');
+      if (template) {
+        const subject = this.emailNotification.applyTemplateVariables(template.subject, {
+          firstName: request.first_name
+        });
+        const html = this.emailNotification.applyTemplateVariables(template.html_body, {
+          firstName: request.first_name,
+          lastName: request.last_name,
+          supportEmail: 'support@example.com' // TODO: Get from settings
+        });
+        const text = this.emailNotification.applyTemplateVariables(template.text_body, {
+          firstName: request.first_name,
+          lastName: request.last_name,
+          supportEmail: 'support@example.com'
+        });
+
+        await this.emailNotification.sendEmail({
+          to: request.email,
+          subject,
+          htmlBody: html,
+          textBody: text
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send denial email:', emailError);
+    }
+    
+    await this.fetchAdminData(true);
   }
 
   silentRefresh(): void {
