@@ -1,6 +1,14 @@
 // Vitest setup - this file is only used by Vitest, not ng serve
 
 import { beforeEach } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
+
+// Initialize Angular Testing Environment
+TestBed.initTestEnvironment(
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting()
+);
 
 // Setup localStorage mock
 beforeEach(() => {
