@@ -78,10 +78,13 @@ export class PrayerService {
   /**
    * Load prayers from database with fallback to cached data on network failure
    */
-  async loadPrayers(): Promise<void> {
+  async loadPrayers(silentRefresh = false): Promise<void> {
     try {
       console.log('[PrayerService] Loading prayers...');
-      this.loadingSubject.next(true);
+      // Only show loading indicator for non-silent refreshes
+      if (!silentRefresh) {
+        this.loadingSubject.next(true);
+      }
       this.errorSubject.next(null);
 
       const { data: prayersData, error } = await this.supabase.client
@@ -173,7 +176,7 @@ export class PrayerService {
     // Refresh when window regains focus (tab becomes visible again)
     fromEvent(window, 'focus').subscribe(() => {
       console.log('[PrayerService] Window regained focus, refreshing data');
-      this.loadPrayers().catch(err => {
+      this.loadPrayers(true).catch(err => {
         console.debug('[PrayerService] Background refresh failed:', err);
         // Silently fail - keep showing cached data
       });
@@ -202,8 +205,8 @@ export class PrayerService {
     // When document gains focus after being in background, trigger refresh
     fromEvent(document, 'visibilitychange').subscribe(() => {
       if (!document.hidden) {
-        console.log('[PrayerService] Page became visible, refreshing data');
-        this.loadPrayers().catch(err => {
+        console.log('[PrayerService] Window regained focus, refreshing data');
+        this.loadPrayers(true).catch(err => {
           console.debug('[PrayerService] Background refresh failed:', err);
         });
       }
