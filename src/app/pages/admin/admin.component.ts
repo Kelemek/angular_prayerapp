@@ -17,7 +17,6 @@ import { EmailSettingsComponent } from '../../components/email-settings/email-se
 import { AdminUserManagementComponent } from '../../components/admin-user-management/admin-user-management.component';
 import { PrayerSearchComponent } from '../../components/prayer-search/prayer-search.component';
 import { BackupStatusComponent } from '../../components/backup-status/backup-status.component';
-import { SessionTimeoutSettingsComponent } from '../../components/session-timeout-settings/session-timeout-settings.component';
 import { SecurityPolicySettingsComponent } from '../../components/security-policy-settings/security-policy-settings.component';
 import { EmailVerificationSettingsComponent } from '../../components/email-verification-settings/email-verification-settings.component';
 
@@ -42,7 +41,6 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
     AdminUserManagementComponent,
     PrayerSearchComponent,
     BackupStatusComponent,
-    SessionTimeoutSettingsComponent,
     SecurityPolicySettingsComponent,
     EmailVerificationSettingsComponent
   ],
@@ -638,9 +636,6 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
               </div>
               <div class="mb-4">
                 <app-security-policy-settings></app-security-policy-settings>
-              </div>
-              <div class="mb-4">
-                <app-session-timeout-settings></app-session-timeout-settings>
               </div>
             </div>
 

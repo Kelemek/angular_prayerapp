@@ -6,12 +6,10 @@ import type { User } from '@supabase/supabase-js';
 
 interface TimeoutSettings {
   inactivityTimeoutMinutes: number;
-  dbHeartbeatIntervalMinutes: number;
 }
 
 const DEFAULT_TIMEOUTS: TimeoutSettings = {
   inactivityTimeoutMinutes: 30,
-  dbHeartbeatIntervalMinutes: 1,
 };
 
 @Injectable({
@@ -29,9 +27,6 @@ export class AdminAuthService {
   private sessionStart: number | null = null;
   private adminSessionStart: number | null = null;
   private timeoutSettings: TimeoutSettings = DEFAULT_TIMEOUTS;
-  private heartbeatSubscription: Subscription | null = null;
-  private heartbeatInProgress = false;
-  private heartbeatEnabled = false;
   private lastBlockedCheck = 0;
 
   public user$ = this.userSubject.asObservable();
@@ -67,12 +62,9 @@ export class AdminAuthService {
       if (isAdmin) {
         this.isAdminSubject.next(true);
         this.hasAdminEmailSubject.next(true);
-        // Only start heartbeat for actual admin sessions
-        this.startDbHeartbeat();
       } else {
         this.isAdminSubject.next(false);
         this.hasAdminEmailSubject.next(false);
-        // Regular users don't need heartbeat
       }
       
       this.loadingSubject.next(false);
@@ -88,10 +80,6 @@ export class AdminAuthService {
       this.isAuthenticatedSubject.next(true);
       this.sessionStart = this.getPersistedSessionStart() || Date.now();
       this.persistSessionStart(this.sessionStart);
-      // Only start heartbeat if user is admin
-      if (this.isAdminSubject.value) {
-        this.startDbHeartbeat();
-      }
     }
 
     // Listen for auth state changes
@@ -101,11 +89,6 @@ export class AdminAuthService {
         this.userSubject.next(session.user);
         await this.checkAdminStatus(session.user);
         this.isAuthenticatedSubject.next(true);
-        // Only start heartbeat for admin sessions, not regular users
-        // Regular users don't need database heartbeat - they just view the prayer list
-        if (this.isAdminSubject.value) {
-          this.startDbHeartbeat();
-        }
         
         if (!this.sessionStart) {
           this.sessionStart = Date.now();
@@ -117,7 +100,6 @@ export class AdminAuthService {
         this.isAuthenticatedSubject.next(false);
         this.sessionStart = null;
         this.persistSessionStart(null);
-        this.stopDbHeartbeat();
       }
     });
 
@@ -164,10 +146,9 @@ export class AdminAuthService {
   private async refreshTimeoutSettingsFromDb(): Promise<void> {
     const { data, error } = await this.supabase.directQuery<Array<{
       inactivity_timeout_minutes: number;
-      db_heartbeat_interval_minutes: number;
       require_site_login: boolean;
     }>>('admin_settings', {
-      select: 'inactivity_timeout_minutes, db_heartbeat_interval_minutes, require_site_login',
+      select: 'inactivity_timeout_minutes, require_site_login',
       eq: { id: 1 },
       limit: 1,
       timeout: 8000
@@ -176,7 +157,6 @@ export class AdminAuthService {
     if (!error && data && data[0]) {
       const settings = {
         inactivityTimeoutMinutes: data[0].inactivity_timeout_minutes || DEFAULT_TIMEOUTS.inactivityTimeoutMinutes,
-        dbHeartbeatIntervalMinutes: data[0].db_heartbeat_interval_minutes || DEFAULT_TIMEOUTS.dbHeartbeatIntervalMinutes,
         requireSiteLogin: data[0].require_site_login ?? true
       };
 
@@ -189,15 +169,10 @@ export class AdminAuthService {
   private applyTimeoutSettings(settings: Partial<TimeoutSettings> & { requireSiteLogin?: boolean }): void {
     this.timeoutSettings = {
       inactivityTimeoutMinutes: settings.inactivityTimeoutMinutes ?? this.timeoutSettings.inactivityTimeoutMinutes,
-      dbHeartbeatIntervalMinutes: settings.dbHeartbeatIntervalMinutes ?? this.timeoutSettings.dbHeartbeatIntervalMinutes,
     };
 
     if (typeof settings.requireSiteLogin === 'boolean') {
       this.requireSiteLoginSubject.next(settings.requireSiteLogin);
-    }
-
-    if (this.heartbeatEnabled) {
-      this.restartDbHeartbeat();
     }
   }
 
@@ -519,7 +494,6 @@ export class AdminAuthService {
       this.hasAdminEmailSubject.next(true);
       this.adminSessionStart = Date.now(); // Admin session timer
       this.adminSessionExpiredSubject.next(false);
-      this.startDbHeartbeat();
     } else {
       this.isAdminSubject.next(false);
       this.hasAdminEmailSubject.next(false);
@@ -541,7 +515,6 @@ export class AdminAuthService {
       this.isAuthenticatedSubject.next(false);
       this.sessionStart = null;
       this.persistSessionStart(null);
-      this.stopDbHeartbeat();
       
       // Clear approval code session data
       localStorage.removeItem('approvalAdminEmail');
@@ -601,62 +574,6 @@ export class AdminAuthService {
       }
     } catch (error) {
       console.error('Error reloading site protection setting:', error);
-    }
-  }
-
-  private restartDbHeartbeat(): void {
-    this.stopDbHeartbeat();
-    this.startDbHeartbeat();
-  }
-
-  private startDbHeartbeat(): void {
-    // DISABLED: Heartbeat disabled for testing - doesn't seem necessary
-    // The JWT auth token and client-side timeout tracking handle sessions fine
-    // Re-enable this method if needed, or remove completely after testing
-    return;
-
-    // Original code below (disabled):
-    /*
-    this.heartbeatEnabled = true;
-
-    if (this.heartbeatSubscription) {
-      return;
-    }
-
-    const intervalMs = Math.max(1, this.timeoutSettings.dbHeartbeatIntervalMinutes) * 60000;
-    this.heartbeatSubscription = timer(0, intervalMs).subscribe(() => {
-      this.runDbHeartbeat();
-    });
-    */
-  }
-
-  private stopDbHeartbeat(): void {
-    this.heartbeatEnabled = false;
-    if (this.heartbeatSubscription) {
-      this.heartbeatSubscription.unsubscribe();
-      this.heartbeatSubscription = null;
-    }
-  }
-
-  private async runDbHeartbeat(): Promise<void> {
-    if (this.heartbeatInProgress) return;
-    this.heartbeatInProgress = true;
-
-    try {
-      const { error } = await this.supabase.directQuery('admin_settings', {
-        select: 'id',
-        limit: 1,
-        head: true,
-        timeout: 5000
-      });
-
-      if (error) {
-        console.warn('[AdminAuth] Database heartbeat failed:', error);
-      }
-    } catch (error) {
-      console.warn('[AdminAuth] Database heartbeat exception:', error);
-    } finally {
-      this.heartbeatInProgress = false;
     }
   }
 }
