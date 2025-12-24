@@ -1244,6 +1244,9 @@ export class PrayerSearchComponent implements OnInit {
       }
 
       this.searchResults = this.searchResults.filter(p => p.id !== prayer.id);
+      this.allPrayers = this.allPrayers.filter(p => p.id !== prayer.id);
+      this.totalItems = this.allPrayers.length;
+      this.loadPageData();
       this.selectedPrayers.delete(prayer.id);
       this.prayerService.loadPrayers().catch(err => {
         console.debug('[PrayerSearch] Refresh after delete failed:', err);
@@ -1357,6 +1360,10 @@ export class PrayerSearchComponent implements OnInit {
       }
 
       this.searchResults = [data, ...this.searchResults];
+      this.allPrayers = [data, ...this.allPrayers];
+      this.totalItems = this.allPrayers.length;
+      this.currentPage = 1;
+      this.loadPageData();
       this.cancelCreatePrayer();
       this.toast.success('Prayer created successfully');
       
@@ -1412,6 +1419,21 @@ export class PrayerSearchComponent implements OnInit {
             } as Prayer
           : p
       );
+      
+      this.allPrayers = this.allPrayers.map(p =>
+        p.id === prayerId
+          ? {
+              ...p,
+              title: this.editForm.title.trim(),
+              description: this.editForm.description.trim(),
+              requester: this.editForm.requester.trim(),
+              email: this.editForm.email.trim() || null,
+              prayer_for: this.editForm.prayer_for.trim() || undefined,
+              status: this.editForm.status
+            } as Prayer
+          : p
+      );
+      this.loadPageData();
 
       this.toast.success('Prayer updated successfully');
       this.cancelEdit();
@@ -1460,7 +1482,14 @@ export class PrayerSearchComponent implements OnInit {
       }
 
       this.searchResults = this.searchResults.filter(p => !this.selectedPrayers.has(p.id));
+      this.allPrayers = this.allPrayers.filter(p => !this.selectedPrayers.has(p.id));
+      this.totalItems = this.allPrayers.length;
+      this.currentPage = 1;
+      this.loadPageData();
       this.selectedPrayers = new Set();
+      this.prayerService.loadPrayers().catch(err => {
+        console.debug('[PrayerSearch] Refresh after bulk delete failed:', err);
+      });
       this.toast.success(`${prayerIds.length} prayers deleted successfully`);
     } catch (err: unknown) {
       console.error('Error deleting prayers:', err);
@@ -1618,6 +1647,11 @@ export class PrayerSearchComponent implements OnInit {
       this.loadPageData();
 
       this.toast.success('Update deleted successfully');
+      
+      // Trigger reload on main site
+      this.prayerService.loadPrayers().catch(err => {
+        console.debug('[PrayerSearch] Refresh after update delete failed:', err);
+      });
     } catch (err: unknown) {
       console.error('Error deleting update:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete update';

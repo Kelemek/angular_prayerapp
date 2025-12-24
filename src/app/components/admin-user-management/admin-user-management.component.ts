@@ -85,7 +85,7 @@ interface AdminUser {
       </div>
 
       <!-- Add Admin Form -->
-      <div *ngIf="showAddForm" class="mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+      <div *ngIf="showAddForm" class="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-700 rounded-lg">
         <div class="flex items-center justify-between mb-4">
           <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
             Add New Admin
@@ -113,7 +113,7 @@ interface AdminUser {
               placeholder="Admin's full name"
               aria-label="Admin's full name"
               aria-required="true"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              class="w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-700 focus:border-red-700 focus:ring-offset-0"
             />
           </div>
 
@@ -128,7 +128,7 @@ interface AdminUser {
               placeholder="admin@example.com"
               aria-label="Admin's email address"
               aria-required="true"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              class="w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-700 focus:border-red-700 focus:ring-offset-0"
             />
           </div>
 
