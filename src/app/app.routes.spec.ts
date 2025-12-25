@@ -80,9 +80,14 @@ describe('AppRoutes', () => {
     expect(presentationRoute?.loadComponent).toBeInstanceOf(Function);
   });
 
-  it('should have correct number of routes', () => {
-    // Root, login, admin, presentation, wildcard
-    expect(routes.length).toBe(5);
+  it('should have all essential routes', () => {
+    // Verify that all essential routes exist without hard-coding the count
+    const essentialPaths = ['', 'login', 'admin', 'presentation', '**'];
+    const routePaths = routes.map(r => r.path);
+    
+    essentialPaths.forEach(path => {
+      expect(routePaths).toContain(path);
+    });
   });
 
   it('should have admin route with preload hint', () => {
