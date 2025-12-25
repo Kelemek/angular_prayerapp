@@ -52,7 +52,7 @@ export class PrayerService {
   private currentFilters: PrayerFilters = {};
   private inactivityTimeout: any = null;
   private inactivityThresholdMs = 5 * 60 * 1000; // 5 minutes of inactivity
-  private backgroundRecoveryTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private backgroundRecoveryTimeouts: Map<string, number> = new Map();
   private isInBackground = document.hidden;
 
   public allPrayers$ = this.allPrayersSubject.asObservable();
