@@ -329,7 +329,7 @@ describe('PrayerDisplayCardComponent', () => {
       expect(updates[0].id).toBe('u1');
     });
 
-    it('should return recent updates when they exist (true branch of line 151)', async () => {
+    it('should return recent updates when they exist within the week', async () => {
       const recentPrayer = {
         ...mockPrayer,
         prayer_updates: [
@@ -359,7 +359,7 @@ describe('PrayerDisplayCardComponent', () => {
       expect(updates.length).toBe(2);
     });
 
-    it('should return most recent when no recent updates exist (false branch of line 151)', async () => {
+    it('should return most recent update when no updates exist within the week', async () => {
       const oldPrayer = {
         ...mockPrayer,
         prayer_updates: [

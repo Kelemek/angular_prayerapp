@@ -457,7 +457,7 @@ describe('VerificationDialogComponent', () => {
       expect(component.code[0]).toBe('5');
     });
 
-    it('should move to next field when entering a single digit (line 254)', () => {
+    it('should move to next field when entering a single digit', () => {
       const focusInputSpy = vi.spyOn(component, 'focusInput');
       const mockEvent = {
         target: {
@@ -520,7 +520,7 @@ describe('VerificationDialogComponent', () => {
       expect(mockFirstInput.nativeElement.value).toBe('1');
     });
 
-    it('should handle autofill with insufficient digits (line 238)', () => {
+    it('should handle autofill with insufficient digits', () => {
       const mockEvent = {
         target: {
           value: '123'  // Only 3 digits, less than codeLength (6)
@@ -529,8 +529,8 @@ describe('VerificationDialogComponent', () => {
       
       component.handleCodeChange(0, mockEvent);
       
-      // When digits.length < codeLength, it falls through to single digit check
-      // '123' doesn't match /^\d$/ regex, so it goes to else block
+      // When digits.length < codeLength, exits autofill block and continues to single digit check
+      // '123' doesn't match /^\d$/ regex, so it clears the field
       expect(component.code[0]).toBe('');
       expect(mockEvent.target.value).toBe('');
     });
@@ -556,7 +556,7 @@ describe('VerificationDialogComponent', () => {
       expect(mockEvent.preventDefault).toHaveBeenCalled();
     });
 
-    it('should move to previous field on Backspace when index > 0 (line 273)', () => {
+    it('should move to previous field on Backspace when not at first index', () => {
       const focusInputSpy = vi.spyOn(component, 'focusInput');
       const mockEvent = {
         key: 'Backspace',
@@ -607,16 +607,16 @@ describe('VerificationDialogComponent', () => {
     it('should handle handleKeyDown with Enter when code is complete', () => {
       const handleVerifySpy = vi.spyOn(component, 'handleVerify');
       component.code = ['1', '2', '3', '4', '5', '6'];
-      component.codeInput = '123456'; // Also set codeInput since isCodeComplete checks it
+      component.codeInput = '123456'; // Set codeInput as isCodeComplete checks its length
       const mockEvent = {
         key: 'Enter'
       };
-      // Call from middle index (not 0, not last) to avoid ArrowLeft/Right conditions
+      // Use middle index to reach the Enter handler in handleKeyDown
       component.handleKeyDown(3, mockEvent);
       expect(handleVerifySpy).toHaveBeenCalled();
     });
 
-    it('should not verify on Enter when code is incomplete (line 280)', () => {
+    it('should not verify on Enter when code is incomplete', () => {
       const handleVerifySpy = vi.spyOn(component, 'handleVerify');
       component.code = ['1', '2', '3', '', '', ''];
       component.codeInput = '123'; // Incomplete code
@@ -696,7 +696,7 @@ describe('VerificationDialogComponent', () => {
       expect(mockFocus).toHaveBeenCalled();
     });
 
-    it('should not throw when focusInput is called with invalid index (line 302)', async () => {
+    it('should not throw when focusInput is called with out-of-bounds index', async () => {
       const mockInput = {
         nativeElement: {
           focus: vi.fn()
