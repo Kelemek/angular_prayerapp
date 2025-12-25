@@ -43,6 +43,9 @@ export class SupabaseService {
         }
       }
     });
+
+    // Set up visibility recovery for Edge on iOS
+    this.setupVisibilityRecovery();
   }
 
   get client(): SupabaseClient {
@@ -84,6 +87,97 @@ export class SupabaseService {
         error.message.includes('Timeout')
       ))
     );
+  }
+
+  /**
+   * Ensure Supabase connection is healthy
+   * Critical for Edge on iOS which may lose connections during background suspension
+   */
+  async ensureConnected(): Promise<void> {
+    try {
+      console.log('[SupabaseService] Checking connection health...');
+      // Attempt a simple auth check to verify connection
+      const { data, error } = await this.supabase.auth.getSession();
+      
+      if (error) {
+        console.warn('[SupabaseService] Connection health check failed:', error);
+        await this.reconnect();
+      } else {
+        console.log('[SupabaseService] Connection is healthy');
+      }
+    } catch (err) {
+      console.error('[SupabaseService] Connection check error:', err);
+      await this.reconnect();
+    }
+  }
+
+  /**
+   * Force reconnection by recreating the Supabase client
+   * Useful when Edge/iOS loses the connection during background suspension
+   */
+  private async reconnect(): Promise<void> {
+    try {
+      console.log('[SupabaseService] Reconnecting to Supabase...');
+      
+      const supabaseUrl = environment.supabaseUrl;
+      const supabaseAnonKey = environment.supabaseAnonKey;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Missing Supabase environment variables');
+      }
+
+      // Create a new client instance to reset all connections
+      this.supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        },
+        global: {
+          headers: {
+            'x-client-info': 'supabase-js'
+          }
+        },
+        db: {
+          schema: 'public'
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
+        }
+      });
+      
+      console.log('[SupabaseService] Reconnected successfully');
+    } catch (err) {
+      console.error('[SupabaseService] Reconnection failed:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Trigger connection recovery when app becomes visible
+   * Especially important for Edge on iOS
+   */
+  setupVisibilityRecovery(): void {
+    if (typeof document === 'undefined') return;
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        console.log('[SupabaseService] App becoming visible, ensuring connection health');
+        this.ensureConnected().catch(err => {
+          console.error('[SupabaseService] Failed to ensure connection on visibility:', err);
+        });
+      }
+    });
+
+    // Also listen for the custom app-became-visible event
+    window.addEventListener('app-became-visible', () => {
+      console.log('[SupabaseService] App became visible event, ensuring connection health');
+      this.ensureConnected().catch(err => {
+        console.error('[SupabaseService] Failed to ensure connection:', err);
+      });
+    });
   }
 
   async directQuery<T = any>(

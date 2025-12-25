@@ -1,4 +1,4 @@
-import { Component, OnInit, Injector, ErrorHandler, NgZone } from '@angular/core';
+import { Component, OnInit, Injector, ErrorHandler, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
@@ -17,11 +17,13 @@ import { ToastContainerComponent } from './components/toast-container/toast-cont
 })
 export class AppComponent implements OnInit {
   title = 'prayerapp';
+  private lastVisibilityState = !document.hidden;
 
   constructor(
     private router: Router,
     private injector: Injector,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {
     // Set up global error handler for unhandled errors
     this.setupGlobalErrorHandler();
@@ -44,6 +46,72 @@ export class AppComponent implements OnInit {
         // Don't auto-reload - let the app handle recovery gracefully
       });
     });
+  }
+
+  /**
+   * Handle window focus event - Edge on iOS needs explicit change detection trigger
+   * Safari handles this automatically, but Edge doesn't always
+   */
+  @HostListener('window:focus')
+  onWindowFocus(): void {
+    console.log('[AppComponent] Window regained focus, triggering change detection');
+    this.lastVisibilityState = !document.hidden;
+    // Force change detection on focus
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+    this.triggerDOMRecoveryIfNeeded();
+  }
+
+  /**
+   * Handle visibility change - critical for Edge on iOS
+   * When app returns from background, manually trigger recovery
+   */
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (!document.hidden && this.lastVisibilityState === true) {
+      console.log('[AppComponent] Page became visible, triggering change detection and recovery');
+      this.lastVisibilityState = !document.hidden;
+      
+      // Force change detection
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
+      
+      // Check DOM integrity
+      this.triggerDOMRecoveryIfNeeded();
+    }
+    this.lastVisibilityState = !document.hidden;
+  }
+
+  /**
+   * Check if router-outlet is still attached to DOM
+   * On Edge/iOS, the DOM can be detached during background suspension
+   */
+  private triggerDOMRecoveryIfNeeded(): void {
+    try {
+      const appRoot = document.querySelector('app-root');
+      const routerOutlet = document.querySelector('router-outlet');
+      
+      if (appRoot && routerOutlet) {
+        // Check if router outlet is actually in the DOM tree
+        if (!appRoot.contains(routerOutlet)) {
+          console.warn('[AppComponent] RouterOutlet detached from DOM, triggering recovery');
+          // Dispatch recovery event for services to listen to
+          window.dispatchEvent(new CustomEvent('app-became-visible'));
+        }
+      }
+      
+      // Also check if any content is actually being rendered
+      const content = document.querySelector('[role="main"], main, .content, [class*="prayer"], [class*="card"]');
+      if (!content && !document.hidden) {
+        console.warn('[AppComponent] No content detected, may need recovery');
+        // Give a small delay for async data loading
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        }, 100);
+      }
+    } catch (err) {
+      console.debug('[AppComponent] DOM recovery check failed:', err);
+    }
   }
 
   ngOnInit() {

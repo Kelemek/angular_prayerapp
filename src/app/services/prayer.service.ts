@@ -52,6 +52,8 @@ export class PrayerService {
   private currentFilters: PrayerFilters = {};
   private inactivityTimeout: any = null;
   private inactivityThresholdMs = 5 * 60 * 1000; // 5 minutes of inactivity
+  private backgroundRecoveryTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private isInBackground = document.hidden;
 
   public allPrayers$ = this.allPrayersSubject.asObservable();
   public prayers$ = this.prayersSubject.asObservable();
@@ -73,6 +75,7 @@ export class PrayerService {
     this.setupRealtimeSubscription();
     this.setupVisibilityListener();
     this.setupInactivityListener();
+    this.setupBackgroundRecoveryListener();
   }
 
   /**
@@ -211,6 +214,81 @@ export class PrayerService {
         });
       }
     });
+  }
+
+  /**
+   * Handle background/foreground transitions for Edge on iOS
+   * Edge may suspend the app and lose connections, so we need to actively recover
+   */
+  private setupBackgroundRecoveryListener(): void {
+    // Listen for visibility changes
+    fromEvent(document, 'visibilitychange').subscribe(() => {
+      if (document.hidden) {
+        this.isInBackground = true;
+        console.log('[PrayerService] App going to background - pausing aggressive operations');
+        
+        // Clear any pending recovery timeouts
+        this.backgroundRecoveryTimeouts.forEach(timeout => clearTimeout(timeout));
+        this.backgroundRecoveryTimeouts.clear();
+      } else {
+        this.isInBackground = false;
+        console.log('[PrayerService] App returning from background - triggering recovery');
+        
+        // Trigger immediate recovery
+        this.triggerBackgroundRecovery();
+      }
+    });
+
+    // Listen for app visibility event (custom event from AppComponent)
+    window.addEventListener('app-became-visible', () => {
+      if (!document.hidden) {
+        console.log('[PrayerService] Received app-became-visible event, triggering recovery');
+        this.triggerBackgroundRecovery();
+      }
+    });
+  }
+
+  /**
+   * Trigger background recovery - refresh data and ensure connections are healthy
+   */
+  private triggerBackgroundRecovery(): void {
+    try {
+      console.log('[PrayerService] Background recovery triggered');
+      
+      // Ensure we have cached data to show while refreshing
+      const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
+      if (cachedPrayers && cachedPrayers.length > 0) {
+        console.log('[PrayerService] Using cached data during recovery');
+        this.allPrayersSubject.next(cachedPrayers);
+        this.applyFilters(this.currentFilters);
+      }
+      
+      // Silently refresh data in the background
+      this.loadPrayers(true).catch(err => {
+        console.debug('[PrayerService] Recovery refresh failed, keeping cached data visible:', err);
+        // If refresh fails, ensure cached data is shown
+        const cached = this.cache.get<PrayerRequest[]>('prayers');
+        if (cached && cached.length > 0) {
+          this.allPrayersSubject.next(cached);
+          this.applyFilters(this.currentFilters);
+        }
+      });
+      
+      // Restart realtime subscription if it was lost
+      if (!this.realtimeChannel) {
+        console.log('[PrayerService] Restarting realtime subscription after background');
+        this.setupRealtimeSubscription();
+      }
+    } catch (err) {
+      console.error('[PrayerService] Background recovery failed:', err);
+      // Still try to show cached data
+      const cached = this.cache.get<PrayerRequest[]>('prayers');
+      if (cached && cached.length > 0) {
+        console.log('[PrayerService] Showing cached data as fallback');
+        this.allPrayersSubject.next(cached);
+        this.applyFilters(this.currentFilters);
+      }
+    }
   }
 
   /**
