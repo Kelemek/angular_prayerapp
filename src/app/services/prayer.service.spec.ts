@@ -431,4 +431,219 @@ describe('PrayerService', () => {
       expect(error === null || typeof error === 'string').toBe(true);
     });
   });
+
+  describe('updatePrayerStatus', () => {
+    beforeEach(() => {
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService
+      );
+    });
+
+    it('should update prayer status successfully', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: {}, error: null }))
+        }))
+      }));
+
+      const result = await service.updatePrayerStatus('1', 'answered');
+      expect(result).toBe(true);
+    });
+
+    it('should handle update prayer status errors', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: { message: 'Update failed' } }))
+        }))
+      }));
+
+      const result = await service.updatePrayerStatus('1', 'answered');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('addPrayerUpdate', () => {
+    beforeEach(() => {
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService
+      );
+    });
+
+    it('should handle add prayer update errors', async () => {
+      mockSupabaseService.client.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            insert: vi.fn(() => Promise.resolve({ data: null, error: { message: 'Insert failed' } }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: { id: '1' }, error: null }))
+              }))
+            }))
+          };
+        }
+        return null;
+      });
+
+      const result = await service.addPrayerUpdate('1', 'Update', 'Author');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('deletePrayer', () => {
+    beforeEach(() => {
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService
+      );
+    });
+
+    it('should delete prayer successfully', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: {}, error: null }))
+        }))
+      }));
+
+      const result = await service.deletePrayer('1');
+      expect(result).toBe(true);
+    });
+
+    it('should handle delete prayer errors', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: { message: 'Delete failed' } }))
+        }))
+      }));
+
+      const result = await service.deletePrayer('1');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('deletePrayerUpdate', () => {
+    beforeEach(() => {
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService
+      );
+    });
+
+    it('should delete prayer update successfully', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: {}, error: null }))
+        }))
+      }));
+
+      const result = await service.deletePrayerUpdate('u1');
+      expect(result).toBe(true);
+    });
+
+    it('should handle delete prayer update errors', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: { message: 'Delete failed' } }))
+        }))
+      }));
+
+      const result = await service.deletePrayerUpdate('u1');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('applyFilters', () => {
+    beforeEach(() => {
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService
+      );
+    });
+
+    it('should apply status filter', () => {
+      service.applyFilters({ status: 'current' });
+      expect((service as any).currentFilters.status).toBe('current');
+    });
+
+    it('should apply type filter', () => {
+      service.applyFilters({ type: 'prompt' });
+      expect((service as any).currentFilters.type).toBe('prompt');
+    });
+
+    it('should apply search filter', () => {
+      service.applyFilters({ search: 'test query' });
+      expect((service as any).currentFilters.search).toBe('test query');
+    });
+
+    it('should apply multiple filters at once', () => {
+      service.applyFilters({ status: 'answered', search: 'test' });
+      expect((service as any).currentFilters.status).toBe('answered');
+      expect((service as any).currentFilters.search).toBe('test');
+    });
+  });
+
+  describe('loadPrayers', () => {
+    beforeEach(() => {
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService
+      );
+    });
+
+    it('should load prayers from database when cache is empty', async () => {
+      mockCacheService.has = vi.fn(() => false);
+      
+      await service.loadPrayers();
+      
+      expect(mockSupabaseService.client.from).toHaveBeenCalled();
+    });
+
+    it('should handle load errors', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Load failed' }
+            }))
+          }))
+        }))
+      }));
+
+      await service.loadPrayers();
+      
+      // Should handle error gracefully
+      const error = await firstValueFrom(service.error$);
+      expect(error).toBeTruthy();
+    });
+
+    it('should do silent refresh', async () => {
+      await service.loadPrayers(true);
+      
+      // Silent refresh should not show loading state changes
+      expect(mockSupabaseService.client.from).toHaveBeenCalled();
+    });
+  });
 });

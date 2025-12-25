@@ -127,19 +127,9 @@ vi.mock('rxjs/operators', async () => {
 /* 
  * TESTS TEMPORARILY SKIPPED
  * 
- * These tests are skipped due to Angular JIT compilation issues when mocking SupabaseService
- * in the Vitest environment. The site-auth guard now uses SupabaseService to check if users
- * are blocked, which introduces Angular Injectable decorators that require JIT compilation.
- * 
- * The guard works correctly in the actual application. These tests can be re-enabled by:
- * 1. Refactoring the guard to use dependency injection that's easier to mock
- * 2. Creating integration/E2E tests instead of unit tests
- * 3. Finding a way to properly mock @angular/core Injectable in Vitest
- *
- * The blocking functionality is tested manually and works as expected:
- * - Blocked users cannot log in
- * - Blocked users are logged out on next navigation
- * - Unblocked users can access normally
+ * These tests are skipped due to Angular JIT compilation issues when mocking dependencies
+ * in the Vitest environment. The guard works correctly in the actual application. 
+ * These tests can be re-enabled by creating integration/E2E tests instead of unit tests.
  */
 describe.skip('siteAuthGuard', () => {
   beforeEach(() => {
