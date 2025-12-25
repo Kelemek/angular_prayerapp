@@ -349,6 +349,68 @@ describe('AppLogoComponent', () => {
         { attributes: true, attributeFilter: ['class'] }
       );
     });
+
+    it('should update isDarkMode and call updateImageUrl when theme changes', async () => {
+      const updateImageUrlSpy = vi.spyOn(component as any, 'updateImageUrl');
+      component.isDarkMode = false;
+
+      // Start watching
+      (component as any).watchThemeChanges();
+
+      // Simulate theme change by adding dark class
+      document.documentElement.classList.add('dark');
+
+      // Wait for MutationObserver to fire
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(component.isDarkMode).toBe(true);
+      expect(updateImageUrlSpy).toHaveBeenCalled();
+
+      // Clean up
+      document.documentElement.classList.remove('dark');
+    });
+
+    it('should handle theme change from dark to light', async () => {
+      const updateImageUrlSpy = vi.spyOn(component as any, 'updateImageUrl');
+      document.documentElement.classList.add('dark');
+      component.isDarkMode = true;
+
+      // Start watching
+      (component as any).watchThemeChanges();
+
+      // Simulate theme change by removing dark class
+      document.documentElement.classList.remove('dark');
+
+      // Wait for MutationObserver to fire
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(component.isDarkMode).toBe(false);
+      expect(updateImageUrlSpy).toHaveBeenCalled();
+    });
+
+    it('should not update when theme has not actually changed', async () => {
+      const updateImageUrlSpy = vi.spyOn(component as any, 'updateImageUrl');
+      component.isDarkMode = false;
+      document.documentElement.classList.remove('dark'); // Ensure no dark class
+
+      // Start watching
+      (component as any).watchThemeChanges();
+
+      // Trigger mutation without actually changing theme state
+      // This simulates a class change that doesn't affect dark mode
+      document.documentElement.classList.add('other-class');
+
+      // Wait for MutationObserver to fire
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // isDarkMode should remain false since 'dark' class was not added
+      expect(component.isDarkMode).toBe(false);
+      // updateImageUrl should not be called since isDarkMode didn't change
+      expect(updateImageUrlSpy).not.toHaveBeenCalled();
+
+      // Clean up
+      document.documentElement.classList.remove('other-class');
+    });
   });
 
   describe('event emitters', () => {
