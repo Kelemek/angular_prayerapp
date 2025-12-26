@@ -101,4 +101,40 @@ describe('AppRoutes', () => {
     expect(presentationRoute?.data).toBeDefined();
     expect(presentationRoute?.data?.preload).toBe(false);
   });
+
+  it('should lazy load home component successfully', async () => {
+    const rootRoute = routes.find(r => r.path === '');
+    expect(rootRoute?.loadComponent).toBeDefined();
+    if (rootRoute?.loadComponent) {
+      const module = await rootRoute.loadComponent();
+      expect(module).toBeDefined();
+    }
+  });
+
+  it('should lazy load login component successfully', async () => {
+    const loginRoute = routes.find(r => r.path === 'login');
+    expect(loginRoute?.loadComponent).toBeDefined();
+    if (loginRoute?.loadComponent) {
+      const module = await loginRoute.loadComponent();
+      expect(module).toBeDefined();
+    }
+  });
+
+  it('should lazy load admin component successfully', async () => {
+    const adminRoute = routes.find(r => r.path === 'admin');
+    expect(adminRoute?.loadComponent).toBeDefined();
+    if (adminRoute?.loadComponent) {
+      const module = await adminRoute.loadComponent();
+      expect(module).toBeDefined();
+    }
+  });
+
+  it('should lazy load presentation component successfully', async () => {
+    const presentationRoute = routes.find(r => r.path === 'presentation');
+    expect(presentationRoute?.loadComponent).toBeDefined();
+    if (presentationRoute?.loadComponent) {
+      const module = await presentationRoute.loadComponent();
+      expect(module).toBeDefined();
+    }
+  });
 });

@@ -210,6 +210,27 @@ describe('CacheService', () => {
       // Should format with proper size unit (KB or MB)
       expect(entry?.size).toMatch(/Bytes|KB|MB/);
     });
+
+    it('should handle zero bytes in formatBytes', () => {
+      // Access private method for testing edge case
+      const formatBytes = (service as any).formatBytes.bind(service);
+      const result = formatBytes(0);
+      expect(result).toBe('0 Bytes');
+    });
+
+    it('should handle zero bytes with different decimals in formatBytes', () => {
+      // Access private method for testing edge case with different decimal places
+      const formatBytes = (service as any).formatBytes.bind(service);
+      const result = formatBytes(0, 5);
+      expect(result).toBe('0 Bytes');
+    });
+
+    it('should handle negative decimals parameter in formatBytes', () => {
+      // Access private method for testing negative decimals edge case
+      const formatBytes = (service as any).formatBytes.bind(service);
+      const result = formatBytes(1024, -1); // 1KB with negative decimals
+      expect(result).toBe('1 KB');
+    });
   });
 
   describe('cacheObservable', () => {
