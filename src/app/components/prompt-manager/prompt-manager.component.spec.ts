@@ -452,6 +452,60 @@ describe('PromptManagerComponent', () => {
 
       expect(component.csvData).toEqual([]);
     });
+
+    it('should mark row as invalid when type is missing', () => {
+      const csvContent = 'title,type,description\nPrayer1,,Desc1';
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const file = new File([blob], 'test.csv', { type: 'text/csv' });
+      
+      component.prayerTypes = [
+        { name: 'Prayer', display_order: 1, is_active: true }
+      ];
+
+      const event = {
+        target: {
+          files: [file]
+        }
+      } as any;
+
+      component.handleCSVUpload(event);
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(component.csvData).toHaveLength(1);
+          expect(component.csvData[0].valid).toBe(false);
+          expect(component.csvData[0].error).toBe('Missing type');
+          resolve();
+        }, 100);
+      });
+    });
+
+    it('should mark row as invalid when description is missing', () => {
+      const csvContent = 'title,type,description\nPrayer1,Prayer,';
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const file = new File([blob], 'test.csv', { type: 'text/csv' });
+      
+      component.prayerTypes = [
+        { name: 'Prayer', display_order: 1, is_active: true }
+      ];
+
+      const event = {
+        target: {
+          files: [file]
+        }
+      } as any;
+
+      component.handleCSVUpload(event);
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(component.csvData).toHaveLength(1);
+          expect(component.csvData[0].valid).toBe(false);
+          expect(component.csvData[0].error).toBe('Missing description');
+          resolve();
+        }, 100);
+      });
+    });
   });
 
   describe('uploadCSVData', () => {
@@ -622,6 +676,23 @@ describe('PromptManagerComponent', () => {
       await component.handleSubmit(new Event('submit'));
 
       expect(emitSpy).toHaveBeenCalled();
+    });
+
+    it('should refresh search results after submission if user has searched', async () => {
+      component.title = 'Prayer';
+      component.type = 'Prayer';
+      component.description = 'Description';
+      component.hasSearched = true;
+
+      mockSupabaseService.directQuery.mockResolvedValue({
+        data: [],
+        error: null
+      });
+
+      await component.handleSubmit(new Event('submit'));
+
+      // Check that directQuery was called (for handleSearch)
+      expect(mockSupabaseService.directQuery).toHaveBeenCalled();
     });
   });
 

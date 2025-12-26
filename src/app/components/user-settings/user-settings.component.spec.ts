@@ -120,6 +120,29 @@ describe('UserSettingsComponent', () => {
       component.ngOnInit();
       expect(component['emailChange$']).toBeDefined();
     });
+
+    it('should load preferences when email changes after initial load', async () => {
+      const loadPreferencesSpy = vi.spyOn(component as any, 'loadPreferencesAutomatically');
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      });
+
+      component.ngOnInit();
+      
+      // Set isInitialLoad to false to trigger the subscription logic
+      component['isInitialLoad'] = false;
+      
+      // Trigger email change
+      component['emailChange$'].next('newemail@example.com');
+      
+      await vi.runAllTimersAsync();
+      
+      expect(loadPreferencesSpy).toHaveBeenCalledWith('newemail@example.com');
+    });
   });
 
   describe('ngOnChanges', () => {
@@ -224,6 +247,28 @@ describe('UserSettingsComponent', () => {
 
       await component.ngOnChanges(changes);
       await vi.runAllTimersAsync();
+
+      expect(component.receiveNotifications).toBe(true);
+    });
+
+    it('should set receiveNotifications to true when email is empty', () => {
+      localStorage.clear();
+      localStorage.setItem('prayerapp_user_first_name', 'Test');
+      localStorage.setItem('prayerapp_user_last_name', 'User');
+      localStorage.setItem('prayerapp_user_email', '   '); // Empty/whitespace email
+      
+      component.isOpen = false;
+      const changes: SimpleChanges = {
+        isOpen: {
+          currentValue: true,
+          previousValue: false,
+          firstChange: false,
+          isFirstChange: () => false
+        }
+      };
+      
+      component.isOpen = true;
+      component.ngOnChanges(changes);
 
       expect(component.receiveNotifications).toBe(true);
     });
@@ -556,6 +601,61 @@ describe('UserSettingsComponent', () => {
       await vi.advanceTimersByTimeAsync(3000);
       
       expect(component.success).toBeNull();
+    });
+
+    it('should handle update error and revert toggle', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      localStorage.setItem('prayerapp_user_email', 'test@example.com');
+      const initialValue = true;
+      component.receiveNotifications = initialValue;
+
+      const mockExisting = { id: 'sub-123' };
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({ data: mockExisting, error: null }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: new Error('Update failed') }))
+        }))
+      });
+
+      await component.onNotificationToggle();
+
+      expect(component.error).toBeTruthy();
+      expect(component.receiveNotifications).toBe(!initialValue);
+      expect(component.saving).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith('Update error:', expect.any(Error));
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle insert error and revert toggle', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      localStorage.setItem('prayerapp_user_email', 'new@example.com');
+      localStorage.setItem('prayerapp_user_first_name', 'New');
+      localStorage.setItem('prayerapp_user_last_name', 'User');
+      const initialValue = true;
+      component.receiveNotifications = initialValue;
+
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        })),
+        insert: vi.fn(() => Promise.resolve({ data: null, error: new Error('Insert failed') }))
+      });
+
+      await component.onNotificationToggle();
+
+      expect(component.error).toBeTruthy();
+      expect(component.receiveNotifications).toBe(!initialValue);
+      expect(component.saving).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith('Insert error:', expect.any(Error));
+      
+      consoleSpy.mockRestore();
     });
   });
 
