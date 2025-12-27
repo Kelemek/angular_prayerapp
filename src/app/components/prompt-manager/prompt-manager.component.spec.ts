@@ -892,4 +892,62 @@ describe('PromptManagerComponent', () => {
       expect(count).toBe(0);
     });
   });
+
+  describe('handleCSVUpload', () => {
+    it('should handle CSV parsing errors gracefully', (done) => {
+      // Set up prayer types for parsing
+      component.prayerTypes = [{ id: '1', name: 'Prayer', order: 1 }];
+      
+      const file = new File(['title,type,description\nTest,Prayer,Desc'], 'test.csv', { type: 'text/csv' });
+      const event = {
+        target: {
+          files: [file]
+        }
+      } as any;
+      
+      // Spy on console.error to verify error logging
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Mock the FileReader to cause an error during parsing
+      const originalFileReader = global.FileReader;
+      global.FileReader = class MockFileReader {
+        onload: any;
+        readAsText() {
+          // Call onload with data that will cause parsing to fail
+          setTimeout(() => {
+            if (this.onload) {
+              try {
+                // Create an event that causes the split to throw
+                const mockEvent = {
+                  target: {
+                    result: {
+                      split: () => {
+                        throw new Error('Mock parsing error');
+                      }
+                    }
+                  }
+                };
+                this.onload(mockEvent);
+              } catch (e) {
+                // Error is handled in the component
+              }
+            }
+          }, 10);
+        }
+      } as any;
+      
+      component.handleCSVUpload(event);
+      
+      // Wait for processing
+      setTimeout(() => {
+        expect(component.error).toBe('Failed to parse CSV file');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error parsing CSV:', expect.any(Error));
+        
+        // Restore
+        global.FileReader = originalFileReader;
+        consoleErrorSpy.mockRestore();
+        done();
+      }, 100);
+    });
+  });
 });
