@@ -171,6 +171,24 @@ describe('VerificationService', () => {
       expect(sessions.map((s: any) => s.email)).toContain('user2@example.com');
       expect(sessions.map((s: any) => s.email)).toContain('user3@example.com');
     });
+
+    it('should handle localStorage.setItem errors gracefully', () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Mock localStorage.setItem to throw an error
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = vi.fn(() => {
+        throw new Error('QuotaExceededError');
+      });
+
+      // Should not throw
+      expect(() => service.saveVerifiedSession('test@example.com')).not.toThrow();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error saving verification session:', expect.any(Error));
+
+      // Restore
+      localStorage.setItem = originalSetItem;
+      consoleErrorSpy.mockRestore();
+    });
   });
 
   describe('refreshStatus', () => {
@@ -234,6 +252,28 @@ describe('VerificationService', () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
+
+    it('should handle error response from database', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      const fromMock = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Database error', code: 'PGRST116' }
+            }))
+          }))
+        }))
+      }));
+
+      supabaseService.client.from = fromMock;
+
+      await service.refreshStatus();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching verification settings:', { message: 'Database error', code: 'PGRST116' });
+      consoleErrorSpy.mockRestore();
+    });
   });
 
   describe('requestCode', () => {
@@ -243,6 +283,9 @@ describe('VerificationService', () => {
     });
 
     it('should return null if email is recently verified', async () => {
+      // Enable verification first
+      (service as any).isEnabledSubject.next(true);
+      
       // Save a verified session
       service.saveVerifiedSession('test@example.com');
 
@@ -288,6 +331,21 @@ describe('VerificationService', () => {
       ).rejects.toThrow('Function failed');
     });
 
+    it('should handle function errors without message', async () => {
+      (service as any).isEnabledSubject.next(true);
+
+      const invokeMock = vi.fn(() => Promise.resolve({
+        data: null,
+        error: {} // No message property
+      }));
+
+      supabaseService.client.functions = { invoke: invokeMock } as any;
+
+      await expect(
+        service.requestCode('test@example.com', 'prayer_submission', {})
+      ).rejects.toThrow('Failed to send verification code');
+    });
+
     it('should handle data errors', async () => {
       (service as any).isEnabledSubject.next(true);
 
@@ -301,6 +359,36 @@ describe('VerificationService', () => {
       await expect(
         service.requestCode('invalid-email', 'prayer_submission', {})
       ).rejects.toThrow('Invalid email - Email format is incorrect');
+    });
+
+    it('should handle data errors without details', async () => {
+      (service as any).isEnabledSubject.next(true);
+
+      const invokeMock = vi.fn(() => Promise.resolve({
+        data: { error: 'Invalid email' }, // No details property
+        error: null
+      }));
+
+      supabaseService.client.functions = { invoke: invokeMock } as any;
+
+      await expect(
+        service.requestCode('invalid-email', 'prayer_submission', {})
+      ).rejects.toThrow('Invalid email');
+    });
+
+    it('should handle data errors with non-string error', async () => {
+      (service as any).isEnabledSubject.next(true);
+
+      const invokeMock = vi.fn(() => Promise.resolve({
+        data: { error: { code: 'INVALID_FORMAT', message: 'Bad format' } },
+        error: null
+      }));
+
+      supabaseService.client.functions = { invoke: invokeMock } as any;
+
+      await expect(
+        service.requestCode('invalid-email', 'prayer_submission', {})
+      ).rejects.toThrow('{"code":"INVALID_FORMAT","message":"Bad format"}');
     });
 
     it('should handle invalid response', async () => {
@@ -365,6 +453,19 @@ describe('VerificationService', () => {
       await expect(
         service.verifyCode('test@example.com', 'code123', '123456')
       ).rejects.toThrow('Function failed');
+    });
+
+    it('should handle function errors without message', async () => {
+      const invokeMock = vi.fn(() => Promise.resolve({
+        data: null,
+        error: {} // No message property
+      }));
+
+      supabaseService.client.functions = { invoke: invokeMock } as any;
+
+      await expect(
+        service.verifyCode('test@example.com', 'code123', '123456')
+      ).rejects.toThrow('Failed to verify code');
     });
 
     it('should handle data errors', async () => {
@@ -453,6 +554,18 @@ describe('VerificationService', () => {
   });
 
   describe('cleanupExpiredSessions', () => {
+    it('should handle empty localStorage gracefully', () => {
+      // Ensure localStorage is empty
+      localStorage.clear();
+
+      // Trigger cleanup by checking a session that doesn't exist
+      const result = service.isRecentlyVerified('nonexistent@example.com');
+      
+      expect(result).toBe(false);
+      // No error should be thrown and localStorage should remain empty
+      expect(localStorage.getItem('prayer_app_verified_sessions')).toBeNull();
+    });
+
     it('should remove expired sessions from localStorage', () => {
       const now = Date.now();
       const sessions = [
@@ -471,6 +584,34 @@ describe('VerificationService', () => {
       
       expect(remainingSessions).toHaveLength(1);
       expect(remainingSessions[0].email).toBe('valid@example.com');
+    });
+
+    it('should not modify localStorage when all sessions are still valid', () => {
+      const now = Date.now();
+      const sessions = [
+        { email: 'valid1@example.com', verifiedAt: now, expiresAt: now + 60000 },
+        { email: 'valid2@example.com', verifiedAt: now, expiresAt: now + 60000 }
+      ];
+
+      localStorage.setItem('prayer_app_verified_sessions', JSON.stringify(sessions));
+
+      // Try to check an expired session that will trigger cleanup
+      const expired = {
+        email: 'expired@example.com',
+        verifiedAt: now - 20000,
+        expiresAt: now - 10000
+      };
+      localStorage.setItem('prayer_app_verified_sessions', JSON.stringify([...sessions, expired]));
+
+      // Trigger cleanup
+      service.isRecentlyVerified('expired@example.com');
+
+      const sessionsData = localStorage.getItem('prayer_app_verified_sessions');
+      const remainingSessions = JSON.parse(sessionsData!);
+      
+      // Should have removed the expired session
+      expect(remainingSessions).toHaveLength(2);
+      expect(remainingSessions.map((s: any) => s.email)).not.toContain('expired@example.com');
     });
 
     it('should handle invalid JSON data gracefully', () => {
@@ -506,6 +647,36 @@ describe('VerificationService', () => {
 
       const result = service.isRecentlyVerified('test@example.com');
       expect(result).toBe(false);
+    });
+
+    it('should handle localStorage errors during cleanup gracefully', () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      const now = Date.now();
+      const sessions = [
+        { email: 'expired@example.com', verifiedAt: now - 20000, expiresAt: now - 10000 }
+      ];
+
+      localStorage.setItem('prayer_app_verified_sessions', JSON.stringify(sessions));
+
+      // Mock localStorage.setItem to throw an error during cleanup
+      const originalSetItem = localStorage.setItem;
+      const setItemMock = vi.fn((key, value) => {
+        if (key === 'prayer_app_verified_sessions') {
+          throw new Error('Storage error');
+        }
+      });
+      localStorage.setItem = setItemMock as any;
+
+      // This should trigger cleanup
+      const result = service.isRecentlyVerified('expired@example.com');
+      
+      expect(result).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error cleaning up sessions:', expect.any(Error));
+
+      // Restore
+      localStorage.setItem = originalSetItem;
+      consoleErrorSpy.mockRestore();
     });
   });
 });
