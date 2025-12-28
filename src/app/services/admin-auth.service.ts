@@ -40,10 +40,14 @@ export class AdminAuthService {
   private router = inject(Router);
 
   constructor(private supabase: SupabaseService) {
-    this.initializeAuth();
+    this.initializeAuth().catch(error => {
+      console.error('[AdminAuth] initializeAuth failed:', error);
+      this.loadingSubject.next(false);
+    });
   }
 
   private async initializeAuth(): Promise<void> {
+    try {
     // Load timeout settings
     await this.loadTimeoutSettings();
 
@@ -116,7 +120,16 @@ export class AdminAuthService {
 
     // Set up session timeout checks
     this.setupSessionTimeouts();
+    } finally {
+      // Ensure loading is cleared on all code paths (success/error)
+      this.loadingSubject.next(false);
+    }
+  }
 
+  /**
+   * Safety API to clear loading state when external flows need a fallback
+   */
+  public clearLoading(): void {
     this.loadingSubject.next(false);
   }
 

@@ -144,6 +144,8 @@ export class AppComponent implements OnInit {
       const { AdminAuthService } = await import('./services/admin-auth.service');
       const adminAuth = this.injector.get(AdminAuthService);
       await adminAuth.setApprovalSession(existingEmail);
+      // Ensure loading is cleared after approval flow
+      try { adminAuth.clearLoading(); } catch (e) { /* best-effort */ }
       this.router.navigate(['/admin']);
       return;
     }
@@ -167,6 +169,8 @@ export class AppComponent implements OnInit {
 
         // Immediately set admin status
         await adminAuth.setApprovalSession(result.user.email);
+        // Ensure loading is cleared after approval flow
+        try { adminAuth.clearLoading(); } catch (e) { /* best-effort */ }
 
         // Clear URL params
         window.history.replaceState({}, '', window.location.pathname);
@@ -187,6 +191,13 @@ export class AppComponent implements OnInit {
     } catch (error) {
       // Validation error - user can use normal login page
       console.error('Approval code validation failed:', error);
+      try {
+        const { AdminAuthService } = await import('./services/admin-auth.service');
+        const adminAuth = this.injector.get(AdminAuthService);
+        adminAuth.clearLoading();
+      } catch (e) {
+        // ignore if AdminAuthService isn't available
+      }
       this.router.navigate(['/login']);
     }
   }

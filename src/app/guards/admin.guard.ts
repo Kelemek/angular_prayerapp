@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { combineLatest } from 'rxjs';
-import { map, skipWhile } from 'rxjs/operators';
+import { combineLatest, of } from 'rxjs';
+import { map, skipWhile, timeout, catchError } from 'rxjs/operators';
 import { AdminAuthService } from '../services/admin-auth.service';
 
 export const adminGuard = () => {
@@ -24,6 +24,8 @@ export const adminGuard = () => {
   ]).pipe(
     // Skip while loading
     skipWhile(([_, isLoading]) => isLoading),
+    // Fail-fast if loading never resolves
+    timeout(5000),
     // Check admin status
     map(([isAdmin]) => {
       if (!isAdmin) {
@@ -31,6 +33,12 @@ export const adminGuard = () => {
         return false;
       }
       return true;
+    }),
+    catchError(err => {
+      console.error('[adminGuard] timeout or error waiting for admin state:', err);
+      // On timeout or error, navigate to login to avoid hanging the router
+      router.navigate(['/login']);
+      return of(false);
     })
   );
 };
