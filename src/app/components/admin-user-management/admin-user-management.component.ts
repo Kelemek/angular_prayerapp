@@ -387,9 +387,6 @@ export class AdminUserManagementComponent implements OnInit {
       this.loadAdmins();
       this.onSave.emit();
     } catch (err: unknown) {
-      const errorMsg = err && typeof err === 'object' && 'message' in err
-        ? String(err.message)
-        : String(err);
       console.error('Error adding admin:', err);
       this.error = 'Failed to add admin user';
     } finally {
