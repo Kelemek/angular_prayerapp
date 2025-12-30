@@ -1339,4 +1339,173 @@ describe('AdminAuthService', () => {
       }
     });
   });
+
+  describe('Focus/Visibility Change Handler - iOS Edge Fix', () => {
+    it('should re-validate admin status on window focus after background suspension', async () => {
+      let focusHandler: any;
+      vi.spyOn(window, 'addEventListener').mockImplementation((event: any, handler: any) => {
+        if (event === 'focus') {
+          focusHandler = handler;
+        }
+      });
+
+      const mockUser = {
+        id: '123',
+        email: 'admin@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: ''
+      } as any;
+
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: { session: { user: mockUser } },
+        error: null
+      });
+
+      let authCallback: any;
+      mockSupabaseClient.auth.onAuthStateChange = vi.fn((callback) => {
+        authCallback = callback;
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      });
+
+      // Mock directQuery to return admin status
+      mockSupabaseService.directQuery = vi.fn()
+        .mockResolvedValueOnce({ data: null, error: null }) // initial load
+        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }) // first checkAdminStatus
+        .mockResolvedValueOnce({ 
+          data: [{ 
+            inactivity_timeout_minutes: 30, 
+            require_site_login: true 
+          }], 
+          error: null 
+        }) // focus event timeout settings
+        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }); // focus event admin re-validation
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Verify initial admin status was set
+      let isAdmin = await firstValueFrom(newService.isAdmin$);
+      expect(isAdmin).toBe(true);
+
+      // Trigger focus event (simulating app return from background)
+      expect(focusHandler).toBeDefined();
+      if (focusHandler) {
+        focusHandler();
+        await vi.advanceTimersByTimeAsync(200); // Wait longer for async operations
+      }
+
+      // Verify checkAdminStatus was called again during focus
+      // Should have been called at least twice (initial + focus event)
+      expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
+        'email_subscribers',
+        expect.objectContaining({
+          eq: { email: 'admin@example.com', is_admin: true }
+        })
+      );
+    });
+
+    it('should re-validate admin status on visibilitychange when page becomes visible', async () => {
+      let visibilityChangeHandler: any;
+      vi.spyOn(document, 'addEventListener').mockImplementation((event: any, handler: any) => {
+        if (event === 'visibilitychange') {
+          visibilityChangeHandler = handler;
+        }
+      });
+
+      const mockUser = {
+        id: '123',
+        email: 'admin@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: ''
+      } as any;
+
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: { session: { user: mockUser } },
+        error: null
+      });
+
+      mockSupabaseClient.auth.onAuthStateChange = vi.fn((callback) => {
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      });
+
+      mockSupabaseService.directQuery = vi.fn()
+        .mockResolvedValueOnce({ data: null, error: null }) // initial load
+        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }) // first checkAdminStatus
+        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }); // visibilitychange re-validation
+
+      Object.defineProperty(document, 'hidden', {
+        writable: true,
+        value: false
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      let isAdmin = await firstValueFrom(newService.isAdmin$);
+      expect(isAdmin).toBe(true);
+
+      // Trigger visibilitychange event (page becomes visible)
+      expect(visibilityChangeHandler).toBeDefined();
+      if (visibilityChangeHandler) {
+        visibilityChangeHandler();
+        await vi.advanceTimersByTimeAsync(200); // Wait for async operations
+      }
+
+      // Verify admin status was re-checked
+      expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
+        'email_subscribers',
+        expect.objectContaining({
+          eq: { email: 'admin@example.com', is_admin: true }
+        })
+      );
+    });
+
+    it('should not trigger re-validation if page stays hidden on visibilitychange', async () => {
+      let visibilityChangeHandler: any;
+      vi.spyOn(document, 'addEventListener').mockImplementation((event: any, handler: any) => {
+        if (event === 'visibilitychange') {
+          visibilityChangeHandler = handler;
+        }
+      });
+
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: { session: null },
+        error: null
+      });
+
+      mockSupabaseClient.auth.onAuthStateChange = vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } }
+      }));
+
+      mockSupabaseService.directQuery = vi.fn()
+        .mockResolvedValueOnce({ data: null, error: null }); // initial load
+
+      Object.defineProperty(document, 'hidden', {
+        writable: true,
+        value: true // Page is hidden
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      const initialCallCount = mockSupabaseService.directQuery.mock.calls.length;
+
+      // Trigger visibilitychange event while page is still hidden
+      if (visibilityChangeHandler) {
+        visibilityChangeHandler();
+        await vi.advanceTimersByTimeAsync(100);
+      }
+
+      // No additional directQuery calls should happen when page stays hidden
+      expect(mockSupabaseService.directQuery.mock.calls.length).toBe(initialCallCount);
+    });
+
+  });
 });
