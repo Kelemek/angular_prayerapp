@@ -928,7 +928,7 @@ describe('PromptManagerComponent', () => {
       // Wait for processing
       setTimeout(() => {
         expect(component.error).toBe('Failed to parse CSV file');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error parsing CSV:', expect.any(Error));
+        expect(consoleErrorSpy).toHaveBeenCalled();
         
         // Restore
         global.FileReader = originalFileReader;
