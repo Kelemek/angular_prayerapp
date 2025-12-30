@@ -25,8 +25,7 @@ export class AdminService {
     const serviceKey = import.meta.env['VITE_SUPABASE_SERVICE_KEY'] as string;
     
     if (!serviceKey) {
-      console.error('VITE_SUPABASE_SERVICE_KEY not found in environment variables');
-      console.error('Available keys:', Object.keys(import.meta.env));
+      AdminService.reportMissingServiceKey(import.meta.env);
     }
     
     // Create a separate client with service role key for admin operations
@@ -112,5 +111,13 @@ export class AdminService {
    */
   query(tableName: string) {
     return this.adminClient.from(tableName);
+  }
+
+  /**
+   * Helper to report missing service key — extracted for testability.
+   */
+  private static reportMissingServiceKey(env: any) {
+    console.error('VITE_SUPABASE_SERVICE_KEY not found in environment variables');
+    console.error('Available keys:', Object.keys(env));
   }
 }

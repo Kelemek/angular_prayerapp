@@ -58,19 +58,11 @@ describe('AdminService', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith('Service key exists?', expect.any(Boolean));
   });
 
-  // Note: This test is skipped because import.meta.env is readonly in the actual environment
-  // and mocking it in tests doesn't work reliably. The functionality is tested in integration tests.
-  it.skip('should log error if service key is not found', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
-    // Mock missing service key
-    (import.meta as any).env = {};
-    
-    new AdminService();
-    
-    expect(errorSpy).toHaveBeenCalledWith('VITE_SUPABASE_SERVICE_KEY not found in environment variables');
-    
-    errorSpy.mockRestore();
+  it('should log error if service key is not found', () => {
+    // Call helper directly to avoid env mutation issues in test environment
+    (AdminService as any).reportMissingServiceKey({});
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('VITE_SUPABASE_SERVICE_KEY not found in environment variables');
   });
 
   describe('getAdminSettings', () => {
