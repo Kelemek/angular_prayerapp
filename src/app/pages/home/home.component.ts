@@ -239,7 +239,9 @@ import type { User } from '@supabase/supabase-js';
           <!-- Empty State for Prayers -->
           <div *ngIf="activeFilter !== 'prompts' && (prayers$ | async)?.length === 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-              No prayer requests yet
+              <span *ngIf="activeFilter === 'current'">No current prayer requests yet</span>
+              <span *ngIf="activeFilter === 'answered'">No answered prayers yet</span>
+              <span *ngIf="activeFilter === 'total'">No prayer requests yet</span>
             </h3>
             <p class="text-gray-500 dark:text-gray-400">
               Be the first to add a prayer request to build your church's prayer community.
@@ -264,7 +266,7 @@ import type { User } from '@supabase/supabase-js';
           <!-- Empty State for Prompts -->
           <div *ngIf="activeFilter === 'prompts' && (prompts$ | async)?.length === 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-              No prompts yet
+              No prayer prompts yet
             </h3>
             <p class="text-gray-500 dark:text-gray-400">
               Prompts help guide prayer requests.
