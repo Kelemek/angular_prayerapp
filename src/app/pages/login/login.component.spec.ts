@@ -476,4 +476,54 @@ describe('LoginComponent', () => {
     await (comp as any).fetchCodeLength();
     expect(comp.codeLength).toBe(4);
   });
+
+  it('saveNewSubscriber handles email notification failure but still shows pending approval', async () => {
+    const compMocks = makeMocks();
+    // rpc resolves successfully
+    compMocks.supabaseService.client.rpc = vi.fn(async () => ({ data: 999, error: null }));
+    // email send fails
+    compMocks.emailNotificationService.sendAccountApprovalNotification = vi.fn(async () => { throw new Error('smtp fail'); });
+
+    const comp = new LoginComponent(
+      compMocks.adminAuthService,
+      compMocks.supabaseService,
+      compMocks.emailNotificationService,
+      compMocks.themeService,
+      compMocks.router,
+      compMocks.route,
+      compMocks.cdr
+    );
+    comp.email = 'notify@x.com';
+    comp.firstName = 'A';
+    comp.lastName = 'B';
+    comp.requiresApproval = true;
+
+    const res = await comp.saveNewSubscriber();
+    expect(res).toBe(true);
+    expect(comp.showPendingApproval).toBe(true);
+  });
+
+  it('saveNewSubscriber handles directMutation save error and surfaces friendly message', async () => {
+    const compMocks = makeMocks();
+    // simulate directMutation error
+    compMocks.supabaseService.directMutation = vi.fn(async () => ({ data: null, error: { message: 'Insert failed', status: 500 } }));
+
+    const comp = new LoginComponent(
+      compMocks.adminAuthService,
+      compMocks.supabaseService,
+      compMocks.emailNotificationService,
+      compMocks.themeService,
+      compMocks.router,
+      compMocks.route,
+      compMocks.cdr
+    );
+    comp.email = 'savefail@x.com';
+    comp.firstName = 'A';
+    comp.lastName = 'B';
+    comp.requiresApproval = false;
+
+    const res = await comp.saveNewSubscriber();
+    expect(res).toBe(false);
+    expect(comp.error).toContain('Failed to save subscriber');
+  });
 });

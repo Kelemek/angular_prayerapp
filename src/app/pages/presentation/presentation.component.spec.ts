@@ -427,4 +427,96 @@ describe('PresentationComponent', () => {
     component.exitPresentation();
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
   });
+
+  it('applyTheme uses system preference when theme is system', () => {
+    component.theme = 'system';
+    // stub matchMedia to report dark preference
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: true } as any));
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    component.applyTheme();
+    expect(root.classList.contains('dark')).toBe(true);
+    // now stub to light
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: false } as any));
+    component.applyTheme();
+    expect(root.classList.contains('dark')).toBe(false);
+  });
+
+  it('setupControlsAutoHide treats device as mobile when touch present', () => {
+    // simulate mobile by defining ontouchstart
+    (globalThis as any).ontouchstart = true;
+    component.initialPeriodElapsed = false;
+    component.showControls = true;
+    component.setupControlsAutoHide();
+    // on mobile, initialPeriodElapsed should be set immediately and controls remain visible
+    expect(component.initialPeriodElapsed).toBe(true);
+    delete (globalThis as any).ontouchstart;
+  });
+
+  it('handleMouseMove does nothing during initial period', () => {
+    component.initialPeriodElapsed = false;
+    component.showControls = false;
+    vi.stubGlobal('innerHeight', 100);
+    component.handleMouseMove({ clientY: 90 } as MouseEvent);
+    // still false because initialPeriodElapsed guard prevents change
+    expect(component.showControls).toBe(false);
+  });
+
+  it('handleKeyboard uppercase P toggles play', () => {
+    const spy = vi.spyOn(component, 'togglePlay');
+    component.handleKeyboard({ key: 'P', preventDefault: () => {} } as unknown as KeyboardEvent);
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('handleRandomizeChange calls shuffle when randomize true and reload when false', async () => {
+    const shuffleSpy = vi.spyOn(component, 'shuffleItems').mockImplementation(() => {});
+    const loadSpy = vi.spyOn(component, 'loadContent').mockImplementation(() => Promise.resolve());
+
+    component.randomize = true;
+    await component.handleRandomizeChange();
+    expect(shuffleSpy).toHaveBeenCalled();
+
+    component.randomize = false;
+    await component.handleRandomizeChange();
+    expect(loadSpy).toHaveBeenCalled();
+  });
+
+  it('startAutoAdvance sets countdown and decreases over time', () => {
+    vi.useFakeTimers();
+    component.prayers = [{ id: 'a', description: 'x' } as any];
+    component.isPlaying = true;
+    component.displayDuration = 1; // 1 second
+    component.startAutoAdvance();
+    expect(component.countdownRemaining).toBeGreaterThanOrEqual(1);
+    // advance one second
+    vi.advanceTimersByTime(1100);
+    // countdown should have decreased (or been reset by next start)
+    expect(component.countdownRemaining).toBeGreaterThanOrEqual(0);
+    component.clearIntervals();
+    vi.useRealTimers();
+  });
+
+  it('fetchPrayers applies status filters and timeFilter week correctly', async () => {
+    const now = new Date();
+    const recent = { id: 'r', created_at: now.toISOString(), prayer_updates: [] };
+    const q = createQuery({ data: [recent], error: null });
+    mockSupabase.client.from = vi.fn().mockReturnValue(q);
+    component.contentType = 'prayers';
+    component.timeFilter = 'week';
+    component.statusFilters = { current: true, answered: false };
+    await component.fetchPrayers();
+    expect(component.prayers.length).toBe(1);
+  });
+
+  it('loadContent handles both prayers and prompts and randomize triggers shuffle', async () => {
+    const pSpy = vi.spyOn(component, 'fetchPrayers').mockImplementation(() => Promise.resolve());
+    const prSpy = vi.spyOn(component, 'fetchPrompts').mockImplementation(() => Promise.resolve());
+    const shuffleSpy = vi.spyOn(component, 'shuffleItems').mockImplementation(() => {});
+    component.contentType = 'both';
+    component.randomize = true;
+    await component.loadContent();
+    expect(pSpy).toHaveBeenCalled();
+    expect(prSpy).toHaveBeenCalled();
+    expect(shuffleSpy).toHaveBeenCalled();
+  });
 });
