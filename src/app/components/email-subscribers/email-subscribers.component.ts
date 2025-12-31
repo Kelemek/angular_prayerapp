@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
-import { lookupPersonByEmail } from '../../../lib/planning-center';
+import { lookupPersonByEmail, batchLookupPlanningCenter } from '../../../lib/planning-center';
 import { environment } from '../../../environments/environment';
 
 interface EmailSubscriber {
@@ -112,11 +112,24 @@ interface CSVRow {
 
       <!-- Success Message -->
       @if (csvSuccess) {
-      <div class="mb-4 flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-        <svg class="text-green-600 dark:text-green-400 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+        <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-        <span class="text-green-800 dark:text-green-200 text-sm">{{ csvSuccess }}</span>
+        <div class="flex-1">
+          <span class="text-green-800 dark:text-green-200 text-sm">{{ csvSuccess }}</span>
+          <!-- Planning Center Check Warnings -->
+          @if (csvImportWarnings.length > 0) {
+          <div class="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+            <p class="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-1">⚠️ Planning Center Lookup Issues:</p>
+            <ul class="space-y-1">
+              @for (warning of csvImportWarnings; track warning) {
+              <li class="text-xs text-orange-700 dark:text-orange-300">• {{ warning }}</li>
+              }
+            </ul>
+          </div>
+          }
+        </div>
       </div>
       }
 
@@ -136,11 +149,32 @@ interface CSVRow {
           </div>
         </div>
 
+        <!-- Upload Progress Bar -->
+        @if (uploadingCSV && csvImportTotal > 0) {
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+              Checking Planning Center: {{ csvImportProgress }}/{{ csvImportTotal }}
+            </span>
+            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+              {{ Math.round((csvImportProgress / csvImportTotal) * 100) }}%
+            </span>
+          </div>
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div 
+              class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+              [style.width.%]="(csvImportProgress / csvImportTotal) * 100"
+            ></div>
+          </div>
+        </div>
+        }
+
         <input
           type="file"
           accept=".csv"
           (change)="handleCSVUpload($event)"
-          class="block w-full text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-800 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300"
+          [disabled]="uploadingCSV"
+          class="block w-full text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-800 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
         />
 
         @if (csvData.length > 0) {
@@ -470,6 +504,11 @@ export class EmailSubscribersComponent implements OnInit {
   submitting = false;
   error: string | null = null;
   csvSuccess: string | null = null;
+  
+  // CSV import progress tracking
+  csvImportProgress = 0;
+  csvImportTotal = 0;
+  csvImportWarnings: string[] = [];
 
   // Pagination properties
   currentPage = 1;
@@ -845,6 +884,9 @@ export class EmailSubscribersComponent implements OnInit {
       this.uploadingCSV = true;
       this.error = null;
       this.csvSuccess = null;
+      this.csvImportWarnings = [];
+      this.csvImportProgress = 0;
+      this.csvImportTotal = validRows.length;
       this.cdr.markForCheck();
 
       // Check for existing emails
@@ -864,38 +906,61 @@ export class EmailSubscribersComponent implements OnInit {
         return;
       }
 
-      // Check Planning Center for each new email
-      const subscribersToInsert = await Promise.all(
-        newRows.map(async (r) => {
-          let inPlanningCenter: boolean | null = null;
-          let planningCenterCheckedAt: string | null = null;
-          
-          try {
-            const pcResult = await lookupPersonByEmail(
-              r.email.toLowerCase(),
-              environment.supabaseUrl,
-              environment.supabaseAnonKey
-            );
-            inPlanningCenter = pcResult.count > 0;
-            planningCenterCheckedAt = new Date().toISOString();
-            console.log(`[CSV Import] Planning Center check for ${r.email}: ${inPlanningCenter}`);
-          } catch (pcError) {
-            console.error(`[CSV Import] Planning Center check failed for ${r.email}:`, pcError);
-            // Continue with null values if check fails
+      // Batch Planning Center lookups with progress tracking
+      console.log(`[CSV Import] Starting batched Planning Center lookups for ${newRows.length} new subscribers...`);
+      const newEmails = newRows.map(r => r.email.toLowerCase());
+      
+      const batchResults = await batchLookupPlanningCenter(
+        newEmails,
+        environment.supabaseUrl,
+        environment.supabaseAnonKey,
+        {
+          concurrency: 5, // Max 5 concurrent requests at a time
+          maxRetries: 3,
+          retryDelayMs: 500,
+          onProgress: (completed, total) => {
+            this.csvImportProgress = completed;
+            this.csvImportTotal = total;
+            this.cdr.markForCheck();
           }
-          
-          return {
-            name: r.name,
-            email: r.email.toLowerCase(),
-            is_active: true,
-            is_admin: false,
-            receive_admin_emails: false,
-            in_planning_center: inPlanningCenter,
-            planning_center_checked_at: planningCenterCheckedAt
-          };
-        })
+        }
       );
 
+      // Create lookup map for easy access
+      const resultMap = new Map(batchResults.map(r => [r.email, r]));
+
+      // Track failures and warnings
+      let failedLookups = 0;
+      const subscribersToInsert = newRows.map((r) => {
+        const result = resultMap.get(r.email.toLowerCase());
+        let inPlanningCenter: boolean | null = null;
+        let planningCenterCheckedAt: string | null = null;
+
+        if (result) {
+          if (result.failed) {
+            failedLookups++;
+            const warning = `Planning Center check failed for ${r.email} (retried ${result.retries} times)`;
+            this.csvImportWarnings.push(warning);
+            console.warn(`[CSV Import] ${warning}`);
+          } else {
+            inPlanningCenter = result.result.count > 0;
+            planningCenterCheckedAt = new Date().toISOString();
+            console.log(`[CSV Import] Planning Center check for ${r.email}: ${inPlanningCenter}`);
+          }
+        }
+
+        return {
+          name: r.name,
+          email: r.email.toLowerCase(),
+          is_active: true,
+          is_admin: false,
+          receive_admin_emails: false,
+          in_planning_center: inPlanningCenter,
+          planning_center_checked_at: planningCenterCheckedAt
+        };
+      });
+
+      // Insert all subscribers
       const { error } = await this.supabase.client
         .from('email_subscribers')
         .insert(subscribersToInsert);
@@ -903,13 +968,21 @@ export class EmailSubscribersComponent implements OnInit {
       if (error) throw error;
 
       const skipped = validRows.length - newRows.length;
+      let successMessage = `Successfully added ${newRows.length} subscriber(s)`;
+      
       if (skipped > 0) {
-        this.csvSuccess = `Successfully added ${newRows.length} subscriber(s). Skipped ${skipped} duplicate(s).`;
-      } else {
-        this.csvSuccess = `Successfully added ${validRows.length} subscriber(s)!`;
-        this.csvData = [];
-        this.showCSVUpload = false;
+        successMessage += `. Skipped ${skipped} duplicate(s)`;
       }
+      
+      if (failedLookups > 0) {
+        successMessage += `. ⚠️ Planning Center checks failed for ${failedLookups} email(s) (see details below)`;
+      } else {
+        successMessage += '!';
+      }
+
+      this.csvSuccess = successMessage;
+      this.csvData = [];
+      this.showCSVUpload = false;
 
       await this.handleSearch();
       this.cdr.markForCheck();
@@ -919,6 +992,8 @@ export class EmailSubscribersComponent implements OnInit {
       this.cdr.markForCheck();
     } finally {
       this.uploadingCSV = false;
+      this.csvImportProgress = 0;
+      this.csvImportTotal = 0;
       this.cdr.markForCheck();
     }
   }

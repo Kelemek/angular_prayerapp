@@ -167,6 +167,97 @@ export async function lookupPersonByEmail(email: string, supabaseUrl: string, su
 }
 
 /**
+ * Batched Planning Center lookups with concurrency control and retry logic
+ * Limits concurrent requests to avoid rate limiting and provides progress updates
+ */
+export interface BatchLookupOptions {
+  concurrency?: number; // Max concurrent requests (default: 5)
+  maxRetries?: number; // Max retry attempts per email (default: 3)
+  retryDelayMs?: number; // Initial retry delay in ms (default: 1000)
+  onProgress?: (completed: number, total: number) => void; // Progress callback
+}
+
+export interface BatchLookupResult {
+  email: string;
+  result: EmailLookupResult;
+  retries: number;
+  failed: boolean;
+}
+
+export async function batchLookupPlanningCenter(
+  emails: string[],
+  supabaseUrl: string,
+  supabaseKey: string,
+  options: BatchLookupOptions = {}
+): Promise<BatchLookupResult[]> {
+  const {
+    concurrency = 5,
+    maxRetries = 3,
+    retryDelayMs = 1000,
+    onProgress
+  } = options;
+
+  const results: BatchLookupResult[] = [];
+  const queue = [...emails];
+  let completed = 0;
+
+  // Process emails in batches
+  while (queue.length > 0) {
+    const batch = queue.splice(0, concurrency);
+
+    const batchPromises = batch.map(async (email) => {
+      let lastError: Error | null = null;
+
+      // Retry logic with exponential backoff
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const result = await lookupPersonByEmail(email, supabaseUrl, supabaseKey);
+          completed++;
+          onProgress?.(completed, emails.length);
+
+          return {
+            email,
+            result,
+            retries: attempt,
+            failed: !!result.error
+          };
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+
+          // If not the last attempt, wait before retrying
+          if (attempt < maxRetries) {
+            const delay = retryDelayMs * Math.pow(2, attempt); // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, delay));
+            console.log(
+              `[Planning Center] Retry ${attempt + 1}/${maxRetries} for ${email} after ${delay}ms`
+            );
+          }
+        }
+      }
+
+      // All retries failed
+      completed++;
+      onProgress?.(completed, emails.length);
+
+      return {
+        email,
+        result: {
+          people: [],
+          count: 0,
+          error: lastError?.message || 'Failed after all retries'
+        },
+        retries: maxRetries,
+        failed: true
+      };
+    });
+
+    results.push(...await Promise.all(batchPromises));
+  }
+
+  return results;
+}
+
+/**
  * Format a Planning Center person's name
  */
 export function formatPersonName(person: PlanningCenterPerson): string {

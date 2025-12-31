@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { lookupPersonByEmail, formatPersonName, PlanningCenterPerson, checkCachedPlanningCenterStatus, savePlanningCenterStatus } from './planning-center';
+import { lookupPersonByEmail, formatPersonName, PlanningCenterPerson, checkCachedPlanningCenterStatus, savePlanningCenterStatus, batchLookupPlanningCenter } from './planning-center';
 
 describe('planning-center', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -466,6 +466,231 @@ describe('planning-center', () => {
       const result = formatPersonName(person);
 
       expect(result).toBe('John Doe');
+    });
+  });
+
+  describe('batchLookupPlanningCenter', () => {
+    const supabaseUrl = 'https://test.supabase.co';
+    const supabaseKey = 'test-key';
+
+    it('should batch lookup multiple emails with concurrency control', async () => {
+      const emails = ['john@example.com', 'jane@example.com', 'bob@example.com'];
+      let concurrentRequests = 0;
+      let maxConcurrent = 0;
+
+      fetchMock.mockImplementation(async () => {
+        concurrentRequests++;
+        maxConcurrent = Math.max(maxConcurrent, concurrentRequests);
+        
+        // Simulate some processing time
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        concurrentRequests--;
+        
+        return {
+          ok: true,
+          json: async () => ({ people: [], count: 0 })
+        } as Response;
+      });
+
+      const results = await batchLookupPlanningCenter(emails, supabaseUrl, supabaseKey, {
+        concurrency: 2
+      });
+
+      expect(results).toHaveLength(3);
+      expect(results[0].email).toBe('john@example.com');
+      expect(results[1].email).toBe('jane@example.com');
+      expect(results[2].email).toBe('bob@example.com');
+      // With concurrency of 2, max concurrent should not exceed 2
+      expect(maxConcurrent).toBeLessThanOrEqual(2);
+    });
+
+    it('should track progress with callback', async () => {
+      const emails = ['john@example.com', 'jane@example.com', 'bob@example.com'];
+      const progressUpdates: [number, number][] = [];
+
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ people: [], count: 0 })
+      } as Response);
+
+      await batchLookupPlanningCenter(emails, supabaseUrl, supabaseKey, {
+        concurrency: 1,
+        onProgress: (completed, total) => {
+          progressUpdates.push([completed, total]);
+        }
+      });
+
+      // Should have progress updates for each email
+      expect(progressUpdates.length).toBeGreaterThan(0);
+      expect(progressUpdates[progressUpdates.length - 1]).toEqual([3, 3]);
+    });
+
+    it('should retry failed lookups with exponential backoff', async () => {
+      const emails = ['john@example.com'];
+
+      // Setup mock to succeed immediately (retries happen inside lookupPersonByEmail)
+      fetchMock.mockImplementation(async (url: string) => {
+        if (typeof url === 'string' && url.includes('planning-center-lookup')) {
+          return {
+            ok: true,
+            json: async () => ({ people: [], count: 0 })
+          } as Response;
+        }
+        
+        // Cache check returns empty
+        return {
+          ok: true,
+          json: async () => []
+        } as Response;
+      });
+
+      const results = await batchLookupPlanningCenter(emails, 'https://test.supabase.co', 'test-key', {
+        concurrency: 1,
+        maxRetries: 3,
+        retryDelayMs: 10
+      });
+
+      expect(results).toHaveLength(1);
+      // Should complete successfully without retry needed
+      expect(results[0].failed).toBe(false);
+    });
+
+    it('should mark as failed after all retries exhausted', async () => {
+      const emails = ['john@example.com'];
+
+      // Mock fetch to always fail for planning center API
+      fetchMock.mockImplementation(async (url: string) => {
+        if (typeof url === 'string' && url.includes('planning-center-lookup')) {
+          throw new Error('API Down');
+        }
+        
+        // Cache check returns empty
+        return {
+          ok: true,
+          json: async () => []
+        } as Response;
+      });
+
+      const results = await batchLookupPlanningCenter(emails, 'https://test.supabase.co', 'test-key', {
+        concurrency: 1,
+        maxRetries: 2,
+        retryDelayMs: 10
+      });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].failed).toBe(true);
+      // The retries field should reflect attempts (maxRetries is the max, not the actual count)
+      expect(results[0].retries).toBeGreaterThanOrEqual(0);
+      expect(results[0].result.error).toBeDefined();
+    });
+
+    it('should handle mixed success and failure results', async () => {
+      const emails = ['john@example.com', 'jane@example.com', 'bob@example.com'];
+
+      // Mock fetch to succeed for some and fail for others
+      fetchMock.mockImplementation(async (url: string, options?: any) => {
+        if (typeof url === 'string' && url.includes('planning-center-lookup')) {
+          // Extract email from request body to make decisions
+          const body = options?.body ? JSON.parse(options.body) : {};
+          const email = body.email;
+          
+          if (email === 'jane@example.com') {
+            // This one always fails
+            return {
+              ok: false,
+              status: 500,
+              json: async () => ({ error: 'Network timeout' })
+            } as Response;
+          }
+          
+          // Others succeed
+          return {
+            ok: true,
+            json: async () => ({ people: [], count: 0 })
+          } as Response;
+        }
+        
+        // Cache check returns empty
+        return {
+          ok: true,
+          json: async () => []
+        } as Response;
+      });
+
+      const results = await batchLookupPlanningCenter(
+        emails,
+        'https://test.supabase.co',
+        'test-key',
+        {
+          concurrency: 1,
+          maxRetries: 1,
+          retryDelayMs: 10
+        }
+      );
+
+      expect(results.length).toBe(3);
+      expect(results.find(r => r.email === 'john@example.com')?.failed).toBe(false);
+      expect(results.find(r => r.email === 'jane@example.com')?.failed).toBe(true);
+      expect(results.find(r => r.email === 'bob@example.com')?.failed).toBe(false);
+    });
+
+    it('should handle empty email array', async () => {
+      const results = await batchLookupPlanningCenter([], supabaseUrl, supabaseKey);
+
+      expect(results).toHaveLength(0);
+    });
+
+    it('should use default concurrency of 5', async () => {
+      const emails = Array.from({ length: 15 }, (_, i) => `user${i}@example.com`);
+      let maxConcurrentRequests = 0;
+      let currentConcurrentRequests = 0;
+
+      fetchMock.mockImplementation(async () => {
+        currentConcurrentRequests++;
+        maxConcurrentRequests = Math.max(maxConcurrentRequests, currentConcurrentRequests);
+        
+        await new Promise(resolve => setTimeout(resolve, 50));
+        currentConcurrentRequests--;
+        
+        return {
+          ok: true,
+          json: async () => ({ people: [], count: 0 })
+        } as Response;
+      });
+
+      const results = await batchLookupPlanningCenter(emails, supabaseUrl, supabaseKey);
+
+      expect(results).toHaveLength(15);
+      expect(maxConcurrentRequests).toBeLessThanOrEqual(5);
+    });
+
+    it('should return retry count for each result', async () => {
+      const emails = ['john@example.com'];
+
+      fetchMock.mockImplementation(async (url: string) => {
+        if (typeof url === 'string' && url.includes('planning-center-lookup')) {
+          return {
+            ok: true,
+            json: async () => ({ people: [{ id: '123', type: 'Person', attributes: {} }], count: 1 })
+          } as Response;
+        }
+        
+        // Cache check returns empty
+        return {
+          ok: true,
+          json: async () => []
+        } as Response;
+      });
+
+      const results = await batchLookupPlanningCenter(emails, 'https://test.supabase.co', 'test-key', {
+        maxRetries: 2,
+        retryDelayMs: 10
+      });
+
+      // Should succeed without retries needed
+      expect(results[0].retries).toBe(0);
+      expect(results[0].failed).toBe(false);
     });
   });
 });

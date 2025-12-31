@@ -6,7 +6,8 @@ import { ChangeDetectorRef } from '@angular/core';
 import * as planningCenter from '../../../lib/planning-center';
 
 vi.mock('../../../lib/planning-center', () => ({
-  lookupPersonByEmail: vi.fn()
+  lookupPersonByEmail: vi.fn(),
+  batchLookupPlanningCenter: vi.fn()
 }));
 
 describe('EmailSubscribersComponent', () => {
@@ -525,11 +526,21 @@ describe('EmailSubscribersComponent', () => {
         error: null
       });
 
-      // Mock Planning Center lookups
-      vi.mocked(planningCenter.lookupPersonByEmail).mockResolvedValue({
-        people: [],
-        count: 0
-      });
+      // Mock batched Planning Center lookups
+      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
+        {
+          email: 'john@example.com',
+          result: { people: [], count: 0 },
+          retries: 0,
+          failed: false
+        },
+        {
+          email: 'jane@example.com',
+          result: { people: [], count: 0 },
+          retries: 0,
+          failed: false
+        }
+      ]);
 
       const insertSpy = vi.fn().mockResolvedValue({ error: null });
       mockSupabaseService.client.from().insert = insertSpy;
@@ -540,7 +551,7 @@ describe('EmailSubscribersComponent', () => {
 
       expect(component.csvSuccess).toContain('Successfully added');
       expect(searchSpy).toHaveBeenCalled();
-      expect(planningCenter.lookupPersonByEmail).toHaveBeenCalledTimes(2);
+      expect(planningCenter.batchLookupPlanningCenter).toHaveBeenCalled();
       expect(insertSpy).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
@@ -597,8 +608,21 @@ describe('EmailSubscribersComponent', () => {
         error: null
       });
 
-      // Mock Planning Center to fail for all lookups
-      vi.mocked(planningCenter.lookupPersonByEmail).mockRejectedValue(new Error('PC API down'));
+      // Mock Planning Center batch lookup to return some failures
+      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
+        {
+          email: 'john@example.com',
+          result: { people: [], count: 0, error: 'API timeout' },
+          retries: 3,
+          failed: true
+        },
+        {
+          email: 'jane@example.com',
+          result: { people: [], count: 0 },
+          retries: 0,
+          failed: false
+        }
+      ]);
 
       const insertSpy = vi.fn().mockResolvedValue({ error: null });
       mockSupabaseService.client.from().insert = insertSpy;
@@ -607,8 +631,9 @@ describe('EmailSubscribersComponent', () => {
 
       await component.uploadCSVData();
 
-      // Should still succeed with null Planning Center values
+      // Should still succeed despite Planning Center check failures
       expect(component.csvSuccess).toContain('Successfully added');
+      expect(component.csvImportWarnings.length).toBeGreaterThan(0);
       expect(insertSpy).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
@@ -618,6 +643,138 @@ describe('EmailSubscribersComponent', () => {
           })
         ])
       );
+    });
+
+    it('should show warning for failed Planning Center checks', async () => {
+      component.csvData = [
+        { name: 'John', email: 'john@example.com', valid: true },
+        { name: 'Jane', email: 'jane@example.com', valid: true },
+        { name: 'Bob', email: 'bob@example.com', valid: true }
+      ];
+
+      mockSupabaseService.client.from().select().in.mockResolvedValue({
+        data: [],
+        error: null
+      });
+
+      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
+        {
+          email: 'john@example.com',
+          result: { people: [], count: 0 },
+          retries: 0,
+          failed: false
+        },
+        {
+          email: 'jane@example.com',
+          result: { people: [], count: 0, error: 'Network timeout' },
+          retries: 3,
+          failed: true
+        },
+        {
+          email: 'bob@example.com',
+          result: { people: [], count: 0, error: 'API error' },
+          retries: 2,
+          failed: true
+        }
+      ]);
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
+      
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.uploadCSVData();
+
+      expect(component.csvImportWarnings.length).toBe(2);
+      expect(component.csvImportWarnings[0]).toContain('jane@example.com');
+      expect(component.csvImportWarnings[1]).toContain('bob@example.com');
+      expect(component.csvSuccess).toContain('Planning Center checks failed for 2');
+    });
+
+    it('should track progress during Planning Center batch lookup', async () => {
+      component.csvData = [
+        { name: 'John', email: 'john@example.com', valid: true },
+        { name: 'Jane', email: 'jane@example.com', valid: true }
+      ];
+
+      mockSupabaseService.client.from().select().in.mockResolvedValue({
+        data: [],
+        error: null
+      });
+
+      let progressCallback: any;
+      vi.mocked(planningCenter.batchLookupPlanningCenter).mockImplementation(
+        async (emails, url, key, options) => {
+          progressCallback = options?.onProgress;
+          
+          // Simulate progress updates
+          if (progressCallback) {
+            progressCallback(1, 2);
+            progressCallback(2, 2);
+          }
+
+          return [
+            {
+              email: 'john@example.com',
+              result: { people: [], count: 0 },
+              retries: 0,
+              failed: false
+            },
+            {
+              email: 'jane@example.com',
+              result: { people: [], count: 0 },
+              retries: 0,
+              failed: false
+            }
+          ];
+        }
+      );
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.uploadCSVData();
+
+      expect(planningCenter.batchLookupPlanningCenter).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(String),
+        expect.any(String),
+        expect.objectContaining({
+          concurrency: 5,
+          maxRetries: 3,
+          onProgress: expect.any(Function)
+        })
+      );
+    });
+
+    it('should reset progress tracking after upload', async () => {
+      component.csvData = [
+        { name: 'John', email: 'john@example.com', valid: true }
+      ];
+
+      mockSupabaseService.client.from().select().in.mockResolvedValue({
+        data: [],
+        error: null
+      });
+
+      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
+        {
+          email: 'john@example.com',
+          result: { people: [], count: 0 },
+          retries: 0,
+          failed: false
+        }
+      ]);
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.uploadCSVData();
+
+      expect(component.csvImportProgress).toBe(0);
+      expect(component.csvImportTotal).toBe(0);
     });
   });
 
