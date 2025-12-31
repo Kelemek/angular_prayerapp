@@ -1,5 +1,4 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 export interface PrayerPrompt {
   id: string;
@@ -13,7 +12,7 @@ export interface PrayerPrompt {
 @Component({
   selector: 'app-prompt-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] p-6 mb-4 hover:shadow-lg transition-shadow">
       <!-- Header -->
@@ -41,8 +40,8 @@ export interface PrayerPrompt {
             </svg>
             {{ prompt.type }}
           </button>
+          @if (isAdmin) {
           <button
-            *ngIf="isAdmin"
             (click)="handleDelete()"
             class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
             title="Delete prompt"
@@ -52,6 +51,7 @@ export interface PrayerPrompt {
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
           </button>
+          }
         </div>
       </div>
 

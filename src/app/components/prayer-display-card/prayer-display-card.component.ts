@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 
 interface Prayer {
   id: string;
@@ -28,10 +28,11 @@ interface PrayerPrompt {
 @Component({
   selector: 'app-prayer-display-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgClass],
   template: `
     <!-- Prayer Card -->
-    <div *ngIf="prayer" class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto">
+    @if (prayer) {
+    <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto">
       <!-- Prayer For -->
       <div class="mb-6">
         <div class="text-lg md:text-xl lg:text-2xl font-semibold mb-2 text-blue-600 dark:text-blue-300">Prayer For:</div>
@@ -59,14 +60,15 @@ interface PrayerPrompt {
       </div>
 
       <!-- Updates Section -->
-      <div *ngIf="prayer.prayer_updates && prayer.prayer_updates.length > 0" 
+      @if (prayer.prayer_updates && prayer.prayer_updates.length > 0) {
+      <div 
         class="border-t border-gray-300 dark:border-gray-600 pt-6">
         <div class="flex items-center justify-between mb-4">
           <div class="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            Recent Updates <span *ngIf="!showAllUpdates && getRecentUpdates().length < prayer.prayer_updates.length">({{ getRecentUpdates().length }} of {{ prayer.prayer_updates.length }})</span>
+            Recent Updates @if (!showAllUpdates && getRecentUpdates().length < prayer.prayer_updates.length) {<span>({{ getRecentUpdates().length }} of {{ prayer.prayer_updates.length }})</span>}
           </div>
+          @if (shouldShowToggleButton()) {
           <button
-            *ngIf="shouldShowToggleButton()"
             (click)="showAllUpdates = !showAllUpdates"
             class="text-sm md:text-base text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
           >
@@ -75,21 +77,27 @@ interface PrayerPrompt {
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
+          }
         </div>
         <div class="space-y-4">
-          <div *ngFor="let update of getRecentUpdates()" 
+          @for (update of getRecentUpdates(); track update.id) {
+          <div 
             class="bg-gray-100 dark:bg-gray-700 rounded-xl p-5">
             <div class="text-sm md:text-base lg:text-lg text-gray-700 dark:text-gray-300 mb-2">
               {{ update.author }} • {{ formatDate(update.created_at) }}
             </div>
             <div class="text-base md:text-lg lg:text-xl text-gray-800 dark:text-gray-200">{{ update.content }}</div>
           </div>
+          }
         </div>
       </div>
+      }
     </div>
+    }
 
     <!-- Prompt Card -->
-    <div *ngIf="prompt" class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto">
+    @if (prompt) {
+    <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto">
       <!-- Type Badge -->
       <div class="mb-6">
         <span class="inline-block px-3 md:px-4 lg:px-5 py-1 md:py-1.5 lg:py-2 bg-[#988F83] text-white rounded-full text-sm md:text-base lg:text-xl font-semibold">
@@ -107,6 +115,7 @@ interface PrayerPrompt {
         <div class="text-lg md:text-2xl lg:text-3xl leading-relaxed text-gray-800 dark:text-gray-100 whitespace-pre-wrap">{{ prompt.description }}</div>
       </div>
     </div>
+    }
   `,
   styles: [`
     :host {

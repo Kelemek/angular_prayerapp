@@ -1,5 +1,4 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
@@ -9,10 +8,10 @@ import { AdminAuthService } from '../../services/admin-auth.service';
 @Component({
   selector: 'app-prayer-form',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
+    @if (isOpen) {
     <div
-      *ngIf="isOpen"
       class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
       (click)="onBackdropClick($event)"
     >
@@ -42,8 +41,8 @@ import { AdminAuthService } from '../../services/admin-auth.service';
         <!-- Form -->
         <form #prayerForm="ngForm" (ngSubmit)="prayerForm.valid && handleSubmit()" class="p-6 space-y-4">
           <!-- Success Message -->
+          @if (showSuccessMessage) {
           <div
-            *ngIf="showSuccessMessage"
             class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4"
             role="status"
             aria-live="polite"
@@ -59,6 +58,7 @@ import { AdminAuthService } from '../../services/admin-auth.service';
               </div>
             </div>
           </div>
+          }
 
           <!-- Prayer For -->
           <div>
@@ -132,6 +132,7 @@ import { AdminAuthService } from '../../services/admin-auth.service';
         </form>
       </div>
     </div>
+    }
   `,
   styles: []
 })

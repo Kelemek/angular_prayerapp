@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 export interface PrayerFilters {
@@ -11,7 +10,7 @@ export interface PrayerFilters {
 @Component({
   selector: 'app-prayer-filters',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-6 transition-colors">
       <div class="grid grid-cols-1 gap-4">
@@ -44,14 +43,16 @@ export interface PrayerFilters {
       </div>
 
       <!-- Clear Filters -->
-      <div *ngIf="filters.searchTerm" class="pt-2 pb-2 pl-3 border-t border-gray-200 dark:border-gray-600">
-        <button
-          (click)="clearFilters()"
-          class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-        >
-          Clear search
-        </button>
-      </div>
+      @if (filters.searchTerm) {
+        <div class="pt-2 pb-2 pl-3 border-t border-gray-200 dark:border-gray-600">
+          <button
+            (click)="clearFilters()"
+            class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+          >
+            Clear search
+          </button>
+        </div>
+      }
     </div>
   `
 })

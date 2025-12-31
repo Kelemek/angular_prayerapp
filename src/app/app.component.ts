@@ -1,12 +1,11 @@
 import { Component, OnInit, Injector, ErrorHandler, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, ToastContainerComponent],
+  imports: [RouterOutlet, ToastContainerComponent],
   template: `
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <router-outlet></router-outlet>

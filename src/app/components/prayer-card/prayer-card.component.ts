@@ -1,12 +1,11 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PrayerRequest } from '../../services/prayer.service';
 
 @Component({
   selector: 'app-prayer-card',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div 
       [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] p-6 mb-4 transition-colors relative ' + getBorderClass()"
@@ -18,16 +17,18 @@ import { PrayerRequest } from '../../services/prayer.service';
             <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline">
               Prayer for {{ prayer.prayer_for }}
             </h3>
-            <span *ngIf="activeFilter === 'total'" [class]="'px-2 py-1 text-xs font-medium rounded-full ' + getStatusBadgeClasses()">
+            @if (activeFilter === 'total') {
+            <span [class]="'px-2 py-1 text-xs font-medium rounded-full ' + getStatusBadgeClasses()">
               {{ getStatusLabel() }}
             </span>
+            }
             <span class="text-sm text-gray-600 dark:text-gray-400">
               Requested by: <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester() }}</span>
             </span>
           </div>
         </div>
+        @if (showDeleteButton()) {
         <button
-          *ngIf="showDeleteButton()"
           (click)="handleDeleteClick()"
           aria-label="Delete prayer request"
           title="Delete prayer request"
@@ -38,6 +39,7 @@ import { PrayerRequest } from '../../services/prayer.service';
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
         </button>
+        }
       </div>
 
       <!-- Centered timestamp -->
@@ -49,7 +51,8 @@ import { PrayerRequest } from '../../services/prayer.service';
       <p class="text-gray-600 dark:text-gray-300 mb-4">{{ prayer.description }}</p>
 
       <!-- Action buttons -->
-      <div *ngIf="showAddUpdateButton()" class="flex flex-wrap gap-1 mb-4">
+      @if (showAddUpdateButton()) {
+      <div class="flex flex-wrap gap-1 mb-4">
         <button
           (click)="toggleAddUpdate()"
           title="Add an update to this prayer"
@@ -58,9 +61,11 @@ import { PrayerRequest } from '../../services/prayer.service';
           Add Update
         </button>
       </div>
+      }
 
       <!-- Add Update Form -->
-      <form *ngIf="showAddUpdateForm" #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg" role="region" [attr.aria-labelledby]="'addUpdateTitle-' + prayer.id">
+      @if (showAddUpdateForm) {
+      <form #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg" role="region" [attr.aria-labelledby]="'addUpdateTitle-' + prayer.id">
         <h4 [id]="'addUpdateTitle-' + prayer.id" class="text-sm font-medium text-[#39704D] dark:text-[#5FB876] mb-3">Add Prayer Update</h4>
         <div class="space-y-2">
           <textarea
@@ -116,9 +121,11 @@ import { PrayerRequest } from '../../services/prayer.service';
           </div>
         </div>
       </form>
+      }
 
       <!-- Delete Request Form -->
-      <form *ngIf="showDeleteRequestForm" #deleteForm="ngForm" (ngSubmit)="deleteForm.valid && handleDeleteRequest()" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg" role="region" [attr.aria-labelledby]="'deleteFormTitle-' + prayer.id">
+      @if (showDeleteRequestForm) {
+      <form #deleteForm="ngForm" (ngSubmit)="deleteForm.valid && handleDeleteRequest()" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg" role="region" [attr.aria-labelledby]="'deleteFormTitle-' + prayer.id">
         <h4 [id]="'deleteFormTitle-' + prayer.id" class="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Request Prayer Deletion</h4>
         <div class="space-y-2">
           <textarea
@@ -150,15 +157,17 @@ import { PrayerRequest } from '../../services/prayer.service';
           </div>
         </div>
       </form>
+      }
 
       <!-- Recent Updates -->
-      <div *ngIf="prayer.updates && prayer.updates.length > 0" class="pt-4">
+      @if (prayer.updates && prayer.updates.length > 0) {
+      <div class="pt-4">
         <div class="flex items-center justify-between mb-3">
           <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Recent Updates <span *ngIf="!showAllUpdates && getDisplayedUpdates().length < prayer.updates.length">({{ getDisplayedUpdates().length }} of {{ prayer.updates.length }})</span>
+            Recent Updates @if (!showAllUpdates && getDisplayedUpdates().length < prayer.updates.length) {<span>({{ getDisplayedUpdates().length }} of {{ prayer.updates.length }})</span>}
           </h4>
+          @if (shouldShowToggleButton()) {
           <button
-            *ngIf="shouldShowToggleButton()"
             (click)="showAllUpdates = !showAllUpdates"
             class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
           >
@@ -167,10 +176,11 @@ import { PrayerRequest } from '../../services/prayer.service';
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
+          }
         </div>
         <div class="space-y-3">
-          <div 
-            *ngFor="let update of getDisplayedUpdates()"
+          @for (update of getDisplayedUpdates(); track update.id) {
+          <div
             [class]="'bg-gray-100 dark:bg-gray-700 rounded-lg p-6 border ' + getBorderClass()"
           >
             <div class="relative mb-2">
@@ -178,8 +188,8 @@ import { PrayerRequest } from '../../services/prayer.service';
                 <span class="text-sm text-gray-600 dark:text-gray-400">
                   Requested by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.author }}</span>
                 </span>
+                @if (showUpdateDeleteButton()) {
                 <button
-                  *ngIf="showUpdateDeleteButton()"
                   (click)="handleDeleteUpdate(update.id)"
                   aria-label="Delete prayer update"
                   title="Delete this update"
@@ -190,6 +200,7 @@ import { PrayerRequest } from '../../services/prayer.service';
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                   </svg>
                 </button>
+                }
               </div>
               <span class="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 {{ formatDate(update.created_at) }}
@@ -197,7 +208,8 @@ import { PrayerRequest } from '../../services/prayer.service';
             </div>
             <p class="text-sm text-gray-700 dark:text-gray-300">{{ update.content }}</p>
             
-            <form *ngIf="showUpdateDeleteRequestForm === update.id && !isAdmin" #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="region" [attr.aria-labelledby]="'updateDeleteFormTitle-' + update.id">
+            @if (showUpdateDeleteRequestForm === update.id && !isAdmin) {
+            <form #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="region" [attr.aria-labelledby]="'updateDeleteFormTitle-' + update.id">
               <h4 [id]="'updateDeleteFormTitle-' + update.id" class="text-xs font-medium text-red-700 dark:text-red-400 mb-2">Request Update Deletion</h4>
               <div class="space-y-2">
                 <textarea
@@ -229,9 +241,12 @@ import { PrayerRequest } from '../../services/prayer.service';
                 </div>
               </div>
             </form>
+            }
           </div>
+          }
         </div>
       </div>
+      }
     </div>
   `,
   styles: []

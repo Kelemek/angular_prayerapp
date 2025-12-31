@@ -1,5 +1,4 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -9,7 +8,7 @@ type AllowanceLevel = 'everyone' | 'original-requestor' | 'admin-only';
 @Component({
   selector: 'app-security-policy-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
@@ -22,11 +21,13 @@ type AllowanceLevel = 'everyone' | 'original-requestor' | 'admin-only';
         </h3>
       </div>
 
-      <div *ngIf="loading" class="flex items-center justify-center py-8">
+      @if (loading) {
+      <div class="flex items-center justify-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
+      }
 
-      <div *ngIf="!loading">
+      @if (!loading) {
         <!-- Info Box -->
         <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
           <p class="text-sm text-blue-800 dark:text-blue-200">
@@ -35,9 +36,11 @@ type AllowanceLevel = 'everyone' | 'original-requestor' | 'admin-only';
         </div>
 
         <!-- Error Message -->
-        <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4 mb-4">
+        @if (error) {
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4 mb-4">
           <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
         </div>
+        }
 
         <!-- Settings Box -->
         <div class="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-md p-4">
@@ -113,21 +116,21 @@ type AllowanceLevel = 'everyone' | 'original-requestor' | 'admin-only';
             [disabled]="saving"
             class="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <ng-container *ngIf="saving">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Saving...
-            </ng-container>
-            <ng-container *ngIf="!saving">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-              </svg>
-              Save Policy Settings
-            </ng-container>
+            @if (saving) {
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <span>Saving...</span>
+            }
+            @if (!saving) {
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span>Save Policy Settings</span>
+            }
           </button>
         </div>
-      </div>
+      }
     </div>
   `,
   styles: [`

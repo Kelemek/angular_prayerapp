@@ -1,5 +1,4 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { SupabaseService } from '../../services/supabase.service';
@@ -10,7 +9,7 @@ import type { PrayerTypeRecord } from '../../types/prayer';
 @Component({
   selector: 'app-prayer-types-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule],
+  imports: [FormsModule, DragDropModule],
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
       <!-- Header -->
@@ -42,17 +41,22 @@ import type { PrayerTypeRecord } from '../../types/prayer';
       </p>
 
       <!-- Error Message -->
-      <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
+      @if (error) {
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
         <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
       </div>
+      }
 
       <!-- Success Message -->
-      <div *ngIf="success" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-4">
+      @if (success) {
+      <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-4">
         <p class="text-sm text-green-800 dark:text-green-200">{{ success }}</p>
       </div>
+      }
 
       <!-- Add/Edit Form -->
-      <form *ngIf="showAddForm" (submit)="handleSubmit($event)" class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
+      @if (showAddForm) {
+      <form (submit)="handleSubmit($event)" class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-4">
           <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
             {{ editingId ? 'Edit Prayer Type' : 'Add New Prayer Type' }}
@@ -129,15 +133,19 @@ import type { PrayerTypeRecord } from '../../types/prayer';
           </button>
         </div>
       </form>
+      }
 
       <!-- Loading State -->
-      <div *ngIf="loading" class="text-center py-8">
+      @if (loading) {
+      <div class="text-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         <p class="text-gray-600 dark:text-gray-400 mt-2">Loading types...</p>
       </div>
+      }
 
       <!-- Empty State -->
-      <div *ngIf="!loading && types.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+      @if (!loading && types.length === 0) {
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
         <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
           <line x1="7" y1="7" x2="7.01" y2="7"></line>
@@ -145,11 +153,13 @@ import type { PrayerTypeRecord } from '../../types/prayer';
         <p>No prayer types found</p>
         <p class="text-sm mt-1">Add your first type to get started</p>
       </div>
+      }
 
       <!-- Types List with Drag & Drop -->
-      <div *ngIf="!loading && types.length > 0" cdkDropList (cdkDropListDropped)="onDrop($event)" class="space-y-2">
+      @if (!loading && types.length > 0) {
+      <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="space-y-2">
+        @for (type of types; track type.id) {
         <div
-          *ngFor="let type of types; let i = index"
           cdkDrag
           [class]="'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border ' + 
             (type.is_active ? 'border-gray-200 dark:border-gray-700' : 'border-gray-300 dark:border-gray-600 opacity-60')"
@@ -174,7 +184,9 @@ import type { PrayerTypeRecord } from '../../types/prayer';
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ type.name }}</h4>
-                <span *ngIf="!type.is_active" class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">Inactive</span>
+                @if (!type.is_active) {
+                <span class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">Inactive</span>
+                }
               </div>
               <p class="text-xs text-gray-500 dark:text-gray-500">
                 Order: {{ type.display_order }} • Created {{ formatDate(type.created_at) }}
@@ -188,14 +200,18 @@ import type { PrayerTypeRecord } from '../../types/prayer';
                 (type.is_active ? 'text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800')"
               [title]="type.is_active ? 'Deactivate' : 'Activate'"
             >
-              <svg *ngIf="type.is_active" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              @if (type.is_active) {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
-              <svg *ngIf="!type.is_active" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              }
+              @if (!type.is_active) {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                 <line x1="1" y1="1" x2="23" y2="23"></line>
               </svg>
+              }
             </button>
             <button
               (click)="handleEdit(type)"
@@ -219,19 +235,25 @@ import type { PrayerTypeRecord } from '../../types/prayer';
             </button>
           </div>
         </div>
+        }
       </div>
+      }
 
       <!-- Footer Stats -->
-      <div *ngIf="!loading && types.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+      @if (!loading && types.length > 0) {
+      <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">>
         <div class="flex items-center justify-between text-sm">
           <span class="text-gray-600 dark:text-gray-400">
             Total: <span class="font-semibold">{{ types.length }}</span> type(s)
-            <span *ngIf="getActiveCount() < types.length" class="ml-2">
+            @if (getActiveCount() < types.length) {
+            <span class="ml-2">
               (<span class="font-semibold">{{ getActiveCount() }}</span> active)
             </span>
+            }
           </span>
         </div>
       </div>
+      }
     </div>
   `,
   styles: []

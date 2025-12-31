@@ -1,30 +1,35 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-logo',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
-    <div *ngIf="useLogo && imageUrl" class="min-w-0 flex-1">
-      <img 
-        [src]="imageUrl" 
-        alt="Church Logo" 
-        class="h-16 w-auto max-w-xs object-contain"
-        width="256"
-        height="64"
-      />
-    </div>
-    <div *ngIf="!useLogo && appTitle" class="min-w-0 flex-1">
-      <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-        {{ appTitle }}
-      </h1>
-      <p *ngIf="appSubtitle" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-        {{ appSubtitle }}
-      </p>
-    </div>
+    @if (useLogo && imageUrl) {
+      <div class="min-w-0 flex-1">
+        <img 
+          [src]="imageUrl" 
+          alt="Church Logo" 
+          class="h-16 w-auto max-w-xs object-contain"
+          width="256"
+          height="64"
+        />
+      </div>
+    }
+    @if (!useLogo && appTitle) {
+      <div class="min-w-0 flex-1">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+          {{ appTitle }}
+        </h1>
+        @if (appSubtitle) {
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            {{ appSubtitle }}
+          </p>
+        }
+      </div>
+    }
   `,
   styles: []
 })

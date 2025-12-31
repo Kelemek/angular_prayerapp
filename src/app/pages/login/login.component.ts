@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChildren, QueryList, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AdminAuthService } from '../../services/admin-auth.service';
@@ -14,22 +13,26 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   template: `
     <div class="w-full min-h-screen bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center transition-colors">
       <div class="max-w-md w-full mx-auto space-y-8 p-4 sm:p-8">
         <div class="text-center">
           <!-- Logo or Heart Icon -->
-          <div *ngIf="useLogo && logoUrl" class="flex justify-center mb-4">
+          @if (useLogo && logoUrl) {
+          <div class="flex justify-center mb-4">
             <img 
               [src]="logoUrl" 
               alt="Prayer Community Logo" 
               class="h-16 w-auto max-w-xs object-contain"
             />
           </div>
-          <svg *ngIf="!useLogo || !logoUrl" class="mx-auto h-16 w-16 text-[#2F5F54] dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          }
+          @if (!useLogo || !logoUrl) {
+          <svg class="mx-auto h-16 w-16 text-[#2F5F54] dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
+          }
           <h2 class="mt-6 text-4xl font-bold text-[#2F5F54] dark:text-[#2F5F54]">
             Prayer Community
           </h2>
@@ -42,7 +45,8 @@ import { environment } from '../../../environments/environment';
         </div>
 
         <!-- Success State -->
-        <div *ngIf="success" class="space-y-4">
+        @if (success) {
+        <div class="space-y-4">
           <!-- Main success notification -->
           <div class="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-300 dark:border-emerald-700 rounded-lg p-6 shadow-lg">
             <div class="flex items-start gap-3 mb-4">
@@ -64,7 +68,8 @@ import { environment } from '../../../environments/environment';
             </div>
 
             <!-- MFA Code Input Form -->
-            <div *ngIf="waitingForMfaCode" class="mt-4">
+            @if (waitingForMfaCode) {
+            <div class="mt-4">
               <form class="bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800 space-y-4" (ngSubmit)="handleSubmit($event)" novalidate>
                 <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   Enter Your Verification Code
@@ -92,13 +97,15 @@ import { environment } from '../../../environments/environment';
                 />
 
                 <!-- Error Message for Code Verification -->
-                <div *ngIf="error && waitingForMfaCode" class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                @if (error && waitingForMfaCode) {
+                <div class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                   <!-- AlertCircle Icon -->
                   <svg class="text-red-600 dark:text-red-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                   <span class="text-red-800 dark:text-red-200 text-sm">{{error}}</span>
                 </div>
+                }
 
                 <!-- Verify Button -->
                 <button
@@ -106,11 +113,15 @@ import { environment } from '../../../environments/environment';
                   [disabled]="loading || !isCodeComplete()"
                   class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#2F5F54] hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2F5F54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <div *ngIf="loading" class="flex items-center justify-center gap-2">
+                  @if (loading) {
+                  <div class="flex items-center justify-center gap-2">
                     <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     Verifying...
                   </div>
-                  <span *ngIf="!loading">Verify Code</span>
+                  }
+                  @if (!loading) {
+                  <span>Verify Code</span>
+                  }
                 </button>
 
                 <!-- Resend Code Button -->
@@ -124,9 +135,11 @@ import { environment } from '../../../environments/environment';
                 </button>
               </form>
             </div>
+            }
 
             <!-- Subscriber Information Form (New Users) -->
-            <div *ngIf="showSubscriberForm && !showPendingApproval" class="mt-4">
+            @if (showSubscriberForm && !showPendingApproval) {
+            <div class="mt-4">
               <div class="bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800 space-y-4">
                 <div>
                   <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
@@ -137,7 +150,8 @@ import { environment } from '../../../environments/environment';
                   </p>
                   
                   <!-- Approval Required Warning -->
-                  <div *ngIf="requiresApproval" class="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md mb-4">
+                  @if (requiresApproval) {
+                  <div class="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md mb-4">
                     <svg class="text-amber-600 dark:text-amber-400 w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
@@ -146,6 +160,7 @@ import { environment } from '../../../environments/environment';
                       <p>Your email was not found in our system. After submitting your information, an administrator will need to approve your account before you can access the application.</p>
                     </div>
                   </div>
+                  }
                 </div>
 
                 <!-- First Name -->
@@ -185,12 +200,14 @@ import { environment } from '../../../environments/environment';
                 </div>
 
                 <!-- Error Message -->
-                <div *ngIf="error" class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                @if (error) {
+                <div class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                   <svg class="text-red-600 dark:text-red-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                   <span class="text-red-800 dark:text-red-200 text-sm">{{error}}</span>
                 </div>
+                }
 
                 <!-- Save Button -->
                 <button
@@ -199,17 +216,23 @@ import { environment } from '../../../environments/environment';
                   type="button"
                   class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#2F5F54] hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2F5F54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <div *ngIf="loading" class="flex items-center justify-center gap-2">
+                  @if (loading) {
+                  <div class="flex items-center justify-center gap-2">
                     <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     Saving...
                   </div>
-                  <span *ngIf="!loading">Complete Registration</span>
+                  }
+                  @if (!loading) {
+                  <span>Complete Registration</span>
+                  }
                 </button>
               </div>
             </div>
+            }
 
             <!-- Pending Approval Message -->
-            <div *ngIf="showPendingApproval" class="mt-4">
+            @if (showPendingApproval) {
+            <div class="mt-4">
               <div class="bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800 space-y-4">
                 <div class="flex items-start gap-3">
                   <svg class="text-emerald-600 dark:text-emerald-400 w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,9 +252,11 @@ import { environment } from '../../../environments/environment';
                 </div>
               </div>
             </div>
+            }
 
             <!-- Step-by-step instructions (when not waiting for code) -->
-            <div *ngIf="!waitingForMfaCode && !showSubscriberForm" class="mt-4 bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800">
+            @if (!waitingForMfaCode && !showSubscriberForm) {
+            <div class="mt-4 bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800">
               <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Here's what to do:
               </h4>
@@ -250,6 +275,7 @@ import { environment } from '../../../environments/environment';
                 </li>
               </ol>
             </div>
+            }
 
             <!-- Additional info -->
             <div class="mt-4 flex items-start gap-2 text-xs text-[#3a7566] dark:text-emerald-300">
@@ -270,9 +296,11 @@ import { environment } from '../../../environments/environment';
             ← Try a different email
           </button>
         </div>
+        }
 
         <!-- Login Form -->
-        <form *ngIf="!success" class="mt-8 space-y-6" (ngSubmit)="handleSubmit($event)">
+        @if (!success) {
+        <form class="mt-8 space-y-6" (ngSubmit)="handleSubmit($event)">
           <div>
             <label for="email" class="sr-only">
               Email Address
@@ -298,26 +326,33 @@ import { environment } from '../../../environments/environment';
           </div>
 
           <!-- Error Message -->
-          <div *ngIf="error && !waitingForMfaCode" class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+          @if (error && !waitingForMfaCode) {
+          <div class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
             <!-- AlertCircle Icon -->
             <svg class="text-red-600 dark:text-red-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <span class="text-red-800 dark:text-red-200 text-sm">{{error}}</span>
           </div>
+          }
 
           <button
             type="submit"
             [disabled]="loading || !isValidEmail()"
             class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#2F5F54] hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2F5F54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <div *ngIf="loading" class="flex items-center gap-2">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Sending code...
-            </div>
-            <span *ngIf="!loading">Send Verification Code</span>
+            @if (loading) {
+              <div class="flex items-center gap-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Sending code...
+              </div>
+            }
+            @if (!loading) {
+              <span>Send Verification Code</span>
+            }
           </button>
         </form>
+        }
       </div>
     </div>
   `,

@@ -1,5 +1,4 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -16,7 +15,7 @@ interface CSVRow {
 @Component({
   selector: 'app-prompt-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
       <!-- Header -->
@@ -63,14 +62,18 @@ interface CSVRow {
       </p>
 
       <!-- Error Message -->
-      <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
+      @if (error) {
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
         <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
       </div>
+      }
 
       <!-- Success Message -->
-      <div *ngIf="success" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-4">
+      @if (success) {
+      <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-4">
         <p class="text-sm text-green-800 dark:text-green-200">{{ success }}</p>
       </div>
+      }
 
       <!-- Search Bar -->
       <form (submit)="handleSearch($event)" class="mb-4">
@@ -99,7 +102,8 @@ interface CSVRow {
       </form>
 
       <!-- CSV Upload Section -->
-      <div *ngIf="showCSVUpload" class="mb-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+      @if (showCSVUpload) {
+      <div class="mb-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-3">
           <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">Bulk Upload via CSV</h4>
           <button
@@ -138,7 +142,8 @@ interface CSVRow {
         />
 
         <!-- CSV Preview -->
-        <div *ngIf="csvData.length > 0" class="mb-4 mt-4">
+        @if (csvData.length > 0) {
+        <div class="mb-4 mt-4">
           <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Preview - {{ getValidRowCount() }} valid, {{ getInvalidRowCount() }} invalid
           </h5>
@@ -153,15 +158,21 @@ interface CSVRow {
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of csvData; let i = index" [class]="'border-t border-gray-200 dark:border-gray-700 ' + (!row.valid ? 'bg-red-50 dark:bg-red-900/10' : '')">
+                @for (row of csvData; track $index) {
+                <tr [class]="'border-t border-gray-200 dark:border-gray-700 ' + (!row.valid ? 'bg-red-50 dark:bg-red-900/10' : '')">
                   <td class="p-2 text-gray-900 dark:text-gray-100">{{ row.title }}</td>
                   <td class="p-2 text-gray-900 dark:text-gray-100">{{ row.type }}</td>
                   <td class="p-2 text-gray-900 dark:text-gray-100 truncate max-w-xs">{{ row.description }}</td>
                   <td class="p-2">
-                    <span *ngIf="row.valid" class="text-green-600 dark:text-green-400 text-xs">✓ Valid</span>
-                    <span *ngIf="!row.valid" class="text-red-600 dark:text-red-400 text-xs">{{ row.error }}</span>
+                    @if (row.valid) {
+                    <span class="text-green-600 dark:text-green-400 text-xs">✓ Valid</span>
+                    }
+                    @if (!row.valid) {
+                    <span class="text-red-600 dark:text-red-400 text-xs">{{ row.error }}</span>
+                    }
                   </td>
                 </tr>
+                }
               </tbody>
             </table>
           </div>
@@ -181,10 +192,13 @@ interface CSVRow {
             </button>
           </div>
         </div>
+        }
       </div>
+      }
 
       <!-- Add/Edit Form -->
-      <form *ngIf="showAddForm" (submit)="handleSubmit($event)" class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
+      @if (showAddForm) {
+      <form (submit)="handleSubmit($event)" class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-4">
           <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
             {{ editingId ? 'Edit Prayer Prompt' : 'Add New Prayer Prompt' }}
@@ -226,8 +240,12 @@ interface CSVRow {
                 name="type"
                 class="w-full appearance-none px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
               >
-                <option *ngIf="prayerTypes.length === 0" value="">Loading types...</option>
-                <option *ngFor="let t of prayerTypes" [value]="t.name">{{ t.name }}</option>
+                @if (prayerTypes.length === 0) {
+                <option value="">Loading types...</option>
+                }
+                @for (t of prayerTypes; track t.id) {
+                <option [value]="t.name">{{ t.name }}</option>
+                }
               </select>
               <svg class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -266,14 +284,18 @@ interface CSVRow {
           </button>
         </div>
       </form>
+      }
 
       <!-- Search Results -->
-      <div *ngIf="searching" class="text-center py-8">
+      @if (searching) {
+      <div class="text-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         <p class="text-gray-600 dark:text-gray-400 mt-2">Searching...</p>
       </div>
+      }
 
-      <div *ngIf="!searching && !hasSearched" class="text-center py-8 text-gray-500 dark:text-gray-400">
+      @if (!searching && !hasSearched) {
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
         <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
@@ -281,8 +303,10 @@ interface CSVRow {
         <p>Enter a search term to find prompts</p>
         <p class="text-sm mt-1">Search results will appear here</p>
       </div>
+      }
 
-      <div *ngIf="!searching && hasSearched && prompts.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+      @if (!searching && hasSearched && prompts.length === 0) {
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">>
         <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
           <path d="M9 18h6"></path>
@@ -291,12 +315,16 @@ interface CSVRow {
         <p>No prayer prompts found</p>
         <p class="text-sm mt-1">Try a different search term</p>
       </div>
+      }
 
-      <div *ngIf="!searching && hasSearched && prompts.length > 0">
+      @if (!searching && hasSearched && prompts.length > 0) {
+      <div>
         <div class="space-y-3">
-          <div *ngFor="let prompt of prompts" class="block">
+          @for (prompt of prompts; track prompt.id) {
+          <div class="block">
             <!-- Edit Form (inline) -->
-            <form *ngIf="editingId === prompt.id" (submit)="handleSubmit($event)" class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-blue-300 dark:border-blue-600">
+            @if (editingId === prompt.id) {
+            <form (submit)="handleSubmit($event)" class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-blue-300 dark:border-blue-600">
               <div class="flex items-center justify-between mb-3">
                 <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
                   Edit Prayer Prompt
@@ -336,7 +364,9 @@ interface CSVRow {
                       name="editType"
                       class="w-full appearance-none px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
                     >
-                      <option *ngFor="let t of prayerTypes" [value]="t.name">{{ t.name }}</option>
+                      @for (t of prayerTypes; track t.id) {
+                      <option [value]="t.name">{{ t.name }}</option>
+                      }
                     </select>
                     <svg class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="6 9 12 15 18 9"></polyline>
@@ -374,9 +404,11 @@ interface CSVRow {
                 </button>
               </div>
             </form>
+            }
 
             <!-- Regular Prompt Card -->
-            <div *ngIf="editingId !== prompt.id" class="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            @if (editingId !== prompt.id) {
+            <div class="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
                   <h4 class="font-medium text-gray-900 dark:text-gray-100">
@@ -420,7 +452,9 @@ interface CSVRow {
                 </button>
               </div>
             </div>
+            }
           </div>
+          }
         </div>
 
         <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -431,6 +465,7 @@ interface CSVRow {
           </div>
         </div>
       </div>
+      }
     </div>
   `,
   styles: []

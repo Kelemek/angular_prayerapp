@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../services/theme.service';
 import { SupabaseService } from '../../services/supabase.service';
@@ -15,11 +15,11 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 @Component({
   selector: 'app-user-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [NgClass, FormsModule],
   template: `
     <!-- Modal Overlay -->
+    @if (isOpen) {
     <div 
-      *ngIf="isOpen"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
       (click)="onClose.emit()"
     >
@@ -103,22 +103,27 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               </div>
               
               <!-- Print Range Dropdown -->
-              <div *ngIf="showPrintDropdown">
+              @if (showPrintDropdown) {
+              <div>
                 <div
                   class="fixed inset-0 z-10"
                   (click)="showPrintDropdown = false"
                 ></div>
                 <div class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
+                  @for (option of printRangeOptions; track option.value) {
                   <button
-                    *ngFor="let option of printRangeOptions"
                     (click)="setPrintRange(option.value); showPrintDropdown = false"
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
                   >
                     <span>{{ option.label }}</span>
-                    <span *ngIf="printRange === option.value" class="text-green-600 dark:text-green-400">✓</span>
+                    @if (printRange === option.value) {
+                      <span class="text-green-600 dark:text-green-400">✓</span>
+                    }
                   </button>
+                  }
                 </div>
               </div>
+              }
             </div>
 
             <!-- Print Prompts -->
@@ -169,7 +174,8 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               </div>
               
               <!-- Prompt Types Dropdown -->
-              <div *ngIf="showPromptTypesDropdown">
+              @if (showPromptTypesDropdown) {
+              <div>
                 <div
                   class="fixed inset-0 z-10"
                   (click)="showPromptTypesDropdown = false"
@@ -180,18 +186,24 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
                   >
                     <span>All Types</span>
-                    <span *ngIf="selectedPromptTypes.length === 0" class="text-green-600 dark:text-green-400">✓</span>
+                    @if (selectedPromptTypes.length === 0) {
+                      <span class="text-green-600 dark:text-green-400">✓</span>
+                    }
                   </button>
+                  @for (type of promptTypes; track type) {
                   <button
-                    *ngFor="let type of promptTypes"
                     (click)="togglePromptType(type)"
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
                   >
                     <span>{{ type }}</span>
-                    <span *ngIf="selectedPromptTypes.includes(type)" class="text-green-600 dark:text-green-400">✓</span>
+                    @if (selectedPromptTypes.includes(type)) {
+                      <span class="text-green-600 dark:text-green-400">✓</span>
+                    }
                   </button>
+                  }
                 </div>
               </div>
+              }
             </div>
           </div>
 
@@ -291,10 +303,12 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 <div class="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
                   {{ receiveNotifications ? 'Subscribed to Prayer Notifications' : 'Not Subscribed to Prayer Notifications' }}
                 </div>
-                <svg *ngIf="saving" class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                @if (saving) {
+                <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
+                }
               </div>
               <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {{ saving ? 'Saving...' : (receiveNotifications ? 'You are receiving prayer notifications' : 'You are not receiving prayer notifications') }}
@@ -303,7 +317,8 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
 
           <!-- Success/Error Messages -->
-          <div *ngIf="success" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3" role="alert" aria-live="assertive" aria-atomic="true">
+          @if (success) {
+          <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="flex items-start gap-2">
               <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -311,9 +326,11 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               <p class="text-sm text-green-800 dark:text-green-200">{{ success }}</p>
             </div>
           </div>
+          }
 
           <!-- Error Message -->
-          <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3" role="alert" aria-live="assertive" aria-atomic="true">
+          @if (error) {
+          <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="flex items-start gap-2">
               <svg class="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -323,6 +340,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
             </div>
           </div>
+          }
 
         <!-- Footer -->
           <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
@@ -349,6 +367,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
         </div>
       </div>
     </div>
+    }
   `,
   styles: [`
     :host {

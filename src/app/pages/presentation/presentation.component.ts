@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, NgZone } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { SupabaseService } from '../../services/supabase.service';
@@ -40,7 +39,6 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
   selector: 'app-presentation',
   standalone: true,
   imports: [
-    CommonModule,
     PresentationToolbarComponent,
     PrayerDisplayCardComponent,
     PresentationSettingsModalComponent
@@ -48,7 +46,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white relative">
       <!-- Loading State -->
-      <div *ngIf="loading" class="w-full min-h-screen flex items-center justify-center">
+      @if (loading) {
+      <div class="w-full min-h-screen flex items-center justify-center">
         <div class="flex flex-col items-center gap-4">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <div class="text-gray-900 dark:text-white text-xl">
@@ -56,9 +55,11 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
         </div>
       </div>
+      }
 
       <!-- Main Content Display -->
-      <div *ngIf="!loading && items.length > 0" 
+      @if (!loading && items.length > 0) {
+      <div 
         [class]="'h-screen flex flex-col justify-center px-6 py-6 transition-all duration-300 relative z-0 ' + (showControls ? 'pb-28' : 'pb-6')">
         <div class="w-full max-w-6xl mx-auto h-full">
           <div class="h-full overflow-y-auto flex items-center px-2">
@@ -69,9 +70,11 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
         </div>
       </div>
+      }
 
       <!-- No Content Message -->
-      <div *ngIf="!loading && items.length === 0" class="w-full min-h-screen flex items-center justify-center">
+      @if (!loading && items.length === 0) {
+      <div class="w-full min-h-screen flex items-center justify-center">
         <div class="text-center p-8">
           <div class="text-6xl mb-4">🙏</div>
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Content Available</h2>
@@ -87,6 +90,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </button>
         </div>
       </div>
+      }
 
       <!-- Toolbar -->
       <app-presentation-toolbar
@@ -128,7 +132,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
       </app-presentation-settings-modal>
 
       <!-- Timer Notification -->
-      <div *ngIf="showTimerNotification" 
+      @if (showTimerNotification) {
+      <div
         class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-3xl p-12 shadow-2xl border-4 border-green-400 text-center max-w-2xl mx-4 animate-pulse relative">
           <button
@@ -147,6 +152,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           <p class="text-2xl opacity-90 text-white">Your prayer time has ended</p>
         </div>
       </div>
+      }
     </div>
   `,
   styles: [`

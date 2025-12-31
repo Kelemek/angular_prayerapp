@@ -1,103 +1,111 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, ViewChildren, QueryList, ElementRef, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VerificationService } from '../../services/verification.service';
 
 @Component({
   selector: 'app-verification-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
-    <div *ngIf="isOpen" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4"
-      (click)="onClose.emit()">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6"
-        (click)="$event.stopPropagation()">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+    @if (isOpen) {
+      <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4"
+        (click)="onClose.emit()">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6"
+          (click)="$event.stopPropagation()">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Verify Your Email</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Code sent to {{ email }}</p>
+              </div>
+            </div>
+            <button (click)="onClose.emit()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
-            </div>
-            <div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Verify Your Email</h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Code sent to {{ email }}</p>
-            </div>
+            </button>
           </div>
-          <button (click)="onClose.emit()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
 
-        <!-- Timer -->
-        <div *ngIf="timeRemaining > 0" class="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 6v6l4 2"></path>
-          </svg>
-          <span>Code expires in {{ formatTime(timeRemaining) }}</span>
-        </div>
-
-        <!-- Code Inputs -->
-        <form class="mb-6" (ngSubmit)="handleVerify()" novalidate>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Enter verification code
-          </label>
-          <input
-            #codeField
-            id="verification-code-input"
-            type="text"
-            inputmode="numeric"
-            maxlength="6"
-            name="verification-code-input"
-            [(ngModel)]="codeInput"
-            (blur)="sanitizeCodeInput()"
-            (keydown.enter)="handleVerify()"
-            autocomplete="one-time-code"
-            [disabled]="isVerifying || hasExpired"
-            [readonly]="isVerifying"
-            placeholder="code"
-            autofocus
-            class="w-full px-4 py-3 text-center text-2xl font-semibold letter-spacing tracking-widest border-2 rounded-lg
-                   bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                   border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200
-                   disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60
-                   transition-opacity duration-200"
-          />
-        </form>
-
-        <!-- Error Message -->
-        <div *ngIf="error" class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
-        </div>
-
-        <!-- Actions -->
-        <div class="space-y-3">
-          <button
-            type="submit"
-            [disabled]="!isCodeComplete() || isVerifying || timeRemaining === 0"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium
-                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-            <div *ngIf="isVerifying" class="flex items-center justify-center gap-2">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Verifying...
+          <!-- Timer -->
+          @if (timeRemaining > 0) {
+            <div class="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </svg>
+              <span>Code expires in {{ formatTime(timeRemaining) }}</span>
             </div>
-            <span *ngIf="!isVerifying">Verify Code</span>
-          </button>
-          <button
-            (click)="handleResend()"
-            [disabled]="isResending"
-            type="button"
-            class="w-full text-blue-600 dark:text-blue-400 hover:underline py-2 text-sm font-medium
-                   disabled:opacity-50">
-            {{ isResending ? 'Sending...' : 'Resend Code' }}
-          </button>
+          }
+
+          <!-- Code Inputs -->
+          <form class="mb-6" (ngSubmit)="handleVerify()" novalidate>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Enter verification code
+            </label>
+            <input
+              #codeField
+              id="verification-code-input"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              name="verification-code-input"
+              [(ngModel)]="codeInput"
+              (blur)="sanitizeCodeInput()"
+              (keydown.enter)="handleVerify()"
+              autocomplete="one-time-code"
+              [disabled]="isVerifying || hasExpired"
+              [readonly]="isVerifying"
+              placeholder="code"
+              autofocus
+              class="w-full px-4 py-3 text-center text-2xl font-semibold letter-spacing tracking-widest border-2 rounded-lg
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                     border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200
+                     disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60
+                     transition-opacity duration-200"
+            />
+          </form>
+
+          <!-- Error Message -->
+          @if (error) {
+            <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+            </div>
+          }
+
+          <!-- Actions -->
+          <div class="space-y-3">
+            <button
+              type="submit"
+              [disabled]="!isCodeComplete() || isVerifying || timeRemaining === 0"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium
+                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              @if (isVerifying) {
+                <div class="flex items-center justify-center gap-2">
+                  <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Verifying...
+                </div>
+              } @else {
+                <span>Verify Code</span>
+              }
+            </button>
+            <button
+              (click)="handleResend()"
+              [disabled]="isResending"
+              type="button"
+              class="w-full text-blue-600 dark:text-blue-400 hover:underline py-2 text-sm font-medium
+                     disabled:opacity-50">
+              {{ isResending ? 'Sending...' : 'Resend Code' }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    }
   `,
   styles: [`
     input[type="text"]::-webkit-inner-spin-button,

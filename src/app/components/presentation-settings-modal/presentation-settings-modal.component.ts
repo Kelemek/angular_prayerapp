@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 type ContentType = 'prayers' | 'prompts' | 'both';
@@ -9,9 +9,10 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 @Component({
   selector: 'app-presentation-settings-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [NgClass, FormsModule],
   template: `
-    <div *ngIf="visible" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+    @if (visible) {
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div class="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl max-w-md w-full shadow-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between p-4 sm:p-6 lg:p-8 pb-3 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
           <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h2>
@@ -107,7 +108,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
 
           <!-- Duration Slider and Quick Buttons (when not smart mode) -->
-          <div *ngIf="!localSmartMode">
+          @if (!localSmartMode) {
+          <div>
             <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Auto-advance interval (seconds)</label>
             <input
               type="range"
@@ -138,9 +140,11 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               </button>
             </div>
           </div>
+          }
 
           <!-- Smart Mode Info Box -->
-          <div *ngIf="localSmartMode" class="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg p-4">
+          @if (localSmartMode) {
+          <div class="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg p-4">
             <p class="text-lg text-gray-800 dark:text-gray-100 mb-2">
               Smart mode automatically adjusts display time based on prayer length, giving you more time to read longer prayers and updates.
             </p>
@@ -149,7 +153,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               class="text-blue-600 dark:text-blue-400 hover:underline text-base font-medium flex items-center gap-1">
               {{ showSmartModeDetails ? '− Hide details' : '+ Show details' }}
             </button>
-            <div *ngIf="showSmartModeDetails" class="mt-3 pt-3 border-t border-blue-300 dark:border-blue-700 text-base text-gray-700 dark:text-gray-300 space-y-2">
+            @if (showSmartModeDetails) {
+            <div class="mt-3 pt-3 border-t border-blue-300 dark:border-blue-700 text-base text-gray-700 dark:text-gray-300 space-y-2">
               <p><strong>How it works:</strong></p>
               <ul class="list-disc list-inside space-y-1 ml-2">
                 <li>Counts characters in prayer description and up to 3 recent updates</li>
@@ -161,7 +166,9 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 Example: A prayer with 240 characters will display for about 20 seconds
               </p>
             </div>
+            }
           </div>
+          }
 
           <!-- Content Type -->
           <div>
@@ -200,7 +207,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
 
           <!-- Time Filter (for prayers only) -->
-          <div *ngIf="localContentType === 'prayers'">
+          @if (localContentType === 'prayers') {
+          <div>
             <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Time Period</label>
             <div class="relative">
               <select
@@ -218,9 +226,11 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               </svg>
             </div>
           </div>
+          }
 
           <!-- Prayer Status (for prayers only) -->
-          <div *ngIf="localContentType === 'prayers'">
+          @if (localContentType === 'prayers') {
+          <div>
             <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Prayer Status</label>
             <div class="relative">
               <div class="flex">
@@ -236,26 +246,34 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                   </svg>
                 </button>
               </div>
-              <div *ngIf="showStatusDropdown">
+              @if (showStatusDropdown) {
+              <div>
                 <div class="fixed inset-0 z-[60]" (click)="applyStatusFilter()"></div>
                 <div class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-[70]">
+                  @for (status of ['current', 'answered', 'archived']; track status) {
                   <div
-                    *ngFor="let status of ['current', 'answered', 'archived']"
                     (mousedown)="togglePendingStatus(status); $event.preventDefault()"
                     class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between capitalize cursor-pointer">
                     <span>{{ status }}</span>
-                    <span *ngIf="isPendingStatusSelected(status)" class="text-green-600 dark:text-green-400">✓</span>
+                    @if (isPendingStatusSelected(status)) {
+                    <span class="text-green-600 dark:text-green-400">✓</span>
+                    }
                   </div>
+                  }
                   <div
                     (mousedown)="clearPendingStatus(); $event.preventDefault()"
                     class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer border-t border-gray-200 dark:border-gray-700">
                     <span>All Statuses</span>
-                    <span *ngIf="pendingStatusFilter.length === 0" class="text-green-600 dark:text-green-400">✓</span>
+                    @if (pendingStatusFilter.length === 0) {
+                    <span class="text-green-600 dark:text-green-400">✓</span>
+                    }
                   </div>
                 </div>
               </div>
+              }
             </div>
           </div>
+          }
 
           <!-- Prayer Timer -->
           <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
@@ -301,6 +319,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
         </div>
       </div>
     </div>
+    }
   `,
   styles: [`
     :host {

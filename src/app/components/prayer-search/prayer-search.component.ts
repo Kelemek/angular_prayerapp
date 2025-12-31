@@ -88,7 +88,8 @@ interface NewUpdate {
   </div>
 
   <!-- Create Prayer Form -->
-  <div *ngIf="creatingPrayer" class="mb-4 p-4 border-2 border-green-300 dark:border-green-600 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+  @if (creatingPrayer) {
+  <div class="mb-4 p-4 border-2 border-green-300 dark:border-green-600 rounded-lg bg-gray-50 dark:bg-gray-900/50">
     <div class="flex items-center justify-between mb-4">
       <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
         Create New Prayer
@@ -207,12 +208,16 @@ interface NewUpdate {
           [disabled]="!isCreateFormValid() || saving"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
         >
-          <div *ngIf="saving" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          <svg *ngIf="!saving" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          @if (saving) {
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          }
+          @if (!saving) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
             <polyline points="7 3 7 8 15 8"></polyline>
           </svg>
+          }
           {{ saving ? 'Creating...' : 'Create Prayer' }}
         </button>
 
@@ -226,6 +231,7 @@ interface NewUpdate {
       </div>
     </form>
   </div>
+  }
 
   <!-- Search Input -->
   <div class="flex gap-2 mb-4">
@@ -237,8 +243,8 @@ interface NewUpdate {
         placeholder="Search by title, requester, email, description, or denial reasons..."
         class="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
       />
+      @if (searchTerm) {
       <button
-        *ngIf="searchTerm"
         (click)="clearSearch()"
         class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
       >
@@ -247,17 +253,22 @@ interface NewUpdate {
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
+      }
     </div>
     <button
       (click)="handleSearch()"
       [disabled]="searching"
       class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition-colors"
     >
-      <div *ngIf="searching" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-      <svg *ngIf="!searching" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      @if (searching) {
+      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+      }
+      @if (!searching) {
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.35-4.35"></path>
       </svg>
+      }
       {{ searching ? 'Searching...' : 'Search' }}
     </button>
   </div>
@@ -312,12 +323,15 @@ interface NewUpdate {
   </div>
 
   <!-- Error Message -->
-  <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
+  @if (error) {
+  <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
     <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
   </div>
+  }
 
   <!-- Bulk Actions -->
-  <div *ngIf="searchResults.length > 0" class="flex flex-wrap items-start justify-between gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+  @if (searchResults.length > 0) {
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
     <div class="flex items-center gap-3 w-full sm:w-auto">
       <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
         <input
@@ -328,11 +342,14 @@ interface NewUpdate {
         />
         <span>Select All ({{ searchResults.length }})</span>
       </label>
-      <span *ngIf="selectedPrayers.size > 0" class="text-sm text-red-600 dark:text-red-400 font-medium">
+      @if (selectedPrayers.size > 0) {
+      <span class="text-sm text-red-600 dark:text-red-400 font-medium">
         {{ selectedPrayers.size }} selected
       </span>
+      }
     </div>
-    <div *ngIf="selectedPrayers.size > 0" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+    @if (selectedPrayers.size > 0) {
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
       <!-- Bulk Status Change -->
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <label class="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap sm:mr-2">
@@ -361,12 +378,16 @@ interface NewUpdate {
           [disabled]="!bulkStatus || updatingStatus"
           class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm"
         >
-          <div *ngIf="updatingStatus" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          <svg *ngIf="!updatingStatus" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          @if (updatingStatus) {
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          }
+          @if (!updatingStatus) {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
             <polyline points="7 3 7 8 15 8"></polyline>
           </svg>
+          }
           {{ updatingStatus ? 'Updating...' : 'Update (' + selectedPrayers.size + ')' }}
         </button>
 
@@ -375,26 +396,35 @@ interface NewUpdate {
           [disabled]="deleting"
           class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 transition-colors text-sm"
         >
-          <div *ngIf="deleting" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          <svg *ngIf="!deleting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          @if (deleting) {
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          }
+          @if (!deleting) {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
+          }
           {{ deleting ? 'Deleting...' : 'Delete (' + selectedPrayers.size + ')' }}
         </button>
       </div>
     </div>
+    }
   </div>
+  }
 
   <!-- Search Results -->
-  <div *ngIf="searching" class="flex flex-col items-center justify-center py-12">
+  @if (searching) {
+  <div class="flex flex-col items-center justify-center py-12">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 dark:border-red-400 mb-4"></div>
     <p class="text-gray-600 dark:text-gray-400">Loading prayer data...</p>
   </div>
+  }
 
-  <div *ngIf="!searching && displayPrayers.length > 0" class="space-y-1">
-    <div *ngFor="let prayer of displayPrayers" 
-         [class]="'border rounded-lg transition-all duration-200 ' + (selectedPrayers.has(prayer.id) ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')">
+  @if (!searching && displayPrayers.length > 0) {
+  <div class="space-y-1">
+    @for (prayer of displayPrayers; track prayer.id) {
+    <div [class]="'border rounded-lg transition-all duration-200 ' + (selectedPrayers.has(prayer.id) ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')">
       
       <!-- Compact Header - Always Visible -->
       <div class="flex items-center gap-3 p-3">
@@ -417,21 +447,27 @@ interface NewUpdate {
             <span [class]="'px-2 py-0.5 text-xs rounded-full capitalize flex-shrink-0 ' + getStatusColor(prayer.status)">
               {{ prayer.status }}
             </span>
-            <span *ngIf="prayer.approval_status" [class]="'px-2 py-0.5 text-xs rounded-full capitalize flex-shrink-0 ' + getApprovalStatusColor(prayer.approval_status)">
+            @if (prayer.approval_status) {
+            <span [class]="'px-2 py-0.5 text-xs rounded-full capitalize flex-shrink-0 ' + getApprovalStatusColor(prayer.approval_status)">
               {{ prayer.approval_status }}
             </span>
-            <span *ngIf="prayer.denial_reason" class="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex-shrink-0">
+            }
+            @if (prayer.denial_reason) {
+            <span class="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex-shrink-0">
               Has Denial
             </span>
+            }
           </div>
           
           <div class="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
             <div>
               <span class="font-medium">Requester:</span> {{ prayer.requester }}
             </div>
-            <div *ngIf="prayer.email" class="truncate">
+            @if (prayer.email) {
+            <div class="truncate">
               <span class="font-medium">Email:</span> {{ prayer.email }}
             </div>
+            }
             <div>
               <span class="font-medium">Created:</span> {{ prayer.created_at | date:'shortDate' }}
             </div>
@@ -439,12 +475,16 @@ interface NewUpdate {
         </button>
 
         <div class="flex flex-col gap-2 flex-shrink-0">
-          <svg *ngIf="expandedCards.has(prayer.id)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+          @if (expandedCards.has(prayer.id)) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
             <polyline points="18 15 12 9 6 15"></polyline>
           </svg>
-          <svg *ngIf="!expandedCards.has(prayer.id)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+          }
+          @if (!expandedCards.has(prayer.id)) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
+          }
           <button
             (click)="$event.stopPropagation(); startEditPrayer(prayer)"
             [disabled]="saving"
@@ -471,13 +511,15 @@ interface NewUpdate {
       </div>
 
       <!-- Expanded Details - Only Visible When Expanded -->
-      <div *ngIf="expandedCards.has(prayer.id)" class="px-6 pb-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      @if (expandedCards.has(prayer.id)) {
+      <div class="px-6 pb-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <div class="pt-4 space-y-3">
           <div class="flex items-center justify-between mb-3">
             <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {{ editingPrayer === prayer.id ? 'Edit Prayer Details' : 'Complete Prayer Details' }}
             </h5>
-            <div *ngIf="editingPrayer === prayer.id" class="flex gap-2">
+            @if (editingPrayer === prayer.id) {
+            <div class="flex gap-2">
               <button
                 (click)="savePrayer(prayer.id)"
                 [disabled]="saving"
@@ -503,10 +545,12 @@ interface NewUpdate {
                 Cancel
               </button>
             </div>
+            }
           </div>
           
           <!-- Edit Mode Form -->
-          <div *ngIf="editingPrayer === prayer.id" class="space-y-4">
+          @if (editingPrayer === prayer.id) {
+          <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Title *
@@ -588,9 +632,10 @@ interface NewUpdate {
               </div>
             </div>
           </div>
+          }
 
           <!-- View Mode -->
-          <ng-container *ngIf="editingPrayer !== prayer.id">
+          @if (editingPrayer !== prayer.id) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Basic Information -->
               <div class="space-y-3">
@@ -610,15 +655,19 @@ interface NewUpdate {
                       <span class="ml-2 text-gray-600 dark:text-gray-400">{{ prayer.requester }}</span>
                     </div>
                     
-                    <div *ngIf="prayer.email">
+                    @if (prayer.email) {
+                    <div>
                       <span class="font-medium text-gray-700 dark:text-gray-300">Email:</span>
                       <span class="ml-2 text-gray-600 dark:text-gray-400">{{ prayer.email }}</span>
                     </div>
+                    }
                     
-                    <div *ngIf="prayer.prayer_for">
+                    @if (prayer.prayer_for) {
+                    <div>
                       <span class="font-medium text-gray-700 dark:text-gray-300">Praying For:</span>
                       <span class="ml-2 text-gray-600 dark:text-gray-400">{{ prayer.prayer_for }}</span>
                     </div>
+                    }
                   </div>
                 </div>
               </div>
@@ -638,12 +687,14 @@ interface NewUpdate {
                       </span>
                     </div>
                     
-                    <div *ngIf="prayer.approval_status">
+                    @if (prayer.approval_status) {
+                    <div>
                       <span class="font-medium text-gray-700 dark:text-gray-300">Approval Status:</span>
                       <span [class]="'ml-2 px-2 py-0.5 text-xs rounded-full capitalize ' + getApprovalStatusColor(prayer.approval_status)">
                         {{ prayer.approval_status }}
                       </span>
                     </div>
+                    }
                     
                     <div>
                       <span class="font-medium text-gray-700 dark:text-gray-300">Created:</span>
@@ -658,7 +709,8 @@ interface NewUpdate {
             </div>
             
             <!-- Description -->
-            <div *ngIf="prayer.description" class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            @if (prayer.description) {
+            <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
               <h6 class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-2">
                 Prayer Description
               </h6>
@@ -666,9 +718,11 @@ interface NewUpdate {
                 {{ prayer.description }}
               </p>
             </div>
+            }
             
             <!-- Denial Reason - Highlighted if present -->
-            <div *ngIf="prayer.denial_reason" class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
+            @if (prayer.denial_reason) {
+            <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
               <h6 class="text-xs font-semibold text-red-700 dark:text-red-300 uppercase mb-2 flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -681,23 +735,27 @@ interface NewUpdate {
                 {{ prayer.denial_reason }}
               </p>
             </div>
+            }
             
             <!-- Prayer Updates Section -->
-            <div *ngIf="prayer.prayer_updates && prayer.prayer_updates.length > 0" class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            @if (prayer.prayer_updates && prayer.prayer_updates.length > 0) {
+            <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
               <h6 class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-3">
                 Prayer Updates ({{ prayer.prayer_updates.length }})
               </h6>
               <div class="space-y-3">
-                <div *ngFor="let update of prayer.prayer_updates; let i = index" 
-                     [class]="'p-3 rounded border ' + (update.denial_reason ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')">
+                @for (update of prayer.prayer_updates; track update.id; let i = $index) {
+                <div [class]="'p-3 rounded border ' + (update.denial_reason ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')">
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-2">
                       <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
                         Update #{{ prayer.prayer_updates!.length - i }}
                       </span>
-                      <span *ngIf="update.approval_status" [class]="'px-2 py-0.5 text-xs rounded-full capitalize ' + getApprovalStatusColor(update.approval_status)">
+                      @if (update.approval_status) {
+                      <span [class]="'px-2 py-0.5 text-xs rounded-full capitalize ' + getApprovalStatusColor(update.approval_status)">
                         {{ update.approval_status }}
                       </span>
+                      }
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="text-xs text-gray-500 dark:text-gray-500">
@@ -719,7 +777,8 @@ interface NewUpdate {
                   <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap mb-2">
                     {{ update.content }}
                   </p>
-                  <div *ngIf="update.denial_reason" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded border-l-2 border-red-500">
+                  @if (update.denial_reason) {
+                  <div class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded border-l-2 border-red-500">
                     <div class="flex items-start gap-2">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0">
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -736,16 +795,21 @@ interface NewUpdate {
                       </div>
                     </div>
                   </div>
+                  }
                   <div class="text-xs text-gray-500 dark:text-gray-500 mt-2">
                     <span class="font-medium">By:</span> {{ update.author }}
                   </div>
                 </div>
+                }
               </div>
             </div>
+            }
 
             <!-- Add Update Section -->
-            <div *ngIf="!editingPrayer" class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div *ngIf="addingUpdate === prayer.id" class="space-y-3">
+            @if (!editingPrayer) {
+            <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              @if (addingUpdate === prayer.id) {
+              <div class="space-y-3">
                 <div class="flex items-center justify-between mb-2">
                   <h6 class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
                     Add New Update
@@ -832,9 +896,10 @@ interface NewUpdate {
                   ></textarea>
                 </div>
               </div>
+              }
 
+              @if (addingUpdate !== prayer.id) {
               <button
-                *ngIf="addingUpdate !== prayer.id"
                 (click)="addingUpdate = prayer.id"
                 class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
@@ -844,15 +909,21 @@ interface NewUpdate {
                 </svg>
                 Add Update
               </button>
+              }
             </div>
-          </ng-container>
+            }
+          }
         </div>
       </div>
+      }
     </div>
+    }
   </div>
+  }
 
   <!-- Empty States -->
-  <div *ngIf="!searching && allPrayers.length === 0 && searchTerm && !statusFilter && !approvalFilter" class="text-center py-8 text-gray-500 dark:text-gray-400">
+  @if (!searching && allPrayers.length === 0 && searchTerm && !statusFilter && !approvalFilter) {
+  <div class="text-center py-8 text-gray-500 dark:text-gray-400">
     <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
       <line x1="12" y1="9" x2="12" y2="13"></line>
@@ -861,8 +932,10 @@ interface NewUpdate {
     <p>No prayers found</p>
     <p class="text-sm mt-1">Try a different search term</p>
   </div>
+  }
 
-  <div *ngIf="!searching && allPrayers.length === 0 && !searchTerm && !statusFilter && !approvalFilter" class="text-center py-8 text-gray-500 dark:text-gray-400">
+  @if (!searching && allPrayers.length === 0 && !searchTerm && !statusFilter && !approvalFilter) {
+  <div class="text-center py-8 text-gray-500 dark:text-gray-400">
     <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="8"></circle>
       <path d="m21 21-4.35-4.35"></path>
@@ -874,17 +947,21 @@ interface NewUpdate {
       <p>• Select "Denied" to see all denied prayers and activities</p>
     </div>
   </div>
+  }
 
   <!-- Results Summary -->
-  <div *ngIf="allPrayers.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+  @if (allPrayers.length > 0) {
+  <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
     <div class="flex items-center justify-between text-sm">
       <span class="text-gray-600 dark:text-gray-400">
         Found: <span class="font-semibold">{{ totalItems }}</span> prayer(s) | 
         Showing: <span class="font-semibold">{{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }}</span>
       </span>
-      <span *ngIf="selectedPrayers.size > 0" class="text-red-600 dark:text-red-400">
+      @if (selectedPrayers.size > 0) {
+      <span class="text-red-600 dark:text-red-400">
         Selected: <span class="font-semibold">{{ selectedPrayers.size }}</span>
       </span>
+      }
     </div>
 
     <!-- Page Size Selector -->
@@ -903,7 +980,8 @@ interface NewUpdate {
     </div>
 
     <!-- Pagination Controls -->
-    <div *ngIf="totalPages > 1" class="flex items-center justify-between">
+    @if (totalPages > 1) {
+    <div class="flex items-center justify-between">
       <div class="flex gap-2">
         <button
           (click)="previousPage()"
@@ -929,8 +1007,8 @@ interface NewUpdate {
         </span>
         
         <div class="flex gap-1">
+          @for (page of getPaginationRange(); track $index) {
           <button
-            *ngFor="let page of getPaginationRange()"
             (click)="goToPage(page)"
             [class]="page === currentPage ? 
               'px-3 py-1 bg-red-600 text-white rounded-lg text-sm' :
@@ -938,10 +1016,13 @@ interface NewUpdate {
           >
             {{ page }}
           </button>
+          }
         </div>
       </div>
     </div>
+    }
   </div>
+  }
 
   <!-- Warning Notice -->
   <div class="mt-4 flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">

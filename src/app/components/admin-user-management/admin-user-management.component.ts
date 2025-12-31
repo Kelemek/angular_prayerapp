@@ -1,5 +1,4 @@
 import { Component, OnInit, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -16,7 +15,7 @@ interface AdminUser {
 @Component({
   selector: 'app-admin-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between mb-6">
@@ -34,8 +33,8 @@ interface AdminUser {
           </div>
         </div>
         
+        @if (!showAddForm) {
         <button
-          *ngIf="!showAddForm"
           (click)="showAddForm = true"
           class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
         >
@@ -47,10 +46,12 @@ interface AdminUser {
           </svg>
           Add Admin
         </button>
+        }
       </div>
 
       <!-- Success Message -->
-      <div *ngIf="success" class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md" role="status" aria-live="polite" aria-atomic="true">
+      @if (success) {
+      <div class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md" role="status" aria-live="polite" aria-atomic="true">
         <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
           <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -65,9 +66,11 @@ interface AdminUser {
           </svg>
         </button>
       </div>
+      }
 
       <!-- Error Message -->
-      <div *ngIf="error" class="mb-4 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md" role="alert" aria-live="assertive" aria-atomic="true">
+      @if (error) {
+      <div class="mb-4 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md" role="alert" aria-live="assertive" aria-atomic="true">
         <svg class="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -83,9 +86,11 @@ interface AdminUser {
           </svg>
         </button>
       </div>
+      }
 
       <!-- Add Admin Form -->
-      <div *ngIf="showAddForm" class="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-700 rounded-lg">
+      @if (showAddForm) {
+      <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-700 rounded-lg">
         <div class="flex items-center justify-between mb-4">
           <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
             Add New Admin
@@ -139,11 +144,15 @@ interface AdminUser {
               class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Add new admin user"
             >
-              <div *ngIf="adding" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <svg *ngIf="!adding" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              @if (adding) {
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              }
+              @if (!adding) {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                 <polyline points="22,6 12,13 2,6"></polyline>
               </svg>
+              }
               {{ adding ? 'Adding...' : 'Add & Send Invitation' }}
             </button>
             <button
@@ -156,24 +165,28 @@ interface AdminUser {
             </button>
           </div>
         </div>
-      </div>
-
+      </div>      }
       <!-- Admin List -->
-      <div *ngIf="loading" class="text-center py-8">
+      @if (loading) {
+      <div class="text-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
         <p class="text-gray-500 dark:text-gray-400 text-sm mt-2">Loading admins...</p>
       </div>
+      }
 
-      <div *ngIf="!loading && admins.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+      @if (!loading && admins.length === 0) {
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
         <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
         <p>No admin users found</p>
       </div>
+      }
 
-      <div *ngIf="!loading && admins.length > 0" class="space-y-3">
+      @if (!loading && admins.length > 0) {
+      <div class="space-y-3">
+        @for (admin of admins; track admin.email) {
         <div
-          *ngFor="let admin of admins"
           class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
         >
           <div class="flex-1">
@@ -192,13 +205,16 @@ interface AdminUser {
               <span>
                 Added: {{ formatDate(admin.created_at) }}
               </span>
-              <span *ngIf="admin.last_sign_in_at">
+              @if (admin.last_sign_in_at) {
+              <span>
                 Last sign in: {{ formatDate(admin.last_sign_in_at) }}
               </span>
+              }
             </div>
           </div>
 
-          <div *ngIf="deletingEmail === admin.email" class="flex items-center gap-2">
+          @if (deletingEmail === admin.email) {
+          <div class="flex items-center gap-2">
             <span class="text-sm text-gray-600 dark:text-gray-400">Remove admin access?</span>
             <button
               (click)="deleteAdmin(admin.email)"
@@ -215,8 +231,10 @@ interface AdminUser {
               Cancel
             </button>
           </div>
+          }
 
-          <div *ngIf="deletingEmail !== admin.email" class="flex items-center gap-2">
+          @if (deletingEmail !== admin.email) {
+          <div class="flex items-center gap-2">
             <!-- Receive Admin Emails Toggle -->
             <button
               (click)="toggleReceiveEmails(admin.email, admin.receive_admin_emails)"
@@ -224,15 +242,19 @@ interface AdminUser {
               [attr.aria-label]="'Email notifications for ' + admin.name + ' are ' + (admin.receive_admin_emails ? 'enabled' : 'disabled')"
               [attr.aria-pressed]="admin.receive_admin_emails"
             >
-              <svg *ngIf="admin.receive_admin_emails" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              @if (admin.receive_admin_emails) {
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <svg *ngIf="!admin.receive_admin_emails" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              }
+              @if (!admin.receive_admin_emails) {
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="15" y1="9" x2="9" y2="15"></line>
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
+              }
             </button>
             
             <!-- Delete Admin Button -->
@@ -248,15 +270,20 @@ interface AdminUser {
               </svg>
             </button>
           </div>
+          }
         </div>
+        }
       </div>
+      }
 
       <!-- Summary and Notes -->
-      <div *ngIf="admins.length > 0" class="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-md">
+      @if (admins.length > 0) {
+      <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-md">
         <p class="text-sm text-gray-700 dark:text-gray-300">
           <strong>{{ getReceivingEmailsCount() }}</strong> of <strong>{{ admins.length }}</strong> admin{{ admins.length !== 1 ? 's' : '' }} receiving email notifications
         </p>
       </div>
+      }
 
       <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
         <p class="text-xs text-blue-800 dark:text-blue-200">

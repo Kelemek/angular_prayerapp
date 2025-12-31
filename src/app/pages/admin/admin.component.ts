@@ -64,14 +64,15 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
             <!-- Right side: Email indicator and navigation controls -->
             <div class="flex flex-col items-end gap-3">
               <!-- Email Indicator -->
-              <div *ngIf="(adminAuthService.user$ | async) as user; else storedEmail" class="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
-                {{ user.email }}
-              </div>
-              <ng-template #storedEmail>
+              @if ((adminAuthService.user$ | async); as user) {
+                <div class="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
+                  {{ user.email }}
+                </div>
+              } @else {
                 <div class="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
                   {{ getAdminEmail() }}
                 </div>
-              </ng-template>
+              }
               
               <!-- Navigation Controls -->
               <button
@@ -156,192 +157,222 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
         </div>
 
         <!-- Alert for pending items -->
-        <div *ngIf="totalPendingCount > 0" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-6">
-          <div class="flex items-center gap-2">
-            <svg class="text-green-600 dark:text-green-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            <p class="text-green-800 dark:text-green-200">
-              You have {{ totalPendingCount }} items pending approval.
-            </p>
+        @if (totalPendingCount > 0) {
+          <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-6">
+            <div class="flex items-center gap-2">
+              <svg class="text-green-600 dark:text-green-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <p class="text-green-800 dark:text-green-200">
+                You have {{ totalPendingCount }} items pending approval.
+              </p>
+            </div>
           </div>
-        </div>
+        }
 
         <!-- Loading State -->
-        <div *ngIf="adminData?.loading" class="text-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p class="text-gray-600 dark:text-gray-400 mt-4">Loading admin data...</p>
-        </div>
+        @if (adminData?.loading) {
+          <div class="text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="text-gray-600 dark:text-gray-400 mt-4">Loading admin data...</p>
+          </div>
+        }
 
         <!-- Error State -->
-        <div *ngIf="adminData?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
-          <p class="text-red-800 dark:text-red-200">{{ adminData.error }}</p>
-          <button 
-            (click)="refresh()"
-            class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
+        @if (adminData?.error) {
+          <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+            <p class="text-red-800 dark:text-red-200">{{ adminData.error }}</p>
+            <button 
+              (click)="refresh()"
+              class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        }
 
         <!-- Tab Content -->
-        <div *ngIf="!adminData?.loading && !adminData?.error">
+        @if (!adminData?.loading && !adminData?.error) {
           <!-- Prayers Tab -->
-          <div *ngIf="activeTab === 'prayers'">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-              Pending Prayer Requests ({{ adminData?.pendingPrayers?.length || 0 }})
-            </h2>
-            
-            <div *ngIf="(adminData?.pendingPrayers?.length || 0) === 0" 
-                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-              <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                No pending prayer requests
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400">
-                All prayer requests have been reviewed.
-              </p>
-            </div>
+          @if (activeTab === 'prayers') {
+            <div>
+              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+                Pending Prayer Requests ({{ adminData?.pendingPrayers?.length || 0 }})
+              </h2>
+              
+              @if ((adminData?.pendingPrayers?.length || 0) === 0) {
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                  <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    No pending prayer requests
+                  </h3>
+                  <p class="text-gray-500 dark:text-gray-400">
+                    All prayer requests have been reviewed.
+                  </p>
+                </div>
+              }
 
-            <div class="space-y-6">
-              <app-pending-prayer-card
-                *ngFor="let prayer of adminData?.pendingPrayers; trackBy: trackByPrayerId"
-                [prayer]="prayer"
-                (approve)="approvePrayer($event)"
-                (deny)="denyPrayer($event.id, $event.reason)"
-                (edit)="editPrayer($event.id, $event.updates)"
-              ></app-pending-prayer-card>
+              <div class="space-y-6">
+                @for (prayer of adminData?.pendingPrayers; track trackByPrayerId($index, prayer)) {
+                  <app-pending-prayer-card
+                    [prayer]="prayer"
+                    (approve)="approvePrayer($event)"
+                    (deny)="denyPrayer($event.id, $event.reason)"
+                    (edit)="editPrayer($event.id, $event.updates)"
+                  ></app-pending-prayer-card>
+                }
+              </div>
             </div>
-          </div>
+          }
 
           <!-- Updates Tab -->
-          <div *ngIf="activeTab === 'updates'">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-              Pending Prayer Updates ({{ adminData?.pendingUpdates?.length || 0 }})
-            </h2>
-            
-            <div *ngIf="(adminData?.pendingUpdates?.length || 0) === 0" 
-                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-              <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                No pending prayer updates
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400">
-                All prayer updates have been reviewed.
-              </p>
-            </div>
+          @if (activeTab === 'updates') {
+            <div>
+              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+                Pending Prayer Updates ({{ adminData?.pendingUpdates?.length || 0 }})
+              </h2>
+              
+              @if ((adminData?.pendingUpdates?.length || 0) === 0) {
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                  <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    No pending prayer updates
+                  </h3>
+                  <p class="text-gray-500 dark:text-gray-400">
+                    All prayer updates have been reviewed.
+                  </p>
+                </div>
+              }
 
-            <div class="space-y-6">
-              <app-pending-update-card
-                *ngFor="let update of adminData?.pendingUpdates; trackBy: trackByUpdateId"
-                [update]="update"
-                (approve)="approveUpdate($event)"
-                (deny)="denyUpdate($event.id, $event.reason)"
-                (edit)="editUpdate($event.id, $event.updates)"
-              ></app-pending-update-card>
+              <div class="space-y-6">
+                @for (update of adminData?.pendingUpdates; track trackByUpdateId($index, update)) {
+                  <app-pending-update-card
+                    [update]="update"
+                    (approve)="approveUpdate($event)"
+                    (deny)="denyUpdate($event.id, $event.reason)"
+                    (edit)="editUpdate($event.id, $event.updates)"
+                  ></app-pending-update-card>
+                }
+              </div>
             </div>
-          </div>
+          }
 
           <!-- Deletions Tab -->
-          <div *ngIf="activeTab === 'deletions'">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-              Pending Deletion Requests ({{ (adminData?.pendingDeletionRequests?.length || 0) + (adminData?.pendingUpdateDeletionRequests?.length || 0) }})
-            </h2>
-            
-            <div *ngIf="(adminData?.pendingDeletionRequests?.length || 0) === 0 && (adminData?.pendingUpdateDeletionRequests?.length || 0) === 0" 
-                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-              <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                No pending deletion requests
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400">
-                All deletion requests have been reviewed.
-              </p>
-            </div>
-            
-            <div class="space-y-6" *ngIf="(adminData?.pendingDeletionRequests?.length || 0) > 0 || (adminData?.pendingUpdateDeletionRequests?.length || 0) > 0">
-              <!-- Prayer Deletions -->
-              <div *ngIf="(adminData?.pendingDeletionRequests?.length || 0) > 0">
-                <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
-                  Prayer Deletions ({{ adminData?.pendingDeletionRequests?.length || 0 }})
-                </h3>
-
-                <div class="space-y-6">
-                  <app-pending-deletion-card
-                    *ngFor="let request of adminData?.pendingDeletionRequests; trackBy: trackByDeletionRequestId"
-                    [deletionRequest]="request"
-                    (approve)="approveDeletionRequest($event)"
-                    (deny)="denyDeletionRequest($event.id, $event.reason)"
-                  ></app-pending-deletion-card>
+          @if (activeTab === 'deletions') {
+            <div>
+              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+                Pending Deletion Requests ({{ (adminData?.pendingDeletionRequests?.length || 0) + (adminData?.pendingUpdateDeletionRequests?.length || 0) }})
+              </h2>
+              
+              @if ((adminData?.pendingDeletionRequests?.length || 0) === 0 && (adminData?.pendingUpdateDeletionRequests?.length || 0) === 0) {
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                  <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    No pending deletion requests
+                  </h3>
+                  <p class="text-gray-500 dark:text-gray-400">
+                    All deletion requests have been reviewed.
+                  </p>
                 </div>
-              </div>
-
-              <!-- Update Deletions -->
-              <div *ngIf="(adminData?.pendingUpdateDeletionRequests?.length || 0) > 0">
-                <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
-                  Update Deletions ({{ adminData?.pendingUpdateDeletionRequests?.length || 0 }})
-                </h3>
-                
+              }
+              
+              @if ((adminData?.pendingDeletionRequests?.length || 0) > 0 || (adminData?.pendingUpdateDeletionRequests?.length || 0) > 0) {
                 <div class="space-y-6">
-                  <app-pending-update-deletion-card
-                    *ngFor="let request of adminData?.pendingUpdateDeletionRequests; trackBy: trackByDeletionRequestId"
-                    [deletionRequest]="request"
-                    (approve)="approveUpdateDeletionRequest($event)"
-                    (deny)="denyUpdateDeletionRequest($event.id, $event.reason)"
-                  ></app-pending-update-deletion-card>
+                  <!-- Prayer Deletions -->
+                  @if ((adminData?.pendingDeletionRequests?.length || 0) > 0) {
+                    <div>
+                      <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
+                        Prayer Deletions ({{ adminData?.pendingDeletionRequests?.length || 0 }})
+                      </h3>
+
+                      <div class="space-y-6">
+                        @for (request of adminData?.pendingDeletionRequests; track trackByDeletionRequestId($index, request)) {
+                          <app-pending-deletion-card
+                            [deletionRequest]="request"
+                            (approve)="approveDeletionRequest($event)"
+                            (deny)="denyDeletionRequest($event.id, $event.reason)"
+                          ></app-pending-deletion-card>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Update Deletions -->
+                  @if ((adminData?.pendingUpdateDeletionRequests?.length || 0) > 0) {
+                    <div>
+                      <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
+                        Update Deletions ({{ adminData?.pendingUpdateDeletionRequests?.length || 0 }})
+                      </h3>
+                      
+                      <div class="space-y-6">
+                        @for (request of adminData?.pendingUpdateDeletionRequests; track trackByDeletionRequestId($index, request)) {
+                          <app-pending-update-deletion-card
+                            [deletionRequest]="request"
+                            (approve)="approveUpdateDeletionRequest($event)"
+                            (deny)="denyUpdateDeletionRequest($event.id, $event.reason)"
+                          ></app-pending-update-deletion-card>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
-              </div>
+              }
             </div>
-          </div>
+          }
 
           <!-- Accounts Tab -->
-          <div *ngIf="activeTab === 'accounts'">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-              Pending Account Approvals ({{ adminData?.pendingAccountRequests?.length || 0 }})
-            </h2>
+          @if (activeTab === 'accounts') {
+            <div>
+              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+                Pending Account Approvals ({{ adminData?.pendingAccountRequests?.length || 0 }})
+              </h2>
 
-            <div *ngIf="(adminData?.pendingAccountRequests?.length || 0) === 0" 
-                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-              <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                No pending account approval requests
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400">
-                All account requests have been reviewed.
-              </p>
-            </div>
+              @if ((adminData?.pendingAccountRequests?.length || 0) === 0) {
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                  <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    No pending account approval requests
+                  </h3>
+                  <p class="text-gray-500 dark:text-gray-400">
+                    All account requests have been reviewed.
+                  </p>
+                </div>
+              }
 
-            <div class="space-y-6">
-              <app-pending-account-approval-card
-                *ngFor="let request of adminData?.pendingAccountRequests; trackBy: trackByAccountRequestId"
-                [request]="request"
-                (approve)="approveAccountRequest($event)"
-                (deny)="denyAccountRequest($event.id, $event.reason)"
-              ></app-pending-account-approval-card>
+              <div class="space-y-6">
+                @for (request of adminData?.pendingAccountRequests; track trackByAccountRequestId($index, request)) {
+                  <app-pending-account-approval-card
+                    [request]="request"
+                    (approve)="approveAccountRequest($event)"
+                    (deny)="denyAccountRequest($event.id, $event.reason)"
+                  ></app-pending-account-approval-card>
+                }
+              </div>
             </div>
-          </div>
+          }
 
           <!-- Settings Tab -->
-          <div *ngIf="activeTab === 'settings'">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-              Admin Settings
-            </h2>
-            
-            <!-- Settings Sub-Navigation -->
+          @if (activeTab === 'settings') {
+            <div>
+              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+                Admin Settings
+              </h2>
+              
+              <!-- Settings Sub-Navigation -->
             <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
               <button
                 (click)="onSettingsTabChange('analytics')"
@@ -405,23 +436,27 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
             </div>
 
             <!-- Analytics Tab -->
-            <div *ngIf="activeSettingsTab === 'analytics'" class="space-y-6">
-              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-                <div class="flex items-center gap-2 mb-4">
-                  <svg class="text-blue-600 dark:text-blue-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                    <polyline points="17 6 23 6 23 12"></polyline>
-                  </svg>
-                  <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100">
-                    Site Analytics
-                  </h3>
-                </div>
-                
-                <div *ngIf="analyticsStats.loading" class="text-center py-4">
-                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                </div>
+            @if (activeSettingsTab === 'analytics') {
+              <div class="space-y-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+                  <div class="flex items-center gap-2 mb-4">
+                    <svg class="text-blue-600 dark:text-blue-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                      <polyline points="17 6 23 6 23 12"></polyline>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100">
+                      Site Analytics
+                    </h3>
+                  </div>
+                  
+                  @if (analyticsStats.loading) {
+                    <div class="text-center py-4">
+                      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                  }
 
-                <div *ngIf="!analyticsStats.loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  @if (!analyticsStats.loading) {
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                   <!-- Today -->
                   <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
                     <div class="flex items-center gap-2 mb-2">
@@ -591,64 +626,79 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                     <div class="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">active subscribers</div>
                   </div>
                 </div>
+              }
+                </div>
               </div>
-            </div>
+            }
 
             <!-- Other Settings Tabs Placeholder -->
-            <div *ngIf="activeSettingsTab === 'content'" class="space-y-6">
-              <div class="mb-4">
-                <app-branding (onSave)="handleBrandingSave()"></app-branding>
-              </div>
-              <div class="mb-4">
-                <app-prompt-manager (onSave)="handlePromptManagerSave()"></app-prompt-manager>
-              </div>
-              <div class="mb-4">
+            @if (activeSettingsTab === 'content') {
+              <div class="space-y-6">
+                <div class="mb-4">
+                  <app-branding (onSave)="handleBrandingSave()"></app-branding>
+                </div>
+                <div class="mb-4">
+                  <app-prompt-manager (onSave)="handlePromptManagerSave()"></app-prompt-manager>
+                </div>
+                <div class="mb-4">
                 <app-prayer-types-manager (onSave)="handlePrayerTypesManagerSave()"></app-prayer-types-manager>
               </div>
-            </div>
-
-            <div *ngIf="activeSettingsTab === 'email'" class="space-y-6">
-              <div class="mb-4">
-                <app-email-settings (onSave)="handleEmailSettingsSave()"></app-email-settings>
               </div>
-            </div>
+            }
 
-            <div *ngIf="activeSettingsTab === 'users'" class="space-y-6">
-              <div class="mb-4">
-                <app-admin-user-management (onSave)="handleUserManagementSave()"></app-admin-user-management>
+            @if (activeSettingsTab === 'email') {
+              <div class="space-y-6">
+                <div class="mb-4">
+                  <app-email-settings (onSave)="handleEmailSettingsSave()"></app-email-settings>
+                </div>
               </div>
-            </div>
+            }
+
+            @if (activeSettingsTab === 'users') {
+              <div class="space-y-6">
+                <div class="mb-4">
+                  <app-admin-user-management (onSave)="handleUserManagementSave()"></app-admin-user-management>
+                </div>
+              </div>
+            }
 
             <!-- Tools Tab -->
-            <div *ngIf="activeSettingsTab === 'tools'" class="space-y-6">
-              <div class="mb-4">
-                <app-prayer-search></app-prayer-search>
+            @if (activeSettingsTab === 'tools') {
+              <div class="space-y-6">
+                <div class="mb-4">
+                  <app-prayer-search></app-prayer-search>
+                </div>
+                <div class="mb-4">
+                  <app-backup-status></app-backup-status>
+                </div>
               </div>
-              <div class="mb-4">
-                <app-backup-status></app-backup-status>
-              </div>
-            </div>
+            }
 
             <!-- Security Tab -->
-            <div *ngIf="activeSettingsTab === 'security'">
-              <div class="mb-4">
-                <app-email-verification-settings></app-email-verification-settings>
+            @if (activeSettingsTab === 'security') {
+              <div>
+                <div class="mb-4">
+                  <app-email-verification-settings></app-email-verification-settings>
+                </div>
+                <div class="mb-4">
+                  <app-security-policy-settings></app-security-policy-settings>
+                </div>
               </div>
-              <div class="mb-4">
-                <app-security-policy-settings></app-security-policy-settings>
-              </div>
-            </div>
+            }
 
-            <div *ngIf="activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email' && activeSettingsTab !== 'users' && activeSettingsTab !== 'tools' && activeSettingsTab !== 'security'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                {{ activeSettingsTab | titlecase }} Settings
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400">
-                This section is being built. Check back soon!
-              </p>
+            @if (activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email' && activeSettingsTab !== 'users' && activeSettingsTab !== 'tools' && activeSettingsTab !== 'security') {
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  {{ activeSettingsTab | titlecase }} Settings
+                </h3>
+                <p class="text-gray-500 dark:text-gray-400">
+                  This section is being built. Check back soon!
+                </p>
+              </div>
+            }
             </div>
-          </div>
-        </div>
+          }
+        }
       </main>
     </div>
   `,

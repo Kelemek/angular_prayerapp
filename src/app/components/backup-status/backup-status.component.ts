@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -17,15 +16,18 @@ interface BackupLog {
 @Component({
   selector: 'app-backup-status',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
-<div *ngIf="loading" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+@if (loading) {
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
   <div class="flex items-center justify-center">
     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
   </div>
 </div>
+}
 
-<div *ngIf="!loading && !latestBackup" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+@if (!loading && !latestBackup) {
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
   <div class="flex items-center gap-3 mb-4">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
       <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
@@ -48,8 +50,10 @@ interface BackupLog {
     </p>
   </div>
 </div>
+}
 
-<div *ngIf="!loading && latestBackup" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+@if (!loading && latestBackup) {
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
   <!-- Header -->
   <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
     <div class="flex items-center gap-3">
@@ -68,12 +72,16 @@ interface BackupLog {
         [disabled]="backingUp"
         class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
       >
-        <div *ngIf="backingUp" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-        <svg *ngIf="!backingUp" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        @if (backingUp) {
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        }
+        @if (!backingUp) {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
+        }
         {{ backingUp ? 'Backing up...' : 'Manual Backup' }}
       </button>
       <button
@@ -81,12 +89,16 @@ interface BackupLog {
         [disabled]="restoring"
         class="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
       >
-        <div *ngIf="restoring" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-        <svg *ngIf="!restoring" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        @if (restoring) {
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        }
+        @if (!restoring) {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="17 8 12 3 7 8"></polyline>
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </svg>
+        }
         {{ restoring ? 'Restoring...' : 'Restore' }}
       </button>
     </div>
@@ -117,28 +129,35 @@ interface BackupLog {
         Recent Backups
       </h4>
       <div class="space-y-2">
-        <div *ngFor="let backup of getVisibleBackups()">
+        @for (backup of getVisibleBackups(); track backup.id) {
+        <div>
           <div
             (click)="toggleExpanded(backup.id)"
             class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg mb-4 border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer hover:border-gray-300 dark:hover:border-gray-600"
           >
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <svg *ngIf="backup.status === 'success'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500 flex-shrink-0">
+              @if (backup.status === 'success') {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500 flex-shrink-0">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <svg *ngIf="backup.status !== 'success'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 flex-shrink-0">
+              }
+              @if (backup.status !== 'success') {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 flex-shrink-0">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="15" y1="9" x2="9" y2="15"></line>
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
+              }
               <div class="flex-1 min-w-0">
                 <div class="text-gray-900 dark:text-gray-100 truncate">
                   {{ formatDate(backup.backup_date) }}
                 </div>
-                <div *ngIf="backup.error_message" class="text-xs text-red-600 dark:text-red-400 truncate">
+                @if (backup.error_message) {
+                <div class="text-xs text-red-600 dark:text-red-400 truncate">
                   {{ backup.error_message }}
                 </div>
+                }
               </div>
             </div>
             <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
@@ -151,7 +170,8 @@ interface BackupLog {
           </div>
 
           <!-- Expanded Detail View -->
-          <div *ngIf="expandedBackupId === backup.id" class="mt-2 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          @if (expandedBackupId === backup.id) {
+          <div class="mt-2 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <div class="text-xs text-gray-500 dark:text-gray-300">Backup ID</div>
@@ -198,20 +218,23 @@ interface BackupLog {
               </div>
             </div>
 
-            <div *ngIf="backup.error_message" class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+            @if (backup.error_message) {
+            <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
               <div class="text-xs font-semibold text-red-800 dark:text-red-300 mb-1">Error Message</div>
               <div class="text-sm text-red-700 dark:text-red-400 font-mono">
                 {{ backup.error_message }}
               </div>
             </div>
+            }
 
-            <div *ngIf="backup.tables_backed_up && getTableEntries(backup).length > 0">
+            @if (backup.tables_backed_up && getTableEntries(backup).length > 0) {
+            <div>
               <div class="text-xs font-semibold text-gray-700 dark:text-gray-100 mb-2">
                 Tables Backed Up ({{ getTableEntries(backup).length }})
               </div>
               <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                @for (entry of getTableEntries(backup); track entry[0]) {
                 <div
-                  *ngFor="let entry of getTableEntries(backup)"
                   class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-900/50 rounded text-xs border border-gray-200 dark:border-gray-700"
                 >
                   <span class="text-gray-700 dark:text-gray-100 truncate mr-2">
@@ -221,14 +244,19 @@ interface BackupLog {
                     {{ entry[1] }}
                   </span>
                 </div>
+                }
               </div>
             </div>
+            }
           </div>
+          }
         </div>
+        }
       </div>
 
       <!-- Show More Button -->
-      <div *ngIf="!showFullLog && allBackups.length > 5" class="mt-4 text-center">
+      @if (!showFullLog && allBackups.length > 5) {
+      <div class="mt-4 text-center">
         <button
           (click)="toggleShowFullLog()"
           class="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
@@ -236,9 +264,11 @@ interface BackupLog {
           Show More ({{ allBackups.length - 5 }} older backups)
         </button>
       </div>
+      }
 
       <!-- Show Less Button -->
-      <div *ngIf="showFullLog && allBackups.length > 5" class="mt-4 text-center">
+      @if (showFullLog && allBackups.length > 5) {
+      <div class="mt-4 text-center">
         <button
           (click)="toggleShowFullLog()"
           class="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
@@ -246,11 +276,15 @@ interface BackupLog {
           Show Less
         </button>
       </div>
+      }
     </div>
   </div>
+</div>
+}
 
   <!-- Restore Dialog -->
-  <div *ngIf="showRestoreDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  @if (showRestoreDialog) {
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         Restore Database from Backup
@@ -295,7 +329,7 @@ interface BackupLog {
       </div>
     </div>
   </div>
-</div>
+  }
   `
 })
 export class BackupStatusComponent implements OnInit {

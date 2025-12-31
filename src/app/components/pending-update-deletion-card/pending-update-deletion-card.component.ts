@@ -1,5 +1,4 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 interface UpdateDeletionRequest {
@@ -26,7 +25,7 @@ interface UpdateDeletionRequest {
 @Component({
   selector: 'app-pending-update-deletion-card',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-4">
@@ -38,29 +37,39 @@ interface UpdateDeletionRequest {
           </h3>
 
           <!-- Prayer Title -->
-          <div *ngIf="deletionRequest.prayer_updates?.prayers?.title" class="mb-4">
+          @if (deletionRequest.prayer_updates?.prayers?.title) {
+          <div class="mb-4">
             <p class="text-gray-600 dark:text-gray-300 font-medium">
               Prayer: {{ deletionRequest.prayer_updates?.prayers?.title }}
             </p>
           </div>
+          }
 
           <!-- Update Content -->
-          <div *ngIf="deletionRequest.prayer_updates?.content" class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+          @if (deletionRequest.prayer_updates?.content) {
+          <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
             <p class="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Update to be deleted:</p>
             <p class="text-gray-700 dark:text-gray-300">{{ deletionRequest.prayer_updates?.content }}</p>
-            <p *ngIf="deletionRequest.prayer_updates?.author" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            @if (deletionRequest.prayer_updates?.author) {
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
               By: {{ deletionRequest.prayer_updates?.author }} 
-              <span *ngIf="deletionRequest.prayer_updates?.created_at">
+              @if (deletionRequest.prayer_updates?.created_at) {
+              <span>
                 on {{ formatDate(deletionRequest.prayer_updates!.created_at!) }}
               </span>
+              }
             </p>
+            }
           </div>
+          }
 
           <!-- Reason for deletion -->
-          <div *ngIf="deletionRequest.reason" class="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+          @if (deletionRequest.reason) {
+          <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
             <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason for deletion:</p>
             <p class="text-gray-600 dark:text-gray-400">{{ deletionRequest.reason }}</p>
           </div>
+          }
 
           <!-- Meta Information -->
           <div class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
@@ -71,12 +80,14 @@ interface UpdateDeletionRequest {
               </svg>
               <span>Requested by: {{ deletionRequest.requested_by }}</span>
             </div>
-            <div *ngIf="deletionRequest.requested_email" class="flex items-center gap-1">
+            @if (deletionRequest.requested_email) {
+            <div class="flex items-center gap-1">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
               <span class="break-words">Email: {{ deletionRequest.requested_email }}</span>
             </div>
+            }
             <div class="flex items-center gap-1">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -95,8 +106,8 @@ interface UpdateDeletionRequest {
 
       <!-- Actions -->
       <div class="flex flex-wrap gap-2">
+        @if (!isDenying) {
         <button
-          *ngIf="!isDenying"
           (click)="handleApprove()"
           [disabled]="isApproving"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -106,9 +117,10 @@ interface UpdateDeletionRequest {
           </svg>
           {{ isApproving ? 'Approving...' : 'Approve & Delete Update' }}
         </button>
+        }
 
+        @if (!isDenying) {
         <button
-          *ngIf="!isDenying"
           (click)="isDenying = true"
           class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
         >
@@ -118,10 +130,12 @@ interface UpdateDeletionRequest {
           </svg>
           Deny
         </button>
+        }
       </div>
 
       <!-- Denial Form -->
-      <div *ngIf="isDenying" class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+      @if (isDenying) {
+      <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Reason for denial (required)
         </label>
@@ -147,6 +161,7 @@ interface UpdateDeletionRequest {
           </button>
         </div>
       </div>
+      }
     </div>
   `,
   styles: []

@@ -1,12 +1,11 @@
 import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 
 @Component({
   selector: 'app-branding',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
@@ -24,15 +23,20 @@ import { SupabaseService } from '../../services/supabase.service';
         Customize the title and tagline displayed at the top of your app.
       </p>
 
-      <div *ngIf="loading" class="text-center py-4">
+      @if (loading) {
+      <div class="text-center py-4">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
       </div>
+      }
 
-      <div *ngIf="!loading" class="space-y-4">
+      @if (!loading) {
+      <div class="space-y-4">
         <!-- Error Message -->
-        <div *ngIf="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4 mb-4">
+        @if (error) {
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4 mb-4">
           <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
         </div>
+        }
         <!-- App Title -->
         <div>
           <label for="appTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -87,7 +91,8 @@ import { SupabaseService } from '../../services/supabase.service';
             </label>
           </div>
 
-          <div *ngIf="useLogo" class="space-y-4 pl-7">
+          @if (useLogo) {
+          <div class="space-y-4 pl-7">
             <!-- Light Mode Logo -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -114,8 +119,8 @@ import { SupabaseService } from '../../services/supabase.service';
                   </svg>
                   Upload
                 </button>
+                @if (lightModeLogoUrl) {
                 <button
-                  *ngIf="lightModeLogoUrl"
                   (click)="lightModeLogoUrl = ''"
                   class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                   aria-label="Remove light mode logo"
@@ -126,8 +131,10 @@ import { SupabaseService } from '../../services/supabase.service';
                   </svg>
                   Remove
                 </button>
+                }
               </div>
-              <div *ngIf="lightModeLogoUrl" class="mt-3 p-3 rounded-lg border border-gray-300 bg-white">
+              @if (lightModeLogoUrl) {
+              <div class="mt-3 p-3 rounded-lg border border-gray-300 bg-white">
                 <p class="text-xs font-medium text-gray-700 mb-2">Preview (Light Mode):</p>
                 <img
                   [src]="lightModeLogoUrl"
@@ -135,6 +142,7 @@ import { SupabaseService } from '../../services/supabase.service';
                   class="h-16 w-auto max-w-xs"
                 />
               </div>
+              }
             </div>
 
             <!-- Dark Mode Logo -->
@@ -163,8 +171,8 @@ import { SupabaseService } from '../../services/supabase.service';
                   </svg>
                   Upload
                 </button>
+                @if (darkModeLogoUrl) {
                 <button
-                  *ngIf="darkModeLogoUrl"
                   (click)="darkModeLogoUrl = ''"
                   class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                   aria-label="Remove dark mode logo"
@@ -175,8 +183,10 @@ import { SupabaseService } from '../../services/supabase.service';
                   </svg>
                   Remove
                 </button>
+                }
               </div>
-              <div *ngIf="darkModeLogoUrl" class="mt-3 p-3 rounded-lg border border-gray-700" style="background-color: #1f2937;">
+              @if (darkModeLogoUrl) {
+              <div class="mt-3 p-3 rounded-lg border border-gray-700" style="background-color: #1f2937;">
                 <p class="text-xs font-medium text-gray-300 mb-2">Preview (Dark Mode):</p>
                 <img
                   [src]="darkModeLogoUrl"
@@ -184,8 +194,10 @@ import { SupabaseService } from '../../services/supabase.service';
                   class="h-16 w-auto max-w-xs"
                 />
               </div>
+              }
             </div>
           </div>
+          }
         </div>
 
         <!-- Save Button -->
@@ -195,28 +207,31 @@ import { SupabaseService } from '../../services/supabase.service';
             [disabled]="saving"
             class="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <ng-container *ngIf="saving">
+            @if (saving) {
               <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               Saving...
-            </ng-container>
-            <ng-container *ngIf="!saving">
+            }
+            @if (!saving) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
                 <polyline points="7 3 7 8 15 8"></polyline>
               </svg>
               Save Branding Settings
-            </ng-container>
+            }
           </button>
         </div>
 
         <!-- Success Message -->
-        <div *ngIf="success" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md p-4 mt-4">
+        @if (success) {
+        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md p-4 mt-4">
           <p class="text-sm text-green-800 dark:text-green-200">
             Branding settings saved successfully!
           </p>
         </div>
+        }
       </div>
+      }
     </div>
   `,
   styles: []

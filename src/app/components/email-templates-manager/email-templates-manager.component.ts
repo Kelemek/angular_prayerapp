@@ -1,5 +1,4 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SupabaseService } from '../../services/supabase.service';
@@ -20,7 +19,7 @@ interface EmailTemplate {
 @Component({
   selector: 'app-email-templates-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
       <div class="flex items-center justify-between mb-6">
@@ -45,26 +44,34 @@ interface EmailTemplate {
       </div>
 
       <!-- Error Message (when templates load but there's an issue) -->
-      <div *ngIf="error && templates.length > 0" class="mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded p-3">
+      @if (error && templates.length > 0) {
+      <div class="mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded p-3">
         <p class="text-yellow-800 dark:text-yellow-200 text-sm">{{ error }}</p>
       </div>
+      }
 
       <!-- Loading State -->
-      <div *ngIf="loading" class="text-center py-8">
+      @if (loading) {
+      <div class="text-center py-8">
         <p class="text-gray-600 dark:text-gray-400">Loading templates...</p>
       </div>
+      }
 
       <!-- Error State (no templates loaded) -->
-      <div *ngIf="!loading && error && templates.length === 0" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded p-4">
+      @if (!loading && error && templates.length === 0) {
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded p-4">
         <p class="text-red-800 dark:text-red-200"><strong>Error:</strong> {{ error }}</p>
         <p class="mt-2 text-sm text-red-700 dark:text-red-300">Please execute the database migration in Supabase SQL Editor to enable email templates.</p>
       </div>
+      }
 
       <!-- Templates List -->
-      <div *ngIf="!loading && templates.length > 0">
+      @if (!loading && templates.length > 0) {
+      <div>
         <label class="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Available Templates</label>
         <div class="space-y-3">
-          <div *ngFor="let template of templates">
+          @for (template of templates; track template.id) {
+          <div>
             <!-- Template Card -->
             <button
               (click)="handleSelectTemplate(template)"
@@ -78,7 +85,8 @@ interface EmailTemplate {
             </button>
 
             <!-- Editor - appears under selected template -->
-            <div *ngIf="selectedTemplate?.id === template.id && editedTemplate" class="mt-3 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            @if (selectedTemplate?.id === template.id && editedTemplate) {
+            <div class="mt-3 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
               <!-- Preview/Edit Toggle -->
               <div class="flex justify-between items-center">
                 <label class="text-sm font-semibold text-gray-900 dark:text-gray-100">Edit Template</label>
@@ -86,20 +94,25 @@ interface EmailTemplate {
                   (click)="showPreview = !showPreview"
                   class="flex items-center gap-2 px-3 py-1 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <svg *ngIf="showPreview" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  @if (showPreview) {
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                     <line x1="1" y1="1" x2="23" y2="23"></line>
                   </svg>
-                  <svg *ngIf="!showPreview" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  }
+                  @if (!showPreview) {
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
+                  }
                   {{ showPreview ? 'Edit' : 'Preview' }}
                 </button>
               </div>
 
               <!-- Preview Mode -->
-              <div *ngIf="showPreview" class="space-y-4">
+              @if (showPreview) {
+              <div class="space-y-4">
                 <div>
                   <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Subject:</label>
                   <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100">
@@ -130,9 +143,11 @@ interface EmailTemplate {
                   </p>
                 </div>
               </div>
+              }
 
               <!-- Edit Mode -->
-              <div *ngIf="!showPreview" class="space-y-4">
+              @if (!showPreview) {
+              <div class="space-y-4">
                 <div>
                   <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Name</label>
                   <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Human-readable title for this email template (for admin reference only)</p>
@@ -217,14 +232,19 @@ interface EmailTemplate {
                   </ul>
                 </div>
               </div>
+              }
 
               <!-- Error & Success Messages -->
-              <div *ngIf="error && selectedTemplate?.id === template.id" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded text-red-700 dark:text-red-200 text-sm">
+              @if (error && selectedTemplate?.id === template.id) {
+              <div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded text-red-700 dark:text-red-200 text-sm">
                 {{ error }}
               </div>
-              <div *ngIf="success && selectedTemplate?.id === template.id" class="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded text-green-700 dark:text-green-200 text-sm">
+              }
+              @if (success && selectedTemplate?.id === template.id) {
+              <div class="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded text-green-700 dark:text-green-200 text-sm">
                 {{ success }}
               </div>
+              }
 
               <!-- Actions -->
               <div class="flex gap-2">
@@ -248,14 +268,19 @@ interface EmailTemplate {
                 </button>
               </div>
             </div>
+            }
           </div>
+          }
         </div>
       </div>
+      }
 
       <!-- Empty State -->
-      <div *ngIf="!loading && templates.length === 0 && !error" class="text-center py-8">
+      @if (!loading && templates.length === 0 && !error) {
+      <div class="text-center py-8">
         <p class="text-gray-600 dark:text-gray-400 text-sm">No templates available</p>
       </div>
+      }
     </div>
   `,
   styles: []

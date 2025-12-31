@@ -1,5 +1,4 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, OnInit, ChangeDetectorRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import type { PrayerRequest } from '../../types/prayer';
 import { SupabaseService } from '../../services/supabase.service';
@@ -9,7 +8,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-pending-prayer-card',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-4">
@@ -24,37 +23,49 @@ import { environment } from '../../../environments/environment';
           </p>
           <div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
             <p>Requested by: {{ prayer.requester }} 
-              <span *ngIf="prayer.is_anonymous" class="text-orange-600 dark:text-orange-400 font-medium">(Anonymous)</span>
+              @if (prayer.is_anonymous) {
+              <span class="text-orange-600 dark:text-orange-400 font-medium">(Anonymous)</span>
+              }
             </p>
-            <p *ngIf="prayer.email && !prayer.is_anonymous" class="break-words">
+            @if (prayer.email && !prayer.is_anonymous) {
+            <p class="break-words">
               Email: {{ prayer.email }}
               <!-- Planning Center Verification Badge -->
-              <span *ngIf="!pcLoading && pcPerson" class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
+              @if (!pcLoading && pcPerson) {
+              <span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                 </svg>
                 Planning Center: {{ formatPersonName(pcPerson) }}
               </span>
-              <span *ngIf="!pcLoading && !pcPerson && !pcError" class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-medium">
+              }
+              @if (!pcLoading && !pcPerson && !pcError) {
+              <span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-medium">
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                 </svg>
                 Not in Planning Center
               </span>
-              <span *ngIf="!pcLoading && pcError" class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
+              }
+              @if (!pcLoading && pcError) {
+              <span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                 </svg>
                 Verification error
               </span>
-              <span *ngIf="pcLoading" class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
+              }
+              @if (pcLoading) {
+              <span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
                 <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Verifying...
               </span>
+              }
             </p>
+            }
             <p>Status: {{ prayer.status }}</p>
             <p class="text-xs text-gray-400 dark:text-gray-500">
               Submitted: {{ formatDate(prayer.created_at) }}
@@ -67,7 +78,8 @@ import { environment } from '../../../environments/environment';
       </div>
 
       <!-- Edit Mode -->
-      <div *ngIf="isEditing" class="mb-4 space-y-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+      @if (isEditing) {
+      <div class="mb-4 space-y-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Prayer For
@@ -98,7 +110,8 @@ import { environment } from '../../../environments/environment';
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           />
         </div>
-        <div *ngIf="!prayer.is_anonymous">
+        @if (!prayer.is_anonymous) {
+        <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Email
           </label>
@@ -108,12 +121,14 @@ import { environment } from '../../../environments/environment';
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           />
         </div>
+        }
       </div>
+      }
 
       <!-- Actions -->
       <div class="flex flex-wrap gap-2">
+        @if (!isEditing && !isDenying) {
         <button
-          *ngIf="!isEditing && !isDenying"
           (click)="handleApprove()"
           [disabled]="isApproving"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -123,9 +138,10 @@ import { environment } from '../../../environments/environment';
           </svg>
           {{ isApproving ? 'Approving...' : 'Approve' }}
         </button>
+        }
 
+        @if (!isEditing && !isDenying) {
         <button
-          *ngIf="!isEditing && !isDenying"
           (click)="isEditing = true"
           class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
@@ -135,9 +151,10 @@ import { environment } from '../../../environments/environment';
           </svg>
           Edit
         </button>
+        }
 
+        @if (isEditing) {
         <button
-          *ngIf="isEditing"
           (click)="handleSaveEdit()"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
@@ -146,9 +163,10 @@ import { environment } from '../../../environments/environment';
           </svg>
           Save
         </button>
+        }
 
+        @if (isEditing) {
         <button
-          *ngIf="isEditing"
           (click)="cancelEdit()"
           class="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
         >
@@ -158,9 +176,10 @@ import { environment } from '../../../environments/environment';
           </svg>
           Cancel
         </button>
+        }
 
+        @if (!isEditing && !isDenying) {
         <button
-          *ngIf="!isEditing && !isDenying"
           (click)="isDenying = true"
           class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
         >
@@ -170,10 +189,12 @@ import { environment } from '../../../environments/environment';
           </svg>
           Deny
         </button>
+        }
       </div>
 
       <!-- Denial Form -->
-      <div *ngIf="isDenying" class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+      @if (isDenying) {
+      <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Reason for denial (required)
         </label>
@@ -199,6 +220,7 @@ import { environment } from '../../../environments/environment';
           </button>
         </div>
       </div>
+      }
     </div>
   `,
   styles: []

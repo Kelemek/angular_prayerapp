@@ -35,26 +35,28 @@ import type { User } from '@supabase/supabase-js';
             </div>
             
             <!-- Email Indicator - Top Right -->
-            <div *ngIf="(user$ | async) as user; else storedEmail" class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
-              {{ user.email }}
-            </div>
-            <ng-template #storedEmail>
+            @if ((user$ | async); as user) {
+              <div class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
+                {{ user.email }}
+              </div>
+            } @else {
               <div class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
                 {{ getUserEmail() }}
               </div>
-            </ng-template>
+            }
           </div>
           
           <!-- Mobile buttons row -->
           <div class="sm:hidden flex items-center gap-2 flex-wrap">
-                  <button
-                    *ngIf="hasAdminEmail$ | async"
-                    (click)="navigateToAdmin()"
-                    class="flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-sm"
-                    title="Admin Portal"
-                  >
-                    <span>Admin</span>
-                  </button>
+                  @if (hasAdminEmail$ | async) {
+                    <button
+                      (click)="navigateToAdmin()"
+                      class="flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-sm"
+                      title="Admin Portal"
+                    >
+                      <span>Admin</span>
+                    </button>
+                  }
                   <button
                     (click)="showSettings = true"
                     class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
@@ -90,28 +92,30 @@ import type { User } from '@supabase/supabase-js';
             <!-- Email and buttons stacked on right -->
             <div class="flex flex-col items-end gap-2">
               <!-- Email Indicator -->
-              <div *ngIf="(user$ | async) as user; else storedEmail" class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
-                {{ user.email }}
-              </div>
-              <ng-template #storedEmail>
+              @if ((user$ | async); as user) {
+                <div class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
+                  {{ user.email }}
+                </div>
+              } @else {
                 <div class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded">
                   {{ getUserEmail() }}
                 </div>
-              </ng-template>
+              }
               
               <!-- Desktop buttons -->
               <div class="flex items-center gap-2">
-                    <button
-                      *ngIf="hasAdminEmail$ | async"
-                      (click)="navigateToAdmin()"
-                      class="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-base"
-                      title="Admin Portal"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                      </svg>
-                      <span>Admin</span>
-                    </button>
+                    @if (hasAdminEmail$ | async) {
+                      <button
+                        (click)="navigateToAdmin()"
+                        class="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-base"
+                        title="Admin Portal"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        <span>Admin</span>
+                      </button>
+                    }
                     <button
                       (click)="showSettings = true"
                       class="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
@@ -207,84 +211,105 @@ import type { User } from '@supabase/supabase-js';
         </div>
 
         <!-- Loading State -->
-        <app-skeleton-loader *ngIf="loading$ | async" [count]="5" type="card"></app-skeleton-loader>
+        @if (loading$ | async) {
+          <app-skeleton-loader [count]="5" type="card"></app-skeleton-loader>
+        }
 
         <!-- Error State -->
-        <div *ngIf="error$ | async as error" class="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg mb-6">
-          {{ error }}
-        </div>
+        @if ((error$ | async); as error) {
+          <div class="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg mb-6">
+            {{ error }}
+          </div>
+        }
 
         <!-- Prompt Type Filters -->
-        <div *ngIf="activeFilter === 'prompts' && promptsCount > 0" class="flex flex-wrap gap-2 mb-4">
-          <!-- All Types Button -->
-          <button
-            (click)="selectedPromptTypes = []"
-            [class]="'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' + (selectedPromptTypes.length === 0 ? 'bg-[#988F83] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]')"
-          >
-            All Types ({{ promptsCount }})
-          </button>
-          
-          <!-- Individual Type Buttons -->
-          <button
-            *ngFor="let type of getUniquePromptTypes()"
-            (click)="togglePromptType(type)"
-            [class]="'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' + (isPromptTypeSelected(type) ? 'bg-[#988F83] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]')"
-          >
-            {{ type }} ({{ getPromptCountByType(type) }})
-          </button>
-        </div>
+        @if (activeFilter === 'prompts' && promptsCount > 0) {
+          <div class="flex flex-wrap gap-2 mb-4">
+            <!-- All Types Button -->
+            <button
+              (click)="selectedPromptTypes = []"
+              [class]="'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' + (selectedPromptTypes.length === 0 ? 'bg-[#988F83] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]')"
+            >
+              All Types ({{ promptsCount }})
+            </button>
+            
+            <!-- Individual Type Buttons -->
+            @for (type of getUniquePromptTypes(); track type) {
+              <button
+                (click)="togglePromptType(type)"
+                [class]="'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' + (isPromptTypeSelected(type) ? 'bg-[#988F83] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]')"
+              >
+                {{ type }} ({{ getPromptCountByType(type) }})
+              </button>
+            }
+          </div>
+        }
 
         <!-- Prayers or Prompts List -->
-        <div *ngIf="!(loading$ | async) && !(error$ | async)" class="space-y-4">
-          <!-- Empty State for Prayers -->
-          <div *ngIf="activeFilter !== 'prompts' && (prayers$ | async)?.length === 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-              <span *ngIf="activeFilter === 'current'">No current prayer requests yet</span>
-              <span *ngIf="activeFilter === 'answered'">No answered prayers yet</span>
-              <span *ngIf="activeFilter === 'total'">No prayer requests yet</span>
-            </h3>
-            <p class="text-gray-500 dark:text-gray-400">
-              Be the first to add a prayer request to build your church's prayer community.
-            </p>
+        @if (!(loading$ | async) && !(error$ | async)) {
+          <div class="space-y-4">
+            <!-- Empty State for Prayers -->
+            @if (activeFilter !== 'prompts' && (prayers$ | async)?.length === 0) {
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  @if (activeFilter === 'current') {
+                    <span>No current prayer requests yet</span>
+                  }
+                  @if (activeFilter === 'answered') {
+                    <span>No answered prayers yet</span>
+                  }
+                  @if (activeFilter === 'total') {
+                    <span>No prayer requests yet</span>
+                  }
+                </h3>
+                <p class="text-gray-500 dark:text-gray-400">
+                  Be the first to add a prayer request to build your church's prayer community.
+                </p>
+              </div>
+            }
+
+            <!-- Prayer Cards (only show when not on prompts filter) -->
+            @if (activeFilter !== 'prompts') {
+              @for (prayer of prayers$ | async; track prayer.id) {
+                <app-prayer-card
+                  [prayer]="prayer"
+                  [isAdmin]="(isAdmin$ | async) || false"
+                  [activeFilter]="activeFilter"
+                  (delete)="deletePrayer($event)"
+                  (addUpdate)="addUpdate($event)"
+                  (deleteUpdate)="deleteUpdate($event)"
+                  (requestDeletion)="requestDeletion($event)"
+                  (requestUpdateDeletion)="requestUpdateDeletion($event)"
+                ></app-prayer-card>
+              }
+            }
+
+            <!-- Empty State for Prompts -->
+            @if (activeFilter === 'prompts' && (prompts$ | async)?.length === 0) {
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  No prayer prompts yet
+                </h3>
+                <p class="text-gray-500 dark:text-gray-400">
+                  Prompts help guide prayer requests.
+                </p>
+              </div>
+            }
+
+            <!-- Prompt Cards (only show when on prompts filter) -->
+            @if (activeFilter === 'prompts') {
+              @for (prompt of getDisplayedPrompts(); track prompt.id) {
+                <app-prompt-card
+                  [prompt]="prompt"
+                  [isAdmin]="(isAdmin$ | async) || false"
+                  [isTypeSelected]="isPromptTypeSelected(prompt.type)"
+                  (delete)="deletePrompt($event)"
+                  (onTypeClick)="togglePromptType($event)"
+                ></app-prompt-card>
+              }
+            }
           </div>
-
-          <!-- Prayer Cards (only show when not on prompts filter) -->
-          <ng-container *ngIf="activeFilter !== 'prompts'">
-            <app-prayer-card
-              *ngFor="let prayer of prayers$ | async"
-              [prayer]="prayer"
-              [isAdmin]="(isAdmin$ | async) || false"
-              [activeFilter]="activeFilter"
-              (delete)="deletePrayer($event)"
-              (addUpdate)="addUpdate($event)"
-              (deleteUpdate)="deleteUpdate($event)"
-              (requestDeletion)="requestDeletion($event)"
-              (requestUpdateDeletion)="requestUpdateDeletion($event)"
-            ></app-prayer-card>
-          </ng-container>
-
-          <!-- Empty State for Prompts -->
-          <div *ngIf="activeFilter === 'prompts' && (prompts$ | async)?.length === 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-              No prayer prompts yet
-            </h3>
-            <p class="text-gray-500 dark:text-gray-400">
-              Prompts help guide prayer requests.
-            </p>
-          </div>
-
-          <!-- Prompt Cards (only show when on prompts filter) -->
-          <ng-container *ngIf="activeFilter === 'prompts'">
-            <app-prompt-card
-              *ngFor="let prompt of getDisplayedPrompts()"
-              [prompt]="prompt"
-              [isAdmin]="(isAdmin$ | async) || false"
-              [isTypeSelected]="isPromptTypeSelected(prompt.type)"
-              (delete)="deletePrompt($event)"
-              (onTypeClick)="togglePromptType($event)"
-            ></app-prompt-card>
-          </ng-container>
-        </div>
+        }
       </main>
 
       <!-- No Footer Links -->

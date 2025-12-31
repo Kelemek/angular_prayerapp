@@ -1,10 +1,9 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-presentation-toolbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.Default,
   template: `
     <div [class]="'fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-4 md:p-5 lg:p-6 border-t border-gray-200 dark:border-gray-700 transition-transform duration-300 ' + (visible ? 'translate-y-0' : 'translate-y-full')">
@@ -25,9 +24,13 @@ import { CommonModule } from '@angular/common';
             class="p-3 md:p-3.5 lg:p-4 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-900 dark:text-blue-200 rounded-full transition-colors"
             [title]="isPlaying ? 'Pause' : 'Play'">
             <svg class="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8" viewBox="0 0 24 24" fill="currentColor">
-              <rect *ngIf="isPlaying" x="6" y="4" width="4" height="16"></rect>
-              <rect *ngIf="isPlaying" x="14" y="4" width="4" height="16"></rect>
-              <path *ngIf="!isPlaying" d="M8 5v14l11-7z"></path>
+              @if (isPlaying) {
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+              }
+              @if (!isPlaying) {
+              <path d="M8 5v14l11-7z"></path>
+              }
             </svg>
           </button>
           
@@ -40,8 +43,9 @@ import { CommonModule } from '@angular/common';
             </svg>
           </button>
           
-          <div *ngIf="isPlaying && showTimer" class="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 lg:px-4 py-1.5 md:py-2.5 lg:py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg ml-1 md:ml-2">
-            <svg class="w-3.5 h-3.5 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-600 dark:text-blue-400">
+          @if (isPlaying && showTimer) {
+          <div class="flex items-center gap-1 md:gap-2 px-2 md:px-3.5 lg:px-4 py-1.5 md:py-2.5 lg:py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg ml-1 md:ml-2">
+            <svg class="w-3.5 h-3.5 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 dark:text-blue-400">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
@@ -52,6 +56,7 @@ import { CommonModule } from '@angular/common';
               / {{ currentDuration }}s
             </span>
           </div>
+          }
         </div>
 
         <!-- Settings and Close -->
