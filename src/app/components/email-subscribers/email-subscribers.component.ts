@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
+import { lookupPersonByEmail } from '../../../lib/planning-center';
+import { environment } from '../../../environments/environment';
 
 interface EmailSubscriber {
   id: string;
@@ -12,6 +14,8 @@ interface EmailSubscriber {
   is_blocked: boolean;
   is_admin?: boolean;
   created_at: string;
+  in_planning_center?: boolean | null;
+  planning_center_checked_at?: string | null;
 }
 
 interface CSVRow {
@@ -304,6 +308,12 @@ interface CSVRow {
                 }
                 @if (subscriber.is_blocked) {
                 <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs rounded-full font-semibold">Blocked</span>
+                }
+                @if (subscriber.in_planning_center === true) {
+                <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full" title="Verified in Planning Center on {{ subscriber.planning_center_checked_at | date:'short' }}">Planning Center ✓</span>
+              }
+              @if (subscriber.in_planning_center === false) {
+                <span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full" title="Not found in Planning Center (checked {{ subscriber.planning_center_checked_at | date:'short' }})">Not in Planning Center</span>
                 }
               </div>
               <p class="text-sm text-gray-600 dark:text-gray-400 truncate">{{ subscriber.email }}</p>
@@ -642,13 +652,34 @@ export class EmailSubscribersComponent implements OnInit {
         return;
       }
 
+      // Check Planning Center status
+      let inPlanningCenter: boolean | null = null;
+      let planningCenterCheckedAt: string | null = null;
+      
+      try {
+        const pcResult = await lookupPersonByEmail(
+          this.newEmail.toLowerCase().trim(),
+          environment.supabaseUrl,
+          environment.supabaseAnonKey
+        );
+        inPlanningCenter = pcResult.count > 0;
+        planningCenterCheckedAt = new Date().toISOString();
+        console.log(`[Email Subscribers] Planning Center check for ${this.newEmail}: ${inPlanningCenter}`);
+      } catch (pcError) {
+        console.error('[Email Subscribers] Planning Center check failed:', pcError);
+        // Continue with null values if check fails
+      }
+
       const { error } = await this.supabase.client
         .from('email_subscribers')
         .insert({
           name: this.newName.trim(),
           email: this.newEmail.toLowerCase().trim(),
           is_active: true,
-          is_admin: false
+          is_admin: false,
+          receive_admin_emails: false,
+          in_planning_center: inPlanningCenter,
+          planning_center_checked_at: planningCenterCheckedAt
         });
 
       if (error) throw error;
@@ -833,14 +864,41 @@ export class EmailSubscribersComponent implements OnInit {
         return;
       }
 
+      // Check Planning Center for each new email
+      const subscribersToInsert = await Promise.all(
+        newRows.map(async (r) => {
+          let inPlanningCenter: boolean | null = null;
+          let planningCenterCheckedAt: string | null = null;
+          
+          try {
+            const pcResult = await lookupPersonByEmail(
+              r.email.toLowerCase(),
+              environment.supabaseUrl,
+              environment.supabaseAnonKey
+            );
+            inPlanningCenter = pcResult.count > 0;
+            planningCenterCheckedAt = new Date().toISOString();
+            console.log(`[CSV Import] Planning Center check for ${r.email}: ${inPlanningCenter}`);
+          } catch (pcError) {
+            console.error(`[CSV Import] Planning Center check failed for ${r.email}:`, pcError);
+            // Continue with null values if check fails
+          }
+          
+          return {
+            name: r.name,
+            email: r.email.toLowerCase(),
+            is_active: true,
+            is_admin: false,
+            receive_admin_emails: false,
+            in_planning_center: inPlanningCenter,
+            planning_center_checked_at: planningCenterCheckedAt
+          };
+        })
+      );
+
       const { error } = await this.supabase.client
         .from('email_subscribers')
-        .insert(newRows.map(r => ({
-          name: r.name,
-          email: r.email.toLowerCase(),
-          is_active: true,
-          is_admin: false
-        })));
+        .insert(subscribersToInsert);
 
       if (error) throw error;
 

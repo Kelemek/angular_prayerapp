@@ -275,7 +275,8 @@ describe('LoginComponent', () => {
   });
 
   it('saveNewSubscriber normal flow saves subscriber and navigates', async () => {
-    mocks.supabaseService.directMutation = vi.fn(async () => ({ data: [{ id: '1' }], error: null }));
+    const mutationSpy = vi.fn(async () => ({ data: [{ id: '1' }], error: null }));
+    mocks.supabaseService.directMutation = mutationSpy;
     const comp = new LoginComponent(
       mocks.adminAuthService,
       mocks.supabaseService,
@@ -291,7 +292,20 @@ describe('LoginComponent', () => {
     comp.requiresApproval = false;
     const res = await comp.saveNewSubscriber();
     expect(res).toBe(true);
-    expect(mocks.supabaseService.directMutation).toHaveBeenCalled();
+    expect(mutationSpy).toHaveBeenCalledWith(
+      'email_subscribers',
+      expect.objectContaining({
+        body: expect.objectContaining({
+          email: 'x3@y.com',
+          name: 'A B',
+          is_active: true,
+          is_admin: false,
+          receive_admin_emails: false,
+          in_planning_center: true,
+          planning_center_checked_at: expect.any(String)
+        })
+      })
+    );
     expect(mocks.router.navigate).toHaveBeenCalled();
   });
 

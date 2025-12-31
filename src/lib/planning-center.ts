@@ -23,13 +23,83 @@ export interface EmailLookupResult {
   people: PlanningCenterPerson[];
   count: number;
   error?: string;
+  cached?: boolean;
+}
+
+/**
+ * Check database for cached Planning Center status
+ * Returns null if not cached, true if in Planning Center, false if not
+ */
+export async function checkCachedPlanningCenterStatus(email: string, supabaseUrl: string, supabaseKey: string): Promise<boolean | null> {
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/email_subscribers?email=eq.${encodeURIComponent(email)}&select=in_planning_center,planning_center_checked_at`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Failed to check cached Planning Center status:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    if (data && data.length > 0 && data[0].in_planning_center !== null) {
+      console.log(`[Planning Center] Using cached status for ${email}: ${data[0].in_planning_center}`);
+      return data[0].in_planning_center;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error checking cached Planning Center status:', error);
+    return null;
+  }
+}
+
+/**
+ * Save Planning Center lookup result to database
+ */
+export async function savePlanningCenterStatus(email: string, isInPlanningCenter: boolean, supabaseUrl: string, supabaseKey: string): Promise<void> {
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/email_subscribers?email=eq.${encodeURIComponent(email)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          in_planning_center: isInPlanningCenter,
+          planning_center_checked_at: new Date().toISOString()
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Failed to save Planning Center status:', response.status);
+    } else {
+      console.log(`[Planning Center] Saved status for ${email}: ${isInPlanningCenter}`);
+    }
+  } catch (error) {
+    console.error('Error saving Planning Center status:', error);
+  }
 }
 
 /**
  * Lookup a person by email in Planning Center
+ * First checks database cache, then calls API if needed
  * Uses Supabase Edge Function to call Planning Center API with proper authentication
  */
-export async function lookupPersonByEmail(email: string, supabaseUrl: string, supabaseKey: string): Promise<EmailLookupResult> {
+export async function lookupPersonByEmail(email: string, supabaseUrl: string, supabaseKey: string, skipCache: boolean = false): Promise<EmailLookupResult> {
   if (!email || email.trim() === '') {
     return {
       people: [],
@@ -38,6 +108,20 @@ export async function lookupPersonByEmail(email: string, supabaseUrl: string, su
     };
   }
 
+  // Check cache first unless skipCache is true
+  if (!skipCache) {
+    const cachedStatus = await checkCachedPlanningCenterStatus(email, supabaseUrl, supabaseKey);
+    if (cachedStatus !== null) {
+      return {
+        people: cachedStatus ? [{ id: 'cached', type: 'Person', attributes: { first_name: '', last_name: '', name: '', avatar: '', status: '', created_at: '', updated_at: '' } }] : [],
+        count: cachedStatus ? 1 : 0,
+        cached: true
+      };
+    }
+  }
+
+  // Cache miss or skipCache - make API call
+  console.log(`[Planning Center] Cache miss for ${email}, calling API`);
   try {
     const response = await fetch(
       `${supabaseUrl}/functions/v1/planning-center-lookup`,
@@ -62,10 +146,16 @@ export async function lookupPersonByEmail(email: string, supabaseUrl: string, su
     }
 
     const data = await response.json();
-    return {
+    const result: EmailLookupResult = {
       people: data.people || [],
       count: data.count || 0
     };
+
+    // Save result to database for future lookups
+    const isInPlanningCenter = result.count > 0;
+    await savePlanningCenterStatus(email, isInPlanningCenter, supabaseUrl, supabaseKey);
+
+    return result;
   } catch (error) {
     console.error('Error in Planning Center lookup:', error);
     return {

@@ -3,6 +3,11 @@ import { EmailSubscribersComponent } from './email-subscribers.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { ChangeDetectorRef } from '@angular/core';
+import * as planningCenter from '../../../lib/planning-center';
+
+vi.mock('../../../lib/planning-center', () => ({
+  lookupPersonByEmail: vi.fn()
+}));
 
 describe('EmailSubscribersComponent', () => {
   let component: EmailSubscribersComponent;
@@ -22,6 +27,12 @@ describe('EmailSubscribersComponent', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Mock Planning Center lookup to return not found by default
+    vi.mocked(planningCenter.lookupPersonByEmail).mockResolvedValue({
+      people: [],
+      count: 0
+    });
 
     mockSupabaseService = {
       client: {
@@ -306,7 +317,14 @@ describe('EmailSubscribersComponent', () => {
         error: null
       });
 
-      mockSupabaseService.client.from().insert.mockResolvedValue({ error: null });
+      // Mock Planning Center lookup
+      vi.mocked(planningCenter.lookupPersonByEmail).mockResolvedValue({
+        people: [{ id: '123', type: 'Person', attributes: { name: 'Jane Doe' } }],
+        count: 1
+      });
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
 
       const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
 
@@ -315,6 +333,22 @@ describe('EmailSubscribersComponent', () => {
       expect(component.csvSuccess).toBe('Subscriber added successfully!');
       expect(component.showAddForm).toBe(false);
       expect(searchSpy).toHaveBeenCalled();
+      expect(planningCenter.lookupPersonByEmail).toHaveBeenCalledWith(
+        'jane@example.com',
+        expect.any(String),
+        expect.any(String)
+      );
+      expect(insertSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          is_active: true,
+          is_admin: false,
+          receive_admin_emails: false,
+          in_planning_center: true,
+          planning_center_checked_at: expect.any(String)
+        })
+      );
     });
 
     it('should handle add subscriber error', async () => {
@@ -333,6 +367,35 @@ describe('EmailSubscribersComponent', () => {
       await component.handleAddSubscriber();
 
       expect(component.error).toBe('Insert failed');
+    });
+
+    it('should handle Planning Center lookup failure gracefully', async () => {
+      component.newName = 'Jane Doe';
+      component.newEmail = 'jane@example.com';
+
+      mockSupabaseService.client.from().select().eq().maybeSingle.mockResolvedValue({
+        data: null,
+        error: null
+      });
+
+      // Mock Planning Center lookup to fail
+      vi.mocked(planningCenter.lookupPersonByEmail).mockRejectedValue(new Error('PC API down'));
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
+
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.handleAddSubscriber();
+
+      // Should still succeed with null Planning Center values
+      expect(component.csvSuccess).toBe('Subscriber added successfully!');
+      expect(insertSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          in_planning_center: null,
+          planning_center_checked_at: null
+        })
+      );
     });
   });
 
@@ -462,7 +525,14 @@ describe('EmailSubscribersComponent', () => {
         error: null
       });
 
-      mockSupabaseService.client.from().insert.mockResolvedValue({ error: null });
+      // Mock Planning Center lookups
+      vi.mocked(planningCenter.lookupPersonByEmail).mockResolvedValue({
+        people: [],
+        count: 0
+      });
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
 
       const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
 
@@ -470,6 +540,16 @@ describe('EmailSubscribersComponent', () => {
 
       expect(component.csvSuccess).toContain('Successfully added');
       expect(searchSpy).toHaveBeenCalled();
+      expect(planningCenter.lookupPersonByEmail).toHaveBeenCalledTimes(2);
+      expect(insertSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            receive_admin_emails: false,
+            in_planning_center: false,
+            planning_center_checked_at: expect.any(String)
+          })
+        ])
+      );
     });
 
     it('should handle duplicate emails in CSV upload', async () => {
@@ -504,6 +584,40 @@ describe('EmailSubscribersComponent', () => {
       await component.uploadCSVData();
 
       expect(component.error).toBe('Insert failed');
+    });
+
+    it('should handle CSV upload with Planning Center lookup failures gracefully', async () => {
+      component.csvData = [
+        { name: 'John', email: 'john@example.com', valid: true },
+        { name: 'Jane', email: 'jane@example.com', valid: true }
+      ];
+
+      mockSupabaseService.client.from().select().in.mockResolvedValue({
+        data: [],
+        error: null
+      });
+
+      // Mock Planning Center to fail for all lookups
+      vi.mocked(planningCenter.lookupPersonByEmail).mockRejectedValue(new Error('PC API down'));
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
+
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.uploadCSVData();
+
+      // Should still succeed with null Planning Center values
+      expect(component.csvSuccess).toContain('Successfully added');
+      expect(insertSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            in_planning_center: null,
+            planning_center_checked_at: null,
+            receive_admin_emails: false
+          })
+        ])
+      );
     });
   });
 

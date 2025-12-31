@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { lookupPersonByEmail, formatPersonName, PlanningCenterPerson } from './planning-center';
+import { lookupPersonByEmail, formatPersonName, PlanningCenterPerson, checkCachedPlanningCenterStatus, savePlanningCenterStatus } from './planning-center';
 
 describe('planning-center', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -45,13 +45,28 @@ describe('planning-center', () => {
         count: 1,
       };
 
-      fetchMock.mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      // Mock cache check to return null (no cache)
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
+        } as Response)
+        // Mock Planning Center API call
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        // Mock cache save
+        .mockResolvedValueOnce({
+          ok: true,
+        } as Response);
 
       const result = await lookupPersonByEmail('john.doe@example.com', supabaseUrl, supabaseKey);
 
+      // Should have called cache check, API, and cache save
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      
+      // Verify Planning Center API call
       expect(fetchMock).toHaveBeenCalledWith(
         `${supabaseUrl}/functions/v1/planning-center-lookup`,
         {
@@ -70,16 +85,66 @@ describe('planning-center', () => {
       });
     });
 
+    it('should use cached result when available', async () => {
+      // Mock cache check to return true (in Planning Center)
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ in_planning_center: true, planning_center_checked_at: new Date().toISOString() }],
+      } as Response);
+
+      const result = await lookupPersonByEmail('cached@example.com', supabaseUrl, supabaseKey);
+
+      // Should only call cache check, not the API
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(result.cached).toBe(true);
+      expect(result.count).toBe(1);
+    });
+
+    it('should skip cache when skipCache is true', async () => {
+      const mockResponse = {
+        people: [],
+        count: 0,
+      };
+
+      // Mock Planning Center API call
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        // Mock cache save
+        .mockResolvedValueOnce({
+          ok: true,
+        } as Response);
+
+      const result = await lookupPersonByEmail('test@example.com', supabaseUrl, supabaseKey, true);
+
+      // Should skip cache and go straight to API
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(result.cached).toBeUndefined();
+    });
+
     it('should trim whitespace from email before lookup', async () => {
       const mockResponse = {
         people: [],
         count: 0,
       };
 
-      fetchMock.mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      // Mock cache check
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
+        } as Response)
+        // Mock Planning Center API
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        // Mock cache save
+        .mockResolvedValueOnce({
+          ok: true,
+        } as Response);
 
       await lookupPersonByEmail('  john.doe@example.com  ', supabaseUrl, supabaseKey);
 

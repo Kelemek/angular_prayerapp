@@ -1056,7 +1056,10 @@ export class LoginComponent implements OnInit, OnDestroy {
             email: this.email.toLowerCase(),
             name: `${this.firstName.trim()} ${this.lastName.trim()}`,
             is_active: true,
-            is_admin: false
+            is_admin: false,
+            receive_admin_emails: false,
+            in_planning_center: true,
+            planning_center_checked_at: new Date().toISOString()
           },
           returning: true
         }
