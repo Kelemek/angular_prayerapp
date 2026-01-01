@@ -320,7 +320,19 @@ describe('EmailSubscribersComponent', () => {
 
       // Mock Planning Center lookup
       vi.mocked(planningCenter.lookupPersonByEmail).mockResolvedValue({
-        people: [{ id: '123', type: 'Person', attributes: { name: 'Jane Doe' } }],
+        people: [{
+          id: '123',
+          type: 'Person',
+          attributes: {
+            first_name: 'Jane',
+            last_name: 'Doe',
+            name: 'Jane Doe',
+            avatar: '',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        }],
         count: 1
       });
 
