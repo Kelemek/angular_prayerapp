@@ -103,8 +103,15 @@ describe('EmailTemplatesManagerComponent', () => {
       expect(component.error).toContain('No templates found');
     });
 
-    it('handles fetch error', async () => {
+    it('handles fetch error with message property', async () => {
       mockSupabaseService.client.from().select().order.mockResolvedValue({ data: null, error: new Error('boom') });
+      await component.loadTemplates();
+      expect(component.error).toContain('Failed to load templates');
+      expect(component.error).toContain('boom');
+    });
+
+    it('handles fetch error without message property', async () => {
+      mockSupabaseService.client.from().select().order.mockResolvedValue({ data: null, error: 'string error' });
       await component.loadTemplates();
       expect(component.error).toContain('Failed to load templates');
     });
@@ -155,6 +162,18 @@ describe('EmailTemplatesManagerComponent', () => {
     it('handles save error', async () => {
       component.editedTemplate = { ...sampleTemplate } as any;
       mockSupabaseService.client.from().update().eq().select().single.mockResolvedValue({ data: null, error: new Error('save fail') });
+      const toastSpy = vi.spyOn(mockToastService, 'error');
+
+      await component.handleSave();
+
+      expect(component.saving).toBe(false);
+      expect(component.error).toBe('Failed to save template');
+      expect(toastSpy).toHaveBeenCalled();
+    });
+
+    it('handles save error with non-Error object', async () => {
+      component.editedTemplate = { ...sampleTemplate } as any;
+      mockSupabaseService.client.from().update().eq().select().single.mockResolvedValue({ data: null, error: { some: 'error' } });
       const toastSpy = vi.spyOn(mockToastService, 'error');
 
       await component.handleSave();

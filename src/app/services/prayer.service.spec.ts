@@ -526,6 +526,131 @@ describe('PrayerService', () => {
     const result = await localService.addPrayer({ title: 'T', description: 'D', status: 'current', requester: 'R', prayer_for: 'P', email: 'already@exists.com', is_anonymous: false });
     expect(result).toBe(true);
   });
+
+  describe('Branch coverage - error paths', () => {
+    it('deletePrayerUpdate returns false on delete error', async () => {
+      supabase.client.from.mockImplementation((table: string) => ({ delete: () => ({ eq: () => Promise.resolve({ error: new Error('delete failed') }) }) }));
+      const result = await service.deletePrayerUpdate('up1');
+      expect(result).toBe(false);
+      expect(toast.error).toHaveBeenCalled();
+    });
+
+    it('addPrayerUpdate returns false on insert error', async () => {
+      supabase.client.from.mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return { insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('insert failed') }) }) }) };
+        }
+        return { insert: () => Promise.resolve({ data: null, error: null }) };
+      });
+      const result = await service.addPrayerUpdate('p1', 'content', 'author');
+      expect(result).toBe(false);
+      expect(toast.error).toHaveBeenCalled();
+    });
+
+    it('addPrayerUpdate logs error when fetching prayer title fails', async () => {
+      supabase.client.from.mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return { insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'up1' }, error: null }) }) }) };
+        }
+        if (table === 'prayers') {
+          return { select: () => ({ eq: () => ({ single: () => Promise.reject(new Error('fetch failed')) }) }) };
+        }
+        return {};
+      });
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const result = await service.addPrayerUpdate('p1', 'content', 'author');
+      expect(result).toBe(false);
+      expect(errSpy).toHaveBeenCalledWith('Error adding prayer update:', expect.any(Error));
+      errSpy.mockRestore();
+    });
+
+    it('addUpdate returns false on database error', async () => {
+      supabase.client.from.mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return { insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('insert failed') }) }) }) };
+        }
+        return {};
+      });
+      const result = await service.addUpdate({ prayer_id: 'p1', content: 'c', author: 'a', author_email: 'e', is_anonymous: false, mark_as_answered: false });
+      expect(result).toBe(false);
+      expect(toast.error).toHaveBeenCalled();
+    });
+
+    it('requestDeletion returns false on insert error', async () => {
+      supabase.client.from.mockImplementation((table: string) => {
+        if (table === 'deletion_requests') {
+          return { insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('insert failed') }) }) }) };
+        }
+        return {};
+      });
+      const result = await service.requestDeletion({ prayer_id: 'p1', requester_first_name: 'A', requester_last_name: 'B', requester_email: 'e@x.com', reason: 'r' });
+      expect(result).toBe(false);
+      expect(toast.error).toHaveBeenCalled();
+    });
+
+    it('requestUpdateDeletion returns false on insert error', async () => {
+      supabase.client.from.mockImplementation((table: string) => {
+        if (table === 'update_deletion_requests') {
+          return { insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('insert failed') }) }) }) };
+        }
+        return {};
+      });
+      const result = await service.requestUpdateDeletion({ update_id: 'u1', requester_first_name: 'A', requester_last_name: 'B', requester_email: 'e@x.com', reason: 'r' });
+      expect(result).toBe(false);
+      expect(toast.error).toHaveBeenCalled();
+    });
+
+    it('loadPrayers shows error when no cache available and fetch fails', async () => {
+      supabase.client.from.mockImplementation((table: string) => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: null, error: new Error('fetch failed') }) }) }) }));
+      cache.get.mockReturnValue(null);
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await (service as any).loadPrayers(false);
+      
+      expect((service as any).errorSubject.value).toBeTruthy();
+      expect(toast.error).toHaveBeenCalled();
+      expect(errSpy).toHaveBeenCalled();
+      errSpy.mockRestore();
+    });
+
+    it('addPrayerUpdate logs error when notification fails', async () => {
+      supabase.client.from.mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return { insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'up1' }, error: null }) }) }) };
+        }
+        if (table === 'prayers') {
+          return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { title: 'T' }, error: null }) }) }) };
+        }
+        return {};
+      });
+      emailNotification.sendAdminNotification = vi.fn().mockRejectedValue(new Error('notify failed'));
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      const result = await service.addPrayerUpdate('p1', 'content', 'author');
+      expect(result).toBe(true);
+      expect(errSpy).toHaveBeenCalled();
+      errSpy.mockRestore();
+    });
+
+    it('addUpdate logs error when notification fails', async () => {
+      supabase.client.from.mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return { insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'up1' }, error: null }) }) }) };
+        }
+        if (table === 'prayers') {
+          return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { title: 'T' }, error: null }) }) }) };
+        }
+        return {};
+      });
+      emailNotification.sendAdminNotification = vi.fn().mockRejectedValue(new Error('notify failed'));
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      const result = await service.addUpdate({ prayer_id: 'p1', content: 'c', author: 'a', author_email: 'e', is_anonymous: false, mark_as_answered: false });
+      expect(result).toBe(true);
+      expect(errSpy).toHaveBeenCalled();
+      errSpy.mockRestore();
+    });
+  });
 });
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { firstValueFrom } from 'rxjs';

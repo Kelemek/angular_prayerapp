@@ -256,4 +256,90 @@ describe('AdminService', () => {
       expect(query).toHaveProperty('select');
     });
   });
+
+  describe('Branch coverage - error handling', () => {
+    it('should handle missing service key during construction', () => {
+      // This branch is difficult to test because import.meta.env is resolved at build time
+      // The environment variable is mocked in beforeEach, so this path executes with the key
+      // In production, if VITE_SUPABASE_SERVICE_KEY is not set, this branch executes
+      // For testing purposes, we verify the static method directly
+      
+      const newConsoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Call the static method directly to verify it logs the correct error
+      (AdminService as any).reportMissingServiceKey({});
+      
+      expect(newConsoleErrorSpy).toHaveBeenCalledWith('VITE_SUPABASE_SERVICE_KEY not found in environment variables');
+      expect(newConsoleErrorSpy).toHaveBeenCalledWith('Available keys:', []);
+      
+      newConsoleErrorSpy.mockRestore();
+    });
+
+    it('should handle error when getting email subscribers', async () => {
+      const mockError = new Error('Database error');
+      const mockClient = {
+        from: vi.fn(() => ({
+          select: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ data: null, error: mockError }))
+          }))
+        }))
+      };
+      
+      (service as any).adminClient = mockClient;
+      
+      const result = await service.getEmailSubscribers();
+      
+      expect(result.error).toEqual(mockError);
+      expect(result.data).toBeNull();
+    });
+
+    it('should handle error when updating email subscriber', async () => {
+      const mockError = new Error('Update failed');
+      const mockClient = {
+        from: vi.fn(() => ({
+          update: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ data: null, error: mockError }))
+          }))
+        }))
+      };
+      
+      (service as any).adminClient = mockClient;
+      
+      const result = await service.updateEmailSubscriber('id', { subscribed: true });
+      
+      expect(result.error).toEqual(mockError);
+    });
+
+    it('should handle error when getting analytics', async () => {
+      const mockError = new Error('Analytics error');
+      const mockClient = {
+        from: vi.fn(() => ({
+          select: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ data: null, error: mockError }))
+          }))
+        }))
+      };
+      
+      (service as any).adminClient = mockClient;
+      
+      const result = await service.getAnalytics();
+      
+      expect(result.error).toEqual(mockError);
+    });
+
+    it('should handle error when updating admin settings', async () => {
+      const mockError = new Error('Update failed');
+      const mockClient = {
+        from: vi.fn(() => ({
+          upsert: vi.fn(() => Promise.resolve({ data: null, error: mockError }))
+        }))
+      };
+      
+      (service as any).adminClient = mockClient;
+      
+      const result = await service.updateAdminSettings({ setting: 'value' });
+      
+      expect(result.error).toEqual(mockError);
+    });
+  });
 });

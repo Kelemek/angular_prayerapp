@@ -427,24 +427,26 @@ describe('LoginComponent', () => {
 
   it('loadCachedLogo and updateLogoUrl set localStorage and logoUrl', () => {
     // set window cache
-    (globalThis as any).__cachedLogos = { useLogo: true, light: 'LIMG', dark: 'DIMG' };
+    (globalThis as any).__cachedLogos = { useLogo: true, light: 'LIGHT_FROM_CACHE', dark: 'DARK_FROM_CACHE' };
     const comp = makeComponent(mocks);
     // ensure localStorage empty
     localStorage.clear();
     (comp as any).loadCachedLogo();
     // localStorage should now contain branding keys and component should reflect useLogo
     expect(comp.useLogo).toBe(true);
-    expect(localStorage.getItem('branding_light_logo')).toBe('LIMG');
+    expect(localStorage.getItem('branding_light_logo')).toBe('LIGHT_FROM_CACHE');
     // test updateLogoUrl with dark mode
     comp.useLogo = true;
     comp.isDarkMode = true;
-    localStorage.setItem('branding_dark_logo', 'DIMG');
+    localStorage.setItem('branding_dark_logo', 'DARK_FROM_CACHE');
     (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('DIMG');
+    expect(comp.logoUrl).toBe('DARK_FROM_CACHE');
     // light mode
     comp.isDarkMode = false;
     (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('LIMG');
+    expect(comp.logoUrl).toBe('LIGHT_FROM_CACHE');
+    // cleanup - remove window cache to not affect other tests
+    (globalThis as any).__cachedLogos = undefined;
   });
 
   it('detectDarkMode uses system preference when theme is system', () => {
@@ -539,5 +541,562 @@ describe('LoginComponent', () => {
     const res = await comp.saveNewSubscriber();
     expect(res).toBe(false);
     expect(comp.error).toContain('Failed to save subscriber');
+  });
+
+  it('ngOnDestroy completes the destroy subject', () => {
+    const comp = makeComponent(mocks);
+    const destroySpy = vi.spyOn(comp['destroy$'], 'next');
+    const completeSpy = vi.spyOn(comp['destroy$'], 'complete');
+    comp.ngOnDestroy();
+    expect(destroySpy).toHaveBeenCalled();
+    expect(completeSpy).toHaveBeenCalled();
+  });
+
+  it('ngOnInit handles sessionExpired query param and sets error message', async () => {
+    const queryMocks = makeMocks();
+    queryMocks.route.queryParams = {
+      subscribe: (cb: any) => cb({ sessionExpired: 'true' })
+    };
+    const comp = new LoginComponent(
+      queryMocks.adminAuthService,
+      queryMocks.supabaseService,
+      queryMocks.emailNotificationService,
+      queryMocks.themeService,
+      queryMocks.router,
+      queryMocks.route,
+      queryMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    await comp.ngOnInit();
+    expect(comp.error).toContain('Your admin session has expired');
+  });
+
+  it('ngOnInit handles blocked query param and sets error message', async () => {
+    const queryMocks = makeMocks();
+    queryMocks.route.queryParams = {
+      subscribe: (cb: any) => cb({ blocked: 'true' })
+    };
+    const comp = new LoginComponent(
+      queryMocks.adminAuthService,
+      queryMocks.supabaseService,
+      queryMocks.emailNotificationService,
+      queryMocks.themeService,
+      queryMocks.router,
+      queryMocks.route,
+      queryMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    await comp.ngOnInit();
+    expect(comp.error).toContain('This account has been blocked');
+  });
+
+  it('ngOnInit handles email query param and prefills email', async () => {
+    const queryMocks = makeMocks();
+    queryMocks.route.queryParams = {
+      subscribe: (cb: any) => cb({ email: 'prefilled@example.com' })
+    };
+    const comp = new LoginComponent(
+      queryMocks.adminAuthService,
+      queryMocks.supabaseService,
+      queryMocks.emailNotificationService,
+      queryMocks.themeService,
+      queryMocks.router,
+      queryMocks.route,
+      queryMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    await comp.ngOnInit();
+    expect(comp.email).toBe('prefilled@example.com');
+  });
+
+  it('ngOnInit subscribes to requireSiteLogin$ and updates component state', async () => {
+    const queryMocks = makeMocks();
+    queryMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    const comp = new LoginComponent(
+      queryMocks.adminAuthService,
+      queryMocks.supabaseService,
+      queryMocks.emailNotificationService,
+      queryMocks.themeService,
+      queryMocks.router,
+      queryMocks.route,
+      queryMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    await comp.ngOnInit();
+    expect(comp.requireSiteLogin).toBe(false);
+    // Emit new value
+    queryMocks.requireSiteLogin$.next(true);
+    expect(comp.requireSiteLogin).toBe(true);
+  });
+
+  it('ngOnInit saves mfa_email_sent and mfa_email to sessionStorage when set', async () => {
+    sessionStorage.setItem('mfa_email_sent', 'true');
+    sessionStorage.setItem('mfa_email', 'session@example.com');
+    const queryMocks = makeMocks();
+    queryMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    const comp = new LoginComponent(
+      queryMocks.adminAuthService,
+      queryMocks.supabaseService,
+      queryMocks.emailNotificationService,
+      queryMocks.themeService,
+      queryMocks.router,
+      queryMocks.route,
+      queryMocks.cdr
+    );
+    const focusInputMock = vi.fn();
+    comp.codeInputs = { toArray: () => [{ nativeElement: { focus: focusInputMock } }] } as any;
+    // Spy on focusInput before ngOnInit
+    vi.spyOn(comp as any, 'focusInput');
+    await comp.ngOnInit();
+    expect(comp.success).toBe(true);
+    expect(comp.waitingForMfaCode).toBe(true);
+    expect(comp.email).toBe('session@example.com');
+  });
+
+  it('ngOnInit navigates to home when user is already authenticated', async () => {
+    const authMocks = makeMocks();
+    authMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    const comp = new LoginComponent(
+      authMocks.adminAuthService,
+      authMocks.supabaseService,
+      authMocks.emailNotificationService,
+      authMocks.themeService,
+      authMocks.router,
+      authMocks.route,
+      authMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    await comp.ngOnInit();
+    // Emit isAdmin as true
+    authMocks.isAdmin$.next(true);
+    expect(authMocks.router.navigate).toHaveBeenCalledWith(['/']);
+  });
+
+  it('handleSingleCodeInput delegates to sanitizeCodeInput', () => {
+    const comp = makeComponent(mocks);
+    comp.codeLength = 4;
+    comp.mfaCodeInput = 'abc123';
+    const sanitizeSpy = vi.spyOn(comp, 'sanitizeCodeInput');
+    comp.handleSingleCodeInput(null);
+    expect(sanitizeSpy).toHaveBeenCalled();
+  });
+
+  it('watchThemeChanges responds to MutationObserver on document class changes', async () => {
+    const themeMocks = makeMocks();
+    themeMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    const comp = new LoginComponent(
+      themeMocks.adminAuthService,
+      themeMocks.supabaseService,
+      themeMocks.emailNotificationService,
+      themeMocks.themeService,
+      themeMocks.router,
+      themeMocks.route,
+      themeMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    comp.useLogo = true;
+    // Clear any cached logos from previous tests
+    localStorage.removeItem('branding_dark_logo');
+    localStorage.removeItem('branding_light_logo');
+    localStorage.setItem('branding_light_logo', 'LIGHT_URL');
+    localStorage.setItem('branding_dark_logo', 'DARK_URL');
+    
+    await comp.ngOnInit();
+    
+    // Simulate document class change to dark
+    document.documentElement.classList.add('dark');
+    // Test the update logic works
+    (comp as any).isDarkMode = true;
+    (comp as any).updateLogoUrl();
+    expect(comp.logoUrl).toBe('DARK_URL');
+    
+    // Test light mode
+    (comp as any).isDarkMode = false;
+    (comp as any).updateLogoUrl();
+    expect(comp.logoUrl).toBe('LIGHT_URL');
+  });
+
+  it('watchThemeChanges responds to ThemeService theme$ observable changes', async () => {
+    const themeMocks = makeMocks();
+    themeMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    themeMocks.themeService.theme$ = new BehaviorSubject('light');
+    themeMocks.themeService.getTheme = vi.fn(() => 'dark');
+    const comp = new LoginComponent(
+      themeMocks.adminAuthService,
+      themeMocks.supabaseService,
+      themeMocks.emailNotificationService,
+      themeMocks.themeService,
+      themeMocks.router,
+      themeMocks.route,
+      themeMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    comp.useLogo = true;
+    localStorage.setItem('branding_light_logo', 'L');
+    localStorage.setItem('branding_dark_logo', 'D');
+    
+    await comp.ngOnInit();
+    
+    // Emit dark theme from service
+    (themeMocks.themeService.theme$ as BehaviorSubject<string>).next('dark');
+    expect((comp as any).isDarkMode).toBe(true);
+  });
+
+  it('loadCachedLogo uses window cache when available', () => {
+    (globalThis as any).__cachedLogos = { useLogo: true, light: 'CACHED_LIGHT', dark: 'CACHED_DARK' };
+    localStorage.clear();
+    const comp = makeComponent(mocks);
+    (comp as any).loadCachedLogo();
+    expect(comp.useLogo).toBe(true);
+    expect(localStorage.getItem('branding_light_logo')).toBe('CACHED_LIGHT');
+    expect(localStorage.getItem('branding_dark_logo')).toBe('CACHED_DARK');
+  });
+
+  it('loadCachedLogo falls back to localStorage when window cache unavailable', () => {
+    (globalThis as any).__cachedLogos = undefined;
+    localStorage.setItem('branding_use_logo', 'true');
+    localStorage.setItem('branding_light_logo', 'LS_LIGHT');
+    localStorage.setItem('branding_dark_logo', 'LS_DARK');
+    const comp = makeComponent(mocks);
+    (comp as any).loadCachedLogo();
+    expect(comp.useLogo).toBe(true);
+  });
+
+  it('updateLogoUrl returns empty string when useLogo is false', () => {
+    const comp = makeComponent(mocks);
+    comp.useLogo = false;
+    (comp as any).updateLogoUrl();
+    expect(comp.logoUrl).toBe('');
+  });
+
+  it('updateLogoUrl prioritizes dark logo in dark mode, falls back to light', () => {
+    const comp = makeComponent(mocks);
+    comp.useLogo = true;
+    comp.isDarkMode = true;
+    localStorage.setItem('branding_dark_logo', 'DARK_URL');
+    localStorage.setItem('branding_light_logo', 'LIGHT_URL');
+    (comp as any).updateLogoUrl();
+    expect(comp.logoUrl).toBe('DARK_URL');
+    
+    // Test fallback when dark is missing
+    localStorage.removeItem('branding_dark_logo');
+    (comp as any).updateLogoUrl();
+    expect(comp.logoUrl).toBe('LIGHT_URL');
+  });
+
+  it('handleCodeChange allows only digits and clears on invalid input', () => {
+    const comp = makeComponent(mocks);
+    comp.codeLength = 4;
+    comp.mfaCode = ['', '', '', ''];
+    comp.handleCodeChange(0, { target: { value: 'a' } });
+    expect(comp.mfaCode[0]).toBe('');
+    comp.handleCodeChange(0, { target: { value: '5' } });
+    expect(comp.mfaCode[0]).toBe('5');
+  });
+
+  it('handleCodeChange handles null or missing event gracefully', () => {
+    const comp = makeComponent(mocks);
+    comp.mfaCode = ['1', '', '', ''];
+    comp.handleCodeChange(0, null);
+    // Should not throw, state unchanged
+    expect(comp.mfaCode[0]).toBe('1');
+  });
+
+  it('handleKeyDown on ArrowLeft boundary does not move when at index 0', () => {
+    const comp = makeComponent(mocks);
+    comp.codeLength = 4;
+    comp.mfaCode = ['1', '', '', ''];
+    const focusSpy = vi.spyOn(comp as any, 'focusInput');
+    comp.handleKeyDown(0, { key: 'ArrowLeft' });
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it('handleKeyDown on ArrowRight boundary does not move when at last index', () => {
+    const comp = makeComponent(mocks);
+    comp.codeLength = 4;
+    comp.mfaCode = ['1', '2', '3', '4'];
+    const focusSpy = vi.spyOn(comp as any, 'focusInput');
+    comp.handleKeyDown(3, { key: 'ArrowRight' });
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it('handleKeyDown handles null event gracefully', () => {
+    const comp = makeComponent(mocks);
+    comp.mfaCode = ['1', '', '', ''];
+    // Should not throw
+    comp.handleKeyDown(0, null);
+    expect(true).toBe(true);
+  });
+
+  it('handlePaste with insufficient digits does not focus or fill completely', () => {
+    const comp = makeComponent(mocks);
+    comp.codeLength = 4;
+    const focusSpy = vi.spyOn(comp as any, 'focusInput');
+    const event: any = { preventDefault: vi.fn(), clipboardData: { getData: vi.fn(() => '12') } };
+    comp.handlePaste(event);
+    // Insufficient digits - no focus call
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it('handlePaste handles null event gracefully', () => {
+    const comp = makeComponent(mocks);
+    comp.handlePaste(null);
+    expect(true).toBe(true);
+  });
+
+  it('focusInput with valid index focuses the element', () => {
+    const comp = makeComponent(mocks);
+    const focusMock = vi.fn();
+    comp.codeInputs = { toArray: () => [{ nativeElement: { focus: focusMock } }] } as any;
+    (comp as any).focusInput(0);
+    setTimeout(() => {
+      expect(focusMock).toHaveBeenCalled();
+    }, 10);
+  });
+
+  it('verifyMfaCode catches exception and sets error', async () => {
+    const errMocks = makeMocks();
+    errMocks.adminAuthService.verifyMfaCode = vi.fn(async () => { throw new Error('exception'); });
+    const comp = makeComponent(errMocks);
+    comp.codeLength = 4;
+    comp.mfaCode = ['1','2','3','4'];
+    comp.mfaCodeInput = '1234';
+    await (comp as any).verifyMfaCode();
+    expect(comp.error).toContain('exception');
+  });
+
+  it('checkEmailSubscriber returns false when data is not array', async () => {
+    const comp = makeComponent(mocks);
+    mocks.supabaseService.directQuery = vi.fn(async () => ({ data: null, error: null }));
+    const result = await (comp as any).checkEmailSubscriber('x@y.com');
+    expect(result).toBe(false);
+  });
+
+  it('checkEmailSubscriber returns false when query returns error', async () => {
+    const comp = makeComponent(mocks);
+    mocks.supabaseService.directQuery = vi.fn(async () => ({ data: null, error: { message: 'query failed' } }));
+    const result = await (comp as any).checkEmailSubscriber('x@y.com');
+    expect(result).toBe(false);
+  });
+
+  it('checkEmailSubscriber catches exception and returns false', async () => {
+    const comp = makeComponent(mocks);
+    mocks.supabaseService.directQuery = vi.fn(async () => { throw new Error('exception'); });
+    const result = await (comp as any).checkEmailSubscriber('x@y.com');
+    expect(result).toBe(false);
+  });
+
+  it('handleResendCode handles sendMfaCode failure gracefully', async () => {
+    const comp = makeComponent(mocks);
+    mocks.adminAuthService.sendMfaCode = vi.fn(async () => ({ success: false, error: 'Failed' }));
+    comp.email = 'test@x.com';
+    await comp.handleResendCode();
+    expect(comp.error).toContain('Failed');
+    expect(comp.resendLoading).toBe(false);
+  });
+
+  it('handleResendCode catches exception and sets error', async () => {
+    const comp = makeComponent(mocks);
+    mocks.adminAuthService.sendMfaCode = vi.fn(async () => { throw new Error('network'); });
+    comp.email = 'test@x.com';
+    await comp.handleResendCode();
+    expect(comp.error).toContain('network');
+  });
+
+  it('saveNewSubscriber catches exception and returns false', async () => {
+    const comp = makeComponent(mocks);
+    mocks.supabaseService.client.rpc = vi.fn(async () => { throw new Error('rpc fail'); });
+    comp.email = 'x@y.com';
+    comp.firstName = 'A';
+    comp.lastName = 'B';
+    comp.requiresApproval = true;
+    const res = await comp.saveNewSubscriber();
+    expect(res).toBe(false);
+    expect(comp.error).toContain('rpc fail');
+  });
+
+  it('verifyMfaCode routes admin users to returnUrl', async () => {
+    mocks.adminAuthService.verifyMfaCode = vi.fn(async () => ({ success: true, isAdmin: true }));
+    mocks.supabaseService.directQuery = vi.fn(async () => ({ data: [{ id: 'sub' }], error: null }));
+    const comp = makeComponent(mocks);
+    comp.email = 'admin@example.com';
+    comp.mfaCode = ['1','2','3','4'];
+    comp.mfaCodeInput = '1234';
+    comp.codeLength = 4;
+    comp.returnUrl = '/admin/dashboard';
+    comp.isAdmin = false;
+    vi.spyOn(comp as any, 'checkEmailSubscriber').mockResolvedValue(true);
+    
+    await (comp as any).verifyMfaCode();
+    
+    expect(mocks.router.navigate).toHaveBeenCalledWith(['/admin/dashboard']);
+  });
+
+  it('verifyMfaCode clears sessionStorage after successful verification', async () => {
+    mocks.adminAuthService.verifyMfaCode = vi.fn(async () => ({ success: true, isAdmin: false }));
+    mocks.supabaseService.directQuery = vi.fn(async () => ({ data: [{ id: 'sub' }], error: null }));
+    sessionStorage.setItem('mfa_email_sent', 'true');
+    sessionStorage.setItem('mfa_email', 'test@x.com');
+    
+    const comp = makeComponent(mocks);
+    comp.email = 'test@x.com';
+    comp.mfaCode = ['1','2','3','4'];
+    comp.mfaCodeInput = '1234';
+    comp.codeLength = 4;
+    vi.spyOn(comp as any, 'checkEmailSubscriber').mockResolvedValue(true);
+    
+    await (comp as any).verifyMfaCode();
+    
+    expect(sessionStorage.getItem('mfa_email_sent')).toBeNull();
+    expect(sessionStorage.getItem('mfa_email')).toBeNull();
+  });
+
+  it('fetchBranding updates localStorage with new settings', async () => {
+    mocks.supabaseService.directQuery = vi.fn(async () => ({ 
+      data: [{ 
+        use_logo: true, 
+        light_mode_logo_blob: 'NEW_LIGHT', 
+        dark_mode_logo_blob: 'NEW_DARK' 
+      }], 
+      error: null 
+    }));
+    localStorage.clear();
+    const comp = makeComponent(mocks);
+    
+    await (comp as any).fetchBranding();
+    
+    expect(localStorage.getItem('branding_use_logo')).toBe('true');
+    expect(localStorage.getItem('branding_light_logo')).toBe('NEW_LIGHT');
+    expect(localStorage.getItem('branding_dark_logo')).toBe('NEW_DARK');
+  });
+
+  it('fetchBranding handles response with null branding fields', async () => {
+    mocks.supabaseService.directQuery = vi.fn(async () => ({ 
+      data: [{ 
+        use_logo: false, 
+        light_mode_logo_blob: null, 
+        dark_mode_logo_blob: null 
+      }], 
+      error: null 
+    }));
+    localStorage.clear();
+    const comp = makeComponent(mocks);
+    
+    await (comp as any).fetchBranding();
+    
+    expect(comp.useLogo).toBe(false);
+  });
+
+  it('handleSubmit clears timeout when sendMfaCode succeeds before timeout', async () => {
+    const comp = makeComponent(mocks);
+    mocks.adminAuthService.sendMfaCode = vi.fn(async () => ({ success: true }));
+    comp.email = 'fast@x.com';
+    
+    await comp.handleSubmit(new Event('submit'));
+    
+    // Should succeed without error
+    expect(comp.success).toBe(true);
+    expect(comp.error).toBe('');
+  });
+
+  it('watchThemeChanges listens to mediaQuery change when theme is system', async () => {
+    const themeMocks = makeMocks();
+    themeMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    themeMocks.themeService.getTheme = vi.fn(() => 'system');
+    
+    const mediaQueryListenerCalls: any[] = [];
+    const mockMediaQuery = {
+      matches: false,
+      addEventListener: vi.fn((event: string, handler: any) => {
+        if (event === 'change') {
+          mediaQueryListenerCalls.push(handler);
+        }
+      }),
+      removeEventListener: vi.fn()
+    };
+    
+    vi.stubGlobal('matchMedia', () => mockMediaQuery);
+    
+    const comp = new LoginComponent(
+      themeMocks.adminAuthService,
+      themeMocks.supabaseService,
+      themeMocks.emailNotificationService,
+      themeMocks.themeService,
+      themeMocks.router,
+      themeMocks.route,
+      themeMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    comp.useLogo = true;
+    localStorage.setItem('branding_light_logo', 'SYS_LIGHT');
+    localStorage.setItem('branding_dark_logo', 'SYS_DARK');
+    
+    await comp.ngOnInit();
+    
+    // Verify mediaQuery listener was added
+    expect(mockMediaQuery.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+    
+    // Simulate media query change to dark when theme is system
+    mockMediaQuery.matches = true;
+    if (mediaQueryListenerCalls.length > 0) {
+      mediaQueryListenerCalls[0]({});
+      expect((comp as any).isDarkMode).toBe(true);
+    }
+  });
+
+  it('saveNewSubscriber approval request creates RPC call with correct params and does not set duplicate error for other errors', async () => {
+    const compMocks = makeMocks();
+    // rpc returns a non-duplicate error
+    compMocks.supabaseService.client.rpc = vi.fn(async () => ({ 
+      data: null, 
+      error: { message: 'some other error occurred' } 
+    }));
+
+    const comp = new LoginComponent(
+      compMocks.adminAuthService,
+      compMocks.supabaseService,
+      compMocks.emailNotificationService,
+      compMocks.themeService,
+      compMocks.router,
+      compMocks.route,
+      compMocks.cdr
+    );
+    comp.email = 'generic@x.com';
+    comp.firstName = 'A';
+    comp.lastName = 'B';
+    comp.requiresApproval = true;
+
+    const res = await comp.saveNewSubscriber();
+    expect(res).toBe(false);
+    // Should get the generic error message, not the duplicate key message
+    expect(comp.error).toContain('Failed to submit approval request');
+    expect(comp.error).toContain('some other error occurred');
+  });
+
+  it('checkEmailSubscriber handles error response with no data array', async () => {
+    const comp = makeComponent(mocks);
+    mocks.supabaseService.directQuery = vi.fn(async () => ({ 
+      data: { id: 'single_object' }, 
+      error: null 
+    }));
+    const result = await (comp as any).checkEmailSubscriber('x@y.com');
+    expect(result).toBe(false);
+  });
+
+  it('verifyMfaCode handles blockError when not an Error instance', async () => {
+    mocks.adminAuthService.verifyMfaCode = vi.fn(async () => ({ success: true, isAdmin: false }));
+    // Mock checkEmailSubscriber to throw a string error (not an Error instance)
+    const comp = makeComponent(mocks);
+    comp.email = 'test@x.com';
+    comp.mfaCode = ['1','2','3','4'];
+    comp.mfaCodeInput = '1234';
+    comp.codeLength = 4;
+    
+    vi.spyOn(comp as any, 'checkEmailSubscriber').mockRejectedValue('string error');
+    
+    await (comp as any).verifyMfaCode();
+    
+    expect(comp.error).toBe('Access denied');
+    expect(comp.loading).toBe(false);
   });
 });

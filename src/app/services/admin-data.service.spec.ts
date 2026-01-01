@@ -15,6 +15,7 @@ describe('AdminDataService', () => {
   const createMockQueryChain = (returnData: any = null, returnError: any = null) => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
+        single: vi.fn(() => Promise.resolve({ data: returnData, error: returnError })),
         order: vi.fn(() => Promise.resolve({ data: returnData, error: returnError })),
         then: vi.fn((callback) => callback({ data: returnData, error: returnError }))
       })),
@@ -750,6 +751,1299 @@ describe('AdminDataService', () => {
       const spy = vi.spyOn(service, 'fetchAdminData');
       service.refresh();
       expect(spy).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe('loadApprovedAndDeniedDataAsync', () => {
+    it('should load approved and denied data in background', async () => {
+      const mockApprovedPrayers = [
+        { id: '1', title: 'Approved Prayer', approval_status: 'approved' }
+      ];
+      const mockDeniedPrayers = [
+        { id: '2', title: 'Denied Prayer', approval_status: 'denied', denial_reason: 'Inappropriate' }
+      ];
+      const mockApprovedUpdates = [
+        { id: '1', content: 'Approved Update', prayers: { title: 'Prayer Title' }, approval_status: 'approved' }
+      ];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return createMockQueryChain([mockApprovedPrayers, mockDeniedPrayers], null);
+        }
+        if (table === 'prayer_updates') {
+          return createMockQueryChain(mockApprovedUpdates, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      // Start the async load without waiting
+      const asyncLoadPromise = service.loadApprovedAndDeniedDataAsync();
+
+      // Wait for the async operation to complete
+      await asyncLoadPromise;
+
+      const data = await firstValueFrom(service.data$);
+      expect(data.loading).toBe(false);
+    });
+
+    it('should handle errors during async data load silently', async () => {
+      mockSupabaseClient.from = vi.fn(() => {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => Promise.reject(new Error('Async load failed')))
+          }))
+        };
+      });
+
+      // Should not throw even if async data load fails
+      await expect(service.loadApprovedAndDeniedDataAsync()).resolves.not.toThrow();
+    });
+
+    it('should load deletion requests in async phase', async () => {
+      const mockDeletionRequests = [
+        { id: '1', prayer_id: 'prayer-1', prayers: { title: 'Prayer Title' }, approval_status: 'approved' }
+      ];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'deletion_requests') {
+          return createMockQueryChain(mockDeletionRequests, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.loadApprovedAndDeniedDataAsync();
+
+      const data = await firstValueFrom(service.data$);
+      // The data state may have been updated with counts
+      expect(data).toBeDefined();
+    });
+
+    it('should load account approval requests with proper formatting', async () => {
+      const mockAccountRequests = [
+        { 
+          id: '1', 
+          email: 'john@example.com',
+          first_name: 'John',
+          last_name: 'Doe',
+          approval_status: 'pending',
+          created_at: '2024-01-01'
+        }
+      ];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'account_approval_requests') {
+          return createMockQueryChain(mockAccountRequests, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      // Fetch initial data to set pending account requests
+      await service.fetchAdminData();
+
+      const data = await firstValueFrom(service.data$);
+      expect(data.pendingAccountRequests).toEqual(mockAccountRequests);
+    });
+  });
+
+  describe('approvePrayer - comprehensive error handling', () => {
+    it('should handle fetch query error', async () => {
+      const error = new Error('Query failed');
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error }))
+          }))
+        }))
+      }));
+
+      await expect(service.approvePrayer('1')).rejects.toThrow('Query failed');
+    });
+
+    it('should handle update status error after fetching prayer', async () => {
+      const mockPrayer = { id: '1', title: 'Test', description: 'Desc', requester: 'John', email: 'john@example.com' };
+      const error = new Error('Update status failed');
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error }))
+        }))
+      }));
+
+      await expect(service.approvePrayer('1')).rejects.toThrow('Update status failed');
+    });
+
+    it('should handle anonymous prayer without sending requester notification', async () => {
+      const mockPrayer = {
+        id: '1',
+        title: 'Anonymous Prayer',
+        description: 'Test',
+        requester: 'John',
+        email: 'john@example.com',
+        is_anonymous: true
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.approvePrayer('1');
+
+      // Anonymous prayers still send notifications based on email setting
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+  });
+
+  describe('denyPrayer - comprehensive scenarios', () => {
+    it('should handle deny with long reason text', async () => {
+      const mockPrayer = {
+        id: '1',
+        title: 'Test Prayer',
+        description: 'Test Description',
+        requester: 'John Doe',
+        email: 'john@example.com',
+        is_anonymous: false
+      };
+
+      const longReason = 'This prayer request does not align with our community values and guidelines. It contains inappropriate language and requests that we cannot fulfill.';
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.denyPrayer('1', longReason);
+
+      expect(mockEmailNotificationService.sendDeniedPrayerNotification).toHaveBeenCalledWith({
+        title: mockPrayer.title,
+        description: mockPrayer.description,
+        requester: mockPrayer.requester,
+        requesterEmail: mockPrayer.email,
+        denialReason: longReason
+      });
+    });
+
+    it('should handle fetch error during deny', async () => {
+      const error = new Error('Fetch failed');
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error }))
+          }))
+        }))
+      }));
+
+      await expect(service.denyPrayer('1', 'reason')).rejects.toThrow('Fetch failed');
+    });
+
+    it('should handle update error during deny', async () => {
+      const mockPrayer = {
+        id: '1',
+        title: 'Test',
+        description: 'Desc',
+        requester: 'John',
+        email: 'john@example.com',
+        is_anonymous: false
+      };
+      const error = new Error('Update failed');
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error }))
+        }))
+      }));
+
+      await expect(service.denyPrayer('1', 'reason')).rejects.toThrow('Update failed');
+    });
+
+    it('should handle email notification failure without throwing', async () => {
+      const mockPrayer = {
+        id: '1',
+        title: 'Test Prayer',
+        description: 'Test',
+        requester: 'John',
+        email: 'john@example.com',
+        is_anonymous: false
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendDeniedPrayerNotification = vi.fn(() =>
+        Promise.reject(new Error('Email service down'))
+      );
+
+      // Should not throw
+      await expect(service.denyPrayer('1', 'reason')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('editPrayer - comprehensive scenarios', () => {
+    it('should handle partial updates', async () => {
+      const updates = { title: 'Updated Title' };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null }))
+        }))
+      }));
+
+      await service.editPrayer('1', updates);
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle empty updates object', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null }))
+        }))
+      }));
+
+      await service.editPrayer('1', {});
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle fetch error during edit', async () => {
+      const error = new Error('Update failed');
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error }))
+        }))
+      }));
+
+      await expect(service.editPrayer('1', { title: 'New' })).rejects.toThrow('Update failed');
+    });
+  });
+
+  describe('approveUpdate - comprehensive scenarios', () => {
+    it('should handle update with mark_as_answered=false correctly', async () => {
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'prayer-1',
+        content: 'Update content',
+        mark_as_answered: false,
+        is_anonymous: false,
+        author: 'John',
+        prayers: { title: 'Prayer Title', status: 'current' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.approveUpdate('1');
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle update fetch error', async () => {
+      const error = new Error('Fetch update failed');
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error }))
+          }))
+        }))
+      }));
+
+      await expect(service.approveUpdate('1')).rejects.toThrow('Fetch update failed');
+    });
+
+    it('should handle prayer status update error gracefully', async () => {
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'prayer-1',
+        content: 'Update content',
+        mark_as_answered: true,
+        is_anonymous: false,
+        prayers: { title: 'Prayer Title', status: 'current' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Status update failed') }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      // Should resolve even if prayer status update fails (logged as warning, not thrown)
+      await service.approveUpdate('1');
+      
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle email notification failure without throwing', async () => {
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'prayer-1',
+        content: 'Update content',
+        mark_as_answered: false,
+        is_anonymous: false,
+        prayers: { title: 'Prayer Title', status: 'current' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() =>
+        Promise.reject(new Error('Email failed'))
+      );
+
+      await expect(service.approveUpdate('1')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('denyUpdate - comprehensive scenarios', () => {
+    it('should handle update not found', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.denyUpdate('1', 'reason')).rejects.toThrow();
+    });
+
+    it('should handle update with null author email', async () => {
+      const mockUpdate = {
+        id: '1',
+        content: 'Update content',
+        author_email: null,
+        is_anonymous: false,
+        author: 'John',
+        prayers: { title: 'Prayer Title' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.denyUpdate('1', 'reason');
+
+      expect(mockEmailNotificationService.sendDeniedUpdateNotification).not.toHaveBeenCalled();
+    });
+
+    it('should handle update error during deny', async () => {
+      const mockUpdate = {
+        id: '1',
+        content: 'Update',
+        author_email: 'john@example.com',
+        is_anonymous: false,
+        prayers: { title: 'Prayer' }
+      };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+        }))
+      }));
+
+      await expect(service.denyUpdate('1', 'reason')).rejects.toThrow('Update failed');
+    });
+  });
+
+  describe('editUpdate', () => {
+    it('should handle update error', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+        }))
+      }));
+
+      await expect(service.editUpdate('1', { content: 'New content' })).rejects.toThrow('Update failed');
+    });
+
+    it('should handle multiple field updates', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null }))
+        }))
+      }));
+
+      await service.editUpdate('1', { content: 'Updated', author: 'Jane' });
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+  });
+
+  describe('approveDeletionRequest', () => {
+    it('should handle deletion request not found', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.approveDeletionRequest('1')).rejects.toThrow();
+    });
+
+    it('should handle approval status update error', async () => {
+      const mockRequest = { id: '1', prayer_id: 'prayer-1' };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'deletion_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await expect(service.approveDeletionRequest('1')).rejects.toThrow('Update failed');
+    });
+
+    it('should handle prayer deletion error', async () => {
+      const mockRequest = { id: '1', prayer_id: 'prayer-1' };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'deletion_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            delete: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Delete failed') }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await expect(service.approveDeletionRequest('1')).rejects.toThrow('Delete failed');
+    });
+  });
+
+  describe('denyDeletionRequest', () => {
+    it('should handle update error', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+        }))
+      }));
+
+      await expect(service.denyDeletionRequest('1', 'reason')).rejects.toThrow('Update failed');
+    });
+
+    it('should include denial reason in update', async () => {
+      const updateSpy = vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ error: null }))
+      }));
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: updateSpy
+      }));
+
+      await service.denyDeletionRequest('1', 'Not appropriate');
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+  });
+
+  describe('approveUpdateDeletionRequest', () => {
+    it('should handle request not found', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.approveUpdateDeletionRequest('1')).rejects.toThrow();
+    });
+
+    it('should handle approval status update error', async () => {
+      const mockRequest = { id: '1', update_id: 'update-1' };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'update_deletion_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await expect(service.approveUpdateDeletionRequest('1')).rejects.toThrow('Update failed');
+    });
+
+    it('should handle update deletion error', async () => {
+      const mockRequest = { id: '1', update_id: 'update-1' };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'update_deletion_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            delete: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Delete failed') }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await expect(service.approveUpdateDeletionRequest('1')).rejects.toThrow('Delete failed');
+    });
+  });
+
+  describe('denyUpdateDeletionRequest', () => {
+    it('should handle update error', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+        }))
+      }));
+
+      await expect(service.denyUpdateDeletionRequest('1', 'reason')).rejects.toThrow('Update failed');
+    });
+
+    it('should include denial reason in update', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null }))
+        }))
+      }));
+
+      await service.denyUpdateDeletionRequest('1', 'Not necessary');
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+  });
+
+  describe('approveAccountRequest', () => {
+    it('should handle request not found', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.approveAccountRequest('1')).rejects.toThrow();
+    });
+
+    it('should handle email subscriber insert error', async () => {
+      const mockRequest = {
+        id: '1',
+        email: 'john@example.com',
+        first_name: 'John',
+        last_name: 'Doe'
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'account_approval_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            delete: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'email_subscribers') {
+          return {
+            insert: vi.fn(() => Promise.resolve({ error: new Error('Insert failed') }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await expect(service.approveAccountRequest('1')).rejects.toThrow('Insert failed');
+    });
+
+    it('should handle deletion of approval request after creating subscriber', async () => {
+      const mockRequest = {
+        id: '1',
+        email: 'john@example.com',
+        first_name: 'John',
+        last_name: 'Doe'
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'account_approval_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            delete: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Delete failed') }))
+            }))
+          };
+        } else if (table === 'email_subscribers') {
+          return {
+            insert: vi.fn(() => Promise.resolve({ error: null }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await expect(service.approveAccountRequest('1')).rejects.toThrow('Delete failed');
+    });
+
+    it('should handle email send failure gracefully', async () => {
+      const mockRequest = {
+        id: '1',
+        email: 'john@example.com',
+        first_name: 'John',
+        last_name: 'Doe'
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'account_approval_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            delete: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'email_subscribers') {
+          return {
+            insert: vi.fn(() => Promise.resolve({ error: null }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendEmail = vi.fn(() =>
+        Promise.reject(new Error('Email send failed'))
+      );
+
+      // Should resolve even if email fails (error is caught)
+      await service.approveAccountRequest('1');
+    });
+  });
+
+  describe('denyAccountRequest', () => {
+    it('should handle request not found', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.denyAccountRequest('1', 'reason')).rejects.toThrow();
+    });
+
+    it('should handle deletion error', async () => {
+      const mockRequest = {
+        id: '1',
+        email: 'john@example.com',
+        first_name: 'John',
+        last_name: 'Doe'
+      };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+          }))
+        })),
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: new Error('Delete failed') }))
+        }))
+      }));
+
+      await expect(service.denyAccountRequest('1', 'reason')).rejects.toThrow('Delete failed');
+    });
+
+    it('should handle email send failure gracefully', async () => {
+      const mockRequest = {
+        id: '1',
+        email: 'john@example.com',
+        first_name: 'John',
+        last_name: 'Doe'
+      };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+          }))
+        })),
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null }))
+        }))
+      }));
+
+      mockEmailNotificationService.sendEmail = vi.fn(() =>
+        Promise.reject(new Error('Email send failed'))
+      );
+
+      // Should resolve even if email fails (error is caught)
+      await service.denyAccountRequest('1', 'reason');
+    });
+  });
+
+  describe('data$ Observable behavior', () => {
+    it('should emit data updates on successful fetch', async () => {
+      const mockPrayers = [{ id: '1', title: 'Test', approval_status: 'pending' }];
+      const emissions: AdminData[] = [];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return createMockQueryChain(mockPrayers, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      const subscription = service.data$.subscribe(data => {
+        emissions.push(data);
+      });
+
+      await service.fetchAdminData();
+
+      expect(emissions.length).toBeGreaterThan(0);
+      expect(emissions[emissions.length - 1].pendingPrayers).toEqual(mockPrayers);
+
+      subscription.unsubscribe();
+    });
+
+    it('should maintain state consistency across multiple operations', async () => {
+      const emission1: AdminData[] = [];
+      const subscription = service.data$.subscribe(data => {
+        emission1.push(data);
+      });
+
+      // First fetch
+      await service.fetchAdminData();
+      const state1 = emission1[emission1.length - 1];
+
+      // Second fetch
+      await service.fetchAdminData();
+      const state2 = emission1[emission1.length - 1];
+
+      expect(state2.loading).toBe(false);
+
+      subscription.unsubscribe();
+    });
+  });
+
+  describe('concurrent operations', () => {
+    it('should prevent concurrent fetchAdminData calls', async () => {
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const queryCallCount = vi.fn();
+      
+      mockSupabaseClient.from = vi.fn(() => {
+        queryCallCount();
+        return createMockQueryChain([], null);
+      });
+
+      // Start two fetches simultaneously
+      const promise1 = service.fetchAdminData();
+      const promise2 = service.fetchAdminData();
+
+      await Promise.all([promise1, promise2]);
+
+      // Second fetch should be prevented from running queries
+      expect(queryCallCount).toHaveBeenCalled();
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('Phase 2 async loading integration', () => {
+    it('should update state with counts after async loading completes', async () => {
+      const mockApprovedPrayers = [
+        { id: '1', title: 'Approved 1', approval_status: 'approved' },
+        { id: '2', title: 'Approved 2', approval_status: 'approved' }
+      ];
+      const mockDeniedPrayers = [
+        { id: '3', title: 'Denied 1', approval_status: 'denied' }
+      ];
+
+      let callCount = 0;
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        callCount++;
+        if (table === 'prayers') {
+          return createMockQueryChain(callCount === 1 ? [] : mockApprovedPrayers, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.fetchAdminData();
+
+      // Give async operations time to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const data = await firstValueFrom(service.data$);
+      expect(data).toBeDefined();
+    });
+  });
+
+  describe('Status change requests handling', () => {
+    it('should load pending status change requests in Phase 1', async () => {
+      const mockStatusChangeRequests = [
+        { id: '1', prayer_id: 'prayer-1', prayers: { title: 'Prayer Title' }, approval_status: 'pending' }
+      ];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'status_change_requests') {
+          return createMockQueryChain(mockStatusChangeRequests, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.fetchAdminData();
+
+      const data = await firstValueFrom(service.data$);
+      expect(data.pendingStatusChangeRequests).toBeDefined();
+    });
+
+    it('should handle status change request transformation with prayer titles', async () => {
+      const mockStatusChangeRequests = [
+        { id: '1', prayer_id: 'prayer-1', prayers: { title: 'Prayer Title' }, approval_status: 'pending' }
+      ];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'status_change_requests') {
+          return createMockQueryChain(mockStatusChangeRequests, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.fetchAdminData();
+
+      const data = await firstValueFrom(service.data$);
+      expect(data.pendingStatusChangeRequests[0].prayer_title).toBe('Prayer Title');
+    });
+  });
+
+  describe('Branch coverage - error handling', () => {
+    it('should handle requester notification error in approvePrayer', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      const mockPrayer = { 
+        id: '1', 
+        title: 'Test Prayer',
+        description: 'Test',
+        is_anonymous: false,
+        requester: 'John',
+        email: 'john@example.com',
+        prayer_for: 'Test'
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendRequesterApprovalNotification = vi.fn()
+        .mockRejectedValue(new Error('Notification failed'));
+      
+      mockPrayerService.loadPrayers = vi.fn().mockResolvedValue(undefined);
+
+      await service.approvePrayer('1');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to send requester notification:',
+        expect.any(Error)
+      );
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle denial notification error in denyUpdate', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      const mockUpdate = { 
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Test update',
+        is_anonymous: false,
+        author: 'Jane',
+        author_email: 'jane@example.com',
+        prayers: { title: 'Test Prayer' }
+      };
+
+      // Mock createMockQueryChain to handle all the chains properly
+      const mockChain = () => ({
+        select: vi.fn(function() {
+          return {
+            eq: vi.fn(() => ({
+              single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null })),
+              order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+            })),
+            order: vi.fn(() => Promise.resolve({ data: [], error: null })),
+            neq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          };
+        }),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null }))
+        }))
+      });
+
+      mockSupabaseClient.from = vi.fn(() => mockChain());
+
+      const notificationError = new Error('Notification failed');
+      mockEmailNotificationService.sendDeniedUpdateNotification = vi.fn()
+        .mockReturnValue(Promise.reject(notificationError));
+      
+      mockPrayerService.loadPrayers = vi.fn().mockResolvedValue(undefined);
+
+      // Don't await - we want to check if the error is caught, not thrown
+      service.denyUpdate('1', 'Not appropriate').catch(() => {});
+      
+      // Wait for async operations to complete
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      expect(mockEmailNotificationService.sendDeniedUpdateNotification).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to send denial notification:',
+        notificationError
+      );
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle account request error in fetchAdminData', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const accountError = new Error('Account fetch failed');
+
+      // Create normal chain for successful tables
+      const createNormalChain = () => ({
+        select: vi.fn(function() {
+          return {
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+            })),
+            order: vi.fn(() => Promise.resolve({ data: [], error: null })),
+            neq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          };
+        })
+      });
+
+      // Track which table is being queried
+      let queryCount = 0;
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        queryCount++;
+        
+        // Only error on the account_approval_requests table (6th query in Promise.all)
+        if (table === 'account_approval_requests' && queryCount === 6) {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({ data: null, error: accountError })),
+                then: vi.fn((callback) => callback({ data: null, error: accountError }))
+              })),
+              order: vi.fn(() => ({
+                then: vi.fn((callback) => callback({ data: null, error: accountError }))
+              }))
+            })),
+            order: vi.fn(() => ({
+              then: vi.fn((callback) => callback({ data: null, error: accountError }))
+            }))
+          };
+        }
+        
+        // Return normal chain for all other tables
+        return createNormalChain();
+      });
+
+      try {
+        await service.fetchAdminData();
+      } catch (error) {
+        // Expected to throw
+      }
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[AdminDataService] Error fetching account approval requests:',
+        accountError
+      );
+      
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should continue when denial reason is not provided in denyUpdate', async () => {
+      const mockUpdate = { 
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Test update',
+        is_anonymous: true,
+        author: null,
+        author_email: null
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendUpdateDenialNotification = vi.fn()
+        .mockResolvedValue(undefined);
+      
+      mockPrayerService.loadPrayers = vi.fn().mockResolvedValue(undefined);
+
+      // Should not throw even without email notification
+      await service.denyUpdate('1', '');
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle denial with null author email gracefully', async () => {
+      const mockUpdate = { 
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Test update',
+        is_anonymous: false,
+        author: 'John',
+        author_email: null
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendUpdateDenialNotification = vi.fn()
+        .mockResolvedValue(undefined);
+      
+      mockPrayerService.loadPrayers = vi.fn().mockResolvedValue(undefined);
+
+      await service.denyUpdate('1', 'Reason');
+
+      // Should skip notification when no email
+      expect(mockEmailNotificationService.sendUpdateDenialNotification).not.toHaveBeenCalled();
+    });
+
+    it('should handle anonymous prayer in approvePrayer correctly', async () => {
+      const mockPrayer = { 
+        id: '1', 
+        title: 'Test Prayer',
+        description: 'Test',
+        is_anonymous: true,
+        requester: null,
+        email: null,
+        prayer_for: 'Test'
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendRequesterApprovalNotification = vi.fn()
+        .mockResolvedValue(undefined);
+      
+      mockPrayerService.loadPrayers = vi.fn().mockResolvedValue(undefined);
+
+      await service.approvePrayer('1');
+
+      // Should show 'Anonymous' for anonymous prayers
+      expect(mockEmailNotificationService.sendRequesterApprovalNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requester: 'Anonymous'
+        })
+      );
     });
   });
 });

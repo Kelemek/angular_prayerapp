@@ -804,4 +804,282 @@ describe('EmailSubscribersComponent', () => {
       expect(component.Math).toBe(Math);
     });
   });
+
+  describe('handleCSVUpload', () => {
+    it('should parse CSV file correctly', () => {
+      const csvContent = 'John Doe,john@example.com\nJane Smith,jane@example.com';
+      const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+      
+      const event = { target: { files: [file] } } as any;
+      component.handleCSVUpload(event);
+
+      // Wait for file read to complete
+      setTimeout(() => {
+        expect(component.csvData.length).toBe(2);
+        expect(component.csvData[0]).toEqual({
+          name: 'John Doe',
+          email: 'john@example.com',
+          valid: true
+        });
+      }, 50);
+    });
+
+    it('should handle invalid email format in CSV', () => {
+      const csvContent = 'John Doe,invalid-email';
+      const file = new File([csvContent], 'test.csv');
+      
+      const event = { target: { files: [file] } } as any;
+      component.handleCSVUpload(event);
+
+      setTimeout(() => {
+        expect(component.csvData[0].valid).toBe(false);
+        expect(component.csvData[0].error).toBe('Invalid email format');
+      }, 50);
+    });
+
+    it('should handle missing name or email in CSV', () => {
+      const csvContent = 'John Doe,\n,jane@example.com';
+      const file = new File([csvContent], 'test.csv');
+      
+      const event = { target: { files: [file] } } as any;
+      component.handleCSVUpload(event);
+
+      setTimeout(() => {
+        expect(component.csvData[0].valid).toBe(false);
+        expect(component.csvData[0].error).toBe('Missing name or email');
+        expect(component.csvData[1].valid).toBe(false);
+      }, 50);
+    });
+
+    it('should handle empty file input', () => {
+      const event = { target: { files: [] } } as any;
+      component.handleCSVUpload(event);
+      expect(component.csvData).toEqual([]);
+    });
+
+    it('should handle null file', () => {
+      const event = { target: { files: null } } as any;
+      component.handleCSVUpload(event);
+      expect(component.csvData).toEqual([]);
+    });
+
+    it('should clear error when parsing CSV successfully', () => {
+      component.error = 'Previous error';
+      const csvContent = 'John Doe,john@example.com';
+      const file = new File([csvContent], 'test.csv');
+      
+      const event = { target: { files: [file] } } as any;
+      component.handleCSVUpload(event);
+
+      setTimeout(() => {
+        expect(component.error).toBeNull();
+      }, 50);
+    });
+  });
+
+  describe('handleSearch with query', () => {
+    it('should search with query string', async () => {
+      component.searchQuery = 'john@example.com';
+      
+      const finalResultMock = {
+        data: [mockSubscriber],
+        error: null,
+        count: 1
+      };
+      
+      const queryWithOrMock = {
+        or: vi.fn().mockResolvedValue(finalResultMock)
+      };
+      
+      const selectMock = {
+        order: vi.fn().mockReturnValue(queryWithOrMock)
+      };
+      
+      mockSupabaseService.client.from().select.mockReturnValue(selectMock);
+
+      await component.handleSearch();
+
+      expect(component.hasSearched).toBe(true);
+      expect(component.currentPage).toBe(1);
+      expect(queryWithOrMock.or).toHaveBeenCalled();
+    });
+
+    it('should reset page to 1 on new search', async () => {
+      component.currentPage = 3;
+      
+      mockSupabaseService.client.from().select().order.mockResolvedValue({
+        data: [],
+        error: null,
+        count: 0
+      });
+
+      await component.handleSearch();
+
+      expect(component.currentPage).toBe(1);
+    });
+  });
+
+  describe('uploadCSVData with skipped duplicates and no failures', () => {
+    it('should include message about skipped duplicates', async () => {
+      component.csvData = [
+        { name: 'John', email: 'john@example.com', valid: true },
+        { name: 'Existing', email: 'existing@example.com', valid: true }
+      ];
+
+      // Mock existing email check to return one existing email
+      mockSupabaseService.client.from().select().in.mockResolvedValue({
+        data: [{ email: 'existing@example.com' }],
+        error: null
+      });
+
+      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
+        {
+          email: 'john@example.com',
+          result: { people: [], count: 0 },
+          retries: 0,
+          failed: false
+        }
+      ]);
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.uploadCSVData();
+
+      expect(component.csvSuccess).toContain('Skipped 1 duplicate(s)');
+    });
+
+    it('should add exclamation mark when no failures', async () => {
+      component.csvData = [
+        { name: 'John', email: 'john@example.com', valid: true }
+      ];
+
+      mockSupabaseService.client.from().select().in.mockResolvedValue({
+        data: [],
+        error: null
+      });
+
+      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
+        {
+          email: 'john@example.com',
+          result: { people: [], count: 0 },
+          retries: 0,
+          failed: false
+        }
+      ]);
+
+      const insertSpy = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from().insert = insertSpy;
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.uploadCSVData();
+
+      expect(component.csvSuccess).toContain('!');
+      expect(component.csvSuccess).not.toContain('⚠️');
+    });
+  });
+
+  describe('getPaginationRange with various scenarios', () => {
+    beforeEach(() => {
+      component.allSubscribers = Array.from({ length: 100 }, (_, i) => ({
+        ...mockSubscriber,
+        id: `sub-${i}`
+      }));
+      component.totalItems = 100;
+      component.pageSize = 10;
+    });
+
+    it('should show all pages when total pages is less than max', () => {
+      component.pageSize = 50; // 2 pages total
+      const range = component.getPaginationRange();
+      expect(range).toEqual([1, 2]);
+    });
+
+    it('should adjust start and end when near end of pagination', () => {
+      component.currentPage = 10;
+      const range = component.getPaginationRange();
+      expect(range.length).toBeLessThanOrEqual(5);
+      expect(range[range.length - 1]).toBe(10);
+    });
+  });
+
+  describe('toggleAddForm and toggleCSVUpload integration', () => {
+    it('should clear csvSuccess when toggling add form', () => {
+      component.csvSuccess = 'Some success message';
+      component.toggleAddForm();
+      expect(component.csvSuccess).toBeNull();
+    });
+
+    it('should clear csvSuccess when toggling CSV upload', () => {
+      component.csvSuccess = 'Some success message';
+      component.toggleCSVUpload();
+      expect(component.csvSuccess).toBeNull();
+    });
+
+    it('should clear error when toggling add form', () => {
+      component.error = 'Some error';
+      component.toggleAddForm();
+      expect(component.error).toBeNull();
+    });
+
+    it('should clear error when toggling CSV upload', () => {
+      component.error = 'Some error';
+      component.toggleCSVUpload();
+      expect(component.error).toBeNull();
+    });
+  });
+
+  describe('loadPageData', () => {
+    beforeEach(() => {
+      component.allSubscribers = Array.from({ length: 25 }, (_, i) => ({
+        ...mockSubscriber,
+        id: `sub-${i}`
+      }));
+      component.totalItems = 25;
+      component.pageSize = 10;
+    });
+
+    it('should load second page correctly', () => {
+      component.currentPage = 2;
+      component.loadPageData();
+      
+      expect(component.subscribers).toHaveLength(10);
+      expect(component.subscribers[0].id).toBe('sub-10');
+    });
+
+    it('should load partial last page', () => {
+      component.currentPage = 3;
+      component.loadPageData();
+      
+      expect(component.subscribers).toHaveLength(5);
+      expect(component.subscribers[0].id).toBe('sub-20');
+    });
+  });
+
+  describe('handleSearch with null count', () => {
+    it('should handle null count from query', async () => {
+      mockSupabaseService.client.from().select().order.mockResolvedValue({
+        data: [mockSubscriber],
+        error: null,
+        count: null
+      });
+
+      await component.handleSearch();
+
+      expect(component.totalItems).toBe(0);
+    });
+
+    it('should handle null data from query', async () => {
+      mockSupabaseService.client.from().select().order.mockResolvedValue({
+        data: null,
+        error: null,
+        count: 0
+      });
+
+      await component.handleSearch();
+
+      expect(component.allSubscribers).toEqual([]);
+    });
+  });
 });

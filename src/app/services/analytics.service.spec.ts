@@ -218,4 +218,300 @@ describe('AnalyticsService', () => {
       expect(gteCallsWithDates.length).toBeGreaterThanOrEqual(3);
     });
   });
+
+  describe('getStats - comprehensive coverage', () => {
+    it('should return stats with positive values', async () => {
+      let eqCallCount = 0;
+      let prayersSelectCount = 0;
+      let subscribersSelectCount = 0;
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'analytics') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => {
+                eqCallCount++;
+                if (eqCallCount === 1) {
+                  // First eq returns result directly (no gte)
+                  return Promise.resolve({ count: 100, error: null });
+                }
+                // Subsequent eq calls return gte chain
+                return {
+                  gte: vi.fn(function(col: string, val: string) {
+                    if (eqCallCount === 2) return Promise.resolve({ count: 50, error: null });
+                    if (eqCallCount === 3) return Promise.resolve({ count: 75, error: null });
+                    if (eqCallCount === 4) return Promise.resolve({ count: 90, error: null });
+                    if (eqCallCount === 5) return Promise.resolve({ count: 100, error: null });
+                    return Promise.resolve({ count: 0, error: null });
+                  })
+                };
+              })
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            select: vi.fn(() => {
+              prayersSelectCount++;
+              if (prayersSelectCount === 1) {
+                // First select = total prayers (no eq chaining)
+                return Promise.resolve({ count: 50, error: null });
+              }
+              // Other selects have eq chaining
+              return {
+                eq: vi.fn(function(column: string, value: string) {
+                  if (value === 'current') return Promise.resolve({ count: 30, error: null });
+                  if (value === 'answered') return Promise.resolve({ count: 15, error: null });
+                  if (value === 'archived') return Promise.resolve({ count: 5, error: null });
+                  return Promise.resolve({ count: 50, error: null });
+                })
+              };
+            })
+          };
+        } else if (table === 'email_subscribers') {
+          return {
+            select: vi.fn(() => {
+              subscribersSelectCount++;
+              if (subscribersSelectCount === 1) {
+                // First select = total subscribers (no eq)
+                return Promise.resolve({ count: 25, error: null });
+              }
+              // Second select has eq for is_active
+              return {
+                eq: vi.fn(function(column: string, value: string) {
+                  if (value === true) return Promise.resolve({ count: 20, error: null });
+                  return Promise.resolve({ count: 25, error: null });
+                })
+              };
+            })
+          };
+        }
+        return { select: vi.fn(() => Promise.resolve({ count: 0, error: null })) };
+      });
+
+      const stats = await service.getStats();
+
+      expect(stats.totalPageViews).toBe(100);
+      expect(stats.todayPageViews).toBe(50);
+      expect(stats.weekPageViews).toBe(75);
+      expect(stats.monthPageViews).toBe(90);
+      expect(stats.yearPageViews).toBe(100);
+      expect(stats.totalPrayers).toBe(50);
+      expect(stats.currentPrayers).toBe(30);
+      expect(stats.answeredPrayers).toBe(15);
+      expect(stats.archivedPrayers).toBe(5);
+      expect(stats.totalSubscribers).toBe(25);
+      expect(stats.activeEmailSubscribers).toBe(20);
+      expect(stats.loading).toBe(false);
+    });
+
+    it('should handle different counts for each time period', async () => {
+      let eqCallCount = 0;
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'analytics') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => {
+                eqCallCount++;
+                if (eqCallCount === 1) {
+                  // First eq returns result directly (no gte)
+                  return Promise.resolve({ count: 100, error: null });
+                }
+                // Subsequent calls return gte chain
+                return {
+                  gte: vi.fn(() => {
+                    if (eqCallCount === 2) return Promise.resolve({ count: 5, error: null });
+                    if (eqCallCount === 3) return Promise.resolve({ count: 20, error: null });
+                    if (eqCallCount === 4) return Promise.resolve({ count: 80, error: null });
+                    if (eqCallCount === 5) return Promise.resolve({ count: 100, error: null });
+                    return Promise.resolve({ count: 0, error: null });
+                  })
+                };
+              })
+            }))
+          };
+        }
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ count: 0, error: null }))
+          }))
+        };
+      });
+
+      const stats = await service.getStats();
+
+      expect(stats.totalPageViews).toBe(100);
+      expect(stats.todayPageViews).toBe(5);
+      expect(stats.weekPageViews).toBe(20);
+      expect(stats.monthPageViews).toBe(80);
+      expect(stats.yearPageViews).toBe(100);
+    });
+
+    it('should handle null count values', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => Promise.resolve({ count: null, error: null }))
+          }))
+        }))
+      }));
+
+      const stats = await service.getStats();
+
+      expect(stats.totalPageViews).toBe(0);
+      expect(stats.loading).toBe(false);
+    });
+
+    it('should handle errors in specific queries', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const error = new Error('Query failed');
+      let prayersSelectCount = 0;
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'analytics') {
+          let eqCallCount = 0;
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => {
+                eqCallCount++;
+                return {
+                  gte: vi.fn(() => Promise.resolve({ count: null, error }))
+                };
+              })
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            select: vi.fn(() => {
+              prayersSelectCount++;
+              return {
+                eq: vi.fn(function(column: string, value: string) {
+                  // Return error for some status queries
+                  if (value === 'current') return Promise.resolve({ count: null, error });
+                  if (value === 'answered') return Promise.resolve({ count: 15, error: null });
+                  if (value === 'archived') return Promise.resolve({ count: null, error });
+                  return Promise.resolve({ count: 50, error: null });
+                })
+              };
+            })
+          };
+        } else if (table === 'email_subscribers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(function(column: string, value: string) {
+                if (value === true) return Promise.resolve({ count: null, error });
+                return Promise.resolve({ count: 25, error: null });
+              })
+            }))
+          };
+        }
+        return { select: vi.fn(() => Promise.resolve({ count: 0, error: null })) };
+      });
+
+      const stats = await service.getStats();
+
+      expect(stats.yearPageViews).toBe(0);
+      expect(stats.currentPrayers).toBe(0);
+      expect(stats.archivedPrayers).toBe(0);
+      expect(stats.activeEmailSubscribers).toBe(0);
+      expect(stats.loading).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(7); // All error branches logged
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should set loading to false in finally block', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ count: 0, error: null })),
+          gte: vi.fn(() => Promise.resolve({ count: 0, error: null }))
+        }))
+      }));
+
+      const stats = await service.getStats();
+
+      expect(stats.loading).toBe(false);
+    });
+
+    it('should handle Promise.all rejection gracefully', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockSupabaseClient.from = vi.fn(() => {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => Promise.reject(new Error('DB error'))),
+            gte: vi.fn(() => Promise.reject(new Error('DB error')))
+          }))
+        };
+      });
+
+      // Should not throw, just log error
+      const stats = await service.getStats();
+
+      expect(stats.loading).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('trackPageView - comprehensive coverage', () => {
+    it('should capture current page path and hash', async () => {
+      const insertMock = vi.fn(() => Promise.resolve({ data: null, error: null }));
+      mockSupabaseClient.from = vi.fn(() => ({
+        insert: insertMock
+      }));
+
+      // Mock window.location
+      const originalLocation = window.location;
+      delete (window as any).location;
+      (window as any).location = {
+        pathname: '/prayers',
+        hash: '#filter=current'
+      };
+
+      await service.trackPageView();
+
+      expect(insertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event_type: 'page_view',
+          event_data: expect.objectContaining({
+            path: '/prayers',
+            hash: '#filter=current'
+          })
+        })
+      );
+
+      (window as any).location = originalLocation;
+    });
+
+    it('should handle Promise rejection in trackPageView', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const error = new Error('Async error');
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        insert: vi.fn(() => Promise.reject(error))
+      }));
+
+      await service.trackPageView();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[Analytics] Tracking failed:', error);
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should include valid ISO timestamp', async () => {
+      const insertMock = vi.fn(() => Promise.resolve({ data: null, error: null }));
+      mockSupabaseClient.from = vi.fn(() => ({
+        insert: insertMock
+      }));
+
+      const beforeCall = new Date();
+      await service.trackPageView();
+      const afterCall = new Date();
+
+      const callArgs = insertMock.mock.calls[0][0];
+      const timestamp = new Date(callArgs.event_data.timestamp);
+
+      expect(timestamp.getTime()).toBeGreaterThanOrEqual(beforeCall.getTime());
+      expect(timestamp.getTime()).toBeLessThanOrEqual(afterCall.getTime() + 1000);
+    });
+  });
 });

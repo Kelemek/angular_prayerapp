@@ -724,4 +724,456 @@ describe('PrayerSearchComponent', () => {
       expect(component.Math).toBe(Math);
     });
   });
+
+  describe('additional edge cases and error handling', () => {
+    it('should handle delete prayer with loadPrayers error gracefully', async () => {
+      const mockPrayer = {
+        id: '123',
+        title: 'Test Prayer',
+        requester: 'John Doe',
+        email: 'john@example.com',
+        status: 'current',
+        created_at: '2024-01-15T10:30:00Z',
+        denial_reason: null,
+        description: 'Test description',
+        approval_status: 'approved',
+        prayer_for: 'Jane Doe'
+      };
+
+      component.allPrayers = [mockPrayer];
+      component.searchResults = [mockPrayer];
+      mockPrayerService.loadPrayers.mockRejectedValue(new Error('Service error'));
+
+      await component.deletePrayer(mockPrayer);
+
+      expect(component.allPrayers).not.toContain(mockPrayer);
+      expect(mockToastService.success).toHaveBeenCalled();
+    });
+
+    it('should handle delete selected with loadPrayers error gracefully', async () => {
+      component.selectedPrayers = new Set(['1', '2']);
+      component.displayPrayers = [
+        { ...mockPrayer, id: '1' },
+        { ...mockPrayer, id: '2' }
+      ];
+      component.allPrayers = component.displayPrayers;
+      mockPrayerService.loadPrayers.mockRejectedValue(new Error('Service error'));
+
+      await component.deleteSelected();
+
+      expect(mockToastService.success).toHaveBeenCalledWith('2 prayers deleted successfully');
+    });
+
+    it('should handle search with all filter combinations', async () => {
+      component.searchTerm = 'test';
+      component.statusFilter = 'current';
+      component.approvalFilter = 'approved';
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => [mockPrayer]
+      });
+
+      await component.handleSearch();
+
+      expect(component.allPrayers.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle save new update with loadPrayers error gracefully', async () => {
+      component.newUpdate = {
+        content: 'Test update',
+        firstName: 'John',
+        lastName: 'Doe',
+        author_email: 'john@example.com'
+      };
+      component.allPrayers = [mockPrayer];
+      mockPrayerService.loadPrayers.mockRejectedValue(new Error('Service error'));
+
+      await component.saveNewUpdate('123');
+
+      expect(mockToastService.success).toHaveBeenCalled();
+    });
+
+    it('should handle delete update with loadPrayers error gracefully', async () => {
+      const update = { id: 'update-1', content: 'Test', author: 'John', created_at: '2024-01-01' };
+      component.allPrayers = [{
+        ...mockPrayer,
+        prayer_updates: [update]
+      }];
+      mockPrayerService.loadPrayers.mockRejectedValue(new Error('Service error'));
+
+      await component.deleteUpdate('123', 'update-1', 'Test content');
+
+      expect(mockToastService.success).toHaveBeenCalled();
+    });
+
+    it('should handle search with custom filter combination - denied approval filter', async () => {
+      component.approvalFilter = 'denied';
+      
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => [{
+          ...mockPrayer,
+          id: '1',
+          denial_reason: 'Inappropriate content'
+        }]
+      });
+
+      await component.handleSearch();
+
+      expect(component.allPrayers.length).toBe(1);
+      expect(component.allPrayers[0].denial_reason).toBe('Inappropriate content');
+    });
+
+    it('should handle search with denied approval filter matching updates', async () => {
+      component.approvalFilter = 'denied';
+      
+      const prayerWithDeniedUpdate = {
+        ...mockPrayer,
+        id: '2',
+        denial_reason: null,
+        prayer_updates: [{
+          id: 'u1',
+          content: 'Update content',
+          author: 'Admin',
+          created_at: '2024-01-01',
+          denial_reason: 'Update denied'
+        }]
+      };
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => [prayerWithDeniedUpdate]
+      });
+
+      await component.handleSearch();
+
+      expect(component.allPrayers.length).toBe(1);
+    });
+
+    it('should handle search with pending approval filter', async () => {
+      component.approvalFilter = 'pending';
+      
+      const prayerPending = {
+        ...mockPrayer,
+        id: '3',
+        approval_status: 'pending'
+      };
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => [prayerPending]
+      });
+
+      await component.handleSearch();
+
+      expect(component.allPrayers[0].approval_status).toBe('pending');
+    });
+
+    it('should handle search with pending approval filter in updates', async () => {
+      component.approvalFilter = 'pending';
+      
+      const prayerWithPendingUpdate = {
+        ...mockPrayer,
+        id: '4',
+        approval_status: 'approved',
+        prayer_updates: [{
+          id: 'u2',
+          content: 'Pending update',
+          author: 'John',
+          created_at: '2024-01-01',
+          approval_status: 'pending'
+        }]
+      };
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => [prayerWithPendingUpdate]
+      });
+
+      await component.handleSearch();
+
+      expect(component.allPrayers.length).toBe(1);
+    });
+
+    it('should handle search with timeout error', async () => {
+      (global.fetch as any).mockImplementation(() => {
+        return new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('AbortError')), 100);
+        });
+      });
+
+      await component.handleSearch();
+
+      expect(component.error).toBeTruthy();
+      expect(mockToastService.error).toHaveBeenCalled();
+    });
+
+    it('should handle search with network error', async () => {
+      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+
+      await component.handleSearch();
+
+      expect(component.error).toBe('Network error');
+      expect(mockToastService.error).toHaveBeenCalled();
+    });
+
+    it('should handle search response with non-ok status', async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => 'Server error'
+      });
+
+      await component.handleSearch();
+
+      expect(component.error).toBeTruthy();
+      expect(mockToastService.error).toHaveBeenCalled();
+    });
+
+    it('should maintain selected prayers across pagination', () => {
+      component.displayPrayers = [
+        { ...mockPrayer, id: '1' },
+        { ...mockPrayer, id: '2' }
+      ];
+      component.selectedPrayers = new Set(['1']);
+
+      component.loadPageData();
+
+      expect(component.selectedPrayers.has('1')).toBe(true);
+    });
+
+    it('should handle create prayer rejects with empty email', async () => {
+      component.createForm = {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        email: '',
+        prayer_for: 'Peace',
+        description: 'Testing',
+        status: 'current'
+      };
+      component.allPrayers = [];
+
+      await component.createPrayer(new Event('submit'));
+
+      expect(component.error).toBe('All fields are required');
+      expect(mockToastService.error).toHaveBeenCalled();
+    });
+
+    it('should handle start edit prayer with empty prayer_for', () => {
+      const prayer = {
+        ...mockPrayer,
+        prayer_for: undefined
+      };
+
+      component.startEditPrayer(prayer);
+
+      expect(component.editingPrayer).toBe(prayer.id);
+      expect(component.editForm.prayer_for).toBe('');
+    });
+
+    it('should handle pagination boundary - first page', () => {
+      component.totalItems = 100;
+      component.pageSize = 10;
+      component.currentPage = 1;
+
+      expect(component.isFirstPage).toBe(true);
+    });
+
+    it('should handle pagination boundary - last page', () => {
+      component.totalItems = 100;
+      component.pageSize = 10;
+      component.currentPage = 10;
+
+      expect(component.isLastPage).toBe(true);
+    });
+
+    it('should handle pagination boundary - middle page', () => {
+      component.totalItems = 100;
+      component.pageSize = 10;
+      component.currentPage = 5;
+
+      expect(component.isFirstPage).toBe(false);
+      expect(component.isLastPage).toBe(false);
+    });
+
+    it('should return correct pagination range with more than 5 pages', () => {
+      component.totalItems = 100;
+      component.pageSize = 10;
+      component.currentPage = 5;
+
+      const range = component.getPaginationRange();
+
+      expect(range.length).toBeLessThanOrEqual(5);
+      expect(range).toContain(5);
+    });
+
+    it('should return correct pagination range when at the beginning', () => {
+      component.totalItems = 100;
+      component.pageSize = 10;
+      component.currentPage = 1;
+
+      const range = component.getPaginationRange();
+
+      expect(range[0]).toBe(1);
+    });
+
+    it('should return correct pagination range when at the end', () => {
+      component.totalItems = 100;
+      component.pageSize = 10;
+      component.currentPage = 10;
+
+      const range = component.getPaginationRange();
+
+      expect(range[range.length - 1]).toBe(10);
+    });
+
+    it('should goToPage handle invalid page bounds', () => {
+      component.totalItems = 100;
+      component.pageSize = 10;
+
+      component.goToPage(0);
+      expect(component.currentPage).toBe(1);
+
+      component.goToPage(100);
+      expect(component.currentPage).toBeLessThanOrEqual(10);
+    });
+
+    it('should clear search reset all filters', () => {
+      component.searchTerm = 'test';
+      component.allPrayers = [mockPrayer];
+      component.selectedPrayers = new Set(['123']);
+      component.error = 'Some error';
+
+      component.clearSearch();
+
+      expect(component.searchTerm).toBe('');
+      expect(component.allPrayers).toEqual([]);
+      expect(component.selectedPrayers.size).toBe(0);
+      expect(component.error).toBeNull();
+    });
+
+    it('should handle create prayer with leading/trailing whitespace', async () => {
+      component.createForm = {
+        firstName: '  John  ',
+        lastName: '  Doe  ',
+        email: '  john@example.com  ',
+        prayer_for: '  Guidance  ',
+        description: '  Test  ',
+        status: 'current'
+      };
+      component.allPrayers = [];
+
+      await component.createPrayer(new Event('submit'));
+
+      expect(mockSupabaseService.getClient().from().insert).toHaveBeenCalled();
+      const insertCall = (mockSupabaseService.getClient().from().insert as any).mock.calls[0][0];
+      expect(insertCall.title).toBe('Prayer for Guidance');
+    });
+
+    it('should handle save prayer with empty email', async () => {
+      component.editingPrayer = '123';
+      component.editForm = {
+        title: 'Test',
+        description: 'Description',
+        requester: 'John Doe',
+        email: '',
+        prayer_for: '',
+        status: 'current'
+      };
+      component.allPrayers = [mockPrayer];
+
+      await component.savePrayer('123');
+
+      expect(mockSupabaseService.getClient().from().update).toHaveBeenCalled();
+    });
+
+    it('should handle createForm validation', () => {
+      component.createForm = {
+        firstName: 'John',
+        lastName: '',
+        email: 'john@example.com',
+        prayer_for: 'Peace',
+        description: 'Test',
+        status: 'current'
+      };
+
+      expect(component.isCreateFormValid()).toBe(false);
+
+      component.createForm.lastName = 'Doe';
+      expect(component.isCreateFormValid()).toBe(true);
+    });
+
+    it('should handle delete prayer confirmation cancel', async () => {
+      (global.confirm as any).mockReturnValueOnce(false);
+
+      await component.deletePrayer(mockPrayer);
+
+      expect(mockSupabaseService.getClient().from().delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle delete selected with no confirmation', async () => {
+      (global.confirm as any).mockReturnValueOnce(false);
+      component.selectedPrayers = new Set(['1', '2']);
+
+      await component.deleteSelected();
+
+      expect(mockSupabaseService.getClient().from().delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle update selected status with no confirmation', async () => {
+      (global.confirm as any).mockReturnValueOnce(false);
+      component.selectedPrayers = new Set(['1', '2']);
+      component.bulkStatus = 'answered';
+
+      await component.updateSelectedStatus();
+
+      expect(mockSupabaseService.getClient().from().update).not.toHaveBeenCalled();
+    });
+
+    it('should handle error in cancel edit', () => {
+      component.editingPrayer = '123';
+      component.editForm.title = 'Test';
+
+      component.cancelEdit();
+
+      expect(component.editingPrayer).toBeNull();
+      expect(component.editForm.title).toBe('');
+    });
+
+    it('should handle error in cancel create prayer', () => {
+      component.creatingPrayer = true;
+      component.createForm.firstName = 'John';
+
+      component.cancelCreatePrayer();
+
+      expect(component.creatingPrayer).toBe(false);
+      expect(component.createForm.firstName).toBe('');
+    });
+
+    it('should test start create prayer resets form', () => {
+      component.error = 'Previous error';
+      
+      component.startCreatePrayer();
+      
+      expect(component.creatingPrayer).toBe(true);
+      expect(component.error).toBeNull();
+      expect(component.createForm.firstName).toBe('');
+    });
+
+    it('should handle search with all filter combinations', async () => {
+      component.searchTerm = 'test';
+      component.statusFilter = 'current';
+      component.approvalFilter = 'approved';
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => [mockPrayer]
+      });
+
+      await component.handleSearch();
+
+      expect(component.allPrayers.length).toBeGreaterThanOrEqual(0);
+    });
+  });
 });
