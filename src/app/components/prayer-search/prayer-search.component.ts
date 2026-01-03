@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { PrayerService } from '../../services/prayer.service';
+import { AdminDataService } from '../../services/admin-data.service';
+import { SendNotificationDialogComponent, type NotificationType } from '../send-notification-dialog/send-notification-dialog.component';
 
 interface PrayerUpdate {
   id: string;
@@ -44,6 +46,7 @@ interface CreateForm {
   email: string;
   prayer_for: string;
   status: string;
+  is_anonymous: boolean;
 }
 
 interface NewUpdate {
@@ -56,7 +59,7 @@ interface NewUpdate {
 @Component({
   selector: 'app-prayer-search',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SendNotificationDialogComponent],
   template: `
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
   <div class="flex items-center gap-2 mb-4">
@@ -179,6 +182,19 @@ interface NewUpdate {
           rows="3"
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
         ></textarea>
+      </div>
+
+      <div class="flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          [(ngModel)]="createForm.is_anonymous"
+          name="is_anonymous"
+          id="create_is_anonymous"
+          class="w-4 h-4 text-green-600 border-gray-900 dark:border-white rounded focus:ring-green-500 bg-white dark:bg-gray-800"
+        />
+        <label for="create_is_anonymous" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+          Submit anonymously (your name will not be shown publicly)
+        </label>
       </div>
 
       <div>
@@ -1036,6 +1052,16 @@ interface NewUpdate {
     </p>
   </div>
 </div>
+
+  <!-- Send Notification Dialog -->
+  @if (showSendNotificationDialog) {
+    <app-send-notification-dialog
+      [notificationType]="sendDialogType"
+      [prayerTitle]="sendDialogPrayerTitle"
+      (confirm)="onConfirmSendNotification()"
+      (decline)="onDeclineSendNotification()"
+    ></app-send-notification-dialog>
+  }
   `
 })
 export class PrayerSearchComponent implements OnInit {
@@ -1065,7 +1091,8 @@ export class PrayerSearchComponent implements OnInit {
     lastName: '',
     email: '',
     prayer_for: '',
-    status: 'current'
+    status: 'current',
+    is_anonymous: false
   };
   saving = false;
   bulkStatus = '';
@@ -1073,6 +1100,12 @@ export class PrayerSearchComponent implements OnInit {
   addingUpdate: string | null = null;
   newUpdate: NewUpdate = { content: '', firstName: '', lastName: '', author_email: '' };
   savingUpdate = false;
+  
+  // Dialog state for send notification
+  showSendNotificationDialog = false;
+  sendDialogType: NotificationType = 'prayer';
+  sendDialogPrayerTitle?: string;
+  private sendDialogPrayerId?: string;
   
   // Pagination properties
   currentPage = 1;
@@ -1085,7 +1118,8 @@ export class PrayerSearchComponent implements OnInit {
     private supabaseService: SupabaseService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
-    private prayerService: PrayerService
+    private prayerService: PrayerService,
+    private adminDataService: AdminDataService
   ) {}
 
   get totalPages(): number {
@@ -1378,7 +1412,8 @@ export class PrayerSearchComponent implements OnInit {
       lastName: '',
       email: '',
       prayer_for: '',
-      status: 'current'
+      status: 'current',
+      is_anonymous: false
     };
     this.error = null;
   }
@@ -1391,7 +1426,8 @@ export class PrayerSearchComponent implements OnInit {
       lastName: '',
       email: '',
       prayer_for: '',
-      status: 'current'
+      status: 'current',
+      is_anonymous: false
     };
   }
 
@@ -1433,6 +1469,7 @@ export class PrayerSearchComponent implements OnInit {
           email: this.createForm.email.trim() || null,
           prayer_for: this.createForm.prayer_for.trim(),
           status: this.createForm.status,
+          is_anonymous: this.createForm.is_anonymous,
           approval_status: 'approved'
         })
         .select()
@@ -1450,8 +1487,17 @@ export class PrayerSearchComponent implements OnInit {
       this.cancelCreatePrayer();
       this.toast.success('Prayer created successfully');
       
+      // Show dialog asking if they want to send notification
+      this.sendDialogPrayerId = data.id;
+      this.sendDialogPrayerTitle = data.title;
+      this.sendDialogType = 'prayer';
+      this.showSendNotificationDialog = true;
+      
       // Trigger reload on main site
-      this.prayerService.loadPrayers();
+      await this.prayerService.loadPrayers();
+      
+      this.saving = false;
+      this.cdr.markForCheck();
     } catch (err: unknown) {
       console.error('Error creating prayer:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create prayer';
@@ -1521,8 +1567,17 @@ export class PrayerSearchComponent implements OnInit {
       this.toast.success('Prayer updated successfully');
       this.cancelEdit();
       
+      // Show dialog asking if they want to send notification
+      this.sendDialogPrayerId = prayerId;
+      this.sendDialogPrayerTitle = this.editForm.title;
+      this.sendDialogType = 'prayer';
+      this.showSendNotificationDialog = true;
+      
       // Trigger reload on main site
-      this.prayerService.loadPrayers();
+      await this.prayerService.loadPrayers();
+      
+      this.saving = false;
+      this.cdr.markForCheck();
     } catch (err: unknown) {
       console.error('Error updating prayer:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update prayer';
@@ -1789,5 +1844,26 @@ export class PrayerSearchComponent implements OnInit {
       default:
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300';
     }
+  }
+
+  async onConfirmSendNotification() {
+    try {
+      if (this.sendDialogType === 'prayer' && this.sendDialogPrayerId) {
+        await this.adminDataService.sendBroadcastNotificationForNewPrayer(this.sendDialogPrayerId);
+        this.toast.success('Notification emails sent to subscribers');
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      this.toast.error('Failed to send notification emails');
+    } finally {
+      this.onDeclineSendNotification();
+    }
+  }
+
+  onDeclineSendNotification() {
+    this.showSendNotificationDialog = false;
+    this.sendDialogPrayerId = undefined;
+    this.sendDialogPrayerTitle = undefined;
+    this.cdr.markForCheck();
   }
 }

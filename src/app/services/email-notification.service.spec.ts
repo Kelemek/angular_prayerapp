@@ -1050,4 +1050,277 @@ describe('EmailNotificationService', () => {
       expect(sent.htmlBody || sent.textBody).toContain('http://del.link');
     });
   });
+
+  describe('sendApprovedPrayerNotification with answered status', () => {
+    it('should use prayer_answered template when status is answered', async () => {
+      const mockTemplate = {
+        id: '2',
+        template_key: 'prayer_answered',
+        name: 'Prayer Answered',
+        subject: 'Prayer Answered: {{prayerTitle}}',
+        html_body: '<p>Great news! {{prayerDescription}}</p>',
+        text_body: 'Great news!',
+        created_at: '2023-01-01',
+        updated_at: '2023-01-01'
+      };
+
+      mockSupabaseClient.single.mockResolvedValue({
+        data: mockTemplate,
+        error: null
+      });
+
+      mockSupabaseClient.functions.invoke.mockResolvedValue({
+        data: { success: true },
+        error: null
+      });
+
+      const payload: ApprovedPrayerPayload = {
+        title: 'Answered Prayer',
+        description: 'God answered!',
+        requester: 'Jane Doe',
+        prayerFor: 'John',
+        status: 'answered'
+      };
+
+      await service.sendApprovedPrayerNotification(payload);
+
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('email_templates');
+      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('template_key', 'prayer_answered');
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
+        body: expect.objectContaining({
+          subject: 'Prayer Answered: Answered Prayer'
+        })
+      }));
+    });
+
+    it('should use approved_prayer template when status is current', async () => {
+      const mockTemplate = {
+        id: '1',
+        template_key: 'approved_prayer',
+        name: 'Approved Prayer',
+        subject: 'New Prayer: {{prayerTitle}}',
+        html_body: '<p>{{prayerDescription}}</p>',
+        text_body: '{{prayerDescription}}',
+        created_at: '2023-01-01',
+        updated_at: '2023-01-01'
+      };
+
+      mockSupabaseClient.single.mockResolvedValue({
+        data: mockTemplate,
+        error: null
+      });
+
+      mockSupabaseClient.functions.invoke.mockResolvedValue({
+        data: { success: true },
+        error: null
+      });
+
+      const payload: ApprovedPrayerPayload = {
+        title: 'Current Prayer',
+        description: 'Please pray',
+        requester: 'John Doe',
+        prayerFor: 'Jane',
+        status: 'current'
+      };
+
+      await service.sendApprovedPrayerNotification(payload);
+
+      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('template_key', 'approved_prayer');
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
+        body: expect.objectContaining({
+          subject: 'New Prayer: Current Prayer'
+        })
+      }));
+    });
+
+    it('should use answered fallback HTML when answered template missing', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      mockSupabaseClient.single.mockResolvedValue({
+        data: null,
+        error: { message: 'Template not found' }
+      });
+
+      mockSupabaseClient.functions.invoke.mockResolvedValue({
+        data: { success: true },
+        error: null
+      });
+
+      const payload: ApprovedPrayerPayload = {
+        title: 'Answered Prayer',
+        description: 'God answered!',
+        requester: 'Jane Doe',
+        prayerFor: 'John',
+        status: 'answered'
+      };
+
+      await service.sendApprovedPrayerNotification(payload);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Failed to load prayer_answered template, using fallback:',
+        expect.any(Object)
+      );
+
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
+        body: expect.objectContaining({
+          subject: 'Prayer Answered: Answered Prayer'
+        })
+      }));
+    });
+
+    it('should apply template variables correctly for answered prayer', async () => {
+      const mockTemplate = {
+        id: '2',
+        template_key: 'prayer_answered',
+        name: 'Prayer Answered',
+        subject: 'Prayer Answered: {{prayerTitle}}',
+        html_body: 'Title: {{prayerTitle}}, For: {{prayerFor}}, By: {{requesterName}}',
+        text_body: 'Title: {{prayerTitle}}'
+      };
+
+      mockSupabaseClient.single.mockResolvedValue({
+        data: mockTemplate,
+        error: null
+      });
+
+      mockSupabaseClient.functions.invoke.mockResolvedValue({
+        data: { success: true },
+        error: null
+      });
+
+      const payload: ApprovedPrayerPayload = {
+        title: 'Test Prayer',
+        description: 'Test Description',
+        requester: 'Test Requester',
+        prayerFor: 'Test Person',
+        status: 'answered'
+      };
+
+      await service.sendApprovedPrayerNotification(payload);
+
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
+        body: expect.objectContaining({
+          htmlBody: expect.stringContaining('Title: Test Prayer'),
+          htmlBody: expect.stringContaining('Test Person'),
+          htmlBody: expect.stringContaining('Test Requester')
+        })
+      }));
+    });
+  });
+
+  describe('generateAnsweredPrayerHTML', () => {
+    it('should generate HTML with answered prayer styling', () => {
+      const payload: ApprovedPrayerPayload = {
+        title: 'Healing Prayer',
+        description: 'Please pray for recovery',
+        requester: 'Sarah',
+        prayerFor: 'John',
+        status: 'answered'
+      };
+
+      const html = (service as any).generateAnsweredPrayerHTML(payload);
+
+      expect(html).toContain('🎉 Prayer Answered!');
+      expect(html).toContain('✓ Answered Prayer');
+      expect(html).toContain('#10b981'); // Green color
+      expect(html).toContain('Healing Prayer');
+      expect(html).toContain('John');
+      expect(html).toContain('Sarah');
+      expect(html).toContain('Please pray for recovery');
+    });
+
+    it('should include answered prayer badge', () => {
+      const payload: ApprovedPrayerPayload = {
+        title: 'Test Prayer',
+        description: 'Test',
+        requester: 'Test',
+        prayerFor: 'Test',
+        status: 'answered'
+      };
+
+      const html = (service as any).generateAnsweredPrayerHTML(payload);
+
+      expect(html).toContain('<div style="display: inline-block; background: #10b981; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 15px;">✓ Answered Prayer</div>');
+    });
+
+    it('should include proper HTML structure', () => {
+      const payload: ApprovedPrayerPayload = {
+        title: 'Prayer',
+        description: 'Desc',
+        requester: 'Person',
+        prayerFor: 'Someone',
+        status: 'answered'
+      };
+
+      const html = (service as any).generateAnsweredPrayerHTML(payload);
+
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<html>');
+      expect(html).toContain('</html>');
+      expect(html).toContain('Prayer');
+      expect(html).toContain('Someone');
+      expect(html).toContain('Person');
+      expect(html).toContain('Desc');
+    });
+
+    it('should use green gradient background', () => {
+      const payload: ApprovedPrayerPayload = {
+        title: 'Prayer',
+        description: 'Desc',
+        requester: 'Person',
+        prayerFor: 'Someone',
+        status: 'answered'
+      };
+
+      const html = (service as any).generateAnsweredPrayerHTML(payload);
+
+      expect(html).toContain('linear-gradient(to right, #10b981, #059669)');
+    });
+
+    it('should include closing message about thanksgiving', () => {
+      const payload: ApprovedPrayerPayload = {
+        title: 'Prayer',
+        description: 'Desc',
+        requester: 'Person',
+        prayerFor: 'Someone',
+        status: 'answered'
+      };
+
+      const html = (service as any).generateAnsweredPrayerHTML(payload);
+
+      expect(html).toContain("Let's give thanks and praise for this answered prayer!");
+    });
+
+    it('should include View Prayer button with correct link', () => {
+      const payload: ApprovedPrayerPayload = {
+        title: 'Prayer',
+        description: 'Desc',
+        requester: 'Person',
+        prayerFor: 'Someone',
+        status: 'answered'
+      };
+
+      const html = (service as any).generateAnsweredPrayerHTML(payload);
+
+      expect(html).toContain('View Prayer');
+      // The URL will be window.location.origin + '/'
+      expect(html).toContain('href="http://localhost:4200/"');
+    });
+
+    it('should properly escape prayer content in HTML', () => {
+      const payload: ApprovedPrayerPayload = {
+        title: 'Prayer with <script>',
+        description: 'Desc with <b>tags</b>',
+        requester: 'Person',
+        prayerFor: 'Someone',
+        status: 'answered'
+      };
+
+      const html = (service as any).generateAnsweredPrayerHTML(payload);
+
+      // The function should include the content as-is
+      expect(html).toContain('Prayer with <script>');
+      expect(html).toContain('Desc with <b>tags</b>');
+    });
+  });
 });

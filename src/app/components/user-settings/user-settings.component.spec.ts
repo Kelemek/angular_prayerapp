@@ -871,4 +871,378 @@ describe('UserSettingsComponent', () => {
       expect(mockAdminAuthService.logout).toHaveBeenCalled();
     });
   });
+
+  describe('handlePrint', () => {
+    it('should set isPrinting to true during print', async () => {
+      mockPrintService.downloadPrintablePrayerList.mockImplementation(() => new Promise(resolve => {
+        expect(component.isPrinting).toBe(true);
+        resolve();
+      }));
+      
+      await component.handlePrint();
+      
+      expect(component.isPrinting).toBe(false);
+    });
+
+    it('should close window on error during print', async () => {
+      const mockWindow = { close: vi.fn() };
+      window.open = vi.fn(() => mockWindow);
+      mockPrintService.downloadPrintablePrayerList.mockRejectedValue(new Error('Print failed'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await component.handlePrint();
+
+      expect(mockWindow.close).toHaveBeenCalled();
+      expect(component.isPrinting).toBe(false);
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle print without error', async () => {
+      window.open = vi.fn(() => ({}));
+      mockPrintService.downloadPrintablePrayerList.mockResolvedValue(undefined);
+
+      await component.handlePrint();
+
+      expect(component.isPrinting).toBe(false);
+      expect(mockPrintService.downloadPrintablePrayerList).toHaveBeenCalledWith('week', {});
+    });
+  });
+
+  describe('handlePrintPrompts', () => {
+    it('should set isPrintingPrompts to true during print', async () => {
+      mockPrintService.downloadPrintablePromptList.mockImplementation(() => new Promise(resolve => {
+        expect(component.isPrintingPrompts).toBe(true);
+        resolve();
+      }));
+      
+      await component.handlePrintPrompts();
+      
+      expect(component.isPrintingPrompts).toBe(false);
+    });
+
+    it('should close window on error during print prompts', async () => {
+      const mockWindow = { close: vi.fn() };
+      window.open = vi.fn(() => mockWindow);
+      mockPrintService.downloadPrintablePromptList.mockRejectedValue(new Error('Print failed'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await component.handlePrintPrompts();
+
+      expect(mockWindow.close).toHaveBeenCalled();
+      expect(component.isPrintingPrompts).toBe(false);
+      consoleSpy.mockRestore();
+    });
+
+    it('should pass selected prompt types to print service', async () => {
+      window.open = vi.fn(() => ({}));
+      component.selectedPromptTypes = ['Healing', 'Protection'];
+      mockPrintService.downloadPrintablePromptList.mockResolvedValue(undefined);
+
+      await component.handlePrintPrompts();
+
+      expect(mockPrintService.downloadPrintablePromptList).toHaveBeenCalledWith(['Healing', 'Protection'], {});
+    });
+  });
+
+  describe('togglePromptType', () => {
+    it('should add prompt type when not selected', () => {
+      component.selectedPromptTypes = [];
+      component.togglePromptType('Healing');
+      expect(component.selectedPromptTypes).toContain('Healing');
+    });
+
+    it('should remove prompt type when already selected', () => {
+      component.selectedPromptTypes = ['Healing', 'Protection'];
+      component.togglePromptType('Healing');
+      expect(component.selectedPromptTypes).not.toContain('Healing');
+      expect(component.selectedPromptTypes).toContain('Protection');
+    });
+
+    it('should handle multiple toggles correctly', () => {
+      component.selectedPromptTypes = [];
+      component.togglePromptType('A');
+      component.togglePromptType('B');
+      component.togglePromptType('C');
+      expect(component.selectedPromptTypes).toEqual(['A', 'B', 'C']);
+      
+      component.togglePromptType('B');
+      expect(component.selectedPromptTypes).toEqual(['A', 'C']);
+    });
+  });
+
+  describe('setPrintRange', () => {
+    it('should update printRange property', () => {
+      component.setPrintRange('month');
+      expect(component.printRange).toBe('month');
+    });
+
+    it('should accept all valid print ranges', () => {
+      const ranges: Array<'week' | 'twoweeks' | 'month' | 'year' | 'all'> = ['week', 'twoweeks', 'month', 'year', 'all'];
+      ranges.forEach(range => {
+        component.setPrintRange(range);
+        expect(component.printRange).toBe(range);
+      });
+    });
+  });
+
+  describe('handleThemeChange', () => {
+    it('should update component theme and call service', () => {
+      component.handleThemeChange('dark');
+      expect(component.theme).toBe('dark');
+      expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
+    });
+
+    it('should handle all theme options', () => {
+      const themes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
+      themes.forEach(theme => {
+        component.handleThemeChange(theme);
+        expect(component.theme).toBe(theme);
+        expect(mockThemeService.setTheme).toHaveBeenCalledWith(theme);
+      });
+    });
+  });
+
+  describe('onEmailChange', () => {
+    it('should emit email change through subject', () => {
+      component.email = 'newemail@example.com';
+      const emailChangeSpy = vi.spyOn(component['emailChange$'], 'next');
+      
+      component.onEmailChange();
+      
+      expect(emailChangeSpy).toHaveBeenCalledWith('newemail@example.com');
+    });
+  });
+
+  describe('loadPromptTypes', () => {
+    it('should load and set prompt types from database', async () => {
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({
+              data: [
+                { name: 'Healing', display_order: 1 },
+                { name: 'Protection', display_order: 2 }
+              ],
+              error: null
+            }))
+          }))
+        }))
+      });
+
+      await component.loadPromptTypes();
+
+      expect(component.promptTypes).toEqual(['Healing', 'Protection']);
+    });
+
+    it('should handle empty prompt types', async () => {
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+          }))
+        }))
+      });
+
+      await component.loadPromptTypes();
+
+      expect(component.promptTypes).toEqual([]);
+    });
+
+    it('should handle database error when loading prompt types', async () => {
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
+          }))
+        }))
+      });
+
+      await component.loadPromptTypes();
+
+      // Should keep existing promptTypes when error occurs
+      expect(component.promptTypes).toBeDefined();
+    });
+
+    it('should handle exception when loading prompt types', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi.fn(() => Promise.reject(new Error('Network error')))
+          }))
+        }))
+      });
+
+      await component.loadPromptTypes();
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error fetching prayer types:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('loadUserNameFromDatabase', () => {
+    it('should load user name from database and save to localStorage', async () => {
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { first_name: 'John', last_name: 'Doe' },
+              error: null
+            }))
+          }))
+        }))
+      });
+
+      await component['loadUserNameFromDatabase']('test@example.com');
+
+      expect(component.name).toBe('John Doe');
+    });
+
+    it('should handle missing last name', async () => {
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { first_name: 'John', last_name: '' },
+              error: null
+            }))
+          }))
+        }))
+      });
+
+      await component['loadUserNameFromDatabase']('test@example.com');
+
+      expect(component.name).toBe('John');
+    });
+
+    it('should handle database error', async () => {
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: null,
+              error: new Error('DB error')
+            }))
+          }))
+        }))
+      });
+
+      await component['loadUserNameFromDatabase']('test@example.com');
+
+      // Should handle gracefully without setting name
+      expect(component.name).toBeDefined();
+    });
+
+    it('should handle exception when loading user name', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.reject(new Error('Network error')))
+          }))
+        }))
+      });
+
+      await component['loadUserNameFromDatabase']('test@example.com');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error loading user name from database:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('ngOnDestroy', () => {
+    it('should complete and unsubscribe from destroy$ subject', () => {
+      const destroySpy = vi.spyOn(component['destroy$'], 'complete');
+      component.ngOnDestroy();
+      expect(destroySpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Dropdown visibility', () => {
+    it('should toggle print dropdown visibility', () => {
+      component.showPrintDropdown = false;
+      component.showPrintDropdown = !component.showPrintDropdown;
+      expect(component.showPrintDropdown).toBe(true);
+
+      component.showPrintDropdown = !component.showPrintDropdown;
+      expect(component.showPrintDropdown).toBe(false);
+    });
+
+    it('should toggle prompt types dropdown visibility', () => {
+      component.showPromptTypesDropdown = false;
+      component.showPromptTypesDropdown = !component.showPromptTypesDropdown;
+      expect(component.showPromptTypesDropdown).toBe(true);
+
+      component.showPromptTypesDropdown = !component.showPromptTypesDropdown;
+      expect(component.showPromptTypesDropdown).toBe(false);
+    });
+  });
+
+  describe('Component state properties', () => {
+    it('should initialize with correct default values', () => {
+      expect(component.isOpen).toBe(false);
+      expect(component.saving).toBe(false);
+      expect(component.error).toBe(null);
+      expect(component.success).toBe(null);
+      expect(component.isPrinting).toBe(false);
+      expect(component.isPrintingPrompts).toBe(false);
+      expect(component.printRange).toBe('week');
+      expect(component.showPrintDropdown).toBe(false);
+      expect(component.showPromptTypesDropdown).toBe(false);
+    });
+  });
+
+  describe('Theme options', () => {
+    it('should have all three theme options defined', () => {
+      expect(component.themeOptions.length).toBe(3);
+      expect(component.themeOptions[0].value).toBe('light');
+      expect(component.themeOptions[1].value).toBe('dark');
+      expect(component.themeOptions[2].value).toBe('system');
+    });
+  });
+
+  describe('Print range options', () => {
+    it('should have all five print range options defined', () => {
+      expect(component.printRangeOptions.length).toBe(5);
+      expect(component.printRangeOptions.map(o => o.value)).toEqual(['week', 'twoweeks', 'month', 'year', 'all']);
+    });
+  });
+
+  describe('onNotificationToggle error cases', () => {
+    it('should handle missing email gracefully', async () => {
+      localStorage.removeItem('prayerapp_user_email');
+      component.receiveNotifications = true;
+
+      await component.onNotificationToggle();
+
+      expect(component.error).toBe('Email not found. Please log in again.');
+      expect(component.saving).toBe(false);
+    });
+
+    it('should revert toggle on database update error', async () => {
+      localStorage.setItem('prayerapp_user_email', 'test@example.com');
+      component.receiveNotifications = true;
+
+      mockSupabaseService.client.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: '123' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+        }))
+      });
+
+      await component.onNotificationToggle();
+
+      expect(component.receiveNotifications).toBe(false); // Should revert
+      expect(component.error).toContain('Update failed');
+    });
+  });
 });
+
+

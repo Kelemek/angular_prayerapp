@@ -445,4 +445,402 @@ describe('AdminComponent', () => {
     expect(adminDataService.denyUpdateDeletionRequest).toHaveBeenCalledWith('ud2', 'r');
     expect(autoSpy).toHaveBeenCalled();
   });
+
+  describe('getAdminEmail', () => {
+    it('should return admin email from localStorage', () => {
+      localStorage.setItem('approvalAdminEmail', 'admin@test.com');
+      const email = component.getAdminEmail();
+      expect(email).toBe('admin@test.com');
+      localStorage.clear();
+    });
+
+    it('should return empty string when no email in localStorage', () => {
+      localStorage.clear();
+      const email = component.getAdminEmail();
+      expect(email).toBe('');
+    });
+  });
+
+  describe('denyPrayer', () => {
+    it('should call adminDataService.denyPrayer and trigger autoProgressTabs', async () => {
+      const autoSpy = vi.spyOn(component as any, 'autoProgressTabs');
+      adminDataService.denyPrayer = vi.fn().mockResolvedValue(undefined);
+
+      await component.denyPrayer('p1', 'invalid content');
+
+      expect(adminDataService.denyPrayer).toHaveBeenCalledWith('p1', 'invalid content');
+      expect(autoSpy).toHaveBeenCalled();
+    });
+
+    it('should handle errors when denying prayer', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      adminDataService.denyPrayer = vi.fn().mockRejectedValue(new Error('API error'));
+
+      await component.denyPrayer('p1', 'reason');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error denying prayer:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('editPrayer', () => {
+    it('should call adminDataService.editPrayer with data', async () => {
+      const prayerData = { title: 'Updated Prayer', description: 'Updated description' };
+      adminDataService.editPrayer = vi.fn().mockResolvedValue(undefined);
+
+      await component.editPrayer('p1', prayerData);
+
+      expect(adminDataService.editPrayer).toHaveBeenCalledWith('p1', prayerData);
+    });
+
+    it('should show send notification dialog after editing prayer', async () => {
+      component['adminData'] = {
+        pendingPrayers: [{ id: 'p1', title: 'Test Prayer', approval_status: 'pending' }]
+      };
+      adminDataService.editPrayer = vi.fn().mockResolvedValue(undefined);
+
+      await component.editPrayer('p1', { title: 'Updated' });
+
+      expect(component.showSendNotificationDialog).toBe(true);
+      expect(component.sendDialogType).toBe('prayer');
+    });
+  });
+
+  describe('approveAccountRequest', () => {
+    it('should call adminDataService.approveAccountRequest and mark for check', async () => {
+      const markSpy = vi.spyOn(component.cdr, 'markForCheck');
+      adminDataService.approveAccountRequest = vi.fn().mockResolvedValue(undefined);
+
+      await component.approveAccountRequest('acc1');
+
+      expect(adminDataService.approveAccountRequest).toHaveBeenCalledWith('acc1');
+      expect(markSpy).toHaveBeenCalled();
+    });
+
+    it('should handle errors when approving account request', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      adminDataService.approveAccountRequest = vi.fn().mockRejectedValue(new Error('API error'));
+
+      await component.approveAccountRequest('acc1');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error approving account request:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('denyAccountRequest', () => {
+    it('should call adminDataService.denyAccountRequest with reason', async () => {
+      const markSpy = vi.spyOn(component.cdr, 'markForCheck');
+      adminDataService.denyAccountRequest = vi.fn().mockResolvedValue(undefined);
+
+      await component.denyAccountRequest('acc1', 'invalid email');
+
+      expect(adminDataService.denyAccountRequest).toHaveBeenCalledWith('acc1', 'invalid email');
+      expect(markSpy).toHaveBeenCalled();
+    });
+
+    it('should handle errors when denying account request', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      adminDataService.denyAccountRequest = vi.fn().mockRejectedValue(new Error('API error'));
+
+      await component.denyAccountRequest('acc1', 'reason');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error denying account request:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('onConfirmSendNotification', () => {
+    it('should call sendApprovedPrayerEmails for approved prayer', async () => {
+      component.sendDialogType = 'prayer';
+      component.sendDialogPrayerId = 'p1';
+      component['adminData'] = {
+        pendingPrayers: [{ id: 'p1', approval_status: 'approved' }]
+      };
+      adminDataService.sendApprovedPrayerEmails = vi.fn().mockResolvedValue(undefined);
+
+      await component.onConfirmSendNotification();
+
+      expect(adminDataService.sendApprovedPrayerEmails).toHaveBeenCalledWith('p1');
+    });
+
+    it('should call sendBroadcastNotificationForNewPrayer for pending prayer', async () => {
+      component.sendDialogType = 'prayer';
+      component.sendDialogPrayerId = 'p1';
+      component['adminData'] = {
+        pendingPrayers: [{ id: 'p1', approval_status: 'pending' }]
+      };
+      adminDataService.sendBroadcastNotificationForNewPrayer = vi.fn().mockResolvedValue(undefined);
+
+      await component.onConfirmSendNotification();
+
+      expect(adminDataService.sendBroadcastNotificationForNewPrayer).toHaveBeenCalledWith('p1');
+    });
+
+    it('should call sendApprovedUpdateEmails for approved update', async () => {
+      component.sendDialogType = 'update';
+      component.sendDialogUpdateId = 'u1';
+      component['adminData'] = {
+        pendingUpdates: [{ id: 'u1', approval_status: 'approved' }]
+      };
+      adminDataService.sendApprovedUpdateEmails = vi.fn().mockResolvedValue(undefined);
+
+      await component.onConfirmSendNotification();
+
+      expect(adminDataService.sendApprovedUpdateEmails).toHaveBeenCalledWith('u1');
+    });
+
+    it('should close dialog after sending notification', async () => {
+      const declineSpy = vi.spyOn(component, 'onDeclineSendNotification');
+      component.sendDialogType = 'prayer';
+      component.sendDialogPrayerId = 'p1';
+      component['adminData'] = {
+        pendingPrayers: [{ id: 'p1', approval_status: 'approved' }]
+      };
+      adminDataService.sendApprovedPrayerEmails = vi.fn().mockResolvedValue(undefined);
+
+      await component.onConfirmSendNotification();
+
+      expect(declineSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('onDeclineSendNotification', () => {
+    it('should close notification dialog and clear state', () => {
+      component.showSendNotificationDialog = true;
+      component.sendDialogPrayerId = 'p1';
+      component.sendDialogUpdateId = 'u1';
+
+      component.onDeclineSendNotification();
+
+      expect(component.showSendNotificationDialog).toBe(false);
+      expect(component.sendDialogPrayerId).toBeUndefined();
+      expect(component.sendDialogUpdateId).toBeUndefined();
+    });
+  });
+
+  describe('Tab management', () => {
+    it('should initialize with prayers as active tab', () => {
+      expect(component.activeTab).toBe('prayers');
+    });
+
+    it('should initialize with analytics as active settings tab', () => {
+      expect(component.activeSettingsTab).toBe('analytics');
+    });
+
+    it('should update activeTab when onTabChange is called', () => {
+      component.onTabChange('updates');
+      expect(component.activeTab).toBe('updates');
+
+      component.onTabChange('deletions');
+      expect(component.activeTab).toBe('deletions');
+
+      component.onTabChange('accounts');
+      expect(component.activeTab).toBe('accounts');
+
+      component.onTabChange('settings');
+      expect(component.activeTab).toBe('settings');
+    });
+
+    it('should update activeSettingsTab when onSettingsTabChange is called', () => {
+      component.onSettingsTabChange('email');
+      expect(component.activeSettingsTab).toBe('email');
+
+      component.onSettingsTabChange('users');
+      expect(component.activeSettingsTab).toBe('users');
+
+      component.onSettingsTabChange('content');
+      expect(component.activeSettingsTab).toBe('content');
+    });
+  });
+
+  describe('Component initialization', () => {
+    it('should have correct initial state for analytics stats', () => {
+      expect(component.analyticsStats).toBeDefined();
+      expect(component.analyticsStats.loading).toBe(false);
+    });
+
+    it('should have correct initial counts', () => {
+      expect(component.totalPendingCount).toBe(0);
+    });
+
+    it('should initialize with default active tabs', () => {
+      expect(component.activeTab).toBe('prayers');
+      expect(component.activeSettingsTab).toBe('analytics');
+    });
+  });
+
+  describe('Service method integration', () => {
+    it('should properly pass through all prayer approval operations', async () => {
+      adminDataService.approvePrayer = vi.fn().mockResolvedValue(undefined);
+      await component.approvePrayer('prayer-123');
+      expect(adminDataService.approvePrayer).toHaveBeenCalledWith('prayer-123');
+    });
+
+    it('should properly pass through all prayer denial operations', async () => {
+      adminDataService.denyPrayer = vi.fn().mockResolvedValue(undefined);
+      await component.denyPrayer('prayer-456', 'inappropriate content');
+      expect(adminDataService.denyPrayer).toHaveBeenCalledWith('prayer-456', 'inappropriate content');
+    });
+
+    it('should properly pass through all update approval operations', async () => {
+      adminDataService.approveUpdate = vi.fn().mockResolvedValue(undefined);
+      await component.approveUpdate('update-789');
+      expect(adminDataService.approveUpdate).toHaveBeenCalledWith('update-789');
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should handle loadAnalytics errors gracefully', async () => {
+      analyticsService.getStats = vi.fn().mockRejectedValue(new Error('Network error'));
+      await component.loadAnalytics();
+      expect(component.analyticsStats.loading).toBe(false);
+    });
+
+    it('should handle approvePrayer errors', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      adminDataService.approvePrayer = vi.fn().mockRejectedValue(new Error('API error'));
+
+      await component.approvePrayer('p1');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error approving prayer:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle editUpdate errors', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      adminDataService.editUpdate = vi.fn().mockRejectedValue(new Error('API error'));
+
+      await component.editUpdate('u1', {});
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error editing update:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('UI State management', () => {
+    it('should manage notification dialog visibility correctly', () => {
+      expect(component.showSendNotificationDialog).toBe(false);
+
+      component.sendDialogPrayerId = 'p1';
+      component.showSendNotificationDialog = true;
+      expect(component.showSendNotificationDialog).toBe(true);
+
+      component.onDeclineSendNotification();
+      expect(component.showSendNotificationDialog).toBe(false);
+    });
+
+    it('should track active tabs correctly', () => {
+      const tabs: Array<'prayers' | 'updates' | 'deletions' | 'accounts' | 'settings'> = [
+        'prayers',
+        'updates',
+        'deletions',
+        'accounts',
+        'settings'
+      ];
+
+      tabs.forEach(tab => {
+        component.onTabChange(tab);
+        expect(component.activeTab).toBe(tab);
+      });
+    });
+  });
+
+  describe('Navigation', () => {
+    it('should navigate to home when goToHome is called', () => {
+      component.goToHome();
+      expect(router.navigate).toHaveBeenCalledWith(['/']);
+    });
+  });
+
+  describe('Refresh functionality', () => {
+    it('should call admin data service refresh method', () => {
+      component.refresh();
+      expect(adminDataService.refresh).toHaveBeenCalled();
+    });
+  });
+
+  describe('approveUpdate with notification dialog', () => {
+    it('should show notification dialog after approving update', async () => {
+      component['adminData'] = {
+        pendingUpdates: [{ id: 'u1', prayer_title: 'Test Prayer', approval_status: 'pending' }]
+      };
+      adminDataService.approveUpdate = vi.fn().mockResolvedValue(undefined);
+
+      await component.approveUpdate('u1');
+
+      expect(component.showSendNotificationDialog).toBe(true);
+      expect(component.sendDialogType).toBe('update');
+      expect(component.sendDialogUpdateId).toBe('u1');
+    });
+
+    it('should handle error when approving update', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      adminDataService.approveUpdate = vi.fn().mockRejectedValue(new Error('API error'));
+
+      await component.approveUpdate('u1');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error approving update:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Deletion requests', () => {
+    it('should approve deletion requests and trigger autoProgressTabs', async () => {
+      const autoSpy = vi.spyOn(component as any, 'autoProgressTabs');
+      adminDataService.approveDeletionRequest = vi.fn().mockResolvedValue(undefined);
+
+      await component.approveDeletionRequest('d1');
+
+      expect(adminDataService.approveDeletionRequest).toHaveBeenCalledWith('d1');
+      expect(autoSpy).toHaveBeenCalled();
+    });
+
+    it('should deny deletion requests with reason', async () => {
+      const autoSpy = vi.spyOn(component as any, 'autoProgressTabs');
+      adminDataService.denyDeletionRequest = vi.fn().mockResolvedValue(undefined);
+
+      await component.denyDeletionRequest('d1', 'not enough context');
+
+      expect(adminDataService.denyDeletionRequest).toHaveBeenCalledWith('d1', 'not enough context');
+      expect(autoSpy).toHaveBeenCalled();
+    });
+
+    it('should approve update deletion requests', async () => {
+      const autoSpy = vi.spyOn(component as any, 'autoProgressTabs');
+      adminDataService.approveUpdateDeletionRequest = vi.fn().mockResolvedValue(undefined);
+
+      await component.approveUpdateDeletionRequest('ud1');
+
+      expect(adminDataService.approveUpdateDeletionRequest).toHaveBeenCalledWith('ud1');
+      expect(autoSpy).toHaveBeenCalled();
+    });
+
+    it('should deny update deletion requests with reason', async () => {
+      const autoSpy = vi.spyOn(component as any, 'autoProgressTabs');
+      adminDataService.denyUpdateDeletionRequest = vi.fn().mockResolvedValue(undefined);
+
+      await component.denyUpdateDeletionRequest('ud1', 'not approved for deletion');
+
+      expect(adminDataService.denyUpdateDeletionRequest).toHaveBeenCalledWith('ud1', 'not approved for deletion');
+      expect(autoSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Data loading and refresh', () => {
+    it('should refresh admin data', () => {
+      component.refresh();
+      expect(adminDataService.refresh).toHaveBeenCalled();
+    });
+
+    it('should load analytics on demand', async () => {
+      analyticsService.getStats = vi.fn().mockResolvedValue({});
+      await component.loadAnalytics();
+      expect(analyticsService.getStats).toHaveBeenCalled();
+    });
+  });
 });
+
+
+
+

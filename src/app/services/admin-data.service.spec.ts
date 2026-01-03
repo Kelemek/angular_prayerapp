@@ -16,10 +16,14 @@ describe('AdminDataService', () => {
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
         single: vi.fn(() => Promise.resolve({ data: returnData, error: returnError })),
-        order: vi.fn(() => Promise.resolve({ data: returnData, error: returnError })),
+        order: vi.fn(() => ({
+          then: vi.fn((callback) => callback({ data: returnData, error: returnError }))
+        })),
         then: vi.fn((callback) => callback({ data: returnData, error: returnError }))
       })),
-      order: vi.fn(() => Promise.resolve({ data: returnData, error: returnError })),
+      order: vi.fn(() => ({
+        then: vi.fn((callback) => callback({ data: returnData, error: returnError }))
+      })),
       then: vi.fn((callback) => callback({ data: returnData, error: returnError }))
     })),
     update: vi.fn(() => ({
@@ -223,8 +227,16 @@ describe('AdminDataService', () => {
           return {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
-              }))
+                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null })),
+                order: vi.fn(() => ({
+                  then: vi.fn((callback) => callback({ data: [mockPrayer], error: null }))
+                })),
+                then: vi.fn((callback) => callback({ data: mockPrayer, error: null }))
+              })),
+              order: vi.fn(() => ({
+                then: vi.fn((callback) => callback({ data: [mockPrayer], error: null }))
+              })),
+              then: vi.fn((callback) => callback({ data: [mockPrayer], error: null }))
             })),
             update: vi.fn(() => ({
               eq: vi.fn(() => Promise.resolve({ error: null }))
@@ -234,10 +246,12 @@ describe('AdminDataService', () => {
         return createMockQueryChain([], null);
       });
 
+      // Reset the email service mocks for this test
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+
       await service.approvePrayer('1');
 
-      expect(mockEmailNotificationService.sendApprovedPrayerNotification).toHaveBeenCalled();
-      expect(mockEmailNotificationService.sendRequesterApprovalNotification).toHaveBeenCalled();
+      // approvePrayer updates the prayer and reloads the prayer list
       expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
     });
 
@@ -423,9 +437,11 @@ describe('AdminDataService', () => {
         return createMockQueryChain([], null);
       });
 
+      // Reset the email service mocks for this test
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+
       await service.approveUpdate('1');
 
-      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalled();
       expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
     });
 
@@ -1773,7 +1789,7 @@ describe('AdminDataService', () => {
   });
 
   describe('Branch coverage - error handling', () => {
-    it('should handle requester notification error in approvePrayer', async () => {
+    it('should handle requester notification error in sendApprovedPrayerEmails', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
       const mockPrayer = { 
@@ -1786,28 +1802,19 @@ describe('AdminDataService', () => {
         prayer_for: 'Test'
       };
 
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'prayers') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
-              }))
-            })),
-            update: vi.fn(() => ({
-              eq: vi.fn(() => Promise.resolve({ error: null }))
-            }))
-          };
-        }
-        return createMockQueryChain([], null);
-      });
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+          }))
+        }))
+      }));
 
+      mockEmailNotificationService.sendApprovedPrayerNotification = vi.fn(() => Promise.resolve());
       mockEmailNotificationService.sendRequesterApprovalNotification = vi.fn()
         .mockRejectedValue(new Error('Notification failed'));
-      
-      mockPrayerService.loadPrayers = vi.fn().mockResolvedValue(undefined);
 
-      await service.approvePrayer('1');
+      await service.sendApprovedPrayerEmails('1');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Failed to send requester notification:',
@@ -2004,7 +2011,7 @@ describe('AdminDataService', () => {
       expect(mockEmailNotificationService.sendUpdateDenialNotification).not.toHaveBeenCalled();
     });
 
-    it('should handle anonymous prayer in approvePrayer correctly', async () => {
+    it('should handle anonymous prayer in sendApprovedPrayerEmails correctly', async () => {
       const mockPrayer = { 
         id: '1', 
         title: 'Test Prayer',
@@ -2013,6 +2020,380 @@ describe('AdminDataService', () => {
         requester: null,
         email: null,
         prayer_for: 'Test'
+      };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+          }))
+        }))
+      }));
+
+      mockEmailNotificationService.sendApprovedPrayerNotification = vi.fn(() => Promise.resolve());
+      mockEmailNotificationService.sendRequesterApprovalNotification = vi.fn()
+        .mockResolvedValue(undefined);
+
+      await service.sendApprovedPrayerEmails('1');
+
+      // Should show 'Anonymous' for anonymous prayers
+      expect(mockEmailNotificationService.sendRequesterApprovalNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requester: 'Anonymous'
+        })
+      );
+    });
+
+    it('should handle sendBroadcastNotificationForNewUpdate with mark_as_answered=true', async () => {
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Prayer has been answered',
+        mark_as_answered: true,
+        is_anonymous: false,
+        author: 'John',
+        prayers: { title: 'Test Prayer', status: 'current' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendBroadcastNotificationForNewUpdate('1');
+
+      // Should update prayer status to 'answered'
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          markedAsAnswered: true
+        })
+      );
+    });
+
+    it('should handle sendBroadcastNotificationForNewUpdate with status transition', async () => {
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Update text',
+        mark_as_answered: false,
+        is_anonymous: false,
+        author: 'Jane',
+        prayers: { title: 'Test Prayer', status: 'answered' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendBroadcastNotificationForNewUpdate('1');
+
+      // Should transition 'answered' back to 'current'
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          markedAsAnswered: false
+        })
+      );
+    });
+
+    it('should handle sendBroadcastNotificationForNewUpdate with archived status', async () => {
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Update text',
+        mark_as_answered: false,
+        is_anonymous: true,
+        author: null,
+        prayers: { title: 'Test Prayer', status: 'archived' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendBroadcastNotificationForNewUpdate('1');
+
+      // Should transition 'archived' back to 'current'
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          author: 'Anonymous'
+        })
+      );
+    });
+
+    it('should handle error when updating prayer status in sendBroadcastNotificationForNewUpdate', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Update',
+        mark_as_answered: true,
+        is_anonymous: false,
+        author: 'John',
+        prayers: { title: 'Test Prayer', status: 'current' }
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendBroadcastNotificationForNewUpdate('1');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to update prayer status:', expect.any(Error));
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalled();
+      
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle null prayers object in sendBroadcastNotificationForNewUpdate', async () => {
+      const mockUpdate = {
+        id: '1',
+        prayer_id: 'p1',
+        content: 'Update',
+        mark_as_answered: false,
+        is_anonymous: false,
+        author: 'John',
+        prayers: null
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+              }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendBroadcastNotificationForNewUpdate('1');
+
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prayerTitle: 'Prayer'
+        })
+      );
+    });
+
+    it('should handle sendBroadcastNotificationForNewPrayer successfully', async () => {
+      const mockPrayer = {
+        id: '1',
+        title: 'Test Prayer',
+        description: 'Description',
+        is_anonymous: false,
+        requester: 'John'
+      };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+          }))
+        }))
+      }));
+
+      mockEmailNotificationService.sendApprovedPrayerNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendBroadcastNotificationForNewPrayer('1');
+
+      expect(mockEmailNotificationService.sendApprovedPrayerNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Test Prayer'
+        })
+      );
+    });
+
+    it('should handle error fetching prayer in sendBroadcastNotificationForNewPrayer', async () => {
+      const fetchError = new Error('Fetch failed');
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: fetchError }))
+          }))
+        }))
+      }));
+
+      await expect(service.sendBroadcastNotificationForNewPrayer('1')).rejects.toThrow('Fetch failed');
+    });
+
+    it('should handle prayer not found in sendBroadcastNotificationForNewPrayer', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.sendBroadcastNotificationForNewPrayer('1')).rejects.toThrow('Prayer not found');
+    });
+
+    it('should handle editUpdate successfully', async () => {
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+
+      await service.editUpdate('1', { content: 'Updated content' });
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle editPrayer successfully', async () => {
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+
+      await service.editPrayer('1', { title: 'Updated title' });
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle approveDeletionRequest successfully', async () => {
+      const mockRequest = {
+        id: '1',
+        prayer_id: 'p1'
+      };
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'deletion_requests') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockRequest, error: null }))
+              }))
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        } else if (table === 'prayers') {
+          return {
+            delete: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+
+      await service.approveDeletionRequest('1');
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle denyDeletionRequest successfully', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null }))
+        }))
+      }));
+
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+
+      await service.denyDeletionRequest('1', 'Reason');
+
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should handle missing email in denyPrayer gracefully', async () => {
+      const mockPrayer = {
+        id: '1',
+        title: 'Test',
+        is_anonymous: false,
+        requester: 'John',
+        email: null
       };
 
       mockSupabaseClient.from = vi.fn((table: string) => {
@@ -2031,17 +2412,70 @@ describe('AdminDataService', () => {
         return createMockQueryChain([], null);
       });
 
-      mockEmailNotificationService.sendRequesterApprovalNotification = vi.fn()
-        .mockResolvedValue(undefined);
-      
-      mockPrayerService.loadPrayers = vi.fn().mockResolvedValue(undefined);
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
 
-      await service.approvePrayer('1');
+      await service.denyPrayer('1', 'Reason');
 
-      // Should show 'Anonymous' for anonymous prayers
-      expect(mockEmailNotificationService.sendRequesterApprovalNotification).toHaveBeenCalledWith(
+      // Should not call email notification when email is missing
+      expect(mockEmailNotificationService.sendDeniedPrayerNotification).not.toHaveBeenCalled();
+    });
+
+    it('should handle sendApprovedUpdateEmails with anonymous author', async () => {
+      const mockUpdate = {
+        id: '1',
+        content: 'Update content',
+        is_anonymous: true,
+        author: null,
+        author_email: null,
+        prayers: { title: 'Prayer Title' }
+      };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+          }))
+        }))
+      }));
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() => Promise.resolve());
+      mockEmailNotificationService.sendUpdateAuthorApprovalNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendApprovedUpdateEmails('1');
+
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          requester: 'Anonymous'
+          author: 'Anonymous'
+        })
+      );
+    });
+
+    it('should handle sendApprovedUpdateEmails with null author_email', async () => {
+      const mockUpdate = {
+        id: '1',
+        content: 'Update content',
+        is_anonymous: false,
+        author: 'John',
+        author_email: null,
+        prayers: { title: 'Prayer Title' }
+      };
+
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: mockUpdate, error: null }))
+          }))
+        }))
+      }));
+
+      mockEmailNotificationService.sendApprovedUpdateNotification = vi.fn(() => Promise.resolve());
+
+      await service.sendApprovedUpdateEmails('1');
+
+      // Should send notification with author name
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          author: 'John'
         })
       );
     });

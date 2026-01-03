@@ -10,6 +10,7 @@ import { PendingUpdateCardComponent } from '../../components/pending-update-card
 import { PendingDeletionCardComponent } from '../../components/pending-deletion-card/pending-deletion-card.component';
 import { PendingUpdateDeletionCardComponent } from '../../components/pending-update-deletion-card/pending-update-deletion-card.component';
 import { PendingAccountApprovalCardComponent } from '../../components/pending-account-approval-card/pending-account-approval-card.component';
+import { SendNotificationDialogComponent, type NotificationType } from '../../components/send-notification-dialog/send-notification-dialog.component';
 import { AppBrandingComponent } from '../../components/app-branding/app-branding.component';
 import { PromptManagerComponent } from '../../components/prompt-manager/prompt-manager.component';
 import { PrayerTypesManagerComponent } from '../../components/prayer-types-manager/prayer-types-manager.component';
@@ -35,6 +36,7 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
     PendingDeletionCardComponent,
     PendingUpdateDeletionCardComponent,
     PendingAccountApprovalCardComponent,
+    SendNotificationDialogComponent,
     AppBrandingComponent,
     PromptManagerComponent,
     PrayerTypesManagerComponent,
@@ -705,6 +707,16 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
           }
         }
       </main>
+
+      <!-- Send Notification Dialog -->
+      @if (showSendNotificationDialog) {
+        <app-send-notification-dialog
+          [notificationType]="sendDialogType"
+          [prayerTitle]="sendDialogPrayerTitle"
+          (confirm)="onConfirmSendNotification()"
+          (decline)="onDeclineSendNotification()"
+        ></app-send-notification-dialog>
+      }
     </div>
   `,
   styles: []
@@ -727,6 +739,13 @@ export class AdminComponent implements OnInit, OnDestroy {
     activeEmailSubscribers: 0,
     loading: false
   };
+
+  // Dialog state for send notification
+  showSendNotificationDialog = false;
+  sendDialogType: NotificationType = 'prayer';
+  sendDialogPrayerTitle?: string;
+  private sendDialogPrayerId?: string;
+  private sendDialogUpdateId?: string;
   
   private destroy$ = new Subject<void>();
 
@@ -908,6 +927,16 @@ export class AdminComponent implements OnInit, OnDestroy {
     try {
       await this.adminDataService.approvePrayer(id);
       this.autoProgressTabs();
+      // Show dialog asking if they want to send notification
+      this.sendDialogPrayerId = id;
+      // Get the prayer title from current data
+      const prayer = this.adminData?.pendingPrayers?.find((p: any) => p.id === id);
+      if (prayer) {
+        this.sendDialogPrayerTitle = prayer.title;
+      }
+      this.sendDialogType = 'prayer';
+      this.showSendNotificationDialog = true;
+      this.cdr.markForCheck();
     } catch (error) {
       console.error('Error approving prayer:', error);
     }
@@ -924,7 +953,18 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   async editPrayer(id: string, updates: any) {
     try {
+      // First save the prayer
       await this.adminDataService.editPrayer(id, updates);
+      // Then show the dialog asking if they want to send notification
+      this.sendDialogPrayerId = id;
+      // Get the prayer title from current data
+      const prayer = this.adminData?.pendingPrayers?.find((p: any) => p.id === id);
+      if (prayer) {
+        this.sendDialogPrayerTitle = prayer.title;
+      }
+      this.sendDialogType = 'prayer';
+      this.showSendNotificationDialog = true;
+      this.cdr.markForCheck();
     } catch (error) {
       console.error('Error editing prayer:', error);
     }
@@ -934,6 +974,16 @@ export class AdminComponent implements OnInit, OnDestroy {
     try {
       await this.adminDataService.approveUpdate(id);
       this.autoProgressTabs();
+      // Show dialog asking if they want to send notification
+      this.sendDialogUpdateId = id;
+      // Get the prayer title from current data
+      const update = this.adminData?.pendingUpdates?.find((u: any) => u.id === id);
+      if (update) {
+        this.sendDialogPrayerTitle = update.prayer_title || update.prayers?.title;
+      }
+      this.sendDialogType = 'update';
+      this.showSendNotificationDialog = true;
+      this.cdr.markForCheck();
     } catch (error) {
       console.error('Error approving update:', error);
     }
@@ -950,7 +1000,18 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   async editUpdate(id: string, updates: any) {
     try {
+      // First save the update
       await this.adminDataService.editUpdate(id, updates);
+      // Then show the dialog asking if they want to send notification
+      this.sendDialogUpdateId = id;
+      // Get the prayer title from current data
+      const update = this.adminData?.pendingUpdates?.find((u: any) => u.id === id);
+      if (update) {
+        this.sendDialogPrayerTitle = update.prayer_title || update.prayers?.title;
+      }
+      this.sendDialogType = 'update';
+      this.showSendNotificationDialog = true;
+      this.cdr.markForCheck();
     } catch (error) {
       console.error('Error editing update:', error);
     }
@@ -1027,6 +1088,43 @@ export class AdminComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error denying account request:', error);
     }
+  }
+
+  async onConfirmSendNotification() {
+    try {
+      if (this.sendDialogType === 'prayer' && this.sendDialogPrayerId) {
+        // Check if this is from approval or direct submission
+        // If approved flag is set, use the approval email method
+        const prayer = this.adminData?.pendingPrayers?.find((p: any) => p.id === this.sendDialogPrayerId);
+        if (prayer?.approval_status === 'approved') {
+          await this.adminDataService.sendApprovedPrayerEmails(this.sendDialogPrayerId);
+        } else {
+          // Otherwise use the submission email method
+          await this.adminDataService.sendBroadcastNotificationForNewPrayer(this.sendDialogPrayerId);
+        }
+      } else if (this.sendDialogType === 'update' && this.sendDialogUpdateId) {
+        // Check if this is from approval or direct submission
+        const update = this.adminData?.pendingUpdates?.find((u: any) => u.id === this.sendDialogUpdateId);
+        if (update?.approval_status === 'approved') {
+          await this.adminDataService.sendApprovedUpdateEmails(this.sendDialogUpdateId);
+        } else {
+          // Otherwise use the submission email method
+          await this.adminDataService.sendBroadcastNotificationForNewUpdate(this.sendDialogUpdateId);
+        }
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    } finally {
+      this.onDeclineSendNotification();
+    }
+  }
+
+  onDeclineSendNotification() {
+    this.showSendNotificationDialog = false;
+    this.sendDialogPrayerId = undefined;
+    this.sendDialogUpdateId = undefined;
+    this.sendDialogPrayerTitle = undefined;
+    this.cdr.markForCheck();
   }
 
   getAdminEmail(): string {

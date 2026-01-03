@@ -401,7 +401,29 @@ export class AdminDataService {
 
     if (error) throw error;
     
-    // Send email notifications (don't let email failures block the approval)
+    // Refresh admin data and main prayer list
+    await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
+  }
+
+  /**
+   * Send notification emails for an approved prayer
+   * Called after admin confirms they want to send the notification
+   */
+  async sendApprovedPrayerEmails(id: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    // Get the prayer details
+    const { data: prayer, error: fetchError } = await supabaseClient
+      .from('prayers')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!prayer) throw new Error('Prayer not found');
+    
+    // Send email notifications (don't let email failures block)
     this.emailNotification.sendApprovedPrayerNotification({
       title: prayer.title,
       description: prayer.description,
@@ -417,10 +439,6 @@ export class AdminDataService {
       requesterEmail: prayer.email,
       prayerFor: prayer.prayer_for
     }).catch(err => console.error('Failed to send requester notification:', err));
-    
-    // Refresh admin data and main prayer list
-    await this.fetchAdminData(true);
-    await this.prayerService.loadPrayers();
   }
 
   async denyPrayer(id: string, reason: string): Promise<void> {
@@ -475,6 +493,41 @@ export class AdminDataService {
     await this.prayerService.loadPrayers();
   }
 
+  /**
+   * Send broadcast notification for a newly submitted prayer (same as approval process)
+   * Called after admin confirms they want to send the notification
+   */
+  async sendBroadcastNotificationForNewPrayer(id: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    // Get the prayer details
+    const { data: prayer, error: fetchError } = await supabaseClient
+      .from('prayers')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!prayer) throw new Error('Prayer not found');
+    
+    // Send email notifications (don't let email failures block)
+    this.emailNotification.sendApprovedPrayerNotification({
+      title: prayer.title,
+      description: prayer.description,
+      requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+      prayerFor: prayer.prayer_for,
+      status: prayer.status
+    }).catch(err => console.error('Failed to send broadcast notification:', err));
+
+    this.emailNotification.sendRequesterApprovalNotification({
+      title: prayer.title,
+      description: prayer.description,
+      requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+      requesterEmail: prayer.email,
+      prayerFor: prayer.prayer_for
+    }).catch(err => console.error('Failed to send requester notification:', err));
+  }
+
   async approveUpdate(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
@@ -525,8 +578,32 @@ export class AdminDataService {
         console.error('Failed to update prayer status:', prayerError);
       }
     }
+    
+    await this.fetchAdminData(true);
+    await this.prayerService.loadPrayers();
+  }
 
-    // Send mass email notification to all subscribers (don't let email failures block the approval)
+  /**
+   * Send notification emails for an approved update
+   * Called after admin confirms they want to send the notification
+   */
+  async sendApprovedUpdateEmails(id: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    // Get the update details and prayer data
+    const { data: update, error: fetchError } = await supabaseClient
+      .from('prayer_updates')
+      .select('*, prayers(title, status)')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!update) throw new Error('Update not found');
+    
+    // Get the prayer's current status
+    const prayerData = update.prayers && typeof update.prayers === 'object' ? update.prayers : null;
+
+    // Send mass email notification to all subscribers (don't let email failures block)
     const prayerTitle = prayerData && 'title' in prayerData
       ? String(prayerData.title)
       : 'Prayer';
@@ -536,9 +613,6 @@ export class AdminDataService {
       author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
       markedAsAnswered: update.mark_as_answered || false
     }).catch(err => console.error('Failed to send update notification:', err));
-    
-    await this.fetchAdminData(true);
-    await this.prayerService.loadPrayers();
   }
 
   async denyUpdate(id: string, reason: string): Promise<void> {
@@ -594,6 +668,64 @@ export class AdminDataService {
     if (error) throw error;
     await this.fetchAdminData(true);
     await this.prayerService.loadPrayers();
+  }
+
+  /**
+   * Send broadcast notification for a newly submitted update (same as approval process)
+   * Called after admin confirms they want to send the notification
+   * Handles prayer status updates and sends appropriate email template (answered vs regular update)
+   */
+  async sendBroadcastNotificationForNewUpdate(id: string): Promise<void> {
+    const supabaseClient = this.supabase.client;
+    
+    // Get the update details, prayer title, and prayer status
+    const { data: update, error: fetchError } = await supabaseClient
+      .from('prayer_updates')
+      .select('*, prayers(title, status)')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!update) throw new Error('Update not found');
+    
+    // Get the prayer's current status
+    const prayerData = update.prayers && typeof update.prayers === 'object' ? update.prayers : null;
+    const currentPrayerStatus = prayerData && 'status' in prayerData ? String(prayerData.status) : null;
+
+    // Update prayer status based on the logic:
+    // 1. If mark_as_answered is true, set to 'answered'
+    // 2. If current status is 'answered' or 'archived' and NOT marked as answered, set to 'current'
+    // 3. Otherwise, leave status unchanged
+    let newPrayerStatus: string | null = null;
+    
+    if (update.mark_as_answered) {
+      newPrayerStatus = 'answered';
+    } else if (currentPrayerStatus === 'answered' || currentPrayerStatus === 'archived') {
+      newPrayerStatus = 'current';
+    }
+
+    // Update the prayer status if needed
+    if (newPrayerStatus) {
+      const { error: prayerError } = await supabaseClient
+        .from('prayers')
+        .update({ status: newPrayerStatus })
+        .eq('id', update.prayer_id);
+      
+      if (prayerError) {
+        console.error('Failed to update prayer status:', prayerError);
+      }
+    }
+
+    // Send mass email notification to all subscribers (don't let email failures block)
+    const prayerTitle = prayerData && 'title' in prayerData
+      ? String(prayerData.title)
+      : 'Prayer';
+    this.emailNotification.sendApprovedUpdateNotification({
+      prayerTitle,
+      content: update.content,
+      author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
+      markedAsAnswered: update.mark_as_answered || false
+    }).catch(err => console.error('Failed to send update notification:', err));
   }
 
   async approveDeletionRequest(id: string): Promise<void> {

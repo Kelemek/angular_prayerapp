@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PrayerRequest } from '../../services/prayer.service';
+import { SupabaseService } from '../../services/supabase.service';
 
 @Component({
   selector: 'app-prayer-card',
@@ -280,6 +281,8 @@ export class PrayerCardComponent implements OnInit {
   // Update deletion request form fields
   updateDeleteReason = '';
 
+  constructor(private supabase: SupabaseService) {}
+
   ngOnInit(): void {
     // Any initialization logic
   }
@@ -355,12 +358,15 @@ export class PrayerCardComponent implements OnInit {
     }
   }
 
-  handleAddUpdate(): void {
+  async handleAddUpdate(): Promise<void> {
+    const userEmail = this.getCurrentUserEmail();
+    let authorName = this.updateIsAnonymous ? 'Anonymous' : await this.fetchUserNameFromDatabase(userEmail);
+    
     const updateData = {
       prayer_id: this.prayer.id,
       content: this.updateContent,
-      author: this.updateIsAnonymous ? 'Anonymous' : this.getCurrentUserName(),
-      author_email: this.getCurrentUserEmail(),
+      author: authorName,
+      author_email: userEmail,
       is_anonymous: this.updateIsAnonymous,
       mark_as_answered: this.updateMarkAsAnswered
     };
@@ -468,6 +474,23 @@ export class PrayerCardComponent implements OnInit {
     const firstName = localStorage.getItem('userFirstName') || '';
     const lastName = localStorage.getItem('userLastName') || '';
     return `${firstName} ${lastName}`.trim();
+  }
+
+  private async fetchUserNameFromDatabase(email: string): Promise<string> {
+    try {
+      const { data, error } = await this.supabase.client
+        .from('email_subscribers')
+        .select('name')
+        .eq('email', email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (!error && data?.name) {
+        return data.name;
+      }
+    } catch (err) {
+      console.error('Error fetching user name from database:', err);
+    }
+    return this.getCurrentUserName();
   }
 
   handleUpdateDeletionRequest(): void {

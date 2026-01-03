@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
 import { PrayerService } from '../../services/prayer.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { SupabaseService } from '../../services/supabase.service';
 
 @Component({
   selector: 'app-prayer-form',
@@ -156,6 +157,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   constructor(
     private prayerService: PrayerService,
     private adminAuthService: AdminAuthService,
+    private supabase: SupabaseService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -196,9 +198,26 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   }
 
   private getCurrentUserName(): string {
-    const firstName = localStorage.getItem('userFirstName') || '';
-    const lastName = localStorage.getItem('userLastName') || '';
+    const firstName = localStorage.getItem('prayerapp_user_first_name') || '';
+    const lastName = localStorage.getItem('prayerapp_user_last_name') || '';
     return `${firstName} ${lastName}`.trim();
+  }
+
+  private async fetchUserNameFromDatabase(email: string): Promise<string> {
+    try {
+      const { data, error } = await this.supabase.client
+        .from('email_subscribers')
+        .select('name')
+        .eq('email', email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (!error && data?.name) {
+        return data.name;
+      }
+    } catch (err) {
+      console.error('Error fetching user name from database:', err);
+    }
+    return this.getCurrentUserName();
   }
 
   isFormValid(): boolean {
@@ -216,7 +235,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       this.isSubmitting = true;
       this.cdr.markForCheck();
 
-      const fullName = this.getCurrentUserName();
+      // Fetch user name from database, falling back to localStorage if needed
+      const fullName = await this.fetchUserNameFromDatabase(this.currentUserEmail);
 
       const prayerData = {
         title: `Prayer for ${this.formData.prayer_for}`,
@@ -246,7 +266,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
         this.showSuccessMessage = true;
         this.cdr.markForCheck();
         
-        // Reset form but keep name
+        // Reset form
         this.formData = {
           title: '',
           description: '',
@@ -275,6 +295,14 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
 
   cancel(): void {
+    this.formData = {
+      title: '',
+      description: '',
+      prayer_for: '',
+      is_anonymous: false
+    };
+    this.showSuccessMessage = false;
+    this.isSubmitting = false;
     this.close.emit();
   }
 

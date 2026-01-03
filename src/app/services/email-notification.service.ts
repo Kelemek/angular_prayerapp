@@ -178,8 +178,11 @@ export class EmailNotificationService {
       let htmlContent: string;
       let textContent: string;
 
+      const isAnswered = payload.status === 'answered';
+      const templateKey = isAnswered ? 'prayer_answered' : 'approved_prayer';
+
       try {
-        const template = await this.getTemplate('approved_prayer');
+        const template = await this.getTemplate(templateKey);
         if (template) {
           const variables = {
             prayerTitle: payload.title,
@@ -196,10 +199,16 @@ export class EmailNotificationService {
           throw new Error('Template not found');
         }
       } catch (error) {
-        console.warn('Failed to load approved_prayer template, using fallback:', error);
-        subject = `New Prayer Request: ${payload.title}`;
-        htmlContent = this.generateApprovedPrayerHTML(payload);
-        textContent = `A new prayer request has been approved and is now live.\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\nRequested by: ${payload.requester}\n\nDescription: ${payload.description}`;
+        console.warn(`Failed to load ${templateKey} template, using fallback:`, error);
+        if (isAnswered) {
+          subject = `Prayer Answered: ${payload.title}`;
+          htmlContent = this.generateAnsweredPrayerHTML(payload);
+          textContent = `A prayer has been answered!\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\nRequested by: ${payload.requester}\n\nDescription: ${payload.description}`;
+        } else {
+          subject = `New Prayer Request: ${payload.title}`;
+          htmlContent = this.generateApprovedPrayerHTML(payload);
+          textContent = `A new prayer request has been approved and is now live.\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\nRequested by: ${payload.requester}\n\nDescription: ${payload.description}`;
+        }
       }
 
       await this.sendEmailToAllSubscribers({
@@ -655,6 +664,42 @@ export class EmailNotificationService {
           </div>
           <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
             <p>This prayer has been approved and is now active. Join us in prayer!</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  private generateAnsweredPrayerHTML(payload: ApprovedPrayerPayload): string {
+    const appUrl = `${window.location.origin}/`;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Prayer Answered</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Prayer Answered!</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <div style="display: inline-block; background: #10b981; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 15px;">✓ Answered Prayer</div>
+            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
+            <div style="margin-bottom: 15px;">
+              <p style="margin: 5px 0;"><strong>For:</strong> ${payload.prayerFor}</p>
+              <p style="margin: 5px 0;"><strong>Requested by:</strong> ${payload.requester}</p>
+            </div>
+            <p><strong>Description:</strong></p>
+            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981;">${payload.description}</p>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Prayer</a>
+            </div>
+          </div>
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>Let's give thanks and praise for this answered prayer!</p>
           </div>
         </body>
       </html>
