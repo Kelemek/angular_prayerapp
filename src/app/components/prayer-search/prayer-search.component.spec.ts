@@ -707,7 +707,7 @@ describe('PrayerSearchComponent', () => {
     it('should return correct status color', () => {
       expect(component.getStatusColor('current')).toContain('blue');
       expect(component.getStatusColor('answered')).toContain('green');
-      expect(component.getStatusColor('archived')).toContain('gray');
+      expect(component.getStatusColor('archived')).toContain('slate');
       expect(component.getStatusColor('unknown')).toContain('gray');
     });
 

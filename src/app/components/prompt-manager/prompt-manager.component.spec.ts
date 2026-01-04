@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { ChangeDetectorRef } from '@angular/core';
 import { PromptManagerComponent } from './prompt-manager.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -38,9 +39,14 @@ describe('PromptManagerComponent', () => {
       success: vi.fn()
     };
 
+    const mockChangeDetectorRef = {
+      markForCheck: vi.fn()
+    } as unknown as ChangeDetectorRef;
+
     component = new PromptManagerComponent(
       mockSupabaseService,
-      mockToastService
+      mockToastService,
+      mockChangeDetectorRef
     );
   });
 
