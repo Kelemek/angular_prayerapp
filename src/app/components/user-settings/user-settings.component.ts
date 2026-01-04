@@ -23,10 +23,11 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
     @if (isOpen) {
     <div 
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
+      style="padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom));"
       (click)="onClose.emit()"
     >
       <div 
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg lg:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg lg:max-w-2xl max-h-[90dvh] sm:max-h-[85dvh] overflow-y-auto"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
