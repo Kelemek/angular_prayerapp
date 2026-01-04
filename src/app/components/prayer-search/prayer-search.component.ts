@@ -443,7 +443,7 @@ interface NewUpdate {
     <div [class]="'border rounded-lg transition-all duration-200 ' + (selectedPrayers.has(prayer.id) ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')">
       
       <!-- Compact Header - Always Visible -->
-      <div class="flex items-center gap-3 p-3">
+      <div class="flex items-center gap-3 px-3 py-2 cursor-pointer" (click)="toggleExpandCard(prayer.id)">
         <input
           type="checkbox"
           [checked]="selectedPrayers.has(prayer.id)"
@@ -452,10 +452,7 @@ interface NewUpdate {
           class="w-4 h-4 text-red-600 border-gray-800 dark:border-gray-600 rounded focus:ring-red-500 cursor-pointer"
         />
         
-        <button
-          (click)="toggleExpandCard(prayer.id)"
-          class="flex-1 flex flex-col gap-1.5 text-left min-w-0"
-        >
+        <div class="flex-1 flex flex-col gap-0.5 text-left min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h4 class="font-medium text-gray-900 dark:text-gray-100">
               {{ prayer.title }}
@@ -479,18 +476,13 @@ interface NewUpdate {
             <div>
               <span class="font-medium">Requester:</span> {{ prayer.requester }}
             </div>
-            @if (prayer.email) {
-            <div class="truncate">
-              <span class="font-medium">Email:</span> {{ prayer.email }}
-            </div>
-            }
             <div>
               <span class="font-medium">Created:</span> {{ prayer.created_at | date:'shortDate' }}
             </div>
           </div>
-        </button>
+        </div>
 
-        <div class="flex flex-col gap-2 flex-shrink-0">
+        <div class="flex flex-col gap-2 flex-shrink-0 pointer-events-none">
           @if (expandedCards.has(prayer.id)) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
             <polyline points="18 15 12 9 6 15"></polyline>
@@ -501,6 +493,9 @@ interface NewUpdate {
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
           }
+        </div>
+
+        <div class="flex flex-col gap-2 flex-shrink-0 pointer-events-auto">
           <button
             (click)="$event.stopPropagation(); startEditPrayer(prayer)"
             [disabled]="saving"
@@ -528,8 +523,8 @@ interface NewUpdate {
 
       <!-- Expanded Details - Only Visible When Expanded -->
       @if (expandedCards.has(prayer.id)) {
-      <div class="px-6 pb-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div class="pt-4 space-y-3">
+      <div class="px-6 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div class="space-y-2">
           <div class="flex items-center justify-between mb-3">
             <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {{ editingPrayer === prayer.id ? 'Edit Prayer Details' : 'Complete Prayer Details' }}
@@ -1223,8 +1218,9 @@ export class PrayerSearchComponent implements OnInit {
         });
       }
 
-      this.allPrayers = results;
-      this.totalItems = results.length;
+      // Sort by most recent activity
+      this.allPrayers = this.sortPrayersByLatestActivity(results);
+      this.totalItems = this.allPrayers.length;
       this.currentPage = 1;
       this.loadPageData();
       this.cdr.markForCheck();
@@ -1840,7 +1836,7 @@ export class PrayerSearchComponent implements OnInit {
       case 'answered':
         return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
       case 'archived':
-        return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20';
+        return 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20';
       default:
         return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20';
     }
@@ -1882,5 +1878,34 @@ export class PrayerSearchComponent implements OnInit {
     this.sendDialogUpdateId = undefined;
     this.sendDialogPrayerTitle = undefined;
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Sort prayers by most recent activity (creation or update)
+   * This matches the sorting logic used on the main site
+   */
+  sortPrayersByLatestActivity(prayers: Prayer[]): Prayer[] {
+    return prayers
+      .map(prayer => {
+        // First sort the updates within each prayer from newest to oldest
+        const sortedUpdates = prayer.prayer_updates && prayer.prayer_updates.length > 0
+          ? [...prayer.prayer_updates].sort((a, b) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )
+          : [];
+
+        return {
+          ...prayer,
+          prayer_updates: sortedUpdates,
+          latestActivity: Math.max(
+            new Date(prayer.created_at).getTime(),
+            sortedUpdates.length > 0
+              ? new Date(sortedUpdates[0].created_at).getTime()
+              : 0
+          )
+        };
+      })
+      .sort((a, b) => b.latestActivity - a.latestActivity)
+      .map(({ latestActivity, ...prayer }) => prayer);
   }
 }
