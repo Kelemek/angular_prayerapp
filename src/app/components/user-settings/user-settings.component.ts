@@ -66,21 +66,38 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                   [disabled]="isPrinting"
                   class="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-3 bg-green-600 text-white rounded-l-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
                 >
-                  <svg 
-                    width="18" 
-                    height="18" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    stroke-width="2" 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round"
-                    [class.animate-spin]="isPrinting"
-                  >
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                  </svg>
+                  @if (!isPrinting) {
+                    <svg 
+                      width="18" 
+                      height="18" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                  } @else {
+                    <svg 
+                      width="18" 
+                      height="18" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                      class="animate-spin"
+                      style="transform-origin: center"
+                    >
+                      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"></circle>
+                      <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="2" fill="none"></path>
+                    </svg>
+                  }
                   <span class="font-medium">{{ isPrinting ? 'Generating...' : 'Print Prayer List' }}</span>
                 </button>
                 <button
@@ -137,21 +154,38 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                   [disabled]="isPrintingPrompts"
                   class="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-3 bg-green-600 text-white rounded-l-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
                 >
-                  <svg 
-                    width="18" 
-                    height="18" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    stroke-width="2" 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round"
-                    [class.animate-spin]="isPrintingPrompts"
-                  >
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                  </svg>
+                  @if (!isPrintingPrompts) {
+                    <svg 
+                      width="18" 
+                      height="18" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                  } @else {
+                    <svg 
+                      width="18" 
+                      height="18" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                      class="animate-spin"
+                      style="transform-origin: center"
+                    >
+                      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"></circle>
+                      <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="2" fill="none"></path>
+                    </svg>
+                  }
                   <span class="font-medium">{{ isPrintingPrompts ? 'Generating...' : 'Print Prompts' }}</span>
                 </button>
                 <button
@@ -603,6 +637,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       if (newWindow) newWindow.close();
     } finally {
       this.isPrinting = false;
+      // Force change detection to update the button immediately
+      this.cdr.detectChanges();
     }
   }
 
@@ -619,6 +655,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       if (newWindow) newWindow.close();
     } finally {
       this.isPrintingPrompts = false;
+      // Force change detection to update the button immediately
+      this.cdr.detectChanges();
     }
   }
 
