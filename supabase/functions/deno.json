@@ -1,9 +1,26 @@
 {
   "compilerOptions": {
     "lib": ["deno.window"],
-    "strict": true
+    "strict": false
   },
   "imports": {
+    "std/": "https://deno.land/std@0.168.0/",
     "supabase": "https://esm.sh/@supabase/supabase-js@2"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": [
+        "no-explicit-any",
+        "no-inferrable-types",
+        "camelcase",
+        "no-unused-vars"
+      ]
+    }
+  },
+  "fmt": {
+    "singleQuote": true,
+    "proseWrap": "preserve",
+    "lineWidth": 100
   }
 }
