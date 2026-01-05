@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent layout shift when scrollbar appears/disappears */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Church Theme Color Overrides - Maps Tailwind grays to church brand colors */
 @layer utilities {
   /* Background colors - light theme */
