@@ -646,8 +646,11 @@ describe('AdminComponent', () => {
       component.onSettingsTabChange('email');
       expect(component.activeSettingsTab).toBe('email');
 
-      component.onSettingsTabChange('users');
-      expect(component.activeSettingsTab).toBe('users');
+      component.onSettingsTabChange('tools');
+      expect(component.activeSettingsTab).toBe('tools');
+
+      component.onSettingsTabChange('security');
+      expect(component.activeSettingsTab).toBe('security');
 
       component.onSettingsTabChange('content');
       expect(component.activeSettingsTab).toBe('content');

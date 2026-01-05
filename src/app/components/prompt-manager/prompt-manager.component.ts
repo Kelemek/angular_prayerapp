@@ -19,7 +19,7 @@ interface CSVRow {
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
       <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      <div class="flex flex-col gap-3 mb-4">
         <div class="flex items-center gap-2">
           <svg class="text-yellow-600 dark:text-yellow-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
@@ -30,7 +30,7 @@ interface CSVRow {
             Prayer Prompts
           </h3>
         </div>
-        <div class="flex flex-col sm:flex-row gap-2">
+        <div class="flex gap-2 justify-end">
           <button
             (click)="toggleCSVUpload()"
             title="Upload prompts from CSV"

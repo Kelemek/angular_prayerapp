@@ -66,7 +66,7 @@ interface BackupLog {
         Database Backup Status
       </h3>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3 justify-end w-full sm:w-auto">
       <button
         (click)="handleManualBackup()"
         [disabled]="backingUp"

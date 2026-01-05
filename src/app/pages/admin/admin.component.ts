@@ -23,7 +23,7 @@ import { EmailVerificationSettingsComponent } from '../../components/email-verif
 import { GitHubSettingsComponent } from '../../components/github-settings/github-settings.component';
 
 type AdminTab = 'prayers' | 'updates' | 'deletions' | 'accounts' | 'settings';
-type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'security';
+type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
 
 @Component({
   selector: 'app-admin',
@@ -408,18 +408,6 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                 Email
               </button>
               <button
-                (click)="onSettingsTabChange('users')"
-                [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'users' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                Users
-              </button>
-              <button
                 (click)="onSettingsTabChange('tools')"
                 [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 ' + (activeSettingsTab === 'tools' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
               >
@@ -599,7 +587,7 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                     <div class="text-xs text-[#6B5D45] dark:text-[#D4AF85] mt-1 opacity-70">archived prayers</div>
                   </div>
 
-                  <!-- Subscribers -->
+                  <!-- Email Subscribers -->
                   <div class="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-700">
                     <div class="flex items-center gap-2 mb-2">
                       <svg class="text-cyan-600 dark:text-cyan-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -607,12 +595,12 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                         <circle cx="8.5" cy="7" r="4"></circle>
                         <polyline points="17 11 19 13 23 9"></polyline>
                       </svg>
-                      <div class="text-sm font-medium text-cyan-900 dark:text-cyan-100">Subscribers</div>
+                      <div class="text-sm font-medium text-cyan-900 dark:text-cyan-100">Email Subscribers</div>
                     </div>
                     <div class="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
                       {{ analyticsStats.totalSubscribers.toLocaleString() }}
                     </div>
-                    <div class="text-xs text-cyan-600/70 dark:text-cyan-400/70 mt-1">email subscribers</div>
+                    <div class="text-xs text-cyan-600/70 dark:text-cyan-400/70 mt-1">total email subscribers</div>
                   </div>
 
                   <!-- Active Email Subscribers -->
@@ -622,12 +610,12 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                       </svg>
-                      <div class="text-sm font-medium text-amber-900 dark:text-amber-100">Active Email</div>
+                      <div class="text-sm font-medium text-amber-900 dark:text-amber-100">Active Email Subscribers</div>
                     </div>
                     <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">
                       {{ analyticsStats.activeEmailSubscribers.toLocaleString() }}
                     </div>
-                    <div class="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">active subscribers</div>
+                    <div class="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">active email subscribers</div>
                   </div>
                 </div>
               }
@@ -661,14 +649,6 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
               </div>
             }
 
-            @if (activeSettingsTab === 'users') {
-              <div class="space-y-6">
-                <div class="mb-4">
-                  <app-admin-user-management (onSave)="handleUserManagementSave()"></app-admin-user-management>
-                </div>
-              </div>
-            }
-
             <!-- Tools Tab -->
             @if (activeSettingsTab === 'tools') {
               <div class="space-y-6">
@@ -685,6 +665,9 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
             @if (activeSettingsTab === 'security') {
               <div>
                 <div class="mb-4">
+                  <app-admin-user-management (onSave)="handleUserManagementSave()"></app-admin-user-management>
+                </div>
+                <div class="mb-4">
                   <app-email-verification-settings></app-email-verification-settings>
                 </div>
                 <div class="mb-4">
@@ -693,7 +676,7 @@ type SettingsTab = 'analytics' | 'email' | 'users' | 'content' | 'tools' | 'secu
               </div>
             }
 
-            @if (activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email' && activeSettingsTab !== 'users' && activeSettingsTab !== 'tools' && activeSettingsTab !== 'security') {
+            @if (activeSettingsTab !== 'analytics' && activeSettingsTab !== 'content' && activeSettingsTab !== 'email' && activeSettingsTab !== 'tools' && activeSettingsTab !== 'security') {
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
                   {{ activeSettingsTab | titlecase }} Settings
