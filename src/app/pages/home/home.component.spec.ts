@@ -56,7 +56,19 @@ const makeMocks = () => {
     navigate: vi.fn()
   };
 
-  return { prayerService, promptService, adminAuthService, userSessionService, toastService, analyticsService, cdr, router, prayersSubject, promptsSubject };
+  const supabaseService: any = {
+    client: {
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn()
+          }))
+        }))
+      }))
+    }
+  };
+
+  return { prayerService, promptService, adminAuthService, userSessionService, toastService, analyticsService, cdr, router, supabaseService, prayersSubject, promptsSubject };
 };
 
 describe('HomeComponent', () => {
@@ -96,7 +108,8 @@ describe('HomeComponent', () => {
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     expect(comp.getUserEmail()).toBe('cached@example.com');
   });
@@ -111,10 +124,60 @@ describe('HomeComponent', () => {
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     expect(comp.getUserEmail()).toBe('a@b.com');
   });
+
+  it('getUserEmail falls back to userEmail localStorage key', () => {
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mocks.supabaseService
+    );
+    localStorage.setItem('userEmail', 'user@example.com');
+    expect(comp.getUserEmail()).toBe('user@example.com');
+  });
+
+  it('getUserEmail falls back to prayerapp_user_email localStorage key', () => {
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mocks.supabaseService
+    );
+    localStorage.setItem('prayerapp_user_email', 'prayerapp@example.com');
+    expect(comp.getUserEmail()).toBe('prayerapp@example.com');
+  });
+
+  it('getUserEmail returns Not logged in when no email sources are available', () => {
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mocks.supabaseService
+    );
+    localStorage.clear();
+    expect(comp.getUserEmail()).toBe('Not logged in');
+  });
+
 
   it('getUserEmail returns Not logged in when service and localStorage are empty', () => {
     const comp = new HomeComponent(
@@ -505,5 +568,183 @@ describe('HomeComponent', () => {
     localStorage.setItem('userEmail', 'u@e.com');
     compFalse.navigateToAdmin();
     expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { email: 'u@e.com', sessionExpired: true } });
+  });
+
+  it('loadAdminSettings loads deletion and update policies successfully', async () => {
+    const mockSupabaseService: any = {
+      client: {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  deletions_allowed: 'original-requestor',
+                  updates_allowed: 'admin-only'
+                },
+                error: null
+              })
+            })
+          })
+        })
+      }
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mockSupabaseService
+    );
+
+    await comp['loadAdminSettings']();
+
+    expect(comp.deletionsAllowed).toBe('original-requestor');
+    expect(comp.updatesAllowed).toBe('admin-only');
+    expect(mocks.cdr.markForCheck).toHaveBeenCalled();
+  });
+
+  it('loadAdminSettings handles error gracefully', async () => {
+    const mockSupabaseService: any = {
+      client: {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: new Error('Database error')
+              })
+            })
+          })
+        })
+      }
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mockSupabaseService
+    );
+
+    await comp['loadAdminSettings']();
+
+    // Should keep default values
+    expect(comp.deletionsAllowed).toBe('everyone');
+    expect(comp.updatesAllowed).toBe('everyone');
+  });
+
+  it('loadAdminSettings handles exception gracefully', async () => {
+    const mockSupabaseService: any = {
+      client: {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockRejectedValue(new Error('Network error'))
+            })
+          })
+        })
+      }
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mockSupabaseService
+    );
+
+    await comp['loadAdminSettings']();
+
+    // Should keep default values
+    expect(comp.deletionsAllowed).toBe('everyone');
+    expect(comp.updatesAllowed).toBe('everyone');
+  });
+
+  it('loadAdminSettings uses default values when data is null', async () => {
+    const mockSupabaseService: any = {
+      client: {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null
+              })
+            })
+          })
+        })
+      }
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mockSupabaseService
+    );
+
+    await comp['loadAdminSettings']();
+
+    // Should keep default values when data is null
+    expect(comp.deletionsAllowed).toBe('everyone');
+    expect(comp.updatesAllowed).toBe('everyone');
+  });
+
+  it('loadAdminSettings handles null/undefined policy values with fallbacks', async () => {
+    const mockSupabaseService: any = {
+      client: {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  deletions_allowed: null,
+                  updates_allowed: undefined
+                },
+                error: null
+              })
+            })
+          })
+        })
+      }
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      mocks.userSessionService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mockSupabaseService
+    );
+
+    await comp['loadAdminSettings']();
+
+    // Should use fallback 'everyone' when values are null/undefined
+    expect(comp.deletionsAllowed).toBe('everyone');
+    expect(comp.updatesAllowed).toBe('everyone');
   });
 });
