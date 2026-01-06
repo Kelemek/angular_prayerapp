@@ -5,6 +5,19 @@ import { PrayerService } from './prayer.service';
 import { EmailNotificationService } from './email-notification.service';
 import { firstValueFrom } from 'rxjs';
 
+// Mock the planning-center module
+vi.mock('../../lib/planning-center', () => ({
+  lookupPersonByEmail: vi.fn(() => Promise.resolve({ count: 0 }))
+}));
+
+// Mock the environment module
+vi.mock('../../environments/environment', () => ({
+  environment: {
+    supabaseUrl: 'https://test.supabase.co',
+    supabaseAnonKey: 'test-key'
+  }
+}));
+
 describe('AdminDataService', () => {
   let service: AdminDataService;
   let mockSupabaseService: any;
