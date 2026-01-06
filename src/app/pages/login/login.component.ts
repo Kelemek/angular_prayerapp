@@ -75,12 +75,13 @@ import { environment } from '../../../environments/environment';
                   Enter Your Verification Code
                 </h4>
                 @if (!loading) {
+                <!-- Code input uses dynamic maxlength from admin settings (4, 6, or 8 digits) -->
                 <input
                   #codeField
                   id="mfa-code-input"
                   type="text"
                   inputmode="numeric"
-                  maxlength="6"
+                  [maxlength]="codeLength"
                   name="mfa-code-input"
                   [(ngModel)]="mfaCodeInput"
                   (input)="onCodeInput()"
@@ -395,9 +396,6 @@ export class LoginComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
-    // Initialize code array immediately so inputs can render
-    this.mfaCode = new Array(this.codeLength).fill('');
-    
     // Detect dark mode from document class
     this.detectDarkMode();
     
@@ -437,8 +435,12 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
     
-    // Fetch code length from settings
+    // Fetch code length from admin settings (supports 4, 6, or 8 digits)
     await this.fetchCodeLength();
+    
+    // Initialize code array with the fetched code length
+    // This allows the input field to accept the correct number of characters
+    this.mfaCode = new Array(this.codeLength).fill('');
     
     // Check if we just sent an MFA code (persisted across re-renders)
     const mfaSent = sessionStorage.getItem('mfa_email_sent');
@@ -674,6 +676,8 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   private async fetchCodeLength() {
     try {
+      // Fetch the verification code length setting from admin_settings
+      // Allows admins to configure code length (4, 6, or 8 digits)
       const { data, error } = await this.supabaseService.client
         .from('admin_settings')
         .select('verification_code_length')

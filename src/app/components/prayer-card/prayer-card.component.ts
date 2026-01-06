@@ -256,8 +256,8 @@ import { UserSessionService } from '../../services/user-session.service';
 export class PrayerCardComponent implements OnInit {
   @Input() prayer!: PrayerRequest;
   @Input() isAdmin = false;
-  @Input() deletionsAllowed: 'everyone' | 'email-only' | 'admin-only' = 'everyone';
-  @Input() updatesAllowed: 'everyone' | 'email-only' | 'admin-only' = 'everyone';
+  @Input() deletionsAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
+  @Input() updatesAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
   @Input() activeFilter: 'current' | 'answered' | 'archived' | 'total' | 'prompts' = 'total';
   
   @Output() delete = new EventEmitter<string>();
@@ -319,27 +319,43 @@ export class PrayerCardComponent implements OnInit {
     return this.prayer.is_anonymous ? 'Anonymous' : this.prayer.requester;
   }
 
+  // Check if delete button should be shown based on deletion policy
+  // Admin: always shows delete button
+  // admin-only: only admins can see/use delete
+  // original-requestor: only prayer creator can delete
+  // everyone: all users can request deletion
   showDeleteButton(): boolean {
     if (this.isAdmin) return true;
-    if (this.deletionsAllowed === 'everyone') return true;
-    if (this.deletionsAllowed === 'email-only') return true;
-    return false;
+    if (this.deletionsAllowed === 'admin-only') return false;
+    if (this.deletionsAllowed === 'original-requestor') {
+      return this.isCurrentUserTheRequester();
+    }
+    return true; // 'everyone'
   }
 
+  // Check if add update button should be shown based on update policy
+  // Admin: always shows add update button
+  // admin-only: only admins can see/use add update
+  // original-requestor: only prayer creator can add updates
+  // everyone: all users can submit updates
   showAddUpdateButton(): boolean {
     if (this.isAdmin) return true;
-    
-    if (this.updatesAllowed === 'everyone') return true;
-    if (this.updatesAllowed === 'email-only') return true;
-    
-    return false;
+    if (this.updatesAllowed === 'admin-only') return false;
+    if (this.updatesAllowed === 'original-requestor') {
+      return this.isCurrentUserTheRequester();
+    }
+    return true; // 'everyone'
   }
 
+  // Check if update delete button should be shown based on deletion policy
+  // Same rules as prayer deletion policy
   showUpdateDeleteButton(): boolean {
     if (this.isAdmin) return true;
-    if (this.deletionsAllowed === 'everyone') return true;
-    if (this.deletionsAllowed === 'email-only') return true;
-    return false;
+    if (this.deletionsAllowed === 'admin-only') return false;
+    if (this.deletionsAllowed === 'original-requestor') {
+      return this.isCurrentUserTheRequester();
+    }
+    return true; // 'everyone'
   }
 
   handleDeleteClick(): void {
@@ -475,6 +491,13 @@ export class PrayerCardComponent implements OnInit {
     if (prayerappEmail) return prayerappEmail;
     
     return '';
+  }
+
+  // Helper method to check if the current user is the original prayer requester
+  // Used for 'original-requestor' policy to verify user email matches prayer email
+  private isCurrentUserTheRequester(): boolean {
+    const userEmail = this.getCurrentUserEmail();
+    return userEmail.toLowerCase() === (this.prayer.email || '').toLowerCase();
   }
 
   private getCurrentUserName(): string {

@@ -14,6 +14,7 @@ import { PrayerService, PrayerRequest } from '../../services/prayer.service';
 import { PromptService } from '../../services/prompt.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { Observable, take, Subject, takeUntil } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 import { AnalyticsService } from '../../services/analytics.service';
@@ -276,6 +277,8 @@ import type { User } from '@supabase/supabase-js';
                   [prayer]="prayer"
                   [isAdmin]="(isAdmin$ | async) || false"
                   [activeFilter]="activeFilter"
+                  [deletionsAllowed]="deletionsAllowed"
+                  [updatesAllowed]="updatesAllowed"
                   (delete)="deletePrayer($event)"
                   (addUpdate)="addUpdate($event)"
                   (deleteUpdate)="deleteUpdate($event)"
@@ -338,6 +341,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   selectedPromptTypes: string[] = [];
   
   isAdmin = false;
+  // Admin settings for access control policies
+  // These are loaded from admin_settings and control who can delete prayers/updates
+  deletionsAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
+  updatesAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
 
   // Subject for managing subscriptions
   private destroy$ = new Subject<void>();
@@ -350,7 +357,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     private toastService: ToastService,
     private analyticsService: AnalyticsService,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private supabaseService: SupabaseService
   ) {
     // Load logo state from cache immediately to prevent flash
     const windowCache = (window as any).__cachedLogos;
@@ -368,6 +376,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.error$ = this.prayerService.error$;
     this.isAdmin$ = this.adminAuthService.isAdmin$;
     this.hasAdminEmail$ = this.adminAuthService.hasAdminEmail$;
+
+    // Load admin settings (deletion and update policies)
+    this.loadAdminSettings();
 
     // Subscribe to ALL prayers to update counts (not filtered) - with cleanup
     this.prayerService.allPrayers$
@@ -401,6 +412,31 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Complete the subject to unsubscribe from all observables
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private async loadAdminSettings(): Promise<void> {
+    try {
+      const { data, error } = await this.supabaseService.client
+        .from('admin_settings')
+        .select('deletions_allowed, updates_allowed')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading admin settings:', error);
+        return;
+      }
+
+      if (data) {
+        // Load deletion and update policies from admin settings
+        // These control who can delete prayers/updates and who can submit updates
+        this.deletionsAllowed = data.deletions_allowed || 'everyone';
+        this.updatesAllowed = data.updates_allowed || 'everyone';
+        this.cdr.markForCheck();
+      }
+    } catch (err) {
+      console.error('Error loading admin settings:', err);
+    }
   }
 
   onFiltersChange(filters: PrayerFilters): void {
