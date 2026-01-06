@@ -73,7 +73,7 @@ interface NewUpdate {
   </div>
 
   <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-    Search and filter prayers by title, requester, email, description, or denial reasons. Use dropdown filters to automatically load results. Delete individually or in bulk.
+    Search and filter prayers by title, requester, email, description, denial reasons, or prayer update content. Use dropdown filters to automatically load results. Delete individually or in bulk.
   </p>
 
   <!-- Create New Prayer Button -->
@@ -256,7 +256,7 @@ interface NewUpdate {
         type="text"
         [(ngModel)]="searchTerm"
         (keypress)="onKeyPress($event)"
-        placeholder="Search by title, requester, email, description, or denial reasons..."
+        placeholder="Search by title, requester, email, description, prayer updates, or denial reasons..."
         class="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
       />
       @if (searchTerm) {
@@ -954,7 +954,7 @@ interface NewUpdate {
     <p>Search Prayers & Audit Log</p>
     <div class="text-sm mt-2 space-y-1">
       <p>• Select a filter from the dropdowns to automatically load results</p>
-      <p>• Or search by title, requester, email, description, or denial reasons</p>
+      <p>• Or search by title, requester, email, description, prayer updates, or denial reasons</p>
       <p>• Select "Denied" to see all denied prayers and activities</p>
     </div>
   </div>
