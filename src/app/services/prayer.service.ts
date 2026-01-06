@@ -311,11 +311,20 @@ export class PrayerService {
     // Filter by search term
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.title.toLowerCase().includes(searchLower) ||
-        p.description.toLowerCase().includes(searchLower) ||
-        p.requester.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter(p => {
+        // Check prayer fields
+        const prayerMatch = p.title.toLowerCase().includes(searchLower) ||
+          p.description.toLowerCase().includes(searchLower) ||
+          p.requester.toLowerCase().includes(searchLower);
+        
+        // Also check prayer updates
+        const updateMatch = p.updates && p.updates.length > 0 &&
+          p.updates.some(update =>
+            update.content && update.content.toLowerCase().includes(searchLower)
+          );
+
+        return prayerMatch || updateMatch;
+      });
     }
 
     this.prayersSubject.next(filtered);
@@ -524,12 +533,21 @@ export class PrayerService {
 
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.title.toLowerCase().includes(searchLower) ||
-        p.description.toLowerCase().includes(searchLower) ||
-        p.requester.toLowerCase().includes(searchLower) ||
-        p.prayer_for.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter(p => {
+        // Check prayer fields
+        const prayerMatch = p.title.toLowerCase().includes(searchLower) ||
+          p.description.toLowerCase().includes(searchLower) ||
+          p.requester.toLowerCase().includes(searchLower) ||
+          p.prayer_for.toLowerCase().includes(searchLower);
+        
+        // Also check prayer updates
+        const updateMatch = p.updates && p.updates.length > 0 &&
+          p.updates.some(update =>
+            update.content && update.content.toLowerCase().includes(searchLower)
+          );
+
+        return prayerMatch || updateMatch;
+      });
     }
 
     return filtered;

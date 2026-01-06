@@ -1193,6 +1193,58 @@ export class PrayerSearchComponent implements OnInit {
       const data = await response.json();
       let results = data || [];
 
+      // Filter by search term in prayer updates content if search term exists
+      // The DB query already filters by prayer fields, but we need to also include
+      // prayers where the search term appears in any prayer update content
+      if (this.searchTerm.trim()) {
+        const searchLower = this.searchTerm.toLowerCase();
+        
+        // Fetch ALL prayers (no search filter) to check update content
+        const allParams = new URLSearchParams();
+        allParams.set('select', 'id,title,requester,email,status,created_at,denial_reason,description,approval_status,prayer_for,prayer_updates(id,content,author,created_at,denial_reason,approval_status)');
+        allParams.set('order', 'created_at.desc');
+        allParams.set('limit', '100');
+
+        if (this.statusFilter && this.statusFilter !== 'all') {
+          allParams.set('status', `eq.${this.statusFilter}`);
+        }
+
+        if (this.approvalFilter && this.approvalFilter !== 'all' && this.approvalFilter !== 'denied' && this.approvalFilter !== 'pending') {
+          allParams.set('approval_status', `eq.${this.approvalFilter}`);
+        }
+
+        const allUrl = `${supabaseUrl}/rest/v1/prayers?${allParams.toString()}`;
+        const allResponse = await fetch(allUrl, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal
+        });
+
+        if (allResponse.ok) {
+          const allData = await allResponse.json();
+          const updateMatches = (allData || []).filter((prayer: Prayer) =>
+            prayer.prayer_updates && prayer.prayer_updates.length > 0 &&
+            prayer.prayer_updates.some(update =>
+              update.content && update.content.toLowerCase().includes(searchLower)
+            )
+          );
+
+          // Combine results from prayer field matches and update content matches
+          const resultIds = new Set(results.map((p: Prayer) => p.id));
+          
+          // Add update matches that weren't already in the results
+          for (const match of updateMatches) {
+            if (!resultIds.has(match.id)) {
+              results.push(match);
+            }
+          }
+        }
+      }
+
       if (this.approvalFilter === 'denied') {
         results = results.filter((prayer: Prayer) => {
           if (prayer.denial_reason) return true;
