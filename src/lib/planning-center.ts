@@ -11,6 +11,7 @@ export interface PlanningCenterAttributes {
   status: string;
   created_at: string;
   updated_at: string;
+  primary_email_address?: string;
 }
 
 export interface PlanningCenterPerson {
@@ -262,4 +263,56 @@ export async function batchLookupPlanningCenter(
  */
 export function formatPersonName(person: PlanningCenterPerson): string {
   return person.attributes.name || `${person.attributes.first_name} ${person.attributes.last_name}`;
+}
+/**
+ * Search for people by name in Planning Center
+ * Uses Supabase Edge Function to call Planning Center API
+ */
+export async function searchPlanningCenterByName(name: string, supabaseUrl: string, supabaseKey: string): Promise<EmailLookupResult> {
+  if (!name || name.trim() === '') {
+    return {
+      people: [],
+      count: 0,
+      error: 'Name search is required'
+    };
+  }
+
+  try {
+    // Use the same planning-center-lookup endpoint which supports name/email search
+    // The endpoint uses 'email' parameter but actually searches by name or email
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/planning-center-lookup`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: name.trim() })
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Planning Center search failed:', response.status, errorData);
+      return {
+        people: [],
+        count: 0,
+        error: errorData.error || 'Failed to search Planning Center'
+      };
+    }
+
+    const data = await response.json();
+    return {
+      people: data.people || [],
+      count: data.count || 0
+    };
+  } catch (error) {
+    console.error('Error in Planning Center search:', error);
+    return {
+      people: [],
+      count: 0,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 }

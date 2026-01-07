@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +43,7 @@ serve(async (req) => {
     const authHeader = 'Basic ' + btoa(`${PC_APP_ID}:${PC_SECRET}`)
 
     // Search for people by email using Planning Center People API
-    const searchUrl = `https://api.planningcenteronline.com/people/v2/people?where[search_name_or_email]=${encodeURIComponent(email)}&per_page=5`
+    const searchUrl = `https://api.planningcenteronline.com/people/v2/people?where[search_name_or_email]=${encodeURIComponent(email)}`
     
     const response = await fetch(searchUrl, {
       headers: {
@@ -70,11 +69,22 @@ serve(async (req) => {
 
     const data = await response.json()
     
+    // Add emails to people - use login_identifier which contains the email address
+    const peopleData = (data.data || []).map((person: any) => {
+      return {
+        ...person,
+        attributes: {
+          ...person.attributes,
+          primary_email_address: person.attributes?.login_identifier || null
+        }
+      }
+    })
+    
     // Return the results
     return new Response(
       JSON.stringify({ 
-        people: data.data || [],
-        count: data.data?.length || 0
+        people: peopleData,
+        count: peopleData.length
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

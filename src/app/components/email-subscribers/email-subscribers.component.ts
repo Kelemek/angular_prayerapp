@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
-import { lookupPersonByEmail, batchLookupPlanningCenter } from '../../../lib/planning-center';
+import { lookupPersonByEmail, batchLookupPlanningCenter, searchPlanningCenterByName, PlanningCenterPerson } from '../../../lib/planning-center';
 import { environment } from '../../../environments/environment';
 
 interface EmailSubscriber {
@@ -223,48 +223,164 @@ interface CSVRow {
 
       <!-- Add Subscriber Form -->
       @if (showAddForm) {
-      <form (ngSubmit)="handleAddSubscriber()" class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-            <input
-              type="text"
-              [(ngModel)]="newName"
-              name="newName"
-              placeholder="John Doe"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-            <input
-              type="email"
-              [(ngModel)]="newEmail"
-              name="newEmail"
-              placeholder="john@example.com"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
+      <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
+        <!-- Search Planning Center Tab -->
+        <div class="mb-4">
+          <div class="flex gap-2 border-b border-gray-300 dark:border-gray-600">
+            <button
+              (click)="pcSearchTab = false"
+              [class]="!pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+              class="focus:outline-none"
+            >
+              Manual Entry
+            </button>
+            <button
+              (click)="pcSearchTab = true"
+              [class]="pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+              class="focus:outline-none"
+            >
+              Search Planning Center
+            </button>
           </div>
         </div>
-        <div class="flex gap-2">
-          <button
-            type="submit"
-            [disabled]="submitting"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm"
-          >
-            {{ submitting ? 'Adding...' : 'Add Subscriber' }}
-          </button>
-          <button
-            type="button"
-            (click)="toggleAddForm()"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-          >
-            Cancel
-          </button>
+
+        <!-- Manual Entry Tab -->
+        @if (!pcSearchTab) {
+        <form (ngSubmit)="handleAddSubscriber()" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+              <input
+                type="text"
+                [(ngModel)]="newName"
+                name="newName"
+                placeholder="John Doe"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input
+                type="email"
+                [(ngModel)]="newEmail"
+                name="newEmail"
+                placeholder="john@example.com"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              [disabled]="submitting"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm"
+            >
+              {{ submitting ? 'Adding...' : 'Add Subscriber' }}
+            </button>
+            <button
+              type="button"
+              (click)="toggleAddForm()"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+        }
+
+        <!-- Planning Center Search Tab -->
+        @if (pcSearchTab) {
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Name</label>
+            <div class="flex gap-2">
+              <input
+                type="text"
+                [(ngModel)]="pcSearchQuery"
+                (keyup.enter)="handleSearchPlanningCenter()"
+                placeholder="Enter name to search..."
+                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                (click)="handleSearchPlanningCenter()"
+                [disabled]="pcSearching || !pcSearchQuery.trim()"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm"
+              >
+                @if (pcSearching) {
+                  Searching...
+                } @else {
+                  Search
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- Search Results -->
+          @if (pcSearching) {
+          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Searching Planning Center...</p>
+          </div>
+          }
+
+          @if (!pcSearching && pcSearchResults.length > 0) {
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Found {{ pcSearchResults.length }} result(s):</p>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              @for (person of pcSearchResults; track person.id) {
+              <div
+                (click)="selectPlanningCenterPerson(person)"
+                class="p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              >
+                <p class="font-medium text-gray-900 dark:text-gray-100">{{ person.attributes.name }}</p>
+                @if (person.attributes.primary_email_address) {
+                <p class="text-sm text-blue-600 dark:text-blue-400">{{ person.attributes.primary_email_address }}</p>
+                }
+                @if (person.attributes.first_name && person.attributes.last_name) {
+                <p class="text-xs text-gray-600 dark:text-gray-400">{{ person.attributes.first_name }} {{ person.attributes.last_name }}</p>
+                }
+              </div>
+              }
+            </div>
+          </div>
+          }
+
+          @if (!pcSearching && pcSearchSearched && pcSearchResults.length === 0) {
+          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">No results found</p>
+          </div>
+          }
+
+          <!-- Selected Person Info -->
+          @if (pcSelectedPerson) {
+          <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <p class="text-sm font-medium text-green-900 dark:text-green-200">Selected:</p>
+            <p class="text-sm text-green-800 dark:text-green-300">{{ pcSelectedPerson.attributes.name }}</p>
+            @if (pcSelectedPerson.attributes.primary_email_address) {
+            <p class="text-sm text-green-700 dark:text-green-400">{{ pcSelectedPerson.attributes.primary_email_address }}</p>
+            }
+          </div>
+          }
+
+          <div class="flex gap-2">
+            <button
+              (click)="handleAddSelectedPlanningCenterPerson()"
+              [disabled]="submitting || !pcSelectedPerson"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors text-sm"
+            >
+              {{ submitting ? 'Adding...' : 'Add Selected Subscriber' }}
+            </button>
+            <button
+              (click)="toggleAddForm()"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-      </form>
+        }
+      </div>
       }
 
       <!-- Search Form -->
@@ -516,6 +632,14 @@ export class EmailSubscribersComponent implements OnInit {
   totalItems = 0;
   allSubscribers: EmailSubscriber[] = [];
 
+  // Planning Center search properties
+  pcSearchTab = false;
+  pcSearchQuery = '';
+  pcSearching = false;
+  pcSearchSearched = false;
+  pcSearchResults: PlanningCenterPerson[] = [];
+  pcSelectedPerson: PlanningCenterPerson | null = null;
+
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
@@ -534,6 +658,12 @@ export class EmailSubscribersComponent implements OnInit {
     this.csvSuccess = null;
     this.newName = '';
     this.newEmail = '';
+    // Reset Planning Center search
+    this.pcSearchTab = false;
+    this.pcSearchQuery = '';
+    this.pcSearchResults = [];
+    this.pcSelectedPerson = null;
+    this.pcSearchSearched = false;
     this.cdr.markForCheck();
   }
 
@@ -996,5 +1126,81 @@ export class EmailSubscribersComponent implements OnInit {
       this.csvImportTotal = 0;
       this.cdr.markForCheck();
     }
+  }
+
+  async handleSearchPlanningCenter() {
+    if (!this.pcSearchQuery.trim()) {
+      this.error = 'Please enter a name to search';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.pcSearching = true;
+    this.pcSearchSearched = true;
+    this.pcSearchResults = [];
+    this.pcSelectedPerson = null;
+    this.error = null;
+    this.cdr.markForCheck();
+
+    try {
+      const result = await searchPlanningCenterByName(
+        this.pcSearchQuery,
+        environment.supabaseUrl,
+        environment.supabaseAnonKey
+      );
+
+      if (result.error) {
+        this.error = result.error;
+        this.pcSearchResults = [];
+      } else {
+        this.pcSearchResults = result.people;
+        if (result.count === 0) {
+          this.error = null;
+        }
+      }
+    } catch (err: any) {
+      console.error('Error searching Planning Center:', err);
+      this.error = err.message || 'An error occurred while searching Planning Center';
+      this.pcSearchResults = [];
+    } finally {
+      this.pcSearching = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  selectPlanningCenterPerson(person: PlanningCenterPerson) {
+    this.pcSelectedPerson = person;
+    // Pre-fill the name field with the selected person's name
+    this.newName = person.attributes.name || `${person.attributes.first_name} ${person.attributes.last_name}`;
+    this.cdr.markForCheck();
+  }
+
+  async handleAddSelectedPlanningCenterPerson() {
+    if (!this.pcSelectedPerson) {
+      this.error = 'Please select a person from Planning Center';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    // Fill in name and email from selected Planning Center person
+    const selectedName = this.pcSelectedPerson.attributes.name || 
+      `${this.pcSelectedPerson.attributes.first_name} ${this.pcSelectedPerson.attributes.last_name}`.trim();
+    
+    this.newName = selectedName;
+    this.newEmail = this.pcSelectedPerson.attributes.primary_email_address || '';
+    
+    this.error = null;
+    
+    // If we have both name and email, show success message and reset tab
+    if (this.newName && this.newEmail) {
+      this.toast.info('Name and email filled in! Click "Add Subscriber" to complete.');
+      this.pcSearchTab = false;
+    } else if (this.newName && !this.newEmail) {
+      // If we only have name, ask for email
+      this.toast.info('Name filled in! Please enter the email address for this contact.');
+      this.pcSearchTab = false;
+    }
+    
+    this.cdr.markForCheck();
   }
 }
