@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
+import { CacheService } from './cache.service';
 import { PrayerPrompt } from '../components/prompt-card/prompt-card.component';
 
 @Injectable({
@@ -18,50 +19,59 @@ export class PromptService {
 
   constructor(
     private supabase: SupabaseService,
-    private toast: ToastService
+    private toast: ToastService,
+    private cache: CacheService
   ) {
     this.loadPrompts();
   }
 
   /**
-   * Load prompts from database
+   * Load prompts from database with caching
    */
   async loadPrompts(): Promise<void> {
     try {
       this.loadingSubject.next(true);
       this.errorSubject.next(null);
 
-      // Fetch prayer types for ordering
-      const { data: typesData, error: typesError } = await this.supabase.client
-        .from('prayer_types')
-        .select('name, display_order')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      // Try to get from cache first
+      let sortedPrompts = this.cache.get<PrayerPrompt[]>('prompts');
 
-      if (typesError) throw typesError;
+      if (!sortedPrompts) {
+        // Fetch prayer types for ordering
+        const { data: typesData, error: typesError } = await this.supabase.client
+          .from('prayer_types')
+          .select('name, display_order')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
 
-      // Create a set of active type names for filtering
-      const activeTypeNames = new Set((typesData || []).map((t: any) => t.name));
+        if (typesError) throw typesError;
 
-      // Create a map of type name to display_order
-      const typeOrderMap = new Map(typesData?.map((t: any) => [t.name, t.display_order]) || []);
+        // Create a set of active type names for filtering
+        const activeTypeNames = new Set((typesData || []).map((t: any) => t.name));
 
-      // Fetch all prompts
-      const { data, error } = await this.supabase.client
-        .from('prayer_prompts')
-        .select('*')
-        .order('created_at', { ascending: false });
+        // Create a map of type name to display_order
+        const typeOrderMap = new Map(typesData?.map((t: any) => [t.name, t.display_order]) || []);
 
-      if (error) throw error;
+        // Fetch all prompts
+        const { data, error } = await this.supabase.client
+          .from('prayer_prompts')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      // Filter to only include prompts with active types, then sort by type's display_order
-      const sortedPrompts = (data || [])
-        .filter((p: any) => activeTypeNames.has(p.type))
-        .sort((a: any, b: any) => {
-          const orderA = typeOrderMap.get(a.type) ?? 999;
-          const orderB = typeOrderMap.get(b.type) ?? 999;
-          return orderA - orderB;
-        });
+        if (error) throw error;
+
+        // Filter to only include prompts with active types, then sort by type's display_order
+        sortedPrompts = (data || [])
+          .filter((p: any) => activeTypeNames.has(p.type))
+          .sort((a: any, b: any) => {
+            const orderA = typeOrderMap.get(a.type) ?? 999;
+            const orderB = typeOrderMap.get(b.type) ?? 999;
+            return orderA - orderB;
+          });
+
+        // Cache the results
+        this.cache.set('prompts', sortedPrompts);
+      }
 
       this.promptsSubject.next(sortedPrompts);
     } catch (err) {
