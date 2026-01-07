@@ -1158,6 +1158,10 @@ export class LoginComponent implements OnInit, OnDestroy {
           // Don't fail the request if email fails
         }
 
+        // Sign out user so they don't get a session in localStorage
+        // This prevents automatic login when navigating to the main site
+        await this.adminAuthService.logout();
+
         // Show pending approval message
         this.showSubscriberForm = false;
         this.showPendingApproval = true;
