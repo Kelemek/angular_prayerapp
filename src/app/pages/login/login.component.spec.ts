@@ -14,7 +14,8 @@ const makeMocks = () => {
     requireSiteLogin$,
     isAdmin$,
     sendMfaCode: vi.fn(async (email: string) => ({ success: true })),
-    verifyMfaCode: vi.fn(async (code: string) => ({ success: true, isAdmin: false }))
+    verifyMfaCode: vi.fn(async (code: string) => ({ success: true, isAdmin: false })),
+    logout: vi.fn(async () => {})
   };
 
   const supabaseService: any = {
@@ -35,7 +36,9 @@ const makeMocks = () => {
   };
 
   const userSessionService: any = {
-    waitForSession: vi.fn(async () => ({}))
+    waitForSession: vi.fn(async () => ({})),
+    loadUserSession: vi.fn(async () => {}),
+    clearSession: vi.fn()
   };
 
   const themeService: any = {
@@ -239,6 +242,7 @@ describe('LoginComponent', () => {
     comp.codeLength = 4;
     // make checkEmailSubscriber return false
     vi.spyOn(comp as any, 'checkEmailSubscriber').mockResolvedValue(false);
+    vi.spyOn(comp as any, 'checkPendingApprovalRequest').mockResolvedValue(false);
 
     await (comp as any).verifyMfaCode();
     // Wait for setTimeout (1 second delay) to complete
@@ -265,6 +269,7 @@ describe('LoginComponent', () => {
     comp.mfaCodeInput = comp.mfaCode.join('');
     comp.codeLength = 4;
     vi.spyOn(comp as any, 'checkEmailSubscriber').mockResolvedValue(false);
+    vi.spyOn(comp as any, 'checkPendingApprovalRequest').mockResolvedValue(false);
 
     await (comp as any).verifyMfaCode();
     // Wait for setTimeout (1 second delay) to complete
@@ -999,6 +1004,7 @@ describe('LoginComponent', () => {
     (comp as any).returnUrl = '/admin/dashboard';
     comp.isAdmin = false;
     vi.spyOn(comp as any, 'checkEmailSubscriber').mockResolvedValue(true);
+    vi.spyOn(comp as any, 'checkPendingApprovalRequest').mockResolvedValue(false);
     
     await (comp as any).verifyMfaCode();
     // Wait for setTimeout (1 second delay) to complete
@@ -1169,7 +1175,7 @@ describe('LoginComponent', () => {
     comp.mfaCodeInput = '1234';
     comp.codeLength = 4;
     
-    vi.spyOn(comp as any, 'checkEmailSubscriber').mockRejectedValue('string error');
+    vi.spyOn(comp as any, 'checkPendingApprovalRequest').mockRejectedValue('string error');
     
     await (comp as any).verifyMfaCode();
     // Wait for setTimeout (1 second delay) to complete

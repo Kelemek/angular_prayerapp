@@ -668,10 +668,26 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   private async checkEmailSubscriberAndNavigate(userEmail: string, isAdmin: boolean) {
     try {
+      // Check if user has a pending approval request FIRST - regardless of subscriber status
+      const hasPendingApproval = await this.checkPendingApprovalRequest(userEmail);
+      
+      if (hasPendingApproval) {
+        // User has pending approval - sign them out so they don't get a session
+        // This prevents automatic login when navigating to the main site
+        await this.adminAuthService.logout();
+        
+        // Show pending approval message instead of form or loading session
+        this.showSubscriberForm = false;
+        this.showPendingApproval = true;
+        this.loading = false;
+        this.cdr.markForCheck();
+        return;
+      }
+      
       const isSubscriber = await this.checkEmailSubscriber(userEmail);
       
       if (!isSubscriber) {
-        // User not in email_subscribers - check Planning Center
+        // Check Planning Center
         const pcResult = await lookupPersonByEmail(
           userEmail,
           environment.supabaseUrl,
@@ -1037,6 +1053,35 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (err instanceof Error && err.message.includes('blocked')) {
         throw err;
       }
+      return false;
+    }
+  }
+
+  private async checkPendingApprovalRequest(email: string): Promise<boolean> {
+    try {
+      console.log('[AdminLogin] Checking for pending approval request:', email);
+      const { data, error } = await this.supabaseService.directQuery<{
+        id: string;
+        approval_status: string;
+      }>(
+        'account_approval_requests',
+        {
+          select: 'id, approval_status',
+          eq: { email: email.toLowerCase(), approval_status: 'pending' },
+          limit: 1
+        }
+      );
+
+      if (error) {
+        console.error('[AdminLogin] Error checking pending approval:', error);
+        return false;
+      }
+
+      const hasPending = data && Array.isArray(data) && data.length > 0;
+      console.log('[AdminLogin] Pending approval check result:', hasPending);
+      return hasPending || false;
+    } catch (err) {
+      console.error('[AdminLogin] Exception checking pending approval:', err);
       return false;
     }
   }
