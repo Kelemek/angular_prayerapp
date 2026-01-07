@@ -200,10 +200,11 @@ import { environment } from '../../../environments/environment';
                   />
                 </div>
 
-                <!-- Church Affiliation / Reason -->
+                <!-- Church Affiliation / Reason (Only if approval required) -->
+                @if (requiresApproval) {
                 <div>
                   <label for="affiliation-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    How are you affiliated with the church?
+                    How are you affiliated with the church? <span class="text-red-600">*</span>
                   </label>
                   <textarea
                     id="affiliation-reason"
@@ -211,6 +212,7 @@ import { environment } from '../../../environments/environment';
                     placeholder="Please explain your connection or involvement with our church community (e.g., member, staff, volunteer, family of member, etc.)"
                     [disabled]="loading"
                     rows="3"
+                    required
                     class="w-full px-4 py-3 border-2 rounded-lg
                            bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                            border-emerald-400 dark:border-emerald-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200
@@ -219,6 +221,7 @@ import { environment } from '../../../environments/environment';
                   ></textarea>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This helps our administrators review your request</p>
                 </div>
+                }
 
                 <!-- Error Message -->
                 @if (error) {
@@ -233,7 +236,7 @@ import { environment } from '../../../environments/environment';
                 <!-- Save Button -->
                 <button
                   (click)="saveNewSubscriber()"
-                  [disabled]="loading || !firstName.trim() || !lastName.trim() || (!affiliationReason.trim() && requiresApproval)"
+                  [disabled]="loading || !firstName.trim() || !lastName.trim() || (requiresApproval && !affiliationReason.trim())"
                   type="button"
                   class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#2F5F54] hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2F5F54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
