@@ -1528,9 +1528,6 @@ describe('AdminAuthService', () => {
     });
   });
 
-  describe('Private helper methods', () => {
-  });
-
   describe('Focus event handler complete flow', () => {
     it('should handle focus event without crashing when user exists', async () => {
       let focusHandler: (() => void) | undefined;

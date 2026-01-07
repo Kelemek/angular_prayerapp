@@ -704,9 +704,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
     
     // Route to the appropriate page
-    // If returnUrl was set by a guard (like adminGuard), use it. Otherwise, route admin users to /admin and regular users to home
-    const destination = this.returnUrl !== '/' ? this.returnUrl : (isAdmin ? '/admin' : '/');
-    console.log('[AdminLogin] Routing to:', destination, '(isAdmin:', isAdmin, 'returnUrl:', this.returnUrl, ')');
+    // Only use returnUrl if it's NOT /admin (which would be from the admin guard redirect)
+    // This ensures admins only go to /admin if they explicitly request it, not from a guard redirect
+    const destination = (this.returnUrl && this.returnUrl !== '/' && this.returnUrl !== '/admin') ? this.returnUrl : '/';
+    console.log('[AdminLogin] Routing to:', destination, '(returnUrl:', this.returnUrl, ')');
     this.router.navigate([destination]);
   }
 
@@ -1167,9 +1168,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
       
       // Now route to the appropriate page
-      // If returnUrl was set by a guard (like adminGuard), use it. Otherwise, route admin users to /admin and regular users to home
-      const destination = this.returnUrl !== '/' ? this.returnUrl : (this.isAdmin ? '/admin' : '/');
-      console.log('[AdminLogin] Routing to:', destination, '(isAdmin:', this.isAdmin, 'returnUrl:', this.returnUrl, ')');
+      // Only use returnUrl if it's NOT /admin (which would be from the admin guard redirect)
+      // This ensures admins only go to /admin if they explicitly request it, not from a guard redirect
+      const destination = (this.returnUrl && this.returnUrl !== '/' && this.returnUrl !== '/admin') ? this.returnUrl : '/';
+      console.log('[AdminLogin] Routing to:', destination, '(returnUrl:', this.returnUrl, ')');
       this.router.navigate([destination]);
       
       return true;
