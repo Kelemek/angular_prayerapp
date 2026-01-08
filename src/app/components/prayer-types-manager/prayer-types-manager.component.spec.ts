@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { ChangeDetectorRef } from '@angular/core';
 import { PrayerTypesManagerComponent } from './prayer-types-manager.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -12,6 +13,7 @@ describe('PrayerTypesManagerComponent', () => {
   let mockSupabaseClient: any;
   let mockToastService: any;
   let mockPromptService: any;
+  let mockChangeDetectorRef: any;
 
   const createMockPrayerType = (overrides: Partial<PrayerTypeRecord> = {}): PrayerTypeRecord => ({
     id: 'type-1',
@@ -57,7 +59,12 @@ describe('PrayerTypesManagerComponent', () => {
       loadPrompts: vi.fn(() => Promise.resolve())
     } as unknown as PromptService;
 
-    component = new PrayerTypesManagerComponent(mockSupabaseService, mockToastService, mockPromptService);
+    // Create mock ChangeDetectorRef
+    mockChangeDetectorRef = {
+      markForCheck: vi.fn()
+    } as unknown as ChangeDetectorRef;
+
+    component = new PrayerTypesManagerComponent(mockSupabaseService, mockToastService, mockPromptService, mockChangeDetectorRef);
   });
 
   afterEach(() => {
@@ -335,9 +342,10 @@ describe('PrayerTypesManagerComponent', () => {
 
   describe('handleDelete', () => {
     it('should not delete if user cancels confirmation', async () => {
-      vi.stubGlobal('confirm', () => false);
-
       await component.handleDelete('type-1', 'Test Type');
+      expect(component.showConfirmationDialog).toBe(true);
+
+      await component.onCancelDelete();
 
       expect(component.showConfirmationDialog).toBe(false);
     });
@@ -378,7 +386,6 @@ describe('PrayerTypesManagerComponent', () => {
 
       expect(component.confirmationMessage).toContain('"Healing"');
       expect(component.showConfirmationDialog).toBe(true);
-    })
     });
   });
 

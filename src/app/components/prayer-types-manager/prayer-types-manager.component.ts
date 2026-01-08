@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -299,7 +299,8 @@ export class PrayerTypesManagerComponent implements OnInit {
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
-    private promptService: PromptService
+    private promptService: PromptService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -330,6 +331,7 @@ export class PrayerTypesManagerComponent implements OnInit {
       this.error = message;
     } finally {
       this.loading = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -402,6 +404,7 @@ export class PrayerTypesManagerComponent implements OnInit {
       this.error = `Failed to save prayer type: ${message}`;
     } finally {
       this.submitting = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -450,6 +453,8 @@ export class PrayerTypesManagerComponent implements OnInit {
         ? String(err.message)
         : 'Unknown error';
       this.error = message;
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 
@@ -480,6 +485,8 @@ export class PrayerTypesManagerComponent implements OnInit {
         ? String(err.message)
         : 'Unknown error';
       this.error = message;
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 
@@ -522,6 +529,7 @@ export class PrayerTypesManagerComponent implements OnInit {
       this.types = original;
     } finally {
       this.reordering = false;
+      this.cdr.markForCheck();
     }
   }
 
