@@ -26,7 +26,7 @@ export type NotificationType = 'prayer' | 'update' | 'subscriber';
           
           <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
             <p class="text-sm text-blue-700 dark:text-blue-300">
-              📧 Email will be sent to all active subscribers with the appropriate notification template.
+              📧 {{ getNotificationInfoText() }}
             </p>
           </div>
 
@@ -75,6 +75,13 @@ export class SendNotificationDialogComponent {
       return 'Would you like to send a welcome email to this new subscriber?';
     }
     return '';
+  }
+
+  getNotificationInfoText(): string {
+    if (this.notificationType === 'subscriber') {
+      return 'Email will be sent to this new subscriber with the welcome template.';
+    }
+    return 'Email will be sent to all active subscribers with the appropriate notification template.';
   }
 
   onConfirm() {

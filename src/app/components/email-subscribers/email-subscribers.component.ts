@@ -641,6 +641,7 @@ export class EmailSubscribersComponent implements OnInit {
   currentPage = 1;
   pageSize = 10;
   totalItems = 0;
+  totalActiveCount = 0;
   allSubscribers: EmailSubscriber[] = [];
 
   // Planning Center search properties
@@ -719,6 +720,7 @@ export class EmailSubscribersComponent implements OnInit {
 
       this.allSubscribers = data || [];
       this.totalItems = count || 0;
+      this.totalActiveCount = this.allSubscribers.filter(s => s.is_active).length;
       this.hasSearched = true;
       this.loadPageData();
       console.log('Loaded subscribers:', this.allSubscribers.length);
@@ -728,6 +730,7 @@ export class EmailSubscribersComponent implements OnInit {
       this.error = error instanceof Error ? error.message : 'Failed to fetch subscribers';
       this.subscribers = [];
       this.totalItems = 0;
+      this.totalActiveCount = 0;
       this.cdr.markForCheck();
     } finally {
       this.searching = false;
@@ -1018,7 +1021,7 @@ export class EmailSubscribersComponent implements OnInit {
   }
 
   getActiveCount(): number {
-    return this.subscribers.filter(s => s.is_active).length;
+    return this.totalActiveCount;
   }
 
   async uploadCSVData() {

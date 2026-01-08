@@ -792,20 +792,22 @@ describe('EmailSubscribersComponent', () => {
 
   describe('getActiveCount', () => {
     it('should count active subscribers', () => {
-      component.subscribers = [
+      component.allSubscribers = [
         { ...mockSubscriber, is_active: true },
         { ...mockSubscriber, is_active: false },
         { ...mockSubscriber, is_active: true }
       ];
+      component.totalActiveCount = 2;
 
       expect(component.getActiveCount()).toBe(2);
     });
 
     it('should return 0 for no active subscribers', () => {
-      component.subscribers = [
+      component.allSubscribers = [
         { ...mockSubscriber, is_active: false },
         { ...mockSubscriber, is_active: false }
       ];
+      component.totalActiveCount = 0;
 
       expect(component.getActiveCount()).toBe(0);
     });
