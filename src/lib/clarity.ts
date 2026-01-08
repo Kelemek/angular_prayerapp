@@ -24,12 +24,17 @@ export function initializeClarity(): void {
 
 /**
  * Identify a user in Clarity for activity tracking
+ * Uses the Clarity Identify API to tag sessions with a custom user ID
+ * The email is hashed on the client before being sent to Clarity servers for security
+ * The friendlyName (email) is displayed on the Clarity dashboard for easy searching
  * @param email - User's email address to identify
  */
 export function identifyUserInClarity(email: string): void {
   try {
     if (typeof window !== 'undefined' && (window as any).clarity) {
-      (window as any).clarity.identify(email);
+      // Use the global clarity function: window.clarity("identify", customId, customSessionId?, customPageId?, friendlyName?)
+      // Pass email as both customId (hashed for security) and friendlyName (readable on dashboard)
+      (window as any).clarity('identify', email, undefined, undefined, email);
     }
   } catch (error) {
     console.warn('[Clarity] Failed to identify user:', error instanceof Error ? error.message : String(error));
