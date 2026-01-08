@@ -1218,6 +1218,10 @@ export class LoginComponent implements OnInit, OnDestroy {
         console.warn('[AdminLogin] Failed to load user session:', sessionError);
         // Continue anyway - session might load asynchronously
       }
+
+      // Identify user in Clarity for analytics
+      const { identifyUserInClarity } = await import('../../../lib/clarity');
+      identifyUserInClarity(this.email);
       
       // Now route to the appropriate page
       // Only use returnUrl if it's NOT /admin (which would be from the admin guard redirect)

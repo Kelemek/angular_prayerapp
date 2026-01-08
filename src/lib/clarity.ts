@@ -21,3 +21,18 @@ export function initializeClarity(): void {
     console.error('✗ Failed to initialize Clarity:', error instanceof Error ? error.message : String(error));
   }
 }
+
+/**
+ * Identify a user in Clarity for activity tracking
+ * @param email - User's email address to identify
+ */
+export function identifyUserInClarity(email: string): void {
+  try {
+    if (typeof window !== 'undefined' && (window as any).clarity) {
+      (window as any).clarity.identify(email);
+    }
+  } catch (error) {
+    console.warn('[Clarity] Failed to identify user:', error instanceof Error ? error.message : String(error));
+    // Don't break the app if Clarity fails
+  }
+}
