@@ -687,7 +687,7 @@ export class EmailSubscribersComponent implements OnInit {
   allSubscribers: EmailSubscriber[] = [];
 
   // Sorting properties
-  sortBy: 'name' | 'email' | 'created_at' | 'last_activity_date' | 'is_active' | 'is_blocked' | 'in_planning_center' = 'created_at';
+  sortBy: 'name' | 'email' | 'created_at' | 'last_activity_date' | 'is_active' | 'is_blocked' | 'in_planning_center' = 'name';
   sortDirection: 'asc' | 'desc' = 'desc';
 
   // Planning Center search properties
