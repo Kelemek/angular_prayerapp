@@ -1064,8 +1064,8 @@ interface NewUpdate {
     <app-confirmation-dialog
       [title]="confirmationTitle"
       [message]="confirmationMessage"
-      [isDangerous]="true"
-      [confirmText]="'Delete'"
+      [isDangerous]="confirmationIsDangerous"
+      [confirmText]="confirmationButtonText"
       (confirm)="onConfirmDelete()"
       (cancel)="onCancelDelete()"
     ></app-confirmation-dialog>
@@ -1121,6 +1121,10 @@ export class PrayerSearchComponent implements OnInit {
   confirmationTitle = '';
   confirmationMessage = '';
   confirmationPrayerId: string | null = null;
+  isMultiSelectDelete = false; // Track if this is a multi-select delete
+  isStatusUpdateConfirmation = false; // Track if this is a bulk status update
+  confirmationButtonText = 'Delete';
+  confirmationIsDangerous = true;
   
   // Pagination properties
   currentPage = 1;
@@ -1404,17 +1408,99 @@ export class PrayerSearchComponent implements OnInit {
   async deletePrayer(prayer: Prayer): Promise<void> {
     this.confirmationTitle = 'Delete Prayer';
     this.confirmationMessage = `Are you sure you want to delete the prayer "${prayer.title}"? This action cannot be undone.`;
+    this.confirmationButtonText = 'Delete';
+    this.confirmationIsDangerous = true;
     this.confirmationPrayerId = prayer.id;
     this.showConfirmationDialog = true;
   }
 
   async onConfirmDelete(): Promise<void> {
-    if (!this.confirmationPrayerId) return;
-
     try {
+      // Handle bulk status update
+      if (this.isStatusUpdateConfirmation) {
+        this.updatingStatus = true;
+        this.showConfirmationDialog = false;
+        this.isStatusUpdateConfirmation = false;
+
+        const statusLabel = this.bulkStatus === 'current' ? 'Current'
+          : this.bulkStatus === 'answered' ? 'Answered'
+          : 'Archived';
+
+        const prayerIds = Array.from(this.selectedPrayers);
+
+        const { error: updateError } = await this.supabaseService.getClient()
+          .from('prayers')
+          .update({ status: this.bulkStatus })
+          .in('id', prayerIds);
+
+        if (updateError) {
+          throw new Error(`Failed to update prayer statuses: ${updateError.message}`);
+        }
+
+        this.allPrayers = this.allPrayers.map(p =>
+          this.selectedPrayers.has(p.id) ? { ...p, status: this.bulkStatus } : p
+        );
+        this.searchResults = this.searchResults.map(p =>
+          this.selectedPrayers.has(p.id) ? { ...p, status: this.bulkStatus } : p
+        );
+        this.loadPageData();
+
+        this.selectedPrayers = new Set();
+        this.bulkStatus = '';
+        this.cdr.markForCheck();
+        this.prayerService.loadPrayers().catch(err => {
+          console.debug('[PrayerSearch] Refresh after bulk status update failed:', err);
+        });
+        this.toast.success(`${prayerIds.length} prayers updated to ${statusLabel}`);
+        this.updatingStatus = false;
+        return;
+      }
+
       this.deleting = true;
       this.error = null;
 
+      // Handle multi-select delete
+      if (this.isMultiSelectDelete && this.selectedPrayers.size > 0) {
+        this.showConfirmationDialog = false;
+        this.isMultiSelectDelete = false;
+
+        const prayerIds = Array.from(this.selectedPrayers);
+
+        const { error: updatesError } = await this.supabaseService.getClient()
+          .from('prayer_updates')
+          .delete()
+          .in('prayer_id', prayerIds);
+
+        if (updatesError) {
+          throw new Error(`Failed to delete prayer updates: ${updatesError.message}`);
+        }
+
+        const { error: prayersError } = await this.supabaseService.getClient()
+          .from('prayers')
+          .delete()
+          .in('id', prayerIds);
+
+        if (prayersError) {
+          throw new Error(`Failed to delete prayers: ${prayersError.message}`);
+        }
+
+        this.searchResults = this.searchResults.filter(p => !this.selectedPrayers.has(p.id));
+        this.allPrayers = this.allPrayers.filter(p => !this.selectedPrayers.has(p.id));
+        this.totalItems = this.allPrayers.length;
+        this.currentPage = 1;
+        this.loadPageData();
+        this.selectedPrayers = new Set();
+        this.cdr.markForCheck();
+        this.prayerService.loadPrayers().catch(err => {
+          console.debug('[PrayerSearch] Refresh after bulk delete failed:', err);
+        });
+        this.toast.success(`${prayerIds.length} prayers deleted successfully`);
+        return;
+      }
+
+      // Handle single prayer delete
+      if (!this.confirmationPrayerId) return;
+      
       const prayerId = this.confirmationPrayerId;
       this.showConfirmationDialog = false;
       this.confirmationPrayerId = null;
@@ -1459,6 +1545,8 @@ export class PrayerSearchComponent implements OnInit {
   onCancelDelete(): void {
     this.showConfirmationDialog = false;
     this.confirmationPrayerId = null;
+    this.isMultiSelectDelete = false;
+    this.isStatusUpdateConfirmation = false;
   }
 
   startEditPrayer(prayer: Prayer): void {
@@ -1675,54 +1763,13 @@ export class PrayerSearchComponent implements OnInit {
   async deleteSelected(): Promise<void> {
     if (this.selectedPrayers.size === 0) return;
 
-    if (!confirm(`Are you sure you want to delete ${this.selectedPrayers.size} prayer(s)? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      this.deleting = true;
-      this.error = null;
-
-      const prayerIds = Array.from(this.selectedPrayers);
-
-      const { error: updatesError } = await this.supabaseService.getClient()
-        .from('prayer_updates')
-        .delete()
-        .in('prayer_id', prayerIds);
-
-      if (updatesError) {
-        throw new Error(`Failed to delete prayer updates: ${updatesError.message}`);
-      }
-
-      const { error: prayersError } = await this.supabaseService.getClient()
-        .from('prayers')
-        .delete()
-        .in('id', prayerIds);
-
-      if (prayersError) {
-        throw new Error(`Failed to delete prayers: ${prayersError.message}`);
-      }
-
-      this.searchResults = this.searchResults.filter(p => !this.selectedPrayers.has(p.id));
-      this.allPrayers = this.allPrayers.filter(p => !this.selectedPrayers.has(p.id));
-      this.totalItems = this.allPrayers.length;
-      this.currentPage = 1;
-      this.loadPageData();
-      this.selectedPrayers = new Set();
-      this.cdr.markForCheck();
-      this.prayerService.loadPrayers().catch(err => {
-        console.debug('[PrayerSearch] Refresh after bulk delete failed:', err);
-      });
-      this.toast.success(`${prayerIds.length} prayers deleted successfully`);
-    } catch (err: unknown) {
-      console.error('Error deleting prayers:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete selected prayers';
-      this.error = errorMessage;
-      this.toast.error(errorMessage);
-    } finally {
-      this.deleting = false;
-      this.cdr.markForCheck();
-    }
+    // Show confirmation dialog instead of window.confirm
+    this.confirmationTitle = 'Delete Selected Prayers';
+    this.confirmationMessage = `Are you sure you want to delete ${this.selectedPrayers.size} prayer(s)? This action cannot be undone.`;
+    this.confirmationButtonText = 'Delete';
+    this.confirmationIsDangerous = true;
+    this.isMultiSelectDelete = true;
+    this.showConfirmationDialog = true;
   }
 
   async updateSelectedStatus(): Promise<void> {
@@ -1732,49 +1779,13 @@ export class PrayerSearchComponent implements OnInit {
       : this.bulkStatus === 'answered' ? 'Answered'
       : 'Archived';
 
-    if (!confirm(`Are you sure you want to change ${this.selectedPrayers.size} prayer(s) to "${statusLabel}" status?`)) {
-      return;
-    }
-
-    try {
-      this.updatingStatus = true;
-      this.error = null;
-
-      const prayerIds = Array.from(this.selectedPrayers);
-
-      const { error: updateError } = await this.supabaseService.getClient()
-        .from('prayers')
-        .update({ status: this.bulkStatus })
-        .in('id', prayerIds);
-
-      if (updateError) {
-        throw new Error(`Failed to update prayer statuses: ${updateError.message}`);
-      }
-
-      this.allPrayers = this.allPrayers.map(p =>
-        this.selectedPrayers.has(p.id) ? { ...p, status: this.bulkStatus } : p
-      );
-      this.searchResults = this.searchResults.map(p =>
-        this.selectedPrayers.has(p.id) ? { ...p, status: this.bulkStatus } : p
-      );
-      this.loadPageData();
-
-      this.selectedPrayers = new Set();
-      this.bulkStatus = '';
-      this.cdr.markForCheck();
-      this.prayerService.loadPrayers().catch(err => {
-        console.debug('[PrayerSearch] Refresh after bulk status update failed:', err);
-      });
-      this.toast.success(`${prayerIds.length} prayers updated to ${statusLabel}`);
-    } catch (err: unknown) {
-      console.error('Error updating prayer statuses:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update prayer statuses';
-      this.error = errorMessage;
-      this.toast.error(errorMessage);
-    } finally {
-      this.updatingStatus = false;
-      this.cdr.markForCheck();
-    }
+    // Show confirmation dialog instead of window.confirm
+    this.confirmationTitle = 'Update Prayer Status';
+    this.confirmationMessage = `Are you sure you want to change ${this.selectedPrayers.size} prayer(s) to "${statusLabel}" status?`;
+    this.confirmationButtonText = 'Update';
+    this.confirmationIsDangerous = false;
+    this.isStatusUpdateConfirmation = true;
+    this.showConfirmationDialog = true;
   }
 
   async saveNewUpdate(prayerId: string): Promise<void> {

@@ -156,35 +156,14 @@ export class AdminDataService {
           .select('*')
           .eq('approval_status', 'pending')
           .order('created_at', { ascending: false })
-          .then(async (result) => {
-            // Debug: Check auth status
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            console.log('[AdminDataService] Auth session for account requests:', {
-              hasSession: !!session,
-              userId: session?.user?.id,
-              role: session?.user?.role,
-              email: session?.user?.email
-            });
-            console.log('[AdminDataService] Account requests query result:', result);
-            return result;
-          })
       ]);
 
       // Check for errors
       if (pendingPrayersResult.error) throw pendingPrayersResult.error;
       if (pendingUpdatesResult.error) throw pendingUpdatesResult.error;
       if (pendingAccountRequestsResult.error) {
-        console.error('[AdminDataService] Error fetching account approval requests:', pendingAccountRequestsResult.error);
         throw pendingAccountRequestsResult.error;
       }
-
-      console.log('[AdminDataService] Account approval requests raw result:', {
-        count: pendingAccountRequestsResult.data?.length || 0,
-        data: pendingAccountRequestsResult.data,
-        error: pendingAccountRequestsResult.error,
-        status: (pendingAccountRequestsResult as any).status,
-        statusText: (pendingAccountRequestsResult as any).statusText
-      });
 
       // Transform data
       const pendingUpdates = (pendingUpdatesResult.data || []).map((u: any) => ({
@@ -223,12 +202,6 @@ export class AdminDataService {
         deniedUpdatesCount: 0,
         loading: false,
         error: null
-      });
-
-      console.log('[AdminDataService] Pending account requests fetched:', {
-        count: pendingAccountRequestsResult.data?.length || 0,
-        data: pendingAccountRequestsResult.data,
-        error: pendingAccountRequestsResult.error
       });
 
       // PHASE 2: Fetch approved/denied data in background (non-blocking)
@@ -887,7 +860,6 @@ export class AdminDataService {
       );
       inPlanningCenter = pcResult.count > 0;
       planningCenterCheckedAt = new Date().toISOString();
-      console.log(`[AccountApproval] Planning Center check for ${request.email}: ${inPlanningCenter}`);
     } catch (pcError) {
       console.error('[AccountApproval] Planning Center lookup failed:', pcError);
       // Continue with null values if check fails - don't block approval

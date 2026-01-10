@@ -36,6 +36,7 @@ interface AdminUser {
         <button
           (click)="showAddForm = true"
           class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          title="Click to add a new administrator. You will be able to enter their email address and send them an invitation to join as an admin."
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -142,6 +143,7 @@ interface AdminUser {
               [disabled]="adding"
               class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Add new admin user"
+              title="Send an invitation email to the entered email address. The user will need to accept the invitation to become an administrator."
             >
               @if (adding) {
               <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -159,6 +161,7 @@ interface AdminUser {
               [disabled]="adding"
               class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               aria-label="Cancel adding new admin"
+              title="Close the add admin form without making any changes."
             >
               Cancel
             </button>
@@ -214,6 +217,7 @@ interface AdminUser {
               (click)="deleteAdmin(admin.email)"
               class="px-3 py-1 bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-white text-sm rounded transition-colors"
               aria-label="Confirm deletion of admin access"
+              title="Confirm removing admin access for this user. This action cannot be undone. They will lose all administrative privileges."
             >
               Confirm
             </button>
@@ -221,6 +225,7 @@ interface AdminUser {
               (click)="deletingEmail = null"
               class="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               aria-label="Cancel deletion"
+              title="Cancel removing admin access. No changes will be made."
             >
               Cancel
             </button>
@@ -235,6 +240,7 @@ interface AdminUser {
               [class]="'p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ' + (admin.receive_admin_emails ? 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 focus:ring-green-500' : 'text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-gray-500')"
               [attr.aria-label]="'Email notifications for ' + admin.name + ' are ' + (admin.receive_admin_emails ? 'enabled' : 'disabled')"
               [attr.aria-pressed]="admin.receive_admin_emails"
+              [title]="admin.receive_admin_emails ? 'Click to disable email notifications for ' + admin.name + '. They will no longer receive admin alerts and updates.' : 'Click to enable email notifications for ' + admin.name + '. They will receive admin alerts and updates about prayers and system events.'"
             >
               @if (admin.receive_admin_emails) {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -257,6 +263,7 @@ interface AdminUser {
               [disabled]="admins.length === 1"
               class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               [attr.aria-label]="admins.length === 1 ? 'Cannot delete, this is the last admin' : 'Remove admin access for ' + admin.name"
+              [title]="admins.length === 1 ? 'Cannot remove the last admin. At least one admin must be present to manage the application.' : 'Click to remove admin access for ' + admin.name + '. You will be asked to confirm this action.'"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>

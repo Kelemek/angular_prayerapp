@@ -1017,7 +1017,14 @@ export class EmailSubscribersComponent implements OnInit {
       if (error) throw error;
 
       this.toast.success(currentStatus ? 'Subscriber deactivated' : 'Subscriber activated');
-      await this.handleSearch();
+      
+      // Update the local data instead of resetting pagination
+      const subscriber = this.allSubscribers.find(s => s.id === id);
+      if (subscriber) {
+        subscriber.is_active = !currentStatus;
+        this.totalActiveCount = this.allSubscribers.filter(s => s.is_active).length;
+        this.cdr.markForCheck();
+      }
     } catch (err: any) {
       console.error('Error toggling subscriber status:', err);
       this.toast.error('Failed to update subscriber status');
@@ -1034,7 +1041,13 @@ export class EmailSubscribersComponent implements OnInit {
       if (error) throw error;
 
       this.toast.success(currentStatus ? 'User unblocked - login enabled' : 'User blocked - login disabled');
-      await this.handleSearch();
+      
+      // Update the local data instead of resetting pagination
+      const subscriber = this.allSubscribers.find(s => s.id === id);
+      if (subscriber) {
+        subscriber.is_blocked = !currentStatus;
+        this.cdr.markForCheck();
+      }
     } catch (err: any) {
       console.error('Error toggling user blocked status:', err);
       this.toast.error('Failed to update user blocked status');
@@ -1074,6 +1087,13 @@ export class EmailSubscribersComponent implements OnInit {
 
             if (updateError) throw updateError;
             this.csvSuccess = `Admin ${email} has been unsubscribed from emails but retains admin access to the portal.`;
+            
+            // Update the local data instead of resetting pagination
+            const sub = this.allSubscribers.find(s => s.id === id);
+            if (sub) {
+              sub.is_active = false;
+              this.totalActiveCount = this.allSubscribers.filter(s => s.is_active).length;
+            }
           } else {
             const { error } = await this.supabase.client
               .from('email_subscribers')
@@ -1082,9 +1102,17 @@ export class EmailSubscribersComponent implements OnInit {
 
             if (error) throw error;
             this.toast.success('Subscriber removed');
+            
+            // Update the local data instead of resetting pagination
+            this.allSubscribers = this.allSubscribers.filter(s => s.id !== id);
+            this.totalItems = this.allSubscribers.length;
+            // If current page is now empty, go to previous page
+            const startIndex = (this.currentPage - 1) * this.pageSize;
+            if (startIndex >= this.allSubscribers.length && this.currentPage > 1) {
+              this.currentPage--;
+            }
           }
 
-          await this.handleSearch();
           this.cdr.markForCheck();
         } catch (err: any) {
           console.error('Error removing subscriber:', err);

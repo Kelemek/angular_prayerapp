@@ -1802,7 +1802,7 @@ describe('AdminDataService', () => {
   });
 
   describe('Branch coverage - error handling', () => {
-    it('should handle requester notification error in sendApprovedPrayerEmails', async () => {
+    it('should handle requester notification error in approvePrayer', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
       const mockPrayer = { 
@@ -1816,6 +1816,9 @@ describe('AdminDataService', () => {
       };
 
       mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: [mockPrayer], error: null }))
+        })),
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
@@ -1823,14 +1826,13 @@ describe('AdminDataService', () => {
         }))
       }));
 
-      mockEmailNotificationService.sendApprovedPrayerNotification = vi.fn(() => Promise.resolve());
       mockEmailNotificationService.sendRequesterApprovalNotification = vi.fn()
         .mockRejectedValue(new Error('Notification failed'));
 
-      await service.sendApprovedPrayerEmails('1');
+      await service.approvePrayer('1');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to send requester notification:',
+        'Failed to send requester approval notification:',
         expect.any(Error)
       );
       consoleErrorSpy.mockRestore();
@@ -1942,11 +1944,7 @@ describe('AdminDataService', () => {
         // Expected to throw
       }
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[AdminDataService] Error fetching account approval requests:',
-        accountError
-      );
-      
+      // The error should be thrown and caught, but we no longer log it in production code
       consoleErrorSpy.mockRestore();
     });
 
@@ -2024,7 +2022,7 @@ describe('AdminDataService', () => {
       expect(mockEmailNotificationService.sendUpdateDenialNotification).not.toHaveBeenCalled();
     });
 
-    it('should handle anonymous prayer in sendApprovedPrayerEmails correctly', async () => {
+    it('should handle anonymous prayer in approvePrayer correctly', async () => {
       const mockPrayer = { 
         id: '1', 
         title: 'Test Prayer',
@@ -2036,6 +2034,9 @@ describe('AdminDataService', () => {
       };
 
       mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: [mockPrayer], error: null }))
+        })),
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
@@ -2043,11 +2044,10 @@ describe('AdminDataService', () => {
         }))
       }));
 
-      mockEmailNotificationService.sendApprovedPrayerNotification = vi.fn(() => Promise.resolve());
       mockEmailNotificationService.sendRequesterApprovalNotification = vi.fn()
         .mockResolvedValue(undefined);
 
-      await service.sendApprovedPrayerEmails('1');
+      await service.approvePrayer('1');
 
       // Should show 'Anonymous' for anonymous prayers
       expect(mockEmailNotificationService.sendRequesterApprovalNotification).toHaveBeenCalledWith(

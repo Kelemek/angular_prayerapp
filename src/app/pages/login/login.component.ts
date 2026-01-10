@@ -278,6 +278,31 @@ import { environment } from '../../../environments/environment';
             </div>
             }
 
+            <!-- Blocked Account Message -->
+            @if (showBlockedMessage) {
+            <div class="mt-4">
+              <div class="bg-white dark:bg-gray-800 rounded-md p-4 border border-amber-200 dark:border-amber-800 space-y-4">
+                <div class="flex items-start gap-3">
+                  <svg class="text-amber-600 dark:text-amber-400 w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                  </svg>
+                  <div>
+                    <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      Account Access Restricted
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Your account has been temporarily restricted and you are unable to access the prayer community at this time.
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                      Please contact an administrator for assistance in restoring your account access.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+
             <!-- Step-by-step instructions (while waiting for MFA code) -->
             @if (waitingForMfaCode && !showSubscriberForm) {
             <div class="mt-4 bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800">
@@ -407,6 +432,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   // Subscriber form state
   showSubscriberForm = false;
   showPendingApproval = false; // Show pending approval message
+  showBlockedMessage = false; // Show blocked account message
   requiresApproval = false; // Track if user needs admin approval
   firstName = '';
   lastName = '';
@@ -456,7 +482,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       
       // If user was blocked and logged out
       if (params['blocked'] === 'true') {
-        this.error = 'This account has been blocked. Please contact an administrator.';
+        this.showBlockedMessage = true;
       }
     });
 
@@ -708,7 +734,12 @@ export class LoginComponent implements OnInit, OnDestroy {
         return;
       }
     } catch (blockError) {
-      this.error = blockError instanceof Error ? blockError.message : 'Access denied';
+      const errorMsg = blockError instanceof Error ? blockError.message : 'Access denied';
+      if (errorMsg.includes('blocked')) {
+        this.showBlockedMessage = true;
+      } else {
+        this.error = errorMsg;
+      }
       this.loading = false;
       this.cdr.markForCheck();
       return;

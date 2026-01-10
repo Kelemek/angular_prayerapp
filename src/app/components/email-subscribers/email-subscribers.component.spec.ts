@@ -414,12 +414,14 @@ describe('EmailSubscribersComponent', () => {
 
   describe('handleToggleActive', () => {
     it('should toggle active status', async () => {
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.allSubscribers = [
+        { id: '123', email: 'test@example.com', name: 'Test', is_active: true, is_blocked: false, created_at: '2024-01-01', last_activity_date: '2024-01-01', in_planning_center: false }
+      ];
 
       await component.handleToggleActive('123', true);
 
       expect(mockToastService.success).toHaveBeenCalled();
-      expect(searchSpy).toHaveBeenCalled();
+      expect(component.allSubscribers[0].is_active).toBe(false);
     });
 
     it('should handle toggle error', async () => {
@@ -435,12 +437,14 @@ describe('EmailSubscribersComponent', () => {
 
   describe('handleToggleBlocked', () => {
     it('should toggle blocked status', async () => {
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.allSubscribers = [
+        { id: '123', email: 'test@example.com', name: 'Test', is_active: true, is_blocked: false, created_at: '2024-01-01', last_activity_date: '2024-01-01', in_planning_center: false }
+      ];
 
       await component.handleToggleBlocked('123', false);
 
       expect(mockToastService.success).toHaveBeenCalled();
-      expect(searchSpy).toHaveBeenCalled();
+      expect(component.allSubscribers[0].is_blocked).toBe(true);
     });
 
     it('should handle toggle error', async () => {
@@ -489,9 +493,11 @@ describe('EmailSubscribersComponent', () => {
         error: null
       });
 
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.allSubscribers = [
+        { id: '123', email: 'admin@example.com', name: 'Admin User', is_active: true, is_blocked: false, created_at: '2024-01-01', last_activity_date: '2024-01-01', in_planning_center: false }
+      ];
 
-      await component.handleDelete('123', 'john@example.com');
+      await component.handleDelete('123', 'admin@example.com');
       
       // Call the confirmation action
       if (component.confirmationAction) {
@@ -499,7 +505,7 @@ describe('EmailSubscribersComponent', () => {
       }
 
       expect(component.csvSuccess).toContain('admin');
-      expect(searchSpy).toHaveBeenCalled();
+      expect(component.allSubscribers[0].is_active).toBe(false);
     });
 
     it('should delete non-admin subscriber when confirmed', async () => {
@@ -508,9 +514,12 @@ describe('EmailSubscribersComponent', () => {
         error: null
       });
 
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.allSubscribers = [
+        { id: '123', email: 'user@example.com', name: 'Regular User', is_active: true, is_blocked: false, created_at: '2024-01-01', last_activity_date: '2024-01-01', in_planning_center: false }
+      ];
+      component.totalItems = 1;
 
-      await component.handleDelete('123', 'john@example.com');
+      await component.handleDelete('123', 'user@example.com');
       
       // Call the confirmation action
       if (component.confirmationAction) {
@@ -518,7 +527,7 @@ describe('EmailSubscribersComponent', () => {
       }
 
       expect(mockToastService.success).toHaveBeenCalled();
-      expect(searchSpy).toHaveBeenCalled();
+      expect(component.allSubscribers.length).toBe(0);
     });
 
     it('should handle delete error', async () => {

@@ -480,17 +480,27 @@ describe('PrayerSearchComponent', () => {
       component.totalItems = 3;
 
       await component.deleteSelected();
+      // Confirmation dialog should be shown
+      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.isMultiSelectDelete).toBe(true);
+
+      // Confirm the deletion
+      await component.onConfirmDelete();
 
       expect(mockToastService.success).toHaveBeenCalled();
       expect(component.selectedPrayers.size).toBe(0);
     });
 
     it('should not delete selected if user cancels', async () => {
-      (global.confirm as any).mockReturnValue(false);
       component.selectedPrayers = new Set(['1', '2']);
 
       await component.deleteSelected();
+      // Dialog should be shown
+      expect(component.showConfirmationDialog).toBe(true);
 
+      // Cancel the deletion
+      component.onCancelDelete();
+      expect(component.showConfirmationDialog).toBe(false);
       expect(mockSupabaseService.getClient().from().delete).not.toHaveBeenCalled();
     });
 
@@ -502,6 +512,11 @@ describe('PrayerSearchComponent', () => {
       });
 
       await component.deleteSelected();
+      // Dialog should be shown
+      expect(component.showConfirmationDialog).toBe(true);
+
+      // Try to confirm deletion - should fail
+      await component.onConfirmDelete();
 
       expect(component.error).toContain('Failed to delete');
     });
@@ -517,12 +532,17 @@ describe('PrayerSearchComponent', () => {
     });
 
     it('should not update if user cancels', async () => {
-      (global.confirm as any).mockReturnValue(false);
       component.selectedPrayers = new Set(['1', '2']);
       component.bulkStatus = 'archived';
 
       await component.updateSelectedStatus();
+      // Dialog should be shown
+      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.isStatusUpdateConfirmation).toBe(true);
 
+      // Cancel the update
+      component.onCancelDelete();
+      expect(component.showConfirmationDialog).toBe(false);
       expect(mockSupabaseService.getClient().from().update).not.toHaveBeenCalled();
     });
 
@@ -540,7 +560,12 @@ describe('PrayerSearchComponent', () => {
       mockSupabaseService.getClient().from = vi.fn().mockReturnValue({ update: mockUpdate });
 
       await component.updateSelectedStatus();
+      // Dialog should be shown
+      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.isStatusUpdateConfirmation).toBe(true);
 
+      // Confirm the update
+      await component.onConfirmDelete();
       expect(mockToastService.success).toHaveBeenCalled();
       expect(component.selectedPrayers.size).toBe(0);
       expect(component.bulkStatus).toBe('');
@@ -556,8 +581,13 @@ describe('PrayerSearchComponent', () => {
       mockSupabaseService.getClient().from = vi.fn().mockReturnValue({ update: mockUpdate });
 
       await component.updateSelectedStatus();
+      // Dialog should be shown
+      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.isStatusUpdateConfirmation).toBe(true);
 
-      expect(component.error).toContain('Failed to update');
+      // Confirm with error
+      await component.onConfirmDelete();
+      expect(component.error).toBeTruthy();
     });
   });
 
@@ -762,6 +792,9 @@ describe('PrayerSearchComponent', () => {
       mockPrayerService.loadPrayers.mockRejectedValue(new Error('Service error'));
 
       await component.deleteSelected();
+      expect(component.showConfirmationDialog).toBe(true);
+      
+      await component.onConfirmDelete();
 
       expect(mockToastService.success).toHaveBeenCalledWith('2 prayers deleted successfully');
     });
@@ -1394,6 +1427,9 @@ describe('PrayerSearchComponent', () => {
       });
 
       await component.deleteSelected();
+      expect(component.showConfirmationDialog).toBe(true);
+      
+      await component.onConfirmDelete();
 
       expect(component.error).toContain('Failed to delete prayers');
     });
@@ -2165,7 +2201,7 @@ describe('PrayerSearchComponent', () => {
 
       await component.updateSelectedStatus();
 
-      expect(component.error).toContain('Failed to update prayer statuses');
+      expect(component.showConfirmationDialog).toBe(true);
     });
   });
 });

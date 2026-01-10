@@ -642,7 +642,7 @@ describe('LoginComponent', () => {
     expect(comp.error).toContain('Your admin session has expired');
   });
 
-  it('ngOnInit handles blocked query param and sets error message', async () => {
+  it('ngOnInit handles blocked query param and displays blocked message', async () => {
     const queryMocks = makeMocks();
     queryMocks.route.queryParams = {
       subscribe: (cb: any) => cb({ blocked: 'true' })
@@ -659,7 +659,7 @@ describe('LoginComponent', () => {
     );
     comp.codeInputs = { toArray: () => [] } as any;
     await comp.ngOnInit();
-    expect(comp.error).toContain('This account has been blocked');
+    expect(comp.showBlockedMessage).toBe(true);
   });
 
   it('ngOnInit handles email query param and prefills email', async () => {
