@@ -9,26 +9,11 @@ html {
 
 /* iOS PWA Safe Area - Only applies when running as standalone app */
 @media (display-mode: standalone) {
-  /* Add padding to body to accommodate safe area and keep nav below it */
-  body {
+  /* Add padding to the header element to push it below the notch */
+  header {
     padding-top: max(0px, env(safe-area-inset-top));
     padding-left: max(0px, env(safe-area-inset-left));
     padding-right: max(0px, env(safe-area-inset-right));
-    /* Light mode: match header background color */
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.5) max(0px, env(safe-area-inset-top)),
-      transparent max(0px, env(safe-area-inset-top))
-    );
-  }
-
-  /* Dark mode: match dark header background */
-  body.dark {
-    background: linear-gradient(
-      to bottom,
-      rgba(31, 41, 55, 0.5) max(0px, env(safe-area-inset-top)),
-      transparent max(0px, env(safe-area-inset-top))
-    );
   }
 }
 
