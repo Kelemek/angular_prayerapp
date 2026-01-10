@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { PrayerService } from './prayer.service';
 import { EmailNotificationService } from './email-notification.service';
+import { environment } from '../../environments/environment';
 import type { 
   PrayerRequest, 
   PrayerUpdate, 
@@ -1022,8 +1023,8 @@ export class AdminDataService {
    * Sends an immediate request to process the email queue
    */
   private async triggerEmailProcessor(): Promise<void> {
-    const token = (import.meta as any).env?.VITE_GITHUB_PAT as string | undefined;
-    const repo = (import.meta as any).env?.VITE_GITHUB_REPO as string | undefined;
+    const token = environment.githubPat;
+    const repo = environment.githubRepo;
     
     if (!token) {
       console.warn('❌ VITE_GITHUB_PAT not configured - email processor trigger disabled');

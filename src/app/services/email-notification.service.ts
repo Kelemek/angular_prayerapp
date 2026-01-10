@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { ApprovalLinksService } from './approval-links.service';
+import { environment } from '../../environments/environment';
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -168,8 +169,8 @@ export class EmailNotificationService {
    * Trigger email processor workflow on GitHub Actions
    */
   private async triggerEmailProcessor(): Promise<void> {
-    const token = (import.meta as any).env?.VITE_GITHUB_PAT;
-    const repo = (import.meta as any).env?.VITE_GITHUB_REPO;
+    const token = environment.githubPat;
+    const repo = environment.githubRepo;
     if (!token) {
       console.warn('❌ VITE_GITHUB_PAT not configured');
       return;
