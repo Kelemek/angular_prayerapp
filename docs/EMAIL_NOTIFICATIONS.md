@@ -53,18 +53,22 @@ This service handles all email notifications using the Supabase edge function `s
 
 #### 1. Prayer Approval Notifications
 
-#### Broadcast to All Subscribers
-- **Trigger**: Admin approves a prayer
+##### Immediate Requester Notification
+- **Trigger**: Admin approves a prayer (automatic)
+- **Recipients**: Prayer requester only
+- **Method**: `sendRequesterApprovalNotification()`
+- **Content**: Personal confirmation with next steps
+- **Timing**: Sent **immediately** when admin clicks approve button
+- **Purpose**: Let requester know their prayer was approved
+
+##### Broadcast to All Subscribers
+- **Trigger**: Admin explicitly clicks "Send Emails" button for an approved prayer
 - **Recipients**: All active email subscribers
 - **Template Key**: `approved_prayer`
 - **Method**: `sendApprovedPrayerNotification()`
 - **Content**: Prayer title, description, requester name, prayer status
-
-#### Personal Requester Notification
-- **Trigger**: Admin approves a prayer
-- **Recipients**: Prayer requester only
-- **Method**: `sendRequesterApprovalNotification()`
-- **Content**: Personal confirmation with next steps
+- **Timing**: Sent **only** when admin initiates bulk send
+- **Purpose**: Notify subscribers about new approved prayer (decoupled from approval action)
 
 ### 2. Prayer Denial Notifications
 
@@ -120,36 +124,44 @@ Location: `src/app/services/admin-data.service.ts`
 1. **`approvePrayer(id: string)`**
    - Fetches prayer details before approval
    - Updates database
-   - Sends broadcast notification to all subscribers
-   - Sends personal notification to requester
+   - **Sends personal requester notification immediately** to acknowledge approval
+   - Does NOT send bulk subscriber notifications (reserved for explicit "Send Emails" action)
    - Errors don't block approval (logged only)
 
-2. **`denyPrayer(id: string, reason: string)`**
+2. **`sendApprovedPrayerEmails(id: string)`**
+   - **NEW**: Explicit method for sending bulk emails to all subscribers
+   - Called when admin clicks "Send Emails" button in UI
+   - Sends broadcast notification to all active subscribers
+   - Triggers email processor to handle delivery
+   - Errors don't block operation (logged only)
+
+3. **`denyPrayer(id: string, reason: string)`**
    - Fetches prayer details before denial
    - Updates database with denial reason
    - Sends denial notification to requester
    - Errors don't block denial (logged only)
 
-3. **`approveUpdate(id: string)`**
+4. **`approveUpdate(id: string)`**
    - Fetches update and prayer details
    - Updates database
    - Updates prayer status if needed (answered/current)
-   - Sends notification to all subscribers
+   - **Sends personal author approval notification immediately**
+   - Does NOT send bulk subscriber notifications automatically
    - Errors don't block approval (logged only)
 
-4. **`denyUpdate(id: string, reason: string)`**
+5. **`denyUpdate(id: string, reason: string)`**
    - Fetches update and prayer details
    - Updates database with denial reason
    - Sends denial notification to author
    - Errors don't block denial (logged only)
 
-5. **`approvePreferenceChange(id: string)`**
+6. **`approvePreferenceChange(id: string)`**
    - Fetches preference change details before approval
    - Updates database
-   - Sends approval notification to user
+   - **Sends personal approval notification to user immediately**
    - Errors don't block approval (logged only)
 
-6. **`denyPreferenceChange(id: string, reason: string)`**
+7. **`denyPreferenceChange(id: string, reason: string)`**
    - Fetches preference change details before denial
    - Updates database with denial reason
    - Sends denial notification to user
@@ -168,6 +180,92 @@ Location: `src/app/components/user-settings/user-settings.component.ts`
    - **Sends admin notification** to all admins
    - Errors don't block preference submission (logged only)
    - Shows success message with approval instructions
+
+## Mass Email Send Process
+
+### Background
+
+Previously, when an admin approved a prayer or update, the system would automatically send bulk emails to all subscribers immediately. This was coupled with the approval action, which could cause issues if:
+- Email service was experiencing delays
+- Admin wanted to approve without notifying subscribers yet
+- Bulk notifications needed to be sent at a specific time
+
+### New Behavior (January 10, 2026)
+
+The mass email send process has been **decoupled from approval actions**. Here's how it now works:
+
+#### For Prayer Approvals:
+
+1. **Admin clicks "Approve" on a pending prayer**
+   - Prayer status changes to `approved`
+   - **Requester receives personal notification immediately** (acknowledgment)
+   - **No bulk emails sent to subscribers**
+
+2. **Admin clicks "Send Emails" button for the approved prayer**
+   - **Then** bulk emails are sent to all active subscribers
+   - Email processor is triggered for handling delivery
+   - This step is now optional and manual
+
+#### For Update Approvals:
+
+1. **Admin clicks "Approve" on a pending update**
+   - Update status changes to `approved`
+   - Prayer status updates if needed (answered/current)
+   - **Author receives personal notification immediately** (acknowledgment)
+   - **No bulk emails sent to subscribers**
+
+2. **Admin clicks "Send Emails" button for the approved update**
+   - **Then** bulk emails are sent to all active subscribers
+   - Different email templates used for answered prayers vs. regular updates
+   - Email processor is triggered
+
+### Benefits
+
+- **Separation of concerns**: Approval and notification are now separate actions
+- **Flexibility**: Admins can approve without immediately notifying all subscribers
+- **Control**: Bulk sends are intentional, not automatic side effects
+- **Better UX**: Requesters/authors get immediate feedback on their submission
+- **Reduced email volume**: Accidental bulk sends are prevented
+- **Scalability**: Decouples approval operations from email throughput
+
+### Implementation Details
+
+#### Code Changes in AdminDataService:
+
+```typescript
+// Approval now sends only to requester/author
+async approvePrayer(id: string): Promise<void> {
+  // ... update logic ...
+  
+  // Send personal requester notification immediately
+  this.emailNotification.sendRequesterApprovalNotification({...})
+    .catch(err => console.error('Failed to send requester approval notification:', err));
+}
+
+// New explicit method for bulk sends
+async sendApprovedPrayerEmails(id: string): Promise<void> {
+  // Fetch prayer details
+  const { data: prayer } = await supabaseClient
+    .from('prayers')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  // Send to all subscribers
+  this.emailNotification.sendApprovedPrayerNotification({...})
+    .catch(err => console.error('Failed to send broadcast notification:', err));
+  
+  // Trigger email processor
+  await this.triggerEmailProcessor();
+}
+```
+
+### Migration Notes
+
+- All existing prayers and updates continue to work normally
+- No database schema changes required
+- UI components were updated to provide "Send Emails" button for approved items
+- Email templates remain unchanged
 
 ## Error Handling
 
