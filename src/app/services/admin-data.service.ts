@@ -439,6 +439,11 @@ export class AdminDataService {
       requesterEmail: prayer.email,
       prayerFor: prayer.prayer_for
     }).catch(err => console.error('Failed to send requester notification:', err));
+
+    // Trigger email processor immediately
+    await this.triggerEmailProcessor().catch(err => 
+      console.error('Failed to trigger email processor:', err)
+    );
   }
 
   async denyPrayer(id: string, reason: string): Promise<void> {
@@ -613,6 +618,11 @@ export class AdminDataService {
       author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
       markedAsAnswered: update.mark_as_answered || false
     }).catch(err => console.error('Failed to send update notification:', err));
+
+    // Trigger email processor immediately
+    await this.triggerEmailProcessor().catch(err => 
+      console.error('Failed to trigger email processor:', err)
+    );
   }
 
   async denyUpdate(id: string, reason: string): Promise<void> {
@@ -1004,6 +1014,42 @@ export class AdminDataService {
     } catch (error) {
       console.error('Error sending subscriber welcome email:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Trigger the GitHub Actions email processor workflow
+   * Sends an immediate request to process the email queue
+   */
+  private async triggerEmailProcessor(): Promise<void> {
+    const token = import.meta.env.VITE_GITHUB_PAT as string | undefined;
+    
+    if (!token) {
+      console.warn('VITE_GITHUB_PAT not configured - email processor will not be triggered');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        'https://api.github.com/repos/Kelemek/angular_prayerapp/actions/workflows/process-email-queue.yml/dispatches',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json'
+          },
+          body: JSON.stringify({ ref: 'main' })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+      }
+
+      console.log('✅ Email processor triggered successfully');
+    } catch (error) {
+      console.error('Failed to trigger email processor:', error);
+      // Don't throw - email processing will still happen via schedule, just slower
     }
   }
 }

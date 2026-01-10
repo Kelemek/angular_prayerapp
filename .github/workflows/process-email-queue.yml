@@ -1,8 +1,6 @@
 name: Process Email Queue
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
