@@ -138,6 +138,33 @@ export class EmailNotificationService {
   }
 
   /**
+   * Queue an email for processing by the email queue system
+   * Used for bulk notifications to improve deliverability
+   */
+  async enqueueEmail(
+    recipient: string,
+    templateKey: string,
+    variables: Record<string, string> = {}
+  ): Promise<void> {
+    const { error } = await this.supabase.client
+      .from('email_queue')
+      .insert({
+        recipient,
+        template_key: templateKey,
+        template_variables: variables,
+        status: 'pending',
+        attempts: 0
+      });
+
+    if (error) {
+      console.error('Failed to enqueue email:', error);
+      throw new Error(error.message || 'Failed to enqueue email');
+    }
+
+    console.log(`📧 Email queued for ${recipient} with template ${templateKey}`);
+  }
+
+  /**
    * Send email to all active subscribers
    */
   async sendEmailToAllSubscribers(options: {
@@ -170,52 +197,48 @@ export class EmailNotificationService {
 
   /**
    * Send notification when a prayer is approved
-   * Sends to all active subscribers
+   * Queues emails to all active subscribers for processing
    */
   async sendApprovedPrayerNotification(payload: ApprovedPrayerPayload): Promise<void> {
     try {
-      let subject: string;
-      let htmlContent: string;
-      let textContent: string;
-
       const isAnswered = payload.status === 'answered';
       const templateKey = isAnswered ? 'prayer_answered' : 'approved_prayer';
 
-      try {
-        const template = await this.getTemplate(templateKey);
-        if (template) {
-          const variables = {
-            prayerTitle: payload.title,
-            prayerFor: payload.prayerFor,
-            requesterName: payload.requester,
-            prayerDescription: payload.description,
-            status: payload.status,
-            appLink: `${window.location.origin}/`
-          };
-          subject = this.applyTemplateVariables(template.subject, variables);
-          htmlContent = this.applyTemplateVariables(template.html_body, variables);
-          textContent = this.applyTemplateVariables(template.text_body, variables);
-        } else {
-          throw new Error('Template not found');
-        }
-      } catch (error) {
-        console.warn(`Failed to load ${templateKey} template, using fallback:`, error);
-        if (isAnswered) {
-          subject = `Prayer Answered: ${payload.title}`;
-          htmlContent = this.generateAnsweredPrayerHTML(payload);
-          textContent = `A prayer has been answered!\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\nRequested by: ${payload.requester}\n\nDescription: ${payload.description}`;
-        } else {
-          subject = `New Prayer Request: ${payload.title}`;
-          htmlContent = this.generateApprovedPrayerHTML(payload);
-          textContent = `A new prayer request has been approved and is now live.\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\nRequested by: ${payload.requester}\n\nDescription: ${payload.description}`;
-        }
+      // Template variables to send with queued emails
+      const variables = {
+        prayerTitle: payload.title,
+        prayerFor: payload.prayerFor,
+        requesterName: payload.requester,
+        prayerDescription: payload.description,
+        status: payload.status,
+        appLink: `${window.location.origin}/`
+      };
+
+      // Fetch all active subscribers
+      const { data: subscribers, error: fetchError } = await this.supabase.client
+        .from('email_subscribers')
+        .select('email')
+        .eq('optout', false)
+        .eq('blocked', false);
+
+      if (fetchError) {
+        throw fetchError;
       }
 
-      await this.sendEmailToAllSubscribers({
-        subject,
-        htmlBody: htmlContent,
-        textBody: textContent
-      });
+      if (!subscribers || subscribers.length === 0) {
+        console.log('No active subscribers to notify');
+        return;
+      }
+
+      // Queue an email for each subscriber
+      const queuePromises = subscribers.map(sub =>
+        this.enqueueEmail(sub.email, templateKey, variables).catch(err =>
+          console.error(`Failed to queue email for ${sub.email}:`, err)
+        )
+      );
+
+      await Promise.all(queuePromises);
+      console.log(`📧 Queued approved prayer notification to ${subscribers.length} subscriber(s)`);
     } catch (error) {
       console.error('Error in sendApprovedPrayerNotification:', error);
       // Don't re-throw - let the error be logged but don't block approval
@@ -224,41 +247,46 @@ export class EmailNotificationService {
 
   /**
    * Send notification when a prayer update is approved
-   * Sends to all active subscribers
+   * Queues emails to all active subscribers for processing
    */
   async sendApprovedUpdateNotification(payload: ApprovedUpdatePayload): Promise<void> {
     try {
       const isAnswered = payload.markedAsAnswered || false;
       const templateKey = isAnswered ? 'prayer_answered' : 'approved_update';
-      const template = await this.getTemplate(templateKey);
 
-      let subject: string;
-      let htmlContent: string;
-      let textContent: string;
+      // Template variables to send with queued emails
+      const variables = {
+        prayerTitle: payload.prayerTitle,
+        authorName: payload.author,
+        updateContent: payload.content,
+        appLink: window.location.origin
+      };
 
-      if (template) {
-        const variables = {
-          prayerTitle: payload.prayerTitle,
-          authorName: payload.author,
-          updateContent: payload.content,
-          appLink: window.location.origin
-        };
+      // Fetch all active subscribers
+      const { data: subscribers, error: fetchError } = await this.supabase.client
+        .from('email_subscribers')
+        .select('email')
+        .eq('optout', false)
+        .eq('blocked', false);
 
-        subject = this.applyTemplateVariables(template.subject, variables);
-        htmlContent = this.applyTemplateVariables(template.html_body, variables);
-        textContent = this.applyTemplateVariables(template.text_body, variables);
-      } else {
-        // Fallback
-        subject = isAnswered ? `Prayer Answered: ${payload.prayerTitle}` : `Prayer Update: ${payload.prayerTitle}`;
-        htmlContent = this.generateApprovedUpdateHTML(payload);
-        textContent = `A new update has been posted for "${payload.prayerTitle}".\n\nPosted by: ${payload.author}\n\nUpdate: ${payload.content}`;
+      if (fetchError) {
+        throw fetchError;
       }
 
-      await this.sendEmailToAllSubscribers({
-        subject,
-        htmlBody: htmlContent,
-        textBody: textContent
-      });
+      if (!subscribers || subscribers.length === 0) {
+        console.log('No active subscribers to notify');
+        return;
+      }
+
+      // Queue an email for each subscriber
+      const queuePromises = subscribers.map(sub =>
+        this.enqueueEmail(sub.email, templateKey, variables).catch(err =>
+          console.error(`Failed to queue email for ${sub.email}:`, err)
+        )
+      );
+
+      await Promise.all(queuePromises);
+      console.log(`📧 Queued approved update notification to ${subscribers.length} subscriber(s)`);
     } catch (error) {
       console.error('Error in sendApprovedUpdateNotification:', error);
     }

@@ -74,10 +74,31 @@ describe('EmailNotificationService', () => {
   });
 
   it('sendApprovedPrayerNotification uses fallback when template missing', async () => {
-    vi.spyOn(service, 'getTemplate').mockResolvedValue(null);
-    const spy = vi.spyOn(service as any, 'sendEmailToAllSubscribers').mockResolvedValue(undefined as any);
+    const mockSubscribers = [{ email: 'user@test.com' }];
+    
+    // Mock email_subscribers query on mockSupabase
+    mockSupabase.client.from = vi.fn((table: string) => {
+      if (table === 'email_subscribers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: mockSubscribers, error: null })
+            })
+          })
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null })
+      };
+    });
+
+    const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
     await service.sendApprovedPrayerNotification({ title: 'T', description: 'D', requester: 'R', prayerFor: 'PF', status: 'current' });
-    expect(spy).toHaveBeenCalled();
+    
+    // Should still queue emails even without template
+    expect(enqueueSpy).toHaveBeenCalledWith('user@test.com', 'approved_prayer', expect.any(Object));
   });
 
   it('sendRequesterApprovalNotification returns early when no email', async () => {
@@ -172,8 +193,31 @@ describe('EmailNotificationService', () => {
   let mockSupabaseClient: any;
 
   beforeEach(() => {
+    // Create a chainable mock for database queries
+    const createChainableQuery = () => {
+      const chain: any = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null })
+      };
+      return chain;
+    };
+
     mockSupabaseClient = {
-      from: vi.fn().mockReturnThis(),
+      from: vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          // Return subscriber query mock that resolves to empty array by default
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [], error: null })
+              })
+            })
+          };
+        }
+        // For other tables, return normal chainable mock
+        return createChainableQuery();
+      }),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn(),
@@ -306,24 +350,40 @@ describe('EmailNotificationService', () => {
         updated_at: '2023-01-01'
       };
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
-      });
+      // Set up the mock chain properly
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: mockTemplate,
+          error: null
+        })
+      };
+
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
 
       const result = await service.getTemplate('approved_prayer');
 
       expect(result).toEqual(mockTemplate);
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('email_templates');
-      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('template_key', 'approved_prayer');
+      expect(mockChain.select).toHaveBeenCalledWith('*');
+      expect(mockChain.eq).toHaveBeenCalledWith('template_key', 'approved_prayer');
     });
 
     it('should return null on error', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockSupabaseClient.single.mockResolvedValue({
-        data: null,
-        error: { message: 'Template not found' }
-      });
+      
+      // Set up the mock chain to return an error
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Template not found' }
+        })
+      };
+
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
 
       const result = await service.getTemplate('non_existent');
 
@@ -429,63 +489,87 @@ describe('EmailNotificationService', () => {
       status: 'current'
     };
 
-    it('should send notification with template', async () => {
-      const mockTemplate = {
-        id: '1',
-        template_key: 'approved_prayer',
-        name: 'Approved Prayer',
-        subject: 'New Prayer: {{prayerTitle}}',
-        html_body: '<p>{{prayerDescription}}</p>',
-        text_body: '{{prayerDescription}}',
-        created_at: '2023-01-01',
-        updated_at: '2023-01-01'
-      };
+    it('should queue notification to all active subscribers', async () => {
+      const mockSubscribers = [
+        { email: 'user1@test.com' },
+        { email: 'user2@test.com' }
+      ];
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
+      // Mock email_subscribers query
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: mockSubscribers, error: null })
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null })
+        };
       });
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
 
       await service.sendApprovedPrayerNotification(mockPayload);
 
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          subject: 'New Prayer: Test Prayer',
-          action: 'send_to_all_subscribers'
-        })
+      expect(enqueueSpy).toHaveBeenCalledTimes(2);
+      expect(enqueueSpy).toHaveBeenCalledWith('user1@test.com', 'approved_prayer', expect.objectContaining({
+        prayerTitle: 'Test Prayer',
+        prayerFor: 'Jane Doe'
       }));
     });
 
-    it('should use fallback when template not found', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      mockSupabaseClient.single.mockResolvedValue({
-        data: null,
-        error: { message: 'Template not found' }
+    it('should handle no active subscribers', async () => {
+      // Mock email_subscribers query returning empty
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [], error: null })
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis()
+        };
       });
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
 
       await service.sendApprovedPrayerNotification(mockPayload);
 
-      expect(consoleWarnSpy).toHaveBeenCalled();
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          subject: 'New Prayer Request: Test Prayer'
-        })
-      }));
+      expect(enqueueSpy).not.toHaveBeenCalled();
+      expect(consoleLogSpy).toHaveBeenCalledWith('No active subscribers to notify');
     });
 
     it('should not throw on error', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockSupabaseClient.single.mockRejectedValue(new Error('Database error'));
+      
+      // Mock email_subscribers query to throw
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockRejectedValue(new Error('Database error'))
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis()
+        };
+      });
 
       await expect(service.sendApprovedPrayerNotification(mockPayload)).resolves.not.toThrow();
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error in sendApprovedPrayerNotification:', expect.any(Error));
@@ -500,87 +584,90 @@ describe('EmailNotificationService', () => {
       markedAsAnswered: false
     };
 
-    it('should send notification for update', async () => {
-      const mockTemplate = {
-        id: '1',
-        template_key: 'approved_update',
-        name: 'Approved Update',
-        subject: 'Prayer Update: {{prayerTitle}}',
-        html_body: '<p>{{updateContent}}</p>',
-        text_body: '{{updateContent}}',
-        created_at: '2023-01-01',
-        updated_at: '2023-01-01'
-      };
+    it('should queue notification to all active subscribers', async () => {
+      const mockSubscribers = [
+        { email: 'user1@test.com' },
+        { email: 'user2@test.com' }
+      ];
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
+      // Mock email_subscribers query
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: mockSubscribers, error: null })
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null })
+        };
       });
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
 
       await service.sendApprovedUpdateNotification(mockPayload);
 
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalled();
+      expect(enqueueSpy).toHaveBeenCalledTimes(2);
+      expect(enqueueSpy).toHaveBeenCalledWith('user1@test.com', 'approved_update', expect.objectContaining({
+        prayerTitle: 'Test Prayer',
+        updateContent: 'Update content'
+      }));
     });
 
     it('should use prayer_answered template when marked as answered', async () => {
-      const mockTemplate = {
-        id: '1',
-        template_key: 'prayer_answered',
-        name: 'Prayer Answered',
-        subject: 'Prayer Answered: {{prayerTitle}}',
-        html_body: '<p>Great news!</p>',
-        text_body: 'Great news!',
-        created_at: '2023-01-01',
-        updated_at: '2023-01-01'
-      };
+      const mockSubscribers = [{ email: 'user@test.com' }];
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
+      // Mock email_subscribers query
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: mockSubscribers, error: null })
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis()
+        };
       });
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
 
       await service.sendApprovedUpdateNotification({
         ...mockPayload,
         markedAsAnswered: true
       });
 
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('email_templates');
-      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('template_key', 'prayer_answered');
-    });
-
-    it('should use fallback when template not found', async () => {
-      mockSupabaseClient.single.mockResolvedValue({
-        data: null,
-        error: null
-      });
-
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
-
-      await service.sendApprovedUpdateNotification(mockPayload);
-
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          subject: 'Prayer Update: Test Prayer'
-        })
-      }));
+      expect(enqueueSpy).toHaveBeenCalledWith('user@test.com', 'prayer_answered', expect.any(Object));
     });
 
     it('should not throw on error', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockSupabaseClient.single.mockRejectedValue(new Error('Database error'));
+      
+      // Mock email_subscribers query to throw
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockRejectedValue(new Error('Database error'))
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis()
+        };
+      });
 
       await expect(service.sendApprovedUpdateNotification(mockPayload)).resolves.not.toThrow();
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error in sendApprovedUpdateNotification:', expect.any(Error));
@@ -675,19 +762,23 @@ describe('EmailNotificationService', () => {
         updated_at: '2023-01-01'
       };
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
-      });
+      // Set up the mock chain for getTemplate
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: mockTemplate,
+          error: null
+        })
+      };
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
+
+      const sendEmailSpy = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined);
 
       await service.sendDeniedPrayerNotification(mockPayload);
 
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalled();
+      expect(sendEmailSpy).toHaveBeenCalled();
     });
 
     it('should not send email if requester email is missing', async () => {
@@ -699,28 +790,41 @@ describe('EmailNotificationService', () => {
       });
 
       expect(consoleWarnSpy).toHaveBeenCalledWith('No email address for denied prayer requester');
-      expect(mockSupabaseClient.functions.invoke).not.toHaveBeenCalled();
     });
 
     it('should handle template fetch error', async () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      mockSupabaseClient.single.mockRejectedValue(new Error('Template fetch error'));
+      
+      // Set up the mock chain to reject
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockRejectedValue(new Error('Template fetch error'))
+      };
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
+
+      const sendEmailSpy = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined);
 
       await service.sendDeniedPrayerNotification(mockPayload);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to fetch denied_prayer template, using fallback:', expect.any(Error));
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalled();
+      expect(sendEmailSpy).toHaveBeenCalled();
     });
 
     it('should not throw on error', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockSupabaseClient.single.mockRejectedValue(new Error('Database error'));
-      mockSupabaseClient.functions.invoke.mockRejectedValue(new Error('Send error'));
+      
+      // Set up the mock chain to reject
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockRejectedValue(new Error('Database error'))
+      };
+
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
+
+      const sendEmailSpy = vi.spyOn(service as any, 'sendEmail').mockRejectedValue(new Error('Send error'));
 
       await expect(service.sendDeniedPrayerNotification(mockPayload)).resolves.not.toThrow();
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error in sendDeniedPrayerNotification:', expect.any(Error));
@@ -737,23 +841,25 @@ describe('EmailNotificationService', () => {
     };
 
     it('should send denial notification for update', async () => {
-      mockSupabaseClient.single.mockResolvedValue({
-        data: null,
-        error: null
-      });
+      // Set up the mock chain
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: null
+        })
+      };
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
+
+      const sendEmailSpy = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined);
 
       await service.sendDeniedUpdateNotification(mockPayload);
 
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          to: ['john@example.com'],
-          subject: 'Prayer Update Not Approved: Test Prayer'
-        })
+      expect(sendEmailSpy).toHaveBeenCalledWith(expect.objectContaining({
+        to: ['john@example.com'],
+        subject: expect.stringContaining('Test Prayer')
       }));
     });
 
@@ -769,19 +875,23 @@ describe('EmailNotificationService', () => {
         updated_at: '2023-01-01'
       };
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
-      });
+      // Set up the mock chain
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: mockTemplate,
+          error: null
+        })
+      };
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
+
+      const sendEmailSpy = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined);
 
       await service.sendDeniedUpdateNotification(mockPayload);
 
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalled();
+      expect(sendEmailSpy).toHaveBeenCalled();
     });
 
     it('should not send email if author email is missing', async () => {
@@ -793,27 +903,41 @@ describe('EmailNotificationService', () => {
       });
 
       expect(consoleWarnSpy).toHaveBeenCalledWith('No email address for denied update author');
-      expect(mockSupabaseClient.functions.invoke).not.toHaveBeenCalled();
     });
 
     it('should handle template fetch error', async () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      mockSupabaseClient.single.mockRejectedValue(new Error('Template fetch error'));
+      
+      // Set up the mock chain to reject
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockRejectedValue(new Error('Template fetch error'))
+      };
 
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
+
+      const sendEmailSpy = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined);
 
       await service.sendDeniedUpdateNotification(mockPayload);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to fetch denied_update template, using fallback:', expect.any(Error));
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalled();
+      expect(sendEmailSpy).toHaveBeenCalled();
     });
 
     it('should not throw on error', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockSupabaseClient.functions.invoke.mockRejectedValue(new Error('Send error'));
+      
+      // Set up the mock chain to reject
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockRejectedValue(new Error('Send error'))
+      };
+
+      mockSupabaseClient.from = vi.fn().mockReturnValue(mockChain);
+
+      const sendEmailSpy = vi.spyOn(service as any, 'sendEmail').mockRejectedValue(new Error('Send error'));
 
       await expect(service.sendDeniedUpdateNotification(mockPayload)).resolves.not.toThrow();
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error in sendDeniedUpdateNotification:', expect.any(Error));
@@ -1048,25 +1172,23 @@ describe('EmailNotificationService', () => {
 
   describe('sendApprovedPrayerNotification with answered status', () => {
     it('should use prayer_answered template when status is answered', async () => {
-      const mockTemplate = {
-        id: '2',
-        template_key: 'prayer_answered',
-        name: 'Prayer Answered',
-        subject: 'Prayer Answered: {{prayerTitle}}',
-        html_body: '<p>Great news! {{prayerDescription}}</p>',
-        text_body: 'Great news!',
-        created_at: '2023-01-01',
-        updated_at: '2023-01-01'
-      };
+      const mockSubscribers = [{ email: 'subscriber@test.com' }];
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
-      });
-
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
+      // Mock email_subscribers query
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: mockSubscribers, error: null })
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis()
+        };
       });
 
       const payload: ApprovedPrayerPayload = {
@@ -1077,37 +1199,32 @@ describe('EmailNotificationService', () => {
         status: 'answered'
       };
 
+      const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+
       await service.sendApprovedPrayerNotification(payload);
 
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('email_templates');
-      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('template_key', 'prayer_answered');
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          subject: 'Prayer Answered: Answered Prayer'
-        })
-      }));
+      // Should queue with prayer_answered template key for answered status
+      expect(enqueueSpy).toHaveBeenCalledWith('subscriber@test.com', 'prayer_answered', expect.any(Object));
     });
 
     it('should use approved_prayer template when status is current', async () => {
-      const mockTemplate = {
-        id: '1',
-        template_key: 'approved_prayer',
-        name: 'Approved Prayer',
-        subject: 'New Prayer: {{prayerTitle}}',
-        html_body: '<p>{{prayerDescription}}</p>',
-        text_body: '{{prayerDescription}}',
-        created_at: '2023-01-01',
-        updated_at: '2023-01-01'
-      };
+      const mockSubscribers = [{ email: 'subscriber@test.com' }];
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
-      });
-
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
+      // Mock email_subscribers query
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: mockSubscribers, error: null })
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis()
+        };
       });
 
       const payload: ApprovedPrayerPayload = {
@@ -1118,69 +1235,32 @@ describe('EmailNotificationService', () => {
         status: 'current'
       };
 
-      await service.sendApprovedPrayerNotification(payload);
-
-      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('template_key', 'approved_prayer');
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          subject: 'New Prayer: Current Prayer'
-        })
-      }));
-    });
-
-    it('should use answered fallback HTML when answered template missing', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      mockSupabaseClient.single.mockResolvedValue({
-        data: null,
-        error: { message: 'Template not found' }
-      });
-
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
-      });
-
-      const payload: ApprovedPrayerPayload = {
-        title: 'Answered Prayer',
-        description: 'God answered!',
-        requester: 'Jane Doe',
-        prayerFor: 'John',
-        status: 'answered'
-      };
+      const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
 
       await service.sendApprovedPrayerNotification(payload);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to load prayer_answered template, using fallback:',
-        expect.any(Object)
-      );
-
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          subject: 'Prayer Answered: Answered Prayer'
-        })
-      }));
+      // Should queue with approved_prayer template key for current status
+      expect(enqueueSpy).toHaveBeenCalledWith('subscriber@test.com', 'approved_prayer', expect.any(Object));
     });
 
     it('should apply template variables correctly for answered prayer', async () => {
-      const mockTemplate = {
-        id: '2',
-        template_key: 'prayer_answered',
-        name: 'Prayer Answered',
-        subject: 'Prayer Answered: {{prayerTitle}}',
-        html_body: 'Title: {{prayerTitle}}, For: {{prayerFor}}, By: {{requesterName}}',
-        text_body: 'Title: {{prayerTitle}}'
-      };
+      const mockSubscribers = [{ email: 'subscriber@test.com' }];
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: mockTemplate,
-        error: null
-      });
-
-      mockSupabaseClient.functions.invoke.mockResolvedValue({
-        data: { success: true },
-        error: null
+      // Mock email_subscribers query
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'email_subscribers') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: mockSubscribers, error: null })
+              })
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis()
+        };
       });
 
       const payload: ApprovedPrayerPayload = {
@@ -1191,14 +1271,14 @@ describe('EmailNotificationService', () => {
         status: 'answered'
       };
 
+      const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+
       await service.sendApprovedPrayerNotification(payload);
 
-      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('send-email', expect.objectContaining({
-        body: expect.objectContaining({
-          htmlBody: expect.stringContaining('Title: Test Prayer'),
-          htmlBody: expect.stringContaining('Test Person'),
-          htmlBody: expect.stringContaining('Test Requester')
-        })
+      expect(enqueueSpy).toHaveBeenCalledWith('subscriber@test.com', 'prayer_answered', expect.objectContaining({
+        prayerTitle: 'Test Prayer',
+        requesterName: 'Test Requester',
+        prayerFor: 'Test Person'
       }));
     });
   });

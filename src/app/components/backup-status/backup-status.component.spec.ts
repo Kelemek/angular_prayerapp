@@ -1,6 +1,15 @@
 import { vi, describe, it, beforeEach, expect, afterEach } from 'vitest';
 import { BackupStatusComponent } from './backup-status.component';
 
+// Helper function to create File objects with text() method for testing
+const createMockFile = (content: string | object, filename: string = 'backup.json'): File => {
+  const jsonString = typeof content === 'string' ? content : JSON.stringify(content);
+  const mockFile = new File([jsonString], filename, { type: 'application/json' });
+  // Add the text() method that the File API provides
+  (mockFile as any).text = async () => jsonString;
+  return mockFile;
+};
+
 const makeMockSupabaseClient = (overrides: any = {}) => {
   const insert = vi.fn().mockResolvedValue({});
   const upsert = vi.fn().mockResolvedValue({});
@@ -736,7 +745,7 @@ describe('BackupStatusComponent', () => {
     });
 
     it('should not proceed if user cancels', async () => {
-      const mockFile = new File(['{}'], 'backup.json', { type: 'application/json' });
+      const mockFile = createMockFile('{}', 'backup.json');
       const mockEvent = {
         target: {
           files: [mockFile],
@@ -755,16 +764,13 @@ describe('BackupStatusComponent', () => {
 
     it('should handle invalid backup format', async () => {
       const invalidData = { invalid: 'format' };
-      const mockFile = new File([JSON.stringify(invalidData)], 'backup.json', { type: 'application/json' });
+      const mockFile = createMockFile(invalidData);
       const mockEvent = {
         target: {
           files: [mockFile],
           value: 'backup.json'
         }
       } as any;
-
-        // Ensure the File polyfill used in the test environment has a text() method
-        (mockFile as any).text = async () => JSON.stringify(invalidData);
 
         await component.handleManualRestore(mockEvent);
         await component.onConfirmRestore();
@@ -785,7 +791,7 @@ describe('BackupStatusComponent', () => {
         }
       };
 
-      const mockFile = new File([JSON.stringify(backupData)], 'backup.json', { type: 'application/json' });
+      const mockFile = createMockFile(backupData);
       const mockEvent = {
         target: {
           files: [mockFile],
@@ -841,7 +847,7 @@ describe('BackupStatusComponent', () => {
         }
       };
 
-      const mockFile = new File([JSON.stringify(backupData)], 'backup.json', { type: 'application/json' });
+      const mockFile = createMockFile(backupData);
       const mockEvent = {
         target: {
           files: [mockFile],
