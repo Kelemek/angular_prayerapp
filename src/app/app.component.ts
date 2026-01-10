@@ -1,15 +1,20 @@
 import { Component, OnInit, Injector, ErrorHandler, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
+import { InstallPromptComponent } from './components/install-prompt/install-prompt.component';
+import { OfflineIndicatorComponent } from './components/offline-indicator/offline-indicator.component';
+import { PWAService } from './services/pwa.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastContainerComponent],
+  imports: [RouterOutlet, ToastContainerComponent, InstallPromptComponent, OfflineIndicatorComponent],
   template: `
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <app-offline-indicator></app-offline-indicator>
       <router-outlet></router-outlet>
       <app-toast-container></app-toast-container>
+      <app-install-prompt></app-install-prompt>
     </div>
   `,
   styles: []
@@ -22,7 +27,8 @@ export class AppComponent implements OnInit {
     private router: Router,
     private injector: Injector,
     private ngZone: NgZone,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private pwaService: PWAService
   ) {
     // Set up global error handler for unhandled errors
     this.setupGlobalErrorHandler();

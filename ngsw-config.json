@@ -1,0 +1,88 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "resources": {
+        "files": [
+          "/favicon.ico",
+          "/index.html",
+          "/*.css",
+          "/*.js"
+        ]
+      }
+    },
+    {
+      "name": "assets",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": [
+          "/assets/**",
+          "/**/*/manifest.json",
+          "/**/*/sitemap.xml",
+          "/**/*/robots.txt"
+        ]
+      }
+    },
+    {
+      "name": "fonts",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": [
+          "/assets/**/*.woff",
+          "/assets/**/*.woff2",
+          "/assets/**/*.ttf"
+        ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-prayers",
+      "urls": [
+        "**/prayers**",
+        "**/prayer_updates**",
+        "**/prayer_prompts**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxAge": "1h",
+        "maxSize": 100
+      }
+    },
+    {
+      "name": "api-admin",
+      "urls": [
+        "**/admin**",
+        "**/approval**"
+      ],
+      "cacheConfig": {
+        "strategy": "network-first",
+        "timeout": "5s",
+        "maxAge": "5m",
+        "maxSize": 50
+      }
+    },
+    {
+      "name": "api-auth",
+      "urls": [
+        "**/auth/**",
+        "**/user/**"
+      ],
+      "cacheConfig": {
+        "strategy": "network-first",
+        "timeout": "3s",
+        "maxAge": "1m",
+        "maxSize": 10
+      }
+    }
+  ],
+  "navigationUrls": [
+    "/**",
+    "!/**/*.{svg,css,js,json,woff,woff2,ttf,otf}"
+  ]
+}

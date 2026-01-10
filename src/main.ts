@@ -56,6 +56,32 @@ const initVercelSpeedInsights = async () => {
 
 initVercelSpeedInsights();
 
+// Initialize Service Worker for PWA functionality
+const initServiceWorker = async () => {
+  if (!('serviceWorker' in navigator)) {
+    console.log('[PWA] Service Worker not supported in this browser');
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register('/ngsw-worker.js', {
+      scope: '/'
+    });
+    console.log('[PWA] Service Worker registered successfully:', registration);
+
+    // Check for updates periodically
+    setInterval(() => {
+      registration.update().catch(error => {
+        console.error('[PWA] Error checking for updates:', error);
+      });
+    }, 60 * 60 * 1000); // Check every hour
+  } catch (error) {
+    console.error('[PWA] Service Worker registration failed:', error);
+  }
+};
+
+initServiceWorker();
+
 // Add a global visibility check to ensure content stays visible during background refresh
 const setupVisibilityRecovery = () => {
   const handleVisibilityChange = () => {
