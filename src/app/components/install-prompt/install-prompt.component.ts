@@ -18,7 +18,7 @@ import { takeUntil } from 'rxjs/operators';
       <div class="fixed bottom-4 right-4 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 max-w-sm animate-in slide-in-from-bottom-4 duration-300">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1">
-            <h3 class="font-semibold text-gray-900 dark:text-white mb-1">
+            <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">
               Install Prayer App
             </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
