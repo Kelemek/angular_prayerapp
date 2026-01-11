@@ -29,3 +29,9 @@ export const routes: Routes = [
     redirectTo: ''
   }
 ];
+
+// Configure router to scroll to top on navigation and disable scroll position restoration
+export const routerConfig = {
+  scrollPositionRestoration: 'top' as const,
+  scrollOffset: [0, 0] as [number, number]
+};

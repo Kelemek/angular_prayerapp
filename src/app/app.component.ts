@@ -1,9 +1,10 @@
 import { Component, OnInit, Injector, ErrorHandler, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
 import { InstallPromptComponent } from './components/install-prompt/install-prompt.component';
 import { OfflineIndicatorComponent } from './components/offline-indicator/offline-indicator.component';
 import { PWAService } from './services/pwa.service';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -32,6 +33,30 @@ export class AppComponent implements OnInit {
   ) {
     // Set up global error handler for unhandled errors
     this.setupGlobalErrorHandler();
+    // Listen for navigation events and scroll to top on mobile
+    this.setupScrollToTopOnNavigation();
+  }
+
+  /**
+   * Setup router navigation listener to scroll to top
+   * Critical for mobile (iOS/Edge) where scroll position can get stuck
+   */
+  private setupScrollToTopOnNavigation(): void {
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          // Also try setting document scroll for older browsers
+          if (document.documentElement) {
+            document.documentElement.scrollTop = 0;
+          }
+          if (document.body) {
+            document.body.scrollTop = 0;
+          }
+        }, 0);
+      });
   }
 
   /**
