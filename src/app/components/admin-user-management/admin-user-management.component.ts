@@ -557,7 +557,7 @@ Prayer App Admin Portal
       this.success = `Admin access removed for ${email}`;
       this.toast.success(`Admin access removed for ${email}`);
       this.deletingEmail = null;
-      this.loadAdmins();
+      await this.loadAdmins();
       this.onSave.emit();
     } catch (err: unknown) {
       const errorMsg = err && typeof err === 'object' && 'message' in err

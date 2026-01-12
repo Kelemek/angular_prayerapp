@@ -1094,6 +1094,8 @@ export class EmailSubscribersComponent implements OnInit {
               sub.is_active = false;
               this.totalActiveCount = this.allSubscribers.filter(s => s.is_active).length;
             }
+            // Reload the current page data to update display
+            this.loadPageData();
           } else {
             const { error } = await this.supabase.client
               .from('email_subscribers')
@@ -1111,6 +1113,8 @@ export class EmailSubscribersComponent implements OnInit {
             if (startIndex >= this.allSubscribers.length && this.currentPage > 1) {
               this.currentPage--;
             }
+            // Reload the current page data to update display
+            this.loadPageData();
           }
 
           this.cdr.markForCheck();

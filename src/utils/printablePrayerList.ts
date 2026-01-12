@@ -7,6 +7,7 @@ export interface Prayer {
   description: string;
   requester: string;
   status: string;
+  approval_status: string;
   created_at: string;
   date_answered?: string;
   prayer_updates?: Array<{
@@ -46,24 +47,84 @@ export const downloadPrintablePrayerList = async (timeRange: TimeRange = 'month'
         break;
     }
 
-    // Fetch prayers with their updates (LEFT JOIN to include prayers without updates)
-    const { data: prayers, error } = await supabase
+    // Fetch ALL prayers (no date filter in query - we'll filter after combining with updates)
+    const { data: allPrayers, error: prayersError } = await supabase
       .from('prayers')
-      .select(`
-        *,
-        prayer_updates(*)
-      `)
+      .select('*')
       .eq('approval_status', 'approved')
       .neq('status', 'closed')
-      .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching prayers:', error);
+    if (prayersError) {
+      console.error('Error fetching prayers:', prayersError);
       alert('Failed to fetch prayers. Please try again.');
       if (newWindow) newWindow.close();
       return;
     }
+
+    console.log(`[Print] Fetched ${allPrayers?.length || 0} approved non-closed prayers`);
+
+    // Fetch ALL updates
+    const { data: allUpdates, error: updatesError } = await supabase
+      .from('prayer_updates')
+      .select('*');
+
+    if (updatesError) {
+      console.error('Error fetching updates:', updatesError);
+      alert('Failed to fetch prayer updates. Please try again.');
+      if (newWindow) newWindow.close();
+      return;
+    }
+
+    console.log(`[Print] Fetched ${allUpdates?.length || 0} total updates`);
+
+    // Filter to only approved updates and map to prayers by prayer_id
+    const updatesByPrayerId = new Map<string, any[]>();
+    allUpdates?.forEach(update => {
+      // Only include approved updates
+      if (update.approval_status === 'approved') {
+        if (!updatesByPrayerId.has(update.prayer_id)) {
+          updatesByPrayerId.set(update.prayer_id, []);
+        }
+        updatesByPrayerId.get(update.prayer_id)!.push(update);
+      }
+    });
+
+    // Attach updates to prayers
+    const prayersWithUpdates = (allPrayers || []).map(prayer => ({
+      ...prayer,
+      prayer_updates: updatesByPrayerId.get(prayer.id) || []
+    }));
+
+    // Filter: include prayers created in range OR with updates in range
+    const prayers = prayersWithUpdates.filter(prayer => {
+      const prayerCreatedDate = new Date(prayer.created_at);
+      
+      // Include if prayer was created in time range
+      if (prayerCreatedDate >= startDate && prayerCreatedDate <= endDate) {
+        return true;
+      }
+      
+      // Include if any update is in time range
+      if (prayer.prayer_updates && Array.isArray(prayer.prayer_updates) && prayer.prayer_updates.length > 0) {
+        const hasRecentUpdate = prayer.prayer_updates.some((update: any) => {
+          const updateDate = new Date(update.created_at);
+          return updateDate >= startDate && updateDate <= endDate;
+        });
+        if (hasRecentUpdate) {
+          console.log(`[Print] Prayer "${prayer.prayer_for}" (${prayer.id}) included due to recent update on ${Math.max(...prayer.prayer_updates.map((u: any) => new Date(u.created_at).getTime()))}`);
+          return true;
+        }
+      }
+      
+      return false;
+    });
+
+    console.log(`[Print] Filtered to ${prayers.length} prayers in range`);
+    console.log('[Print] Prayers by status:', {
+      current: prayers.filter((p: any) => p.status === 'current').length,
+      answered: prayers.filter((p: any) => p.status === 'answered').length
+    });
 
     if (!prayers || prayers.length === 0) {
       const rangeText = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2 weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'database';
@@ -103,7 +164,7 @@ export const downloadPrintablePrayerList = async (timeRange: TimeRange = 'month'
       targetWindow.focus();
     }
   } catch (error) {
-    console.error('Error generating prayer list:', error);
+    console.error('[Print] Error generating prayer list:', error);
     alert('Failed to generate prayer list. Please try again.');
   }
 }

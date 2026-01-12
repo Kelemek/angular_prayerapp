@@ -31,6 +31,7 @@ export class PrintService {
    */
   async downloadPrintablePrayerList(timeRange: TimeRange = 'month', newWindow: Window | null = null): Promise<void> {
     try {
+      console.log('[PrintService] Starting download for timeRange:', timeRange);
       // Calculate date range
       const endDate = new Date();
       const startDate = new Date();
@@ -53,24 +54,84 @@ export class PrintService {
           break;
       }
 
-      // Fetch prayers with their updates
-      const { data: prayers, error } = await this.supabase.client
+      // Fetch ALL prayers (no date filter in query - we'll filter after combining with updates)
+      const { data: allPrayers, error: prayersError } = await this.supabase.client
         .from('prayers')
-        .select(`
-          *,
-          prayer_updates(*)
-        `)
+        .select('*')
         .eq('approval_status', 'approved')
         .neq('status', 'closed')
-        .gte('created_at', startDate.toISOString())
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching prayers:', error);
+      if (prayersError) {
+        console.error('[PrintService] Error fetching prayers:', prayersError);
         alert('Failed to fetch prayers. Please try again.');
         if (newWindow) newWindow.close();
         return;
       }
+
+      console.log(`[PrintService] Fetched ${allPrayers?.length || 0} approved non-closed prayers`);
+
+      // Fetch ALL updates
+      const { data: allUpdates, error: updatesError } = await this.supabase.client
+        .from('prayer_updates')
+        .select('*');
+
+      if (updatesError) {
+        console.error('[PrintService] Error fetching updates:', updatesError);
+        alert('Failed to fetch prayer updates. Please try again.');
+        if (newWindow) newWindow.close();
+        return;
+      }
+
+      console.log(`[PrintService] Fetched ${allUpdates?.length || 0} total updates`);
+
+      // Filter to only approved updates and map to prayers by prayer_id
+      const updatesByPrayerId = new Map<string, any[]>();
+      allUpdates?.forEach(update => {
+        // Only include approved updates
+        if (update.approval_status === 'approved') {
+          if (!updatesByPrayerId.has(update.prayer_id)) {
+            updatesByPrayerId.set(update.prayer_id, []);
+          }
+          updatesByPrayerId.get(update.prayer_id)!.push(update);
+        }
+      });
+
+      // Attach updates to prayers
+      const prayersWithUpdates = (allPrayers || []).map(prayer => ({
+        ...prayer,
+        prayer_updates: updatesByPrayerId.get(prayer.id) || []
+      }));
+
+      // Filter: include prayers created in range OR with updates in range
+      const prayers = prayersWithUpdates.filter(prayer => {
+        const prayerCreatedDate = new Date(prayer.created_at);
+        
+        // Include if prayer was created in time range
+        if (prayerCreatedDate >= startDate && prayerCreatedDate <= endDate) {
+          return true;
+        }
+        
+        // Include if any update is in time range
+        if (prayer.prayer_updates && Array.isArray(prayer.prayer_updates) && prayer.prayer_updates.length > 0) {
+          const hasRecentUpdate = prayer.prayer_updates.some((update: any) => {
+            const updateDate = new Date(update.created_at);
+            return updateDate >= startDate && updateDate <= endDate;
+          });
+          if (hasRecentUpdate) {
+            console.log(`[PrintService] Prayer "${prayer.prayer_for}" (${prayer.id}) included due to recent update`);
+            return true;
+          }
+        }
+        
+        return false;
+      });
+
+      console.log(`[PrintService] Filtered to ${prayers.length} prayers in range`);
+      console.log('[PrintService] Prayers by status:', {
+        current: prayers.filter((p: any) => p.status === 'current').length,
+        answered: prayers.filter((p: any) => p.status === 'answered').length
+      });
 
       if (!prayers || prayers.length === 0) {
         const rangeText = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2 weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'database';
