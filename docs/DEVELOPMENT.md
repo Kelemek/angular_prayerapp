@@ -117,6 +117,39 @@ this.supabase.client.from('table').select()
 - getOnlineStatus()          // Network status
 ```
 
+#### BadgeService
+```typescript
+// Track read/unread status for prayers and prompts
+- getBadgeFunctionalityEnabled$()    // Observable of badge setting
+- markPrayerAsRead()                 // Mark prayer as read
+- markPromptAsRead()                 // Mark prompt as read
+- isPromptUnread()                   // Check if prompt unread
+- getBadgeCount$()                   // Observable of badge counts
+- getUpdateBadgesChanged$()          // Observable of changes
+- refreshBadgeCounts()               // Refresh badge data
+```
+
+**Usage in Components**:
+```typescript
+// Inject the service
+constructor(private badgeService: BadgeService) {}
+
+// Check if item unread
+if (this.badgeService.isPromptUnread(promptId)) {
+  // Show badge indicator
+}
+
+// Mark as read when user views
+await this.badgeService.markPromptAsRead(promptId);
+
+// Get badge counts
+this.badgeService.getBadgeCount$().pipe(
+  takeUntil(this.destroy$)
+).subscribe(counts => {
+  this.badgeCount = counts.prompts;
+});
+```
+
 ### State Management
 
 The app uses **RxJS observables** for state, not Ngrx/Redux:

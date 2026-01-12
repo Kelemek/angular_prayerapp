@@ -4,6 +4,16 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - January 2026
 
+### Badge Functionality ✅
+- ✅ BadgeService for tracking read/unread status
+- ✅ Track unread prayers and prayer prompts
+- ✅ Badge count indicators across components
+- ✅ User preference setting for badge display
+- ✅ Real-time badge updates with observables
+- ✅ Comprehensive test coverage (100+ badge tests)
+
+**Impact**: Users can quickly identify unread prayers and updates. Improves user engagement by showing notification counts on prayers, prompts, and prayer request cards.
+
 ### Phase 1: PWA Implementation ✅
 - ✅ Service worker registration with hourly update checking
 - ✅ Caching strategies (assets, prayers, admin data)

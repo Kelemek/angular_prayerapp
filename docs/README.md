@@ -33,6 +33,7 @@ A comprehensive prayer request management system for Cross Pointe Church built w
 - ✅ Prayer timer & printable lists
 - ✅ Theme system (light/dark)
 - ✅ Planning Center contact lookup
+- ✅ Badge indicators (unread prayers/prompts)
 - ✅ Works offline (PWA)
 - ✅ iOS/Android installable
 
