@@ -2,6 +2,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideServiceWorker } from '@angular/service-worker';
 import { IMAGE_CONFIG } from '@angular/common';
 import { APP_INITIALIZER } from '@angular/core';
 import { AppComponent } from './app/app.component';
@@ -56,43 +57,6 @@ const initVercelSpeedInsights = async () => {
 
 initVercelSpeedInsights();
 
-// Initialize Service Worker for PWA functionality
-const initServiceWorker = async () => {
-  if (!('serviceWorker' in navigator)) {
-    console.log('[PWA] Service Worker not supported in this browser');
-    return;
-  }
-
-  try {
-    const registration = await navigator.serviceWorker.register('/ngsw-worker.js', {
-      scope: '/'
-    });
-    console.log('[PWA] Service Worker registered successfully:', registration);
-
-    // If there's already a waiting worker on initial load, apply it automatically
-    // This handles the case where user refreshed the page or reopened the app
-    if (registration.waiting) {
-      try {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        console.log('[PWA] Sent SKIP_WAITING to existing waiting worker on initial load');
-      } catch (err) {
-        console.warn('[PWA] Could not message waiting worker:', err);
-      }
-    }
-
-    // Check for updates every 5 minutes
-    setInterval(() => {
-      registration.update().catch(error => {
-        console.error('[PWA] Error checking for updates:', error);
-      });
-    }, 5 * 60 * 1000); // Check every 5 minutes
-  } catch (error) {
-    console.error('[PWA] Service Worker registration failed:', error);
-  }
-};
-
-initServiceWorker();
-
 // Add a global visibility check to ensure content stays visible during background refresh
 const setupVisibilityRecovery = () => {
   const handleVisibilityChange = () => {
@@ -130,6 +94,10 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
     provideHttpClient(),
     provideAnimations(),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: true,
+      registrationStrategy: 'registerImmediately'
+    }),
     {
       provide: IMAGE_CONFIG,
       useValue: {

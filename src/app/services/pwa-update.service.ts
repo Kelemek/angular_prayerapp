@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable, ApplicationRef } from '@angular/core';
+import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+import { BehaviorSubject, Observable, interval, concat } from 'rxjs';
+import { filter, first } from 'rxjs/operators';
 
 /**
  * PWAUpdateService manages service worker updates with user control
@@ -12,11 +14,13 @@ import { BehaviorSubject, Observable } from 'rxjs';
 })
 export class PWAUpdateService {
   private updateAvailableSubject = new BehaviorSubject<boolean>(false);
-  private registration: ServiceWorkerRegistration | null = null;
 
   public updateAvailable$: Observable<boolean> = this.updateAvailableSubject.asObservable();
 
-  constructor() {
+  constructor(
+    private swUpdate: SwUpdate,
+    private appRef: ApplicationRef
+  ) {
     this.initializeUpdateDetection();
   }
 
@@ -24,58 +28,32 @@ export class PWAUpdateService {
    * Initialize update detection for service worker
    */
   private initializeUpdateDetection(): void {
-    if (!('serviceWorker' in navigator)) {
-      console.log('[PWAUpdate] Service Worker not supported');
+    if (!this.swUpdate.isEnabled) {
+      console.log('[PWAUpdate] Service Worker updates not enabled');
       return;
     }
 
-    // Listen for controller change to reload when update is applied
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('[PWAUpdate] Service worker controller changed, reloading page');
-      window.location.reload();
-    });
-
-    // Get the registration and check for updates
-    navigator.serviceWorker.getRegistration().then((reg) => {
-      if (!reg) {
-        console.log('[PWAUpdate] No service worker registration found');
-        return;
-      }
-
-      this.registration = reg;
-      this.checkForWaitingWorker(reg);
-      this.listenForUpdates(reg);
-    }).catch((error) => {
-      console.error('[PWAUpdate] Error getting service worker registration:', error);
-    });
-  }
-
-  /**
-   * Check if there's already a waiting worker
-   */
-  private checkForWaitingWorker(registration: ServiceWorkerRegistration): void {
-    if (registration.waiting) {
-      console.log('[PWAUpdate] Update already available');
-      this.updateAvailableSubject.next(true);
-    }
-  }
-
-  /**
-   * Listen for new service worker installations
-   */
-  private listenForUpdates(registration: ServiceWorkerRegistration): void {
-    registration.addEventListener('updatefound', () => {
-      const newWorker = registration.installing;
-      if (!newWorker) return;
-
-      console.log('[PWAUpdate] New service worker installing');
-
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          console.log('[PWAUpdate] New service worker installed and waiting');
-          this.updateAvailableSubject.next(true);
-        }
+    // Listen for version updates (when new version is ready)
+    this.swUpdate.versionUpdates
+      .pipe(filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'))
+      .subscribe(event => {
+        console.log('[PWAUpdate] New version available:', event.latestVersion);
+        this.updateAvailableSubject.next(true);
       });
+
+    // Check for updates when app stabilizes and then periodically
+    const appIsStable$ = this.appRef.isStable.pipe(first(isStable => isStable === true));
+    const everySixHours$ = concat(appIsStable$, interval(5 * 60 * 1000)); // Check every 5 minutes
+
+    everySixHours$.subscribe(async () => {
+      try {
+        const updateFound = await this.swUpdate.checkForUpdate();
+        if (updateFound) {
+          console.log('[PWAUpdate] Update check found new version');
+        }
+      } catch (err) {
+        console.error('[PWAUpdate] Failed to check for updates:', err);
+      }
     });
   }
 
@@ -83,29 +61,33 @@ export class PWAUpdateService {
    * Check for updates manually
    */
   checkForUpdates(): void {
-    if (!this.registration) {
-      console.log('[PWAUpdate] No registration available for update check');
+    if (!this.swUpdate.isEnabled) {
+      console.log('[PWAUpdate] Service Worker not enabled');
       return;
     }
 
-    this.registration.update().catch((error) => {
+    this.swUpdate.checkForUpdate().catch((error) => {
       console.error('[PWAUpdate] Error checking for updates:', error);
     });
   }
 
   /**
    * Apply the update immediately
-   * Tells the waiting service worker to activate and reloads the page
+   * Activates the new service worker and reloads the page
    */
   applyUpdate(): void {
-    if (!this.registration || !this.registration.waiting) {
-      console.warn('[PWAUpdate] No update available to apply');
+    if (!this.swUpdate.isEnabled) {
+      console.warn('[PWAUpdate] Service Worker not enabled');
       return;
     }
 
     console.log('[PWAUpdate] Applying update immediately');
-    this.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    // Page will reload when controllerchange event fires
+    this.swUpdate.activateUpdate().then(() => {
+      console.log('[PWAUpdate] Update activated, reloading page');
+      window.location.reload();
+    }).catch(err => {
+      console.error('[PWAUpdate] Failed to activate update:', err);
+    });
   }
 
   /**

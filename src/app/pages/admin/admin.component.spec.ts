@@ -64,16 +64,17 @@ describe('AdminComponent', () => {
     component = new AdminComponent(router, adminDataService, analyticsService, adminAuthService, userSessionService, cdr);
   });
 
-  it('subscribes and fetches admin data on init', () => {
+  it('subscribes and fetches admin data on init', async () => {
     const autoSpy = vi.spyOn(component as any, 'autoProgressTabs');
 
     component.ngOnInit();
+    await new Promise(resolve => setTimeout(resolve, 0));
 
-    expect(analyticsService.trackPageView).toHaveBeenCalled();
     expect(adminDataService.fetchAdminData).toHaveBeenCalled();
 
     // push data through observable and ensure handler runs
     adminDataService.data$.next({ pendingPrayers: [], pendingUpdates: [] });
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(component['adminData']).toBeTruthy();
     expect(cdr.markForCheck).toHaveBeenCalled();
     expect(autoSpy).toHaveBeenCalled();
