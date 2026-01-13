@@ -755,9 +755,6 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Track admin page view
-    this.analyticsService.trackPageView();
-
     // Subscribe to admin data
     this.adminDataService.data$
       .pipe(takeUntil(this.destroy$))

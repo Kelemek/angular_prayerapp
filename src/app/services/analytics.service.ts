@@ -28,19 +28,19 @@ export class AnalyticsService {
 
   /**
    * Track a page view and update user's last activity date
-   * Updates the user's last_activity_date in email_subscribers table when they view the page
-   * Throttled to update at most every 5 minutes to reduce database writes
+   * Only tracks logged-in users to prevent admin page views from skewing analytics
+   * Inserts a record into the analytics table and updates email_subscribers last_activity_date
+   * Both operations are throttled to every 5 minutes to reduce database writes
    * Should be called from main site pages only, not from admin routes
    */
   async trackPageView(): Promise<void> {
     try {
-      // Get user email from current session
+      // Only track logged-in users
       const session = this.userSession.getCurrentSession();
       const userEmail = session?.email || null;
 
-      // Only update if user is logged in
       if (!userEmail) {
-        return;
+        return; // Don't track non-logged-in users or admin pages
       }
 
       // Check if we've already updated within the last 5 minutes
@@ -51,8 +51,19 @@ export class AnalyticsService {
 
       // Only update if no previous update or if 5+ minutes have passed
       if (lastUpdateTime && now - parseInt(lastUpdateTime) < fiveMinutesMs) {
-        return; // Skip update - too recent
+        return; // Skip both operations - too recent
       }
+
+      // Track the page view in analytics table
+      await this.supabase.client
+        .from('analytics')
+        .insert({
+          event_type: 'page_view',
+          event_data: {
+            timestamp: new Date().toISOString(),
+            url: typeof window !== 'undefined' ? window.location.pathname : null
+          }
+        });
 
       // Update the user's last activity date in email_subscribers
       await this.supabase.client

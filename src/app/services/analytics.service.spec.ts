@@ -119,13 +119,20 @@ describe('AnalyticsService', () => {
 
     it('should handle errors gracefully', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const error = new Error('Update failed');
+      const error = new Error('Insert failed');
       
-      mockSupabaseClient.from = vi.fn(() => ({
-        update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.reject(error))
-        }))
-      }));
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'analytics') {
+          return {
+            insert: vi.fn(() => Promise.reject(error))
+          };
+        }
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        };
+      });
 
       await service.trackPageView();
 
@@ -133,15 +140,23 @@ describe('AnalyticsService', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should not update if user is not logged in', async () => {
+    it('should not track if user is not logged in', async () => {
+      const insertMock = vi.fn();
       const updateMock = vi.fn();
-      mockSupabaseClient.from = vi.fn(() => ({ update: updateMock }));
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'analytics') {
+          return { insert: insertMock };
+        }
+        return { update: updateMock };
+      });
       
       // Mock null session
       mockUserSessionService.getCurrentSession = vi.fn(() => null);
 
       await service.trackPageView();
 
+      // Should not insert or update when not logged in
+      expect(insertMock).not.toHaveBeenCalled();
       expect(updateMock).not.toHaveBeenCalled();
     });
   });
