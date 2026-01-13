@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -35,7 +35,7 @@ interface CSVRow {
   imports: [CommonModule, FormsModule, SendNotificationDialogComponent, ConfirmationDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+    <div #emailSubscribersContainer class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-2">
           <svg class="text-blue-600 dark:text-blue-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -710,6 +710,9 @@ export class EmailSubscribersComponent implements OnInit {
   confirmationAction: (() => Promise<void>) | null = null;
   isDeleteConfirmation = false;
 
+  // Template references
+  @ViewChild('emailSubscribersContainer') emailSubscribersContainer!: ElementRef;
+
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
@@ -864,7 +867,14 @@ export class EmailSubscribersComponent implements OnInit {
     if (page >= 1 && page <= totalPages) {
       this.currentPage = page;
       this.loadPageData();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Scroll the Email Subscribers container to the top of the window
+      if (this.emailSubscribersContainer) {
+        setTimeout(() => {
+          const containerTop = this.emailSubscribersContainer.nativeElement.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: containerTop, behavior: 'smooth' });
+        }, 0);
+      }
     }
   }
 

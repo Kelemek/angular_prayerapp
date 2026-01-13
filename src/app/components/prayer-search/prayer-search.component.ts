@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -69,7 +69,7 @@ interface EditUpdateForm {
   standalone: true,
   imports: [CommonModule, FormsModule, SendNotificationDialogComponent, ConfirmationDialogComponent],
   template: `
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+<div #prayerEditorContainer class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
   <div class="flex items-center gap-2 mb-4">
     <svg class="text-red-600 dark:text-red-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="8"></circle>
@@ -1238,6 +1238,9 @@ export class PrayerSearchComponent implements OnInit {
   allPrayers: Prayer[] = [];
   displayPrayers: Prayer[] = [];
 
+  // Template references
+  @ViewChild('prayerEditorContainer') prayerEditorContainer!: ElementRef;
+
   constructor(
     private supabaseService: SupabaseService,
     private toast: ToastService,
@@ -1425,6 +1428,14 @@ export class PrayerSearchComponent implements OnInit {
   goToPage(page: number): void {
     this.currentPage = Math.max(1, Math.min(page, Math.ceil(this.totalItems / this.pageSize)));
     this.loadPageData();
+    
+    // Scroll the Prayer Editor container to the top of the window
+    if (this.prayerEditorContainer) {
+      setTimeout(() => {
+        const containerTop = this.prayerEditorContainer.nativeElement.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: containerTop, behavior: 'smooth' });
+      }, 0);
+    }
   }
 
   previousPage(): void {
