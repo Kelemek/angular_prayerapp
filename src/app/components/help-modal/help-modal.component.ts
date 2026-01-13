@@ -27,8 +27,8 @@ import { map } from 'rxjs/operators';
           <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-t-lg z-10">
             <div class="flex items-start justify-between">
               <div>
-                <h2 id="help-modal-title" class="text-2xl font-bold text-white">Help & Guidance</h2>
-                <p class="text-sm text-gray-100 mt-1">Learn how to use the Prayer App</p>
+                <h2 id="help-modal-title" class="text-2xl font-bold text-gray-900 dark:text-white">Help & Guidance</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-100 mt-1">Learn how to use the Prayer App</p>
               </div>
               <button
                 (click)="onClose()"
@@ -76,8 +76,8 @@ import { map } from 'rxjs/operators';
                       <div class="flex items-start gap-3 flex-1">
                         <div class="text-lg mt-1 flex-shrink-0 w-6 h-6" [innerHTML]="getSafeIcon(section.icon)"></div>
                         <div>
-                          <h3 class="font-semibold text-white">{{ section.title }}</h3>
-                          <p class="text-sm text-gray-100">{{ section.description }}</p>
+                          <h3 class="font-semibold text-gray-900 dark:text-white">{{ section.title }}</h3>
+                          <p class="text-sm text-gray-600 dark:text-gray-100">{{ section.description }}</p>
                         </div>
                       </div>
                       <!-- Chevron Icon -->
@@ -98,14 +98,14 @@ import { map } from 'rxjs/operators';
                         <div class="space-y-4">
                           @for (content of section.content; track $index) {
                             <div>
-                              <h4 class="font-medium text-white">{{ content.subtitle }}</h4>
-                              <p class="text-sm text-gray-100 mt-1">{{ content.text }}</p>
+                              <h4 class="font-medium text-gray-900 dark:text-white">{{ content.subtitle }}</h4>
+                              <p class="text-sm text-gray-700 dark:text-gray-100 mt-1">{{ content.text }}</p>
 
                               <!-- Examples -->
                               @if (content.examples && content.examples.length > 0) {
                                 <div class="mt-2 pl-3 border-l-2 border-blue-400 dark:border-blue-500">
                                   @for (example of content.examples; track $index) {
-                                    <p class="text-xs text-gray-500 dark:text-gray-500 italic">{{ example }}</p>
+                                    <p class="text-xs text-gray-600 dark:text-gray-500 italic">{{ example }}</p>
                                   }
                                 </div>
                               }
