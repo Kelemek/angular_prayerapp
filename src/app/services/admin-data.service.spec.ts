@@ -220,6 +220,40 @@ describe('AdminDataService', () => {
       expect(data.pendingUpdates[0].prayer_title).toBe('Prayer 1');
       expect(data.pendingUpdates[1].prayer_title).toBe('Prayer 2');
     });
+
+    it('should include full prayer details in pending updates', async () => {
+      const mockUpdates = [
+        {
+          id: '1',
+          content: 'Update 1',
+          prayers: {
+            id: 'prayer-1',
+            title: 'Prayer for healing',
+            description: 'Please pray for recovery',
+            requester: 'Jane Smith',
+            prayer_for: 'John Doe',
+            status: 'current'
+          }
+        }
+      ];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return createMockQueryChain(mockUpdates, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.fetchAdminData();
+
+      const data = await firstValueFrom(service.data$);
+      expect(data.pendingUpdates[0].prayers).toBeDefined();
+      expect(data.pendingUpdates[0].prayers?.title).toBe('Prayer for healing');
+      expect(data.pendingUpdates[0].prayers?.description).toBe('Please pray for recovery');
+      expect(data.pendingUpdates[0].prayers?.requester).toBe('Jane Smith');
+      expect(data.pendingUpdates[0].prayers?.prayer_for).toBe('John Doe');
+      expect(data.pendingUpdates[0].prayers?.status).toBe('current');
+    });
   });
 
   describe('approvePrayer', () => {

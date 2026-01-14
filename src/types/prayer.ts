@@ -32,6 +32,14 @@ export interface PrayerUpdate {
   denial_reason?: string | null;
   approved_at?: string | null;
   denied_at?: string | null;
+  prayers?: {
+    id?: string;
+    title?: string;
+    description?: string;
+    requester?: string;
+    prayer_for?: string;
+    status?: PrayerStatus;
+  };
 }
 
 export interface DeletionRequest {

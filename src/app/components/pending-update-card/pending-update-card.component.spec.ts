@@ -764,4 +764,194 @@ describe('PendingUpdateCardComponent', () => {
       expect(fixture.componentInstance.update).toEqual(newUpdate);
     });
   });
+
+  describe('Original Prayer Details Display', () => {
+    it('should display original prayer details section when prayers object exists', async () => {
+      const updateWithPrayerDetails: PrayerUpdate = {
+        ...mockUpdate,
+        prayers: {
+          id: 'prayer-456',
+          title: 'Prayer for healing',
+          description: 'Please pray for recovery',
+          requester: 'Jane Smith',
+          prayer_for: 'John Doe',
+          status: 'current'
+        }
+      };
+
+      const { container } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: updateWithPrayerDetails
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      // Check that the original prayer section exists by checking for the heading text
+      expect(container.textContent).toContain('Original Prayer');
+    });
+
+    it('should display prayer title in original prayer details', async () => {
+      const updateWithPrayerDetails: PrayerUpdate = {
+        ...mockUpdate,
+        prayers: {
+          id: 'prayer-456',
+          title: 'Prayer for healing',
+          description: 'Please pray for recovery',
+          requester: 'Jane Smith',
+          prayer_for: 'John Doe',
+          status: 'current'
+        }
+      };
+
+      const { container } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: updateWithPrayerDetails
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      expect(container.textContent).toContain('Prayer for healing');
+    });
+
+    it('should display prayer requester in original prayer details', async () => {
+      const updateWithPrayerDetails: PrayerUpdate = {
+        ...mockUpdate,
+        prayers: {
+          id: 'prayer-456',
+          title: 'Prayer for healing',
+          description: 'Please pray for recovery',
+          requester: 'Jane Smith',
+          prayer_for: 'John Doe',
+          status: 'current'
+        }
+      };
+
+      const { container } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: updateWithPrayerDetails
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      expect(container.textContent).toContain('Jane Smith');
+    });
+
+    it('should display prayer description in original prayer details', async () => {
+      const updateWithPrayerDetails: PrayerUpdate = {
+        ...mockUpdate,
+        prayers: {
+          id: 'prayer-456',
+          title: 'Prayer for healing',
+          description: 'Please pray for recovery',
+          requester: 'Jane Smith',
+          prayer_for: 'John Doe',
+          status: 'current'
+        }
+      };
+
+      const { container } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: updateWithPrayerDetails
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      expect(container.textContent).toContain('Please pray for recovery');
+    });
+
+    it('should not display original prayer section when prayers object is undefined', async () => {
+      const { container } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: mockUpdate
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      // The section should not be displayed
+      const prayerDetailsText = container.textContent;
+      expect(prayerDetailsText).not.toContain('Original Prayer');
+    });
+  });
+
+  describe('getStatusColor method', () => {
+    it('should return yellow color for pending status', async () => {
+      const { fixture } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: mockUpdate
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      const color = fixture.componentInstance.getStatusColor('pending');
+      expect(color).toContain('yellow');
+    });
+
+    it('should return blue color for current status', async () => {
+      const { fixture } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: mockUpdate
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      const color = fixture.componentInstance.getStatusColor('current');
+      expect(color).toContain('blue');
+    });
+
+    it('should return green color for answered status', async () => {
+      const { fixture } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: mockUpdate
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      const color = fixture.componentInstance.getStatusColor('answered');
+      expect(color).toContain('green');
+    });
+
+    it('should return gray color for archived status', async () => {
+      const { fixture } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: mockUpdate
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      const color = fixture.componentInstance.getStatusColor('archived');
+      expect(color).toContain('gray');
+    });
+
+    it('should return default gray color for unknown status', async () => {
+      const { fixture } = await render(PendingUpdateCardComponent, {
+        componentProperties: {
+          update: mockUpdate
+        },
+        providers: [
+          { provide: SupabaseService, useValue: mockSupabaseService }
+        ]
+      });
+
+      const color = fixture.componentInstance.getStatusColor('unknown');
+      expect(color).toContain('gray');
+    });
+  });
 });

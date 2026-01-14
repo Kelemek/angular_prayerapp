@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TitleCasePipe } from '@angular/common';
 import type { PrayerUpdate } from '../../types/prayer';
 import { SupabaseService } from '../../services/supabase.service';
 import { lookupPersonByEmail, formatPersonName, type PlanningCenterPerson } from '../../../lib/planning-center';
@@ -8,10 +9,41 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-pending-update-card',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, TitleCasePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-4">
+      <!-- Original Prayer Details (Context for Admin) -->
+      @if (update.prayers && !isEditing) {
+      <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Original Prayer</h4>
+        <div class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+          <div>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Title:</span>
+            <p class="text-gray-600 dark:text-gray-300">{{ update.prayers.title }}</p>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Requested by:</span>
+            <p class="text-gray-600 dark:text-gray-300">{{ update.prayers.requester }}</p>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Prayer for:</span>
+            <p class="text-gray-600 dark:text-gray-300">{{ update.prayers.prayer_for }}</p>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Description:</span>
+            <p class="text-gray-600 dark:text-gray-300">{{ update.prayers.description || 'No description provided' }}</p>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Current Status:</span>
+            <span [class]="'inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ' + getStatusColor(update.prayers.status || 'pending')">
+              {{ (update.prayers.status || 'pending') | titlecase }}
+            </span>
+          </div>
+        </div>
+      </div>
+      }
+
       <!-- Header -->
       @if (!isEditing) {
       <div class="flex items-start justify-between mb-4">
@@ -301,6 +333,16 @@ export class PendingUpdateCardComponent implements OnInit {
 
   formatPersonName(person: PlanningCenterPerson): string {
     return formatPersonName(person);
+  }
+
+  getStatusColor(status: string): string {
+    const statusColorMap: { [key: string]: string } = {
+      'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+      'current': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+      'answered': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+      'archived': 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+    };
+    return statusColorMap[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
   }
 
   async handleApprove() {

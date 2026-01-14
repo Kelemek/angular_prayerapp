@@ -122,10 +122,10 @@ export class AdminDataService {
           .eq('approval_status', 'pending')
           .order('created_at', { ascending: false }),
         
-        // Pending updates with prayer title
+        // Pending updates with full prayer details
         supabaseClient
           .from('prayer_updates')
-          .select('*, prayers!inner(title)')
+          .select('*, prayers!inner(id, title, description, requester, prayer_for, status)')
           .eq('approval_status', 'pending')
           .order('created_at', { ascending: false }),
         
