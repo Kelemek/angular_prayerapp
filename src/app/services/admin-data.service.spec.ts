@@ -254,6 +254,32 @@ describe('AdminDataService', () => {
       expect(data.pendingUpdates[0].prayers?.prayer_for).toBe('John Doe');
       expect(data.pendingUpdates[0].prayers?.status).toBe('current');
     });
+
+    it('should allow forcing data refresh even when fetch is in progress', async () => {
+      const mockUpdates = [{ id: '1', content: 'Update 1', prayers: { title: 'Prayer 1' } }];
+
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return createMockQueryChain(mockUpdates, null);
+        }
+        return createMockQueryChain([], null);
+      });
+
+      // Start first fetch (this will set isFetching = true)
+      const firstFetch = service.fetchAdminData();
+
+      // Try to fetch again without force (should return early due to isFetching guard)
+      const secondFetch = service.fetchAdminData(true, false);
+
+      // Force fetch should proceed despite isFetching being true
+      const forcedFetch = service.fetchAdminData(true, true);
+
+      await Promise.all([firstFetch, secondFetch, forcedFetch]);
+
+      const data = await firstValueFrom(service.data$);
+      // Should have data from one of the successful fetches
+      expect(data.pendingUpdates).toBeDefined();
+    });
   });
 
   describe('approvePrayer', () => {

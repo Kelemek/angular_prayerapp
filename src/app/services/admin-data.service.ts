@@ -89,8 +89,8 @@ export class AdminDataService {
     private emailNotification: EmailNotificationService
   ) {}
 
-  async fetchAdminData(silent = false): Promise<void> {
-    if (this.isFetching) return;
+  async fetchAdminData(silent = false, force = false): Promise<void> {
+    if (this.isFetching && !force) return;
 
     try {
       this.isFetching = true;
@@ -383,8 +383,8 @@ export class AdminDataService {
       prayerFor: prayer.prayer_for
     }).catch(err => console.error('Failed to send requester approval notification:', err));
     
-    // Refresh admin data and main prayer list
-    await this.fetchAdminData(true);
+    // Refresh admin data and main prayer list (force to bypass concurrent fetch guard)
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -455,7 +455,7 @@ export class AdminDataService {
       }).catch(err => console.error('Failed to send denial notification:', err));
     }
     
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -468,7 +468,7 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -572,7 +572,7 @@ export class AdminDataService {
       }).catch(err => console.error('Failed to send update approval notification:', err));
     }
     
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -651,7 +651,7 @@ export class AdminDataService {
       }).catch(err => console.error('Failed to send denial notification:', err));
     }
     
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -758,7 +758,7 @@ export class AdminDataService {
 
     if (deleteError) throw deleteError;
     
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -775,7 +775,7 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -811,7 +811,7 @@ export class AdminDataService {
 
     if (deleteError) throw deleteError;
     
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -828,7 +828,7 @@ export class AdminDataService {
       .eq('id', id);
 
     if (error) throw error;
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
 
@@ -928,7 +928,7 @@ export class AdminDataService {
       // Don't fail the approval if welcome email fails
     }
     
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
   }
 
   async denyAccountRequest(id: string, reason: string): Promise<void> {
@@ -981,7 +981,7 @@ export class AdminDataService {
       console.error('Failed to send denial email:', emailError);
     }
     
-    await this.fetchAdminData(true);
+    await this.fetchAdminData(true, true);
   }
 
   silentRefresh(): void {
