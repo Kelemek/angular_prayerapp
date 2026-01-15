@@ -6,7 +6,7 @@ Complete documentation for the Cross Pointe Church Prayer Management System.
 
 - **[FEATURES.md](FEATURES.md)** - All app features and how to use them
 - **[SETUP.md](SETUP.md)** - Installation, configuration, and deployment
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Architecture, testing, and development
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Architecture, testing, development, timezone handling, prayer archiving, and component documentation
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Solutions to common issues
 - **[CHANGELOG.md](CHANGELOG.md)** - Project history and major milestones
 

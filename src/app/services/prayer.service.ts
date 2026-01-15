@@ -23,6 +23,7 @@ export interface PrayerRequest {
   title: string;
   description: string;
   status: PrayerStatus;
+  approval_status?: 'pending' | 'approved' | 'rejected';
   requester: string;
   prayer_for: string;
   email?: string | null;
@@ -32,6 +33,7 @@ export interface PrayerRequest {
   date_answered?: string | null;
   created_at: string;
   updated_at: string;
+  last_reminder_sent?: string | null;
   updates: PrayerUpdate[];
 }
 
@@ -174,6 +176,52 @@ export class PrayerService {
       }
     } finally {
       this.loadingSubject.next(false);
+    }
+  }
+
+  /**
+   * Get prayers for a specific month (for pagination)
+   * Fetches only prayers with updates/activity in the given month
+   */
+  async getPrayersByMonth(year: number, month: number): Promise<PrayerRequest[]> {
+    try {
+      // Create date range for the month
+      const startDate = new Date(year, month - 1, 1).toISOString();
+      const endDate = new Date(year, month, 1).toISOString();
+
+      const { data: prayersData, error } = await this.supabase.client
+        .from('prayers')
+        .select(`
+          *,
+          prayer_updates!prayer_updates_prayer_id_fkey(*)
+        `)
+        .or(`(updated_at.gte.${startDate},updated_at.lt.${endDate}),(created_at.gte.${startDate},created_at.lt.${endDate})`)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Format the data same as loadPrayers
+      const formattedPrayers = (prayersData || []).map((prayer: any) => ({
+        ...prayer,
+        updates: prayer.prayer_updates || []
+      }));
+
+      // Sort by latest activity
+      return formattedPrayers
+        .map(prayer => ({
+          prayer,
+          latestActivity: Math.max(
+            new Date(prayer.created_at).getTime(),
+            prayer.updates.length > 0 
+              ? new Date(prayer.updates[0].created_at).getTime()
+              : 0
+          )
+        }))
+        .sort((a, b) => b.latestActivity - a.latestActivity)
+        .map(({ prayer }) => prayer);
+    } catch (err) {
+      console.error(`[PrayerService] Failed to load prayers for ${year}-${month}:`, err);
+      return [];
     }
   }
 

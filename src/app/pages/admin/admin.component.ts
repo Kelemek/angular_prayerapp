@@ -18,6 +18,7 @@ import { PrayerTypesManagerComponent } from '../../components/prayer-types-manag
 import { EmailSettingsComponent } from '../../components/email-settings/email-settings.component';
 import { AdminUserManagementComponent } from '../../components/admin-user-management/admin-user-management.component';
 import { PrayerSearchComponent } from '../../components/prayer-search/prayer-search.component';
+import { PrayerArchiveTimelineComponent } from '../../components/prayer-archive-timeline/prayer-archive-timeline.component';
 import { BackupStatusComponent } from '../../components/backup-status/backup-status.component';
 import { SecurityPolicySettingsComponent } from '../../components/security-policy-settings/security-policy-settings.component';
 import { EmailVerificationSettingsComponent } from '../../components/email-verification-settings/email-verification-settings.component';
@@ -44,6 +45,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
     EmailSettingsComponent,
     AdminUserManagementComponent,
     PrayerSearchComponent,
+    PrayerArchiveTimelineComponent,
     BackupStatusComponent,
     SecurityPolicySettingsComponent,
     EmailVerificationSettingsComponent,
@@ -655,6 +657,9 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
               <div class="space-y-6">
                 <div class="mb-4">
                   <app-prayer-search></app-prayer-search>
+                </div>
+                <div class="mb-4">
+                  <app-prayer-archive-timeline></app-prayer-archive-timeline>
                 </div>
                 <div class="mb-4">
                   <app-backup-status></app-backup-status>
