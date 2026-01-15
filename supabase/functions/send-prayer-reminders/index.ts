@@ -134,31 +134,55 @@ serve(async (req) => {
     // Only process reminders if they are enabled
     if (enableReminders && reminderIntervalDays > 0) {
     for (const prayer of potentialPrayers) {
-      // Get the most recent update for this prayer
+      // Normalize email for comparison (lowercase, trim)
+      const requesterEmail = prayer.email?.toLowerCase().trim()
+      
+      if (!requesterEmail) {
+        console.log(`Prayer ${prayer.id}: Skipping - no requester email`)
+        continue
+      }
+      
+      // Get the most recent update from someone OTHER than the requester
+      // (Requester comments shouldn't reset the reminder timer)
       const { data: updates, error: updateError } = await supabaseClient
         .from('prayer_updates')
-        .select('created_at')
+        .select('created_at, author_email')
         .eq('prayer_id', prayer.id)
         .order('created_at', { ascending: false })
-        .limit(1)
+        .limit(10)  // Get more to debug
 
       if (updateError) {
         console.error(`Error fetching updates for prayer ${prayer.id}:`, updateError)
         continue
       }
 
-      // Determine the last activity date (either last update or prayer creation)
-      let lastActivityDate
+      // Filter out updates from the requester (case-insensitive)
+      const communityUpdates = updates?.filter(u => 
+        u.author_email?.toLowerCase().trim() !== requesterEmail
+      ) || []
+      
+      // Log for debugging
       if (updates && updates.length > 0) {
-        lastActivityDate = new Date(updates[0].created_at)
+        console.log(`Prayer ${prayer.id}: Found ${updates.length} total updates, ${communityUpdates.length} from community (requester: ${requesterEmail})`)
+        updates.forEach((u, i) => {
+          console.log(`  Update ${i + 1}: ${u.author_email} (${u.created_at})`)
+        })
+      }
+
+      // Determine the last activity date (either last update from others or prayer creation)
+      let lastActivityDate
+      if (communityUpdates.length > 0) {
+        lastActivityDate = new Date(communityUpdates[0].created_at)
+        console.log(`Prayer ${prayer.id}: Last community update ${lastActivityDate.toISOString()}`)
       } else {
         lastActivityDate = new Date(prayer.created_at)
+        console.log(`Prayer ${prayer.id}: No community updates, using creation date ${lastActivityDate.toISOString()}`)
       }
 
       // Only send reminder if:
-      // 1. Last activity was before the cutoff date AND
+      // 1. Last community activity was before the cutoff date AND
       // 2. Either no reminder has been sent yet, OR the last activity is AFTER the last reminder
-      //    (meaning the counter has reset due to a new update)
+      //    (meaning the counter has reset due to a new community update)
       const shouldSendReminder = lastActivityDate < cutoffDate && (
         !prayer.last_reminder_sent || 
         new Date(lastActivityDate) > new Date(prayer.last_reminder_sent)
@@ -166,7 +190,9 @@ serve(async (req) => {
 
       if (shouldSendReminder) {
         prayersNeedingReminders.push(prayer)
-        console.log(`Prayer ${prayer.id} needs reminder: last activity ${lastActivityDate.toISOString()}, last reminder: ${prayer.last_reminder_sent || 'never'}`)
+        console.log(`Prayer ${prayer.id} needs reminder: last community activity ${lastActivityDate.toISOString()}, last reminder: ${prayer.last_reminder_sent || 'never'}`)
+      } else {
+        console.log(`Prayer ${prayer.id} skipped: lastActivityDate=${lastActivityDate.toISOString()}, cutoffDate=${cutoffDate.toISOString()}, lastReminder=${prayer.last_reminder_sent || 'never'}`)
       }
     }
     } // End of reminder processing loop
@@ -295,23 +321,31 @@ serve(async (req) => {
         
         // For each prayer with a reminder, check if it should be archived
         for (const prayer of prayersToArchive) {
-          // Get the most recent update for this prayer (after the reminder was sent)
+          // Normalize email for comparison
+          const requesterEmail = prayer.email?.toLowerCase().trim()
+          
+          // Get updates from community (not the requester) after the reminder was sent
           const { data: updates, error: updateError } = await supabaseClient
             .from('prayer_updates')
-            .select('created_at')
+            .select('created_at, author_email')
             .eq('prayer_id', prayer.id)
             .gt('created_at', prayer.last_reminder_sent!)
             .order('created_at', { ascending: false })
-            .limit(1)
+            .limit(10)
 
           if (updateError) {
             console.error(`Error checking updates for prayer ${prayer.id}:`, updateError)
             continue
           }
 
-          // If there's an update after the reminder, skip archiving (counter reset)
-          if (updates && updates.length > 0) {
-            console.log(`Prayer ${prayer.id} has an update after reminder, skipping archive`)
+          // Filter out updates from the requester (case-insensitive)
+          const communityUpdates = updates?.filter(u => 
+            requesterEmail && u.author_email?.toLowerCase().trim() !== requesterEmail
+          ) || []
+
+          // If there's a community update after the reminder, skip archiving (counter reset)
+          if (communityUpdates.length > 0) {
+            console.log(`Prayer ${prayer.id} has ${communityUpdates.length} community update(s) after reminder, skipping archive`)
             continue
           }
 

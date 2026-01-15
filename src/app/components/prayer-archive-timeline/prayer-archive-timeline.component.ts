@@ -9,7 +9,7 @@ interface TimelineEvent {
     id: string;
     title: string;
   };
-  eventType: 'reminder-sent' | 'reminder-upcoming' | 'archive-past' | 'archive-upcoming' | 'archived';
+  eventType: 'reminder-sent' | 'reminder-upcoming' | 'reminder-missed' | 'archive-upcoming' | 'archive-missed' | 'archived' | 'answered';
   daysUntil: number;
 }
 
@@ -120,9 +120,12 @@ interface TimelineDay {
                     <div class="absolute left-[1px] top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2"
                         [ngClass]="{
                           'bg-blue-500 border-blue-600 dark:bg-blue-600 dark:border-blue-700': event.eventType === 'reminder-upcoming',
-                          'bg-green-500 border-green-600 dark:bg-green-600 dark:border-green-700': event.eventType === 'reminder-sent',
+                          'bg-purple-500 border-purple-600 dark:bg-purple-600 dark:border-purple-700': event.eventType === 'reminder-sent',
+                          'bg-orange-500 border-orange-600 dark:bg-orange-600 dark:border-orange-700': event.eventType === 'reminder-missed',
                           'bg-red-500 border-red-600 dark:bg-red-600 dark:border-red-700': event.eventType === 'archive-upcoming',
-                          'bg-gray-500 border-gray-600 dark:bg-gray-600 dark:border-gray-700': event.eventType === 'archive-past' || event.eventType === 'archived'
+                          'bg-red-700 border-red-800 dark:bg-red-700 dark:border-red-800': event.eventType === 'archive-missed',
+                          'bg-green-500 border-green-600 dark:bg-green-600 dark:border-green-700': event.eventType === 'answered',
+                          'bg-gray-500 border-gray-600 dark:bg-gray-600 dark:border-gray-700': event.eventType === 'archived'
                         }">
                     </div>
 
@@ -130,9 +133,12 @@ interface TimelineDay {
                     <div class="ml-14 p-3 rounded-lg bg-gray-50 dark:bg-gray-700 border"
                       [ngClass]="{
                         'border-blue-200 dark:border-blue-600': event.eventType === 'reminder-upcoming',
-                        'border-green-200 dark:border-green-600': event.eventType === 'reminder-sent',
+                        'border-purple-200 dark:border-purple-600': event.eventType === 'reminder-sent',
+                        'border-orange-200 dark:border-orange-600': event.eventType === 'reminder-missed',
                         'border-red-200 dark:border-red-600': event.eventType === 'archive-upcoming',
-                        'border-gray-300 dark:border-gray-600': event.eventType === 'archive-past' || event.eventType === 'archived'
+                        'border-red-400 dark:border-red-600': event.eventType === 'archive-missed',
+                        'border-green-200 dark:border-green-600': event.eventType === 'answered',
+                        'border-gray-300 dark:border-gray-600': event.eventType === 'archived'
                       }">
                       <div class="flex items-start justify-between">
                         <div class="flex-1">
@@ -140,9 +146,12 @@ interface TimelineDay {
                           <div class="flex items-center gap-2 mt-1"
                             [ngClass]="{
                               'text-blue-700 dark:text-blue-400': event.eventType === 'reminder-upcoming',
-                              'text-green-700 dark:text-green-400': event.eventType === 'reminder-sent',
+                              'text-purple-700 dark:text-purple-400': event.eventType === 'reminder-sent',
+                              'text-orange-700 dark:text-orange-400': event.eventType === 'reminder-missed',
                               'text-red-700 dark:text-red-400': event.eventType === 'archive-upcoming',
-                              'text-gray-700 dark:text-gray-400': event.eventType === 'archive-past' || event.eventType === 'archived'
+                              'text-red-800 dark:text-red-400': event.eventType === 'archive-missed',
+                              'text-green-700 dark:text-green-400': event.eventType === 'answered',
+                              'text-gray-700 dark:text-gray-400': event.eventType === 'archived'
                             }">
                             @switch (event.eventType) {
                               @case ('reminder-upcoming') {
@@ -158,23 +167,35 @@ interface TimelineDay {
                                 </svg>
                                 <span class="text-sm">Reminder sent</span>
                               }
+                              @case ('reminder-missed') {
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
+                                </svg>
+                                <span class="text-sm">Reminder missed</span>
+                              }
                               @case ('archive-upcoming') {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"></path>
                                 </svg>
                                 <span class="text-sm">Will archive</span>
                               }
-                              @case ('archive-past') {
+                              @case ('archive-missed') {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
+                                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
                                 </svg>
-                                <span class="text-sm">Prayer archived</span>
+                                <span class="text-sm">Archive missed</span>
                               }
                               @case ('archived') {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"></path>
                                 </svg>
                                 <span class="text-sm">Archived</span>
+                              }
+                              @case ('answered') {
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
+                                </svg>
+                                <span class="text-sm">Prayer answered</span>
                               }
                             }
                           </div>
@@ -244,10 +265,16 @@ interface TimelineDay {
             <span class="text-gray-600 dark:text-gray-400">Upcoming reminder</span>
           </div>
           <div class="flex items-center gap-2">
-            <svg class="text-green-600 dark:text-green-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <svg class="text-purple-600 dark:text-purple-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
             </svg>
             <span class="text-gray-600 dark:text-gray-400">Reminder sent</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="text-orange-600 dark:text-orange-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
+            </svg>
+            <span class="text-gray-600 dark:text-gray-400">Reminder missed</span>
           </div>
           <div class="flex items-center gap-2">
             <svg class="text-red-600 dark:text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -256,10 +283,22 @@ interface TimelineDay {
             <span class="text-gray-600 dark:text-gray-400">Upcoming archive</span>
           </div>
           <div class="flex items-center gap-2">
+            <svg class="text-red-700 dark:text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
+            </svg>
+            <span class="text-gray-600 dark:text-gray-400">Archive missed</span>
+          </div>
+          <div class="flex items-center gap-2">
             <svg class="text-gray-600 dark:text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
             </svg>
             <span class="text-gray-600 dark:text-gray-400">Prayer archived</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="text-green-600 dark:text-green-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
+            </svg>
+            <span class="text-gray-600 dark:text-gray-400">Prayer answered</span>
           </div>
         </div>
       </div>
@@ -468,7 +507,20 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     const todayLocal = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay, 0, 0, 0));
 
     for (const prayer of prayers) {
-      // Check if prayer is archived
+      // Show answered prayers with when they were marked as answered
+      if (prayer.status === 'answered' && prayer.updated_at) {
+        const answeredDate = this.getLocalDateAtMidnight(new Date(prayer.updated_at));
+        
+        allEvents.push({
+          date: answeredDate,
+          prayer: { id: prayer.id, title: prayer.title },
+          eventType: 'answered',
+          daysUntil: 0
+        });
+        continue; // Don't process reminder/archive events for answered prayers
+      }
+
+      // Show archived prayers with their archive date
       if (prayer.status === 'archived' && prayer.updated_at) {
         const archivedDate = this.getLocalDateAtMidnight(new Date(prayer.updated_at));
         
@@ -479,6 +531,12 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           daysUntil: 0
         });
         continue; // Don't process reminder/archive events for already-archived prayers
+      }
+
+      // Only process current prayers for reminders and archive events
+      // Answered prayers should not be auto-archived
+      if (prayer.status !== 'current') {
+        continue;
       }
 
       // Get the most recent update for this prayer
@@ -501,7 +559,15 @@ export class PrayerArchiveTimelineComponent implements OnInit {
       const lastReminderSent = prayer.last_reminder_sent;
       
       if (lastReminderSent) {
+        // Reminder was actually sent - show it
         const lastReminderDate = this.getLocalDateAtMidnight(new Date(lastReminderSent));
+        
+        // Don't process events if the reminder date is in the future (data integrity check)
+        const reminderDaysInPast = Math.ceil((todayLocal.getTime() - lastReminderDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (reminderDaysInPast < 0) {
+          // Skip invalid data - reminder sent in the future
+          continue;
+        }
         
         // Check if there's an update after the reminder was sent (timer reset)
         let hasUpdateAfterReminder = false;
@@ -513,20 +579,23 @@ export class PrayerArchiveTimelineComponent implements OnInit {
         }
 
         if (!hasUpdateAfterReminder) {
-          // Archive event (30 days after reminder sent)
+          // Check for missed archive - if archive date has passed and prayer is still current
           const archiveDate = new Date(lastReminderDate);
           archiveDate.setDate(archiveDate.getDate() + this.daysBeforeArchive);
           
           const archiveDaysUntil = Math.ceil((archiveDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
           
-          if (archiveDaysUntil <= 0) {
+          if (archiveDaysUntil <= -1) {
+            // Archive date has passed by at least 1 day - show as missed
+            // (Give system 1 day buffer for auto-archive job to execute)
             allEvents.push({
               date: archiveDate,
               prayer: { id: prayer.id, title: prayer.title },
-              eventType: 'archive-past',
+              eventType: 'archive-missed',
               daysUntil: 0
             });
-          } else {
+          } else if (archiveDaysUntil > 0) {
+            // Archive date is in the future
             allEvents.push({
               date: archiveDate,
               prayer: { id: prayer.id, title: prayer.title },
@@ -534,6 +603,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
               daysUntil: archiveDaysUntil
             });
           }
+          // If archiveDaysUntil === 0, don't show anything yet (archive day is today)
         }
         
         // Reminder sent event
@@ -544,8 +614,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           daysUntil: 0
         });
       } else {
-        // Calculate next reminder based on last activity (update or creation)
-        // This matches the backend logic which resets timer on updates
+        // No reminder sent yet - calculate when it should be/should have been
         let baseDate: Date;
         if (lastActivityDate) {
           baseDate = this.getLocalDateAtMidnight(lastActivityDate);
@@ -559,28 +628,31 @@ export class PrayerArchiveTimelineComponent implements OnInit {
         const reminderDaysUntil = Math.ceil((nextReminderDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
         
         if (reminderDaysUntil <= 0) {
-          // Show as sent if due
+          // Reminder should have been sent but wasn't - show as missed
           allEvents.push({
             date: nextReminderDate,
             prayer: { id: prayer.id, title: prayer.title },
-            eventType: 'reminder-sent',
+            eventType: 'reminder-missed',
             daysUntil: 0
           });
           
-          // If reminder was sent, also add archive event (30 days later)
+          // Also check for missed archive
           const archiveDate = new Date(nextReminderDate);
           archiveDate.setDate(archiveDate.getDate() + this.daysBeforeArchive);
           
           const archiveDaysUntil = Math.ceil((archiveDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
           
-          if (archiveDaysUntil <= 0) {
+          if (archiveDaysUntil <= -1) {
+            // Archive date has passed by at least 1 day - show as missed
+            // (Give system 1 day buffer for auto-archive job to execute)
             allEvents.push({
               date: archiveDate,
               prayer: { id: prayer.id, title: prayer.title },
-              eventType: 'archive-past',
+              eventType: 'archive-missed',
               daysUntil: 0
             });
-          } else {
+          } else if (archiveDaysUntil > 0) {
+            // Archive date is still in the future
             allEvents.push({
               date: archiveDate,
               prayer: { id: prayer.id, title: prayer.title },
@@ -588,8 +660,9 @@ export class PrayerArchiveTimelineComponent implements OnInit {
               daysUntil: archiveDaysUntil
             });
           }
+          // If archiveDaysUntil === 0, don't show anything yet (archive day is today)
         } else {
-          // Show as upcoming
+          // Reminder is still upcoming
           allEvents.push({
             date: nextReminderDate,
             prayer: { id: prayer.id, title: prayer.title },
@@ -621,7 +694,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           date,
           dateStr: this.formatDate(date),
           events: dayEvents.sort((a, b) => {
-            const typeOrder = { 'reminder-upcoming': 1, 'reminder-sent': 2, 'archive-upcoming': 3, 'archive-past': 4, 'archived': 4 };
+            const typeOrder = { 'reminder-upcoming': 1, 'reminder-sent': 2, 'reminder-missed': 3, 'archive-upcoming': 4, 'archive-missed': 5, 'answered': 6, 'archived': 7 };
             return typeOrder[a.eventType] - typeOrder[b.eventType];
           })
         };
