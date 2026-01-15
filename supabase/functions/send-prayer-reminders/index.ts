@@ -59,11 +59,12 @@ serve(async (req) => {
     const enableAutoArchive = settings?.enable_auto_archive || false
     const daysBeforeArchive = settings?.days_before_archive || 7
 
-    // If reminders are disabled, return early
-    if (!enableReminders) {
+    // If reminders are disabled, we can still proceed if auto-archiving is enabled
+    // If both are disabled, return early
+    if (!enableReminders && !enableAutoArchive) {
       return new Response(
         JSON.stringify({ 
-          message: 'Prayer update reminders are disabled',
+          message: 'Prayer update reminders and auto-archiving are both disabled',
           sent: 0,
           archived: 0
         }),
@@ -96,7 +97,7 @@ serve(async (req) => {
     // - Approval status is 'approved'
     // - Has NOT had any updates in the last X days (where X = reminderIntervalDays)
     
-    // First, get all prayers that might need reminders
+    // First, get all prayers that might need reminders or archiving
     const { data: potentialPrayers, error: fetchError } = await supabaseClient
       .from('prayers')
       .select('id, title, description, prayer_for, requester, email, is_anonymous, created_at, last_reminder_sent')
@@ -118,7 +119,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           message: 'No approved current prayers found',
-          sent: 0
+          sent: 0,
+          archived: 0
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -129,6 +131,8 @@ serve(async (req) => {
     // For each prayer, check if it has had any updates in the last X days
     const prayersNeedingReminders = []
     
+    // Only process reminders if they are enabled
+    if (enableReminders && reminderIntervalDays > 0) {
     for (const prayer of potentialPrayers) {
       // Get the most recent update for this prayer
       const { data: updates, error: updateError } = await supabaseClient
@@ -165,12 +169,14 @@ serve(async (req) => {
         console.log(`Prayer ${prayer.id} needs reminder: last activity ${lastActivityDate.toISOString()}, last reminder: ${prayer.last_reminder_sent || 'never'}`)
       }
     }
+    } // End of reminder processing loop
 
-    if (prayersNeedingReminders.length === 0) {
+    if (prayersNeedingReminders.length === 0 && enableReminders) {
       return new Response(
         JSON.stringify({ 
           message: 'No prayers need reminders at this time - all have recent updates',
           sent: 0,
+          archived: 0,
           total: potentialPrayers.length
         }),
         { 
@@ -183,6 +189,7 @@ serve(async (req) => {
     let emailsSent = 0
     const errors = []
 
+    if (enableReminders && prayersNeedingReminders.length > 0) {
     for (const prayer of prayersNeedingReminders) {
       if (!prayer.email) {
         console.log(`Skipping prayer ${prayer.id}: no email address`)
@@ -256,53 +263,65 @@ serve(async (req) => {
         errors.push({ prayerId: prayer.id, error: errorMessage })
       }
     }
+    } // End of reminder sending loop
 
     // Handle auto-archiving if enabled
     let prayersArchived = 0
     if (enableAutoArchive && daysBeforeArchive > 0) {
-      // Calculate cutoff date for auto-archiving based on daysBeforeArchive
-      // If a prayer had a reminder sent more than daysBeforeArchive days ago, it should be archived
+      // Archive prayers if:
+      // 1. A reminder was sent (last_reminder_sent is not null)
+      // 2. The reminder is older than daysBeforeArchive
+      // 3. No updates have occurred since the reminder was sent
+      
       const archiveNow = new Date()
       const archiveCutoffDate = new Date(archiveNow.getTime() - (daysBeforeArchive * millisecondsInDay))
 
-      console.log(`Auto-archive enabled: checking for prayers with reminders sent before ${archiveCutoffDate.toISOString()}`)
+      console.log(`Auto-archive enabled: checking for prayers with reminders sent before ${archiveCutoffDate.toISOString()} (${daysBeforeArchive} days ago) and no updates since`)
 
       // Find prayers that:
       // 1. Have status 'current' (active prayers only)
-      // 2. Have last_reminder_sent set
-      // 3. last_reminder_sent is before the archive cutoff date (more than daysBeforeArchive days ago)
-      // 4. Still have no updates since the reminder was sent
+      // 2. Have a last_reminder_sent timestamp
       const { data: prayersToArchive, error: archiveQueryError } = await supabaseClient
         .from('prayers')
-        .select('id, title, last_reminder_sent')
+        .select('id, title, created_at, last_reminder_sent')
         .eq('status', 'current')
         .eq('approval_status', 'approved')
         .not('last_reminder_sent', 'is', null)
-        .lt('last_reminder_sent', archiveCutoffDate.toISOString())
 
       if (archiveQueryError) {
         console.error('Error querying prayers for auto-archive:', archiveQueryError)
       } else if (prayersToArchive && prayersToArchive.length > 0) {
-        console.log(`Found ${prayersToArchive.length} prayers that may need to be archived`)
+        console.log(`Found ${prayersToArchive.length} prayers with reminders sent to check for archiving`)
         
-        // For each prayer, check if there have been any updates since the reminder was sent
+        // For each prayer with a reminder, check if it should be archived
         for (const prayer of prayersToArchive) {
-          const { data: updatesAfterReminder, error: updateCheckError } = await supabaseClient
+          // Get the most recent update for this prayer (after the reminder was sent)
+          const { data: updates, error: updateError } = await supabaseClient
             .from('prayer_updates')
-            .select('id, created_at')
+            .select('created_at')
             .eq('prayer_id', prayer.id)
-            .gte('created_at', prayer.last_reminder_sent || '')
+            .gt('created_at', prayer.last_reminder_sent!)
+            .order('created_at', { ascending: false })
             .limit(1)
 
-          if (updateCheckError) {
-            console.error(`Error checking updates for prayer ${prayer.id}:`, updateCheckError)
+          if (updateError) {
+            console.error(`Error checking updates for prayer ${prayer.id}:`, updateError)
             continue
           }
 
-          // If no updates since reminder, archive the prayer
-          if (!updatesAfterReminder || updatesAfterReminder.length === 0) {
-            const daysSinceReminder = Math.floor((new Date().getTime() - new Date(prayer.last_reminder_sent || '').getTime()) / (1000 * 60 * 60 * 24))
-            console.log(`Archiving prayer ${prayer.id}: ${prayer.title} (reminder sent ${daysSinceReminder} days ago, threshold: ${daysBeforeArchive} days)`)
+          // If there's an update after the reminder, skip archiving (counter reset)
+          if (updates && updates.length > 0) {
+            console.log(`Prayer ${prayer.id} has an update after reminder, skipping archive`)
+            continue
+          }
+
+          // Check if the reminder is old enough to archive
+          const reminderDate = new Date(prayer.last_reminder_sent!)
+          const shouldArchive = reminderDate < archiveCutoffDate
+          
+          if (shouldArchive) {
+            const daysSinceReminder = Math.floor((new Date().getTime() - reminderDate.getTime()) / (1000 * 60 * 60 * 24))
+            console.log(`Archiving prayer ${prayer.id}: ${prayer.title} (${daysSinceReminder} days since reminder, threshold: ${daysBeforeArchive} days, no updates since reminder)`)
             
             const { error: archiveError } = await supabaseClient
               .from('prayers')
@@ -315,12 +334,10 @@ serve(async (req) => {
               prayersArchived++
               console.log(`Successfully auto-archived prayer ${prayer.id}: ${prayer.title}`)
             }
-          } else {
-            console.log(`Prayer ${prayer.id} has updates since reminder - not archiving`)
           }
         }
       } else {
-        console.log('No prayers found that need auto-archiving')
+        console.log('No prayers with reminders found that need auto-archiving')
       }
     }
 
