@@ -260,10 +260,10 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'Creating a New Prayer Request',
-            text: 'Click the "Add Request" button in the header to create a new prayer request. Fill in the title, description, and any relevant details about what you\'d like people to pray for.',
+            text: 'Click the "Add Request" button in the header to create a new prayer request. Fill in who or what the prayer is for, then provide details about the prayer request. You can optionally make your prayer anonymous to protect your privacy. Your request will be reviewed and approved by an administrator before appearing publicly.',
             examples: [
-              'Example: "Healing for Jane\'s surgery next week"',
-              'Example: "Wisdom in my job decision"',
+              'Example: Prayer For: "Jane", Details: "Please pray for healing as she prepares for surgery next week"',
+              'Example: Prayer For: "Job Decision", Details: "I need wisdom and guidance as I consider a new job opportunity"',
             ],
           },
           {
