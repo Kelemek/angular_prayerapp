@@ -297,7 +297,7 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'What are Prayer Prompts?',
-            text: 'Prayer prompts are suggestions to help guide your prayers and give you ideas for what to pray about. They\'re designed to help when you\'re unsure what to pray for. Each prompt has a type (like Healing, Guidance, Salvation) to help organize them by category.',
+            text: 'Prayer prompts are suggestions to help guide your prayers and give you ideas for what to pray about. They\'re designed to help when you\'re unsure what to pray for. Each prompt has a type (like Church, Family, Cities) to help organize them by category.',
           },
           {
             subtitle: 'Accessing Prayer Prompts',
@@ -504,7 +504,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Logout',
-            text: 'Click the logout button to sign out of your account. This will end your session and return you to the login screen. Make sure to save any important information before logging out.',
+            text: 'Click the logout button to sign out of your account. This will end your session and return you to the login screen.',
           },
         ],
         order: 9,
