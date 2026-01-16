@@ -7,14 +7,10 @@ A modern, responsive web application for managing prayer requests in your church
 **Complete documentation available in [`docs/`](docs/README.md)**
 
 Quick links:
-- **[Recent Changes](docs/CHANGELOG_DECEMBER_2025.md)** - December 2025 updates
-- **[Features Guide](docs/FEATURES.md)** - Complete feature overview and usage
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Deploy to production with Vercel
-- **[Email Notifications](docs/EMAIL_NOTIFICATIONS.md)** - Email system and configuration
-- **[Testing Guide](docs/TESTING.md)** - Unit and integration testing with Jasmine/Karma
-- **[Performance Guide](docs/PERFORMANCE.md)** - Optimization strategies and best practices
+- **[Project Changelog](docs/CHANGELOG.md)** - Project history and major milestones
+- **[Setup & Deployment](docs/SETUP.md)** - Installation, configuration, and deployment
+- **[Development Guide](docs/DEVELOPMENT.md)** - Architecture, testing, and best practices
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Accessibility Guide](docs/ACCESSIBILITY.md)** - WCAG compliance and a11y testing
 
 ## Tech Stack
 
@@ -129,14 +125,11 @@ The production build will be created in the `dist/prayerapp` directory.
 
 ## Documentation Structure
 
-The comprehensive documentation includes:
+The documentation includes:
 
-- **[FEATURES.md](docs/FEATURES.md)** - Detailed feature descriptions and user workflows
-- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Production deployment with Vercel and environment setup
-- **[EMAIL_NOTIFICATIONS.md](docs/EMAIL_NOTIFICATIONS.md)** - Email system, templates, and configuration
-- **[TESTING.md](docs/TESTING.md)** - Testing approach with Vitest and comprehensive coverage reports
-- **[PERFORMANCE.md](docs/PERFORMANCE.md)** - Performance optimization, bundle analysis, and best practices
-- **[ACCESSIBILITY.md](docs/ACCESSIBILITY.md)** - WCAG compliance, a11y testing, and color contrast verification
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Project history and major milestones
+- **[SETUP.md](docs/SETUP.md)** - Installation, configuration, and deployment
+- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Architecture, testing, development, timezone handling, and component documentation
 - **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues, debugging guides, and solutions
 
 See [docs/README.md](docs/README.md) for the complete documentation index.

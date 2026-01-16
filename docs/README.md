@@ -4,11 +4,10 @@ Complete documentation for the Cross Pointe Church Prayer Management System.
 
 ## Quick Navigation
 
-- **[FEATURES.md](FEATURES.md)** - All app features and how to use them
-- **[SETUP.md](SETUP.md)** - Installation, configuration, and deployment
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Architecture, testing, development, timezone handling, prayer archiving, and component documentation
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Solutions to common issues
 - **[CHANGELOG.md](CHANGELOG.md)** - Project history and major milestones
+- **[SETUP.md](SETUP.md)** - Installation, configuration, and deployment
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Architecture, testing, development, timezone handling, and component documentation
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Solutions to common issues
 
 ---
 
@@ -98,7 +97,6 @@ src/
 
 | File | Purpose |
 |------|---------|
-| **FEATURES.md** | Prayer requests, updates, admin tools, settings |
 | **SETUP.md** | Installation, Supabase, email, Planning Center, deployment |
 | **DEVELOPMENT.md** | Architecture, testing, performance optimization |
 | **TROUBLESHOOTING.md** | Common errors and solutions |
