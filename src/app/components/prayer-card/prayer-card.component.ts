@@ -49,7 +49,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
       </div>
 
       <!-- Badge in top-right corner -->
-      @if ((prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
+      @if ((prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total') {
         <button
           (click)="markPrayerAsRead()"
           class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
@@ -226,7 +226,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
             </div>
             
             <!-- Badge in top-right corner -->
-            @if ((updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
+            @if ((updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total') {
               <button
                 (click)="markUpdateAsRead(update.id)"
                 class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
