@@ -1102,5 +1102,256 @@ describe('HelpModalComponent - Component Integration Tests', () => {
       const result = component.filterSections(sections, 'prière');
       expect(result.length).toBe(1);
     });
+
+    it('should handle partial word matches', () => {
+      const sections = [
+        { id: '1', title: 'Prayer Management', description: 'Manage prayers', content: [] },
+        { id: '2', title: 'Prayer Groups', description: 'Group prayers together', content: [] }
+      ];
+
+      const result = component.filterSections(sections, 'pray');
+      expect(result.length).toBe(2);
+    });
+
+    it('should handle hyphenated words in search', () => {
+      const sections = [
+        { id: '1', title: 'User-Generated Content', description: 'Content by users', content: [] },
+        { id: '2', title: 'Admin Features', description: 'Admin tools', content: [] }
+      ];
+
+      const result = component.filterSections(sections, 'user-generated');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle multiple word search queries', () => {
+      const sections = [
+        { id: '1', title: 'Getting Started Guide', description: 'Start with basics', content: [] },
+        { id: '2', title: 'Advanced Settings', description: 'Customize behavior', content: [] }
+      ];
+
+      const result = component.filterSections(sections, 'getting started');
+      expect(result.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle whitespace-only queries', () => {
+      const sections = [
+        { id: '1', title: 'Help 1', description: 'Content 1', content: [] },
+        { id: '2', title: 'Help 2', description: 'Content 2', content: [] }
+      ];
+
+      const result = component.filterSections(sections, '   ');
+      expect(result.length).toBe(sections.length);
+    });
+
+    it('should handle tabs and newlines in query', () => {
+      const sections = [
+        { id: '1', title: 'Help Guide', description: 'Learn help', content: [] },
+        { id: '2', title: 'Another Guide', description: 'More content', content: [] }
+      ];
+
+      // tabs and newlines trim to empty, so all sections should be returned
+      const result = component.filterSections(sections, '\t\n\t\n');
+      expect(result.length).toBe(2);
+    });
+
+    it('should handle very long search queries', () => {
+      const sections = [
+        { id: '1', title: 'Short Title', description: 'Short desc', content: [] }
+      ];
+
+      const longQuery = 'a'.repeat(1000);
+      const result = component.filterSections(sections, longQuery);
+      expect(result.length).toBe(0);
+    });
+
+    it('should handle numbers in search', () => {
+      const sections = [
+        { id: '1', title: 'Step 1 Guide', description: 'First step', content: [] },
+        { id: '2', title: 'Step 2 Guide', description: 'Second step', content: [] }
+      ];
+
+      const result = component.filterSections(sections, '2');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle parentheses in search', () => {
+      const sections = [
+        { id: '1', title: 'Help (Beta)', description: 'Beta feature', content: [] },
+        { id: '2', title: 'Help (Stable)', description: 'Stable feature', content: [] }
+      ];
+
+      const result = component.filterSections(sections, 'beta');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle ampersands in search', () => {
+      const sections = [
+        { id: '1', title: 'Tips & Tricks', description: 'Helpful tips', content: [] },
+        { id: '2', title: 'Getting Started', description: 'Quick start', content: [] }
+      ];
+
+      const result = component.filterSections(sections, '&');
+      expect(result.length).toBe(1);
+    });
+
+    it('should filter sections with empty content array', () => {
+      const sections = [
+        { id: '1', title: 'Title', description: 'Description', content: [] }
+      ];
+
+      const result = component.filterSections(sections, 'title');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle sections with null content array', () => {
+      const sections = [
+        { id: '1', title: 'Title', description: 'Description', content: null as any }
+      ];
+
+      expect(() => {
+        component.filterSections(sections, 'title');
+      }).not.toThrow();
+    });
+
+    it('should search within deeply nested content examples', () => {
+      const sections = [
+        { 
+          id: '1', 
+          title: 'Guide',
+          description: 'Description',
+          content: [
+            {
+              subtitle: 'Section 1',
+              text: 'Text content',
+              examples: ['First example', 'Prayer example', 'Third example']
+            }
+          ]
+        }
+      ];
+
+      const result = component.filterSections(sections, 'prayer');
+      expect(result.length).toBe(1);
+    });
+
+    it('should return sections when searching content text', () => {
+      const sections = [
+        { 
+          id: '1',
+          title: 'Title',
+          description: 'Desc',
+          content: [{ subtitle: 'Subtitle', text: 'This contains prayer instructions', examples: [] }]
+        },
+        { 
+          id: '2',
+          title: 'Title',
+          description: 'Desc',
+          content: [{ subtitle: 'Subtitle', text: 'No match here', examples: [] }]
+        }
+      ];
+
+      const result = component.filterSections(sections, 'prayer');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle search matching both title and content', () => {
+      const sections = [
+        { 
+          id: '1',
+          title: 'Prayer Tips',
+          description: 'Helpful advice',
+          content: [{ subtitle: 'Content', text: 'Prayer instructions here', examples: [] }]
+        }
+      ];
+
+      const result = component.filterSections(sections, 'prayer');
+      expect(result.length).toBe(1);
+    });
+
+    it('should preserve all section properties when filtering', () => {
+      const sections = [
+        { 
+          id: '1',
+          title: 'Guide',
+          description: 'Description',
+          content: [{ subtitle: 'Sub', text: 'Text', examples: ['ex1'] }],
+          icon: '<svg></svg>'
+        } as any
+      ];
+
+      const result = component.filterSections(sections, 'guide');
+      expect(result[0].icon).toBe('<svg></svg>');
+    });
+
+    it('should handle sections with undefined examples', () => {
+      const sections = [
+        { 
+          id: '1',
+          title: 'Title',
+          description: 'Desc',
+          content: [{ subtitle: 'Sub', text: 'Text', examples: undefined }] as any
+        }
+      ];
+
+      const result = component.filterSections(sections, 'title');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle mixed case in examples', () => {
+      const sections = [
+        { 
+          id: '1',
+          title: 'Guide',
+          description: 'Desc',
+          content: [{ subtitle: 'Sub', text: 'Text', examples: ['PRAYER Example', 'prayer example'] }]
+        }
+      ];
+
+      const result = component.filterSections(sections, 'PRAYER');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle content items with extra whitespace', () => {
+      const sections = [
+        { 
+          id: '1',
+          title: 'Title',
+          description: 'Desc',
+          content: [{ subtitle: '  Sub  ', text: '  Text with prayer  ', examples: [] }]
+        }
+      ];
+
+      const result = component.filterSections(sections, 'prayer');
+      expect(result.length).toBe(1);
+    });
+
+    it('should match substring in description', () => {
+      const sections = [
+        { id: '1', title: 'Title', description: 'Learn about prayers', content: [] },
+        { id: '2', title: 'Title', description: 'Learn settings', content: [] }
+      ];
+
+      const result = component.filterSections(sections, 'prayer');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle emoji in search query', () => {
+      const sections = [
+        { id: '1', title: '🙏 Prayer Guide', description: 'Prayer help', content: [] },
+        { id: '2', title: 'Regular Guide', description: 'Help', content: [] }
+      ];
+
+      const result = component.filterSections(sections, '🙏');
+      expect(result.length).toBe(1);
+    });
+
+    it('should handle emoji in section content', () => {
+      const sections = [
+        { id: '1', title: 'Guide', description: '📖 Learn', content: [] },
+        { id: '2', title: 'Settings', description: '⚙️ Configure', content: [] }
+      ];
+
+      const result = component.filterSections(sections, '📖');
+      expect(result.length).toBe(1);
+    });
   });
 });

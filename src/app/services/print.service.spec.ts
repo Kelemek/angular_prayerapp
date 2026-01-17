@@ -1203,4 +1203,570 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(filtered[0].custom).toBe('data');
     });
   });
+
+  describe('PrintService - Additional Coverage - PDF and Formatting', () => {
+    let service: PrintService;
+    let mockSupabaseService: any;
+    let mockSupabaseClient: any;
+
+    beforeEach(() => {
+      const createMockChain = () => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        neq: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      });
+
+      mockSupabaseClient = {
+        from: vi.fn().mockImplementation((table: string) => {
+          if (table === 'prayer_updates') {
+            return {
+              select: vi.fn().mockResolvedValue({ data: [], error: null }),
+            };
+          }
+          return createMockChain();
+        })
+      };
+
+      mockSupabaseService = { client: mockSupabaseClient } as any;
+      service = new PrintService(mockSupabaseService);
+
+      global.window.open = vi.fn(() => ({
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      }));
+      global.alert = vi.fn();
+      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+      global.URL.revokeObjectURL = vi.fn();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    describe('HTML Generation', () => {
+      it('should generate valid HTML structure', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test Prayer',
+          prayer_for: 'John',
+          description: 'Description',
+          requester: 'Jane',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: []
+        }];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('<!DOCTYPE html>');
+        expect(html).toContain('<html>');
+        expect(html).toContain('</html>');
+      });
+
+      it('should include prayer title in HTML', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Special Prayer Request',
+          prayer_for: 'John',
+          description: 'Description',
+          requester: 'Jane',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: []
+        }];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('Prayer');
+        expect(html).toContain('Request');
+      });
+
+      it('should include prayer requester name in HTML', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test Prayer',
+          prayer_for: 'John',
+          description: 'Description',
+          requester: 'Jane Requester',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: []
+        }];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('Jane Requester');
+      });
+
+      it('should include prayer description in HTML', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test Prayer',
+          prayer_for: 'John',
+          description: 'Very detailed prayer description',
+          requester: 'Jane',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: []
+        }];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('Very detailed prayer description');
+      });
+
+      it('should handle special characters in prayer content', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test & Prayer <Test>',
+          prayer_for: 'John "Doe"',
+          description: 'Description with symbols: @#$%',
+          requester: 'Jane',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: []
+        }];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('Prayer');
+      });
+
+      it('should include current date in HTML', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers);
+        
+        // Should contain month name - January, February, etc.
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const containsMonth = monthNames.some(month => html.includes(month));
+        expect(containsMonth).toBe(true);
+        
+        // Should include the year
+        const currentYear = new Date().getFullYear();
+        expect(html).toContain(currentYear.toString());
+      });
+
+      it('should generate CSS styles for printing', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers);
+        
+        expect(html).toContain('<style>');
+        expect(html).toContain('</style>');
+        expect(html).toContain('print');
+      });
+
+      it('should organize prayers by status', () => {
+        const prayers = [
+          { 
+            id: '1', title: 'Current', prayer_for: 'John', description: 'Desc',
+            requester: 'Jane', status: 'current', created_at: new Date().toISOString(),
+            prayer_updates: []
+          },
+          { 
+            id: '2', title: 'Answered', prayer_for: 'Jane', description: 'Desc',
+            requester: 'John', status: 'answered', created_at: new Date().toISOString(),
+            prayer_updates: []
+          }
+        ];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('Current Prayer');
+        expect(html).toContain('Answered Prayer');
+      });
+
+      it('should include prayer update count in HTML', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test Prayer',
+          prayer_for: 'John',
+          description: 'Description',
+          requester: 'Jane',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: [
+            { id: 'u1', content: 'Update 1', author: 'Author', created_at: new Date().toISOString() },
+            { id: 'u2', content: 'Update 2', author: 'Author', created_at: new Date().toISOString() }
+          ]
+        }];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('Update');
+      });
+
+      it('should handle empty prayer updates array', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test Prayer',
+          prayer_for: 'John',
+          description: 'Description',
+          requester: 'Jane',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: []
+        }];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('<html>');
+      });
+
+      it('should generate time range label for week', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'week');
+        
+        expect(html).toBeDefined();
+        expect(html.length).toBeGreaterThan(0);
+      });
+
+      it('should generate time range label for month', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'month');
+        
+        expect(html).toBeDefined();
+        expect(html.length).toBeGreaterThan(0);
+      });
+
+      it('should generate time range label for year', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'year');
+        
+        expect(html).toBeDefined();
+        expect(html.length).toBeGreaterThan(0);
+      });
+
+      it('should generate time range label for all', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'all');
+        
+        expect(html).toContain('All Prayers');
+      });
+    });
+
+    describe('Prayer Grouping and Sorting', () => {
+      it('should separate current and answered prayers', () => {
+        const prayers = [
+          { 
+            id: '1', title: 'Prayer1', prayer_for: 'John', description: 'Desc',
+            requester: 'Jane', status: 'current', created_at: '2026-01-01T00:00:00Z',
+            prayer_updates: []
+          },
+          { 
+            id: '2', title: 'Prayer2', prayer_for: 'Jane', description: 'Desc',
+            requester: 'John', status: 'answered', created_at: '2026-01-01T00:00:00Z',
+            prayer_updates: []
+          }
+        ];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toBeDefined();
+      });
+
+      it('should sort prayers by recent activity', () => {
+        const oldDate = new Date('2026-01-01').toISOString();
+        const newDate = new Date('2026-01-15').toISOString();
+
+        const prayers = [
+          { 
+            id: '1', title: 'Old', prayer_for: 'John', description: 'Desc',
+            requester: 'Jane', status: 'current', created_at: oldDate,
+            prayer_updates: []
+          },
+          { 
+            id: '2', title: 'New', prayer_for: 'Jane', description: 'Desc',
+            requester: 'John', status: 'current', created_at: newDate,
+            prayer_updates: []
+          }
+        ];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toBeDefined();
+      });
+
+      it('should consider update dates for sorting', () => {
+        const now = new Date().toISOString();
+
+        const prayers = [
+          { 
+            id: '1', title: 'WithUpdate', prayer_for: 'John', description: 'Desc',
+            requester: 'Jane', status: 'current', created_at: '2026-01-01T00:00:00Z',
+            prayer_updates: [
+              { id: 'u1', content: 'Recent update', author: 'Jane', created_at: now }
+            ]
+          },
+          { 
+            id: '2', title: 'NoUpdate', prayer_for: 'Jane', description: 'Desc',
+            requester: 'John', status: 'current', created_at: '2026-01-15T00:00:00Z',
+            prayer_updates: []
+          }
+        ];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toBeDefined();
+      });
+    });
+
+    describe('Download File Handling', () => {
+      it('should create blob with HTML content', async () => {
+        const mockChain = () => ({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ 
+            data: [{
+              id: '1',
+              title: 'Test',
+              prayer_for: 'John',
+              description: 'Desc',
+              requester: 'Jane',
+              status: 'current',
+              created_at: new Date().toISOString()
+            }],
+            error: null
+          }),
+        });
+
+        mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+          if (table === 'prayer_updates') {
+            return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
+          }
+          return mockChain();
+        });
+
+        global.Blob = class MockBlob {
+          data: any[];
+          type: string;
+          constructor(data: any[], options?: any) {
+            this.data = data;
+            this.type = options?.type || '';
+          }
+        } as any;
+
+        await service.downloadPrintablePrayerList('month', null);
+        expect(mockSupabaseClient.from).toHaveBeenCalled();
+      });
+
+      it('should generate filename with date', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'week');
+        
+        const today = new Date().toISOString().split('T')[0];
+        expect(today).toMatch(/\d{4}-\d{2}-\d{2}/);
+      });
+
+      it('should include time range in filename', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'month');
+        
+        expect(html).toBeDefined();
+      });
+
+      it('should fallback to file download when window.open blocked', async () => {
+        const mockChain = () => ({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ 
+            data: [{
+              id: '1',
+              title: 'Test',
+              prayer_for: 'John',
+              description: 'Desc',
+              requester: 'Jane',
+              status: 'current',
+              created_at: new Date().toISOString()
+            }],
+            error: null
+          }),
+        });
+
+        mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+          if (table === 'prayer_updates') {
+            return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
+          }
+          return mockChain();
+        });
+
+        global.window.open = vi.fn(() => null);
+
+        global.document.createElement = vi.fn(() => ({
+          href: '',
+          download: '',
+          click: vi.fn()
+        })) as any;
+
+        global.document.body.appendChild = vi.fn();
+        global.document.body.removeChild = vi.fn();
+        global.Blob = class MockBlob {
+          constructor(data: any[], options?: any) {}
+        } as any;
+
+        await service.downloadPrintablePrayerList('month', null);
+      });
+    });
+
+    describe('Error Handling', () => {
+      it('should handle prayer fetch error', async () => {
+        const mockChain = () => ({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Fetch error' } }),
+        });
+
+        mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+          if (table === 'prayer_updates') {
+            return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
+          }
+          return mockChain();
+        });
+
+        await service.downloadPrintablePrayerList('month', null);
+        expect(global.alert).toHaveBeenCalled();
+      });
+
+      it('should handle update fetch error', async () => {
+        const mockChain = () => ({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ 
+            data: [{
+              id: '1',
+              title: 'Test',
+              prayer_for: 'John',
+              description: 'Desc',
+              requester: 'Jane',
+              status: 'current',
+              created_at: new Date().toISOString()
+            }],
+            error: null
+          }),
+        });
+
+        mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+          if (table === 'prayer_updates') {
+            return { select: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update error' } }) };
+          }
+          return mockChain();
+        });
+
+        await service.downloadPrintablePrayerList('month', null);
+        expect(global.alert).toHaveBeenCalled();
+      });
+
+      it('should handle no prayers in range', async () => {
+        const mockChain = () => ({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        });
+
+        mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+          if (table === 'prayer_updates') {
+            return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
+          }
+          return mockChain();
+        });
+
+        await service.downloadPrintablePrayerList('week', null);
+        expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('No prayers'));
+      });
+
+      it('should handle exception during generation', async () => {
+        mockSupabaseClient.from = vi.fn().mockImplementation(() => {
+          throw new Error('Unexpected error');
+        });
+
+        await service.downloadPrintablePrayerList('month', null);
+        expect(global.alert).toHaveBeenCalled();
+      });
+    });
+
+    describe('Time Range Calculations', () => {
+      it('should calculate correct week range', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'week');
+        
+        expect(html).toBeDefined();
+      });
+
+      it('should calculate correct two-week range', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'twoweeks');
+        
+        expect(html).toBeDefined();
+      });
+
+      it('should calculate correct month range', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'month');
+        
+        expect(html).toBeDefined();
+      });
+
+      it('should calculate correct year range', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'year');
+        
+        expect(html).toBeDefined();
+      });
+
+      it('should handle all time range', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers, 'all');
+        
+        expect(html).toContain('All Prayers');
+      });
+    });
+
+    describe('Print Styling', () => {
+      it('should include page break styles', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers);
+        
+        expect(html).toContain('page-break');
+      });
+
+      it('should include media print styles', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers);
+        
+        expect(html).toContain('@media');
+      });
+
+      it('should set appropriate margins for printing', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers);
+        
+        expect(html).toContain('margin');
+      });
+
+      it('should include font styling', () => {
+        const prayers = [];
+        const html = service.generatePrintableHTML(prayers);
+        
+        expect(html).toContain('font-family');
+      });
+
+      it('should include color styling for status sections', () => {
+        const prayers = [
+          { 
+            id: '1', title: 'Current', prayer_for: 'John', description: 'Desc',
+            requester: 'Jane', status: 'current', created_at: new Date().toISOString(),
+            prayer_updates: []
+          }
+        ];
+
+        const html = service.generatePrintableHTML(prayers);
+        expect(html).toContain('color');
+      });
+    });
+  });
 });

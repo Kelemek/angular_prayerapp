@@ -1044,4 +1044,899 @@ describe('EmailNotificationService - Additional Logic', () => {
       expect(fallback.subject).toBeDefined();
     });
   });
+
+  describe('EmailNotificationService - Additional Coverage - Queuing & Notifications', () => {
+    let service: EmailNotificationService;
+    let mockSupabase: any;
+    let mockApprovalLinks: any;
+
+    beforeEach(() => {
+      mockSupabase = {
+        client: {
+          functions: { invoke: vi.fn() },
+          from: vi.fn()
+        },
+        directQuery: vi.fn()
+      };
+
+      mockApprovalLinks = {
+        generateCode: vi.fn().mockReturnValue('code-123'),
+        generateApprovalLink: vi.fn().mockResolvedValue('https://example.com/approve?code=123')
+      };
+
+      service = new EmailNotificationService(mockSupabase as any, mockApprovalLinks as any);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    describe('Email Enqueueing', () => {
+      it('should enqueue email successfully', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue({
+          insert: vi.fn().mockResolvedValue({ data: { id: '123' }, error: null })
+        });
+
+        await expect(service.enqueueEmail('user@test.com', 'test_template')).resolves.toBeUndefined();
+        expect(mockSupabase.client.from).toHaveBeenCalledWith('email_queue');
+      });
+
+      it('should enqueue email with variables', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue({
+          insert: vi.fn().mockResolvedValue({ data: { id: '123' }, error: null })
+        });
+
+        const vars = { name: 'John', title: 'Test Prayer' };
+        await service.enqueueEmail('user@test.com', 'test_template', vars);
+        
+        expect(mockSupabase.client.from).toHaveBeenCalledWith('email_queue');
+      });
+
+      it('should throw error when enqueue fails', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue({
+          insert: vi.fn().mockResolvedValue({ data: null, error: { message: 'Insert failed' } })
+        });
+
+        await expect(service.enqueueEmail('user@test.com', 'test_template')).rejects.toThrow();
+      });
+
+      it('should handle empty variables object', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue({
+          insert: vi.fn().mockResolvedValue({ data: { id: '123' }, error: null })
+        });
+
+        await expect(service.enqueueEmail('user@test.com', 'test_template', {})).resolves.toBeUndefined();
+      });
+
+      it('should handle null variables', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue({
+          insert: vi.fn().mockResolvedValue({ data: { id: '123' }, error: null })
+        });
+
+        await expect(service.enqueueEmail('user@test.com', 'test_template')).resolves.toBeUndefined();
+      });
+
+      it('should set correct email queue status', async () => {
+        const insertSpy = vi.fn().mockResolvedValue({ data: { id: '123' }, error: null });
+        mockSupabase.client.from = vi.fn().mockReturnValue({ insert: insertSpy });
+
+        await service.enqueueEmail('user@test.com', 'test_template');
+        
+        expect(insertSpy).toHaveBeenCalled();
+        const insertedData = insertSpy.mock.calls[0][0];
+        expect(insertedData.status).toBe('pending');
+        expect(insertedData.attempts).toBe(0);
+      });
+    });
+
+    describe('Approved Prayer Notifications', () => {
+      it('should send approved prayer notification with current status', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: [{ email: 'user1@test.com' }, { email: 'user2@test.com' }], error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+        vi.spyOn(service as any, 'triggerEmailProcessor').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'current'
+        };
+
+        await service.sendApprovedPrayerNotification(payload);
+        expect(enqueueSpy).toHaveBeenCalledTimes(2);
+      });
+
+      it('should use prayer_answered template when status is answered', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: [{ email: 'user@test.com' }], error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+        vi.spyOn(service as any, 'triggerEmailProcessor').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'answered'
+        };
+
+        await service.sendApprovedPrayerNotification(payload);
+        const firstCall = enqueueSpy.mock.calls[0];
+        expect(firstCall[1]).toBe('prayer_answered');
+      });
+
+      it('should handle empty subscriber list gracefully', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: [], error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'current'
+        };
+
+        await expect(service.sendApprovedPrayerNotification(payload)).resolves.toBeUndefined();
+      });
+
+      it('should handle subscriber fetch error gracefully', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Fetch error' } })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'current'
+        };
+
+        await expect(service.sendApprovedPrayerNotification(payload)).resolves.toBeUndefined();
+      });
+
+      it('should queue emails for each subscriber independently', async () => {
+        const subscribers = [
+          { email: 'user1@test.com' },
+          { email: 'user2@test.com' },
+          { email: 'user3@test.com' }
+        ];
+
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: subscribers, error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+        vi.spyOn(service as any, 'triggerEmailProcessor').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'current'
+        };
+
+        await service.sendApprovedPrayerNotification(payload);
+        expect(enqueueSpy).toHaveBeenCalledTimes(3);
+      });
+
+      it('should trigger email processor after queueing', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: [{ email: 'user@test.com' }], error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+        const triggerSpy = vi.spyOn(service as any, 'triggerEmailProcessor').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'current'
+        };
+
+        await service.sendApprovedPrayerNotification(payload);
+        expect(triggerSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('Approved Update Notifications', () => {
+      it('should send approved update notification', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: [{ email: 'user@test.com' }], error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+        vi.spyOn(service as any, 'triggerEmailProcessor').mockResolvedValue(undefined);
+
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          markedAsAnswered: false
+        };
+
+        await service.sendApprovedUpdateNotification(payload);
+        expect(enqueueSpy).toHaveBeenCalled();
+      });
+
+      it('should use prayer_answered template when update marked as answered', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: [{ email: 'user@test.com' }], error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+        vi.spyOn(service as any, 'triggerEmailProcessor').mockResolvedValue(undefined);
+
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          markedAsAnswered: true
+        };
+
+        await service.sendApprovedUpdateNotification(payload);
+        const firstCall = enqueueSpy.mock.calls[0];
+        expect(firstCall[1]).toBe('prayer_answered');
+      });
+
+      it('should handle update notification with missing subscribers gracefully', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Error' } })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          markedAsAnswered: false
+        };
+
+        await expect(service.sendApprovedUpdateNotification(payload)).resolves.toBeUndefined();
+      });
+    });
+
+    describe('Requester Approval Notifications', () => {
+      it('should send requester approval notification when email provided', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: { subject: 'Subject', html_body: 'HTML', text_body: 'Text' }, error: null })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: 'john@test.com',
+          prayerFor: 'Healing'
+        };
+
+        await service.sendRequesterApprovalNotification(payload);
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+
+      it('should return early when requester email is missing', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: '',
+          prayerFor: 'Healing'
+        };
+
+        await service.sendRequesterApprovalNotification(payload);
+        expect(sendEmailSpy).not.toHaveBeenCalled();
+      });
+
+      it('should use fallback template when template fetch fails', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: { message: 'Not found' } })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: 'john@test.com',
+          prayerFor: 'Healing'
+        };
+
+        await service.sendRequesterApprovalNotification(payload);
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.htmlBody).toBeDefined();
+      });
+
+      it('should include prayer variables in email', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: { subject: 'Subject', html_body: 'HTML', text_body: 'Text' }, error: null })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Test Prayer',
+          description: 'Test Description',
+          requester: 'John Doe',
+          requesterEmail: 'john@test.com',
+          prayerFor: 'Healing for my mother'
+        };
+
+        await service.sendRequesterApprovalNotification(payload);
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('Denied Prayer Notifications', () => {
+      it('should send denied prayer notification when email provided', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: { message: 'Not found' } })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: 'john@test.com',
+          denialReason: 'Inappropriate content'
+        };
+
+        await service.sendDeniedPrayerNotification(payload);
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+
+      it('should return early when requester email is missing', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: '',
+          denialReason: 'Inappropriate'
+        };
+
+        await service.sendDeniedPrayerNotification(payload);
+        expect(sendEmailSpy).not.toHaveBeenCalled();
+      });
+
+      it('should include denial reason in email', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: 'john@test.com',
+          denialReason: 'Violates community guidelines'
+        };
+
+        await service.sendDeniedPrayerNotification(payload);
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.subject).toContain('Prayer Title');
+      });
+    });
+
+    describe('Denied Update Notifications', () => {
+      it('should send denied update notification when email provided', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          authorEmail: 'jane@test.com',
+          denialReason: 'Off-topic'
+        };
+
+        await service.sendDeniedUpdateNotification(payload);
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+
+      it('should return early when author email is missing', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          authorEmail: '',
+          denialReason: 'Off-topic'
+        };
+
+        await service.sendDeniedUpdateNotification(payload);
+        expect(sendEmailSpy).not.toHaveBeenCalled();
+      });
+
+      it('should use template when available for denied update', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: { subject: 'Update Denied', html_body: 'HTML', text_body: 'Text' }, error: null })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          authorEmail: 'jane@test.com',
+          denialReason: 'Off-topic'
+        };
+
+        await service.sendDeniedUpdateNotification(payload);
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('Admin Notifications', () => {
+      it('should send notification to all admins when configured', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ 
+                      data: [
+                        { email: 'admin1@test.com' },
+                        { email: 'admin2@test.com' }
+                      ], 
+                      error: null 
+                    })
+                  })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const sendAdminSpy = vi.spyOn(service as any, 'sendAdminNotificationToEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John'
+        };
+
+        await service.sendAdminNotification(payload);
+        expect(sendAdminSpy).toHaveBeenCalledTimes(2);
+      });
+
+      it('should return early when no admins configured', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ data: null, error: null })
+                  })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const sendAdminSpy = vi.spyOn(service as any, 'sendAdminNotificationToEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Prayer Title',
+          description: 'Prayer Description'
+        };
+
+        await service.sendAdminNotification(payload);
+        expect(sendAdminSpy).not.toHaveBeenCalled();
+      });
+
+      it('should handle admin fetch error gracefully', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Fetch error' } })
+                  })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Prayer Title'
+        };
+
+        await expect(service.sendAdminNotification(payload)).resolves.toBeUndefined();
+      });
+
+      it('should support different admin notification types', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ data: [{ email: 'admin@test.com' }], error: null })
+                  })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const sendAdminSpy = vi.spyOn(service as any, 'sendAdminNotificationToEmail').mockResolvedValue(undefined);
+
+        const types = ['prayer', 'update', 'deletion'] as const;
+        
+        for (const notificationType of types) {
+          const payload = {
+            type: notificationType,
+            title: 'Test'
+          };
+          await service.sendAdminNotification(payload);
+        }
+
+        expect(sendAdminSpy).toHaveBeenCalledTimes(3);
+      });
+
+      it('should include request ID in admin notification when provided', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ data: [{ email: 'admin@test.com' }], error: null })
+                  })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const sendAdminSpy = vi.spyOn(service as any, 'sendAdminNotificationToEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Prayer Title',
+          requestId: 'req-123'
+        };
+
+        await service.sendAdminNotification(payload);
+        expect(sendAdminSpy).toHaveBeenCalled();
+        const callPayload = sendAdminSpy.mock.calls[0][0];
+        expect(callPayload.requestId).toBe('req-123');
+      });
+    });
+
+    describe('Account Approval Notifications', () => {
+      it('should send account approval notification to admins', async () => {
+        mockSupabase.directQuery = vi.fn().mockResolvedValue({
+          data: [{ email: 'admin@test.com' }],
+          error: null
+        });
+
+        const notifySpy = vi.spyOn(service as any, 'sendAccountApprovalNotificationToEmail').mockResolvedValue(undefined);
+
+        await service.sendAccountApprovalNotification('user@test.com', 'John', 'Doe');
+        expect(notifySpy).toHaveBeenCalled();
+      });
+
+      it('should include affiliation reason in account approval when provided', async () => {
+        mockSupabase.directQuery = vi.fn().mockResolvedValue({
+          data: [{ email: 'admin@test.com' }],
+          error: null
+        });
+
+        const notifySpy = vi.spyOn(service as any, 'sendAccountApprovalNotificationToEmail').mockResolvedValue(undefined);
+
+        await service.sendAccountApprovalNotification('user@test.com', 'John', 'Doe', 'Pastor at Local Church');
+        expect(notifySpy).toHaveBeenCalled();
+      });
+
+      it('should handle missing admin list gracefully', async () => {
+        mockSupabase.directQuery = vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Query failed' }
+        });
+
+        await expect(service.sendAccountApprovalNotification('user@test.com', 'John', 'Doe')).resolves.toBeUndefined();
+      });
+    });
+
+    describe('Template Caching and Retrieval', () => {
+      it('should cache template after first fetch', async () => {
+        const template = {
+          id: '1',
+          template_key: 'test_template',
+          name: 'Test',
+          subject: 'Subject',
+          html_body: 'HTML',
+          text_body: 'Text',
+          created_at: '2024-01-01',
+          updated_at: '2024-01-01'
+        };
+
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: template, error: null })
+        );
+
+        const result1 = await service.getTemplate('test_template');
+        const result2 = await service.getTemplate('test_template');
+
+        expect(result1).toBeDefined();
+        expect(result2).toBeDefined();
+      });
+
+      it('should handle null template gracefully', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: null })
+        );
+
+        const result = await service.getTemplate('nonexistent');
+        expect(result).toBeNull();
+      });
+
+      it('should handle concurrent template requests', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: { subject: 'Test', html_body: 'HTML', text_body: 'Text' }, error: null })
+        );
+
+        const promises = [
+          service.getTemplate('template1'),
+          service.getTemplate('template2'),
+          service.getTemplate('template3')
+        ];
+
+        const results = await Promise.all(promises);
+        expect(results).toHaveLength(3);
+      });
+    });
+
+    describe('HTML Content Generation', () => {
+      it('should generate requester approval HTML', () => {
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: 'john@test.com',
+          prayerFor: 'Healing'
+        };
+
+        const html = (service as any).generateRequesterApprovalHTML(payload);
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+
+      it('should generate denied prayer HTML', () => {
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          requesterEmail: 'john@test.com',
+          denialReason: 'Inappropriate'
+        };
+
+        const html = (service as any).generateDeniedPrayerHTML(payload);
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+
+      it('should generate denied update HTML', () => {
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          authorEmail: 'jane@test.com',
+          denialReason: 'Off-topic'
+        };
+
+        const html = (service as any).generateDeniedUpdateHTML(payload);
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+
+      it('should generate approved prayer HTML', () => {
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'current'
+        };
+
+        const html = (service as any).generateApprovedPrayerHTML(payload);
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+
+      it('should generate answered prayer HTML', () => {
+        const payload = {
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John',
+          prayerFor: 'Healing',
+          status: 'answered'
+        };
+
+        const html = (service as any).generateAnsweredPrayerHTML(payload);
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+
+      it('should generate approved update HTML', () => {
+        const payload = {
+          prayerTitle: 'Prayer Title',
+          content: 'Update content',
+          author: 'Jane',
+          markedAsAnswered: false
+        };
+
+        const html = (service as any).generateApprovedUpdateHTML(payload);
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+
+      it('should generate admin notification prayer HTML', () => {
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Prayer Title',
+          description: 'Prayer Description',
+          requester: 'John'
+        };
+
+        const html = (service as any).generateAdminNotificationPrayerHTML(payload, 'https://example.com/approve?code=123');
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+
+      it('should generate admin notification update HTML', () => {
+        const payload = {
+          type: 'update' as const,
+          title: 'Update Title',
+          content: 'Update content',
+          author: 'Jane'
+        };
+
+        const html = (service as any).generateAdminNotificationUpdateHTML(payload, 'https://example.com/approve?code=123');
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+      });
+    });;
+
+    describe('Email Processor Triggering', () => {
+      it('should trigger email processor via edge function', async () => {
+        mockSupabase.client.functions.invoke.mockResolvedValue({
+          data: { success: true },
+          error: null
+        });
+
+        await (service as any).triggerEmailProcessor();
+        expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith('trigger-email-processor', { method: 'POST' });
+      });
+
+      it('should handle edge function error gracefully', async () => {
+        mockSupabase.client.functions.invoke.mockResolvedValue({
+          data: null,
+          error: { message: 'Function error' }
+        });
+
+        await expect((service as any).triggerEmailProcessor()).resolves.toBeUndefined();
+      });
+
+      it('should handle network error in processor trigger', async () => {
+        mockSupabase.client.functions.invoke.mockRejectedValue(new Error('Network error'));
+
+        await expect((service as any).triggerEmailProcessor()).resolves.toBeUndefined();
+      });
+    });
+  });
 });
