@@ -1285,6 +1285,181 @@ describe('PrayerCardComponent', () => {
       // Component correctly handles email comparison (case-insensitive)
       expect(component.prayer.email).toBe('Test@Example.COM');
     });
+
+    // Prayer-Card Component - Policy Coverage Tests
+    describe('Update and Deletion Policy Tests', () => {
+      it('showAddUpdateButton: admin always sees button', () => {
+        component.isAdmin = true;
+        component.updatesAllowed = 'admin-only';
+        expect(component.showAddUpdateButton()).toBe(true);
+      });
+
+      it('showAddUpdateButton: non-admin hidden when admin-only', () => {
+        component.isAdmin = false;
+        component.updatesAllowed = 'admin-only';
+        expect(component.showAddUpdateButton()).toBe(false);
+      });
+
+      it('showAddUpdateButton: original-requestor matches on email', () => {
+        component.isAdmin = false;
+        component.updatesAllowed = 'original-requestor';
+        component.prayer.email = 'test@example.com';
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+          email: 'test@example.com',
+          fullName: 'Test'
+        });
+        expect(component.showAddUpdateButton()).toBe(true);
+      });
+
+      it('showAddUpdateButton: original-requestor hidden for others', () => {
+        component.isAdmin = false;
+        component.updatesAllowed = 'original-requestor';
+        component.prayer.email = 'other@example.com';
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+          email: 'test@example.com',
+          fullName: 'Test'
+        });
+        expect(component.showAddUpdateButton()).toBe(false);
+      });
+
+      it('showAddUpdateButton: everyone can update', () => {
+        component.isAdmin = false;
+        component.updatesAllowed = 'everyone';
+        expect(component.showAddUpdateButton()).toBe(true);
+      });
+
+      it('showUpdateDeleteButton: admin always sees button', () => {
+        component.isAdmin = true;
+        component.deletionsAllowed = 'admin-only';
+        expect(component.showUpdateDeleteButton()).toBe(true);
+      });
+
+      it('showUpdateDeleteButton: non-admin hidden when admin-only', () => {
+        component.isAdmin = false;
+        component.deletionsAllowed = 'admin-only';
+        expect(component.showUpdateDeleteButton()).toBe(false);
+      });
+
+      it('showUpdateDeleteButton: original-requestor matches on email', () => {
+        component.isAdmin = false;
+        component.deletionsAllowed = 'original-requestor';
+        component.prayer.email = 'test@example.com';
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+          email: 'test@example.com',
+          fullName: 'Test'
+        });
+        expect(component.showUpdateDeleteButton()).toBe(true);
+      });
+
+      it('showUpdateDeleteButton: original-requestor hidden for others', () => {
+        component.isAdmin = false;
+        component.deletionsAllowed = 'original-requestor';
+        component.prayer.email = 'other@example.com';
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+          email: 'test@example.com',
+          fullName: 'Test'
+        });
+        expect(component.showUpdateDeleteButton()).toBe(false);
+      });
+
+      it('showUpdateDeleteButton: everyone can delete updates', () => {
+        component.isAdmin = false;
+        component.deletionsAllowed = 'everyone';
+        expect(component.showUpdateDeleteButton()).toBe(true);
+      });
+
+      it('handleDeleteClick: admin opens confirmation dialog', () => {
+        component.isAdmin = true;
+        component.showConfirmationDialog = false;
+        component.handleDeleteClick();
+        expect(component.showConfirmationDialog).toBe(true);
+      });
+
+      it('handleDeleteClick: non-admin toggles delete form', () => {
+        component.isAdmin = false;
+        component.showDeleteRequestForm = false;
+        component.handleDeleteClick();
+        expect(component.showDeleteRequestForm).toBe(true);
+      });
+
+      it('handleDeleteClick: non-admin hides add form when showing delete', () => {
+        component.isAdmin = false;
+        component.showAddUpdateForm = true;
+        component.showDeleteRequestForm = false;
+        component.handleDeleteClick();
+        expect(component.showDeleteRequestForm).toBe(true);
+        expect(component.showAddUpdateForm).toBe(false);
+      });
+
+      it('handleUpdateDeletionRequest: method exists', () => {
+        // Verify the method exists in component
+        expect(typeof component.handleUpdateDeletionRequest).toBe('function');
+      });
+
+      it('getCurrentUserEmail: returns email from session', () => {
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+          email: 'user@test.com',
+          fullName: 'User'
+        });
+        expect(component.getCurrentUserEmail()).toBe('user@test.com');
+      });
+
+      it('getCurrentUserEmail: returns empty for null email', () => {
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+          email: null,
+          fullName: 'User'
+        });
+        expect(component.getCurrentUserEmail()).toBe('');
+      });
+
+      it('getCurrentUserEmail: returns empty for null session', () => {
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue(null);
+        expect(component.getCurrentUserEmail()).toBe('');
+      });
+
+      it('getDisplayedUpdates: returns empty when no updates', () => {
+        component.updates = [];
+        const displayed = component.getDisplayedUpdates();
+        expect(displayed.length).toBe(0);
+      });
+
+      it('getDisplayedUpdates: handles updates array', () => {
+        component.updates = [
+          { id: 'u1', created_at: new Date().toISOString(), content: 'Update' } as any
+        ];
+        component.displayUpdates = true;
+        const displayed = component.getDisplayedUpdates();
+        expect(Array.isArray(displayed)).toBe(true);
+      });
+
+      it('onConfirmUpdateDelete: emits delete event', () => {
+        component.updateConfirmationId = 'update1';
+        component.showUpdateConfirmationDialog = true;
+        const emitSpy = vi.spyOn(component.deleteUpdate, 'emit');
+        component.onConfirmUpdateDelete();
+        expect(emitSpy).toHaveBeenCalledWith('update1');
+        expect(component.showUpdateConfirmationDialog).toBe(false);
+      });
+
+      it('onCancelUpdateDelete: closes dialog and clears id', () => {
+        component.updateConfirmationId = 'update1';
+        component.showUpdateConfirmationDialog = true;
+        component.onCancelUpdateDelete();
+        expect(component.showUpdateConfirmationDialog).toBe(false);
+        expect(component.updateConfirmationId).toBeNull();
+      });
+
+      it('case-insensitive email comparison in policies', () => {
+        component.isAdmin = false;
+        component.updatesAllowed = 'original-requestor';
+        component.prayer.email = 'USER@EXAMPLE.COM';
+        mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+          email: 'user@example.com',
+          fullName: 'Test'
+        });
+        expect(component.showAddUpdateButton()).toBe(true);
+      });
+    });
   });
 
 });
