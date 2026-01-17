@@ -35,7 +35,7 @@ describe('HelpModalComponent - Core Logic', () => {
     });
 
     it('should return all sections when search is empty', () => {
-      const sections = [
+      const sections: Array<{ id: string; title: string; content: string }> = [
         { id: '1', title: 'Guide 1', content: 'Content 1' },
         { id: '2', title: 'Guide 2', content: 'Content 2' },
         { id: '3', title: 'Guide 3', content: 'Content 3' }
