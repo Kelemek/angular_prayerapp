@@ -559,7 +559,7 @@ describe('AdminAuthService', () => {
         .mockResolvedValueOnce({ data: null, error: null }); // admin check
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       const user = await firstValueFrom(newService.user$);
@@ -590,7 +590,7 @@ describe('AdminAuthService', () => {
         .mockResolvedValue({ data: [], error: null });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Trigger sign in
@@ -617,7 +617,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Trigger sign out
@@ -655,7 +655,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Clear any existing session start
@@ -682,7 +682,7 @@ describe('AdminAuthService', () => {
         .mockResolvedValue({ data: null, error: null });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Advance time by 31 minutes (more than default 30 min timeout)
@@ -705,7 +705,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Advance time by 15 minutes
@@ -752,7 +752,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Ensure callback was set up
@@ -794,7 +794,7 @@ describe('AdminAuthService', () => {
         .mockRejectedValueOnce(new Error('Network error')); // admin check fails
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Trigger sign in
@@ -831,7 +831,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       const sessionStart = localStorage.getItem('adminSessionStart');
@@ -847,7 +847,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       expect(newService).toBeTruthy();
@@ -880,7 +880,7 @@ describe('AdminAuthService', () => {
 
       await expect(async () => {
         const { AdminAuthService } = await import('./admin-auth.service');
-        const newService = new AdminAuthService(mockSupabaseService);
+        const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
         await vi.advanceTimersByTimeAsync(100);
       }).not.toThrow();
 
@@ -900,7 +900,7 @@ describe('AdminAuthService', () => {
 
       await expect(async () => {
         const { AdminAuthService } = await import('./admin-auth.service');
-        const newService = new AdminAuthService(mockSupabaseService);
+        const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
         await vi.advanceTimersByTimeAsync(100);
       }).not.toThrow();
 
@@ -918,7 +918,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Check that event listeners were added
@@ -945,7 +945,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Trigger activity
@@ -970,7 +970,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Clear mocks to track calls
@@ -1007,7 +1007,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Trigger sign in with user without email and no approval session
@@ -1052,7 +1052,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       if (authCallback) {
@@ -1103,7 +1103,7 @@ describe('AdminAuthService', () => {
         .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }); // focus event admin re-validation
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       // Verify initial admin status was set
@@ -1163,7 +1163,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       let isAdmin = await firstValueFrom(newService.isAdmin$);
@@ -1211,7 +1211,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
 
       const initialCallCount = mockSupabaseService.directQuery.mock.calls.length;
@@ -1231,7 +1231,7 @@ describe('AdminAuthService', () => {
   describe('clearLoading', () => {
     it('should clear loading state', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       // Wait for initialization to complete
       await vi.advanceTimersByTimeAsync(100);
@@ -1252,7 +1252,7 @@ describe('AdminAuthService', () => {
 
     it('should emit false on loading$ observable when clearLoading is called', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1277,7 +1277,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1298,7 +1298,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1325,7 +1325,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1358,7 +1358,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1368,7 +1368,7 @@ describe('AdminAuthService', () => {
 
     it('should return false for getIsAdmin when not admin', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1377,7 +1377,7 @@ describe('AdminAuthService', () => {
 
     it('should return loading state from isLoading', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       // After init, loading should be false
       await vi.advanceTimersByTimeAsync(100);
@@ -1389,7 +1389,7 @@ describe('AdminAuthService', () => {
   describe('Activity Tracking Edge Cases', () => {
     it('should handle multiple consecutive activity recordings', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1438,7 +1438,7 @@ describe('AdminAuthService', () => {
       localStorage.setItem('adminSessionStart', 'invalid-json-data');
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1450,7 +1450,7 @@ describe('AdminAuthService', () => {
       localStorage.setItem('adminSessionStart', 'not-a-number');
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1464,7 +1464,7 @@ describe('AdminAuthService', () => {
       const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1476,7 +1476,7 @@ describe('AdminAuthService', () => {
   describe('Session timeout edge cases', () => {
     it('should not check timeout if user is not admin', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1493,7 +1493,7 @@ describe('AdminAuthService', () => {
   describe('hasAdminEmailSubject', () => {
     it('should emit hasAdminEmail$ observable values', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1509,7 +1509,7 @@ describe('AdminAuthService', () => {
   describe('adminSessionExpired$ observable', () => {
     it('should emit adminSessionExpired$ values', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1525,7 +1525,7 @@ describe('AdminAuthService', () => {
   describe('requireSiteLogin$ observable', () => {
     it('should emit requireSiteLogin$ values', async () => {
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1572,7 +1572,7 @@ describe('AdminAuthService', () => {
       mockSupabaseClient.functions.invoke.mockRejectedValueOnce(new Error('Function error'));
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
@@ -1609,7 +1609,7 @@ describe('AdminAuthService', () => {
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
-      const newService = new AdminAuthService(mockSupabaseService);
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       
       await vi.advanceTimersByTimeAsync(100);
 
