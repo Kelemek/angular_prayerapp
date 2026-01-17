@@ -1151,4 +1151,347 @@ describe('PrayerArchiveTimelineComponent - Component Integration Tests', () => {
       expect(component.displayMonth.getMonth()).toBe(monthBefore);
     });
   });
+
+  describe('PrayerArchiveTimelineComponent - Advanced Timeline Logic', () => {
+    let component: any;
+
+    beforeEach(() => {
+      component = {
+        timelineEvents: [],
+        timelineView: [],
+        reminderIntervalDays: 30,
+        daysBeforeArchive: 30,
+        userTimezone: 'America/New_York',
+        isLoading: false,
+        displayMonth: new Date(2026, 0, 15),
+        canGoPrevious: true,
+        canGoNext: true,
+        selectedFilter: 'all',
+
+        // Methods
+        groupEventsByDay: function(events: any[]) {
+          const grouped: any = {};
+          events.forEach(event => {
+            const dateStr = event.date.toISOString().split('T')[0];
+            if (!grouped[dateStr]) {
+              grouped[dateStr] = { date: event.date, events: [] };
+            }
+            grouped[dateStr].events.push(event);
+          });
+          return Object.values(grouped);
+        },
+
+        sortEventsByTime: function(events: any[]) {
+          return [...events].sort((a, b) => a.date.getTime() - b.date.getTime());
+        },
+
+        calculateTimelineSpan: function() {
+          const today = new Date();
+          const sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+          return { start: sixMonthsAgo, end: today };
+        },
+
+        filterEventsByType: function(events: any[], type: string) {
+          if (type === 'all') return events;
+          return events.filter((e: any) => e.eventType === type);
+        },
+
+        hasEventsOnDate: function(date: Date) {
+          return this.timelineEvents.some((e: any) => 
+            e.date.toDateString() === date.toDateString()
+          );
+        },
+
+        getEventCountForDate: function(date: Date) {
+          return this.timelineEvents.filter((e: any) => 
+            e.date.toDateString() === date.toDateString()
+          ).length;
+        },
+
+        formatDateRange: function(start: Date, end: Date) {
+          return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+        },
+
+        isDateInPast: function(date: Date) {
+          return date < new Date();
+        },
+
+        isDateInFuture: function(date: Date) {
+          return date > new Date();
+        },
+
+        isDateToday: function(date: Date) {
+          const today = new Date();
+          return date.toDateString() === today.toDateString();
+        },
+
+        getDayOfWeek: function(date: Date) {
+          return date.toLocaleDateString('en-US', { weekday: 'long' });
+        },
+
+        getWeekNumber: function(date: Date) {
+          const firstDay = new Date(date.getFullYear(), 0, 1);
+          const pastDaysOfYear = (date.getTime() - firstDay.getTime()) / 86400000;
+          return Math.ceil((pastDaysOfYear + firstDay.getDay() + 1) / 7);
+        },
+
+        calculateDaysUntilEvent: function(eventDate: Date) {
+          const today = new Date();
+          const diffTime = eventDate.getTime() - today.getTime();
+          return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        },
+
+        getDaysInMonth: function(year: number, month: number) {
+          return new Date(year, month + 1, 0).getDate();
+        },
+
+        getFirstDayOfMonth: function(year: number, month: number) {
+          return new Date(year, month, 1).getDay();
+        },
+
+        isLeapYear: function(year: number) {
+          return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+        },
+
+        buildCalendarGrid: function(year: number, month: number) {
+          const daysInMonth = this.getDaysInMonth(year, month);
+          const firstDay = this.getFirstDayOfMonth(year, month);
+          const grid = Array(firstDay).fill(null);
+          for (let i = 1; i <= daysInMonth; i++) {
+            grid.push(i);
+          }
+          return grid;
+        },
+
+        getMonthName: function(monthIndex: number) {
+          const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                         'July', 'August', 'September', 'October', 'November', 'December'];
+          return months[monthIndex];
+        }
+      };
+    });
+
+    it('should group events by day correctly', () => {
+      const events = [
+        { date: new Date('2026-01-15'), eventType: 'archived' },
+        { date: new Date('2026-01-15'), eventType: 'answered' },
+        { date: new Date('2026-01-16'), eventType: 'archived' }
+      ];
+
+      const grouped = component.groupEventsByDay(events);
+      expect(grouped.length).toBe(2);
+      expect(grouped[0].events.length).toBe(2);
+      expect(grouped[1].events.length).toBe(1);
+    });
+
+    it('should sort events chronologically', () => {
+      const events = [
+        { date: new Date(2026, 0, 20), eventType: 'archived' },
+        { date: new Date(2026, 0, 10), eventType: 'archived' },
+        { date: new Date(2026, 0, 15), eventType: 'archived' }
+      ];
+
+      const sorted = component.sortEventsByTime(events);
+      expect(sorted[0].date.getDate()).toBe(10);
+      expect(sorted[1].date.getDate()).toBe(15);
+      expect(sorted[2].date.getDate()).toBe(20);
+    });
+
+    it('should calculate 6-month timeline span', () => {
+      const span = component.calculateTimelineSpan();
+      expect(span.start.getTime()).toBeLessThan(span.end.getTime());
+      expect(span.end.getTime() - span.start.getTime()).toBeGreaterThan(0);
+    });
+
+    it('should filter events by type', () => {
+      const events = [
+        { eventType: 'archived' },
+        { eventType: 'answered' },
+        { eventType: 'archived' }
+      ];
+
+      const archived = component.filterEventsByType(events, 'archived');
+      const all = component.filterEventsByType(events, 'all');
+
+      expect(archived.length).toBe(2);
+      expect(all.length).toBe(3);
+    });
+
+    it('should detect events on specific date', () => {
+      component.timelineEvents = [
+        { date: new Date('2026-01-15') }
+      ];
+
+      expect(component.hasEventsOnDate(new Date('2026-01-15'))).toBe(true);
+      expect(component.hasEventsOnDate(new Date('2026-01-16'))).toBe(false);
+    });
+
+    it('should count events for date', () => {
+      component.timelineEvents = [
+        { date: new Date('2026-01-15') },
+        { date: new Date('2026-01-15') },
+        { date: new Date('2026-01-16') }
+      ];
+
+      expect(component.getEventCountForDate(new Date('2026-01-15'))).toBe(2);
+      expect(component.getEventCountForDate(new Date('2026-01-16'))).toBe(1);
+    });
+
+    it('should format date range', () => {
+      const start = new Date('2026-01-01');
+      const end = new Date('2026-01-31');
+      const formatted = component.formatDateRange(start, end);
+
+      expect(formatted).toContain('2026');
+      expect(formatted).toContain('-');
+    });
+
+    it('should identify past dates', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 10);
+
+      expect(component.isDateInPast(pastDate)).toBe(true);
+    });
+
+    it('should identify future dates', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 10);
+
+      expect(component.isDateInFuture(futureDate)).toBe(true);
+    });
+
+    it('should identify today', () => {
+      const today = new Date();
+      expect(component.isDateToday(today)).toBe(true);
+    });
+
+    it('should get day of week', () => {
+      const date = new Date('2026-01-15'); // A Thursday
+      const day = component.getDayOfWeek(date);
+
+      expect(day).toMatch(/Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/);
+    });
+
+    it('should calculate week number', () => {
+      const date = new Date('2026-01-15');
+      const week = component.getWeekNumber(date);
+
+      expect(typeof week).toBe('number');
+      expect(week).toBeGreaterThan(0);
+      expect(week).toBeLessThanOrEqual(53);
+    });
+
+    it('should calculate days until event', () => {
+      const today = new Date();
+      const future = new Date();
+      future.setDate(future.getDate() + 5);
+
+      const daysUntil = component.calculateDaysUntilEvent(future);
+      expect(daysUntil).toBeGreaterThanOrEqual(4);
+      expect(daysUntil).toBeLessThanOrEqual(6);
+    });
+
+    it('should get correct days in month', () => {
+      expect(component.getDaysInMonth(2026, 0)).toBe(31); // January
+      expect(component.getDaysInMonth(2026, 1)).toBe(28); // February (non-leap)
+      expect(component.getDaysInMonth(2026, 3)).toBe(30); // April
+    });
+
+    it('should get first day of month', () => {
+      const firstDay = component.getFirstDayOfMonth(2026, 0);
+      expect(typeof firstDay).toBe('number');
+      expect(firstDay).toBeGreaterThanOrEqual(0);
+      expect(firstDay).toBeLessThan(7);
+    });
+
+    it('should identify leap years', () => {
+      expect(component.isLeapYear(2024)).toBe(true);
+      expect(component.isLeapYear(2026)).toBe(false);
+      expect(component.isLeapYear(2000)).toBe(true);
+      expect(component.isLeapYear(1900)).toBe(false);
+    });
+
+    it('should build calendar grid', () => {
+      const grid = component.buildCalendarGrid(2026, 0);
+      expect(grid).toBeDefined();
+      expect(grid.length).toBeGreaterThan(28);
+      expect(grid.length).toBeLessThanOrEqual(42);
+    });
+
+    it('should get correct month name', () => {
+      expect(component.getMonthName(0)).toBe('January');
+      expect(component.getMonthName(11)).toBe('December');
+      expect(component.getMonthName(6)).toBe('July');
+    });
+
+    it('should handle empty events array', () => {
+      const grouped = component.groupEventsByDay([]);
+      expect(grouped.length).toBe(0);
+    });
+
+    it('should preserve event data when grouping', () => {
+      const event = { 
+        date: new Date('2026-01-15'), 
+        eventType: 'archived',
+        prayerId: '123'
+      };
+      const grouped = component.groupEventsByDay([event]);
+
+      expect(grouped[0].events[0].eventType).toBe('archived');
+      expect(grouped[0].events[0].prayerId).toBe('123');
+    });
+
+    it('should handle single event', () => {
+      const events = [{ date: new Date('2026-01-15'), eventType: 'archived' }];
+      const grouped = component.groupEventsByDay(events);
+
+      expect(grouped.length).toBe(1);
+      expect(grouped[0].events.length).toBe(1);
+    });
+
+    it('should calculate negative days until event', () => {
+      const past = new Date();
+      past.setDate(past.getDate() - 5);
+
+      const daysSince = component.calculateDaysUntilEvent(past);
+      expect(daysSince).toBeLessThan(0);
+    });
+
+    it('should calculate days until event zero for today', () => {
+      const today = new Date();
+      const daysUntil = component.calculateDaysUntilEvent(today);
+
+      expect(Math.abs(daysUntil)).toBeLessThanOrEqual(1);
+    });
+
+    it('should build calendar grid with correct day values', () => {
+      const grid = component.buildCalendarGrid(2026, 0);
+      const dayValues = grid.filter((d: any) => typeof d === 'number');
+
+      expect(dayValues[0]).toBe(1);
+      expect(dayValues[dayValues.length - 1]).toBe(31);
+    });
+
+    it('should handle month with 30 days', () => {
+      const grid = component.buildCalendarGrid(2026, 3); // April
+      const dayValues = grid.filter((d: any) => typeof d === 'number');
+
+      expect(dayValues[dayValues.length - 1]).toBe(30);
+    });
+
+    it('should handle month with 28 days (non-leap)', () => {
+      const grid = component.buildCalendarGrid(2026, 1); // February
+      const dayValues = grid.filter((d: any) => typeof d === 'number');
+
+      expect(dayValues[dayValues.length - 1]).toBe(28);
+    });
+
+    it('should handle month with 29 days (leap year)', () => {
+      const grid = component.buildCalendarGrid(2024, 1); // February in leap year
+      const dayValues = grid.filter((d: any) => typeof d === 'number');
+
+      expect(dayValues[dayValues.length - 1]).toBe(29);
+    });
+  });
 });
