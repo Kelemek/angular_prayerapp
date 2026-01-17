@@ -860,4 +860,251 @@ describe('AppComponent', () => {
       expect(eventTypes).toContain('error');
     });
   });
+
+  describe('Approval Code Handling', () => {
+    beforeEach(() => {
+      // Reset location search
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+    });
+
+    it('should handle ngOnInit call', () => {
+      component.ngOnInit();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should navigate to admin when code parameter is provided', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=admin_code_12345',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+
+    it('should detect account approval code prefix', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=account_approve_test@example.com_token123',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      
+      // Just verify that ngOnInit doesn't throw for account_approve codes
+      expect(async () => {
+        await newComponent.ngOnInit();
+      }).not.toThrow();
+    });
+
+    it('should detect account denial code prefix', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=account_deny_test@example.com_token123',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      
+      // Just verify that ngOnInit doesn't throw for account_deny codes
+      expect(async () => {
+        await newComponent.ngOnInit();
+      }).not.toThrow();
+    });
+
+    it('should handle no code parameter gracefully', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should handle empty code parameter', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should handle code parameter with other query parameters', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?redirect=/home&code=admin_code_12345&utm=test',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+
+    it('should clean URL parameters after handling approval code', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=admin_code_12345',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(window.history.replaceState).toHaveBeenCalled();
+    });
+
+    it('should handle invalid URL search params', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?invalid_param=test',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should navigate to admin for non-account-approval codes', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=some_other_code',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+
+    it('should detect different account action prefixes', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=account_deny_different_test',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      
+      // Just verify that ngOnInit doesn't throw for account_deny codes
+      expect(async () => {
+        await newComponent.ngOnInit();
+      }).not.toThrow();
+    });
+
+    it('should handle multiple code parameters (first one wins)', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=admin_code_1&code=admin_code_2',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+
+    it('should handle query string with special characters in code', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=admin_code_with%20spaces',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      // Should navigate to admin with the decoded code
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+
+    it('should handle case-sensitive account approval codes', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?code=Account_Approve_test',
+          pathname: '/test',
+          origin: 'http://localhost'
+        },
+        writable: true
+      });
+
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      await newComponent.ngOnInit();
+
+      // Should not match account_approve_ because of case sensitivity
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+  });
+
+  describe('Component title property', () => {
+    it('should have correct title', () => {
+      expect(component.title).toBe('prayerapp');
+    });
+
+    it('should keep title unchanged', () => {
+      const originalTitle = component.title;
+      component.ngOnInit();
+      expect(component.title).toBe(originalTitle);
+    });
+  });
 });

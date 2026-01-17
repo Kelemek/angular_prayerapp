@@ -1938,5 +1938,529 @@ describe('EmailNotificationService - Additional Logic', () => {
         await expect((service as any).triggerEmailProcessor()).resolves.toBeUndefined();
       });
     });
+
+    describe('Subscriber Welcome Notifications', () => {
+      it('should send welcome notification with template', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({
+            data: {
+              id: '1',
+              template_key: 'subscriber_welcome',
+              subject: 'Welcome!',
+              html_body: '<p>Welcome to our community</p>',
+              text_body: 'Welcome to our community'
+            },
+            error: null
+          })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        await service.sendSubscriberWelcomeNotification('subscriber@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+        expect(sendEmailSpy).toHaveBeenCalledWith(expect.objectContaining({
+          to: ['subscriber@test.com'],
+          subject: expect.any(String)
+        }));
+      });
+
+      it('should use fallback template when template not found', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: { message: 'Not found' } })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        await service.sendSubscriberWelcomeNotification('subscriber@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.htmlBody).toBeDefined();
+        expect(emailCall.htmlBody).toContain('Prayer');
+      });
+
+      it('should return early when email is empty', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        await service.sendSubscriberWelcomeNotification('');
+        expect(sendEmailSpy).not.toHaveBeenCalled();
+      });
+
+      it('should return early when email is null or undefined', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        await service.sendSubscriberWelcomeNotification(null as any);
+        expect(sendEmailSpy).not.toHaveBeenCalled();
+      });
+
+      it('should apply template variables in welcome email', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({
+            data: {
+              id: '1',
+              template_key: 'subscriber_welcome',
+              subject: 'Welcome!',
+              html_body: '<p>Visit us at the app</p>',
+              text_body: 'Visit the app'
+            },
+            error: null
+          })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        await service.sendSubscriberWelcomeNotification('subscriber@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.subject).toBeDefined();
+        expect(emailCall.htmlBody).toBeDefined();
+      });
+
+      it('should handle error in welcome notification gracefully', async () => {
+        mockSupabase.client.from = vi.fn().mockImplementation(() => {
+          throw new Error('Database error');
+        });
+
+        await expect(service.sendSubscriberWelcomeNotification('subscriber@test.com')).resolves.toBeUndefined();
+      });
+
+      it('should include appLink in welcome email variables', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({
+            data: {
+              id: '1',
+              template_key: 'subscriber_welcome',
+              subject: 'Welcome!',
+              html_body: 'Visit {{ appLink }}',
+              text_body: 'Visit {{ appLink }}'
+            },
+            error: null
+          })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        await service.sendSubscriberWelcomeNotification('subscriber@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('Welcome Email HTML Generation', () => {
+      it('should generate welcome email HTML', () => {
+        const html = (service as any).generateWelcomeEmailHTML();
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+        expect(html).toContain('<!DOCTYPE html>');
+        expect(html).toContain('Prayer');
+      });
+
+      it('should include proper HTML structure in welcome email', () => {
+        const html = (service as any).generateWelcomeEmailHTML();
+        expect(html).toContain('<html');
+        expect(html).toContain('</html>');
+        expect(html).toContain('<body');
+        expect(html).toContain('</body>');
+      });
+
+      it('should include styling in welcome email HTML', () => {
+        const html = (service as any).generateWelcomeEmailHTML();
+        expect(html).toContain('style=');
+        expect(html).toContain('font-family');
+      });
+
+      it('should be responsive welcome email HTML', () => {
+        const html = (service as any).generateWelcomeEmailHTML();
+        expect(html).toContain('viewport');
+      });
+    });
+
+    describe('Admin Notification HTML Generation', () => {
+      it('should generate prayer admin notification HTML', () => {
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Prayer Description',
+          requester: 'John'
+        };
+
+        const html = (service as any).generateAdminNotificationPrayerHTML(payload, 'https://example.com/admin');
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+        expect(html).toContain('Prayer Request');
+        expect(html).toContain('Test Prayer');
+      });
+
+      it('should include proper structure in prayer admin HTML', () => {
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Prayer Description',
+          requester: 'John'
+        };
+
+        const html = (service as any).generateAdminNotificationPrayerHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('<!DOCTYPE html>');
+        expect(html).toContain('<html');
+        expect(html).toContain('</html>');
+      });
+
+      it('should include admin link in prayer notification HTML', () => {
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Prayer Description',
+          requester: 'John'
+        };
+
+        const adminLink = 'https://example.com/admin?code=123';
+        const html = (service as any).generateAdminNotificationPrayerHTML(payload, adminLink);
+        expect(html).toContain(adminLink);
+      });
+
+      it('should include requester name in prayer admin HTML', () => {
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Prayer Description',
+          requester: 'John Doe'
+        };
+
+        const html = (service as any).generateAdminNotificationPrayerHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('John Doe');
+      });
+
+      it('should include description in prayer admin HTML', () => {
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'This is a detailed prayer description',
+          requester: 'John'
+        };
+
+        const html = (service as any).generateAdminNotificationPrayerHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('detailed prayer description');
+      });
+
+      it('should generate update admin notification HTML', () => {
+        const payload = {
+          type: 'update' as const,
+          title: 'Test Prayer',
+          content: 'Update content',
+          author: 'Jane'
+        };
+
+        const html = (service as any).generateAdminNotificationUpdateHTML(payload, 'https://example.com/admin');
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+        expect(html).toContain('Prayer Update');
+      });
+
+      it('should include prayer title in update admin HTML', () => {
+        const payload = {
+          type: 'update' as const,
+          title: 'Healing Prayer',
+          content: 'Update content',
+          author: 'Jane'
+        };
+
+        const html = (service as any).generateAdminNotificationUpdateHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('Healing Prayer');
+      });
+
+      it('should include author name in update admin HTML', () => {
+        const payload = {
+          type: 'update' as const,
+          title: 'Test Prayer',
+          content: 'Update content',
+          author: 'Jane Smith'
+        };
+
+        const html = (service as any).generateAdminNotificationUpdateHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('Jane Smith');
+      });
+
+      it('should include update content in update admin HTML', () => {
+        const payload = {
+          type: 'update' as const,
+          title: 'Test Prayer',
+          content: 'This is an important update',
+          author: 'Jane'
+        };
+
+        const html = (service as any).generateAdminNotificationUpdateHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('important update');
+      });
+
+      it('should generate deletion admin notification HTML', () => {
+        const payload = {
+          type: 'deletion' as const,
+          title: 'Test Prayer',
+          requester: 'John',
+          reason: 'Duplicate prayer'
+        };
+
+        const html = (service as any).generateAdminNotificationDeletionHTML(payload, 'https://example.com/admin');
+        expect(html).toBeDefined();
+        expect(typeof html).toBe('string');
+        expect(html).toContain('Deletion Request');
+      });
+
+      it('should include requester in deletion admin HTML', () => {
+        const payload = {
+          type: 'deletion' as const,
+          title: 'Test Prayer',
+          requester: 'John Brown',
+          reason: 'Duplicate prayer'
+        };
+
+        const html = (service as any).generateAdminNotificationDeletionHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('John Brown');
+      });
+
+      it('should include deletion reason in deletion admin HTML', () => {
+        const payload = {
+          type: 'deletion' as const,
+          title: 'Test Prayer',
+          requester: 'John',
+          reason: 'This is a duplicate of another prayer'
+        };
+
+        const html = (service as any).generateAdminNotificationDeletionHTML(payload, 'https://example.com/admin');
+        expect(html).toContain('duplicate of another prayer');
+      });
+
+      it('should have consistent styling across all admin notification types', () => {
+        const prayerPayload = {
+          type: 'prayer' as const,
+          title: 'Test',
+          description: 'Test',
+          requester: 'John'
+        };
+
+        const updatePayload = {
+          type: 'update' as const,
+          title: 'Test',
+          content: 'Test',
+          author: 'Jane'
+        };
+
+        const deletionPayload = {
+          type: 'deletion' as const,
+          title: 'Test',
+          requester: 'John',
+          reason: 'Test'
+        };
+
+        const prayerHtml = (service as any).generateAdminNotificationPrayerHTML(prayerPayload, 'https://example.com/admin');
+        const updateHtml = (service as any).generateAdminNotificationUpdateHTML(updatePayload, 'https://example.com/admin');
+        const deletionHtml = (service as any).generateAdminNotificationDeletionHTML(deletionPayload, 'https://example.com/admin');
+
+        expect(prayerHtml).toContain('style=');
+        expect(updateHtml).toContain('style=');
+        expect(deletionHtml).toContain('style=');
+      });
+
+      it('should include Go to Admin Portal button in all notification types', () => {
+        const prayerPayload = {
+          type: 'prayer' as const,
+          title: 'Test',
+          description: 'Test',
+          requester: 'John'
+        };
+
+        const adminLink = 'https://example.com/admin';
+        const html = (service as any).generateAdminNotificationPrayerHTML(prayerPayload, adminLink);
+        expect(html).toContain('Admin Portal');
+        expect(html).toContain(adminLink);
+      });
+    });
+
+    describe('Admin Notification Email Sending', () => {
+      it('should send admin notification for prayer type with template', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({
+            data: {
+              subject: 'New Prayer Notification',
+              html_body: 'HTML body',
+              text_body: 'Text body'
+            },
+            error: null
+          })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Test Description',
+          requester: 'John'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+
+      it('should send admin notification for update type', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({
+            data: {
+              subject: 'New Update Notification',
+              html_body: 'HTML body',
+              text_body: 'Text body'
+            },
+            error: null
+          })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'update' as const,
+          title: 'Test Prayer',
+          content: 'Update content',
+          author: 'Jane'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+
+      it('should send admin notification for deletion type', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({
+            data: {
+              subject: 'Deletion Request',
+              html_body: 'HTML body',
+              text_body: 'Text body'
+            },
+            error: null
+          })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'deletion' as const,
+          title: 'Test Prayer',
+          requester: 'John',
+          reason: 'Duplicate'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+      });
+
+      it('should use fallback when template not found for prayer', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: { message: 'Not found' } })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Test Description',
+          requester: 'John'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.subject).toContain('Prayer Request');
+      });
+
+      it('should use fallback when template not found for update', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: { message: 'Not found' } })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'update' as const,
+          title: 'Test Prayer',
+          content: 'Update content',
+          author: 'Jane'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.subject).toContain('Prayer Update');
+      });
+
+      it('should use fallback when template not found for deletion', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: { message: 'Not found' } })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'deletion' as const,
+          title: 'Test Prayer',
+          requester: 'John',
+          reason: 'Duplicate'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.subject).toContain('Deletion Request');
+      });
+
+      it('should include all required fields in email for prayer notification', async () => {
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Test Description',
+          requester: 'John'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        expect(sendEmailSpy).toHaveBeenCalled();
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.to).toEqual(['admin@test.com']);
+        expect(emailCall.subject).toBeDefined();
+        expect(emailCall.textBody || emailCall.htmlBody).toBeDefined();
+      });
+
+      it('should handle error in admin notification gracefully', async () => {
+        mockSupabase.client.from = vi.fn().mockImplementation(() => {
+          throw new Error('Database error');
+        });
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Test Description',
+          requester: 'John'
+        };
+
+        await expect((service as any).sendAdminNotificationToEmail(payload, 'admin@test.com')).resolves.toBeUndefined();
+      });
+
+      it('should include admin link in fallback notification emails', async () => {
+        mockSupabase.client.from = vi.fn().mockReturnValue(
+          makeFromQuery({ data: null, error: { message: 'Not found' } })
+        );
+
+        const sendEmailSpy = vi.spyOn(service, 'sendEmail').mockResolvedValue(undefined);
+
+        const payload = {
+          type: 'prayer' as const,
+          title: 'Test Prayer',
+          description: 'Test Description',
+          requester: 'John'
+        };
+
+        await (service as any).sendAdminNotificationToEmail(payload, 'admin@test.com');
+        const emailCall = sendEmailSpy.mock.calls[0][0];
+        expect(emailCall.htmlBody || emailCall.textBody).toContain('/admin');
+      });
+    });
   });
 });

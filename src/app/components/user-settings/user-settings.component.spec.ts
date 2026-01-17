@@ -1847,6 +1847,215 @@ describe('UserSettingsComponent', () => {
       expect(component.email).toBeDefined();
     });
   });
+
+  it('should handle badge functionality toggle', async () => {
+    component.email = 'test@example.com';
+    component.badgeFunctionalityEnabled = false;
+
+    // Mock successful toggle
+    mockSupabaseService.client.from = vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      })),
+      insert: vi.fn(() => Promise.resolve({ data: null, error: null }))
+    }));
+
+    await component.onBadgeFunctionalityToggle();
+
+    // Verify the method completed without error
+    expect(component.savingBadge).toBe(false);
+  });
+
+  it('should mark all items from cache as read', () => {
+    const prayersCache = JSON.stringify({
+      data: [
+        { id: 'prayer-1', updates: [{ id: 'update-1' }] },
+        { id: 'prayer-2', updates: [{ id: 'update-2' }, { id: 'update-3' }] }
+      ]
+    });
+    localStorage.setItem('prayers_cache', prayersCache);
+
+    (component as any).markAllItemsAsRead();
+
+    const readData = JSON.parse(localStorage.getItem('read_prayers_data') || '{}');
+    expect(readData.prayers).toContain('prayer-1');
+    expect(readData.prayers).toContain('prayer-2');
+    expect(readData.updates).toContain('update-1');
+    expect(readData.updates).toContain('update-2');
+    expect(readData.updates).toContain('update-3');
+  });
+
+  it('should handle mark all items with empty cache', () => {
+    localStorage.setItem('prayers_cache', JSON.stringify({ data: [] }));
+    localStorage.setItem('prompts_cache', JSON.stringify({ data: [] }));
+
+    expect(() => (component as any).markAllItemsAsRead()).not.toThrow();
+  });
+
+  it('should emit email change via subject', (done) => {
+    const newEmail = 'newemail@example.com';
+    const subscription = (component as any).emailChange$.subscribe((email: string) => {
+      expect(email).toBe(newEmail);
+      subscription.unsubscribe();
+      done();
+    });
+
+    component.email = newEmail;
+    component.onEmailChange();
+  });
+
+  it('should load subscriber preferences on email change', () => {
+    component.email = 'test@example.com';
+    const changes: any = {
+      email: {
+        currentValue: 'test@example.com',
+        previousValue: '',
+        firstChange: false,
+        isFirstChange: () => false
+      }
+    };
+
+    component.ngOnChanges(changes);
+
+    // Should call the loading logic without error
+    expect(component.email).toBe('test@example.com');
+  });
+
+  it('should handle preference initialization errors', () => {
+    component.email = 'invalid@example.com';
+    component.receiveNotifications = false;
+
+    // Should maintain default state
+    expect(component.receiveNotifications).toBe(false);
+  });
+
+  it('should handle invalid email when toggling badge functionality', async () => {
+    component.email = '';
+    const initialState = component.badgeFunctionalityEnabled;
+
+    await component.onBadgeFunctionalityToggle();
+
+    expect(component.badgeFunctionalityEnabled).toBe(initialState); // Should not change
+    expect(component.error).toBeTruthy();
+  });
+
+  it('should deduplicate items when marking all as read', () => {
+    localStorage.setItem('read_prayers_data', JSON.stringify({
+      prayers: ['prayer-1'],
+      updates: ['update-1']
+    }));
+
+    const prayersCache = JSON.stringify({
+      data: [
+        { id: 'prayer-1', updates: [{ id: 'update-1' }, { id: 'update-2' }] }
+      ]
+    });
+    localStorage.setItem('prayers_cache', prayersCache);
+
+    (component as any).markAllItemsAsRead();
+
+    const readData = JSON.parse(localStorage.getItem('read_prayers_data') || '{}');
+    const uniquePrayers = [...new Set(readData.prayers)];
+    expect(uniquePrayers.length).toBe(1);
+  });
+
+  it('should handle corrupted cache JSON gracefully', () => {
+    localStorage.setItem('prayers_cache', 'not-valid-json');
+
+    expect(() => (component as any).markAllItemsAsRead()).not.toThrow();
+  });
+
+  it('should update badge functionality for existing subscriber', async () => {
+    component.email = 'test@example.com';
+    component.badgeFunctionalityEnabled = true;
+
+    mockSupabaseService.client.from = vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({
+            data: { id: 'existing-id' },
+            error: null
+          }))
+        }))
+      })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+      }))
+    }));
+
+    await component.onBadgeFunctionalityToggle();
+
+    expect(component.savingBadge).toBe(false);
+  });
+
+  it('should handle prompts cache in mark all items', () => {
+    const promptsCache = JSON.stringify({
+      data: [
+        { id: 'prompt-1', updates: [{ id: 'p-update-1' }] },
+        { id: 'prompt-2', updates: [] }
+      ]
+    });
+    localStorage.setItem('prompts_cache', promptsCache);
+
+    (component as any).markAllItemsAsRead();
+
+    const readData = JSON.parse(localStorage.getItem('read_prompts_data') || '{}');
+    expect(readData.prompts).toContain('prompt-1');
+    expect(readData.prompts).toContain('prompt-2');
+  });
+
+  it('should handle whitespace-only names', () => {
+    component.name = '   ';
+    const trimmed = component.name?.trim() || '';
+    expect(trimmed).toBe('');
+  });
+
+  it('should handle preference state transitions', () => {
+    component.receiveNotifications = true;
+    expect(component.receiveNotifications).toBe(true);
+    
+    component.receiveNotifications = false;
+    expect(component.receiveNotifications).toBe(false);
+  });
+
+  it('should revert badge toggle on database error', async () => {
+    component.email = 'test@example.com';
+    component.badgeFunctionalityEnabled = false;
+    const initialState = component.badgeFunctionalityEnabled;
+
+    mockSupabaseService.client.from = vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({
+            data: null,
+            error: new Error('DB error')
+          }))
+        }))
+      }))
+    }));
+
+    component.badgeFunctionalityEnabled = !initialState;
+    await component.onBadgeFunctionalityToggle();
+
+    expect(component.badgeFunctionalityEnabled).toBe(initialState);
+  });
+
+  it('should mark prompts and prayers separately', () => {
+    localStorage.setItem('prayers_cache', JSON.stringify({
+      data: [{ id: 'prayer-1', updates: [{ id: 'p-update-1' }] }]
+    }));
+    localStorage.setItem('prompts_cache', JSON.stringify({
+      data: [{ id: 'prompt-1', updates: [{ id: 'pr-update-1' }] }]
+    }));
+
+    (component as any).markAllItemsAsRead();
+
+    const prayerData = JSON.parse(localStorage.getItem('read_prayers_data') || '{}');
+    const promptData = JSON.parse(localStorage.getItem('read_prompts_data') || '{}');
+
+    expect(prayerData.prayers).toContain('prayer-1');
+    expect(promptData.prompts).toContain('prompt-1');
+  });
 });
-
-

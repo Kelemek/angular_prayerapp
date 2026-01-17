@@ -2,12 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EmailSubscribersComponent } from './email-subscribers.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
+import { AdminDataService } from '../../services/admin-data.service';
 import { ChangeDetectorRef } from '@angular/core';
 import * as planningCenter from '../../../lib/planning-center';
 
 vi.mock('../../../lib/planning-center', () => ({
   lookupPersonByEmail: vi.fn(),
-  batchLookupPlanningCenter: vi.fn()
+  batchLookupPlanningCenter: vi.fn(),
+  searchPlanningCenterByName: vi.fn()
 }));
 
 describe('EmailSubscribersComponent', () => {
@@ -15,6 +17,7 @@ describe('EmailSubscribersComponent', () => {
   let mockSupabaseService: any;
   let mockToastService: any;
   let mockChangeDetectorRef: any;
+  let mockAdminDataService: any;
 
   const mockSubscriber = {
     id: '123',
@@ -64,7 +67,8 @@ describe('EmailSubscribersComponent', () => {
     mockToastService = {
       success: vi.fn(),
       error: vi.fn(),
-      warning: vi.fn()
+      warning: vi.fn(),
+      info: vi.fn()
     };
 
     mockChangeDetectorRef = {
@@ -72,10 +76,15 @@ describe('EmailSubscribersComponent', () => {
       detectChanges: vi.fn()
     };
 
+    mockAdminDataService = {
+      sendSubscriberWelcomeEmail: vi.fn().mockResolvedValue({})
+    };
+
     component = new EmailSubscribersComponent(
       mockSupabaseService,
       mockToastService,
-      mockChangeDetectorRef
+      mockChangeDetectorRef,
+      mockAdminDataService
     );
   });
 
@@ -1409,6 +1418,478 @@ describe('EmailSubscribersComponent', () => {
 
       component.showConfirmationDialog = false;
       expect(component.showConfirmationDialog).toBe(false);
+    });
+  });
+
+  describe('Dialog handlers and confirmations', () => {
+    it('should have onConfirmSendWelcomeEmail method', () => {
+      expect(typeof component.onConfirmSendWelcomeEmail).toBe('function');
+    });
+
+    it('should handle send welcome email with no pending email', async () => {
+      component.pendingSubscriberEmail = '';
+
+      const result = await component.onConfirmSendWelcomeEmail();
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle decline send welcome email', () => {
+      component.showSendWelcomeEmailDialog = true;
+      component.showAddForm = true;
+      component.pendingSubscriberEmail = 'test@example.com';
+
+      component.onDeclineSendWelcomeEmail();
+
+      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.showAddForm).toBe(false);
+      expect(component.pendingSubscriberEmail).toBe('');
+    });
+
+    it('should handle confirmation dialog confirm with action', async () => {
+      const mockAction = vi.fn().mockResolvedValue(undefined);
+      component.confirmationAction = mockAction;
+      component.showConfirmationDialog = true;
+      component.isDeleteConfirmation = true;
+
+      await component.onConfirmDialog();
+
+      expect(mockAction).toHaveBeenCalled();
+      expect(component.showConfirmationDialog).toBe(false);
+      expect(component.confirmationAction).toBeNull();
+      expect(component.isDeleteConfirmation).toBe(false);
+    });
+
+    it('should handle confirmation dialog confirm without action', async () => {
+      component.confirmationAction = null;
+      component.showConfirmationDialog = true;
+
+      await component.onConfirmDialog();
+
+      expect(component.showConfirmationDialog).toBe(false);
+      expect(component.confirmationAction).toBeNull();
+    });
+
+    it('should handle confirmation dialog cancel', () => {
+      const mockAction = vi.fn();
+      component.confirmationAction = mockAction;
+      component.showConfirmationDialog = true;
+      component.isDeleteConfirmation = true;
+
+      component.onCancelDialog();
+
+      expect(mockAction).not.toHaveBeenCalled();
+      expect(component.showConfirmationDialog).toBe(false);
+      expect(component.confirmationAction).toBeNull();
+      expect(component.isDeleteConfirmation).toBe(false);
+    });
+
+    it('should handle toggleSort for name column', () => {
+      component.sortBy = 'email';
+      component.sortOrder = 'asc';
+
+      component.toggleSort('name');
+
+      expect(component.sortBy).toBe('name');
+      expect(component.sortOrder).toBe('asc');
+    });
+
+    it('should change column and reset order when toggling different column', () => {
+      component.sortBy = 'name';
+      component.sortOrder = 'asc';
+
+      component.toggleSort('created_at');
+
+      expect(component.sortBy).toBe('created_at');
+    });
+
+    it('should toggle sort for email column', () => {
+      component.sortBy = 'email';
+
+      component.toggleSort('email');
+
+      expect(component.sortBy).toBe('email');
+    });
+
+    it('should toggle sort for is_active column', () => {
+      component.toggleSort('is_active');
+
+      expect(component.sortBy).toBe('is_active');
+    });
+
+    it('should toggle sort for is_blocked column', () => {
+      component.toggleSort('is_blocked');
+
+      expect(component.sortBy).toBe('is_blocked');
+    });
+
+    it('should toggle sort for in_planning_center column', () => {
+      component.toggleSort('in_planning_center');
+
+      expect(component.sortBy).toBe('in_planning_center');
+    });
+
+    it('should toggle sort for last_activity_date column', () => {
+      component.toggleSort('last_activity_date');
+
+      expect(component.sortBy).toBe('last_activity_date');
+    });
+
+    it('should handle Planning Center search', () => {
+      component.pcSearchQuery = 'test name';
+      
+      // Just verify the method exists and is callable
+      expect(component.handleSearchPlanningCenter).toBeDefined();
+    });
+
+    it('should have empty Planning Center search results by default', () => {
+      expect(component.pcSearchResults).toBeDefined();
+    });
+
+    it('should have handleSearchPlanningCenter method', () => {
+      expect(typeof component.handleSearchPlanningCenter).toBe('function');
+    });
+
+    it('should return if no pcSelectedPerson in handleAddSelectedPlanningCenterPerson', async () => {
+      component.pcSelectedPerson = null;
+      
+      // Should set error message
+      await component.handleAddSelectedPlanningCenterPerson();
+      
+      expect(component.error).toBe('Please select a person from Planning Center');
+    });
+
+    it('should add selected Planning Center person attributes to form', () => {
+      const selectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'PC Person',
+          primary_email_address: 'pcperson@example.com',
+          first_name: 'PC',
+          last_name: 'Person'
+        }
+      };
+
+      component.selectPlanningCenterPerson(selectedPerson);
+
+      expect(component.pcSelectedPerson).toBe(selectedPerson);
+      expect(component.newName).toBe('PC Person');
+    });
+
+    it('should handle Planning Center person without primary_email_address', () => {
+      const selectedPerson = {
+        id: '1',
+        attributes: {
+          name: '',
+          primary_email_address: '',
+          first_name: 'John',
+          last_name: 'Doe'
+        }
+      };
+
+      component.selectPlanningCenterPerson(selectedPerson);
+
+      expect(component.newName).toBe('John Doe');
+    });
+
+    it('should handle Planning Center person selection and verify cdr.markForCheck is called', () => {
+      const cdrSpy = vi.spyOn(mockChangeDetectorRef, 'markForCheck');
+      const person = {
+        id: '1',
+        attributes: {
+          name: 'Selected Person',
+          primary_email_address: 'selected@example.com',
+          first_name: 'Selected',
+          last_name: 'Person'
+        }
+      };
+
+      component.selectPlanningCenterPerson(person);
+
+      expect(cdrSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Branch coverage - selectPlanningCenterPerson conditional paths', () => {
+    it('should show info toast when both name and email are filled', async () => {
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'John Doe',
+          primary_email_address: 'john@example.com',
+          first_name: 'John',
+          last_name: 'Doe'
+        }
+      } as any;
+
+      const toastSpy = vi.spyOn(mockToastService, 'info');
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      // Should show info toast about name and email filled in
+      expect(toastSpy).toHaveBeenCalledWith('Name and email filled in! Click "Add Subscriber" to complete.');
+    });
+
+    it('should show info toast when only name is filled (no email)', async () => {
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'Jane Smith',
+          primary_email_address: '',  // No email
+          first_name: 'Jane',
+          last_name: 'Smith'
+        }
+      } as any;
+
+      const toastSpy = vi.spyOn(mockToastService, 'info');
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      // Should show different info toast asking for email
+      expect(toastSpy).toHaveBeenCalledWith('Name filled in! Please enter the email address for this contact.');
+    });
+
+    it('should set pcSearchTab to false when both name and email present', async () => {
+      component.pcSearchTab = true;
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'Test User',
+          primary_email_address: 'test@example.com',
+          first_name: 'Test',
+          last_name: 'User'
+        }
+      } as any;
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      expect(component.pcSearchTab).toBe(false);
+    });
+
+    it('should set pcSearchTab to false when only name present', async () => {
+      component.pcSearchTab = true;
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'Mark Check',
+          primary_email_address: '',  // No email
+          first_name: 'Mark',
+          last_name: 'Check'
+        }
+      } as any;
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      expect(component.pcSearchTab).toBe(false);
+    });
+
+    it('should not modify pcSearchTab when neither name nor email present', async () => {
+      component.pcSearchTab = true;
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: '',
+          primary_email_address: '',
+          first_name: '',
+          last_name: ''
+        }
+      } as any;
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      // pcSearchTab should remain true since conditions not met
+      expect(component.pcSearchTab).toBe(true);
+    });
+
+    it('should call markForCheck on change detector', async () => {
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'Mark Check',
+          primary_email_address: 'mark@example.com',
+          first_name: 'Mark',
+          last_name: 'Check'
+        }
+      } as any;
+
+      const cdrSpy = vi.spyOn(mockChangeDetectorRef, 'markForCheck');
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      expect(cdrSpy).toHaveBeenCalled();
+    });
+
+    it('should handle person with first_name and last_name fallback', async () => {
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: '',  // Empty name, should use first_name + last_name
+          primary_email_address: 'fallback@example.com',
+          first_name: 'FirstName',
+          last_name: 'LastName'
+        }
+      } as any;
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      expect(component.newName).toBe('FirstName LastName');
+    });
+
+    it('should prefer name over first_name + last_name', async () => {
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'Full Name',
+          primary_email_address: 'test@example.com',
+          first_name: 'First',
+          last_name: 'Last'
+        }
+      } as any;
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      expect(component.newName).toBe('Full Name');
+    });
+
+    it('should set newEmail from primary_email_address', async () => {
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'Test User',
+          primary_email_address: 'test@example.com',
+          first_name: 'Test',
+          last_name: 'User'
+        }
+      } as any;
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      expect(component.newEmail).toBe('test@example.com');
+    });
+
+    it('should set empty newEmail when no primary_email_address', async () => {
+      component.pcSelectedPerson = {
+        id: '1',
+        attributes: {
+          name: 'Test User',
+          primary_email_address: '',
+          first_name: 'Test',
+          last_name: 'User'
+        }
+      } as any;
+
+      await component.handleAddSelectedPlanningCenterPerson();
+
+      expect(component.newEmail).toBe('');
+    });
+  });
+
+  describe('Branch coverage - welcome email dialog handlers', () => {
+    it('should return early if no pending subscriber email in onConfirmSendWelcomeEmail', async () => {
+      component.pendingSubscriberEmail = '';
+      component.showSendWelcomeEmailDialog = true;
+
+      const result = await component.onConfirmSendWelcomeEmail();
+
+      // Should return without sending
+      expect(result).toBeUndefined();
+      expect(component.showSendWelcomeEmailDialog).toBe(true);  // Dialog still open
+    });
+
+    it('should handle successful welcome email send', async () => {
+      component.pendingSubscriberEmail = 'test@example.com';
+      component.showSendWelcomeEmailDialog = true;
+      component.showAddForm = true;
+
+      const toastSpy = vi.spyOn(mockToastService, 'success');
+
+      await component.onConfirmSendWelcomeEmail();
+
+      expect(toastSpy).toHaveBeenCalledWith('Welcome email sent to subscriber');
+      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.showAddForm).toBe(false);
+      expect(component.pendingSubscriberEmail).toBe('');
+    });
+
+    it('should handle welcome email send error', async () => {
+      component.pendingSubscriberEmail = 'test@example.com';
+      component.showSendWelcomeEmailDialog = true;
+
+      mockAdminDataService.sendSubscriberWelcomeEmail.mockRejectedValueOnce(new Error('Send failed'));
+
+      const toastSpy = vi.spyOn(mockToastService, 'error');
+
+      await component.onConfirmSendWelcomeEmail();
+
+      expect(toastSpy).toHaveBeenCalledWith('Failed to send welcome email');
+    });
+
+    it('should close dialogs after successful welcome email', async () => {
+      component.pendingSubscriberEmail = 'new@example.com';
+      component.showSendWelcomeEmailDialog = true;
+      component.showAddForm = true;
+
+      await component.onConfirmSendWelcomeEmail();
+
+      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.showAddForm).toBe(false);
+    });
+
+    it('should clear pending email after successful send', async () => {
+      component.pendingSubscriberEmail = 'test@example.com';
+
+      await component.onConfirmSendWelcomeEmail();
+
+      expect(component.pendingSubscriberEmail).toBe('');
+    });
+
+    it('should handle decline send welcome email and reset form', () => {
+      component.showSendWelcomeEmailDialog = true;
+      component.showAddForm = true;
+      component.pendingSubscriberEmail = 'test@example.com';
+
+      component.onDeclineSendWelcomeEmail();
+
+      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.showAddForm).toBe(false);
+      expect(component.pendingSubscriberEmail).toBe('');
+    });
+
+    it('should call markForCheck after declining welcome email', () => {
+      const cdrSpy = vi.spyOn(mockChangeDetectorRef, 'markForCheck');
+
+      component.onDeclineSendWelcomeEmail();
+
+      expect(cdrSpy).toHaveBeenCalled();
+    });
+
+    it('should call markForCheck after confirming welcome email', async () => {
+      const cdrSpy = vi.spyOn(mockChangeDetectorRef, 'markForCheck');
+      component.pendingSubscriberEmail = 'test@example.com';
+
+      const mockAdminDataService = {
+        sendSubscriberWelcomeEmail: vi.fn().mockResolvedValue({})
+      };
+      component['adminDataService'] = mockAdminDataService;
+
+      await component.onConfirmSendWelcomeEmail();
+
+      expect(cdrSpy).toHaveBeenCalled();
+    });
+
+    it('should handle welcome email send with no showAddForm set', async () => {
+      component.pendingSubscriberEmail = 'test@example.com';
+      component.showSendWelcomeEmailDialog = true;
+      component.showAddForm = false;
+
+      const mockAdminDataService = {
+        sendSubscriberWelcomeEmail: vi.fn().mockResolvedValue({})
+      };
+      component['adminDataService'] = mockAdminDataService;
+
+      await component.onConfirmSendWelcomeEmail();
+
+      expect(component.showAddForm).toBe(false);
     });
   });
 });

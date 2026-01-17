@@ -978,5 +978,190 @@ describe('PromptCardComponent - Core Logic', () => {
       expect(badgeService.markPromptAsRead).toHaveBeenCalledWith(promptId);
     });
   });
+
+  describe('Lifecycle and Storage Events', () => {
+    let component: PromptCardComponent;
+    let badgeService: any;
+
+    beforeEach(() => {
+      const mockBadgeService = {
+        isPromptUnread: vi.fn(() => true),
+        markPromptAsRead: vi.fn(),
+        getUpdateBadgesChanged$: vi.fn(() => ({
+          pipe: vi.fn((fn: any) => ({
+            subscribe: vi.fn((cb: any) => {
+              return { unsubscribe: vi.fn() };
+            })
+          }))
+        })),
+        getBadgeFunctionalityEnabled$: vi.fn()
+      };
+
+      badgeService = mockBadgeService;
+      component = new PromptCardComponent(badgeService);
+      component.prompt = {
+        id: 'prompt-1',
+        title: 'Test Prompt',
+        type: 'Daily',
+        description: 'Test Description',
+        created_at: '2026-01-15T00:00:00Z',
+        updated_at: '2026-01-15T00:00:00Z'
+      };
+    });
+
+    it('should initialize promptBadge$ observable on ngOnInit', () => {
+      component.ngOnInit();
+      expect(component.promptBadge$).toBeDefined();
+    });
+
+    it('should set up storage listener on ngOnInit', () => {
+      const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+      component.ngOnInit();
+      expect(addEventListenerSpy).toHaveBeenCalledWith('storage', expect.any(Function));
+    });
+
+    it('should call updatePromptBadge when storage event fires with read_prompts_data key', () => {
+      component.ngOnInit();
+      
+      const storageEvent = new StorageEvent('storage', {
+        key: 'read_prompts_data',
+        newValue: '{"prompts": ["prompt-1"]}'
+      });
+      
+      window.dispatchEvent(storageEvent);
+      expect(badgeService.isPromptUnread).toHaveBeenCalled();
+    });
+
+    it('should not call updatePromptBadge for other storage keys', () => {
+      component.ngOnInit();
+      const initialCallCount = badgeService.isPromptUnread.mock.calls.length;
+      
+      const storageEvent = new StorageEvent('storage', {
+        key: 'other_key',
+        newValue: 'value'
+      });
+      
+      window.dispatchEvent(storageEvent);
+      // isPromptUnread should not be called again for other keys
+      expect(badgeService.isPromptUnread.mock.calls.length).toBe(initialCallCount);
+    });
+
+    it('should remove storage listener on ngOnDestroy', () => {
+      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+      component.ngOnInit();
+      component.ngOnDestroy();
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('storage', expect.any(Function));
+    });
+
+    it('should actually call window.removeEventListener with the stored listener function', () => {
+      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+      component.ngOnInit();
+      const listenerRef = (component as any).storageListener;
+      component.ngOnDestroy();
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('storage', listenerRef);
+    });
+
+    it('should handle ngOnDestroy when storageListener is null', () => {
+      component.ngOnInit();
+      component.ngOnDestroy();
+      // Should not throw when called again
+      expect(() => component.ngOnDestroy()).not.toThrow();
+    });
+
+    it('should complete destroy subject on ngOnDestroy', () => {
+      component.ngOnInit();
+      const completeSpy = vi.fn();
+      (component as any).destroy$.subscribe({
+        complete: completeSpy
+      });
+      
+      component.ngOnDestroy();
+      expect(completeSpy).toHaveBeenCalled();
+    });
+
+    it('should initialize with unread badge when prompt is unread', () => {
+      badgeService.isPromptUnread.mockReturnValue(true);
+      component.ngOnInit();
+      
+      component.promptBadge$?.subscribe(value => {
+        expect(value).toBe(true);
+      });
+    });
+
+    it('should initialize with no badge when prompt is read', () => {
+      badgeService.isPromptUnread.mockReturnValue(false);
+      component.ngOnInit();
+      
+      component.promptBadge$?.subscribe(value => {
+        expect(value).toBe(false);
+      });
+    });
+
+    it('should update badge when badge service emits changes', () => {
+      let updateCallback: Function;
+      
+      const mockPipe = (fn: any) => ({
+        subscribe: vi.fn((cb: any) => {
+          updateCallback = cb;
+          return { unsubscribe: vi.fn() };
+        })
+      });
+
+      badgeService.getUpdateBadgesChanged$ = vi.fn(() => ({
+        pipe: mockPipe
+      }));
+
+      badgeService.isPromptUnread.mockReturnValue(true);
+      component.ngOnInit();
+      badgeService.isPromptUnread.mockReturnValue(false);
+      
+      updateCallback!();
+      
+      component.promptBadge$?.subscribe(value => {
+        expect(value).toBe(false);
+      });
+    });
+
+    it('should handle multiple storage events', () => {
+      component.ngOnInit();
+      const initialCallCount = badgeService.isPromptUnread.mock.calls.length;
+      
+      for (let i = 0; i < 5; i++) {
+        const storageEvent = new StorageEvent('storage', {
+          key: 'read_prompts_data',
+          newValue: `{"prompts": ["prompt-${i}"]}`
+        });
+        window.dispatchEvent(storageEvent);
+      }
+      
+      expect(badgeService.isPromptUnread.mock.calls.length).toBe(initialCallCount + 5);
+    });
+
+    it('should call markPromptAsRead with prompt id', () => {
+      component.markPromptAsRead();
+      expect(badgeService.markPromptAsRead).toHaveBeenCalledWith(component.prompt.id);
+    });
+
+    it('should emit delete event with prompt id', () => {
+      const deleteSpy = vi.spyOn(component.delete, 'emit');
+      component.handleDelete();
+      component.onConfirmDelete();
+      expect(deleteSpy).toHaveBeenCalledWith(component.prompt.id);
+    });
+
+    it('should hide confirmation dialog on cancel', () => {
+      component.handleDelete();
+      expect(component.showConfirmationDialog).toBe(true);
+      component.onCancelDelete();
+      expect(component.showConfirmationDialog).toBe(false);
+    });
+
+    it('should hide confirmation dialog on confirm', () => {
+      component.handleDelete();
+      expect(component.showConfirmationDialog).toBe(true);
+      component.onConfirmDelete();
+      expect(component.showConfirmationDialog).toBe(false);
+    });
+  });
 });
 
