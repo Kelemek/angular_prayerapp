@@ -58,7 +58,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
         <!-- Content -->
         <div class="p-4 sm:p-6 space-y-4">
           <!-- Print Buttons -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div class="flex flex-col lg:flex-row flex-nowrap gap-2">
             <!-- Print Prayer List -->
             <div class="relative">
               <div class="flex">
@@ -100,7 +100,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                       <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="2" fill="none"></path>
                     </svg>
                   }
-                  <span class="font-medium">{{ isPrinting ? 'Generating...' : 'Print Prayer List' }}</span>
+                  <span class="font-medium">{{ isPrinting ? 'Generating...' : 'Print Prayers' }}</span>
                 </button>
                 <button
                   (click)="showPrintDropdown = !showPrintDropdown"
@@ -242,6 +242,97 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                   >
                     <span>{{ type }}</span>
                     @if (selectedPromptTypes.includes(type)) {
+                      <span class="text-green-600 dark:text-green-400">✓</span>
+                    }
+                  </button>
+                  }
+                </div>
+              </div>
+              }
+            </div>
+
+            <!-- Print Personal Prayers -->
+            <div class="relative flex-1 min-w-0">
+              <div class="flex w-full min-w-0">
+                <button
+                  (click)="handlePrintPersonalPrayers()"
+                  title="Print personal prayers for the selected time period"
+                  [disabled]="isPrintingPersonal"
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-3 bg-green-600 text-white rounded-l-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  @if (!isPrintingPersonal) {
+                    <svg 
+                      width="18" 
+                      height="18" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                  } @else {
+                    <svg 
+                      width="18" 
+                      height="18" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                      class="animate-spin"
+                      style="transform-origin: center"
+                    >
+                      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"></circle>
+                      <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="2" fill="none"></path>
+                    </svg>
+                  }
+                  <span class="font-medium">{{ isPrintingPersonal ? 'Generating...' : 'Print Personal' }}</span>
+                </button>
+                <button
+                  (click)="showPrintPersonalDropdown = !showPrintPersonalDropdown"
+                  [disabled]="isPrintingPersonal"
+                  title="Select time period for personal prayers to print"
+                  class="flex items-center justify-center px-2 bg-green-600 text-white rounded-r-lg border-l border-green-500 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg 
+                    width="18" 
+                    height="18" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    stroke-width="2" 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round"
+                    [class.rotate-180]="showPrintPersonalDropdown"
+                    class="transition-transform"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Print Personal Range Dropdown -->
+              @if (showPrintPersonalDropdown) {
+              <div>
+                <div
+                  class="fixed inset-0 z-10"
+                  (click)="showPrintPersonalDropdown = false"
+                ></div>
+                <div class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
+                  @for (option of printRangeOptions; track option.value) {
+                  <button
+                    (click)="printPersonalRange = option.value; showPrintPersonalDropdown = false"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+                    [title]="'Print personal prayers from the last ' + option.label"
+                  >
+                    <span>{{ option.label }}</span>
+                    @if (printPersonalRange === option.value) {
                       <span class="text-green-600 dark:text-green-400">✓</span>
                     }
                   </button>
@@ -509,9 +600,12 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   
   isPrinting = false;
   isPrintingPrompts = false;
+  isPrintingPersonal = false;
   printRange: PrintRange = 'week';
+  printPersonalRange: PrintRange = 'week';
   showPrintDropdown = false;
   showPromptTypesDropdown = false;
+  showPrintPersonalDropdown = false;
   promptTypes: string[] = [];
   selectedPromptTypes: string[] = [];
   githubFeedbackEnabled = false;
@@ -712,6 +806,24 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       if (newWindow) newWindow.close();
     } finally {
       this.isPrintingPrompts = false;
+      // Force change detection to update the button immediately
+      this.cdr.detectChanges();
+    }
+  }
+
+  async handlePrintPersonalPrayers(): Promise<void> {
+    this.isPrintingPersonal = true;
+    
+    // Open window immediately for Safari compatibility
+    const newWindow = window.open('', '_blank');
+    
+    try {
+      await this.printService.downloadPrintablePersonalPrayerList(this.printPersonalRange, newWindow);
+    } catch (error) {
+      console.error('Error printing personal prayers:', error);
+      if (newWindow) newWindow.close();
+    } finally {
+      this.isPrintingPersonal = false;
       // Force change detection to update the button immediately
       this.cdr.detectChanges();
     }

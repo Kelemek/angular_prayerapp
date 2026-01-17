@@ -18,7 +18,12 @@ const makeMocks = () => {
     addUpdate: vi.fn(),
     deleteUpdate: vi.fn(),
     requestDeletion: vi.fn(),
-    requestUpdateDeletion: vi.fn()
+    requestUpdateDeletion: vi.fn(),
+    getPersonalPrayers: vi.fn(),
+    deletePersonalPrayer: vi.fn(),
+    addPersonalPrayerUpdate: vi.fn(),
+    deletePersonalPrayerUpdate: vi.fn(),
+    updatePersonalPrayerStatus: vi.fn()
   };
 
   const promptService: any = {
@@ -37,6 +42,25 @@ const makeMocks = () => {
     userSession$: new BehaviorSubject(null).asObservable(),
     getUserEmail: vi.fn(() => null),
     getUserFullName: vi.fn(() => null)
+  };
+
+  const badgeService: any = {
+    isPromptUnread: vi.fn(),
+    getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(false)),
+    unreadPromptCount$: of(0),
+    getUnreadPromptCountByType: vi.fn().mockReturnValue(0),
+    refreshBadgeCounts: vi.fn(),
+    getBadgeCount$: vi.fn().mockReturnValue(of(0)),
+    markAllAsReadByStatus: vi.fn(),
+    markAllAsRead: vi.fn()
+  };
+
+  const cacheService: any = {
+    get: vi.fn(),
+    set: vi.fn(),
+    invalidate: vi.fn(),
+    invalidateAll: vi.fn(),
+    invalidateCategory: vi.fn()
   };
 
   const toastService: any = {
@@ -68,16 +92,7 @@ const makeMocks = () => {
     }
   };
 
-  const badgeService: any = {
-    isPromptUnread: vi.fn(),
-    getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(false)),
-    unreadPromptCount$: of(0),
-    getUnreadPromptCountByType: vi.fn().mockReturnValue(0),
-    refreshBadgeCounts: vi.fn(),
-    getBadgeCount$: vi.fn().mockReturnValue(of(0))
-  };
-
-  return { prayerService, promptService, adminAuthService, userSessionService, badgeService, toastService, analyticsService, cdr, router, supabaseService, prayersSubject, promptsSubject };
+  return { prayerService, promptService, adminAuthService, userSessionService, badgeService, cacheService, toastService, analyticsService, cdr, router, supabaseService, prayersSubject, promptsSubject };
 };
 
 describe('HomeComponent', () => {
@@ -100,10 +115,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     expect(comp.hasLogo).toBe(true);
   });
@@ -115,6 +132,8 @@ describe('HomeComponent', () => {
       mocks.promptService,
       mocks.adminAuthService,
       mockServiceWithEmail as any,
+      mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -132,6 +151,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -148,6 +168,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -165,6 +186,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -182,6 +204,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -200,10 +223,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     expect(comp.getUserEmail()).toBe('Not logged in');
   });
@@ -216,10 +241,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
 
     // seed data
@@ -251,10 +278,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     comp.filters = { status: 'answered', searchTerm: '' };
     comp.onFiltersChange({ searchTerm: 'needle' } as any);
@@ -269,10 +298,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     // initialize subscriptions
     comp.ngOnInit();
@@ -286,10 +317,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     comp.filters.searchTerm = 'search';
     comp.selectedPromptTypes = ['X'];
@@ -306,10 +339,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     comp.filters.searchTerm = 's';
     comp.setFilter('total');
@@ -324,10 +359,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     comp.filters.searchTerm = 's2';
     comp.setFilter('current');
@@ -342,10 +379,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     comp.markAsAnswered('id1');
     expect(mocks.prayerService.updatePrayerStatus).toHaveBeenCalledWith('id1', 'answered');
@@ -360,10 +399,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     // success
     mocks.prayerService.addUpdate.mockResolvedValue(undefined);
@@ -383,10 +424,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     mocks.prayerService.deleteUpdate.mockResolvedValue(undefined);
     await comp.deleteUpdate('u1');
@@ -404,10 +447,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     mocks.prayerService.requestDeletion.mockResolvedValue(undefined);
     await comp.requestDeletion({});
@@ -431,10 +476,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     await comp.deletePrompt('p1');
     expect(mocks.promptService.deletePrompt).toHaveBeenCalledWith('p1');
@@ -447,10 +494,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     comp.selectedPromptTypes = ['A'];
     comp.togglePromptType('A');
@@ -468,10 +517,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     const items = [
       { id: '1', title: 'Hello', description: 'World', type: 'T1' },
@@ -510,10 +561,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     const items = [
       { id: '1', title: 'A', description: '', type: 'X' },
@@ -533,10 +586,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     const s = comp.formatDate('2025-12-27T00:00:00Z');
     // Avoid asserting exact day because toLocaleDateString is timezone-dependent in CI/local.
@@ -553,10 +608,12 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     await comp.logout();
     expect(mocks.adminAuthService.logout).toHaveBeenCalled();
@@ -572,10 +629,12 @@ describe('HomeComponent', () => {
       adminServiceTrue,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     compTrue.navigateToAdmin();
     expect(mocks.router.navigate).toHaveBeenCalledWith(['/admin']);
@@ -588,10 +647,12 @@ describe('HomeComponent', () => {
       adminServiceFalse,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
-      mocks.router
+      mocks.router,
+      mocks.supabaseService
     );
     localStorage.clear();
     compFalse.navigateToAdmin();
@@ -628,6 +689,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -664,6 +726,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -697,6 +760,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -733,6 +797,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -772,6 +837,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService,
       mocks.userSessionService,
       mocks.badgeService,
+      mocks.cacheService,
       mocks.toastService,
       mocks.analyticsService,
       mocks.cdr,
@@ -793,12 +859,13 @@ describe('HomeComponent', () => {
         mocks.promptService,
         mocks.adminAuthService,
         mocks.userSessionService,
-      mocks.badgeService,
         mocks.badgeService,
+        mocks.cacheService,
         mocks.toastService,
         mocks.analyticsService,
         mocks.cdr,
-        mocks.router
+        mocks.router,
+        mocks.supabaseService
       );
 
       expect(typeof comp['getUnreadPromptCountByType']).toBe('function');
@@ -818,12 +885,13 @@ describe('HomeComponent', () => {
         mocks.promptService,
         mocks.adminAuthService,
         mocks.userSessionService,
-      mocks.badgeService,
         mocks.badgeService,
+        mocks.cacheService,
         mocks.toastService,
         mocks.analyticsService,
         mocks.cdr,
-        mocks.router
+        mocks.router,
+        mocks.supabaseService
       );
 
       // Component should have badge count functionality
@@ -847,12 +915,13 @@ describe('HomeComponent', () => {
         customPromptService,
         mocks.adminAuthService,
         mocks.userSessionService,
-      mocks.badgeService,
         mocks.badgeService,
+        mocks.cacheService,
         mocks.toastService,
         mocks.analyticsService,
         mocks.cdr,
-        mocks.router
+        mocks.router,
+        mocks.supabaseService
       );
 
       expect(comp).toBeDefined();
@@ -876,12 +945,13 @@ describe('HomeComponent', () => {
         customPromptService,
         mocks.adminAuthService,
         mocks.userSessionService,
-      mocks.badgeService,
         mocks.badgeService,
+        mocks.cacheService,
         mocks.toastService,
         mocks.analyticsService,
         mocks.cdr,
-        mocks.router
+        mocks.router,
+        mocks.supabaseService
       );
 
       expect(comp).toBeDefined();
@@ -900,12 +970,13 @@ describe('HomeComponent', () => {
         customPromptService,
         mocks.adminAuthService,
         mocks.userSessionService,
-      mocks.badgeService,
         mocks.badgeService,
+        mocks.cacheService,
         mocks.toastService,
         mocks.analyticsService,
         mocks.cdr,
-        mocks.router
+        mocks.router,
+        mocks.supabaseService
       );
 
       // Add prompts after initialization
@@ -915,6 +986,456 @@ describe('HomeComponent', () => {
       ]);
 
       expect(comp).toBeDefined();
+    });
+  });
+
+  describe('Personal Prayers functionality', () => {
+    it('loadPersonalPrayers returns cached data on cache hit', async () => {
+      const cached = [
+        { id: 'p1', title: 'My Prayer', description: 'Test', status: 'current', requester: 'Me', prayer_for: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+      ];
+      mocks.cacheService.get.mockReturnValue(cached);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp['loadPersonalPrayers']();
+
+      expect(mocks.cacheService.get).toHaveBeenCalledWith('personalPrayers');
+      expect(comp.personalPrayers).toEqual(cached);
+      expect(comp.personalPrayersCount).toBe(1);
+      expect(mocks.cdr.markForCheck).toHaveBeenCalled();
+    });
+
+    it('loadPersonalPrayers fetches from service on cache miss', async () => {
+      const prayers = [
+        { id: 'p1', title: 'My Prayer', description: 'Test', status: 'current', requester: 'Me', prayer_for: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+      ];
+      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue(prayers);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp['loadPersonalPrayers']();
+
+      expect(mocks.prayerService.getPersonalPrayers).toHaveBeenCalled();
+      expect(mocks.cacheService.set).toHaveBeenCalledWith('personalPrayers', prayers);
+      expect(comp.personalPrayers).toEqual(prayers);
+      expect(comp.personalPrayersCount).toBe(1);
+    });
+
+    it('loadPersonalPrayers handles error gracefully', async () => {
+      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.getPersonalPrayers.mockRejectedValue(new Error('Load failed'));
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await expect(comp['loadPersonalPrayers']()).resolves.not.toThrow();
+    });
+
+    it('onPrayerFormClose with isPersonal=true refreshes personal prayers', async () => {
+      const prayers = [
+        { id: 'p1', title: 'Prayer', description: 'Test', status: 'current', requester: 'Me', prayer_for: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+      ];
+      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue(prayers);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.onPrayerFormClose({ isPersonal: true });
+
+      expect(comp.showPrayerForm).toBe(false);
+      expect(mocks.cacheService.invalidate).toHaveBeenCalledWith('personalPrayers');
+      expect(mocks.prayerService.getPersonalPrayers).toHaveBeenCalled();
+    });
+
+    it('onPrayerFormClose without isPersonal just closes form', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.onPrayerFormClose({});
+
+      expect(comp.showPrayerForm).toBe(false);
+      expect(mocks.cacheService.invalidate).not.toHaveBeenCalled();
+    });
+
+    it('deletePersonalPrayer success refreshes cache', async () => {
+      const prayers = [
+        { id: 'p1', title: 'Prayer', description: 'Test', status: 'current', requester: 'Me', prayer_for: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+      ];
+      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.deletePersonalPrayer.mockResolvedValue(true);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue(prayers);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.deletePersonalPrayer('p1');
+
+      expect(mocks.prayerService.deletePersonalPrayer).toHaveBeenCalledWith('p1');
+      expect(mocks.cacheService.invalidate).toHaveBeenCalledWith('personalPrayers');
+    });
+
+    it('deletePersonalPrayer failure does not refresh', async () => {
+      mocks.prayerService.deletePersonalPrayer.mockResolvedValue(false);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.deletePersonalPrayer('p1');
+
+      expect(mocks.prayerService.deletePersonalPrayer).toHaveBeenCalledWith('p1');
+      expect(mocks.cacheService.invalidate).not.toHaveBeenCalled();
+    });
+
+    it('addPersonalUpdate with mark_as_answered=true updates status', async () => {
+      mocks.prayerService.addPersonalPrayerUpdate.mockResolvedValue(true);
+      mocks.prayerService.updatePersonalPrayerStatus.mockResolvedValue(true);
+      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.addPersonalUpdate({
+        prayer_id: 'p1',
+        content: 'Update text',
+        mark_as_answered: true
+      });
+
+      expect(mocks.prayerService.addPersonalPrayerUpdate).toHaveBeenCalled();
+      expect(mocks.prayerService.updatePersonalPrayerStatus).toHaveBeenCalledWith('p1', 'answered');
+    });
+
+    it('addPersonalUpdate without mark_as_answered does not update status', async () => {
+      mocks.prayerService.addPersonalPrayerUpdate.mockResolvedValue(true);
+      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.addPersonalUpdate({
+        prayer_id: 'p1',
+        content: 'Update text',
+        mark_as_answered: false
+      });
+
+      expect(mocks.prayerService.addPersonalPrayerUpdate).toHaveBeenCalled();
+      expect(mocks.prayerService.updatePersonalPrayerStatus).not.toHaveBeenCalled();
+    });
+
+    it('addPersonalUpdate error handling', async () => {
+      mocks.prayerService.addPersonalPrayerUpdate.mockRejectedValue(new Error('Add failed'));
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.addPersonalUpdate({
+        prayer_id: 'p1',
+        content: 'Update text'
+      });
+
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to add update');
+    });
+
+    it('deletePersonalUpdate success refreshes cache', async () => {
+      mocks.prayerService.deletePersonalPrayerUpdate.mockResolvedValue(true);
+      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.deletePersonalUpdate('u1');
+
+      expect(mocks.prayerService.deletePersonalPrayerUpdate).toHaveBeenCalledWith('u1');
+      expect(mocks.cacheService.invalidate).toHaveBeenCalledWith('personalPrayers');
+    });
+
+    it('deletePersonalUpdate error handling', async () => {
+      mocks.prayerService.deletePersonalPrayerUpdate.mockRejectedValue(new Error('Delete failed'));
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.deletePersonalUpdate('u1');
+
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to delete update');
+    });
+
+    it('getFilteredPersonalPrayers returns all when no search term', () => {
+      const prayers = [
+        { id: 'p1', title: 'Prayer 1', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] },
+        { id: 'p2', title: 'Prayer 2', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+      ];
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+      comp.personalPrayers = prayers;
+      comp.filters = { searchTerm: '' };
+
+      const filtered = comp.getFilteredPersonalPrayers();
+
+      expect(filtered).toEqual(prayers);
+    });
+
+    it('getFilteredPersonalPrayers filters by search term', () => {
+      const prayers = [
+        { id: 'p1', title: 'Find Me', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] },
+        { id: 'p2', title: 'Other', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+      ];
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+      comp.personalPrayers = prayers;
+      comp.filters = { searchTerm: 'find' };
+
+      const filtered = comp.getFilteredPersonalPrayers();
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe('p1');
+    });
+
+    it('markAllCurrentAsRead calls badgeService', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.markAllCurrentAsRead();
+
+      expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'current');
+    });
+
+    it('markAllAnsweredAsRead calls badgeService', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.markAllAnsweredAsRead();
+
+      expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'answered');
+    });
+
+    it('markAllPromptsAsRead calls badgeService', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.markAllPromptsAsRead();
+
+      expect(mocks.badgeService.markAllAsRead).toHaveBeenCalledWith('prompts');
+    });
+  });
+
+  describe('Filter functionality for personal prayers', () => {
+    it('setFilter personal sets activeFilter and calls applyFilters', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filters.searchTerm = 'search';
+      comp.setFilter('personal');
+
+      expect(comp.activeFilter).toBe('personal');
+      expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ search: 'search' });
     });
   });
 });

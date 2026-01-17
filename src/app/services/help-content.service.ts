@@ -271,16 +271,24 @@ export class HelpContentService {
             text: 'When you submit a new prayer request, update or deletion, it will be reviewed and approved by an administrator before it appears publicly. This helps maintain the quality and appropriateness of prayer requests in our community.',
           },
           {
+            subtitle: 'Creating Personal Prayers (Private Prayers)',
+            text: 'Click the filter button labeled "Personal" to view your private personal prayers. These are prayers that are visible only to you. Click "Add Request" while in the Personal filter to create a personal prayer. Personal prayers are immediately available without requiring administrator approval, making them perfect for private prayer mangement.',
+          },
+          {
             subtitle: 'Updating Prayers',
-            text: 'Click the "Update" button to add an update about the prayer request. This allows you to share progress, answered prayers, or new developments with your prayer community.',
+            text: 'Click the "Update" button to add an update about the prayer request. This allows you to share progress, answered prayers, or new developments with your prayer community. You can update both regular prayers and personal prayers with new information.',
           },
           {
             subtitle: 'Mark as Anonymous',
-            text: 'When creating a prayer, you can check the "Make this prayer anonymous" checkbox to protect your privacy. This keeps your identity confidential.',
+            text: 'When creating a prayer, you can check the "Make this prayer anonymous" checkbox to protect your privacy. This keeps your identity confidential. This option is available for regular prayers only, as personal prayers are already private.',
           },
           {
             subtitle: 'Mark as Answered',
-            text: 'When adding an update to a prayer, check the "Mark this prayer as answered" checkbox to move it to the "Answered" section. This is perfect for reflecting on how God has worked in that situation.',
+            text: 'When adding an update to a prayer, check the "Mark this prayer as answered" checkbox to move it to the "Answered" section. This is perfect for reflecting on how God has worked in that situation. This works for both regular prayers and personal prayers.',
+          },
+          {
+            subtitle: 'Managing Personal vs. Regular Prayers',
+            text: 'Use the "Personal" filter to access your private prayers that are only visible to you. Use the "Current" or "Total" filters to view prayers that are shared with the community. Personal prayers are a great way to track private prayer requests.',
           },
         ],
         order: 1,
@@ -351,11 +359,19 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'Use the main filter buttons to view prayers by category: "Current" shows active prayers, "Answered" shows prayers that have been answered, "Total" shows all prayers including archived ones, and "Prompts" displays prayer prompt cards.',
+            text: 'Use the main filter buttons to view prayers by category: "Current" shows active community prayers, "Answered" shows prayers that have been answered, "Total" shows all community prayers including archived ones, "Prompts" displays prayer prompt cards, and "Personal" shows your private personal prayers.',
+          },
+          {
+            subtitle: 'Personal Prayers Filter',
+            text: 'Click the "Personal" filter button to view only your private personal prayers. These prayers are visible only to you and are not shared with the prayer community. You can search, update, and manage your personal prayers just like community prayers, but they remain completely private.',
           },
           {
             subtitle: 'Finding Archived Prayers',
-            text: 'Archived prayers are still accessible and can be updated. Click on the "Total" filter button to see all prayers including archived ones. You can find, edit, and update archived prayers just like active prayers.',
+            text: 'Archived prayers are still accessible and can be updated. Click on the "Total" filter button to see all community prayers including archived ones. You can find, edit, and update archived prayers just like active prayers.',
+          },
+          {
+            subtitle: 'Search Across All Filters',
+            text: 'The search functionality works across all prayer filters. Whether you\'re viewing current prayers, answered prayers, personal prayers, or prompts, you can search to narrow down the results. Search looks through prayer titles, descriptions, and prayer prompts.',
           },
         ],
         order: 4,
@@ -397,7 +413,11 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'Print Options',
-            text: 'Under the settings menu, find the print button to print your prayers. You can print all prayers or just the filtered results.',
+            text: 'Under the settings menu, find the print button to print your prayers. You can print all prayers or just the filtered results. This includes both community prayers and your personal private prayers.',
+          },
+          {
+            subtitle: 'Printing Personal Prayers',
+            text: 'When viewing your personal prayers (using the "Personal" filter), you can print them using the print button in settings. Your personal prayers will be printed as they appear on screen, giving you an offline copy of your private prayer list.',
           },
           {
             subtitle: 'Printing Prompts',
@@ -480,7 +500,7 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'Print Buttons',
-            text: 'The "Print Prayers" button allows you to print or export your current prayers as a PDF. The "Print Prompts" button prints the prayer prompts so you can use them offline or share them with others.',
+            text: 'The "Print Prayers" button allows you to print or export your current prayers as a PDF. The "Print Prompts" button prints the prayer prompts so you can use them offline or share them with others. The "Print Personal Prayers" button allows you to print your personal prayers.',
           },
           {
             subtitle: 'Theme Options',

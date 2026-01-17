@@ -23,14 +23,16 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
             <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline">
               Prayer for {{ prayer.prayer_for }}
             </h3>
-            @if (activeFilter === 'total') {
+            @if (activeFilter === 'total' || isPersonal) {
             <span [class]="'px-2 py-1 text-xs font-medium rounded-full ' + getStatusBadgeClasses()">
               {{ getStatusLabel() }}
             </span>
             }
+            @if (!isPersonal) {
             <span class="text-sm text-gray-600 dark:text-gray-400">
               Requested by: <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester() }}</span>
             </span>
+            }
           </div>
         </div>
         @if (showDeleteButton()) {
@@ -49,7 +51,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
       </div>
 
       <!-- Badge in top-right corner -->
-      @if ((prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total') {
+      @if ((prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal) {
         <button
           (click)="markPrayerAsRead()"
           class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
@@ -95,6 +97,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
             class="w-full px-3 py-2 text-sm border border-[#39704D] dark:border-[#39704D] rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#39704D] h-20"
             required
           ></textarea>
+          @if (!isPersonal) {
           <div class="flex items-center gap-2">
             <input
               type="checkbox"
@@ -107,6 +110,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
               Post update anonymously
             </label>
           </div>
+          }
           <div class="flex items-center gap-2">
             <input
               type="checkbox"
@@ -202,16 +206,18 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
             [class]="'bg-gray-100 dark:bg-gray-700 rounded-lg p-6 border relative ' + getBorderClass()"
           >
             <div class="relative mb-2">
-              <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                @if (!isPersonal) {
                 <span class="text-sm text-gray-600 dark:text-gray-400">
                   Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.author }}</span>
                 </span>
+                }
                 @if (showUpdateDeleteButton()) {
                 <button
                   (click)="handleDeleteUpdate(update.id)"
                   aria-label="Delete prayer update"
                   title="Delete this update"
-                  class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md"
+                  class="ml-auto text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -226,7 +232,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
             </div>
             
             <!-- Badge in top-right corner -->
-            @if ((updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total') {
+            @if ((updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal) {
               <button
                 (click)="markUpdateAsRead(update.id)"
                 class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
@@ -309,9 +315,10 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
 export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() prayer!: PrayerRequest;
   @Input() isAdmin = false;
+  @Input() isPersonal = false;
   @Input() deletionsAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
   @Input() updatesAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
-  @Input() activeFilter: 'current' | 'answered' | 'archived' | 'total' | 'prompts' = 'total';
+  @Input() activeFilter: 'current' | 'answered' | 'archived' | 'total' | 'prompts' | 'personal' = 'total';
   
   @Output() delete = new EventEmitter<string>();
   @Output() addUpdate = new EventEmitter<any>();
@@ -511,6 +518,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   // original-requestor: only prayer creator can delete
   // everyone: all users can request deletion
   showDeleteButton(): boolean {
+    // Personal prayers always allow deletion by owner
+    if (this.isPersonal) return true;
     if (this.isAdmin) return true;
     if (this.deletionsAllowed === 'admin-only') return false;
     if (this.deletionsAllowed === 'original-requestor') {
@@ -524,7 +533,10 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   // admin-only: only admins can see/use add update
   // original-requestor: only prayer creator can add updates
   // everyone: all users can submit updates
+  // personal prayers: always allow updates by owner
   showAddUpdateButton(): boolean {
+    // Personal prayers always allow updates by owner
+    if (this.isPersonal) return true;
     if (this.isAdmin) return true;
     if (this.updatesAllowed === 'admin-only') return false;
     if (this.updatesAllowed === 'original-requestor') {
@@ -545,7 +557,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   handleDeleteClick(): void {
-    if (this.isAdmin) {
+    if (this.isAdmin || this.isPersonal) {
       this.showConfirmationDialog = true;
     } else {
       this.showDeleteRequestForm = !this.showDeleteRequestForm;
@@ -619,7 +631,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   handleDeleteUpdate(updateId: string): void {
-    if (this.isAdmin) {
+    if (this.isAdmin || this.isPersonal) {
       this.updateConfirmationTitle = 'Delete Update';
       this.updateConfirmationMessage = 'Are you sure you want to delete this update? This action cannot be undone.';
       this.updateConfirmationId = updateId;

@@ -29,6 +29,7 @@ A comprehensive prayer request management system for Cross Pointe Church built w
 - ✅ Admin approval workflow
 - ✅ Real-time updates via Supabase
 - ✅ Prayer timer & printable lists
+- ✅ Personal prayers (private user prayers)
 - ✅ Theme system (light/dark)
 - ✅ Planning Center contact lookup
 - ✅ Badge indicators (unread prayers/prompts)

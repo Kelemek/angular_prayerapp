@@ -98,7 +98,8 @@ import { ToastService } from '../../services/toast.service';
             ></textarea>
           </div>
 
-          <!-- Anonymous Checkbox -->
+          <!-- Anonymous Checkbox - only show for public prayers -->
+          @if (!formData.is_personal) {
           <div class="flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -110,6 +111,42 @@ import { ToastService } from '../../services/toast.service';
             <label for="is_anonymous" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
               Make this prayer anonymous (your name will not be shown publicly)
             </label>
+          </div>
+          }
+
+          <!-- Personal vs Public Radio -->
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Prayer Visibility
+            </label>
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center">
+                <input
+                  type="radio"
+                  [(ngModel)]="formData.is_personal"
+                  [value]="false"
+                  name="visibility"
+                  id="visibility_public"
+                  class="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 focus:ring-blue-500 bg-white dark:bg-gray-700"
+                />
+                <label for="visibility_public" class="ml-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                  Public Prayer (pending admin approval)
+                </label>
+              </div>
+              <div class="flex items-center">
+                <input
+                  type="radio"
+                  [(ngModel)]="formData.is_personal"
+                  [value]="true"
+                  name="visibility"
+                  id="visibility_personal"
+                  class="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 focus:ring-blue-500 bg-white dark:bg-gray-700"
+                />
+                <label for="visibility_personal" class="ml-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                  Personal Prayer (private, no approval needed)
+                </label>
+              </div>
+            </div>
           </div>
 
           <!-- Buttons -->
@@ -141,13 +178,14 @@ import { ToastService } from '../../services/toast.service';
 })
 export class PrayerFormComponent implements OnInit, OnChanges {
   @Input() isOpen = false;
-  @Output() close = new EventEmitter<void>();
+  @Output() close = new EventEmitter<{isPersonal?: boolean}>();
 
   formData = {
     title: '',
     description: '',
     prayer_for: '',
-    is_anonymous: false
+    is_anonymous: false,
+    is_personal: false
   };
 
   isSubmitting = false;
@@ -243,25 +281,31 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   private async submitPrayer(prayerData: any): Promise<void> {
     try {
-      const success = await this.prayerService.addPrayer(prayerData);
+      const isPersonal = this.formData.is_personal;
+      const success = isPersonal
+        ? await this.prayerService.addPersonalPrayer(prayerData)
+        : await this.prayerService.addPrayer(prayerData);
 
       if (success) {
         this.showSuccessMessage = true;
         this.cdr.markForCheck();
+        
+        // Emit close immediately so personal prayers list refreshes right away
+        this.close.emit({ isPersonal });
         
         // Reset form
         this.formData = {
           title: '',
           description: '',
           prayer_for: '',
-          is_anonymous: false
+          is_anonymous: false,
+          is_personal: false
         };
 
         // Auto-close after 5 seconds
         setTimeout(() => {
           this.showSuccessMessage = false;
           this.cdr.markForCheck();
-          this.close.emit();
         }, 5000);
       }
     } catch (error) {
@@ -282,7 +326,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       title: '',
       description: '',
       prayer_for: '',
-      is_anonymous: false
+      is_anonymous: false,
+      is_personal: false
     };
     this.showSuccessMessage = false;
     this.isSubmitting = false;

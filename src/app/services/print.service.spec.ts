@@ -295,6 +295,213 @@ describe('PrintService', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error generating prayer list:', expect.any(Error));
       expect(global.alert).toHaveBeenCalledWith('Failed to generate prayer list. Please try again.');
     });
+
+    it('should handle prayer updates fetch error', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update error' } }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+        };
+      });
+
+      await service.downloadPrintablePrayerList('month', null);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[PrintService] Error fetching updates:', expect.any(Object));
+      expect(global.alert).toHaveBeenCalledWith('Failed to fetch prayer updates. Please try again.');
+    });
+
+    it('should handle update error with newWindow close', async () => {
+      const mockWindow = { close: vi.fn() };
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update error' } }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+        };
+      });
+
+      await service.downloadPrintablePrayerList('month', mockWindow as any);
+
+      expect(mockWindow.close).toHaveBeenCalled();
+    });
+
+    it('should handle prayers with approved updates in filter', async () => {
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'u1',
+                  prayer_id: '1',
+                  content: 'Update',
+                  approval_status: 'approved',
+                  created_at: new Date().toISOString()
+                },
+                {
+                  id: 'u2',
+                  prayer_id: '1',
+                  content: 'Unapproved',
+                  approval_status: 'pending',
+                  created_at: new Date().toISOString()
+                }
+              ],
+              error: null
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+        };
+      });
+
+      await service.downloadPrintablePrayerList('week', null);
+
+      expect(mockWindow.document.write).toHaveBeenCalled();
+    });
+
+    it('should handle null updates data gracefully', async () => {
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: null, error: null }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+        };
+      });
+
+      await service.downloadPrintablePrayerList('year', null);
+
+      expect(mockWindow.document.write).toHaveBeenCalled();
+    });
+
+    it('should handle twoweeks time range with updates', async () => {
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      await service.downloadPrintablePrayerList('twoweeks', null);
+
+      expect(mockWindow.document.write).toHaveBeenCalled();
+    });
+
+    it('should filter prayers including those with recent updates', async () => {
+      const now = new Date();
+      const recentUpdate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      const oldPrayer = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000).toISOString();
+
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'u1',
+                  prayer_id: '2',
+                  content: 'Recent update',
+                  approval_status: 'approved',
+                  created_at: recentUpdate
+                }
+              ],
+              error: null
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: '1',
+                title: 'Old Prayer',
+                prayer_for: 'John',
+                description: 'Old',
+                requester: 'Jane',
+                status: 'current',
+                created_at: oldPrayer,
+                prayer_updates: []
+              },
+              {
+                id: '2',
+                title: 'Prayer with Recent Update',
+                prayer_for: 'Jane',
+                description: 'Recent',
+                requester: 'John',
+                status: 'current',
+                created_at: oldPrayer,
+                prayer_updates: []
+              }
+            ],
+            error: null
+          }),
+        };
+      });
+
+      await service.downloadPrintablePrayerList('week', null);
+
+      expect(mockWindow.document.write).toHaveBeenCalled();
+    });
   });
 
   describe('PrintService - Date Filtering', () => {
@@ -2442,4 +2649,234 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(html).not.toContain('onerror');
     });
   });
+
+  describe('downloadPrintablePersonalPrayerList', () => {
+    let service: PrintService;
+    let mockSupabaseService: any;
+    let mockPrayerService: any;
+
+    beforeEach(() => {
+      mockSupabaseService = {
+        client: {
+          from: vi.fn()
+        }
+      } as any;
+
+      mockPrayerService = {
+        getPersonalPrayers: vi.fn()
+      };
+
+      service = new PrintService(mockSupabaseService, mockPrayerService);
+
+      global.window.open = vi.fn(() => ({
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      }));
+      global.alert = vi.fn();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should alert when no personal prayers found', async () => {
+      mockPrayerService.getPersonalPrayers.mockResolvedValue([]);
+
+      await service.downloadPrintablePersonalPrayerList('month', null);
+
+      expect(global.alert).toHaveBeenCalledWith('No personal prayers found.');
+    });
+
+    it('should close newWindow when no personal prayers found', async () => {
+      const mockWindow = { close: vi.fn() };
+      mockPrayerService.getPersonalPrayers.mockResolvedValue([]);
+
+      await service.downloadPrintablePersonalPrayerList('month', mockWindow as any);
+
+      expect(mockWindow.close).toHaveBeenCalled();
+    });
+
+    it('should filter personal prayers by time range', async () => {
+      const now = new Date();
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+      mockPrayerService.getPersonalPrayers.mockResolvedValue([
+        {
+          id: '1',
+          title: 'Recent Prayer',
+          created_at: oneWeekAgo.toISOString(),
+          updates: []
+        },
+        {
+          id: '2',
+          title: 'Old Prayer',
+          created_at: twoMonthsAgo.toISOString(),
+          updates: []
+        }
+      ]);
+
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      await service.downloadPrintablePersonalPrayerList('week', null);
+
+      expect(mockWindow.document.write).toHaveBeenCalled();
+    });
+
+    it('should handle exception during personal prayer generation', async () => {
+      mockPrayerService.getPersonalPrayers.mockRejectedValue(new Error('Service error'));
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await service.downloadPrintablePersonalPrayerList('month', null);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error generating personal prayers list:', expect.any(Error));
+      expect(global.alert).toHaveBeenCalledWith('Failed to generate personal prayers list. Please try again.');
+    });
+
+    it('should close newWindow on exception', async () => {
+      const mockWindow = { close: vi.fn() };
+      mockPrayerService.getPersonalPrayers.mockRejectedValue(new Error('Service error'));
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await service.downloadPrintablePersonalPrayerList('month', mockWindow as any);
+
+      expect(mockWindow.close).toHaveBeenCalled();
+    });
+
+    it('should generate HTML for personal prayers with updates', async () => {
+      const now = new Date();
+      mockPrayerService.getPersonalPrayers.mockResolvedValue([
+        {
+          id: '1',
+          title: 'Prayer with Updates',
+          created_at: now.toISOString(),
+          updates: [
+            {
+              id: 'u1',
+              content: 'Update text',
+              created_at: now.toISOString()
+            }
+          ]
+        }
+      ]);
+
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      await service.downloadPrintablePersonalPrayerList('month', null);
+
+      expect(mockWindow.document.write).toHaveBeenCalled();
+      const html = mockWindow.document.write.mock.calls[0][0];
+      expect(html).toContain('<!DOCTYPE html>');
+    });
+
+    it('should fallback to file download when window.open blocked for personal prayers', async () => {
+      const now = new Date();
+      mockPrayerService.getPersonalPrayers.mockResolvedValue([
+        {
+          id: '1',
+          title: 'Prayer',
+          created_at: now.toISOString(),
+          updates: []
+        }
+      ]);
+
+      (global.window.open as any).mockReturnValue(null);
+      const mockLink = {
+        href: '',
+        download: '',
+        click: vi.fn()
+      };
+      (global.document.createElement as any).mockReturnValue(mockLink);
+      global.document.body.appendChild = vi.fn();
+      global.document.body.removeChild = vi.fn();
+      global.Blob = class MockBlob {
+        constructor(data: any[], options?: any) {}
+      } as any;
+      global.URL.revokeObjectURL = vi.fn();
+
+      await service.downloadPrintablePersonalPrayerList('month', null);
+
+      expect(mockLink.click).toHaveBeenCalled();
+      expect(global.alert).toHaveBeenCalledWith('Personal prayers downloaded. Please open the file to view and print.');
+    });
+
+    it('should use pre-opened window for personal prayers', async () => {
+      const now = new Date();
+      mockPrayerService.getPersonalPrayers.mockResolvedValue([
+        {
+          id: '1',
+          title: 'Prayer',
+          created_at: now.toISOString(),
+          updates: []
+        }
+      ]);
+
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+
+      await service.downloadPrintablePersonalPrayerList('month', mockWindow as any);
+
+      expect(mockWindow.document.open).toHaveBeenCalled();
+      expect(mockWindow.document.write).toHaveBeenCalled();
+      expect(mockWindow.document.close).toHaveBeenCalled();
+      expect(mockWindow.focus).toHaveBeenCalled();
+    });
+
+    it('should handle different time ranges for personal prayers', async () => {
+      const now = new Date();
+      const prayerData = {
+        id: '1',
+        title: 'Prayer',
+        created_at: now.toISOString(),
+        updates: []
+      };
+
+      mockPrayerService.getPersonalPrayers.mockResolvedValue([prayerData]);
+
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      const timeRanges: Array<'week' | 'twoweeks' | 'month' | 'year' | 'all'> = ['week', 'twoweeks', 'month', 'year', 'all'];
+
+      for (const range of timeRanges) {
+        await service.downloadPrintablePersonalPrayerList(range, null);
+        expect(mockWindow.document.write).toHaveBeenCalled();
+      }
+    });
+  });
+
+
 });

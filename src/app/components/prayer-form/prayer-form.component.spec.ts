@@ -123,7 +123,8 @@ describe('PrayerFormComponent', () => {
         title: '',
         description: '',
         prayer_for: '',
-        is_anonymous: false
+        is_anonymous: false,
+        is_personal: false
       });
       expect(component.isSubmitting).toBe(false);
       expect(component.showSuccessMessage).toBe(false);
@@ -297,7 +298,8 @@ describe('PrayerFormComponent', () => {
         title: '',
         description: '',
         prayer_for: '',
-        is_anonymous: false
+        is_anonymous: false,
+        is_personal: false
       });
     });
 
@@ -312,11 +314,16 @@ describe('PrayerFormComponent', () => {
 
       await component.handleSubmit();
 
-      expect(closeSpy).not.toHaveBeenCalled();
+      // Close is emitted immediately
+      expect(closeSpy).toHaveBeenCalled();
+      expect(closeSpy).toHaveBeenCalledWith({ isPersonal: false });
+      
+      // Check success message is shown
+      expect(component.showSuccessMessage).toBe(true);
 
       vi.advanceTimersByTime(5000);
 
-      expect(closeSpy).toHaveBeenCalled();
+      // After 5 seconds, success message is hidden
       expect(component.showSuccessMessage).toBe(false);
     });
 

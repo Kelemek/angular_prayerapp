@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, Subscription, interval, timer } from 'rxjs';
 import { SupabaseService } from './supabase.service';
+import { CacheService } from './cache.service';
 import type { User } from '@supabase/supabase-js';
 
 @Injectable({
@@ -30,7 +31,7 @@ export class AdminAuthService {
 
   private router = inject(Router);
 
-  constructor(private supabase: SupabaseService) {
+  constructor(private supabase: SupabaseService, private cacheService: CacheService) {
     this.initializeAuth().catch(error => {
       console.error('[AdminAuth] initializeAuth failed:', error);
       this.loadingSubject.next(false);
@@ -113,11 +114,26 @@ export class AdminAuthService {
         // MFA users don't have Supabase sessions so this listener won't find them
         const mfaAuthenticatedEmail = localStorage.getItem('mfa_authenticated_email');
         if (!mfaAuthenticatedEmail) {
+          // Get user email before clearing auth state
+          const userEmail = this.userSubject.value?.email;
+          
           this.userSubject.next(null);
           this.isAdminSubject.next(false);
           this.isAuthenticatedSubject.next(false);
           this.sessionStart = null;
           this.persistSessionStart(null);
+          
+          // Clear user-specific caches when session ends
+          this.cacheService.invalidateCategory('personalPrayers');
+          this.cacheService.invalidateCategory('prayers');
+          this.cacheService.invalidateCategory('prompts');
+          localStorage.removeItem('read_prayers_data');
+          localStorage.removeItem('read_prompts_data');
+          
+          // Clear analytics activity tracking for this user
+          if (userEmail) {
+            localStorage.removeItem(`last_activity_update_${userEmail}`);
+          }
         }
       }
     });
@@ -442,6 +458,10 @@ export class AdminAuthService {
       localStorage.setItem('mfa_authenticated_email', email);
       localStorage.setItem('mfa_session_start', Date.now().toString());
 
+      // Invalidate personal prayers cache on login to ensure fresh data
+      // This prevents stale personal prayer data from being displayed if cache wasn't properly cleared on previous logout
+      this.cacheService.invalidateCategory('personalPrayers');
+
       // Clean up
       localStorage.removeItem('mfa_code_id');
       localStorage.removeItem('mfa_user_email');
@@ -464,6 +484,9 @@ export class AdminAuthService {
    */
   async logout(): Promise<void> {
     try {
+      // Get user email before clearing auth state
+      const userEmail = this.userSubject.value?.email || localStorage.getItem('mfa_authenticated_email');
+      
       await this.supabase.client.auth.signOut();
       this.userSubject.next(null);
       this.isAdminSubject.next(false);
@@ -480,6 +503,20 @@ export class AdminAuthService {
       // Clear MFA authenticated session data
       localStorage.removeItem('mfa_authenticated_email');
       localStorage.removeItem('mfa_session_start');
+      
+      // Clear user-specific caches to prevent next user from seeing previous user's data
+      this.cacheService.invalidateCategory('personalPrayers');
+      this.cacheService.invalidateCategory('prayers');
+      this.cacheService.invalidateCategory('prompts');
+      
+      // Clear badge read tracking (which prayers/prompts user has read)
+      localStorage.removeItem('read_prayers_data');
+      localStorage.removeItem('read_prompts_data');
+      
+      // Clear analytics activity tracking for this user
+      if (userEmail) {
+        localStorage.removeItem(`last_activity_update_${userEmail}`);
+      }
       
       // Always redirect to login page after logout
       this.router.navigate(['/login']);

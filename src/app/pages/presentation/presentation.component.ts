@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, NgZone }
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { SupabaseService } from '../../services/supabase.service';
+import { PrayerService } from '../../services/prayer.service';
+import { CacheService } from '../../services/cache.service';
 import { ThemeService } from '../../services/theme.service';
 import { PresentationToolbarComponent } from '../../components/presentation-toolbar/presentation-toolbar.component';
 import { PrayerDisplayCardComponent } from '../../components/prayer-display-card/prayer-display-card.component';
@@ -31,7 +33,7 @@ interface PrayerPrompt {
   created_at: string;
 }
 
-type ContentType = 'prayers' | 'prompts' | 'both';
+type ContentType = 'prayers' | 'prompts' | 'personal' | 'all';
 type ThemeOption = 'light' | 'dark' | 'system';
 type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 
@@ -51,7 +53,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
         <div class="flex flex-col items-center gap-4">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <div class="text-gray-900 dark:text-white text-xl">
-            Loading {{ contentType === 'prayers' ? 'prayers' : contentType === 'prompts' ? 'prompts' : 'prayers and prompts' }}...
+            Loading {{ contentType === 'prayers' ? 'prayers' : contentType === 'prompts' ? 'prompts' : contentType === 'personal' ? 'personal prayers' : 'all content' }}...
           </div>
         </div>
       </div>
@@ -80,7 +82,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Content Available</h2>
           <p class="text-gray-600 dark:text-gray-400 mb-6">
             {{ contentType === 'prayers' ? 'No prayers match your current filters' : 
-               contentType === 'prompts' ? 'No prayer prompts available' : 
+               contentType === 'prompts' ? 'No prayer prompts available' :
+               contentType === 'personal' ? 'No personal prayers available' :
                'No content available' }}
           </p>
           <button
@@ -164,6 +167,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 export class PresentationComponent implements OnInit, OnDestroy {
   prayers: Prayer[] = [];
   prompts: PrayerPrompt[] = [];
+  personalPrayers: any[] = [];
   currentIndex = 0;
   isPlaying = false;
   displayDuration = 10;
@@ -201,6 +205,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private supabase: SupabaseService,
+    private prayerService: PrayerService,
+    private cacheService: CacheService,
     private themeService: ThemeService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
@@ -351,8 +357,10 @@ export class PresentationComponent implements OnInit, OnDestroy {
         await this.fetchPrayers();
       } else if (this.contentType === 'prompts') {
         await this.fetchPrompts();
+      } else if (this.contentType === 'personal') {
+        await this.fetchPersonalPrayers();
       } else {
-        await Promise.all([this.fetchPrayers(), this.fetchPrompts()]);
+        await Promise.all([this.fetchPrayers(), this.fetchPrompts(), this.fetchPersonalPrayers()]);
       }
       
       if (this.randomize) {
@@ -499,10 +507,78 @@ export class PresentationComponent implements OnInit, OnDestroy {
     }
   }
 
+  async fetchPersonalPrayers(): Promise<void> {
+    try {
+      // Subscribe to the observable which handles caching automatically
+      const allPersonalPrayers = await new Promise<any[]>((resolve) => {
+        this.prayerService.allPersonalPrayers$.subscribe(prayers => {
+          resolve(prayers);
+        }).unsubscribe();
+      });
+
+      if (!allPersonalPrayers || allPersonalPrayers.length === 0) {
+        this.personalPrayers = [];
+        this.cdr.markForCheck();
+        return;
+      }
+
+      // Apply time filter
+      if (this.timeFilter !== 'all') {
+        const now = new Date();
+        const startDate = new Date();
+        
+        switch (this.timeFilter) {
+          case 'week':
+            startDate.setDate(now.getDate() - 7);
+            break;
+          case 'twoweeks':
+            startDate.setDate(now.getDate() - 14);
+            break;
+          case 'month':
+            startDate.setMonth(now.getMonth() - 1);
+            break;
+          case 'year':
+            startDate.setFullYear(now.getFullYear() - 1);
+            break;
+        }
+
+        this.personalPrayers = allPersonalPrayers.filter((prayer: any) => {
+          const prayerDate = new Date(prayer.created_at);
+          if (prayerDate >= startDate && prayerDate <= now) return true;
+          if (prayer.updates && Array.isArray(prayer.updates)) {
+            return prayer.updates.some((update: any) => {
+              const updateDate = new Date(update.created_at);
+              return updateDate >= startDate && updateDate <= now;
+            });
+          }
+          return false;
+        });
+      } else {
+        this.personalPrayers = allPersonalPrayers;
+      }
+
+      // Apply status filters
+      const statuses: string[] = [];
+      if (this.statusFilters.current) statuses.push('current');
+      if (this.statusFilters.answered) statuses.push('answered');
+      
+      if (statuses.length > 0) {
+        this.personalPrayers = this.personalPrayers.filter((p: any) => statuses.includes(p.status));
+      }
+
+      this.cdr.markForCheck();
+    } catch (error) {
+      console.error('Error fetching personal prayers:', error);
+      this.personalPrayers = [];
+      this.cdr.markForCheck();
+    }
+  }
+
   get items(): any[] {
     if (this.contentType === 'prayers') return this.prayers;
     if (this.contentType === 'prompts') return this.prompts;
-    return [...this.prayers, ...this.prompts];
+    if (this.contentType === 'personal') return this.personalPrayers;
+    return [...this.prayers, ...this.prompts, ...this.personalPrayers];
   }
 
   get currentItem(): any {
@@ -622,13 +698,25 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   async handleStatusFilterChange(): Promise<void> {
     this.currentIndex = 0;
-    await this.fetchPrayers();
+    if (this.contentType === 'prayers') {
+      await this.fetchPrayers();
+    } else if (this.contentType === 'personal') {
+      await this.fetchPersonalPrayers();
+    } else if (this.contentType === 'all') {
+      await Promise.all([this.fetchPrayers(), this.fetchPersonalPrayers()]);
+    }
     this.cdr.markForCheck();
   }
 
   async handleTimeFilterChange(): Promise<void> {
     this.currentIndex = 0;
-    await this.fetchPrayers();
+    if (this.contentType === 'prayers') {
+      await this.fetchPrayers();
+    } else if (this.contentType === 'personal') {
+      await this.fetchPersonalPrayers();
+    } else if (this.contentType === 'all') {
+      await Promise.all([this.fetchPrayers(), this.fetchPersonalPrayers()]);
+    }
     this.cdr.markForCheck();
   }
 
@@ -647,9 +735,12 @@ export class PresentationComponent implements OnInit, OnDestroy {
       this.prayers = this.shuffleArray([...this.prayers]);
     } else if (this.contentType === 'prompts') {
       this.prompts = this.shuffleArray([...this.prompts]);
+    } else if (this.contentType === 'personal') {
+      this.personalPrayers = this.shuffleArray([...this.personalPrayers]);
     } else {
       this.prayers = this.shuffleArray([...this.prayers]);
       this.prompts = this.shuffleArray([...this.prompts]);
+      this.personalPrayers = this.shuffleArray([...this.personalPrayers]);
     }
   }
 

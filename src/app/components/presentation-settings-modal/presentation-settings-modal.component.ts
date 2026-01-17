@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angu
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-type ContentType = 'prayers' | 'prompts' | 'both';
+type ContentType = 'prayers' | 'prompts' | 'personal' | 'all';
 type ThemeOption = 'light' | 'dark' | 'system';
 type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 
@@ -168,8 +168,9 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 (ngModelChange)="contentTypeChange.emit($event)"
                 class="w-full appearance-none px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-base sm:text-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0047AB] focus:border-transparent pr-10 sm:pr-12">
                 <option value="prayers">Prayers</option>
-                <option value="prompts">Prayer Prompts</option>
-                <option value="both">Both</option>
+                <option value="prompts">Prompts</option>
+                <option value="personal">Personal</option>
+                <option value="all">All</option>
               </select>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-700 dark:text-gray-300 z-10">
                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -195,8 +196,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
             </p>
           </div>
 
-          <!-- Time Filter (for prayers only) -->
-          @if (localContentType === 'prayers') {
+          <!-- Time Filter (for prayers and personal prayers) -->
+          @if (localContentType === 'prayers' || localContentType === 'personal') {
           <div>
             <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Time Period</label>
             <div class="relative">
@@ -217,8 +218,8 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
           }
 
-          <!-- Prayer Status (for prayers only) -->
-          @if (localContentType === 'prayers') {
+          <!-- Prayer Status (for prayers and personal prayers) -->
+          @if (localContentType === 'prayers' || localContentType === 'personal') {
           <div>
             <label class="block text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Prayer Status</label>
             <div class="relative">

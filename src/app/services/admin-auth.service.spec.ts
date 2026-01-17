@@ -56,6 +56,7 @@ vi.mock('@angular/core', async () => {
 describe('AdminAuthService', () => {
   let service: any; // AdminAuthService - imported dynamically
   let mockSupabaseClient: any;
+  let mockCacheService: any;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -99,9 +100,18 @@ describe('AdminAuthService', () => {
       getSupabaseKey: () => 'test-anon-key-123'
     };
 
+    // Create mock CacheService
+    mockCacheService = {
+      invalidateCategory: vi.fn(),
+      invalidate: vi.fn(),
+      invalidateAll: vi.fn(),
+      get: vi.fn(),
+      set: vi.fn()
+    };
+
     // Dynamically import the service after mocks are set up
     const { AdminAuthService } = await import('./admin-auth.service');
-    service = new AdminAuthService(mockSupabaseService);
+    service = new AdminAuthService(mockSupabaseService, mockCacheService);
   });
 
   afterEach(() => {

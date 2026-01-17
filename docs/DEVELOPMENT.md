@@ -108,6 +108,76 @@ this.supabase.client.from('table').select()
 - triggerEmailProcessor()            // Invoke GitHub Action
 ```
 
+#### PrintService
+```typescript
+// Generate and download printable prayer lists
+- downloadPrintablePrayerList()      // Download public prayers in time range
+- downloadPrintablePromptList()      // Download prayer prompts by type
+- downloadPrintablePersonalPrayerList() // Download user's personal prayers
+- generatePrintableHTML()            // Generate HTML for public prayers
+- generatePromptsPrintableHTML()     // Generate HTML for prompts
+- generatePersonalPrayersPrintableHTML() // Generate HTML for personal prayers
+```
+
+**Personal Prayers Functionality**:
+
+The PrintService includes comprehensive support for personal prayers - prayers that users have submitted for their own spiritual growth or private prayer groups.
+
+**Key Features**:
+
+1. **Personal Prayer Download**
+   - Generate printable list of user's personal prayers
+   - Filter by time range: week, 2 weeks, month, year, or all
+   - Include prayer updates (comments) chronologically
+
+2. **Time Range Filtering**
+   - **Week**: Last 7 days
+   - **2 Weeks**: Last 14 days
+   - **Month**: Last 30 days
+   - **Year**: Last 365 days
+   - **All**: Complete history
+
+3. **Smart Filtering Logic**
+   - Includes prayers created in the time range
+   - Also includes older prayers with recent updates in the range
+   - Excludes archived prayers (status = 'archived')
+
+4. **HTML Generation Features**
+   - Professional formatting with CSS styling
+   - Print-optimized layout with page breaks
+   - Color-coded sections by prayer type/status
+   - Includes prayer metadata (requester, creation date, updates)
+   - HTML entities escaped to prevent XSS
+
+5. **Print/Download Options**
+   - Opens in new window for direct printing
+   - Falls back to file download if popup blocked
+   - Includes current date and time range label
+   - Filename format: `personal-prayers-{range}-{date}.html`
+
+**Usage**:
+
+```typescript
+// In a component
+constructor(private printService: PrintService) {}
+
+// Download personal prayers
+downloadPersonalPrayers(timeRange: 'week' | 'month' | 'year' | 'all') {
+  // Open window first for Safari compatibility
+  const newWindow = window.open('', '_blank');
+  
+  // Then trigger download
+  this.printService.downloadPrintablePersonalPrayerList(timeRange, newWindow);
+}
+```
+
+**Error Handling**:
+
+- Alerts user if no personal prayers found
+- Closes new window on error
+- Logs detailed error messages to console
+- Shows descriptive alert messages
+
 #### BadgeService
 ```typescript
 // Track read/unread status for prayers and prompts

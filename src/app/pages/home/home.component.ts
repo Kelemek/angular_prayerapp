@@ -13,6 +13,7 @@ import { VerificationDialogComponent } from '../../components/verification-dialo
 import { HelpModalComponent } from '../../components/help-modal/help-modal.component';
 import { PrayerService, PrayerRequest } from '../../services/prayer.service';
 import { PromptService } from '../../services/prompt.service';
+import { CacheService } from '../../services/cache.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { UserSessionService } from '../../services/user-session.service';
 import { SupabaseService } from '../../services/supabase.service';
@@ -175,7 +176,7 @@ import type { User } from '@supabase/supabase-js';
         <!-- Prayer Form Modal -->
         <app-prayer-form
           [isOpen]="showPrayerForm"
-          (close)="showPrayerForm = false"
+          (close)="onPrayerFormClose($event)"
         ></app-prayer-form>
 
         <!-- User Settings Modal -->
@@ -197,7 +198,7 @@ import type { User } from '@supabase/supabase-js';
         ></app-prayer-filters>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
           <button
             (click)="setFilter('current')"
             title="Show current prayers"
@@ -271,6 +272,18 @@ import type { User } from '@supabase/supabase-js';
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-400">Prompts</div>
           </button>
+
+          <!-- Personal Prayers Filter -->
+          <button
+            (click)="setFilter('personal')"
+            title="Show your personal prayers"
+            [class]="'rounded-lg shadow-md p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'personal' ? '!border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring-3 ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#2F5F54] dark:hover:!border-[#2F5F54] hover:shadow-lg')"
+          >
+            <div class="text-xl sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+              {{ personalPrayersCount }}
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Personal</div>
+          </button>
         </div>
 
         <!-- Loading State -->
@@ -317,7 +330,7 @@ import type { User } from '@supabase/supabase-js';
         @if (!(loading$ | async) && !(error$ | async)) {
           <div class="space-y-4">
             <!-- Empty State for Prayers -->
-            @if (activeFilter !== 'prompts' && (prayers$ | async)?.length === 0) {
+            @if (activeFilter !== 'prompts' && activeFilter !== 'personal' && (prayers$ | async)?.length === 0) {
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
                   @if (activeFilter === 'current') {
@@ -336,8 +349,20 @@ import type { User } from '@supabase/supabase-js';
               </div>
             }
 
-            <!-- Prayer Cards (only show when not on prompts filter) -->
-            @if (activeFilter !== 'prompts') {
+            <!-- Empty State for Personal Prayers -->
+            @if (activeFilter === 'personal' && personalPrayers.length === 0) {
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  No personal prayers yet
+                </h3>
+                <p class="text-gray-500 dark:text-gray-400">
+                  Click the Add Request button and choose Personal Prayer to create prayers that stays private to you.
+                </p>
+              </div>
+            }
+
+            <!-- Prayer Cards (only show when not on prompts or personal filter) -->
+            @if (activeFilter !== 'prompts' && activeFilter !== 'personal') {
               @for (prayer of prayers$ | async; track prayer.id) {
                 <app-prayer-card
                   [prayer]="prayer"
@@ -350,6 +375,23 @@ import type { User } from '@supabase/supabase-js';
                   (deleteUpdate)="deleteUpdate($event)"
                   (requestDeletion)="requestDeletion($event)"
                   (requestUpdateDeletion)="requestUpdateDeletion($event)"
+                ></app-prayer-card>
+              }
+            }
+
+            <!-- Personal Prayer Cards (show when personal filter is active) -->
+            @if (activeFilter === 'personal') {
+              @for (prayer of getFilteredPersonalPrayers(); track prayer.id) {
+                <app-prayer-card
+                  [prayer]="prayer"
+                  [isAdmin]="(isAdmin$ | async) || false"
+                  [activeFilter]="activeFilter"
+                  [isPersonal]="true"
+                  [deletionsAllowed]="'everyone'"
+                  [updatesAllowed]="'everyone'"
+                  (delete)="deletePersonalPrayer($event)"
+                  (addUpdate)="addPersonalUpdate($event)"
+                  (deleteUpdate)="deletePersonalUpdate($event)"
                 ></app-prayer-card>
               }
             }
@@ -394,6 +436,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   isAdmin$!: Observable<boolean>;
   hasAdminEmail$!: Observable<boolean>;
 
+  // Personal prayers
+  personalPrayers: PrayerRequest[] = [];
+
   // Badge observables
   currentPrayerBadge$!: Observable<number>;
   answeredPrayerBadge$!: Observable<number>;
@@ -403,13 +448,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   answeredPrayersCount = 0;
   totalPrayersCount = 0;
   promptsCount = 0;
+  personalPrayersCount = 0;
 
   showPrayerForm = false;
   showSettings = false;
   showHelp = false;
   filters: PrayerFilters = { status: 'current' };
   hasLogo = false;
-  activeFilter: 'current' | 'answered' | 'total' | 'prompts' = 'current';
+  activeFilter: 'current' | 'answered' | 'total' | 'prompts' | 'personal' = 'current';
   selectedPromptTypes: string[] = [];
   
   isAdmin = false;
@@ -427,6 +473,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     public adminAuthService: AdminAuthService,
     public userSessionService: UserSessionService,
     public badgeService: BadgeService,
+    private cacheService: CacheService,
     private toastService: ToastService,
     private analyticsService: AnalyticsService,
     private cdr: ChangeDetectorRef,
@@ -480,6 +527,9 @@ export class HomeComponent implements OnInit, OnDestroy {
         // Refresh badge counts when prompts data loads/changes
         this.badgeService.refreshBadgeCounts();
       });
+
+    // Load personal prayers
+    this.loadPersonalPrayers();
     
     // Subscribe to admin status - with cleanup
     this.adminAuthService.isAdmin$
@@ -490,6 +540,40 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Apply default filter
     this.prayerService.applyFilters(this.filters);
+  }
+
+  onPrayerFormClose(event: {isPersonal?: boolean}): void {
+    this.showPrayerForm = false;
+    // If a personal prayer was added, refresh the personal prayers list
+    // Service updates observable and cache immediately, so just reload local state
+    if (event?.isPersonal) {
+      this.cacheService.invalidate('personalPrayers');
+      this.loadPersonalPrayers();
+    }
+  }
+
+  private async loadPersonalPrayers(): Promise<void> {
+    try {
+      // Check cache first
+      const cached = this.cacheService.get<PrayerRequest[]>('personalPrayers');
+      if (cached) {
+        this.personalPrayers = cached;
+        this.personalPrayersCount = cached.length;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      const personalPrayers = await this.prayerService.getPersonalPrayers();
+      
+      // Cache the personal prayers
+      this.cacheService.set('personalPrayers', personalPrayers);
+      
+      this.personalPrayers = personalPrayers;
+      this.personalPrayersCount = personalPrayers.length;
+      this.cdr.markForCheck();
+    } catch (error) {
+      console.error('Error loading personal prayers:', error);
+    }
   }
 
   ngOnDestroy(): void {
@@ -536,7 +620,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  setFilter(filter: 'current' | 'answered' | 'total' | 'prompts'): void {
+  setFilter(filter: 'current' | 'answered' | 'total' | 'prompts' | 'personal'): void {
     this.activeFilter = filter;
     
     if (filter === 'prompts') {
@@ -545,6 +629,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.selectedPromptTypes = [];
       // Don't show any prayers when prompts filter is active
       this.prayerService.applyFilters({ search: '' }); // Empty results
+    } else if (filter === 'personal') {
+      // Show personal prayers only
+      this.filters = { searchTerm: this.filters.searchTerm };
+      this.prayerService.applyFilters({ search: this.filters.searchTerm });
     } else if (filter === 'total') {
       this.filters = { searchTerm: this.filters.searchTerm };
       this.prayerService.applyFilters({
@@ -567,6 +655,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.prayerService.deletePrayer(id);
   }
 
+  deletePersonalPrayer(id: string): void {
+    this.prayerService.deletePersonalPrayer(id).then((success) => {
+      if (success) {
+        // Service updates cache and observable - just reload local component state
+        this.cacheService.invalidate('personalPrayers');
+        this.loadPersonalPrayers();
+      }
+    });
+  }
+
   async addUpdate(updateData: any): Promise<void> {
     try {
       // User is logged in - submit directly without verification
@@ -577,6 +675,38 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  async addPersonalUpdate(updateData: any): Promise<void> {
+    try {
+      const userSession = this.userSessionService.getCurrentSession();
+      const author = userSession?.fullName || 'Anonymous';
+      const authorEmail = userSession?.email || '';
+
+      console.log('[Home] Adding personal update with mark_as_answered:', updateData.mark_as_answered);
+
+      const success = await this.prayerService.addPersonalPrayerUpdate(
+        updateData.prayer_id,
+        updateData.content,
+        author,
+        authorEmail,
+        updateData.mark_as_answered || false
+      );
+
+      if (success) {
+        // If update is marked as answered, also update the prayer status to answered
+        if (updateData.mark_as_answered) {
+          console.log('[Home] Marking prayer as answered:', updateData.prayer_id);
+          await this.prayerService.updatePersonalPrayerStatus(updateData.prayer_id, 'answered');
+        }
+        // Service updates observable and cache immediately - reload local state
+        this.cacheService.invalidate('personalPrayers');
+        this.loadPersonalPrayers();
+      }
+    } catch (error) {
+      console.error('Error adding personal prayer update:', error);
+      this.toastService.error('Failed to add update');
+    }
+  }
+
   async deleteUpdate(updateId: string): Promise<void> {
     try {
       // User is logged in - submit directly without verification
@@ -584,6 +714,20 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.toastService.success('Update deleted successfully');
     } catch (error) {
       console.error('Error deleting update:', error);
+      this.toastService.error('Failed to delete update');
+    }
+  }
+
+  async deletePersonalUpdate(updateId: string): Promise<void> {
+    try {
+      const success = await this.prayerService.deletePersonalPrayerUpdate(updateId);
+      if (success) {
+        // Service updates cache and observable - just reload local component state
+        this.cacheService.invalidate('personalPrayers');
+        this.loadPersonalPrayers();
+      }
+    } catch (error) {
+      console.error('Error deleting personal prayer update:', error);
       this.toastService.error('Failed to delete update');
     }
   }
@@ -672,6 +816,25 @@ export class HomeComponent implements OnInit, OnDestroy {
   getUnreadPromptCountByType(type: string): number {
     const prompts = this.promptService.promptsSubject.value;
     return prompts.filter(p => p.type === type && this.badgeService.isPromptUnread(p.id)).length;
+  }
+
+  /**
+   * Get personal prayers filtered by search term
+   */
+  getFilteredPersonalPrayers(): PrayerRequest[] {
+    let filtered = this.personalPrayers;
+    
+    // Filter by search term if present
+    if (this.filters.searchTerm && this.filters.searchTerm.trim()) {
+      const searchLower = this.filters.searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(p => 
+        p.prayer_for.toLowerCase().includes(searchLower) ||
+        p.description.toLowerCase().includes(searchLower) ||
+        p.title.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
   }
 
   formatDate(dateString: string): string {

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
+import { PrayerService } from './prayer.service';
 
 export interface Prayer {
   id: string;
@@ -24,14 +25,13 @@ export type TimeRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
   providedIn: 'root'
 })
 export class PrintService {
-  constructor(private supabase: SupabaseService) {}
+  constructor(private supabase: SupabaseService, private prayerService: PrayerService) {}
 
   /**
    * Generate and download a printable prayer list for the specified time range
    */
   async downloadPrintablePrayerList(timeRange: TimeRange = 'month', newWindow: Window | null = null): Promise<void> {
     try {
-      console.log('[PrintService] Starting download for timeRange:', timeRange);
       // Calculate date range
       const endDate = new Date();
       const startDate = new Date();
@@ -69,8 +69,6 @@ export class PrintService {
         return;
       }
 
-      console.log(`[PrintService] Fetched ${allPrayers?.length || 0} approved non-closed prayers`);
-
       // Fetch ALL updates
       const { data: allUpdates, error: updatesError } = await this.supabase.client
         .from('prayer_updates')
@@ -82,8 +80,6 @@ export class PrintService {
         if (newWindow) newWindow.close();
         return;
       }
-
-      console.log(`[PrintService] Fetched ${allUpdates?.length || 0} total updates`);
 
       // Filter to only approved updates and map to prayers by prayer_id
       const updatesByPrayerId = new Map<string, any[]>();
@@ -119,18 +115,11 @@ export class PrintService {
             return updateDate >= startDate && updateDate <= endDate;
           });
           if (hasRecentUpdate) {
-            console.log(`[PrintService] Prayer "${prayer.prayer_for}" (${prayer.id}) included due to recent update`);
             return true;
           }
         }
         
         return false;
-      });
-
-      console.log(`[PrintService] Filtered to ${prayers.length} prayers in range`);
-      console.log('[PrintService] Prayers by status:', {
-        current: prayers.filter((p: any) => p.status === 'current').length,
-        answered: prayers.filter((p: any) => p.status === 'answered').length
       });
 
       if (!prayers || prayers.length === 0) {
@@ -677,7 +666,485 @@ export class PrintService {
   }
 
   /**
-   * Generate HTML content for printable prayer prompts list
+   * Generate and download a printable list of personal prayers
+   */
+  async downloadPrintablePersonalPrayerList(timeRange: TimeRange = 'month', newWindow: Window | null = null): Promise<void> {
+    try {
+      // Fetch personal prayers using the prayer service
+      const allPersonalPrayers = await this.prayerService.getPersonalPrayers();
+      
+      if (!allPersonalPrayers || allPersonalPrayers.length === 0) {
+        alert('No personal prayers found.');
+        if (newWindow) newWindow.close();
+        return;
+      }
+
+      // Calculate date range
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      switch (timeRange) {
+        case 'week':
+          startDate.setDate(endDate.getDate() - 7);
+          break;
+        case 'twoweeks':
+          startDate.setDate(endDate.getDate() - 14);
+          break;
+        case 'month':
+          startDate.setMonth(endDate.getMonth() - 1);
+          break;
+        case 'year':
+          startDate.setFullYear(endDate.getFullYear() - 1);
+          break;
+        case 'all':
+          startDate.setFullYear(2000, 0, 1);
+          break;
+      }
+
+      // Filter: include prayers created in range OR with updates in range
+      const personalPrayers = allPersonalPrayers.filter((prayer: any) => {
+        const prayerCreatedDate = new Date(prayer.created_at);
+        
+        // Include if prayer was created in time range
+        if (prayerCreatedDate >= startDate && prayerCreatedDate <= endDate) {
+          return true;
+        }
+        
+        // Include if any update is in time range
+        if (prayer.updates && Array.isArray(prayer.updates) && prayer.updates.length > 0) {
+          const hasRecentUpdate = prayer.updates.some((update: any) => {
+            const updateDate = new Date(update.created_at);
+            return updateDate >= startDate && updateDate <= endDate;
+          });
+          if (hasRecentUpdate) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+
+      if (personalPrayers.length === 0) {
+        const rangeText = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2 weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'database';
+        alert(`No personal prayers found in the last ${rangeText}.`);
+        if (newWindow) newWindow.close();
+        return;
+      }
+
+      const html = this.generatePersonalPrayersPrintableHTML(personalPrayers, timeRange);
+
+      // Use the pre-opened window if provided (Safari compatible)
+      const targetWindow = newWindow || window.open('', '_blank');
+      
+      if (!targetWindow) {
+        // Fallback: if popup blocked, offer download
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        
+        const today = new Date().toISOString().split('T')[0];
+        const rangeLabel = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'all';
+        link.download = `personal-prayers-${rangeLabel}-${today}.html`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        alert('Personal prayers downloaded. Please open the file to view and print.');
+      } else {
+        // Write the HTML content to the window
+        targetWindow.document.open();
+        targetWindow.document.write(html);
+        targetWindow.document.close();
+        targetWindow.focus();
+      }
+    } catch (error) {
+      console.error('Error generating personal prayers list:', error);
+      alert('Failed to generate personal prayers list. Please try again.');
+      if (newWindow) newWindow.close();
+    }
+  }
+
+  /**
+   * Generate HTML content for printable personal prayers list
+   */
+  private generatePersonalPrayersPrintableHTML(prayers: any[], timeRange: TimeRange = 'month'): string {
+    const now = new Date();
+    const today = now.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const currentTime = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    // Calculate start date based on time range
+    const startDate = new Date();
+    
+    switch (timeRange) {
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'twoweeks':
+        startDate.setDate(startDate.getDate() - 14);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      case 'all':
+        startDate.setFullYear(2000, 0, 1);
+        break;
+    }
+    
+    const dateRange = timeRange === 'all' 
+      ? `All Personal Prayers (as of ${today})`
+      : `${startDate.toLocaleDateString('en-US', { 
+          month: 'long', 
+          day: 'numeric', 
+          year: 'numeric' 
+        })} - ${today}`;
+
+    // Group prayers by status
+    const prayersByStatus = {
+      current: prayers.filter((p: any) => p.status === 'current'),
+      answered: prayers.filter((p: any) => p.status === 'answered')
+    };
+
+    // Sort prayers within each status by most recent activity
+    const sortByRecentActivity = (a: any, b: any) => {
+      const aLatestUpdate = a.updates && a.updates.length > 0
+        ? Math.max(...a.updates.map((u: any) => new Date(u.created_at).getTime()))
+        : 0;
+      const bLatestUpdate = b.updates && b.updates.length > 0
+        ? Math.max(...b.updates.map((u: any) => new Date(u.created_at).getTime()))
+        : 0;
+
+      const aLatestActivity = Math.max(new Date(a.created_at).getTime(), aLatestUpdate);
+      const bLatestActivity = Math.max(new Date(b.created_at).getTime(), bLatestUpdate);
+
+      return bLatestActivity - aLatestActivity;
+    };
+
+    prayersByStatus.current.sort(sortByRecentActivity);
+    prayersByStatus.answered.sort(sortByRecentActivity);
+
+    const statusLabels = {
+      current: 'Current Prayer Requests',
+      answered: 'Answered Prayers'
+    };
+
+    const statusColors = {
+      current: '#0047AB',
+      answered: '#39704D'
+    };
+
+    let prayerSectionsHTML = '';
+
+    // Generate sections for each status
+    (['current', 'answered'] as const).forEach(status => {
+      const statusPrayers = prayersByStatus[status];
+      if (statusPrayers.length > 0) {
+        const prayersHTML = statusPrayers.map((prayer: any) => this.generatePersonalPrayerHTML(prayer)).join('');
+        
+        prayerSectionsHTML += `
+          <div class="status-section">
+            <h2 style="color: ${statusColors[status]}; border-bottom: 2px solid ${statusColors[status]}; padding-bottom: 3px; margin-bottom: 4px; margin-top: 8px; font-size: 16px;">
+              ${statusLabels[status]} (${statusPrayers.length})
+            </h2>
+            <div class="columns">
+              ${prayersHTML}
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Prayers - ${today}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      line-height: 1.3;
+      color: #222;
+      background: white;
+      padding: 8px;
+      max-width: 1000px;
+      margin: 0 auto;
+      font-size: 12px;
+    }
+
+    .header {
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .header-right {
+      font-size: 11px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .header .subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    .date-range {
+      font-size: 11px;
+      color: #4b5563;
+    }
+
+    .status-section {
+      margin-bottom: 4px;
+    }
+
+    .prayer-item {
+      background: transparent;
+      border: 1px solid #e6e6e6;
+      padding: 4px 6px;
+      margin-bottom: 4px;
+      border-radius: 2px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .prayer-item.current {
+      border-left: 3px solid #3b82f6;
+    }
+
+    .prayer-item.answered {
+      border-left: 3px solid #10b981;
+    }
+
+    .prayer-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 3px;
+      display: inline;
+    }
+
+    .prayer-for {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 3px;
+      font-weight: 600;
+    }
+
+    .prayer-meta {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 3px;
+      font-style: italic;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .prayer-description {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.4;
+      margin-bottom: 3px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .updates-section {
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 4px;
+      border-left: 3px solid #0ea5e9;
+    }
+
+    .updates-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .update-item {
+      font-size: 11px;
+      color: #1e3a5f;
+      line-height: 1.4;
+      margin-bottom: 3px;
+      padding-left: 8px;
+      border-left: 2px solid #7dd3fc;
+    }
+
+    .update-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .update-meta {
+      font-weight: 700;
+      color: #0369a1;
+    }
+
+    .columns {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .prayer-item {
+      width: 100%;
+    }
+
+    @media screen and (max-width: 768px) {
+      body {
+        padding: 15px;
+        font-size: 16px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+    }
+
+    @media print {
+      body {
+        padding: 0;
+      }
+      .columns {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .prayer-item {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>🙏 Personal Prayers</h1>
+      <span class="date-range">${dateRange}</span>
+    </div>
+    <div class="header-right">
+      Generated: ${today} at ${currentTime}
+    </div>
+  </div>
+
+  ${prayerSectionsHTML}
+
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  </script>
+</body>
+</html>
+    `.trim();
+  }
+
+  /**
+   * Generate HTML for a single personal prayer
+   */
+  private generatePersonalPrayerHTML(prayer: any): string {
+    const createdDate = new Date(prayer.created_at).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Sort updates by date (newest first)
+    const sortedUpdates = Array.isArray(prayer.updates) 
+      ? [...prayer.updates].sort((a: any, b: any) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+      : [];
+    
+    // Get updates from the last week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const recentUpdates = sortedUpdates.filter(update => 
+      new Date(update.created_at).getTime() > oneWeekAgo.getTime()
+    );
+    
+    // If there are updates less than 1 week old, show all of them
+    // Otherwise, show only the most recent update
+    const updates = recentUpdates.length > 0 ? recentUpdates : sortedUpdates.slice(0, 1);
+    
+    // Show updates in condensed format with minimal spacing
+    const updatesHTML = updates.length > 0 ? `
+      <div class="updates-section">
+        <div class="updates-header">Updates (${updates.length}):</div>
+        ${updates.map(update => {
+          const updateDate = new Date(update.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+          });
+          return `<div class="update-item"><span class="update-meta">Updated by: ${this.escapeHtml(update.author || 'Anonymous')} • ${updateDate}:</span> ${this.escapeHtml(update.content)}</div>`;
+        }).join('')}
+      </div>
+    ` : '';
+
+    return `
+      <div class="prayer-item ${prayer.status}">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div class="prayer-for"><strong>Prayer For:</strong> ${this.escapeHtml(prayer.title)}</div>
+        </div>
+        <div class="prayer-meta">
+          <span>${prayer.prayer_for ? this.escapeHtml(prayer.prayer_for) : 'Personal Prayer'} • ${createdDate}</span>
+        </div>
+        ${prayer.description ? `<div class="prayer-description">${this.escapeHtml(prayer.description)}</div>` : ''}
+        ${updatesHTML}
+      </div>
+    `;
+  }
+
+  /**
+   * Generate HTML for a single prompt
    */
   private generatePromptsPrintableHTML(prompts: any[]): string {
     const now = new Date();

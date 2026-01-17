@@ -23,6 +23,8 @@ describe('PresentationComponent', () => {
   let mockRouter: any;
   let mockSupabase: any;
   let mockThemeService: any;
+  let mockPrayerService: any;
+  let mockCacheService: any;
   let cdr: any;
   let ngZone: any;
 
@@ -30,9 +32,11 @@ describe('PresentationComponent', () => {
     mockRouter = { navigate: vi.fn() };
     mockSupabase = { client: { from: vi.fn() } };
     mockThemeService = { getTheme: vi.fn() };
+    mockPrayerService = { prayers$: { subscribe: vi.fn(), value: [] } };
+    mockCacheService = { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() };
     cdr = { markForCheck: vi.fn(), detectChanges: vi.fn() };
     ngZone = { run: (cb: any) => cb() };
-    component = new PresentationComponent(mockRouter, mockSupabase, mockThemeService, cdr, ngZone as any);
+    component = new PresentationComponent(mockRouter, mockSupabase, mockPrayerService, mockCacheService, mockThemeService, cdr, ngZone as any);
   });
 
   afterEach(() => {
@@ -286,6 +290,8 @@ describe('PresentationComponent', () => {
   let mockRouter: any;
   let mockSupabase: any;
   let mockThemeService: any;
+  let mockPrayerService: any;
+  let mockCacheService: any;
   let mockCdr: any;
   let mockNgZone: any;
 
@@ -295,12 +301,16 @@ describe('PresentationComponent', () => {
     mockRouter = { navigate: vi.fn() };
     mockSupabase = { client: {} };
     mockThemeService = {};
+    mockPrayerService = { prayers$: { subscribe: vi.fn(), value: [] } };
+    mockCacheService = { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() };
     mockCdr = { markForCheck: vi.fn(), detectChanges: vi.fn() };
     mockNgZone = { run: (fn: Function) => fn() } as unknown as NgZone;
 
     component = new PresentationComponent(
       mockRouter as unknown as Router,
       mockSupabase as unknown as SupabaseService,
+      mockPrayerService as any,
+      mockCacheService as any,
       mockThemeService as unknown as ThemeService,
       mockCdr as unknown as ChangeDetectorRef,
       mockNgZone as unknown as NgZone

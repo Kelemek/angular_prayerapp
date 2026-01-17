@@ -47,6 +47,7 @@ export class CacheService {
   private cacheConfigs: Map<string, CacheConfig> = new Map([
     ['prayers', { key: 'prayers_cache', ttl: 5 * 60 * 1000 }],
     ['updates', { key: 'updates_cache', ttl: 5 * 60 * 1000 }],
+    ['personalPrayers', { key: 'personalPrayers_cache', ttl: 5 * 60 * 1000 }],
     ['prompts', { key: 'prompts_cache', ttl: 10 * 60 * 1000 }],
     ['prayerTypes', { key: 'prayerTypes_cache', ttl: 10 * 60 * 1000 }],
     ['adminSettings', { key: 'adminSettings_cache', ttl: 15 * 60 * 1000 }],

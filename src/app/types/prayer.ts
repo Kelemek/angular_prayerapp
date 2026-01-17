@@ -141,3 +141,36 @@ export interface PrayerFilters {
   searchTerm?: string;
   email?: string;
 }
+
+export interface PersonalPrayerRequest {
+  id: string;
+  title: string;
+  description: string;
+  prayer_for: string;
+  status: PrayerStatus;
+  user_email: string;
+  created_at: string;
+  updated_at: string;
+  updates?: PersonalPrayerUpdate[];
+}
+
+export interface PersonalPrayerUpdate {
+  id: string;
+  personal_prayer_id: string;
+  content: string;
+  author: string;
+  author_email: string;
+  mark_as_answered?: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PersonalPrayerDeletionRequest {
+  id: string;
+  personal_prayer_id: string;
+  reason?: string | null;
+  requested_by: string;
+  requested_email: string;
+  created_at: string;
+  updated_at: string;
+}
