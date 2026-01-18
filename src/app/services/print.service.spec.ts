@@ -2757,7 +2757,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
         },
         focus: vi.fn()
       };
-      (global.window.open as any).mockReturnValue(mockWindow);
+      // Reset and configure window.open to return mockWindow
+      global.window.open = vi.fn(() => mockWindow) as any;
 
       await service.downloadPrintablePersonalPrayerList('week', null);
 
