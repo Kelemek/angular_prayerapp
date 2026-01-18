@@ -496,6 +496,12 @@ export class PrintService {
     </div>
   </div>
   ${prayerSectionsHTML}
+
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  </script>
 </body>
 </html>
     `.trim();
@@ -1352,6 +1358,12 @@ export class PrintService {
     </div>
   </div>
   ${promptSectionsHTML}
+
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  </script>
 </body>
 </html>
     `.trim();

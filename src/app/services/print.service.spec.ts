@@ -2519,7 +2519,10 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
       const html = service.generatePromptsPrintableHTML(prompts);
 
-      expect(html).not.toContain('<script>');
+      // Should not contain unescaped malicious script
+      expect(html).not.toContain('<script>alert("xss")</script>');
+      // But should contain the legitimate print script
+      expect(html).toContain('window.print()');
       expect(html).toContain('prompt-item');
     });
 
@@ -2628,7 +2631,10 @@ describe('PrintService - Advanced Coverage Tests', () => {
       ];
 
       const html = service.generatePrintableHTML(prayers);
-      expect(html).not.toContain('<script>');
+      // Should not contain unescaped malicious script
+      expect(html).not.toContain('<script>alert("xss")</script>');
+      // But should contain the legitimate print script
+      expect(html).toContain('window.print()');
     });
 
     it('should prevent XSS in prompt author names', () => {
