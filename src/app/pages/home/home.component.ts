@@ -548,10 +548,22 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isAdmin$ = this.adminAuthService.isAdmin$;
     this.hasAdminEmail$ = this.adminAuthService.hasAdminEmail$;
 
-    // Initialize badge observables
-    this.currentPrayerBadge$ = this.badgeService.getBadgeCount$('prayers', 'current');
-    this.answeredPrayerBadge$ = this.badgeService.getBadgeCount$('prayers', 'answered');
-    this.promptBadge$ = this.badgeService.getBadgeCount$('prompts');
+    // Wait for prompts to load before initializing badges
+    // This ensures prompts_cache is in localStorage when badges calculate
+    this.prompts$
+      .pipe(
+        take(1),  // Only take the first emission
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        // Initialize badge observables after prompts are loaded
+        this.currentPrayerBadge$ = this.badgeService.getBadgeCount$('prayers', 'current');
+        this.answeredPrayerBadge$ = this.badgeService.getBadgeCount$('prayers', 'answered');
+        this.promptBadge$ = this.badgeService.getBadgeCount$('prompts');
+        
+        // Trigger a badge refresh to ensure correct counts
+        this.badgeService.refreshBadgeCounts();
+      });
 
     // Load admin settings (deletion and update policies)
     this.loadAdminSettings();
