@@ -5,6 +5,7 @@ import { SupabaseService } from './supabase.service';
 describe('PrintService', () => {
   let service: PrintService;
   let mockSupabaseService: any;
+  let mockPrayerService: any;
   let mockSupabaseClient: any;
 
   const mockPrayers: Prayer[] = [
@@ -67,6 +68,10 @@ describe('PrintService', () => {
       client: mockSupabaseClient
     } as any;
 
+    mockPrayerService = {
+      getPersonalPrayers: vi.fn()
+    };
+
     // Mock document.createElement for escapeHtml
     const mockDiv = {
       textContent: '',
@@ -96,7 +101,7 @@ describe('PrintService', () => {
       } as any;
     });
 
-    service = new PrintService(mockSupabaseService);
+    service = new PrintService(mockSupabaseService, mockPrayerService);
   });
 
   afterEach(() => {
@@ -110,7 +115,14 @@ describe('PrintService', () => {
   describe('downloadPrintablePrayerList', () => {
     beforeEach(() => {
       // Mock window.open, alert, and DOM methods
-      global.window.open = vi.fn();
+      global.window.open = vi.fn(() => ({
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      })) as any;
       global.alert = vi.fn();
       global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
       global.URL.revokeObjectURL = vi.fn();
@@ -526,7 +538,7 @@ describe('PrintService', () => {
         client: mockSupabaseClient
       };
 
-      service = new PrintService(mockSupabaseService as any);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService);
     });
 
     it('should filter by month correctly', () => {
@@ -608,7 +620,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService);
     });
 
     it('should handle current prayer status', () => {
@@ -678,7 +690,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService);
     });
 
     it('should generate valid HTML', () => {
@@ -754,7 +766,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService);
     });
 
     it('should create valid filename', () => {
@@ -826,7 +838,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService);
     });
 
     it('should handle database query errors', async () => {
@@ -1062,7 +1074,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         { id: '2', title: 'Prayer 2' }
       ];
       
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toContain('<html>');
       expect(html).toContain('Prayer 1');
       expect(html).toContain('Prayer 2');
@@ -1070,7 +1082,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
     it('should generate HTML for empty prayer list', () => {
       const prayers: any[] = [];
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toContain('<html>');
       expect(html).toContain('<h1>Prayers</h1>');
     });
@@ -1080,7 +1092,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         { id: '1', title: 'Prayer with <script>' }
       ];
       
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toBeDefined();
     });
 
@@ -1090,14 +1102,14 @@ describe('PrintService - Advanced Coverage Tests', () => {
         { id: '2', title: 'Prompt 2' }
       ];
       
-      const html = service.generatePromptHTML(prompts);
+      const html = (service as any).generatePromptHTML(prompts);
       expect(html).toContain('<h1>Prompts</h1>');
       expect(html).toContain('Prompt 1');
     });
 
     it('should generate valid HTML structure', () => {
       const prayers = [{ id: '1', title: 'Prayer' }];
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toContain('</html>');
       expect(html).toContain('</body>');
     });
@@ -1108,7 +1120,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         title: `Prayer ${i}`
       }));
       
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html.length).toBeGreaterThan(1000);
     });
   });
@@ -1223,7 +1235,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       
       const active = service.filterPrayersByStatus(prayers, 'active');
       expect(active.length).toBe(2);
-      expect(active.every(p => p.status === 'active')).toBe(true);
+      expect(active.every((p: Prayer) => p.status === 'active')).toBe(true);
     });
 
     it('should handle filter with no matches', () => {
@@ -1316,7 +1328,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         { id: '2', title: 'Prayer "for" Peace' }
       ];
       
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toBeDefined();
     });
 
@@ -1324,7 +1336,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       const longTitle = 'A'.repeat(1000);
       const prayers = [{ id: '1', title: longTitle }];
       
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html.length).toBeGreaterThan(1000);
     });
 
@@ -1364,7 +1376,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         title: `Prayer ${i}`
       }));
       
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html.length).toBeGreaterThan(10000);
     });
   });
@@ -1415,6 +1427,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
     let service: PrintService;
     let mockSupabaseService: any;
     let mockSupabaseClient: any;
+    let mockPrayerService: any;
 
     beforeEach(() => {
       const createMockChain = () => ({
@@ -1437,7 +1450,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       };
 
       mockSupabaseService = { client: mockSupabaseClient } as any;
-      service = new PrintService(mockSupabaseService);
+      mockPrayerService = { getPersonalPrayers: vi.fn() };
+      service = new PrintService(mockSupabaseService, mockPrayerService);
 
       global.window.open = vi.fn(() => ({
         document: {
@@ -1446,7 +1460,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           close: vi.fn()
         },
         focus: vi.fn()
-      }));
+      })) as any;
       global.alert = vi.fn();
       global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
       global.URL.revokeObjectURL = vi.fn();
@@ -1469,7 +1483,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           prayer_updates: []
         }];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('<!DOCTYPE html>');
         expect(html).toContain('<html>');
         expect(html).toContain('</html>');
@@ -1487,7 +1501,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           prayer_updates: []
         }];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('Prayer');
         expect(html).toContain('Request');
       });
@@ -1504,7 +1518,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           prayer_updates: []
         }];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('Jane Requester');
       });
 
@@ -1520,7 +1534,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           prayer_updates: []
         }];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('Very detailed prayer description');
       });
 
@@ -1536,13 +1550,13 @@ describe('PrintService - Advanced Coverage Tests', () => {
           prayer_updates: []
         }];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('Prayer');
       });
 
       it('should include current date in HTML', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers);
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers);
         
         // Should contain month name - January, February, etc.
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
@@ -1556,8 +1570,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       });
 
       it('should generate CSS styles for printing', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers);
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers);
         
         expect(html).toContain('<style>');
         expect(html).toContain('</style>');
@@ -1578,7 +1592,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           }
         ];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('Current Prayer');
         expect(html).toContain('Answered Prayer');
       });
@@ -1598,7 +1612,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           ]
         }];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('Update');
       });
 
@@ -1614,37 +1628,37 @@ describe('PrintService - Advanced Coverage Tests', () => {
           prayer_updates: []
         }];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('<html>');
       });
 
       it('should generate time range label for week', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'week');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'week');
         
         expect(html).toBeDefined();
         expect(html.length).toBeGreaterThan(0);
       });
 
       it('should generate time range label for month', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'month');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'month');
         
         expect(html).toBeDefined();
         expect(html.length).toBeGreaterThan(0);
       });
 
       it('should generate time range label for year', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'year');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'year');
         
         expect(html).toBeDefined();
         expect(html.length).toBeGreaterThan(0);
       });
 
       it('should generate time range label for all', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'all');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'all');
         
         expect(html).toContain('All Prayers');
       });
@@ -1665,7 +1679,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           }
         ];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toBeDefined();
       });
 
@@ -1686,7 +1700,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           }
         ];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toBeDefined();
       });
 
@@ -1708,7 +1722,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           }
         ];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toBeDefined();
       });
     });
@@ -1755,16 +1769,16 @@ describe('PrintService - Advanced Coverage Tests', () => {
       });
 
       it('should generate filename with date', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'week');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'week');
         
         const today = new Date().toISOString().split('T')[0];
         expect(today).toMatch(/\d{4}-\d{2}-\d{2}/);
       });
 
       it('should include time range in filename', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'month');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'month');
         
         expect(html).toBeDefined();
       });
@@ -1898,36 +1912,36 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
     describe('Time Range Calculations', () => {
       it('should calculate correct week range', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'week');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'week');
         
         expect(html).toBeDefined();
       });
 
       it('should calculate correct two-week range', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'twoweeks');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'twoweeks');
         
         expect(html).toBeDefined();
       });
 
       it('should calculate correct month range', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'month');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'month');
         
         expect(html).toBeDefined();
       });
 
       it('should calculate correct year range', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'year');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'year');
         
         expect(html).toBeDefined();
       });
 
       it('should handle all time range', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers, 'all');
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers, 'all');
         
         expect(html).toContain('All Prayers');
       });
@@ -1935,29 +1949,29 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
     describe('Print Styling', () => {
       it('should include page break styles', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers);
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers);
         
         expect(html).toContain('page-break');
       });
 
       it('should include media print styles', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers);
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers);
         
         expect(html).toContain('@media');
       });
 
       it('should set appropriate margins for printing', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers);
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers);
         
         expect(html).toContain('margin');
       });
 
       it('should include font styling', () => {
-        const prayers = [];
-        const html = service.generatePrintableHTML(prayers);
+        const prayers: Prayer[] = [];
+        const html = (service as any).generatePrintableHTML(prayers);
         
         expect(html).toContain('font-family');
       });
@@ -1971,7 +1985,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           }
         ];
 
-        const html = service.generatePrintableHTML(prayers);
+        const html = (service as any).generatePrintableHTML(prayers);
         expect(html).toContain('color');
       });
     });
@@ -1981,6 +1995,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
     let service: PrintService;
     let mockSupabaseService: any;
     let mockSupabaseClient: any;
+    let mockPrayerService: any;
 
     const mockPrompts = [
       {
@@ -2032,7 +2047,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       };
 
       mockSupabaseService = { client: mockSupabaseClient } as any;
-      service = new PrintService(mockSupabaseService);
+      mockPrayerService = { getPersonalPrayers: vi.fn() };
+      service = new PrintService(mockSupabaseService, mockPrayerService);
 
       global.window.open = vi.fn(() => ({
         document: {
@@ -2041,7 +2057,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           close: vi.fn()
         },
         focus: vi.fn()
-      }));
+      })) as any;
       global.alert = vi.fn();
       global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
       global.URL.revokeObjectURL = vi.fn();
@@ -2275,6 +2291,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
   describe('Prompt HTML Generation via downloadPrintablePromptList', () => {
     let service: PrintService;
     let mockSupabaseService: any;
+    let mockPrayerService: any;
 
     beforeEach(() => {
       mockSupabaseService = {
@@ -2282,7 +2299,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           from: vi.fn()
         }
       } as any;
-      service = new PrintService(mockSupabaseService);
+      service = new PrintService(mockSupabaseService, mockPrayerService);
       
       global.window.open = vi.fn(() => ({
         document: {
@@ -2291,7 +2308,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           close: vi.fn()
         },
         focus: vi.fn()
-      }));
+      })) as any;
       global.alert = vi.fn();
     });
 
@@ -2317,6 +2334,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
             order: vi.fn().mockResolvedValue({ data: [], error: null })
           };
         }
+        return { select: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [], error: null }) };
       });
 
       const mockWindow = {
@@ -2361,6 +2379,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
             order: vi.fn().mockResolvedValue({ data: mockTypes, error: null })
           };
         }
+        return { select: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [], error: null }) };
       });
 
       const mockWindow = {
@@ -2401,6 +2420,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
             order: vi.fn().mockResolvedValue({ data: [], error: null })
           };
         }
+        return { select: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [], error: null }) };
       });
 
       const mockWindow = {
@@ -2444,6 +2464,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
             order: vi.fn().mockResolvedValue({ data: mockTypes, error: null })
           };
         }
+        return { select: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [], error: null }) };
       });
 
       const mockWindow = {
@@ -2482,6 +2503,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
             order: vi.fn().mockResolvedValue({ data: [], error: null })
           };
         }
+        return { select: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [], error: null }) };
       });
 
       const mockWindow = {
@@ -2504,12 +2526,13 @@ describe('PrintService - Advanced Coverage Tests', () => {
   describe('Prompt HTML Escaping and Generation', () => {
     let service: PrintService;
     let mockSupabaseService: any;
+    let mockPrayerService: any;
 
     beforeEach(() => {
       mockSupabaseService = {
         client: { from: vi.fn() }
       } as any;
-      service = new PrintService(mockSupabaseService);
+      service = new PrintService(mockSupabaseService, mockPrayerService);
     });
 
     it('should escape HTML in prompt titles during generation', () => {
@@ -2517,7 +2540,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         { id: '1', title: 'Prompt <script>alert("xss")</script>', type: 'Praise', created_at: new Date().toISOString() }
       ];
 
-      const html = service.generatePromptsPrintableHTML(prompts);
+      const html = (service as any).generatePromptsPrintableHTML(prompts);
 
       // Should not contain unescaped malicious script
       expect(html).not.toContain('<script>alert("xss")</script>');
@@ -2531,7 +2554,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         { id: '1', title: 'Prompt & "Test" \'single\'', type: 'Praise', created_at: new Date().toISOString() }
       ];
 
-      const html = service.generatePromptsPrintableHTML(prompts);
+      const html = (service as any).generatePromptsPrintableHTML(prompts);
 
       expect(html).toContain('prompt-item');
       expect(html).toBeDefined();
@@ -2551,7 +2574,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         }
       ];
 
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toBeDefined();
     });
 
@@ -2569,7 +2592,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         }
       ];
 
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toBeDefined();
     });
 
@@ -2587,7 +2610,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         }
       ];
 
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toBeDefined();
     });
 
@@ -2605,7 +2628,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         }
       ];
 
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).toBeDefined();
     });
 
@@ -2630,7 +2653,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         }
       ];
 
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       // Should not contain unescaped malicious script
       expect(html).not.toContain('<script>alert("xss")</script>');
       // But should contain the legitimate print script
@@ -2651,7 +2674,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         }
       ];
 
-      const html = service.generatePrintableHTML(prayers);
+      const html = (service as any).generatePrintableHTML(prayers);
       expect(html).not.toContain('onerror');
     });
   });
@@ -2681,7 +2704,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           close: vi.fn()
         },
         focus: vi.fn()
-      }));
+      })) as any;
       global.alert = vi.fn();
     });
 
