@@ -445,7 +445,7 @@ interface CSVRow {
 
       @if (!searching && hasSearched && subscribers.length > 0) {
       <div>
-        <div [class]="'mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 ' + (isLandscape ? 'grid grid-cols-12' : 'hidden md:grid grid-cols-12')">
+        <div [class]="'grid mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 ' + (isLandscape ? 'grid-cols-12' : 'hidden md:grid-cols-12')">
           <button (click)="toggleSort('name')" class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors" title="Click to sort by name">Name{{ getSortIndicator('name') }}</button>
           <button (click)="toggleSort('email')" class="col-span-4 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors" title="Click to sort by email">Email{{ getSortIndicator('email') }}</button>
           <button (click)="toggleSort('created_at')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors" title="Click to sort by join date">Added{{ getSortIndicator('created_at') }}</button>
