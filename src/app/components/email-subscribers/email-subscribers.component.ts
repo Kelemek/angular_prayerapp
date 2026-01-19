@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -445,7 +445,7 @@ interface CSVRow {
 
       @if (!searching && hasSearched && subscribers.length > 0) {
       <div>
-        <div class="hidden md:grid mb-3 grid-cols-12 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300">
+        <div [class]="'mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 ' + (isLandscape ? 'grid grid-cols-12' : 'hidden md:grid grid-cols-12')">
           <button (click)="toggleSort('name')" class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors" title="Click to sort by name">Name{{ getSortIndicator('name') }}</button>
           <button (click)="toggleSort('email')" class="col-span-4 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors" title="Click to sort by email">Email{{ getSortIndicator('email') }}</button>
           <button (click)="toggleSort('created_at')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors" title="Click to sort by join date">Added{{ getSortIndicator('created_at') }}</button>
@@ -455,7 +455,7 @@ interface CSVRow {
           <button (click)="toggleSort('in_planning_center')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors" title="Click to sort by Planning Center status">Planning Center{{ getSortIndicator('in_planning_center') }}</button>
         </div>
         <div class="space-y-2">
-          @for (subscriber of subscribers; track subscriber.id) { <div class="grid grid-cols-2 md:grid-cols-12 gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 md:items-start">
+          @for (subscriber of subscribers; track subscriber.id) { <div [class]="'grid gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 ' + (isLandscape ? 'grid-cols-12 items-start' : 'grid-cols-2 md:grid-cols-12 md:items-start')">
             <!-- Name column -->
             <div class="col-span-1 md:col-span-2">
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Name</p>
@@ -659,7 +659,7 @@ interface CSVRow {
     }
   `]
 })
-export class EmailSubscribersComponent implements OnInit {
+export class EmailSubscribersComponent implements OnInit, OnDestroy {
   subscribers: EmailSubscriber[] = [];
   searchQuery = '';
   searching = false;
@@ -710,6 +710,11 @@ export class EmailSubscribersComponent implements OnInit {
   confirmationAction: (() => Promise<void>) | null = null;
   isDeleteConfirmation = false;
 
+  // Landscape/Portrait detection
+  isLandscape = false;
+  private orientationChangeListener: (() => void) | null = null;
+  private resizeListener: (() => void) | null = null;
+
   // Template references
   @ViewChild('emailSubscribersContainer') emailSubscribersContainer!: ElementRef;
 
@@ -723,6 +728,41 @@ export class EmailSubscribersComponent implements OnInit {
   ngOnInit() {
     // Auto-load first 10 subscribers on component init
     this.handleSearch();
+    
+    // Detect landscape/portrait mode on init
+    this.updateOrientationMode();
+    
+    // Create arrow functions so we can properly remove them later
+    this.orientationChangeListener = () => this.onOrientationChange();
+    this.resizeListener = () => this.updateOrientationMode();
+    
+    // Listen for orientation change events
+    window.addEventListener('orientationchange', this.orientationChangeListener);
+    // Also listen for resize events for broader compatibility
+    window.addEventListener('resize', this.resizeListener);
+  }
+
+  ngOnDestroy() {
+    // Clean up event listeners
+    if (this.orientationChangeListener) {
+      window.removeEventListener('orientationchange', this.orientationChangeListener);
+    }
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
+    }
+  }
+
+  private onOrientationChange() {
+    // Wait a moment for the layout to settle after orientation change
+    setTimeout(() => {
+      this.updateOrientationMode();
+    }, 100);
+  }
+
+  private updateOrientationMode() {
+    // Detect landscape mode: window width > height
+    this.isLandscape = window.innerWidth > window.innerHeight;
+    this.cdr.markForCheck();
   }
 
   toggleAddForm() {

@@ -2731,7 +2731,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
     it('should filter personal prayers by time range', async () => {
       const now = new Date();
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // Create dates that are clearly within the range (with buffer to avoid edge case timing issues)
+      const oneWeekAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 5 days ago (well within 7 day range)
       const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
       mockPrayerService.getPersonalPrayers.mockResolvedValue([
