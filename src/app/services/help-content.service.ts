@@ -523,6 +523,14 @@ export class HelpContentService {
             subtitle: 'Accessing Email Subscription Settings',
             text: 'To manage your email subscription, open the Settings menu (gear icon) in the top right corner of the app. You\'ll find the Email Subscription toggle in the settings panel. Simply toggle it on or off to enable or disable email notifications.',
           },
+                    {
+            subtitle: 'Unsubscribe from Mass Emails',
+            text: 'Disabling the Email Subscription toggle will unsubscribe you from all mass email blasts and automated notification emails sent by the app. This means you\'ll stop receiving prayer updates, but you\'ll still be able to use the app normally.',
+          },
+          {
+            subtitle: 'Your Preference is Saved',
+            text: 'Your email subscription preference is saved automatically and will persist across sessions. You can change your subscription status at any time by revisiting the Settings menu.',
+          },
         ],
         order: 8,
         isActive: true,
@@ -531,22 +539,59 @@ export class HelpContentService {
         createdBy: 'system',
       },
       {
-        id: 'help_settings',
-        title: 'Settings',
-        description: 'Manage your app preferences and account',
-        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m3.08-3.08l4.24-4.24M19.78 19.78l-4.24-4.24m-3.08-3.08l-4.24-4.24"/></svg>',
+        id: 'help_feedback',
+        title: 'Send Feedback',
+        description: 'Share suggestions, report bugs, and request features',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
         content: [
           {
-            subtitle: 'What is in Settings?',
-            text: 'The settings menu gives you control over your app experience. You can manage email notifications, view your profile, provide feedback, and more.',
+            subtitle: 'Feedback Types',
+            text: 'You can submit three types of feedback: Suggestions for improvements, Feature Requests for new functionality, or Bug Reports to help us fix issues.',
           },
           {
-            subtitle: 'Accessing Settings',
-            text: 'Click the gear icon in the top right corner of the app to open the settings menu.',
+            subtitle: 'Submitting Feedback',
+            text: 'Fill in the feedback form with a clear title (up to 100 characters) and detailed description (up to 1000 characters). Your feedback is sent directly to our development team for review.',
           },
           {
-            subtitle: 'Managing Preferences',
-            text: 'Within settings, you can customize how the app works for you, including notification preferences and display options.',
+            subtitle: 'What Happens Next',
+            text: 'Once submitted, your feedback is logged and our team will review it. You\'ll receive confirmation that your feedback was received, and we use your input to improve the app.',
+          },
+          {
+            subtitle: 'Help Us Improve',
+            text: 'Your feedback is valuable! Whether you find a bug, want a new feature, or have a suggestion to make the app better, please share it with us. We read and consider all feedback from our users.',
+          },
+        ],
+        order: 9,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+      },
+      {
+        id: 'help_settings',
+        title: 'App Settings',
+        description: 'Customize the app to your preferences',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+        content: [
+          {
+            subtitle: 'Print Buttons',
+            text: 'The "Print Prayers" button allows you to print or export your current prayers as a PDF. The "Print Prompts" button prints the prayer prompts so you can use them offline or share them with others. The "Print Personal Prayers" button allows you to print your personal prayers.',
+          },
+          {
+            subtitle: 'Theme Options',
+            text: 'Choose from different theme options to customize the app appearance. Light mode is best for bright environments, dark mode reduces eye strain in low light, and system mode automatically follows your device\'s theme preference. Your selected theme preference is saved automatically.',
+          },
+          {
+            subtitle: 'Email Subscription',
+            text: 'Enable email subscription to receive notifications about prayer updates and community activities. When enabled, you\'ll get email notifications for new prayers, prayer updates, and other important app notifications. You can toggle this setting at any time to start or stop receiving emails.',
+          },
+          {
+            subtitle: 'Notification Badges',
+            text: 'Badges appear on the prayer count cards and filter buttons to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge in the filter buttons to clear all badges for that specific prayer category at once.',
+          },
+          {
+            subtitle: 'Enabling Badges',
+            text: 'To turn on the badge feature, enable "Badge Functionality" in settings. Once enabled, you\'ll see notifications for unread prayers. You can toggle this setting at any time based on your preference.',
           },
           {
             subtitle: 'Feedback Form',
@@ -556,16 +601,8 @@ export class HelpContentService {
             subtitle: 'Logout',
             text: 'Click the logout button to sign out of your account. This will end your session and return you to the login screen.',
           },
-          {
-            subtitle: 'Unsubscribe from Mass Emails',
-            text: 'Disabling the Email Subscription toggle will unsubscribe you from all mass email blasts and automated notification emails sent by the app. This means you\'ll stop receiving prayer updates, but you\'ll still be able to use the app normally.',
-          },
-          {
-            subtitle: 'Your Preference is Saved',
-            text: 'Your email subscription preference is saved automatically and will persist across sessions. You can change your subscription status at any time by revisiting the Settings menu.',
-          },
         ],
-        order: 9,
+        order: 10,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
