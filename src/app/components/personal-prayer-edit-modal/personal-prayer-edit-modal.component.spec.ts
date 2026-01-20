@@ -215,14 +215,6 @@ describe('PersonalPrayerEditModalComponent', () => {
       expect(component.close.emit).toHaveBeenCalled();
     });
 
-    it('should show success toast on successful submission', async () => {
-      prayerService.updatePersonalPrayer.mockResolvedValue(true);
-
-      await component.handleSubmit();
-
-      expect(toastService.success).toHaveBeenCalledWith('Prayer updated successfully');
-    });
-
     it('should set isSubmitting to false on error', async () => {
       prayerService.updatePersonalPrayer.mockRejectedValue(new Error('Test error'));
 

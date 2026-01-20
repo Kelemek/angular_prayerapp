@@ -178,7 +178,6 @@ export class PersonalPrayerEditModalComponent implements OnInit {
       );
 
       if (success) {
-        this.toast.success('Prayer updated successfully');
         this.save.emit(updates);
         this.close.emit();
       }
