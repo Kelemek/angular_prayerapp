@@ -41,7 +41,8 @@ const makeMocks = () => {
   const userSessionService: any = {
     userSession$: new BehaviorSubject(null).asObservable(),
     getUserEmail: vi.fn(() => null),
-    getUserFullName: vi.fn(() => null)
+    getUserFullName: vi.fn(() => null),
+    getCurrentSession: vi.fn(() => null)
   };
 
   const badgeService: any = {

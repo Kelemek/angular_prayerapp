@@ -594,6 +594,10 @@ export class HelpContentService {
             text: 'To turn on the badge feature, enable "Badge Functionality" in settings. Once enabled, you\'ll see notifications for unread prayers. You can toggle this setting at any time based on your preference.',
           },
           {
+            subtitle: 'Default Prayer View',
+            text: 'Set your preferred default view when you log in. Choose between "Current Prayers View" to see public prayers waiting for prayer, or "Personal Prayers View" to see your personal prayer list. Your selection is saved and will be remembered each time you log in.',
+          },
+          {
             subtitle: 'Feedback Form',
             text: 'Have suggestions or found a bug? Use the feedback form in settings to share your thoughts with us. Your feedback helps us improve the app and make it work better for you. Simply describe your feedback, and we\'ll review it to enhance your experience.',
           },

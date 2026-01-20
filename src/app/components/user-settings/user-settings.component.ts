@@ -534,6 +534,79 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
             }
           </div>
 
+          <!-- Default View Preference Control -->
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2">
+            <div class="flex items-start gap-3">
+              <div class="flex-1">
+                <div class="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base mb-3">
+                  @if (defaultViewPreferencesLoaded) {
+                  Default Prayer View
+                  } @else {
+                  <span class="inline-block h-5 w-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></span>
+                  }
+                </div>
+                <div class="space-y-2">
+                  <!-- Current Prayers View Option -->
+                  <label class="flex items-center gap-3 cursor-pointer" [class.opacity-50]="savingDefaultView" [class.pointer-events-none]="savingDefaultView">
+                    <input
+                      type="radio"
+                      name="defaultView"
+                      value="current"
+                      [(ngModel)]="defaultPrayerView"
+                      (change)="onDefaultViewChange('current')"
+                      [disabled]="savingDefaultView"
+                      class="h-4 w-4 text-blue-600 border-gray-300 bg-white dark:bg-gray-800 rounded focus:ring-blue-500 cursor-pointer focus:ring-2 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Current Prayers View</span>
+                    @if (savingDefaultView && defaultPrayerView === 'current') {
+                    <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    }
+                  </label>
+                  
+                  <!-- Personal Prayers View Option -->
+                  <label class="flex items-center gap-3 cursor-pointer" [class.opacity-50]="savingDefaultView" [class.pointer-events-none]="savingDefaultView">
+                    <input
+                      type="radio"
+                      name="defaultView"
+                      value="personal"
+                      [(ngModel)]="defaultPrayerView"
+                      (change)="onDefaultViewChange('personal')"
+                      [disabled]="savingDefaultView"
+                      class="h-4 w-4 text-blue-600 border-gray-300 bg-white dark:bg-gray-800 rounded focus:ring-blue-500 cursor-pointer focus:ring-2 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Personal Prayers View</span>
+                    @if (savingDefaultView && defaultPrayerView === 'personal') {
+                    <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    }
+                  </label>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              @if (defaultViewPreferencesLoaded && defaultPrayerView !== null) {
+              {{ savingDefaultView ? 'Saving...' : (defaultPrayerView === 'current' ? 'You will see current prayers when you log in' : 'You will see personal prayers when you log in') }}
+              } @else {
+              <span class="inline-block h-4 w-64 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></span>
+              }
+            </p>
+            @if (successDefaultView) {
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="flex items-start gap-2">
+                <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <p class="text-xs sm:text-sm text-green-800 dark:text-green-200">{{ successDefaultView }}</p>
+              </div>
+            </div>
+            }
+          </div>
+
           <!-- Error Message -->
           @if (error) {
           <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3" role="alert" aria-live="assertive" aria-atomic="true">
@@ -602,12 +675,16 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   saving = false;
   savingNotification = false;
   savingBadge = false;
+  savingDefaultView = false;
   error: string | null = null;
   success: string | null = null;
   successNotification: string | null = null;
   successBadge: string | null = null;
+  successDefaultView: string | null = null;
   preferencesLoaded = false;
   badgePreferencesLoaded = false;
+  defaultViewPreferencesLoaded = false;
+  defaultPrayerView: 'current' | 'personal' | null = null;
   
   isPrinting = false;
   isPrintingPrompts = false;
@@ -702,6 +779,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       this.isInitialLoad = true;
       this.preferencesLoaded = false;
       this.badgePreferencesLoaded = false;
+      this.defaultViewPreferencesLoaded = false;
       
       // Get user info and preferences from UserSessionService cache
       const userSession = this.userSessionService.getCurrentSession();
@@ -716,6 +794,10 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
         // Get badge functionality preference from cached session - no database query needed
         this.badgeFunctionalityEnabled = userSession.badgeFunctionalityEnabled ?? false;
         this.badgePreferencesLoaded = true;
+
+        // Get default prayer view preference from cached session
+        this.defaultPrayerView = userSession.defaultPrayerView || 'current';
+        this.defaultViewPreferencesLoaded = true;
       } else {
         // Fall back to localStorage if session not available
         const userInfo = this.getUserInfo();
@@ -729,11 +811,16 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
           // Badge functionality defaults to false when no session
           this.badgeFunctionalityEnabled = false;
           this.badgePreferencesLoaded = true;
+          // Default prayer view defaults to 'current' when no session
+          this.defaultPrayerView = 'current';
+          this.defaultViewPreferencesLoaded = true;
         } else {
           this.receiveNotifications = true;
           this.preferencesLoaded = true;
           this.badgeFunctionalityEnabled = false;
           this.badgePreferencesLoaded = true;
+          this.defaultPrayerView = 'current';
+          this.defaultViewPreferencesLoaded = true;
         }
       }
       
@@ -1085,6 +1172,79 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     } finally {
       this.savingBadge = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async onDefaultViewChange(newView: 'current' | 'personal'): Promise<void> {
+    const email = this.email.toLowerCase().trim();
+    
+    if (!email) {
+      this.error = 'Email not found. Please log in again.';
+      return;
+    }
+
+    this.defaultPrayerView = newView;
+    this.savingDefaultView = true;
+    this.error = null;
+    this.success = null;
+
+    try {
+      // Check if subscriber record exists
+      const { data: existingRecord, error: fetchError } = await this.supabase.client
+        .from('email_subscribers')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (existingRecord) {
+        // Update existing record
+        const { error: updateError } = await this.supabase.client
+          .from('email_subscribers')
+          .update({ default_prayer_view: newView })
+          .eq('email', email);
+
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        // Create new record
+        const { error: insertError } = await this.supabase.client
+          .from('email_subscribers')
+          .insert({
+            email,
+            default_prayer_view: newView
+          });
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
+      this.successDefaultView = `✅ Default view set to ${newView === 'current' ? 'Current Prayers' : 'Personal Prayers'}`;
+
+      // Update UserSessionService cache to keep it in sync
+      await this.userSessionService.updateUserSession({
+        defaultPrayerView: newView
+      });
+
+      this.savingDefaultView = false;
+      this.cdr.markForCheck();
+      
+      // Auto-dismiss success message after 3 seconds
+      setTimeout(() => {
+        this.successDefaultView = null;
+        this.cdr.markForCheck();
+      }, 3000);
+    } catch (err) {
+      console.error('Error updating default view preference:', err);
+      this.error = err instanceof Error ? err.message : 'Failed to update default view preference';
+      this.defaultPrayerView = this.defaultPrayerView === 'current' ? 'personal' : 'current'; // Revert on error
+      this.savingDefaultView = false;
       this.cdr.markForCheck();
     }
   }

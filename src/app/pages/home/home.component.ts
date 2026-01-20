@@ -568,6 +568,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Load admin settings (deletion and update policies)
     this.loadAdminSettings();
 
+    // Load user's default prayer view preference from session
+    const userSession = this.userSessionService.getCurrentSession();
+    if (userSession?.defaultPrayerView) {
+      this.activeFilter = userSession.defaultPrayerView;
+    }
+
     // Subscribe to ALL prayers to update counts (not filtered) - with cleanup
     this.prayerService.allPrayers$
       .pipe(takeUntil(this.destroy$))
@@ -601,8 +607,18 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.isAdmin = isAdmin;
       });
 
-    // Apply default filter
-    this.prayerService.applyFilters(this.filters);
+    // Initialize filter based on activeFilter (which may be set from user preference)
+    if (this.activeFilter === 'personal') {
+      this.filters = { searchTerm: this.filters.searchTerm };
+      this.prayerService.applyFilters({ search: this.filters.searchTerm });
+    } else if (this.activeFilter === 'prompts') {
+      this.filters = { searchTerm: this.filters.searchTerm };
+      this.prayerService.applyFilters({ search: '' });
+    } else {
+      // Default filters for 'current', 'answered', 'total'
+      this.filters = { status: this.activeFilter === 'total' ? undefined : this.activeFilter, searchTerm: this.filters.searchTerm };
+      this.prayerService.applyFilters(this.filters);
+    }
   }
 
   onPrayerFormClose(event: {isPersonal?: boolean}): void {
@@ -711,6 +727,64 @@ export class HomeComponent implements OnInit, OnDestroy {
         status: this.filters.status,
         search: this.filters.searchTerm
       });
+    }
+  }
+
+  /**
+   * Update the user's default prayer view preference in database
+   */
+  async updateDefaultViewPreference(preference: 'current' | 'personal'): Promise<boolean> {
+    const email = this.userSessionService.getUserEmail();
+    
+    if (!email) {
+      return false;
+    }
+
+    try {
+      // Check if subscriber record exists
+      const { data: existingRecord, error: fetchError } = await this.supabaseService.client
+        .from('email_subscribers')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (existingRecord) {
+        // Update existing record
+        const { error: updateError } = await this.supabaseService.client
+          .from('email_subscribers')
+          .update({ default_prayer_view: preference })
+          .eq('email', email.toLowerCase().trim());
+
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        // Create new record
+        const { error: insertError } = await this.supabaseService.client
+          .from('email_subscribers')
+          .insert({
+            email: email.toLowerCase().trim(),
+            default_prayer_view: preference
+          });
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
+      // Update UserSessionService cache to keep it in sync
+      await this.userSessionService.updateUserSession({
+        defaultPrayerView: preference
+      });
+
+      return true;
+    } catch (err) {
+      console.error('Error updating default view preference:', err);
+      return false;
     }
   }
 
