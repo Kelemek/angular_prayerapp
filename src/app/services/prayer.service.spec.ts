@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { firstValueFrom } from 'rxjs';
 import { PrayerService, PrayerRequest } from './prayer.service';
 
 describe('PrayerService', () => {
@@ -446,7 +447,8 @@ describe('PrayerService', () => {
       toast,
       emailNotification,
       verificationService,
-      cache
+      cache,
+      badgeService
     );
 
     const loadSpy = vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
@@ -636,14 +638,6 @@ describe('PrayerService', () => {
     });
   });
 });
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { firstValueFrom } from 'rxjs';
-import { PrayerService, type PrayerRequest } from './prayer.service';
-import { SupabaseService } from './supabase.service';
-import { ToastService } from './toast.service';
-import { EmailNotificationService } from './email-notification.service';
-import { VerificationService } from './verification.service';
-import { CacheService } from './cache.service';
 
 describe('PrayerService', () => {
   let service: PrayerService;
@@ -652,6 +646,7 @@ describe('PrayerService', () => {
   let mockEmailNotificationService: any;
   let mockVerificationService: any;
   let mockCacheService: any;
+  let mockBadgeService: any;
 
   const mockPrayerData = [
     {
@@ -749,6 +744,11 @@ describe('PrayerService', () => {
       has: vi.fn(() => false)
     };
 
+    // Mock Badge Service
+    mockBadgeService = {
+      refreshBadgeCounts: vi.fn()
+    };
+
     // Mock window event listeners
     vi.spyOn(window, 'addEventListener').mockImplementation(() => {});
     vi.spyOn(document, 'addEventListener').mockImplementation(() => {});
@@ -769,7 +769,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
       expect(service).toBeTruthy();
     });
@@ -780,7 +781,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
       
       expect(service.allPrayers$).toBeDefined();
@@ -797,7 +799,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // Wait for initialization
@@ -814,7 +817,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const loading = await firstValueFrom(service.loading$);
@@ -827,7 +831,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -850,7 +855,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -875,7 +881,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -892,7 +899,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -923,7 +931,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -940,7 +949,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -990,7 +1000,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -1011,7 +1022,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1043,7 +1055,7 @@ describe('PrayerService', () => {
         // construct a new instance to run setupRealtimeSubscription
         // use local variables to avoid replacing global mocks
         // Note: this will call initializePrayers which calls loadPrayers; keep from throwing by mocking
-        const s = new PrayerService(mockSupabaseService, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService);
+        const s = new PrayerService(mockSupabaseService, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService, mockBadgeService);
         expect(s).toBeTruthy();
       }).not.toThrow();
     });
@@ -1133,7 +1145,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // If we couldn't capture the handler (other tests may have mocked addEventListener),
@@ -1236,7 +1249,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1422,7 +1436,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       expect((service as any).currentFilters).toBeDefined();
@@ -1436,7 +1451,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = await firstValueFrom(service.allPrayers$);
@@ -1449,7 +1465,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = await firstValueFrom(service.prayers$);
@@ -1462,7 +1479,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const loading = await firstValueFrom(service.loading$);
@@ -1475,7 +1493,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const error = await firstValueFrom(service.error$);
@@ -1490,7 +1509,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1524,7 +1544,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1558,7 +1579,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1592,7 +1614,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1626,7 +1649,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1659,7 +1683,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1713,7 +1738,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // wait for init load
@@ -1739,7 +1765,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // spy on the private loadingSubject.next to ensure it's called with true
@@ -1759,7 +1786,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -1780,7 +1808,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // calling the method again should be safe and not throw
@@ -1793,7 +1822,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       expect(() => (service as any).setupVisibilityListener()).not.toThrow();
@@ -1810,7 +1840,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       (service as any).inactivityThresholdMs = 5;
@@ -1828,7 +1859,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn((table: string) => {
@@ -1853,7 +1885,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn(() => ({
@@ -1874,7 +1907,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       (service as any).realtimeChannel = { id: 'test-channel' };
@@ -1894,7 +1928,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       (service as any).realtimeChannel = { id: 'test-channel' };
@@ -1915,7 +1950,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const channelMock = {
@@ -1942,7 +1978,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.channel = vi.fn(() => {
@@ -1962,7 +1999,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockCacheService.get = vi.fn(() => null);
@@ -2010,7 +2048,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // Directly set the all prayers and verify trigger works
@@ -2060,7 +2099,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -2102,7 +2142,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // The visibility listener calls loadPrayers(true) internally
@@ -2116,7 +2157,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const triggerSpy = vi.spyOn(service as any, 'triggerBackgroundRecovery').mockImplementation(() => {});
@@ -2144,7 +2186,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       (service as any).inactivityThresholdMs = 100;
@@ -2169,7 +2212,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn((table: string) => {
@@ -2200,7 +2244,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn((table: string) => {
@@ -2239,7 +2284,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const testPrayer = {
@@ -2274,7 +2320,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn(() => ({
@@ -2293,7 +2340,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn((table: string) => {
@@ -2321,7 +2369,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn(() => ({
@@ -2347,7 +2396,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayer = {
@@ -2379,7 +2429,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayer = {
@@ -2411,7 +2462,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayer1 = {
@@ -2470,7 +2522,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const result = await service.addPrayer({
@@ -2493,7 +2546,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayer = {
@@ -2581,7 +2635,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -2597,7 +2652,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn((table: string) => {
@@ -2624,7 +2680,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn(() => ({
@@ -2649,7 +2706,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn((table: string) => {
@@ -2680,7 +2738,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       (service as any).inactivityTimeout = setTimeout(() => {}, 1000);
@@ -2700,7 +2759,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayer = {
@@ -2741,7 +2801,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayer = {
@@ -2773,7 +2834,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn(() => ({
@@ -2808,7 +2870,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       mockSupabaseService.client.from = vi.fn((table: string) => {
@@ -2843,7 +2906,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -2872,7 +2936,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -2904,7 +2969,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // Set up DB to return prayers
@@ -2923,7 +2989,7 @@ describe('PrayerService', () => {
 
       await service.loadPrayers();
 
-      const result = service.getFilteredPrayers({ status: 'unknown', type: undefined, search: undefined });
+      const result = service.getFilteredPrayers({ status: 'current' as any, type: undefined, search: undefined });
 
       expect(result).toEqual([]);
     });
@@ -2934,14 +3000,15 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
         insert: () => Promise.resolve({ data: null, error: new Error('insert err') })
       } as any);
 
-      const result = await service.addPrayerUpdate('p1', { content: 'test', author: 'Test', author_email: 'test@test.com', is_anonymous: false });
+      const result = await service.addPrayerUpdate('p1', 'test', 'Test');
 
       expect(result).toBe(false);
     });
@@ -2952,7 +3019,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -2972,7 +3040,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -2992,7 +3061,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -3017,7 +3087,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -3042,7 +3113,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -3072,7 +3144,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -3092,7 +3165,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // Should not throw
@@ -3105,7 +3179,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const mockPrayersWithUpdates = [
@@ -3155,7 +3230,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const mockPrayersNullDesc = [
@@ -3199,7 +3275,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const mockPrayersNoUpdates = [
@@ -3244,7 +3321,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -3267,11 +3345,12 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const mockData = [
-        { id: 'p1', title: 'T1', status: 'active', type: 'request', created_at: '2024-01-01', created_by: 'u1', prayer_for: 'Test', description: 'Desc', email: 'test@test.com', date_requested: '2024-01-01', approval_status: 'approved', requester: 'User', prayer_updates: [] }
+        { id: 'p1', title: 'T1', status: 'current' as any, type: 'request', created_at: '2024-01-01', created_by: 'u1', prayer_for: 'Test', description: 'Desc', email: 'test@test.com', date_requested: '2024-01-01', approval_status: 'approved', requester: 'User', prayer_updates: [] }
       ];
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -3284,12 +3363,13 @@ describe('PrayerService', () => {
 
       await service.loadPrayers();
       
-      service.applyFilters({ status: 'active', type: undefined, search: undefined });
+      service.applyFilters({ status: 'current' as any, type: undefined, search: undefined });
 
       // Test that prayers$ reflects filtered results
-      let filteredPrayers: any[] = [];
-      service.prayers$.subscribe(prayers => {
-        filteredPrayers = prayers;
+      const filteredPrayers = await new Promise<any[]>((resolve) => {
+        service.prayers$.subscribe(prayers => {
+          resolve(prayers);
+        });
       });
 
       // Prayers should be filtered by status
@@ -3302,7 +3382,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const mockData = [
@@ -3337,7 +3418,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const initialPrayers = [
@@ -3368,7 +3450,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayerWithContent = [
@@ -3403,11 +3486,12 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       let fromCallCount = 0;
-      vi.spyOn(mockSupabaseService.client, 'from').mockImplementation((table: string) => {
+      vi.spyOn(mockSupabaseService.client, 'from').mockImplementation((table: any) => {
         if (table === 'update_deletion_requests') {
           return {
             insert: vi.fn(() => ({
@@ -3445,7 +3529,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = [
@@ -3476,7 +3561,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // Manually set realtime channel to test cleanup
@@ -3495,13 +3581,14 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       let deleteInsertCalled = false;
       let prayerSelectCalled = false;
 
-      vi.spyOn(mockSupabaseService.client, 'from').mockImplementation((table: string) => {
+      vi.spyOn(mockSupabaseService.client, 'from').mockImplementation((table: any) => {
         if (table === 'deletion_requests') {
           deleteInsertCalled = true;
           return {
@@ -3541,7 +3628,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       vi.spyOn(mockSupabaseService.client, 'from').mockReturnValue({
@@ -3570,7 +3658,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = [
@@ -3605,7 +3694,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = [
@@ -3648,7 +3738,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = [
@@ -3682,7 +3773,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = [
@@ -3720,7 +3812,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       const prayers = [
@@ -3746,7 +3839,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
       // Set a mock timeout
@@ -3765,10 +3859,11 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
 
-      const initialFilters = { status: 'active', type: 'request', search: 'test' };
+      const initialFilters = { status: 'current' as any, type: 'request', search: 'test' };
       service.applyFilters(initialFilters);
       
       // Apply empty filters
@@ -3789,7 +3884,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -3990,7 +4086,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4056,7 +4153,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4187,7 +4285,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4243,7 +4342,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4336,7 +4436,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4371,7 +4472,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4403,7 +4505,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4450,7 +4553,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4479,7 +4583,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 
@@ -4566,7 +4671,8 @@ describe('PrayerService', () => {
         mockToastService,
         mockEmailNotificationService,
         mockVerificationService,
-        mockCacheService
+        mockCacheService,
+        mockBadgeService
       );
     });
 

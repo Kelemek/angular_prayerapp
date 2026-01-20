@@ -1301,8 +1301,8 @@ describe('HomeComponent', () => {
 
     it('getFilteredPersonalPrayers returns all when no search term', () => {
       const prayers = [
-        { id: 'p1', title: 'Prayer 1', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] },
-        { id: 'p2', title: 'Prayer 2', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+        { id: 'p1', title: 'Prayer 1', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] },
+        { id: 'p2', title: 'Prayer 2', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
       ];
 
       const comp = new HomeComponent(
@@ -1328,8 +1328,8 @@ describe('HomeComponent', () => {
 
     it('getFilteredPersonalPrayers filters by search term', () => {
       const prayers = [
-        { id: 'p1', title: 'Find Me', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] },
-        { id: 'p2', title: 'Other', description: 'Desc', prayer_for: 'Person', status: 'current', requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
+        { id: 'p1', title: 'Find Me', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] },
+        { id: 'p2', title: 'Other', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
       ];
 
       const comp = new HomeComponent(
