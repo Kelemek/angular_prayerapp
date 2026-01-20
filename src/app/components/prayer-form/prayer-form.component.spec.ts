@@ -479,5 +479,403 @@ describe('PrayerFormComponent', () => {
     });
   });
 
+  describe('Category Dropdown - onCategoryInput', () => {
+    beforeEach(() => {
+      mockPrayerService.getUniqueCategoriesForUser.mockReturnValue(['Health', 'Family', 'Work']);
+      component.ngOnInit();
+    });
+
+    it('should filter categories when user types', () => {
+      component.formData.is_personal = true;
+      const event = new Event('input');
+      const input = document.createElement('input');
+      input.value = 'hea';
+      Object.defineProperty(event, 'target', { value: input });
+
+      component.onCategoryInput(event as any);
+
+      expect(component.formData.category).toBe('hea');
+      expect(component.filteredCategories).toContain('Health');
+    });
+
+    it('should show dropdown when filtered categories exist', () => {
+      component.formData.is_personal = true;
+      const event = new Event('input');
+      const input = document.createElement('input');
+      input.value = 'fam';
+      Object.defineProperty(event, 'target', { value: input });
+
+      component.onCategoryInput(event as any);
+
+      expect(component.showCategoryDropdown).toBe(true);
+    });
+
+    it('should not show dropdown when no matching categories', () => {
+      component.formData.is_personal = true;
+      const event = new Event('input');
+      const input = document.createElement('input');
+      input.value = 'xyz';
+      Object.defineProperty(event, 'target', { value: input });
+
+      component.onCategoryInput(event as any);
+
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+
+    it('should clear filtered categories when input is empty', () => {
+      component.formData.is_personal = true;
+      const event = new Event('input');
+      const input = document.createElement('input');
+      input.value = '';
+      Object.defineProperty(event, 'target', { value: input });
+
+      component.onCategoryInput(event as any);
+
+      expect(component.filteredCategories).toEqual([]);
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+
+    it('should reset selectedCategoryIndex when filtering', () => {
+      component.formData.is_personal = true;
+      component.selectedCategoryIndex = 2;
+      component.ngOnInit();
+      const event = new Event('input');
+      const input = document.createElement('input');
+      input.value = 'health';
+      Object.defineProperty(event, 'target', { value: input });
+
+      component.onCategoryInput(event as any);
+
+      expect(component.selectedCategoryIndex).toBe(-1);
+    });
+
+    it('should handle case-insensitive filtering', () => {
+      component.formData.is_personal = true;
+      const event = new Event('input');
+      const input = document.createElement('input');
+      input.value = 'HEALTH';
+      Object.defineProperty(event, 'target', { value: input });
+
+      component.onCategoryInput(event as any);
+
+      expect(component.filteredCategories).toContain('Health');
+    });
+
+    it('should filter categories with whitespace', () => {
+      component.formData.is_personal = true;
+      const event = new Event('input');
+      const input = document.createElement('input');
+      input.value = '  work  ';
+      Object.defineProperty(event, 'target', { value: input });
+
+      component.onCategoryInput(event as any);
+
+      expect(component.filteredCategories).toContain('Work');
+    });
+  });
+
+  describe('Category Dropdown - selectCategory', () => {
+    it('should set selected category', () => {
+      component.selectCategory('Health');
+
+      expect(component.formData.category).toBe('Health');
+    });
+
+    it('should close dropdown after selection', () => {
+      component.showCategoryDropdown = true;
+
+      component.selectCategory('Health');
+
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+
+    it('should clear filtered categories after selection', () => {
+      component.filteredCategories = ['Health', 'Family'];
+
+      component.selectCategory('Health');
+
+      expect(component.filteredCategories).toEqual([]);
+    });
+
+    it('should reset selectedCategoryIndex after selection', () => {
+      component.selectedCategoryIndex = 1;
+
+      component.selectCategory('Health');
+
+      expect(component.selectedCategoryIndex).toBe(-1);
+    });
+
+    it('should call markForCheck after selection', () => {
+      component.selectCategory('Health');
+
+      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalled();
+    });
+  });
+
+  describe('Category Dropdown - onCategoryKeyDown', () => {
+    beforeEach(() => {
+      mockPrayerService.getUniqueCategoriesForUser.mockReturnValue(['Health', 'Family', 'Work']);
+      component.ngOnInit();
+      component.filteredCategories = ['Health', 'Family', 'Work'];
+      component.showCategoryDropdown = true;
+    });
+
+    it('should move selection down with ArrowDown key', () => {
+      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+      vi.spyOn(event, 'preventDefault');
+
+      component.onCategoryKeyDown(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.selectedCategoryIndex).toBe(0);
+    });
+
+    it('should move selection down multiple times', () => {
+      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+
+      component.onCategoryKeyDown(event);
+      component.onCategoryKeyDown(event);
+
+      expect(component.selectedCategoryIndex).toBe(1);
+    });
+
+    it('should not go beyond last item with ArrowDown', () => {
+      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+
+      component.selectedCategoryIndex = 2;
+      component.onCategoryKeyDown(event);
+
+      expect(component.selectedCategoryIndex).toBe(2);
+    });
+
+    it('should move selection up with ArrowUp key', () => {
+      component.selectedCategoryIndex = 1;
+      const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
+      vi.spyOn(event, 'preventDefault');
+
+      component.onCategoryKeyDown(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.selectedCategoryIndex).toBe(0);
+    });
+
+    it('should not go below -1 with ArrowUp', () => {
+      component.selectedCategoryIndex = 0;
+      const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
+
+      component.onCategoryKeyDown(event);
+
+      expect(component.selectedCategoryIndex).toBe(-1);
+    });
+
+    it('should select category with Enter key when item is selected', () => {
+      component.selectedCategoryIndex = 0;
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      vi.spyOn(event, 'preventDefault');
+      vi.spyOn(component, 'selectCategory');
+
+      component.onCategoryKeyDown(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.selectCategory).toHaveBeenCalledWith('Health');
+    });
+
+    it('should not select anything with Enter if no item is selected', () => {
+      component.selectedCategoryIndex = -1;
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      vi.spyOn(component, 'selectCategory');
+
+      component.onCategoryKeyDown(event);
+
+      expect(component.selectCategory).not.toHaveBeenCalled();
+    });
+
+    it('should close dropdown with Escape key', () => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      vi.spyOn(event, 'preventDefault');
+
+      component.onCategoryKeyDown(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.showCategoryDropdown).toBe(false);
+      expect(component.selectedCategoryIndex).toBe(-1);
+    });
+
+    it('should do nothing when dropdown is closed', () => {
+      component.showCategoryDropdown = false;
+      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+      vi.spyOn(event, 'preventDefault');
+
+      component.onCategoryKeyDown(event);
+
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(component.selectedCategoryIndex).toBe(-1);
+    });
+
+    it('should do nothing when no filtered categories', () => {
+      component.filteredCategories = [];
+      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+      vi.spyOn(event, 'preventDefault');
+
+      component.onCategoryKeyDown(event);
+
+      expect(event.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('should prevent Enter key default when dropdown is open but empty', () => {
+      component.filteredCategories = [];
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      vi.spyOn(event, 'preventDefault');
+
+      component.onCategoryKeyDown(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    it('should call markForCheck after keyboard navigation', () => {
+      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+      mockChangeDetectorRef.markForCheck.mockClear();
+
+      component.onCategoryKeyDown(event);
+
+      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalled();
+    });
+  });
+
+  describe('Category Dropdown - onDocumentClick', () => {
+    it('should close dropdown when clicking outside', () => {
+      component.showCategoryDropdown = true;
+      const button = document.createElement('button');
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: button });
+
+      component.onDocumentClick(event as any);
+
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+
+    it('should not close dropdown when clicking inside dropdown', () => {
+      component.showCategoryDropdown = true;
+      const dropdownItem = document.createElement('div');
+      dropdownItem.className = 'dropdown-item';
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: dropdownItem });
+
+      component.onDocumentClick(event as any);
+
+      expect(component.showCategoryDropdown).toBe(true);
+    });
+
+    it('should not close dropdown when clicking on category input', () => {
+      component.showCategoryDropdown = true;
+      const categoryInput = document.createElement('input');
+      categoryInput.id = 'category';
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: categoryInput });
+
+      component.onDocumentClick(event as any);
+
+      expect(component.showCategoryDropdown).toBe(true);
+    });
+
+    it('should do nothing when dropdown is already closed', () => {
+      component.showCategoryDropdown = false;
+      const button = document.createElement('button');
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: button });
+
+      component.onDocumentClick(event as any);
+
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+
+    it('should call markForCheck when closing dropdown', () => {
+      component.showCategoryDropdown = true;
+      const button = document.createElement('button');
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: button });
+      mockChangeDetectorRef.markForCheck.mockClear();
+
+      component.onDocumentClick(event as any);
+
+      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalled();
+    });
+  });
+
+  describe('cancel - dropdown state', () => {
+    it('should reset showCategoryDropdown', () => {
+      component.showCategoryDropdown = true;
+
+      component.cancel();
+
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+  });
+
+  describe('Personal prayer category loading', () => {
+    it('should load available categories when opening personal prayer form', async () => {
+      mockPrayerService.getUniqueCategoriesForUser.mockReturnValue(['Health', 'Family']);
+
+      component.isOpen = true;
+      component.formData.is_personal = true;
+      component.ngOnChanges();
+
+      expect(component.availableCategories).toEqual(['Health', 'Family']);
+    });
+
+    it('should initialize filteredCategories as empty', () => {
+      expect(component.filteredCategories).toEqual([]);
+    });
+
+    it('should initialize showCategoryDropdown as false', () => {
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+
+    it('should initialize selectedCategoryIndex as -1', () => {
+      expect(component.selectedCategoryIndex).toBe(-1);
+    });
+  });
+
+  describe('onBackdropClick', () => {
+    it('should call cancel when clicking on backdrop', () => {
+      vi.spyOn(component, 'cancel');
+      const mockElement = document.createElement('div');
+      mockElement.classList.add('fixed');
+      
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: mockElement });
+
+      component.onBackdropClick(event);
+
+      expect(component.cancel).toHaveBeenCalled();
+    });
+
+    it('should not call cancel when clicking on modal content', () => {
+      vi.spyOn(component, 'cancel');
+      const mockElement = document.createElement('div');
+      
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: mockElement });
+
+      component.onBackdropClick(event);
+
+      expect(component.cancel).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onDocumentClick', () => {
+    it('should call markForCheck after event handling', () => {
+      component.showCategoryDropdown = true;
+      const button = document.createElement('button');
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: button });
+      mockChangeDetectorRef.markForCheck.mockClear();
+
+      component.onDocumentClick(event as any);
+
+      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalled();
+    });
+  });
+
 });
 

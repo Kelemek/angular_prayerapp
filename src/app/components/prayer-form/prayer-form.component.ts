@@ -153,7 +153,7 @@ import { ToastService } from '../../services/toast.service';
           @if (formData.is_personal) {
           <div class="relative">
             <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Category <span class="text-gray-500 dark:text-gray-400">(optional, max 50 characters)</span>
+              Category <span class="text-gray-500 dark:text-gray-400">(optional, {{ formData.category.length }}/50 characters max)</span>
             </label>
             <input
               type="text"
@@ -165,20 +165,20 @@ import { ToastService } from '../../services/toast.service';
               aria-label="Prayer category"
               (focus)="showCategoryDropdown = true"
               (input)="onCategoryInput($event)"
+              (keydown)="onCategoryKeyDown($event)"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder="e.g., Health, Family, Work (or create a new category)"
             />
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {{ formData.category.length }}/50
-            </div>
             <!-- Category Dropdown -->
             @if (showCategoryDropdown && filteredCategories.length > 0) {
             <div class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
-              @for (category of filteredCategories; track category) {
+              @for (category of filteredCategories; track category; let i = $index) {
               <button
                 type="button"
                 (click)="selectCategory(category)"
-                class="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:bg-blue-100 dark:focus:bg-gray-600"
+                [class.bg-blue-100]="i === selectedCategoryIndex"
+                [class.dark:bg-gray-600]="i === selectedCategoryIndex"
+                class="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:bg-blue-100 dark:focus:bg-gray-600 transition-colors"
               >
                 {{ category }}
               </button>
@@ -241,6 +241,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   currentUserEmail = '';
   availableCategories: string[] = [];
   filteredCategories: string[] = [];
+  selectedCategoryIndex = -1;
   showCategoryDropdown = false;
   user$!: Observable<User | null>;
 
@@ -305,6 +306,10 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     const input = (event.target as HTMLInputElement).value;
     this.formData.category = input;
     this.updateFilteredCategories();
+    // Show dropdown if there are filtered results
+    if (this.filteredCategories.length > 0) {
+      this.showCategoryDropdown = true;
+    }
   }
 
   private updateFilteredCategories(): void {
@@ -316,12 +321,49 @@ export class PrayerFormComponent implements OnInit, OnChanges {
         cat.toLowerCase().includes(searchTerm)
       );
     }
+    this.selectedCategoryIndex = -1;
   }
 
   selectCategory(category: string): void {
     this.formData.category = category;
     this.showCategoryDropdown = false;
     this.filteredCategories = [];
+    this.selectedCategoryIndex = -1;
+    this.cdr.markForCheck();
+  }
+
+  onCategoryKeyDown(event: KeyboardEvent): void {
+    if (!this.showCategoryDropdown || this.filteredCategories.length === 0) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedCategoryIndex = Math.min(
+          this.selectedCategoryIndex + 1,
+          this.filteredCategories.length - 1
+        );
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedCategoryIndex = Math.max(this.selectedCategoryIndex - 1, -1);
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedCategoryIndex >= 0) {
+          this.selectCategory(this.filteredCategories[this.selectedCategoryIndex]);
+        }
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.showCategoryDropdown = false;
+        this.selectedCategoryIndex = -1;
+        break;
+    }
     this.cdr.markForCheck();
   }
 
