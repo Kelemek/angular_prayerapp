@@ -255,23 +255,11 @@ export class PrayerService {
         }))
       }));
 
-      // Sort by most recent activity
-      const sortedPersonalPrayers = personalPrayers
-        .map(prayer => ({
-          prayer,
-          latestActivity: Math.max(
-            new Date(prayer.created_at).getTime(),
-            prayer.updates.length > 0 
-              ? new Date(prayer.updates[0].created_at).getTime()
-              : 0
-          )
-        }))
-        .sort((a, b) => b.latestActivity - a.latestActivity)
-        .map(({ prayer }) => prayer);
-
-      console.log(`[PrayerService] Loaded ${sortedPersonalPrayers.length} personal prayers`);
-      this.allPersonalPrayersSubject.next(sortedPersonalPrayers);
-      this.cache.set('personalPrayers', sortedPersonalPrayers);
+      // Use the database ordering (by display_order DESC, then created_at DESC)
+      // Don't re-sort by activity as it would override user's manual ordering
+      console.log(`[PrayerService] Loaded ${personalPrayers.length} personal prayers`);
+      this.allPersonalPrayersSubject.next(personalPrayers);
+      this.cache.set('personalPrayers', personalPrayers);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load personal prayers';
       console.error('[PrayerService] Failed to load personal prayers:', err);

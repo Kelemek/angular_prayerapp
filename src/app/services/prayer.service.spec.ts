@@ -4617,25 +4617,27 @@ describe('PrayerService', () => {
                   order: vi.fn(() => Promise.resolve({
                     data: [
                       {
-                        id: 'p1',
-                        title: 'Older Prayer',
-                        description: 'Created 2 hours ago',
-                        status: 'current',
-                        prayer_for: 'John',
-                        user_email: 'user@test.com',
-                        created_at: twoHoursAgo,
-                        updated_at: twoHoursAgo,
-                        personal_prayer_updates: []
-                      },
-                      {
                         id: 'p2',
                         title: 'Newer Prayer',
                         description: 'Created 1 hour ago',
                         status: 'current',
                         prayer_for: 'Jane',
                         user_email: 'user@test.com',
+                        display_order: 1,
                         created_at: oneHourAgo,
                         updated_at: oneHourAgo,
+                        personal_prayer_updates: []
+                      },
+                      {
+                        id: 'p1',
+                        title: 'Older Prayer',
+                        description: 'Created 2 hours ago',
+                        status: 'current',
+                        prayer_for: 'John',
+                        user_email: 'user@test.com',
+                        display_order: 0,
+                        created_at: twoHoursAgo,
+                        updated_at: twoHoursAgo,
                         personal_prayer_updates: []
                       }
                     ],
@@ -4661,15 +4663,15 @@ describe('PrayerService', () => {
         };
       });
 
-      // Call loadPersonalPrayers directly to test the sorting logic
+      // Call loadPersonalPrayers directly to test the ordering
       await (service as any).loadPersonalPrayers();
 
-      // Personal prayers should be sorted by recent activity
+      // Personal prayers should be ordered by display_order (database order)
       const personalPrayers = (service as any).allPersonalPrayersSubject.value;
       expect(personalPrayers.length).toBe(2);
-      // Newer prayer (created 1 hour ago) should be first
+      // Prayer with higher display_order (1) should be first
       expect(personalPrayers[0].id).toBe('p2');
-      // Older prayer (created 2 hours ago) should be second
+      // Prayer with lower display_order (0) should be second
       expect(personalPrayers[1].id).toBe('p1');
     });
   });
