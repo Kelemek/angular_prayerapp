@@ -981,6 +981,28 @@ export class PrayerService {
   }
 
   /**
+   * Validate and sanitize category name (50 character max)
+   */
+  private sanitizeCategory(category: string | null | undefined): string | null {
+    if (!category || typeof category !== 'string') {
+      return null;
+    }
+    
+    const trimmed = category.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    
+    // Enforce 50 character limit
+    if (trimmed.length > 50) {
+      console.warn(`Category name exceeds 50 characters, truncating: "${trimmed}"`);
+      return trimmed.substring(0, 50);
+    }
+    
+    return trimmed;
+  }
+
+  /**
    * PERSONAL PRAYERS - User-specific prayers with no admin approval workflow
    */
 
@@ -1074,7 +1096,7 @@ export class PrayerService {
         title: prayer.title,
         description: prayer.description,
         prayer_for: prayer.prayer_for,
-        category: prayer.category || null,
+        category: this.sanitizeCategory(prayer.category),
         user_email: userEmail
       };
 
@@ -1186,6 +1208,7 @@ export class PrayerService {
 
       const updateData = {
         ...updates,
+        category: updates.category !== undefined ? this.sanitizeCategory(updates.category) : undefined,
         updated_at: new Date().toISOString()
       };
 

@@ -368,7 +368,7 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'What are Personal Prayers?',
-            text: 'Personal prayers are private prayer requests that are visible only to you. Unlike community prayers that are shared with others, personal prayers give you a private space to track your own prayer requests, answered prayers, and personal spiritual journey. They don\'t require administrator approval and are immediately available for you to use.',
+            text: 'Personal prayers are private prayer requests that are visible only to you. Unlike community prayers that are shared with others, personal prayers give you a private space to track your own prayer requests and answered prayers. They don\'t require administrator approval and are immediately available for you to use.',
           },
           {
             subtitle: 'Creating Personal Prayers',

@@ -153,7 +153,7 @@ import { ToastService } from '../../services/toast.service';
           @if (formData.is_personal) {
           <div>
             <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Category <span class="text-gray-500 dark:text-gray-400">(optional)</span>
+              Category <span class="text-gray-500 dark:text-gray-400">(optional, max 50 characters)</span>
             </label>
             <input
               type="text"
@@ -162,10 +162,14 @@ import { ToastService } from '../../services/toast.service';
               name="category"
               list="categories"
               autocomplete="off"
+              maxlength="50"
               aria-label="Prayer category"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder="e.g., Health, Family, Work (or create a new category)"
             />
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {{ formData.category.length }}/50
+            </div>
             <datalist id="categories">
               @for (category of availableCategories; track category) {
               <option [value]="category"></option>
