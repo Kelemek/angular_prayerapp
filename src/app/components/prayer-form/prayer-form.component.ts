@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ChangeDetectorRef, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
@@ -151,7 +151,7 @@ import { ToastService } from '../../services/toast.service';
 
           <!-- Category Field - only show for personal prayers -->
           @if (formData.is_personal) {
-          <div>
+          <div class="relative">
             <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Category <span class="text-gray-500 dark:text-gray-400">(optional, max 50 characters)</span>
             </label>
@@ -160,21 +160,31 @@ import { ToastService } from '../../services/toast.service';
               id="category"
               [(ngModel)]="formData.category"
               name="category"
-              list="categories"
               autocomplete="off"
               maxlength="50"
               aria-label="Prayer category"
+              (focus)="showCategoryDropdown = true"
+              (input)="onCategoryInput($event)"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder="e.g., Health, Family, Work (or create a new category)"
             />
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {{ formData.category.length }}/50
             </div>
-            <datalist id="categories">
-              @for (category of availableCategories; track category) {
-              <option [value]="category"></option>
+            <!-- Category Dropdown -->
+            @if (showCategoryDropdown && filteredCategories.length > 0) {
+            <div class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+              @for (category of filteredCategories; track category) {
+              <button
+                type="button"
+                (click)="selectCategory(category)"
+                class="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:bg-blue-100 dark:focus:bg-gray-600"
+              >
+                {{ category }}
+              </button>
               }
-            </datalist>
+            </div>
+            }
           </div>
           }
 
@@ -230,6 +240,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   isAdmin = false;
   currentUserEmail = '';
   availableCategories: string[] = [];
+  filteredCategories: string[] = [];
+  showCategoryDropdown = false;
   user$!: Observable<User | null>;
 
   constructor(
@@ -287,6 +299,30 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       this.formData.prayer_for.trim() &&
       this.formData.description.trim()
     );
+  }
+
+  onCategoryInput(event: Event): void {
+    const input = (event.target as HTMLInputElement).value;
+    this.formData.category = input;
+    this.updateFilteredCategories();
+  }
+
+  private updateFilteredCategories(): void {
+    const searchTerm = this.formData.category.toLowerCase().trim();
+    if (searchTerm === '') {
+      this.filteredCategories = [];
+    } else {
+      this.filteredCategories = this.availableCategories.filter(cat =>
+        cat.toLowerCase().includes(searchTerm)
+      );
+    }
+  }
+
+  selectCategory(category: string): void {
+    this.formData.category = category;
+    this.showCategoryDropdown = false;
+    this.filteredCategories = [];
+    this.cdr.markForCheck();
   }
 
   async handleSubmit(): Promise<void> {
@@ -375,12 +411,25 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     };
     this.showSuccessMessage = false;
     this.isSubmitting = false;
+    this.showCategoryDropdown = false;
     this.close.emit();
   }
 
   onBackdropClick(event: MouseEvent): void {
     if ((event.target as HTMLElement).classList.contains('fixed')) {
       this.cancel();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.showCategoryDropdown) {
+      const target = event.target as HTMLElement;
+      // Close dropdown if click is outside the category input area
+      if (!target.closest('#category') && !target.closest('[class*="dropdown"]')) {
+        this.showCategoryDropdown = false;
+        this.cdr.markForCheck();
+      }
     }
   }
 }
