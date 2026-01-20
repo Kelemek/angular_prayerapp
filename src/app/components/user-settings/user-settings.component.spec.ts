@@ -3,6 +3,7 @@ import { UserSettingsComponent } from './user-settings.component';
 import { ThemeService } from '../../services/theme.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { PrintService } from '../../services/print.service';
+import { PrayerService } from '../../services/prayer.service';
 import { EmailNotificationService } from '../../services/email-notification.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { UserSessionService } from '../../services/user-session.service';
@@ -13,6 +14,7 @@ describe('UserSettingsComponent', () => {
   let mockThemeService: any;
   let mockSupabaseService: any;
   let mockPrintService: any;
+  let mockPrayerService: any;
   let mockEmailNotificationService: any;
   let mockAdminAuthService: any;
   let mockUserSessionService: any;
@@ -56,6 +58,10 @@ describe('UserSettingsComponent', () => {
       downloadPrintablePromptList: vi.fn(() => Promise.resolve())
     };
 
+    mockPrayerService = {
+      getUniqueCategoriesForUser: vi.fn(() => Promise.resolve(['Health', 'Family', 'Work']))
+    };
+
     mockEmailNotificationService = {};
 
     mockAdminAuthService = {
@@ -96,6 +102,7 @@ describe('UserSettingsComponent', () => {
       mockThemeService,
       mockPrintService,
       mockSupabaseService,
+      mockPrayerService,
       mockEmailNotificationService,
       mockAdminAuthService,
       mockGitHubFeedbackService as any,

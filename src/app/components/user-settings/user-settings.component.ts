@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../services/theme.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { PrintService } from '../../services/print.service';
+import { PrayerService } from '../../services/prayer.service';
 import { EmailNotificationService } from '../../services/email-notification.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { GitHubFeedbackService } from '../../services/github-feedback.service';
@@ -256,7 +257,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               <div class="flex w-full min-w-0">
                 <button
                   (click)="handlePrintPersonalPrayers()"
-                  title="Print personal prayers for the selected time period"
+                  title="Print personal prayers for the selected categories"
                   [disabled]="isPrintingPersonal"
                   class="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-3 bg-green-600 text-white rounded-l-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
                 >
@@ -297,7 +298,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 <button
                   (click)="showPrintPersonalDropdown = !showPrintPersonalDropdown"
                   [disabled]="isPrintingPersonal"
-                  title="Select time period for personal prayers to print"
+                  title="Select which personal prayer categories to print"
                   class="flex items-center justify-center px-2 bg-green-600 text-white rounded-r-lg border-l border-green-500 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg 
@@ -317,22 +318,32 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 </button>
               </div>
               
-              <!-- Print Personal Range Dropdown -->
+              <!-- Print Personal Categories Dropdown -->
               @if (showPrintPersonalDropdown) {
               <div>
                 <div
                   class="fixed inset-0 z-10"
                   (click)="showPrintPersonalDropdown = false"
                 ></div>
-                <div class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
-                  @for (option of printRangeOptions; track option.value) {
+                <div class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 max-h-60 overflow-y-auto">
                   <button
-                    (click)="printPersonalRange = option.value; showPrintPersonalDropdown = false"
+                    (click)="selectedPersonalCategories = []; showPrintPersonalDropdown = false"
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
-                    [title]="'Print personal prayers from the last ' + option.label"
+                    title="Print all personal prayer categories"
                   >
-                    <span>{{ option.label }}</span>
-                    @if (printPersonalRange === option.value) {
+                    <span>All Categories</span>
+                    @if (selectedPersonalCategories.length === 0) {
+                      <span class="text-green-600 dark:text-green-400">✓</span>
+                    }
+                  </button>
+                  @for (category of personalCategories; track category) {
+                  <button
+                    (click)="togglePersonalCategory(category)"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+                    [title]="'Toggle ' + category + ' category for printing'"
+                  >
+                    <span>{{ category }}</span>
+                    @if (selectedPersonalCategories.includes(category)) {
                       <span class="text-green-600 dark:text-green-400">✓</span>
                     }
                   </button>
@@ -602,12 +613,13 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   isPrintingPrompts = false;
   isPrintingPersonal = false;
   printRange: PrintRange = 'week';
-  printPersonalRange: PrintRange = 'week';
   showPrintDropdown = false;
   showPromptTypesDropdown = false;
   showPrintPersonalDropdown = false;
   promptTypes: string[] = [];
   selectedPromptTypes: string[] = [];
+  personalCategories: string[] = [];
+  selectedPersonalCategories: string[] = [];
   githubFeedbackEnabled = false;
 
   private destroy$ = new Subject<void>();
@@ -644,6 +656,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     private themeService: ThemeService,
     private printService: PrintService,
     private supabase: SupabaseService,
+    private prayerService: PrayerService,
     private emailNotification: EmailNotificationService,
     private adminAuthService: AdminAuthService,
     private githubFeedbackService: GitHubFeedbackService,
@@ -683,6 +696,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen'] && this.isOpen) {
       this.loadPromptTypes();
+      this.loadPersonalCategories();
       
       // Mark that we're doing initial load
       this.isInitialLoad = true;
@@ -748,6 +762,14 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       }
     } catch (err) {
       console.error('Error fetching prayer types:', err);
+    }
+  }
+
+  async loadPersonalCategories(): Promise<void> {
+    try {
+      this.personalCategories = this.prayerService.getUniqueCategoriesForUser();
+    } catch (err) {
+      console.error('Error loading personal categories:', err);
     }
   }
 
@@ -818,7 +840,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     const newWindow = window.open('', '_blank');
     
     try {
-      await this.printService.downloadPrintablePersonalPrayerList(this.printPersonalRange, newWindow);
+      // Pass selected categories to the print service (pass undefined to print all if none selected)
+      await this.printService.downloadPrintablePersonalPrayerList(this.selectedPersonalCategories.length > 0 ? this.selectedPersonalCategories : undefined, newWindow);
     } catch (error) {
       console.error('Error printing personal prayers:', error);
       if (newWindow) newWindow.close();
@@ -835,6 +858,15 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       this.selectedPromptTypes = this.selectedPromptTypes.filter(t => t !== type);
     } else {
       this.selectedPromptTypes = [...this.selectedPromptTypes, type];
+    }
+  }
+
+  togglePersonalCategory(category: string): void {
+    const index = this.selectedPersonalCategories.indexOf(category);
+    if (index > -1) {
+      this.selectedPersonalCategories = this.selectedPersonalCategories.filter(c => c !== category);
+    } else {
+      this.selectedPersonalCategories = [...this.selectedPersonalCategories, category];
     }
   }
 

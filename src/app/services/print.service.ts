@@ -674,7 +674,7 @@ export class PrintService {
   /**
    * Generate and download a printable list of personal prayers
    */
-  async downloadPrintablePersonalPrayerList(timeRange: TimeRange = 'month', newWindow: Window | null = null): Promise<void> {
+  async downloadPrintablePersonalPrayerList(categories?: string[], newWindow: Window | null = null): Promise<void> {
     try {
       // Fetch personal prayers using the prayer service
       const allPersonalPrayers = await this.prayerService.getPersonalPrayers();
@@ -685,59 +685,21 @@ export class PrintService {
         return;
       }
 
-      // Calculate date range
-      const endDate = new Date();
-      const startDate = new Date();
-      
-      switch (timeRange) {
-        case 'week':
-          startDate.setDate(endDate.getDate() - 7);
-          break;
-        case 'twoweeks':
-          startDate.setDate(endDate.getDate() - 14);
-          break;
-        case 'month':
-          startDate.setMonth(endDate.getMonth() - 1);
-          break;
-        case 'year':
-          startDate.setFullYear(endDate.getFullYear() - 1);
-          break;
-        case 'all':
-          startDate.setFullYear(2000, 0, 1);
-          break;
-      }
-
-      // Filter: include prayers created in range OR with updates in range
-      const personalPrayers = allPersonalPrayers.filter((prayer: any) => {
-        const prayerCreatedDate = new Date(prayer.created_at);
-        
-        // Include if prayer was created in time range
-        if (prayerCreatedDate >= startDate && prayerCreatedDate <= endDate) {
-          return true;
-        }
-        
-        // Include if any update is in time range
-        if (prayer.updates && Array.isArray(prayer.updates) && prayer.updates.length > 0) {
-          const hasRecentUpdate = prayer.updates.some((update: any) => {
-            const updateDate = new Date(update.created_at);
-            return updateDate >= startDate && updateDate <= endDate;
-          });
-          if (hasRecentUpdate) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
+      // Filter by categories if specified, otherwise include all
+      const personalPrayers = categories && categories.length > 0
+        ? allPersonalPrayers.filter((prayer: any) => categories.includes(prayer.category || ''))
+        : allPersonalPrayers;
 
       if (personalPrayers.length === 0) {
-        const rangeText = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2 weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'database';
-        alert(`No personal prayers found in the last ${rangeText}.`);
+        const categoryText = categories && categories.length > 0 
+          ? `in the selected categories` 
+          : 'with the selected filters';
+        alert(`No personal prayers found ${categoryText}.`);
         if (newWindow) newWindow.close();
         return;
       }
 
-      const html = this.generatePersonalPrayersPrintableHTML(personalPrayers, timeRange);
+      const html = this.generatePersonalPrayersPrintableHTML(personalPrayers, categories);
 
       // Use the pre-opened window if provided (Safari compatible)
       const targetWindow = newWindow || window.open('', '_blank');
@@ -750,8 +712,8 @@ export class PrintService {
         link.href = blobUrl;
         
         const today = new Date().toISOString().split('T')[0];
-        const rangeLabel = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'all';
-        link.download = `personal-prayers-${rangeLabel}-${today}.html`;
+        const categoryLabel = categories && categories.length > 0 ? categories.slice(0, 2).join('-').toLowerCase() : 'all';
+        link.download = `personal-prayers-${categoryLabel}-${today}.html`;
         
         document.body.appendChild(link);
         link.click();
@@ -776,7 +738,7 @@ export class PrintService {
   /**
    * Generate HTML content for printable personal prayers list
    */
-  private generatePersonalPrayersPrintableHTML(prayers: any[], timeRange: TimeRange = 'month'): string {
+  private generatePersonalPrayersPrintableHTML(prayers: any[], categories?: string[]): string {
     const now = new Date();
     const today = now.toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -790,42 +752,23 @@ export class PrintService {
       hour12: true
     });
 
-    // Calculate start date based on time range
-    const startDate = new Date();
+    const categoryLabel = categories && categories.length > 0
+      ? `Categories: ${categories.join(', ')}`
+      : 'All Categories';
     
-    switch (timeRange) {
-      case 'week':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case 'twoweeks':
-        startDate.setDate(startDate.getDate() - 14);
-        break;
-      case 'month':
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'year':
-        startDate.setFullYear(startDate.getFullYear() - 1);
-        break;
-      case 'all':
-        startDate.setFullYear(2000, 0, 1);
-        break;
-    }
-    
-    const dateRange = timeRange === 'all' 
-      ? `All Personal Prayers (as of ${today})`
-      : `${startDate.toLocaleDateString('en-US', { 
-          month: 'long', 
-          day: 'numeric', 
-          year: 'numeric' 
-        })} - ${today}`;
+    const dateRange = `${categoryLabel} (as of ${today})`;
 
-    // Group prayers by category (for personal prayers, 'Answered' category means answered)
-    const prayersByStatus = {
-      current: prayers.filter((p: any) => p.category !== 'Answered'),
-      answered: prayers.filter((p: any) => p.category === 'Answered')
-    };
+    // Group prayers by category
+    const prayersByCategory: { [key: string]: any[] } = {};
+    prayers.forEach((prayer: any) => {
+      const category = prayer.category || 'Uncategorized';
+      if (!prayersByCategory[category]) {
+        prayersByCategory[category] = [];
+      }
+      prayersByCategory[category].push(prayer);
+    });
 
-    // Sort prayers within each status by most recent activity
+    // Sort prayers within each category by most recent activity
     const sortByRecentActivity = (a: any, b: any) => {
       const aLatestUpdate = a.updates && a.updates.length > 0
         ? Math.max(...a.updates.map((u: any) => new Date(u.created_at).getTime()))
@@ -840,31 +783,29 @@ export class PrintService {
       return bLatestActivity - aLatestActivity;
     };
 
-    prayersByStatus.current.sort(sortByRecentActivity);
-    prayersByStatus.answered.sort(sortByRecentActivity);
+    // Sort each category's prayers
+    Object.keys(prayersByCategory).forEach(category => {
+      prayersByCategory[category].sort(sortByRecentActivity);
+    });
 
-    const statusLabels = {
-      current: 'Current Prayer Requests',
-      answered: 'Answered Prayers'
-    };
-
-    const statusColors = {
-      current: '#0047AB',
-      answered: '#39704D'
-    };
+    // Sort categories for consistent display
+    const sortedCategories = Object.keys(prayersByCategory).sort();
 
     let prayerSectionsHTML = '';
 
-    // Generate sections for each status
-    (['current', 'answered'] as const).forEach(status => {
-      const statusPrayers = prayersByStatus[status];
-      if (statusPrayers.length > 0) {
-        const prayersHTML = statusPrayers.map((prayer: any) => this.generatePersonalPrayerHTML(prayer)).join('');
+    // Generate sections for each category
+    sortedCategories.forEach(category => {
+      const categoryPrayers = prayersByCategory[category];
+      if (categoryPrayers.length > 0) {
+        const prayersHTML = categoryPrayers.map((prayer: any) => this.generatePersonalPrayerHTML(prayer)).join('');
+        
+        // Use a color scheme for categories (similar to status colors)
+        const categoryColor = this.getCategoryColor(category);
         
         prayerSectionsHTML += `
-          <div class="status-section">
-            <h2 style="color: ${statusColors[status]}; border-bottom: 2px solid ${statusColors[status]}; padding-bottom: 3px; margin-bottom: 4px; margin-top: 8px; font-size: 16px;">
-              ${statusLabels[status]} (${statusPrayers.length})
+          <div class="category-section">
+            <h2 style="color: ${categoryColor}; border-bottom: 2px solid ${categoryColor}; padding-bottom: 3px; margin-bottom: 4px; margin-top: 8px; font-size: 16px;">
+              ${category} (${categoryPrayers.length})
             </h2>
             <div class="columns">
               ${prayersHTML}
@@ -940,7 +881,7 @@ export class PrintService {
       color: #4b5563;
     }
 
-    .status-section {
+    .category-section {
       margin-bottom: 4px;
     }
 
@@ -1387,5 +1328,37 @@ export class PrintService {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Get a color for a category for printing sections
+   */
+  private getCategoryColor(category: string): string {
+    // Define a set of colors for categories
+    const colors: { [key: string]: string } = {
+      'Health': '#DC2626',
+      'Family': '#2563EB',
+      'Work': '#7C3AED',
+      'Financial': '#059669',
+      'Spiritual': '#7C3AED',
+      'Relationships': '#EC4899',
+      'Personal': '#0891B2',
+      'Other': '#6366F1',
+      'Answered': '#39704D'
+    };
+
+    // Return the color for the category, or use a hash-based color if not predefined
+    if (colors[category]) {
+      return colors[category];
+    }
+
+    // Generate a consistent color based on category name hash
+    let hash = 0;
+    for (let i = 0; i < category.length; i++) {
+      hash = category.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 70%, 50%)`;
   }
 }

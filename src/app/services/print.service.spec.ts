@@ -2715,7 +2715,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
     it('should alert when no personal prayers found', async () => {
       mockPrayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      await service.downloadPrintablePersonalPrayerList('month', null);
+      await service.downloadPrintablePersonalPrayerList(undefined, null);
 
       expect(global.alert).toHaveBeenCalledWith('No personal prayers found.');
     });
@@ -2724,28 +2724,34 @@ describe('PrintService - Advanced Coverage Tests', () => {
       const mockWindow = { close: vi.fn() };
       mockPrayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      await service.downloadPrintablePersonalPrayerList('month', mockWindow as any);
+      await service.downloadPrintablePersonalPrayerList(undefined, mockWindow as any);
 
       expect(mockWindow.close).toHaveBeenCalled();
     });
 
-    it('should filter personal prayers by time range', async () => {
+    it('should filter personal prayers by categories', async () => {
       const now = new Date();
-      // Create dates that are clearly within the range (with buffer to avoid edge case timing issues)
-      const oneWeekAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 5 days ago (well within 7 day range)
-      const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
       mockPrayerService.getPersonalPrayers.mockResolvedValue([
         {
           id: '1',
-          title: 'Recent Prayer',
-          created_at: oneWeekAgo.toISOString(),
+          prayer_for: 'Health Prayer',
+          category: 'Health',
+          created_at: now.toISOString(),
           updates: []
         },
         {
           id: '2',
-          title: 'Old Prayer',
-          created_at: twoMonthsAgo.toISOString(),
+          prayer_for: 'Work Prayer',
+          category: 'Work',
+          created_at: now.toISOString(),
+          updates: []
+        },
+        {
+          id: '3',
+          prayer_for: 'Family Prayer',
+          category: 'Family',
+          created_at: now.toISOString(),
           updates: []
         }
       ]);
@@ -2761,7 +2767,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       // Reset and configure window.open to return mockWindow
       global.window.open = vi.fn(() => mockWindow) as any;
 
-      await service.downloadPrintablePersonalPrayerList('week', null);
+      await service.downloadPrintablePersonalPrayerList(['Health', 'Work'], null);
 
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
@@ -2770,7 +2776,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockPrayerService.getPersonalPrayers.mockRejectedValue(new Error('Service error'));
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      await service.downloadPrintablePersonalPrayerList('month', null);
+      await service.downloadPrintablePersonalPrayerList(undefined, null);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error generating personal prayers list:', expect.any(Error));
       expect(global.alert).toHaveBeenCalledWith('Failed to generate personal prayers list. Please try again.');
@@ -2781,7 +2787,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockPrayerService.getPersonalPrayers.mockRejectedValue(new Error('Service error'));
       vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      await service.downloadPrintablePersonalPrayerList('month', mockWindow as any);
+      await service.downloadPrintablePersonalPrayerList(undefined, mockWindow as any);
 
       expect(mockWindow.close).toHaveBeenCalled();
     });
@@ -2813,7 +2819,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       };
       (global.window.open as any).mockReturnValue(mockWindow);
 
-      await service.downloadPrintablePersonalPrayerList('month', null);
+      await service.downloadPrintablePersonalPrayerList(undefined, null);
 
       expect(mockWindow.document.write).toHaveBeenCalled();
       const html = mockWindow.document.write.mock.calls[0][0];
@@ -2845,7 +2851,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       } as any;
       global.URL.revokeObjectURL = vi.fn();
 
-      await service.downloadPrintablePersonalPrayerList('month', null);
+      await service.downloadPrintablePersonalPrayerList(undefined, null);
 
       expect(mockLink.click).toHaveBeenCalled();
       expect(global.alert).toHaveBeenCalledWith('Personal prayers downloaded. Please open the file to view and print.');
@@ -2871,7 +2877,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         focus: vi.fn()
       };
 
-      await service.downloadPrintablePersonalPrayerList('month', mockWindow as any);
+      await service.downloadPrintablePersonalPrayerList(undefined, mockWindow as any);
 
       expect(mockWindow.document.open).toHaveBeenCalled();
       expect(mockWindow.document.write).toHaveBeenCalled();
@@ -2879,16 +2885,33 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.focus).toHaveBeenCalled();
     });
 
-    it('should handle different time ranges for personal prayers', async () => {
+    it('should filter by multiple categories for personal prayers', async () => {
       const now = new Date();
-      const prayerData = {
-        id: '1',
-        title: 'Prayer',
-        created_at: now.toISOString(),
-        updates: []
-      };
+      const prayerData = [
+        {
+          id: '1',
+          prayer_for: 'Prayer 1',
+          category: 'Health',
+          created_at: now.toISOString(),
+          updates: []
+        },
+        {
+          id: '2',
+          prayer_for: 'Prayer 2',
+          category: 'Work',
+          created_at: now.toISOString(),
+          updates: []
+        },
+        {
+          id: '3',
+          prayer_for: 'Prayer 3',
+          category: 'Family',
+          created_at: now.toISOString(),
+          updates: []
+        }
+      ];
 
-      mockPrayerService.getPersonalPrayers.mockResolvedValue([prayerData]);
+      mockPrayerService.getPersonalPrayers.mockResolvedValue(prayerData);
 
       const mockWindow = {
         document: {
@@ -2900,12 +2923,10 @@ describe('PrintService - Advanced Coverage Tests', () => {
       };
       (global.window.open as any).mockReturnValue(mockWindow);
 
-      const timeRanges: Array<'week' | 'twoweeks' | 'month' | 'year' | 'all'> = ['week', 'twoweeks', 'month', 'year', 'all'];
+      const categories = ['Health', 'Work'];
 
-      for (const range of timeRanges) {
-        await service.downloadPrintablePersonalPrayerList(range, null);
-        expect(mockWindow.document.write).toHaveBeenCalled();
-      }
+      await service.downloadPrintablePersonalPrayerList(categories, null);
+      expect(mockWindow.document.write).toHaveBeenCalled();
     });
   });
 
