@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectionStrategy, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectionStrategy, OnDestroy, OnChanges, SimpleChanges, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, BehaviorSubject, Subject } from 'rxjs';import { takeUntil } from 'rxjs/operators';import { PrayerRequest } from '../../services/prayer.service';
@@ -17,12 +17,17 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
       [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] p-6 mb-4 transition-colors relative ' + getBorderClass()"
     >
       <!-- Header -->
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex-1">
-          <div class="relative flex items-center gap-2 flex-wrap">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline">
-              Prayer for {{ prayer.prayer_for }}
-            </h3>
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3 flex-1">
+          <!-- Drag Handle (only for personal prayers) -->
+          @if (dragHandle && isPersonal) {
+            <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
+          }
+          <div class="flex-1">
+            <div class="relative flex items-center gap-2 flex-wrap">
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline">
+                Prayer for {{ prayer.prayer_for }}
+              </h3>
             @if (activeFilter === 'total') {
             <span [class]="'px-2 py-1 text-xs font-medium rounded-full ' + getStatusBadgeClasses()">
               {{ getStatusLabel() }}
@@ -38,6 +43,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
               Requested by: <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester() }}</span>
             </span>
             }
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -351,6 +357,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() prayer!: PrayerRequest;
   @Input() isAdmin = false;
   @Input() isPersonal = false;
+  @Input() isDragging = false;
+  @Input() dragHandle: TemplateRef<any> | null = null;
   @Input() deletionsAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
   @Input() updatesAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
   @Input() activeFilter: 'current' | 'answered' | 'archived' | 'total' | 'prompts' | 'personal' = 'total';

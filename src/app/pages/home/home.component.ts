@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { ChangeDetectorRef } from '@angular/core';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PrayerFormComponent } from '../../components/prayer-form/prayer-form.component';
 import { PrayerFiltersComponent, PrayerFilters } from '../../components/prayer-filters/prayer-filters.component';
 import { SkeletonLoaderComponent } from '../../components/skeleton-loader/skeleton-loader.component';
@@ -28,7 +29,7 @@ import type { User } from '@supabase/supabase-js';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, PrayerFormComponent, PrayerFiltersComponent, SkeletonLoaderComponent, AppLogoComponent, PrayerCardComponent, PromptCardComponent, UserSettingsComponent, HelpModalComponent, PersonalPrayerEditModalComponent, PersonalPrayerUpdateEditModalComponent],
+  imports: [CommonModule, RouterModule, DragDropModule, PrayerFormComponent, PrayerFiltersComponent, SkeletonLoaderComponent, AppLogoComponent, PrayerCardComponent, PromptCardComponent, UserSettingsComponent, HelpModalComponent, PersonalPrayerEditModalComponent, PersonalPrayerUpdateEditModalComponent],
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       <!-- Header -->
@@ -423,21 +424,39 @@ import type { User } from '@supabase/supabase-js';
 
             <!-- Personal Prayer Cards (show when personal filter is active) -->
             @if (activeFilter === 'personal') {
-              @for (prayer of getFilteredPersonalPrayers(); track prayer.id) {
-                <app-prayer-card
-                  [prayer]="prayer"
-                  [isAdmin]="(isAdmin$ | async) || false"
-                  [activeFilter]="activeFilter"
-                  [isPersonal]="true"
-                  [deletionsAllowed]="'everyone'"
-                  [updatesAllowed]="'everyone'"
-                  (delete)="deletePersonalPrayer($event)"
-                  (addUpdate)="addPersonalUpdate($event)"
-                  (deleteUpdate)="deletePersonalUpdate($event)"
-                  (editPersonalPrayer)="openEditModal($event)"
-                  (editPersonalUpdate)="openEditUpdateModal($event)"
-                ></app-prayer-card>
-              }
+              <div cdkDropList (cdkDropListDropped)="onPersonalPrayerDrop($event)" class="space-y-3">
+                @for (prayer of getFilteredPersonalPrayers(); track prayer.id) {
+                  <div cdkDrag>
+                    <app-prayer-card
+                      [prayer]="prayer"
+                      [isAdmin]="(isAdmin$ | async) || false"
+                      [activeFilter]="activeFilter"
+                      [isPersonal]="true"
+                      [deletionsAllowed]="'everyone'"
+                      [updatesAllowed]="'everyone'"
+                      [isDragging]="true"
+                      (delete)="deletePersonalPrayer($event)"
+                      (addUpdate)="addPersonalUpdate($event)"
+                      (deleteUpdate)="deletePersonalUpdate($event)"
+                      (editPersonalPrayer)="openEditModal($event)"
+                      (editPersonalUpdate)="openEditUpdateModal($event)"
+                      [dragHandle]="dragHandle"
+                    ></app-prayer-card>
+                    <ng-template #dragHandle>
+                      <div cdkDragHandle class="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 flex-shrink-0">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="9" cy="5" r="1"></circle>
+                          <circle cx="9" cy="12" r="1"></circle>
+                          <circle cx="9" cy="19" r="1"></circle>
+                          <circle cx="15" cy="5" r="1"></circle>
+                          <circle cx="15" cy="12" r="1"></circle>
+                          <circle cx="15" cy="19" r="1"></circle>
+                        </svg>
+                      </div>
+                    </ng-template>
+                  </div>
+                }
+              </div>
             }
 
             <!-- Empty State for Prompts -->
@@ -482,6 +501,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // Personal prayers
   personalPrayers: PrayerRequest[] = [];
+  isReorderingPersonalPrayers = false;
 
   // Badge observables
   currentPrayerBadge$!: Observable<number>;
@@ -870,6 +890,39 @@ export class HomeComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error deleting personal prayer update:', error);
       this.toastService.error('Failed to delete update');
+    }
+  }
+
+  async onPersonalPrayerDrop(event: CdkDragDrop<PrayerRequest[]>): Promise<void> {
+    // If the index hasn't changed, no need to do anything
+    if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    try {
+      this.isReorderingPersonalPrayers = true;
+
+      // Store the original order for rollback
+      const originalOrder = [...this.personalPrayers];
+
+      // Reorder the array optimistically
+      moveItemInArray(this.personalPrayers, event.previousIndex, event.currentIndex);
+      this.cdr.markForCheck();
+
+      // Persist the new order to the database
+      const success = await this.prayerService.updatePersonalPrayerOrder(this.personalPrayers);
+
+      if (!success) {
+        // Rollback on error
+        this.personalPrayers = originalOrder;
+        this.cdr.markForCheck();
+        this.toastService.error('Failed to reorder prayers');
+      }
+    } catch (error) {
+      console.error('Error reordering personal prayers:', error);
+      this.toastService.error('Failed to reorder prayers');
+    } finally {
+      this.isReorderingPersonalPrayers = false;
     }
   }
 

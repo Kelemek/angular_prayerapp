@@ -206,6 +206,7 @@ export class PrayerService {
           category,
           prayer_for,
           user_email,
+          display_order,
           created_at,
           updated_at,
           personal_prayer_updates (
@@ -218,6 +219,7 @@ export class PrayerService {
           )
         `)
         .eq('user_email', userEmail)
+        .order('display_order', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -238,6 +240,7 @@ export class PrayerService {
         updated_at: p.updated_at,
         approval_status: 'approved' as const,
         type: 'prayer' as const,
+        display_order: p.display_order,
         updates: (p.personal_prayer_updates || []).map((u: any) => ({
           id: u.id,
           prayer_id: p.id,
@@ -1026,6 +1029,7 @@ export class PrayerService {
           category,
           prayer_for,
           user_email,
+          display_order,
           created_at,
           updated_at,
           personal_prayer_updates (
@@ -1038,6 +1042,7 @@ export class PrayerService {
           )
         `)
         .eq('user_email', userEmail)
+        .order('display_order', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -1061,6 +1066,7 @@ export class PrayerService {
         updated_at: p.updated_at,
         approval_status: 'approved' as const,
         type: 'prayer' as const,
+        display_order: p.display_order,
         updates: (p.personal_prayer_updates || []).map((u: any) => ({
           id: u.id,
           prayer_id: p.id,
@@ -1242,6 +1248,44 @@ export class PrayerService {
     } catch (error) {
       console.error('Error updating personal prayer:', error);
       this.toast.error('Failed to update personal prayer');
+      return false;
+    }
+  }
+
+  /**
+   * Update display order for personal prayers (used for drag-drop reordering)
+   */
+  async updatePersonalPrayerOrder(prayers: PrayerRequest[]): Promise<boolean> {
+    try {
+      const userEmail = await this.getUserEmail();
+      if (!userEmail) {
+        console.error('[PrayerService] User email not available for order update');
+        return false;
+      }
+
+      // Batch update all prayers with new display_order
+      const updates = prayers.map((prayer, index) =>
+        this.supabase.client
+          .from('personal_prayers')
+          .update({ display_order: index })
+          .eq('id', prayer.id)
+          .eq('user_email', userEmail)
+      );
+
+      const results = await Promise.all(updates);
+
+      // Check for errors
+      const errorResult = results.find(r => r.error);
+      if (errorResult?.error) throw errorResult.error;
+
+      // Update local cache and observable
+      this.allPersonalPrayersSubject.next(prayers);
+      this.cache.set('personalPrayers', prayers);
+
+      console.log('[PrayerService] Personal prayer order updated successfully');
+      return true;
+    } catch (error) {
+      console.error('[PrayerService] Error updating personal prayer order:', error);
       return false;
     }
   }

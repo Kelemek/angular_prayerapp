@@ -42,7 +42,7 @@ describe('PrayerService', () => {
     toast = { success: vi.fn(), error: vi.fn() };
     emailNotification = { sendAdminNotification: vi.fn().mockResolvedValue(undefined) };
     verificationService = {};
-    cache = { get: vi.fn(() => null), set: vi.fn() };
+    cache = { get: vi.fn(() => null), set: vi.fn(), invalidate: vi.fn() };
     badgeService = { refreshBadgeCounts: vi.fn() };
 
     // Ensure from() returns a safe default to avoid constructor side-effects failing
@@ -741,7 +741,8 @@ describe('PrayerService', () => {
       get: vi.fn(() => null),
       set: vi.fn(),
       clear: vi.fn(),
-      has: vi.fn(() => false)
+      has: vi.fn(() => false),
+      invalidate: vi.fn()
     };
 
     // Mock Badge Service
@@ -4198,6 +4199,7 @@ describe('PrayerService', () => {
 
     it('loadPersonalPrayers loads from database when cache miss', async () => {
       mockCacheService.get.mockReturnValue(null);
+      mockCacheService.set.mockClear();
 
       const newPrayers = [
         {
@@ -4217,7 +4219,9 @@ describe('PrayerService', () => {
       mockSupabaseService.client.from.mockReturnValue({
         select: () => ({
           eq: () => ({
-            order: () => Promise.resolve({ data: newPrayers, error: null })
+            order: () => ({
+              order: () => Promise.resolve({ data: newPrayers, error: null })
+            })
           })
         })
       });
@@ -4380,19 +4384,21 @@ describe('PrayerService', () => {
       mockSupabaseService.client.from = vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({
-              data: [{
-                id: 'p1',
-                title: 'Prayer',
-                description: 'Desc',
-                status: 'current',
-                prayer_for: 'John',
-                user_email: 'me@test.com',
-                created_at: now,
-                updated_at: now,
-                personal_prayer_updates: []
-              }],
-              error: null
+            order: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: 'p1',
+                  title: 'Prayer',
+                  description: 'Desc',
+                  status: 'current',
+                  prayer_for: 'John',
+                  user_email: 'me@test.com',
+                  created_at: now,
+                  updated_at: now,
+                  personal_prayer_updates: []
+                }],
+                error: null
+              }))
             }))
           }))
         }))
@@ -4607,32 +4613,34 @@ describe('PrayerService', () => {
           return {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                order: vi.fn(() => Promise.resolve({
-                  data: [
-                    {
-                      id: 'p1',
-                      title: 'Older Prayer',
-                      description: 'Created 2 hours ago',
-                      status: 'current',
-                      prayer_for: 'John',
-                      user_email: 'user@test.com',
-                      created_at: twoHoursAgo,
-                      updated_at: twoHoursAgo,
-                      personal_prayer_updates: []
-                    },
-                    {
-                      id: 'p2',
-                      title: 'Newer Prayer',
-                      description: 'Created 1 hour ago',
-                      status: 'current',
-                      prayer_for: 'Jane',
-                      user_email: 'user@test.com',
-                      created_at: oneHourAgo,
-                      updated_at: oneHourAgo,
-                      personal_prayer_updates: []
-                    }
-                  ],
-                  error: null
+                order: vi.fn(() => ({
+                  order: vi.fn(() => Promise.resolve({
+                    data: [
+                      {
+                        id: 'p1',
+                        title: 'Older Prayer',
+                        description: 'Created 2 hours ago',
+                        status: 'current',
+                        prayer_for: 'John',
+                        user_email: 'user@test.com',
+                        created_at: twoHoursAgo,
+                        updated_at: twoHoursAgo,
+                        personal_prayer_updates: []
+                      },
+                      {
+                        id: 'p2',
+                        title: 'Newer Prayer',
+                        description: 'Created 1 hour ago',
+                        status: 'current',
+                        prayer_for: 'Jane',
+                        user_email: 'user@test.com',
+                        created_at: oneHourAgo,
+                        updated_at: oneHourAgo,
+                        personal_prayer_updates: []
+                      }
+                    ],
+                    error: null
+                  }))
                 }))
               }))
             }))
@@ -4642,9 +4650,11 @@ describe('PrayerService', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [],
-                error: null
+              order: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -4713,6 +4723,135 @@ describe('PrayerService', () => {
       const result = await (service as any).deletePersonalPrayer('p1');
 
       expect(result).toBe(false);
+    });
+
+    describe('updatePersonalPrayerOrder', () => {
+      it('updates display_order for personal prayers and syncs cache', async () => {
+        const prayers = [
+          { id: '1', title: 'Prayer 1', display_order: 0 },
+          { id: '2', title: 'Prayer 2', display_order: 1 },
+          { id: '3', title: 'Prayer 3', display_order: 2 }
+        ] as any;
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: 'test@test.com' } } }
+          })
+        };
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          }))
+        });
+
+        const result = await (service as any).updatePersonalPrayerOrder(prayers);
+
+        expect(result).toBe(true);
+        expect(mockCacheService.set).toHaveBeenCalledWith('personalPrayers', prayers);
+      });
+
+      it('handles error when updating display_order fails', async () => {
+        const prayers = [
+          { id: '1', title: 'Prayer 1' }
+        ] as any;
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: 'test@test.com' } } }
+          })
+        };
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+            }))
+          }))
+        });
+
+        const result = await (service as any).updatePersonalPrayerOrder(prayers);
+
+        expect(result).toBe(false);
+        expect(mockCacheService.set).not.toHaveBeenCalledWith('personalPrayers', prayers);
+      });
+
+      it('returns false when user email is not available', async () => {
+        const prayers = [{ id: '1', title: 'Prayer 1' }] as any;
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: null }
+          })
+        };
+
+        const result = await (service as any).updatePersonalPrayerOrder(prayers);
+
+        expect(result).toBe(false);
+      });
+
+      it('sets correct display_order values based on array index', async () => {
+        const prayers = [
+          { id: 'first', title: 'Prayer 1' },
+          { id: 'second', title: 'Prayer 2' },
+          { id: 'third', title: 'Prayer 3' }
+        ] as any;
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: 'test@test.com' } } }
+          })
+        };
+
+        const updateMock = vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null }))
+          }))
+        }));
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: updateMock
+        });
+
+        await (service as any).updatePersonalPrayerOrder(prayers);
+
+        // Verify update was called with correct display_order values
+        expect(updateMock).toHaveBeenCalledTimes(3);
+        expect(updateMock).toHaveBeenNthCalledWith(1, { display_order: 0 });
+        expect(updateMock).toHaveBeenNthCalledWith(2, { display_order: 1 });
+        expect(updateMock).toHaveBeenNthCalledWith(3, { display_order: 2 });
+      });
+
+      it('updates observable when order is updated successfully', async () => {
+        const prayers = [
+          { id: '1', title: 'Prayer 1' }
+        ] as any;
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: 'test@test.com' } } }
+          })
+        };
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => Promise.resolve({ error: null }))
+            }))
+          }))
+        });
+
+        // Subscribe to the observable to track changes
+        const observableSpy = vi.fn();
+        (service as any).allPersonalPrayersSubject.subscribe(observableSpy);
+
+        await (service as any).updatePersonalPrayerOrder(prayers);
+
+        // Observable should be updated with the new prayers
+        expect(observableSpy).toHaveBeenCalledWith(prayers);
+      });
     });
   });
 });

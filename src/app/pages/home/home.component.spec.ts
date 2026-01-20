@@ -23,7 +23,8 @@ const makeMocks = () => {
     deletePersonalPrayer: vi.fn(),
     addPersonalPrayerUpdate: vi.fn(),
     deletePersonalPrayerUpdate: vi.fn(),
-    updatePersonalPrayer: vi.fn()
+    updatePersonalPrayer: vi.fn(),
+    updatePersonalPrayerOrder: vi.fn()
   };
 
   const promptService: any = {
@@ -1437,6 +1438,110 @@ describe('HomeComponent', () => {
 
       expect(comp.activeFilter).toBe('personal');
       expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ search: 'search' });
+    });
+  });
+
+  describe('Personal Prayer Drag and Drop', () => {
+    it('onPersonalPrayerDrop should return early if index does not change', async () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1' } as PrayerRequest,
+        { id: '2', title: 'Prayer 2' } as PrayerRequest
+      ];
+      comp.personalPrayers = prayers;
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 0
+      } as any;
+
+      await comp.onPersonalPrayerDrop(event);
+
+      expect(comp.personalPrayers).toEqual(prayers);
+      expect(mocks.prayerService.updatePersonalPrayerOrder).not.toHaveBeenCalled();
+    });
+
+    it('onPersonalPrayerDrop should reorder and persist prayers on successful drop', async () => {
+      mocks.prayerService.updatePersonalPrayerOrder.mockResolvedValue(true);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1' } as PrayerRequest,
+        { id: '2', title: 'Prayer 2' } as PrayerRequest
+      ];
+      comp.personalPrayers = prayers;
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      await comp.onPersonalPrayerDrop(event);
+
+      expect(mocks.prayerService.updatePersonalPrayerOrder).toHaveBeenCalled();
+      expect(comp.personalPrayers[0].id).toBe('2');
+      expect(comp.personalPrayers[1].id).toBe('1');
+    });
+
+    it('onPersonalPrayerDrop should rollback on error and show error toast', async () => {
+      mocks.prayerService.updatePersonalPrayerOrder.mockResolvedValue(false);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1' } as PrayerRequest,
+        { id: '2', title: 'Prayer 2' } as PrayerRequest
+      ];
+      comp.personalPrayers = prayers;
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      await comp.onPersonalPrayerDrop(event);
+
+      expect(comp.personalPrayers[0].id).toBe('1');
+      expect(comp.personalPrayers[1].id).toBe('2');
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder prayers');
     });
   });
 });

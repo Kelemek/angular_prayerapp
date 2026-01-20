@@ -405,7 +405,16 @@ export class HelpContentService {
           },
           {
             subtitle: 'Managing Prayer Status',
-            text: 'As you pray and see answers, you can mark prayers as "Answered" by adding an update with the "Mark this prayer as answered" option checked. Answered personal prayers get marked with an Answered badge.',
+            text: 'As you pray and see answers, you can mark prayers as "Answered" by adding an update with the "Mark this prayer as answered" option checked. Answered personal prayers get marked with an Answered badge and are put into an Answered category.',
+          },
+          {
+            subtitle: 'Reordering Personal Prayers',
+            text: 'You can reorganize your personal prayers by drag-and-drop. On each personal prayer card and you\'ll see a drag handle (six-dot icon) on the left side. Click and drag the handle to move prayers up or down in your list. Your preferred order is automatically saved and will be remembered when you return to the app.',
+            examples: [
+              'Drag the most important prayers to the top for quick access',
+              'Organize prayers by priority, urgency, or any preference you prefer',
+              'The order you set is saved automatically to your account',
+            ],
           },
           {
             subtitle: 'Personal Prayers in Presentation Mode',
