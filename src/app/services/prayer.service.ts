@@ -1043,7 +1043,7 @@ export class PrayerService {
   /**
    * Get the display_order range for a category (category-scoped range system)
    * Uncategorized (null): 0-999
-   * Categories sorted alphabetically: 1000-1999 (1st), 2000-2999 (2nd), etc.
+   * Categories assigned sequentially by creation order: 1000-1999, 2000-2999, etc.
    */
   private async getCategoryRange(category: string | null | undefined): Promise<{ min: number; max: number }> {
     if (!category || category.trim().length === 0) {
@@ -1056,19 +1056,27 @@ export class PrayerService {
       throw new Error('User email not available');
     }
 
-    // Get all unique categories for this user (sorted alphabetically)
-    const { data: prayers, error } = await this.supabase.client
+    // Get all unique categories for this user ordered by first creation (MIN created_at)
+    // This preserves creation order rather than alphabetical, preventing range conflicts
+    const { data: categoryData, error } = await this.supabase.client
       .from('personal_prayers')
-      .select('category')
+      .select('category, created_at')
       .eq('user_email', userEmail)
-      .not('category', 'is', null);
+      .not('category', 'is', null)
+      .order('created_at', { ascending: true });
 
     if (error) throw error;
 
-    // Get unique categories and sort alphabetically
-    const uniqueCategories = Array.from(new Set(
-      (prayers || []).map((p: any) => p.category).filter((c: any) => c)
-    )).sort() as string[];
+    // Get unique categories in creation order (first appearance in DB)
+    const seenCategories = new Set<string>();
+    const uniqueCategories: string[] = [];
+    
+    (categoryData || []).forEach((row: any) => {
+      if (row.category && !seenCategories.has(row.category)) {
+        seenCategories.add(row.category);
+        uniqueCategories.push(row.category);
+      }
+    });
 
     // Find the index of the current category
     const categoryIndex = uniqueCategories.indexOf(category);
@@ -1080,7 +1088,7 @@ export class PrayerService {
       return { min, max };
     }
 
-    // Existing category - calculate its range
+    // Existing category - calculate its range based on creation order
     const min = UNCATEGORIZED_MAX + 1 + (categoryIndex * CATEGORY_RANGE_SIZE);
     const max = min + CATEGORY_RANGE_SIZE - 1;
     return { min, max };
