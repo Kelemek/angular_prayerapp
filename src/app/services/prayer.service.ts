@@ -88,13 +88,32 @@ export class PrayerService {
   }
 
   /**
-   * Load prayers from database with fallback to cached data on network failure
+   * Load prayers from database with cache-first approach (Tier 1 optimization)
+   * - Check cache first before hitting database
+   * - For silent refreshes, skip DB if cache is recent (<20 min)
+   * - Fallback to cached data on network failure
    */
   async loadPrayers(silentRefresh = false): Promise<void> {
     try {
       console.log('[PrayerService] Loading prayers...');
-      // Only show loading indicator for non-silent refreshes
-      if (!silentRefresh) {
+      
+      // ✅ TIER 1: Check cache first
+      const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
+      if (cachedPrayers && cachedPrayers.length > 0) {
+        console.log(`[PrayerService] Using cached prayers (${cachedPrayers.length} items)`);
+        this.allPrayersSubject.next(cachedPrayers);
+        this.applyFilters(this.currentFilters);
+        
+        // ✅ TIER 1: If silent refresh and cache exists, skip DB query entirely
+        // This is the biggest egress saver - window focus, visibility changes won't hit DB
+        if (silentRefresh) {
+          console.log('[PrayerService] Cache hit for silent refresh - skipping database query');
+          return;
+        }
+      }
+      
+      // Only show loading if we need to fetch from DB and it's not a silent refresh
+      if (!silentRefresh && !cachedPrayers) {
         this.loadingSubject.next(true);
       }
       this.errorSubject.next(null);
@@ -110,7 +129,7 @@ export class PrayerService {
 
       if (error) throw error;
 
-      console.log(`[PrayerService] Loaded ${prayersData?.length || 0} approved prayers`);
+      console.log(`[PrayerService] Loaded ${prayersData?.length || 0} approved prayers from database`);
 
       const formattedPrayers = (prayersData || []).map((prayer: any) => {
         const updates = (prayer.prayer_updates || [])
@@ -171,7 +190,7 @@ export class PrayerService {
       // Try to load from cache as fallback
       const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
       if (cachedPrayers && cachedPrayers.length > 0) {
-        console.log(`[PrayerService] Showing ${cachedPrayers.length} cached prayers`);
+        console.log(`[PrayerService] Showing ${cachedPrayers.length} cached prayers (error fallback)`);
         this.allPrayersSubject.next(cachedPrayers);
         this.applyFilters(this.currentFilters);
         this.errorSubject.next(null); // Clear error to show data silently
@@ -186,7 +205,10 @@ export class PrayerService {
   }
 
   /**
-   * Load personal prayers from database with fallback to cached data on network failure
+   * Load personal prayers from database with cache-first approach (Tier 1 optimization)
+   * - Check cache first before hitting database
+   * - Personal prayers only change when the current user adds them (DB updates cache immediately)
+   * - For silent refreshes, skip DB if cache exists
    */
   async loadPersonalPrayers(silentRefresh = false): Promise<void> {
     try {
@@ -196,6 +218,19 @@ export class PrayerService {
       if (!userEmail) {
         console.warn('[PrayerService] User email not available for personal prayers');
         return;
+      }
+
+      // ✅ TIER 1: Check cache first
+      const cachedPersonalPrayers = this.cache.get<PrayerRequest[]>('personalPrayers');
+      if (cachedPersonalPrayers && cachedPersonalPrayers.length > 0) {
+        console.log(`[PrayerService] Using cached personal prayers (${cachedPersonalPrayers.length} items)`);
+        this.allPersonalPrayersSubject.next(cachedPersonalPrayers);
+        
+        // ✅ TIER 1: Skip DB for silent refresh - personal prayers only change when user adds them
+        if (silentRefresh) {
+          console.log('[PrayerService] Cache hit for silent refresh - skipping personal prayers database query');
+          return;
+        }
       }
 
       const { data, error } = await this.supabase.client
@@ -257,7 +292,7 @@ export class PrayerService {
 
       // Use the database ordering (by display_order DESC, then created_at DESC)
       // Don't re-sort by activity as it would override user's manual ordering
-      console.log(`[PrayerService] Loaded ${personalPrayers.length} personal prayers`);
+      console.log(`[PrayerService] Loaded ${personalPrayers.length} personal prayers from database`);
       this.allPersonalPrayersSubject.next(personalPrayers);
       this.cache.set('personalPrayers', personalPrayers);
     } catch (err) {

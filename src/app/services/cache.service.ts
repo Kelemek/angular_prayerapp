@@ -29,11 +29,14 @@ interface CachedData<T> {
  * - Observable caching with RxJS shareReplay
  * - Cache invalidation on mutations
  * 
- * Default TTL values:
- * - Prayers: 5 minutes
- * - Prompts: 10 minutes
- * - Prayer Types: 10 minutes
- * - Admin Settings: 15 minutes
+ * Default TTL values (Tier 1 optimizations):
+ * - Prayers: 20 minutes (cache-first to reduce DB hits)
+ * - Personal Prayers: 20 minutes (only change when user adds)
+ * - Prompts: 1 hour (rarely change)
+ * - Prayer Types: 1 hour (rarely change)
+ * - Admin Settings: 1 hour (rarely change)
+ * - Email Settings: 1 hour (rarely change)
+ * - Analytics: 15 minutes (safe to cache for longer)
  */
 @Injectable({
   providedIn: 'root'
@@ -44,15 +47,16 @@ export class CacheService {
   private localStorageEnabled = this.isLocalStorageAvailable();
 
   // Default cache configurations (in milliseconds)
+  // Tier 1: Cache-first approach with extended TTLs to reduce database queries
   private cacheConfigs: Map<string, CacheConfig> = new Map([
-    ['prayers', { key: 'prayers_cache', ttl: 5 * 60 * 1000 }],
-    ['updates', { key: 'updates_cache', ttl: 5 * 60 * 1000 }],
-    ['personalPrayers', { key: 'personalPrayers_cache', ttl: 5 * 60 * 1000 }],
-    ['prompts', { key: 'prompts_cache', ttl: 10 * 60 * 1000 }],
-    ['prayerTypes', { key: 'prayerTypes_cache', ttl: 10 * 60 * 1000 }],
-    ['adminSettings', { key: 'adminSettings_cache', ttl: 15 * 60 * 1000 }],
-    ['emailSettings', { key: 'emailSettings_cache', ttl: 15 * 60 * 1000 }],
-    ['analytics', { key: 'analytics_cache', ttl: 5 * 60 * 1000 }]
+    ['prayers', { key: 'prayers_cache', ttl: 20 * 60 * 1000 }],        // 20 min (was 5)
+    ['updates', { key: 'updates_cache', ttl: 20 * 60 * 1000 }],        // 20 min (was 5)
+    ['personalPrayers', { key: 'personalPrayers_cache', ttl: 20 * 60 * 1000 }],  // 20 min (was 5)
+    ['prompts', { key: 'prompts_cache', ttl: 60 * 60 * 1000 }],        // 1 hour (was 10 min)
+    ['prayerTypes', { key: 'prayerTypes_cache', ttl: 60 * 60 * 1000 }],  // 1 hour (was 10 min)
+    ['adminSettings', { key: 'adminSettings_cache', ttl: 60 * 60 * 1000 }],  // 1 hour (was 15 min)
+    ['emailSettings', { key: 'emailSettings_cache', ttl: 60 * 60 * 1000 }],  // 1 hour (was 15 min)
+    ['analytics', { key: 'analytics_cache', ttl: 15 * 60 * 1000 }]     // 15 min (was 5)
   ]);
 
   constructor() {
