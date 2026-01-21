@@ -1452,27 +1452,21 @@ export class PrayerService {
         return false;
       }
 
-      // If categoryFilter is provided, we're reordering within that category
+      // Auto-detect category from the prayers being reordered (all should be same category)
+      // If categoryFilter not provided, infer it from the first prayer's category
+      const detectedCategory = categoryFilter !== undefined 
+        ? categoryFilter 
+        : (prayers.length > 0 ? prayers[0].category : undefined);
+
       // Get the range for this category
-      let range: { min: number; max: number } | null = null;
-      if (categoryFilter !== undefined) {
-        range = await this.getCategoryRange(categoryFilter);
-      }
+      const range = await this.getCategoryRange(detectedCategory);
 
       // Batch update all prayers with new display_order
       // Reverse the index so first item (index 0) gets highest display_order value
       // This ensures correct DESC sorting: highest values appear first
       const updates = prayers.map((prayer, index) => {
-        let displayOrder: number;
-        
-        if (range) {
-          // When filtering by category, assign display_order within that category's range
-          const orderWithinRange = prayers.length - 1 - index;
-          displayOrder = Math.min(range.min + orderWithinRange, range.max);
-        } else {
-          // For uncategorized prayers (no filter), use the simple calculation
-          displayOrder = prayers.length - 1 - index;
-        }
+        const orderWithinRange = prayers.length - 1 - index;
+        const displayOrder = Math.min(range.min + orderWithinRange, range.max);
 
         return this.supabase.client
           .from('personal_prayers')
