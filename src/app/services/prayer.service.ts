@@ -1460,28 +1460,43 @@ export class PrayerService {
         return false;
       }
 
-      // Auto-detect category from the prayers being reordered (all should be same category)
-      // If categoryFilter not provided, infer it from the first prayer's category
-      const detectedCategory = categoryFilter !== undefined 
-        ? categoryFilter 
-        : (prayers.length > 0 ? prayers[0].category : undefined);
+      // Group prayers by category to handle cross-category reordering
+      // When viewing multiple categories together, prayers array may contain multiple categories
+      const prayersByCategory = new Map<string | null | undefined, PrayerRequest[]>();
+      
+      for (const prayer of prayers) {
+        const category = prayer.category;
+        if (!prayersByCategory.has(category)) {
+          prayersByCategory.set(category, []);
+        }
+        prayersByCategory.get(category)!.push(prayer);
+      }
 
-      // Get the range for this category
-      const range = await this.getCategoryRange(detectedCategory);
+      // Process each category group separately with its own range
+      const updates: Promise<any>[] = [];
+      
+      for (const [category, categoryPrayers] of prayersByCategory) {
+        // Get the range for this category
+        const range = await this.getCategoryRange(category);
 
-      // Batch update all prayers with new display_order
-      // Reverse the index so first item (index 0) gets highest display_order value
-      // This ensures correct DESC sorting: highest values appear first
-      const updates = prayers.map((prayer, index) => {
-        const orderWithinRange = prayers.length - 1 - index;
-        const displayOrder = Math.min(range.min + orderWithinRange, range.max);
+        // Batch update all prayers in this category with new display_order within their category's range
+        // Reverse the index so first item (index 0) gets highest display_order value
+        // This ensures correct DESC sorting: highest values appear first
+        categoryPrayers.forEach((prayer, index) => {
+          const orderWithinRange = categoryPrayers.length - 1 - index;
+          const displayOrder = Math.min(range.min + orderWithinRange, range.max);
 
-        return this.supabase.client
-          .from('personal_prayers')
-          .update({ display_order: displayOrder })
-          .eq('id', prayer.id)
-          .eq('user_email', userEmail);
-      });
+          updates.push(
+            Promise.resolve(
+              this.supabase.client
+                .from('personal_prayers')
+                .update({ display_order: displayOrder })
+                .eq('id', prayer.id)
+                .eq('user_email', userEmail)
+            )
+          );
+        });
+      }
 
       const results = await Promise.all(updates);
 
@@ -1489,7 +1504,7 @@ export class PrayerService {
       const errorResult = results.find(r => r.error);
       if (errorResult?.error) throw errorResult.error;
 
-      // Update local cache and observable
+      // Update local cache and observable with all prayers
       this.allPersonalPrayersSubject.next(prayers);
       this.cache.set('personalPrayers', prayers);
 

@@ -1493,10 +1493,11 @@ describe('HomeComponent', () => {
       );
 
       const prayers: PrayerRequest[] = [
-        { id: '1', title: 'Prayer 1' } as PrayerRequest,
-        { id: '2', title: 'Prayer 2' } as PrayerRequest
+        { id: '1', title: 'Prayer 1', category: 'Members' } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members' } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
+      comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
       const event = {
         previousIndex: 0,
@@ -1528,10 +1529,11 @@ describe('HomeComponent', () => {
       );
 
       const prayers: PrayerRequest[] = [
-        { id: '1', title: 'Prayer 1' } as PrayerRequest,
-        { id: '2', title: 'Prayer 2' } as PrayerRequest
+        { id: '1', title: 'Prayer 1', category: 'Members' } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members' } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
+      comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
       const event = {
         previousIndex: 0,

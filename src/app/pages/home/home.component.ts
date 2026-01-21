@@ -424,7 +424,10 @@ import type { User } from '@supabase/supabase-js';
 
             <!-- Personal Prayer Cards (show when personal filter is active) -->
             @if (activeFilter === 'personal') {
-              <div cdkDropList (cdkDropListDropped)="onPersonalPrayerDrop($event)" class="space-y-3">
+              <div cdkDropList 
+                   (cdkDropListDropped)="onPersonalPrayerDrop($event)" 
+                   [cdkDropListDisabled]="selectedPersonalCategories.length !== 1"
+                   class="space-y-3">
                 @for (prayer of getFilteredPersonalPrayers(); track prayer.id) {
                   <div cdkDrag>
                     <app-prayer-card
@@ -440,7 +443,7 @@ import type { User } from '@supabase/supabase-js';
                       (deleteUpdate)="deletePersonalUpdate($event)"
                       (editPersonalPrayer)="openEditModal($event)"
                       (editPersonalUpdate)="openEditUpdateModal($event)"
-                      [dragHandle]="dragHandle"
+                      [dragHandle]="selectedPersonalCategories.length === 1 ? dragHandle : null"
                     ></app-prayer-card>
                     <ng-template #dragHandle>
                       <div cdkDragHandle class="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 flex-shrink-0">
@@ -896,6 +899,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   async onPersonalPrayerDrop(event: CdkDragDrop<PrayerRequest[]>): Promise<void> {
     // If the index hasn't changed, no need to do anything
     if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    // Only allow reordering when viewing a single category
+    if (this.selectedPersonalCategories.length !== 1) {
+      this.toastService.error('Select a single category to reorder prayers');
       return;
     }
 
