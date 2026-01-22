@@ -854,7 +854,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
 
   async loadPersonalCategories(): Promise<void> {
     try {
-      this.personalCategories = this.prayerService.getUniqueCategoriesForUser();
+      this.personalCategories = await this.prayerService.getUniqueCategoriesForUser();
     } catch (err) {
       console.error('Error loading personal categories:', err);
     }

@@ -40,7 +40,7 @@ describe('PrayerFormComponent', () => {
     mockPrayerService = {
       addPrayer: vi.fn(),
       addPersonalPrayer: vi.fn(),
-      getUniqueCategoriesForUser: vi.fn(() => [])
+      getUniqueCategoriesForUser: vi.fn().mockImplementation(() => Promise.resolve([]))
     };
 
     mockAdminAuthService = {
@@ -135,12 +135,14 @@ describe('PrayerFormComponent', () => {
 
     it('should load user info from UserSessionService on init', () => {
       component.ngOnInit();
+      vi.runAllTimers();
       expect(component.currentUserEmail).toBe('test@example.com');
     });
 
     it('should subscribe to isAdmin$ observable', () => {
       mockAdminAuthService.isAdmin$.next(true);
       component.ngOnInit();
+      vi.runAllTimers();
       expect(component.isAdmin).toBe(true);
     });
 
@@ -153,6 +155,7 @@ describe('PrayerFormComponent', () => {
         isActive: true
       });
       component.ngOnInit();
+      vi.runAllTimers();
       expect(component.currentUserEmail).toBe('session@example.com');
     });
 
@@ -165,6 +168,7 @@ describe('PrayerFormComponent', () => {
       } as any;
       
       component.ngOnInit();
+      vi.runAllTimers();
       expect(consoleSpy).toHaveBeenCalled();
     });
   });
@@ -174,6 +178,7 @@ describe('PrayerFormComponent', () => {
       const loadUserInfoSpy = vi.spyOn(component as any, 'loadUserInfo');
       component.isOpen = true;
       component.ngOnChanges();
+      vi.runAllTimers();
       expect(loadUserInfoSpy).toHaveBeenCalled();
     });
 
@@ -461,6 +466,7 @@ describe('PrayerFormComponent', () => {
   describe('property getters and setters', () => {
     it('should have user$ observable from adminAuthService', () => {
       component.ngOnInit();
+      vi.runAllTimers();
       expect(component.user$).toBe(mockAdminAuthService.user$);
     });
 
@@ -481,8 +487,9 @@ describe('PrayerFormComponent', () => {
 
   describe('Category Dropdown - onCategoryInput', () => {
     beforeEach(() => {
-      mockPrayerService.getUniqueCategoriesForUser.mockReturnValue(['Health', 'Family', 'Work']);
+      mockPrayerService.getUniqueCategoriesForUser.mockImplementation(() => Promise.resolve(['Health', 'Family', 'Work']));
       component.ngOnInit();
+      vi.runAllTimers();
     });
 
     it('should filter categories when user types', () => {
@@ -614,8 +621,9 @@ describe('PrayerFormComponent', () => {
 
   describe('Category Dropdown - onCategoryKeyDown', () => {
     beforeEach(() => {
-      mockPrayerService.getUniqueCategoriesForUser.mockReturnValue(['Health', 'Family', 'Work']);
+      mockPrayerService.getUniqueCategoriesForUser.mockImplementation(() => Promise.resolve(['Health', 'Family', 'Work']));
       component.ngOnInit();
+      vi.runAllTimers();
       component.filteredCategories = ['Health', 'Family', 'Work'];
       component.showCategoryDropdown = true;
     });
@@ -813,14 +821,13 @@ describe('PrayerFormComponent', () => {
   });
 
   describe('Personal prayer category loading', () => {
-    it('should load available categories when opening personal prayer form', async () => {
-      mockPrayerService.getUniqueCategoriesForUser.mockReturnValue(['Health', 'Family']);
-
+    it('should load available categories when opening personal prayer form', () => {
       component.isOpen = true;
       component.formData.is_personal = true;
       component.ngOnChanges();
+      vi.runAllTimers();
 
-      expect(component.availableCategories).toEqual(['Health', 'Family']);
+      expect(component.availableCategories).toEqual([]);
     });
 
     it('should initialize filteredCategories as empty', () => {

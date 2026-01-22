@@ -173,8 +173,10 @@ export class PersonalPrayerEditModalComponent implements OnInit {
   }
 
   private loadAvailableCategories(): void {
-    this.availableCategories = this.prayerService.getUniqueCategoriesForUser();
-    this.updateFilteredCategories();
+    this.prayerService.getUniqueCategoriesForUser().then(cats => {
+      this.availableCategories = cats;
+      this.updateFilteredCategories();
+    });
   }
 
   onCategoryInput(event: Event): void {

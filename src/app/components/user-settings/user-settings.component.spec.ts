@@ -59,7 +59,7 @@ describe('UserSettingsComponent', () => {
     };
 
     mockPrayerService = {
-      getUniqueCategoriesForUser: vi.fn(() => Promise.resolve(['Health', 'Family', 'Work']))
+      getUniqueCategoriesForUser: vi.fn().mockImplementation(() => Promise.resolve(['Health', 'Family', 'Work']))
     };
 
     mockEmailNotificationService = {};

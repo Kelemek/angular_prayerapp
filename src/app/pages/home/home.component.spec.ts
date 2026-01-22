@@ -20,12 +20,14 @@ const makeMocks = () => {
     deleteUpdate: vi.fn(),
     requestDeletion: vi.fn(),
     requestUpdateDeletion: vi.fn(),
-    getPersonalPrayers: vi.fn(),
+    getPersonalPrayers: vi.fn().mockResolvedValue([]),
     deletePersonalPrayer: vi.fn(),
     addPersonalPrayerUpdate: vi.fn(),
     deletePersonalPrayerUpdate: vi.fn(),
     updatePersonalPrayer: vi.fn(),
-    updatePersonalPrayerOrder: vi.fn()
+    updatePersonalPrayerOrder: vi.fn(),
+    getUniqueCategoriesForUser: vi.fn().mockResolvedValue([]),
+    swapCategoryRanges: vi.fn()
   };
 
   const promptService: any = {
@@ -76,7 +78,8 @@ const makeMocks = () => {
   };
 
   const cdr: any = {
-    markForCheck: vi.fn()
+    markForCheck: vi.fn(),
+    detectChanges: vi.fn()
   };
 
   const router: any = {
@@ -236,7 +239,7 @@ describe('HomeComponent', () => {
     expect(comp.getUserEmail()).toBe('Not logged in');
   });
 
-  it('ngOnInit wires observables and updates counts and promptsCount', () => {
+  it('ngOnInit wires observables and updates counts and promptsCount', async () => {
     const { prayersSubject, promptsSubject, prayerService } = mocks;
     const comp = new HomeComponent(
       prayerService,
@@ -263,6 +266,9 @@ describe('HomeComponent', () => {
     ]);
 
     comp.ngOnInit();
+    
+    // Wait for async loadPersonalPrayers to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
 
     expect(mocks.analyticsService.trackPageView).toHaveBeenCalled();
     // counts should reflect the seeded data
@@ -270,7 +276,7 @@ describe('HomeComponent', () => {
     expect(comp.answeredPrayersCount).toBe(1);
     expect(comp.totalPrayersCount).toBe(3);
     expect(comp.promptsCount).toBe(1);
-    expect(mocks.cdr.markForCheck).toHaveBeenCalled();
+    expect(mocks.cdr.detectChanges).toHaveBeenCalled();
     expect(mocks.prayerService.applyFilters).toHaveBeenCalled();
   });
 
@@ -704,7 +710,7 @@ describe('HomeComponent', () => {
 
     expect(comp.deletionsAllowed).toBe('original-requestor');
     expect(comp.updatesAllowed).toBe('admin-only');
-    expect(mocks.cdr.markForCheck).toHaveBeenCalled();
+    expect(mocks.cdr.detectChanges).toHaveBeenCalled();
   });
 
   it('loadAdminSettings handles error gracefully', async () => {
@@ -1018,7 +1024,7 @@ describe('HomeComponent', () => {
       expect(mocks.cacheService.get).toHaveBeenCalledWith('personalPrayers');
       expect(comp.personalPrayers).toEqual(cached);
       expect(comp.personalPrayersCount).toBe(1);
-      expect(mocks.cdr.markForCheck).toHaveBeenCalled();
+      expect(mocks.cdr.detectChanges).toHaveBeenCalled();
     });
 
     it('loadPersonalPrayers fetches from service on cache miss', async () => {
@@ -1476,7 +1482,17 @@ describe('HomeComponent', () => {
     });
 
     it('onPersonalPrayerDrop should reorder and persist prayers on successful drop', async () => {
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1000 } as PrayerRequest
+      ];
+      const reorderedPrayers: PrayerRequest[] = [
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1001 } as PrayerRequest,
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1000 } as PrayerRequest
+      ];
+
       mocks.prayerService.updatePersonalPrayerOrder.mockResolvedValue(true);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue(reorderedPrayers);
 
       const comp = new HomeComponent(
         mocks.prayerService,
@@ -1492,10 +1508,6 @@ describe('HomeComponent', () => {
         mocks.supabaseService
       );
 
-      const prayers: PrayerRequest[] = [
-        { id: '1', title: 'Prayer 1', category: 'Members' } as PrayerRequest,
-        { id: '2', title: 'Prayer 2', category: 'Members' } as PrayerRequest
-      ];
       comp.personalPrayers = prayers;
       comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
@@ -1507,12 +1519,25 @@ describe('HomeComponent', () => {
       await comp.onPersonalPrayerDrop(event);
 
       expect(mocks.prayerService.updatePersonalPrayerOrder).toHaveBeenCalled();
+      expect(mocks.prayerService.getPersonalPrayers).toHaveBeenCalled();
       expect(comp.personalPrayers[0].id).toBe('2');
       expect(comp.personalPrayers[1].id).toBe('1');
     });
 
     it('onPersonalPrayerDrop should rollback on error and show error toast', async () => {
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1000 } as PrayerRequest
+      ];
+
       mocks.prayerService.updatePersonalPrayerOrder.mockResolvedValue(false);
+      // Ensure getPersonalPrayers returns the original order (not reordered)
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1000 } as PrayerRequest
+      ]);
+      // Mock cache to return null on get so it forces a reload
+      mocks.cacheService.get.mockReturnValue(null);
 
       const comp = new HomeComponent(
         mocks.prayerService,
@@ -1528,11 +1553,7 @@ describe('HomeComponent', () => {
         mocks.supabaseService
       );
 
-      const prayers: PrayerRequest[] = [
-        { id: '1', title: 'Prayer 1', category: 'Members' } as PrayerRequest,
-        { id: '2', title: 'Prayer 2', category: 'Members' } as PrayerRequest
-      ];
-      comp.personalPrayers = prayers;
+      comp.personalPrayers = [...prayers]; // Make a copy to avoid reference issues
       comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
       const event = {
@@ -1542,6 +1563,7 @@ describe('HomeComponent', () => {
 
       await comp.onPersonalPrayerDrop(event);
 
+      // After error, should be restored to original order
       expect(comp.personalPrayers[0].id).toBe('1');
       expect(comp.personalPrayers[1].id).toBe('2');
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder prayers');

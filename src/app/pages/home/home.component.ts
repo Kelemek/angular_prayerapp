@@ -348,23 +348,51 @@ import type { User } from '@supabase/supabase-js';
 
         <!-- Personal Category Filters -->
         @if (activeFilter === 'personal' && uniquePersonalCategories.length > 0) {
-          <div class="flex flex-wrap gap-2 mb-4">
+          <div cdkDropList 
+               cdkDropListOrientation="horizontal"
+               [cdkDropListData]="uniquePersonalCategories"
+               (cdkDropListDropped)="onCategoryDrop($event)"
+               [cdkDropListDisabled]="isSwappingCategories"
+               class="flex flex-wrap gap-2 mb-4">
             <!-- All Categories Button -->
             <button
               (click)="selectedPersonalCategories = []"
-              [class]="'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' + (selectedPersonalCategories.length === 0 ? 'bg-[#2F5F54] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]')"
+              [disabled]="isSwappingCategories"
+              [class]="'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' + (selectedPersonalCategories.length === 0 ? 'bg-[#2F5F54] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') + (isSwappingCategories ? ' opacity-50 cursor-not-allowed' : '')"
             >
               All Categories ({{ personalPrayersCount }})
             </button>
             
             <!-- Individual Category Buttons -->
-            @for (category of uniquePersonalCategories; track category) {
-              <button
-                (click)="togglePersonalCategory(category)"
-                [class]="'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' + (isPersonalCategorySelected(category) ? 'bg-[#2F5F54] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]')"
-              >
-                {{ category }} ({{ getPersonalCategoryCount(category) }})
-              </button>
+            @for (category of uniquePersonalCategories; let i = $index; track category) {
+              <div cdkDrag 
+                   [cdkDragData]="category" 
+                   [cdkDragDisabled]="isSwappingCategories" 
+                   (cdkDragStarted)="onCategoryDragStarted()"
+                   (cdkDragEnded)="onCategoryDragEnded()"
+                   class="flex-1 relative">
+                <button
+                  (click)="togglePersonalCategory(category)"
+                  [disabled]="isSwappingCategories"
+                  [class]="'w-full whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 relative ' + (isPersonalCategorySelected(category) ? 'bg-[#2F5F54] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') + (isSwappingCategories ? ' opacity-50 cursor-not-allowed' : '')"
+                >
+                  <svg cdkDragHandle width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class]="'flex-shrink-0 ' + (isSwappingCategories ? 'cursor-not-allowed' : 'cursor-grab')">
+                    <circle cx="9" cy="5" r="1"></circle>
+                    <circle cx="9" cy="12" r="1"></circle>
+                    <circle cx="9" cy="19" r="1"></circle>
+                    <circle cx="15" cy="5" r="1"></circle>
+                    <circle cx="15" cy="12" r="1"></circle>
+                    <circle cx="15" cy="19" r="1"></circle>
+                  </svg>
+                  <span class="cursor-pointer">{{ category }} ({{ getPersonalCategoryCount(category) }})</span>
+                  @if (isSwappingCategories) {
+                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  }
+                </button>
+              </div>
             }
           </div>
         }
@@ -530,7 +558,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   activeFilter: 'current' | 'answered' | 'total' | 'prompts' | 'personal' = 'current';
   selectedPromptTypes: string[] = [];
   selectedPersonalCategories: string[] = [];
+  isCategoryDragging = false;
   uniquePersonalCategories: string[] = [];
+  isSwappingCategories = false;
   
   isAdmin = false;
   // Admin settings for access control policies
@@ -620,8 +650,10 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.badgeService.refreshBadgeCounts();
       });
 
-    // Load personal prayers
-    this.loadPersonalPrayers();
+    // Load personal prayers asynchronously to ensure they're available on initial load
+    this.loadPersonalPrayers().catch(error => {
+      console.error('Error loading personal prayers in ngOnInit:', error);
+    });
     
     // Subscribe to admin status - with cleanup
     this.adminAuthService.isAdmin$
@@ -661,8 +693,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       if (cached) {
         this.personalPrayers = cached;
         this.personalPrayersCount = cached.length;
-        this.extractUniqueCategories(cached);
-        this.cdr.markForCheck();
+        await this.extractUniqueCategories(cached);
+        this.cdr.detectChanges();
         return;
       }
 
@@ -673,8 +705,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       
       this.personalPrayers = personalPrayers;
       this.personalPrayersCount = personalPrayers.length;
-      this.extractUniqueCategories(personalPrayers);
-      this.cdr.markForCheck();
+      await this.extractUniqueCategories(personalPrayers);
+      this.cdr.detectChanges();
     } catch (error) {
       console.error('Error loading personal prayers:', error);
     }
@@ -704,7 +736,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         // These control who can delete prayers/updates and who can submit updates
         this.deletionsAllowed = data.deletions_allowed || 'everyone';
         this.updatesAllowed = data.updates_allowed || 'everyone';
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       }
     } catch (err) {
       console.error('Error loading admin settings:', err);
@@ -911,27 +943,139 @@ export class HomeComponent implements OnInit, OnDestroy {
     try {
       this.isReorderingPersonalPrayers = true;
 
-      // Store the original order for rollback
-      const originalOrder = [...this.personalPrayers];
+      // Get the filtered prayers (what the user sees)
+      const filteredPrayers = this.getFilteredPersonalPrayers();
+      
+      // Get the prayer being moved
+      const movedPrayer = filteredPrayers[event.previousIndex];
+      
+      // Reorder the filtered array
+      moveItemInArray(filteredPrayers, event.previousIndex, event.currentIndex);
 
-      // Reorder the array optimistically
-      moveItemInArray(this.personalPrayers, event.previousIndex, event.currentIndex);
-      this.cdr.markForCheck();
+      // Update the personalPrayers array immediately for instant visual feedback
+      // Remove the moved prayer from its old position
+      const oldIndex = this.personalPrayers.findIndex(p => p.id === movedPrayer.id);
+      if (oldIndex !== -1) {
+        this.personalPrayers.splice(oldIndex, 1);
+      }
+      
+      // Find where to insert it based on the prayers around it in the filtered array
+      const newPositionInFiltered = event.currentIndex;
+      if (newPositionInFiltered === 0) {
+        // Moving to first position - find the first prayer in filtered list and insert before it
+        const firstPrayer = filteredPrayers[1]; // The prayer now after the moved one
+        if (firstPrayer) {
+          const firstIndex = this.personalPrayers.findIndex(p => p.id === firstPrayer.id);
+          this.personalPrayers.splice(firstIndex, 0, movedPrayer);
+        } else {
+          // Only one prayer in category, just add it
+          this.personalPrayers.push(movedPrayer);
+        }
+      } else {
+        // Moving to middle or end - insert after the previous prayer
+        const previousPrayer = filteredPrayers[newPositionInFiltered - 1];
+        const previousIndex = this.personalPrayers.findIndex(p => p.id === previousPrayer.id);
+        this.personalPrayers.splice(previousIndex + 1, 0, movedPrayer);
+      }
+      
+      // Trigger immediate change detection for instant visual feedback
+      this.cdr.detectChanges();
 
-      // Persist the new order to the database
-      const success = await this.prayerService.updatePersonalPrayerOrder(this.personalPrayers);
+      // Persist the new order to the database (only the filtered prayers in this category)
+      const success = await this.prayerService.updatePersonalPrayerOrder(filteredPrayers);
 
-      if (!success) {
-        // Rollback on error
-        this.personalPrayers = originalOrder;
-        this.cdr.markForCheck();
+      if (success) {
+        // Invalidate cache to ensure fresh data on next load
+        this.cacheService.invalidate('personalPrayers');
+        
+        // Reload prayers from database but don't re-extract categories
+        const personalPrayers = await this.prayerService.getPersonalPrayers();
+        this.personalPrayers = personalPrayers;
+        this.personalPrayersCount = personalPrayers.length;
+        
+        // Update cache with fresh data
+        this.cacheService.set('personalPrayers', personalPrayers);
+        
+        this.cdr.detectChanges();
+      } else {
         this.toastService.error('Failed to reorder prayers');
+        // Reload to restore original order
+        this.cacheService.invalidate('personalPrayers');
+        const personalPrayers = await this.prayerService.getPersonalPrayers();
+        this.personalPrayers = personalPrayers;
+        this.cdr.detectChanges();
       }
     } catch (error) {
       console.error('Error reordering personal prayers:', error);
       this.toastService.error('Failed to reorder prayers');
     } finally {
       this.isReorderingPersonalPrayers = false;
+    }
+  }
+
+  onCategoryDragStarted(): void {
+    this.isCategoryDragging = true;
+    document.body.style.cursor = 'grabbing';
+  }
+
+  onCategoryDragEnded(): void {
+    this.isCategoryDragging = false;
+    document.body.style.cursor = '';
+  }
+
+  async onCategoryDrop(event: CdkDragDrop<string[]>): Promise<void> {
+    // If the index hasn't changed, no need to do anything
+    if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    // Prevent multiple concurrent swaps
+    if (this.isSwappingCategories) {
+      return;
+    }
+
+    // Capture category names BEFORE moving the array
+    const draggedCategory = this.uniquePersonalCategories[event.previousIndex];
+    const targetCategory = this.uniquePersonalCategories[event.currentIndex];
+
+    // Immediately move item in the array for instant visual feedback
+    moveItemInArray(this.uniquePersonalCategories, event.previousIndex, event.currentIndex);
+    this.isSwappingCategories = true;
+    this.cdr.detectChanges();
+
+    try {
+      // Swap the ranges of the two categories in the database
+      const success = await this.prayerService.swapCategoryRanges(draggedCategory, targetCategory);
+
+      if (success) {
+        // Invalidate cache and reload prayers
+        this.cacheService.invalidate('personalPrayers');
+        const personalPrayers = await this.prayerService.getPersonalPrayers();
+        this.personalPrayers = personalPrayers;
+        this.personalPrayersCount = personalPrayers.length;
+        
+        // Update cache with fresh data
+        this.cacheService.set('personalPrayers', personalPrayers);
+        
+        // Re-extract categories from the reloaded prayers to match the new database order
+        await this.extractUniqueCategories(personalPrayers);
+        
+        this.cdr.detectChanges();
+      } else {
+        this.toastService.error('Failed to reorder categories');
+        // Move back to original position in UI since swap failed
+        moveItemInArray(this.uniquePersonalCategories, event.currentIndex, event.previousIndex);
+        this.cdr.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error reordering categories:', error);
+      this.toastService.error('Failed to reorder categories');
+      // Move back to original position
+      moveItemInArray(this.uniquePersonalCategories, event.currentIndex, event.previousIndex);
+      this.cdr.detectChanges();
+    } finally {
+      this.isSwappingCategories = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -959,11 +1103,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   togglePromptType(type: string): void {
-    const index = this.selectedPromptTypes.indexOf(type);
-    if (index > -1) {
-      this.selectedPromptTypes.splice(index, 1);
+    // If clicking the currently selected type, deselect it (show all)
+    if (this.selectedPromptTypes.length === 1 && this.selectedPromptTypes[0] === type) {
+      this.selectedPromptTypes = [];
     } else {
-      this.selectedPromptTypes.push(type);
+      // Select only this type (deselect all others)
+      this.selectedPromptTypes = [type];
     }
   }
 
@@ -972,11 +1117,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   togglePersonalCategory(category: string): void {
-    const index = this.selectedPersonalCategories.indexOf(category);
-    if (index > -1) {
-      this.selectedPersonalCategories.splice(index, 1);
+    // If clicking the currently selected category, deselect it (show all)
+    if (this.selectedPersonalCategories.length === 1 && this.selectedPersonalCategories[0] === category) {
+      this.selectedPersonalCategories = [];
     } else {
-      this.selectedPersonalCategories.push(category);
+      // Select only this category (deselect all others)
+      this.selectedPersonalCategories = [category];
     }
   }
 
@@ -984,14 +1130,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     return this.selectedPersonalCategories.includes(category);
   }
 
-  private extractUniqueCategories(prayers: PrayerRequest[]): void {
-    const categories = new Set<string>();
-    prayers.forEach(prayer => {
-      if (prayer.category && prayer.category.trim()) {
-        categories.add(prayer.category.trim());
-      }
-    });
-    this.uniquePersonalCategories = Array.from(categories).sort();
+  private async extractUniqueCategories(prayers: PrayerRequest[]): Promise<void> {
+    // Use prayer service method which sorts by display_order, pass the prayers directly
+    this.uniquePersonalCategories = await this.prayerService.getUniqueCategoriesForUser(prayers);
+    // Force immediate change detection to ensure categories render
+    this.cdr.detectChanges();
   }
 
   getPersonalCategoryCount(category: string): number {

@@ -1056,41 +1056,49 @@ export class PrayerService {
       throw new Error('User email not available');
     }
 
-    // Get all unique categories for this user ordered by first creation (MIN created_at)
-    // This preserves creation order rather than alphabetical, preventing range conflicts
-    const { data: categoryData, error } = await this.supabase.client
+    // Get the actual min/max display_order for this category
+    // This ensures we use the correct range after category swaps
+    const { data: categoryPrayers, error } = await this.supabase.client
       .from('personal_prayers')
-      .select('category, created_at')
+      .select('display_order')
       .eq('user_email', userEmail)
-      .not('category', 'is', null)
-      .order('created_at', { ascending: true });
+      .eq('category', category);
 
     if (error) throw error;
 
-    // Get unique categories in creation order (first appearance in DB)
-    const seenCategories = new Set<string>();
-    const uniqueCategories: string[] = [];
-    
-    (categoryData || []).forEach((row: any) => {
-      if (row.category && !seenCategories.has(row.category)) {
-        seenCategories.add(row.category);
-        uniqueCategories.push(row.category);
-      }
-    });
+    if (!categoryPrayers || categoryPrayers.length === 0) {
+      // New category - find the next available range
+      // Get all categories with their min display_order to find gaps
+      const { data: allCategoryData, error: allError } = await this.supabase.client
+        .from('personal_prayers')
+        .select('category, display_order')
+        .eq('user_email', userEmail)
+        .not('category', 'is', null)
+        .gte('display_order', UNCATEGORIZED_MAX + 1);
 
-    // Find the index of the current category
-    const categoryIndex = uniqueCategories.indexOf(category);
-    if (categoryIndex === -1) {
-      // New category - will be the next one
-      const nextIndex = uniqueCategories.length;
-      const min = UNCATEGORIZED_MAX + 1 + (nextIndex * CATEGORY_RANGE_SIZE);
+      if (allError) throw allError;
+
+      // Find the highest prefix in use
+      let maxPrefix = 0;
+      (allCategoryData || []).forEach((row: any) => {
+        const prefix = Math.floor(row.display_order / 1000);
+        maxPrefix = Math.max(maxPrefix, prefix);
+      });
+
+      // Assign next prefix
+      const nextPrefix = maxPrefix + 1;
+      const min = nextPrefix * 1000;
       const max = min + CATEGORY_RANGE_SIZE - 1;
       return { min, max };
     }
 
-    // Existing category - calculate its range based on creation order
-    const min = UNCATEGORIZED_MAX + 1 + (categoryIndex * CATEGORY_RANGE_SIZE);
+    // Existing category - determine its range from actual display_order values
+    const displayOrders = categoryPrayers.map(p => p.display_order || 0);
+    const minOrder = Math.min(...displayOrders);
+    const prefix = Math.floor(minOrder / 1000);
+    const min = prefix * 1000;
     const max = min + CATEGORY_RANGE_SIZE - 1;
+    
     return { min, max };
   }
 
@@ -1144,6 +1152,12 @@ export class PrayerService {
         return [];
       }
 
+      // Check cache first to reduce database egress
+      const cached = this.cache.get<PrayerRequest[]>('personalPrayers');
+      if (cached) {
+        return cached;
+      }
+
       const { data, error } = await this.supabase.client
         .from('personal_prayers')
         .select(`
@@ -1175,7 +1189,7 @@ export class PrayerService {
       }
 
       // Transform personal prayers to PrayerRequest format for reuse
-      return (data || []).map(p => ({
+      const prayers = (data || []).map(p => ({
         id: p.id,
         title: p.title,
         description: p.description,
@@ -1203,6 +1217,11 @@ export class PrayerService {
           approval_status: 'approved' as const
         }))
       }));
+      
+      // Cache the prayers for future requests
+      this.cache.set('personalPrayers', prayers);
+      
+      return prayers;
     } catch (error) {
       console.error('[PrayerService] Failed to load personal prayers:', error);
       return [];
@@ -1575,19 +1594,40 @@ export class PrayerService {
 
 
   /**
-   * Get unique categories for personal prayers of current user
+   * Get unique categories for personal prayers of current user, sorted by range (descending)
+   * Categories with higher ranges appear first (newer categories appear at top)
    */
-  getUniqueCategoriesForUser(): string[] {
-    const personalPrayers = this.allPersonalPrayersSubject.value;
-    const categories = new Set<string>();
+  async getUniqueCategoriesForUser(prayers?: PrayerRequest[]): Promise<string[]> {
+    const personalPrayers = prayers || this.allPersonalPrayersSubject.value;
+    const categories = new Map<string, number>(); // category -> min display_order for that category
     
     personalPrayers.forEach(prayer => {
       if (prayer.category && prayer.category.trim()) {
-        categories.add(prayer.category.trim());
+        const cat = prayer.category.trim();
+        const displayOrder = prayer.display_order ?? 0;
+        const current = categories.get(cat);
+        // Track the minimum display_order for each category (represents its position)
+        if (current === undefined || displayOrder < current) {
+          categories.set(cat, displayOrder);
+        }
       }
     });
 
-    return Array.from(categories).sort();
+    // Add null category if there are uncategorized prayers
+    const hasUncategorized = personalPrayers.some(p => !p.category);
+    const minUncategorized = personalPrayers
+      .filter(p => !p.category)
+      .reduce((min, p) => Math.min(min, p.display_order ?? 0), Infinity);
+    if (hasUncategorized) {
+      categories.set(null as any, minUncategorized);
+    }
+
+    // Sort categories by their minimum display_order (descending - highest display_order first)
+    const sortedCategories = Array.from(categories.entries())
+      .sort((a, b) => b[1] - a[1]) // Descending by display_order
+      .map(entry => entry[0] as string);
+
+    return sortedCategories;
   }
 
   /**
@@ -1747,6 +1787,96 @@ export class PrayerService {
     }
 
     return null;
+  }
+
+  /**
+   * Swap display_order ranges between two categories
+   * Used when user drags a category button to reorder categories
+   * Example: If A has 2000-2999 and B has 1000-1999, swapping gives A 1000-1999 and B 2000-2999
+   */
+  async swapCategoryRanges(categoryA: string | null | undefined, categoryB: string | null | undefined): Promise<boolean> {
+    try {
+      const userEmail = await this.getUserEmail();
+      if (!userEmail) {
+        console.error('[PrayerService] User email not available for category swap');
+        return false;
+      }
+
+      // Get all personal prayers
+      const allPrayers = this.allPersonalPrayersSubject.value;
+      
+      // Get prayers in each category
+      const prayersA = allPrayers.filter(p => p.category === categoryA);
+      const prayersB = allPrayers.filter(p => p.category === categoryB);
+
+      if (prayersA.length === 0 || prayersB.length === 0) {
+        return true;
+      }
+
+      // Extract prefixes from the actual display_order values in the database
+      const minOrderA = Math.min(...prayersA.map(p => p.display_order ?? 0));
+      const minOrderB = Math.min(...prayersB.map(p => p.display_order ?? 0));
+
+      const prefixA = Math.floor(minOrderA / 1000);
+      const prefixB = Math.floor(minOrderB / 1000);
+
+      // Use a temporary prefix (999) to avoid collisions during swap
+      const tempPrefix = 999;
+
+      // Step 1: Move Category A to temp prefix (parallel batch)
+      const step1Updates = prayersA.map(prayer => {
+        const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
+        const newDisplayOrder = tempPrefix * 1000 + lastThreeDigits;
+        return this.supabase.client
+          .from('personal_prayers')
+          .update({ display_order: newDisplayOrder })
+          .eq('id', prayer.id);
+      });
+      
+      const step1Results = await Promise.all(step1Updates);
+      const step1Error = step1Results.find(r => r.error);
+      if (step1Error?.error) throw step1Error.error;
+
+      // Step 2: Move Category B to Category A's prefix (parallel batch)
+      const step2Updates = prayersB.map(prayer => {
+        const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
+        const newDisplayOrder = prefixA * 1000 + lastThreeDigits;
+        return this.supabase.client
+          .from('personal_prayers')
+          .update({ display_order: newDisplayOrder })
+          .eq('id', prayer.id);
+      });
+      
+      const step2Results = await Promise.all(step2Updates);
+      const step2Error = step2Results.find(r => r.error);
+      if (step2Error?.error) throw step2Error.error;
+
+      // Step 3: Move Category A from temp to Category B's prefix (parallel batch)
+      const step3Updates = prayersA.map(prayer => {
+        const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
+        const newDisplayOrder = prefixB * 1000 + lastThreeDigits;
+        return this.supabase.client
+          .from('personal_prayers')
+          .update({ display_order: newDisplayOrder })
+          .eq('id', prayer.id);
+      });
+      
+      const step3Results = await Promise.all(step3Updates);
+      const step3Error = step3Results.find(r => r.error);
+      if (step3Error?.error) throw step3Error.error;
+
+      // Small delay to ensure database has committed all changes
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Reload personal prayers from database to update the in-memory cache
+      const userPersonalPrayers = await this.getPersonalPrayers();
+      this.allPersonalPrayersSubject.next(userPersonalPrayers);
+
+      return true;
+    } catch (error) {
+      console.error('[PrayerService] Error swapping category ranges:', error);
+      return false;
+    }
   }
 
   /**

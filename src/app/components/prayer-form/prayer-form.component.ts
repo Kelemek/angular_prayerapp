@@ -261,13 +261,17 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       this.isAdmin = isAdmin;
     });
     // Load available categories for personal prayers
-    this.availableCategories = this.prayerService.getUniqueCategoriesForUser();
+    this.prayerService.getUniqueCategoriesForUser().then(cats => {
+      this.availableCategories = cats;
+    });
   }
 
   ngOnChanges(): void {
     if (this.isOpen) {
       this.loadUserInfo();
-      this.availableCategories = this.prayerService.getUniqueCategoriesForUser();
+      this.prayerService.getUniqueCategoriesForUser().then(cats => {
+        this.availableCategories = cats;
+      });
     }
   }
 
