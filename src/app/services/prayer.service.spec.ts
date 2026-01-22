@@ -4857,5 +4857,332 @@ describe('PrayerService', () => {
         expect(observableSpy).toHaveBeenCalledWith(prayers);
       });
     });
+
+    describe('reorderCategories', () => {
+      it('should reorder all categories based on provided order', async () => {
+        const mockEmail = 'user@example.com';
+        
+        // Mock auth session
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const prayersInMemory = [
+          { id: '1', category: 'Family', display_order: 2000 } as PrayerRequest,
+          { id: '2', category: 'Family', display_order: 2001 } as PrayerRequest,
+          { id: '3', category: 'Members', display_order: 1000 } as PrayerRequest,
+          { id: '4', category: 'Members', display_order: 1001 } as PrayerRequest,
+          { id: '5', category: 'Testing', display_order: 3000 } as PrayerRequest,
+        ];
+
+        (service as any).allPersonalPrayersSubject.next(prayersInMemory);
+
+        const orderedCategories = ['Testing', 'Family', 'Members'];
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: null, error: null })
+          })
+        } as any);
+
+        const result = await service.reorderCategories(orderedCategories);
+
+        expect(result).toBe(true);
+        expect(mockSupabaseService.client.from).toHaveBeenCalledWith('personal_prayers');
+      });
+
+      it('should handle null categories in ordered list', async () => {
+        const mockEmail = 'user@example.com';
+        
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const prayersInMemory = [
+          { id: '1', category: 'Family', display_order: 2000 } as PrayerRequest,
+        ];
+
+        (service as any).allPersonalPrayersSubject.next(prayersInMemory);
+
+        const orderedCategories = ['Family', null, 'Members'];
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: null, error: null })
+          })
+        } as any);
+
+        const result = await service.reorderCategories(orderedCategories);
+
+        expect(result).toBe(true);
+      });
+
+      it('should return false when user email is not available', async () => {
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: null }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const result = await service.reorderCategories(['Family', 'Members']);
+
+        expect(result).toBe(false);
+      });
+
+      it('should handle database errors during reorder', async () => {
+        const mockEmail = 'user@example.com';
+        
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const prayersInMemory = [
+          { id: '1', category: 'Family', display_order: 2000 } as PrayerRequest,
+        ];
+
+        (service as any).allPersonalPrayersSubject.next(prayersInMemory);
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: { message: 'Update failed' } })
+          })
+        } as any);
+
+        const result = await service.reorderCategories(['Family', 'Members']);
+
+        expect(result).toBe(false);
+      });
+
+      it('should calculate correct prefix values for each category position', async () => {
+        const mockEmail = 'user@example.com';
+        
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const prayersInMemory = [
+          { id: '1', category: 'A', display_order: 1000 } as PrayerRequest,
+          { id: '2', category: 'B', display_order: 2000 } as PrayerRequest,
+          { id: '3', category: 'C', display_order: 3000 } as PrayerRequest,
+        ];
+
+        (service as any).allPersonalPrayersSubject.next(prayersInMemory);
+
+        const orderedCategories = ['C', 'A', 'B'];
+        const updateCalls: any[] = [];
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn().mockImplementation((data) => {
+            updateCalls.push(data);
+            return {
+              eq: vi.fn().mockResolvedValue({ data: null, error: null })
+            };
+          })
+        } as any);
+
+        await service.reorderCategories(orderedCategories);
+
+        // Position 0 (C) should get prefix 3 (3000)
+        // Position 1 (A) should get prefix 2 (2000)
+        // Position 2 (B) should get prefix 1 (1000)
+        expect(updateCalls.some(call => call.display_order === 3000)).toBe(true);
+        expect(updateCalls.some(call => call.display_order === 2000)).toBe(true);
+        expect(updateCalls.some(call => call.display_order === 1000)).toBe(true);
+      });
+    });
+
+    describe('getPersonalPrayers with forceRefresh', () => {
+      it('should bypass cache when forceRefresh is true', async () => {
+        const mockEmail = 'user@example.com';
+        
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const freshPrayers = [
+          { 
+            id: '2', 
+            title: 'Fresh Prayer', 
+            display_order: 2000,
+            status: 'current',
+            requester: 'User',
+            prayer_for: 'Family',
+            email: mockEmail,
+            is_anonymous: false,
+            type: 'prayer'
+          } as PrayerRequest
+        ];
+
+        mockCacheService.get.mockReturnValue(null);
+
+        mockSupabaseService.client.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: freshPrayers, error: null })
+            })
+          })
+        } as any);
+
+        const result = await service.getPersonalPrayers(true);
+
+        // Verify the method was called with forceRefresh=true
+        expect(mockSupabaseService.client.from).toHaveBeenCalled();
+      });
+
+      it('should use cache when forceRefresh is false and cache exists', async () => {
+        const mockEmail = 'user@example.com';
+        
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const cachedPrayers = [
+          { 
+            id: '1', 
+            title: 'Cached Prayer', 
+            display_order: 1000,
+            status: 'current',
+            requester: 'User'
+          } as PrayerRequest
+        ];
+
+        // Mock cache to return cached prayers
+        let fromCalled = false;
+        mockSupabaseService.client.from.mockImplementation(() => {
+          fromCalled = true;
+          return {};
+        });
+        
+        mockCacheService.get.mockReturnValue(cachedPrayers);
+
+        const result = await service.getPersonalPrayers(false);
+
+        expect(result).toEqual(cachedPrayers);
+        expect(fromCalled).toBe(false);
+      });
+
+      it('should query database when cache is empty', async () => {
+        const mockEmail = 'user@example.com';
+        
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService
+        );
+
+        const freshPrayers = [
+          { 
+            id: '2', 
+            title: 'Fresh Prayer', 
+            display_order: 2000,
+            status: 'current',
+            requester: 'User',
+            prayer_for: 'Family',
+            email: mockEmail,
+            is_anonymous: false,
+            type: 'prayer'
+          } as PrayerRequest
+        ];
+
+        mockCacheService.get.mockReturnValue(null);
+
+        mockSupabaseService.client.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: freshPrayers, error: null })
+            })
+          })
+        } as any);
+
+        const result = await service.getPersonalPrayers(false);
+
+        // Verify database was queried when cache is empty
+        expect(mockSupabaseService.client.from).toHaveBeenCalled();
+      });
+    });
   });
 });

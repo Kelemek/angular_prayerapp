@@ -1144,7 +1144,7 @@ export class PrayerService {
   /**
    * Get all personal prayers for the current user
    */
-  async getPersonalPrayers(): Promise<PrayerRequest[]> {
+  async getPersonalPrayers(forceRefresh: boolean = false): Promise<PrayerRequest[]> {
     try {
       const userEmail = await this.getUserEmail();
       if (!userEmail) {
@@ -1152,10 +1152,12 @@ export class PrayerService {
         return [];
       }
 
-      // Check cache first to reduce database egress
-      const cached = this.cache.get<PrayerRequest[]>('personalPrayers');
-      if (cached) {
-        return cached;
+      // Check cache first to reduce database egress (unless force refresh)
+      if (!forceRefresh) {
+        const cached = this.cache.get<PrayerRequest[]>('personalPrayers');
+        if (cached) {
+          return cached;
+        }
       }
 
       const { data, error } = await this.supabase.client
@@ -1790,17 +1792,126 @@ export class PrayerService {
   }
 
   /**
+   * Reorder all categories based on the provided order array
+   * Assigns new prefix values to match the desired order
+   */
+  async reorderCategories(orderedCategories: (string | null)[]): Promise<boolean> {
+    try {
+      const userEmail = await this.getUserEmail();
+      if (!userEmail) {
+        console.error('[PrayerService] User email not available for category reorder');
+        return false;
+      }
+
+      // Get all personal prayers
+      const allPrayers = this.allPersonalPrayersSubject.value;
+      
+      // Build updates for each category based on its new position
+      // Position 0 gets prefix (length), position 1 gets prefix (length-1), etc.
+      // This maintains descending sort order
+      const updates: any[] = [];
+      
+      for (let newIndex = 0; newIndex < orderedCategories.length; newIndex++) {
+        const category = orderedCategories[newIndex];
+        if (!category) continue;
+        
+        // Calculate new prefix: higher position = higher prefix (for DESC sort)
+        const newPrefix = orderedCategories.length - newIndex;
+        
+        // Get all prayers in this category
+        const categoryPrayers = allPrayers.filter(p => p.category === category);
+        
+        // Update each prayer's display_order to use the new prefix
+        for (const prayer of categoryPrayers) {
+          const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
+          const newDisplayOrder = newPrefix * 1000 + lastThreeDigits;
+          
+          updates.push(
+            this.supabase.client
+              .from('personal_prayers')
+              .update({ display_order: newDisplayOrder })
+              .eq('id', prayer.id)
+          );
+        }
+      }
+
+      // Execute all updates in parallel
+      const results = await Promise.all(updates);
+      const error = results.find(r => r.error);
+      if (error?.error) throw error.error;
+
+      // Note: Component will invalidate cache and reload to get fresh data
+      return true;
+    } catch (error) {
+      console.error('[PrayerService] Error reordering categories:', error);
+      return false;
+    }
+  }
+
+  /**
    * Swap display_order ranges between two categories
    * Used when user drags a category button to reorder categories
    * Example: If A has 2000-2999 and B has 1000-1999, swapping gives A 1000-1999 and B 2000-2999
    */
   async swapCategoryRanges(categoryA: string | null | undefined, categoryB: string | null | undefined): Promise<boolean> {
+    const userEmail = await this.getUserEmail();
+    
+    if (!userEmail) {
+      console.error('[PrayerService] User email not available for category swap');
+      return false;
+    }
+
+    if (!categoryA || !categoryB) {
+      console.error('[PrayerService] Both categories required for swap');
+      return false;
+    }
+
     try {
-      const userEmail = await this.getUserEmail();
-      if (!userEmail) {
-        console.error('[PrayerService] User email not available for category swap');
-        return false;
+      // Use RPC for maximum efficiency - single server-side transaction
+      const { data, error } = await this.supabase.client
+        .rpc('swap_personal_prayer_categories', {
+          p_user_email: userEmail,
+          p_category_a: categoryA,
+          p_category_b: categoryB
+        });
+
+      if (error) {
+        console.error('[PrayerService] RPC error swapping categories:', error);
+        // Fall back to client-side implementation if RPC fails
+        return await this.swapCategoryRangesFallback(categoryA, categoryB);
       }
+
+      if (data && data.length > 0) {
+        const result = data[0];
+        if (!result.success) {
+          console.error('[PrayerService] Swap failed:', result.message);
+          return false;
+        }
+        console.log('[PrayerService]', result.message);
+      }
+
+      // Reload personal prayers from database to update the in-memory cache
+      const userPersonalPrayers = await this.getPersonalPrayers();
+      this.allPersonalPrayersSubject.next(userPersonalPrayers);
+
+      return true;
+    } catch (error) {
+      console.error('[PrayerService] Exception swapping categories:', error);
+      // Fall back to client-side implementation
+      return await this.swapCategoryRangesFallback(categoryA, categoryB);
+    }
+  }
+
+  /**
+   * Fallback method for swapping categories using client-side batch updates
+   * Used if the RPC function is not available or fails
+   */
+  private async swapCategoryRangesFallback(categoryA: string, categoryB: string): Promise<boolean> {
+    try {
+      console.log('[PrayerService] Using fallback method for category swap');
+      
+      const userEmail = await this.getUserEmail();
+      if (!userEmail) return false;
 
       // Get all personal prayers
       const allPrayers = this.allPersonalPrayersSubject.value;
@@ -1813,14 +1924,12 @@ export class PrayerService {
         return true;
       }
 
-      // Extract prefixes from the actual display_order values in the database
+      // Extract prefixes from the actual display_order values
       const minOrderA = Math.min(...prayersA.map(p => p.display_order ?? 0));
       const minOrderB = Math.min(...prayersB.map(p => p.display_order ?? 0));
 
       const prefixA = Math.floor(minOrderA / 1000);
       const prefixB = Math.floor(minOrderB / 1000);
-
-      // Use a temporary prefix (999) to avoid collisions during swap
       const tempPrefix = 999;
 
       // Step 1: Move Category A to temp prefix (parallel batch)
@@ -1865,16 +1974,13 @@ export class PrayerService {
       const step3Error = step3Results.find(r => r.error);
       if (step3Error?.error) throw step3Error.error;
 
-      // Small delay to ensure database has committed all changes
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Reload personal prayers from database to update the in-memory cache
+      // Reload personal prayers from database
       const userPersonalPrayers = await this.getPersonalPrayers();
       this.allPersonalPrayersSubject.next(userPersonalPrayers);
 
       return true;
     } catch (error) {
-      console.error('[PrayerService] Error swapping category ranges:', error);
+      console.error('[PrayerService] Fallback swap failed:', error);
       return false;
     }
   }

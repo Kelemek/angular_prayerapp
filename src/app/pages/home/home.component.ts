@@ -1034,9 +1034,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Capture category names BEFORE moving the array
-    const draggedCategory = this.uniquePersonalCategories[event.previousIndex];
-    const targetCategory = this.uniquePersonalCategories[event.currentIndex];
+    // Make a copy of the original array to compare after
+    const originalCategories = [...this.uniquePersonalCategories];
 
     // Immediately move item in the array for instant visual feedback
     moveItemInArray(this.uniquePersonalCategories, event.previousIndex, event.currentIndex);
@@ -1044,13 +1043,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
 
     try {
-      // Swap the ranges of the two categories in the database
-      const success = await this.prayerService.swapCategoryRanges(draggedCategory, targetCategory);
+      // Update display orders for all categories based on their new positions
+      const success = await this.prayerService.reorderCategories(this.uniquePersonalCategories);
 
       if (success) {
-        // Invalidate cache and reload prayers
+        // Invalidate cache and force reload prayers from database
         this.cacheService.invalidate('personalPrayers');
-        const personalPrayers = await this.prayerService.getPersonalPrayers();
+        const personalPrayers = await this.prayerService.getPersonalPrayers(true);
         this.personalPrayers = personalPrayers;
         this.personalPrayersCount = personalPrayers.length;
         
