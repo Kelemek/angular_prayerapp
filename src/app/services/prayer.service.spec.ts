@@ -5713,7 +5713,7 @@ describe('PrayerService', () => {
         );
 
         const prayers = [
-          { id: 'prayer1', title: 'Prayer 1', updates: [] } as PrayerRequest,
+          { id: 'prayer1', title: 'Prayer 1', updates: [] } as unknown as PrayerRequest,
         ];
         (service as any).allPersonalPrayersSubject.next(prayers);
 
@@ -5764,7 +5764,7 @@ describe('PrayerService', () => {
         );
 
         const prayers = [
-          { id: 'prayer1', title: 'Prayer 1', updates: [] } as PrayerRequest,
+          { id: 'prayer1', title: 'Prayer 1', updates: [] } as unknown as PrayerRequest,
         ];
         (service as any).allPersonalPrayersSubject.next(prayers);
 
