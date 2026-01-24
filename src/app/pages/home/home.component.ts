@@ -218,24 +218,24 @@ import type { User } from '@supabase/supabase-js';
         ></app-prayer-filters>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-4 mb-6">
           <button
             (click)="setFilter('current')"
             title="Show current prayers"
-            [class]="'rounded-lg shadow-md p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'current' ? '!border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring-3 ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')"
+            [class]="'rounded-lg shadow-md p-2 sm:p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'current' ? '!border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring-3 ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')"
           >
             @let currentCount = (currentPrayerBadge$ | async) || 0;
             @if ((currentCount > 0) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
               <button
                 (click)="$event.stopPropagation(); markAllCurrentAsRead()"
-                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 title="Mark all current prayers as read"
                 aria-label="Mark all current prayers as read"
               >
                 {{ currentCount }}
               </button>
             }
-            <div class="text-xl sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+            <div class="text-sm sm:text-xl sm:sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
               {{ currentPrayersCount }}
             </div>
             <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Current</div>
@@ -243,20 +243,20 @@ import type { User } from '@supabase/supabase-js';
           <button
             (click)="setFilter('answered')"
             title="Show answered prayers"
-            [class]="'rounded-lg shadow-md p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'answered' ? '!border-[#39704D] dark:!border-[#39704D] bg-green-100 dark:bg-green-950 ring-3 ring-[#39704D] dark:ring-[#39704D] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#39704D] dark:hover:!border-[#39704D] hover:shadow-lg')"
+            [class]="'rounded-lg shadow-md p-2 sm:p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'answered' ? '!border-[#39704D] dark:!border-[#39704D] bg-green-100 dark:bg-green-950 ring-3 ring-[#39704D] dark:ring-[#39704D] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#39704D] dark:hover:!border-[#39704D] hover:shadow-lg')"
           >
             @let answeredCount = (answeredPrayerBadge$ | async) || 0;
             @if ((answeredCount > 0) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
               <button
                 (click)="$event.stopPropagation(); markAllAnsweredAsRead()"
-                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 title="Mark all answered prayers as read"
                 aria-label="Mark all answered prayers as read"
               >
                 {{ answeredCount }}
               </button>
             }
-            <div class="text-xl sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+            <div class="text-sm sm:text-xl sm:sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
               {{ answeredPrayersCount }}
             </div>
             <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Answered</div>
@@ -264,9 +264,9 @@ import type { User } from '@supabase/supabase-js';
           <button
             (click)="setFilter('total')"
             title="Show all prayers"
-            [class]="'rounded-lg shadow-md p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'total' ? '!border-[#C9A961] dark:!border-[#C9A961] bg-amber-100 dark:bg-amber-900/40 ring-3 ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#C9A961] dark:hover:!border-[#C9A961] hover:shadow-lg')"
+            [class]="'rounded-lg shadow-md p-2 sm:p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'total' ? '!border-[#C9A961] dark:!border-[#C9A961] bg-amber-100 dark:bg-amber-900/40 ring-3 ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#C9A961] dark:hover:!border-[#C9A961] hover:shadow-lg')"
           >
-            <div class="text-xl sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+            <div class="text-sm sm:text-xl sm:sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
               {{ totalPrayersCount }}
             </div>
             <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Total</div>
@@ -274,35 +274,35 @@ import type { User } from '@supabase/supabase-js';
           <button
             (click)="setFilter('prompts')"
             title="Show prayer prompts"
-            [class]="'rounded-lg shadow-md p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'prompts' ? '!border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring-3 ring-[#988F83] dark:ring-[#988F83] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#988F83] dark:hover:!border-[#988F83] hover:shadow-lg')"
+            [class]="'rounded-lg shadow-md p-2 sm:p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'prompts' ? '!border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring-3 ring-[#988F83] dark:ring-[#988F83] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#988F83] dark:hover:!border-[#988F83] hover:shadow-lg')"
           >
             @let promptCount = (promptBadge$ | async) || 0;
             @if ((promptCount > 0) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
               <button
                 (click)="$event.stopPropagation(); markAllPromptsAsRead()"
-                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 title="Mark all prompts as read"
                 aria-label="Mark all prompts as read"
               >
                 {{ promptCount }}
               </button>
             }
-            <div class="text-xl sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+            <div class="text-sm sm:text-xl sm:sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
               {{ promptsCount }}
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Prompts</div>
+            <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Prompts</div>
           </button>
 
           <!-- Personal Prayers Filter -->
           <button
             (click)="setFilter('personal')"
             title="Show your personal prayers"
-            [class]="'rounded-lg shadow-md p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'personal' ? '!border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring-3 ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#2F5F54] dark:hover:!border-[#2F5F54] hover:shadow-lg')"
+            [class]="'rounded-lg shadow-md p-2 sm:p-4 text-center border-[2px] transition-all duration-200 cursor-pointer relative ' + (activeFilter === 'personal' ? '!border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring-3 ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0' : 'bg-white dark:bg-gray-800 !border-gray-200 dark:!border-gray-700 hover:!border-[#2F5F54] dark:hover:!border-[#2F5F54] hover:shadow-lg')"
           >
-            <div class="text-xl sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+            <div class="text-sm sm:text-xl sm:sm:text-2xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">
               {{ personalPrayersCount }}
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Personal</div>
+            <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Personal</div>
           </button>
         </div>
 
