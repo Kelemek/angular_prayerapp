@@ -51,10 +51,10 @@ describe('environment.prod', () => {
     expect(environment.sentryDsn).toMatch(/^https:\/\/.+@.+\.sentry\.io\/.+$/);
   });
 
-  it('should use same Supabase configuration as development', () => {
-    // Production and development environments share the same Supabase instance
-    expect(environment.supabaseUrl).toBe(devEnvironment.supabaseUrl);
-    expect(environment.supabaseAnonKey).toBe(devEnvironment.supabaseAnonKey);
+  it('should use different Supabase configuration from development', () => {
+    // Production and development environments use separate Supabase projects
+    expect(environment.supabaseUrl).not.toBe(devEnvironment.supabaseUrl);
+    expect(environment.supabaseAnonKey).not.toBe(devEnvironment.supabaseAnonKey);
   });
 
   it('should use same Sentry configuration as development', () => {
