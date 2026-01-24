@@ -1,5 +1,4 @@
 {
-  "buildCommand": "if [ \"$IS_DEV\" = \"true\" ]; then npm run build:dev; else npm run build:prod; fi",
   "outputDirectory": "dist/prayerapp/browser",
   "devCommand": "npm start",
   "installCommand": "npm install",
