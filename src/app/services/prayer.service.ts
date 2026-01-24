@@ -1684,14 +1684,8 @@ export class PrayerService {
       }
     });
 
-    // Add null category if there are uncategorized prayers
-    const hasUncategorized = personalPrayers.some(p => !p.category);
-    const minUncategorized = personalPrayers
-      .filter(p => !p.category)
-      .reduce((min, p) => Math.min(min, p.display_order ?? 0), Infinity);
-    if (hasUncategorized) {
-      categories.set(null as any, minUncategorized);
-    }
+    // Don't add null category - only return actual categories
+    // Uncategorized prayers will still show in "All Categories" view without filter buttons
 
     // Sort categories by their minimum display_order (descending - highest display_order first)
     const sortedCategories = Array.from(categories.entries())
