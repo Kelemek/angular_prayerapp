@@ -403,31 +403,57 @@ import type { User } from '@supabase/supabase-js';
             <!-- Empty State for Prayers -->
             @if (activeFilter !== 'prompts' && activeFilter !== 'personal' && (prayers$ | async)?.length === 0) {
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                @if (filters.searchTerm && filters.searchTerm.trim()) {
+                  <svg class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                }
                 <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  @if (activeFilter === 'current') {
-                    <span>No current prayer requests yet</span>
-                  }
-                  @if (activeFilter === 'answered') {
-                    <span>No answered prayers yet</span>
-                  }
-                  @if (activeFilter === 'total') {
-                    <span>No prayer requests yet</span>
+                  @if (filters.searchTerm && filters.searchTerm.trim()) {
+                    <span>No prayers found</span>
+                  } @else {
+                    @if (activeFilter === 'current') {
+                      <span>No current prayer requests yet</span>
+                    }
+                    @if (activeFilter === 'answered') {
+                      <span>No answered prayers yet</span>
+                    }
+                    @if (activeFilter === 'total') {
+                      <span>No prayer requests yet</span>
+                    }
                   }
                 </h3>
                 <p class="text-gray-500 dark:text-gray-400">
-                  Be the first to add a prayer request to build your church's prayer community.
+                  @if (filters.searchTerm && filters.searchTerm.trim()) {
+                    <span>Try adjusting your search terms</span>
+                  } @else {
+                    <span>Be the first to add a prayer request to build your church's prayer community.</span>
+                  }
                 </p>
               </div>
             }
 
             <!-- Empty State for Personal Prayers -->
-            @if (activeFilter === 'personal' && personalPrayers.length === 0) {
+            @if (activeFilter === 'personal' && getFilteredPersonalPrayers().length === 0) {
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
+                @if (filters.searchTerm && filters.searchTerm.trim()) {
+                  <svg class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                }
                 <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  No personal prayers yet
+                  @if (filters.searchTerm && filters.searchTerm.trim()) {
+                    <span>No prayers found</span>
+                  } @else {
+                    <span>No personal prayers yet</span>
+                  }
                 </h3>
                 <p class="text-gray-500 dark:text-gray-400">
-                  Click the Add Request button and choose Personal Prayer to create prayers that stays private to you.
+                  @if (filters.searchTerm && filters.searchTerm.trim()) {
+                    <span>Try adjusting your search terms</span>
+                  } @else {
+                    <span>Click the Add Request button and choose Personal Prayer to create prayers that stays private to you.</span>
+                  }
                 </p>
               </div>
             }
