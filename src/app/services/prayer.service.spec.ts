@@ -639,7 +639,7 @@ describe('PrayerService', () => {
   });
 });
 
-describe('PrayerService', () => {
+describe('PrayerService - Integration Tests', () => {
   let service: PrayerService;
   let mockSupabaseService: any;
   let mockToastService: any;
@@ -5411,8 +5411,10 @@ describe('PrayerService', () => {
         ];
 
         const result = await service.getUniqueCategoriesForUser(prayers);
-        expect(result).toContain(null as any);
-        expect(result.length).toBe(2);
+        // Should only return actual categories, not null (uncategorized)
+        expect(result).toContain('Family');
+        expect(result).not.toContain(null);
+        expect(result.length).toBe(1);
       });
 
       it('should handle empty prayers array', async () => {
