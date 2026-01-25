@@ -1410,5 +1410,231 @@ describe('PresentationComponent', () => {
       component.onTouchEnd();
       expect(component.currentIndex).toBe(0);
     });
+  
+    describe('Additional presentation helpers', () => {
+      it('loadContent randomizes when enabled', async () => {
+        component.contentType = 'prayers';
+        component.randomize = true;
+        const fetchSpy = vi.spyOn(component, 'fetchPrayers').mockResolvedValue();
+        const shuffleSpy = vi.spyOn(component, 'shuffleItems').mockImplementation(() => {});
+
+        await component.loadContent();
+
+        expect(fetchSpy).toHaveBeenCalled();
+        expect(shuffleSpy).toHaveBeenCalled();
+        expect(component.loading).toBe(false);
+      });
+
+      it('loadContent handles failures gracefully', async () => {
+        component.contentType = 'prayers';
+        vi.spyOn(component, 'fetchPrayers').mockRejectedValue(new Error('boom'));
+
+        await component.loadContent();
+
+        expect(component.loading).toBe(false);
+      });
+
+      it('fetchPrayers respects time filters to include recent updates', async () => {
+        const now = new Date();
+        const recent = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+        const old = new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString();
+        const data = [
+          {
+            id: 'include',
+            created_at: old,
+            status: 'current',
+            prayer_updates: [{ created_at: recent, approval_status: 'approved', content: 'Update' }]
+          },
+          {
+            id: 'exclude',
+            created_at: old,
+            status: 'current',
+            prayer_updates: []
+          }
+        ];
+
+        component.contentType = 'prayers';
+        component.timeFilter = 'week';
+        component.statusFilters = { current: true, answered: true };
+        const query = createQuery({ data, error: null });
+        mockSupabase.client.from = vi.fn().mockReturnValue(query);
+
+        await component.fetchPrayers();
+
+        expect(component.prayers).toHaveLength(1);
+        expect(component.prayers[0].id).toBe('include');
+      });
+
+      it('fetchPrompts handles type fetch errors by clearing prompts', async () => {
+        const q1 = createQuery({ data: null, error: { message: 'types fail' } });
+        const q2 = createQuery({ data: [], error: null });
+        let callCount = 0;
+        mockSupabase.client.from = vi.fn().mockImplementation(() => {
+          callCount += 1;
+          return callCount === 1 ? q1 : q2;
+        });
+
+        await component.fetchPrompts();
+
+        expect(component.prompts).toEqual([]);
+      });
+
+      it('fetchPersonalPrayers filters by time and status', async () => {
+        const now = new Date();
+        const recent = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+        const older = new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString();
+        const prayers = [
+          { id: 'current', created_at: recent, category: 'Current', updates: [], status: 'current' },
+          { id: 'answered', created_at: older, category: 'Answered', updates: [], status: 'answered' }
+        ];
+
+        component['prayerService'] = {
+          allPersonalPrayers$: {
+            subscribe(cb: any) {
+              cb(prayers);
+              return { unsubscribe: vi.fn() };
+            }
+          }
+        } as any;
+
+        component.timeFilter = 'week';
+        component.statusFilters = { current: true, answered: false };
+
+        await component.fetchPersonalPrayers();
+
+        expect(component.personalPrayers).toHaveLength(1);
+        expect(component.personalPrayers[0].category).toBe('Current');
+      });
+
+      it('fetchPersonalPrayers handles subscription errors gracefully', async () => {
+        component['prayerService'] = {
+          allPersonalPrayers$: {
+            subscribe() {
+              throw new Error('failed');
+            }
+          }
+        } as any;
+
+        await component.fetchPersonalPrayers();
+
+        expect(component.personalPrayers).toEqual([]);
+      });
+
+      it('togglePersonalCategory manages selections and resets index', () => {
+        component.selectedPersonalCategories = ['Current'];
+        component.currentIndex = 3;
+
+        component.togglePersonalCategory('Current');
+        expect(component.selectedPersonalCategories).not.toContain('Current');
+        expect(component.currentIndex).toBe(0);
+
+        component.togglePersonalCategory('Answered');
+        expect(component.selectedPersonalCategories).toContain('Answered');
+      });
+
+      it('isPersonalCategorySelected reports correctly', () => {
+        component.selectedPersonalCategories = ['foo'];
+        expect(component.isPersonalCategorySelected('foo')).toBe(true);
+        expect(component.isPersonalCategorySelected('bar')).toBe(false);
+      });
+
+      it('extractUniquePersonalCategories trims duplicates', () => {
+        component.personalPrayers = [
+          { category: 'Answered ' },
+          { category: 'Answered' },
+          { category: 'Current' }
+        ] as any;
+        component['extractUniquePersonalCategories']();
+        expect(component.uniquePersonalCategories).toEqual(['Answered', 'Current']);
+      });
+
+      it('items getter respects selected personal categories for all content', () => {
+        component.contentType = 'all';
+        component.prayers = [{ id: 'p' }] as any;
+        component.prompts = [{ id: 'pr' }] as any;
+        component.personalPrayers = [{ id: 'personal', category: 'cat' }] as any;
+        component.selectedPersonalCategories = ['cat'];
+
+        const items = component.items;
+
+        expect(items).toContainEqual({ id: 'p' });
+        expect(items).toContainEqual({ id: 'pr' });
+        expect(items).toContainEqual({ id: 'personal', category: 'cat' });
+      });
+
+      it('handleContentTypeChange reloads content and resets index', async () => {
+        component.currentIndex = 5;
+        const loadSpy = vi.spyOn(component, 'loadContent').mockResolvedValue();
+
+        await component.handleContentTypeChange();
+
+        expect(component.currentIndex).toBe(0);
+        expect(loadSpy).toHaveBeenCalled();
+      });
+
+      it('handleStatusFilterChange refreshes both prayers and personal lists when showing all', async () => {
+        component.contentType = 'all';
+        const prayersSpy = vi.spyOn(component, 'fetchPrayers').mockResolvedValue();
+        const personalSpy = vi.spyOn(component, 'fetchPersonalPrayers').mockResolvedValue();
+
+        await component.handleStatusFilterChange();
+
+        expect(prayersSpy).toHaveBeenCalled();
+        expect(personalSpy).toHaveBeenCalled();
+        expect(component.currentIndex).toBe(0);
+      });
+
+      it('handleTimeFilterChange mirrors status change behavior', async () => {
+        component.contentType = 'all';
+        const prayersSpy = vi.spyOn(component, 'fetchPrayers').mockResolvedValue();
+        const personalSpy = vi.spyOn(component, 'fetchPersonalPrayers').mockResolvedValue();
+
+        await component.handleTimeFilterChange();
+
+        expect(prayersSpy).toHaveBeenCalled();
+        expect(personalSpy).toHaveBeenCalled();
+      });
+
+      it('handleRandomizeChange shuffles when enabled and reloads when disabled', async () => {
+        component.randomize = true;
+        const shuffleSpy = vi.spyOn(component, 'shuffleItems').mockImplementation(() => {});
+        await component.handleRandomizeChange();
+        expect(shuffleSpy).toHaveBeenCalled();
+
+        component.randomize = false;
+        const loadSpy = vi.spyOn(component, 'loadContent').mockResolvedValue();
+        await component.handleRandomizeChange();
+        expect(loadSpy).toHaveBeenCalled();
+      });
+
+      it('refreshContent reloads data and resets index', async () => {
+        component.currentIndex = 4;
+        const loadSpy = vi.spyOn(component, 'loadContent').mockResolvedValue();
+
+        await component.refreshContent();
+
+        expect(loadSpy).toHaveBeenCalled();
+        expect(component.currentIndex).toBe(0);
+      });
+
+      it('calculateCurrentDuration handles prompt descriptions', () => {
+        const prompt = { description: 'a'.repeat(50) } as any;
+        component.prompts = [prompt];
+        component.contentType = 'prompts';
+        component.currentIndex = 0;
+        component.smartMode = true;
+
+        const duration = component.calculateCurrentDuration();
+
+        expect(duration).toBeGreaterThanOrEqual(10);
+      });
+
+      it('shuffleArray preserves elements and returns new array', () => {
+        const arr = [1, 2, 3];
+        const shuffled = component.shuffleArray(arr);
+        expect(shuffled).not.toBe(arr);
+        expect(shuffled.sort()).toEqual(arr.slice().sort());
+      });
+    });
   });
 });

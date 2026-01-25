@@ -1,8 +1,105 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+if (typeof window === 'undefined') {
+  (globalThis as any).window = {
+    location: {
+      search: '',
+      pathname: '/test',
+      origin: 'http://localhost'
+    },
+    history: {
+      replaceState: vi.fn()
+    },
+    addEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+    scrollTo: vi.fn()
+  };
+}
+
+if (typeof document === 'undefined') {
+  (globalThis as any).document = {
+    hidden: false,
+    documentElement: { scrollTop: 0 },
+    body: { scrollTop: 0 },
+    querySelector: vi.fn()
+  };
+}
 import { AppComponent } from './app.component';
 import { Router, NavigationEnd } from '@angular/router';
 import { Injector, ChangeDetectorRef, NgZone } from '@angular/core';
 import { Subject } from 'rxjs';
+
+const decodeAccountCodeMock = vi.fn();
+const supabaseDirectQueryMock = vi.fn();
+const supabaseDirectMutationMock = vi.fn();
+const lookupPersonByEmailMock = vi.fn();
+const emailGetTemplateMock = vi.fn();
+const emailApplyTemplateVariablesMock = vi.fn();
+const emailSendEmailMock = vi.fn();
+const toastShowToastMock = vi.fn();
+
+vi.mock('./services/approval-links.service', () => {
+  return {
+    ApprovalLinksService: class {
+      decodeAccountCode() {
+        return decodeAccountCodeMock();
+      }
+    }
+  };
+});
+
+vi.mock('./services/supabase.service', () => {
+  return {
+    SupabaseService: class {
+      directQuery(...args: unknown[]) {
+        return supabaseDirectQueryMock(...args);
+      }
+
+      directMutation(...args: unknown[]) {
+        return supabaseDirectMutationMock(...args);
+      }
+    }
+  };
+});
+
+vi.mock('./services/email-notification.service', () => {
+  return {
+    EmailNotificationService: class {
+      getTemplate(templateName: string) {
+        return emailGetTemplateMock(templateName);
+      }
+
+      applyTemplateVariables(template: string, vars: Record<string, string> = {}) {
+        return emailApplyTemplateVariablesMock(template, vars);
+      }
+
+      sendEmail(payload: unknown) {
+        return emailSendEmailMock(payload);
+      }
+    }
+  };
+});
+
+vi.mock('./services/toast.service', () => {
+  return {
+    ToastService: class {
+      showToast(message: string, type: string) {
+        return toastShowToastMock(message, type);
+      }
+    }
+  };
+});
+
+vi.mock('../lib/planning-center', () => ({
+  lookupPersonByEmail: lookupPersonByEmailMock
+}));
+
+vi.mock('../environments/environment', () => ({
+  environment: {
+    supabaseUrl: 'https://example.supabase',
+    supabaseAnonKey: 'anon-key'
+  }
+}));
 
 describe('AppComponent', () => {
   let component: AppComponent;
@@ -33,7 +130,13 @@ describe('AppComponent', () => {
 
     // Create mock Injector
     mockInjector = {
-      get: vi.fn()
+      get: vi.fn((token) => {
+        const name = typeof token?.name === 'string' ? token.name : '';
+        if (name === 'ToastService') {
+          return { showToast: vi.fn() };
+        }
+        return {};
+      })
     };
 
     // Mock window and document methods
@@ -1093,6 +1196,200 @@ describe('AppComponent', () => {
 
       // Should not match account_approve_ because of case sensitivity
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+  });
+
+  describe('handleAccountApprovalCode detailed flows', () => {
+    const createRequest = (status = 'pending') => ({
+      id: 'req-123',
+      email: 'test@example.com',
+      first_name: 'Jane',
+      last_name: 'Doe',
+      approval_status: status
+    });
+
+    let approvalLinksServiceInstance: { decodeAccountCode: () => { email: string; type: string } | null };
+    let supabaseServiceInstance: {
+      directQuery: (...args: unknown[]) => Promise<any>;
+      directMutation: (...args: unknown[]) => Promise<any>;
+    };
+    let emailServiceInstance: {
+      getTemplate: (templateName: string) => Promise<any>;
+      applyTemplateVariables: (template: string, vars?: Record<string, string>) => string;
+      sendEmail: (payload: unknown) => Promise<any>;
+    };
+    let toastServiceInstance: { showToast: (message: string, type: string) => void };
+
+    beforeEach(() => {
+      approvalLinksServiceInstance = {
+        decodeAccountCode: () => decodeAccountCodeMock()
+      };
+      supabaseServiceInstance = {
+        directQuery: (...args: unknown[]) => supabaseDirectQueryMock(...args),
+        directMutation: (...args: unknown[]) => supabaseDirectMutationMock(...args)
+      };
+      emailServiceInstance = {
+        getTemplate: (templateName: string) => emailGetTemplateMock(templateName),
+        applyTemplateVariables: (template: string, vars: Record<string, string> = {}) =>
+          emailApplyTemplateVariablesMock(template, vars),
+        sendEmail: (payload: unknown) => emailSendEmailMock(payload)
+      };
+      toastServiceInstance = {
+        showToast: (message: string, type: string) => toastShowToastMock(message, type)
+      };
+
+      mockInjector.get = vi.fn((token) => {
+        const name = typeof token?.name === 'string' ? token.name : '';
+
+        if (name === 'ApprovalLinksService') {
+          return approvalLinksServiceInstance;
+        }
+        if (name === 'SupabaseService') {
+          return supabaseServiceInstance;
+        }
+        if (name === 'EmailNotificationService') {
+          return emailServiceInstance;
+        }
+        if (name === 'ToastService') {
+          return toastServiceInstance;
+        }
+
+        return {};
+      });
+
+      window.location.search = '';
+
+      decodeAccountCodeMock
+        .mockReset()
+        .mockReturnValue({
+          email: 'test@example.com',
+          type: 'approve'
+        });
+
+      supabaseDirectQueryMock
+        .mockReset()
+        .mockResolvedValue({
+          data: [createRequest()],
+          error: null
+        });
+
+      supabaseDirectMutationMock.mockReset().mockResolvedValue({ error: null });
+
+      lookupPersonByEmailMock.mockReset().mockResolvedValue({ count: 0 });
+
+      emailGetTemplateMock
+        .mockReset()
+        .mockResolvedValue({
+          subject: 'Welcome {{firstName}}',
+          html_body: '<p>{{firstName}}</p>',
+          text_body: 'Hi {{firstName}}'
+        });
+
+      emailApplyTemplateVariablesMock
+        .mockReset()
+        .mockImplementation((template: string, vars: Record<string, string> = {}) => {
+          let output = template;
+          Object.entries(vars).forEach(([key, value]) => {
+            output = output.replace(new RegExp(`{{${key}}}`, 'g'), value);
+          });
+          return output;
+        });
+
+      emailSendEmailMock.mockReset().mockResolvedValue({});
+      toastShowToastMock.mockReset();
+    });
+
+    const callHandler = async (code = 'account_approve_test') => {
+      await (component as any).handleAccountApprovalCode(code);
+    };
+
+    it('approves a pending request and notifies success', async () => {
+      await callHandler();
+
+      expect(toastShowToastMock).toHaveBeenCalledWith(
+        expect.stringContaining('Account approved'),
+        'success'
+      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(lookupPersonByEmailMock).toHaveBeenCalled();
+    });
+
+    it('denies a pending request and sends a denial email', async () => {
+      decodeAccountCodeMock.mockReturnValue({
+        email: 'deny@example.com',
+        type: 'deny'
+      });
+      emailGetTemplateMock.mockResolvedValueOnce({
+        subject: 'Denied {{firstName}}',
+        html_body: '<p>Denied {{firstName}}</p>',
+        text_body: 'Denied {{firstName}}'
+      });
+
+      await callHandler('account_deny_test');
+
+      expect(emailGetTemplateMock).toHaveBeenCalledWith('account_denied');
+      expect(emailSendEmailMock).toHaveBeenCalled();
+      expect(toastShowToastMock).toHaveBeenCalledWith(
+        expect.stringContaining('Account denied'),
+        'info'
+      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
+    it('notifies when the request has already been processed', async () => {
+      supabaseDirectQueryMock.mockResolvedValueOnce({
+        data: [createRequest('approved')],
+        error: null
+      });
+
+      await callHandler();
+
+      expect(toastShowToastMock).toHaveBeenCalledWith(
+        expect.stringContaining('already been approved'),
+        'info'
+      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
+    it('handles invalid approval codes gracefully', async () => {
+      decodeAccountCodeMock.mockReturnValue(null);
+
+      await callHandler();
+
+      expect(toastShowToastMock).toHaveBeenCalledWith('Invalid approval link', 'error');
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(supabaseDirectQueryMock).not.toHaveBeenCalled();
+    });
+
+    it('handles missing approval requests', async () => {
+      supabaseDirectQueryMock.mockResolvedValueOnce({
+        data: [],
+        error: 'not found'
+      });
+
+      await callHandler();
+
+      expect(toastShowToastMock).toHaveBeenCalledWith('Approval request not found', 'error');
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
+    it('does not approve when inserting a subscriber fails', async () => {
+      supabaseDirectMutationMock.mockResolvedValueOnce({ error: 'insert-error' });
+
+      await callHandler();
+
+      expect(toastShowToastMock).toHaveBeenCalledWith('Failed to approve account', 'error');
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(supabaseDirectMutationMock).toHaveBeenCalled();
+    });
+
+    it('falls back to a generic toast when an exception occurs', async () => {
+      supabaseDirectQueryMock.mockRejectedValueOnce(new Error('boom'));
+
+      await callHandler();
+
+      expect(toastShowToastMock).toHaveBeenCalledWith('Failed to process approval', 'error');
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
     });
   });
 

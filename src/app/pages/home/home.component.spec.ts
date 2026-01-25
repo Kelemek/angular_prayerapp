@@ -27,7 +27,8 @@ const makeMocks = () => {
     updatePersonalPrayer: vi.fn(),
     updatePersonalPrayerOrder: vi.fn(),
     getUniqueCategoriesForUser: vi.fn().mockResolvedValue([]),
-    swapCategoryRanges: vi.fn()
+    swapCategoryRanges: vi.fn(),
+    reorderCategories: vi.fn()
   };
 
   const promptService: any = {
@@ -99,6 +100,54 @@ const makeMocks = () => {
   };
 
   return { prayerService, promptService, adminAuthService, userSessionService, badgeService, cacheService, toastService, analyticsService, cdr, router, supabaseService, prayersSubject, promptsSubject };
+};
+
+interface SupabaseEmailOptions {
+  selectResult?: { data: any; error: any };
+  nextCall?: 'update' | 'insert';
+  updateResult?: { error: any };
+  insertResult?: { error: any };
+}
+
+const makeSupabaseForEmail = (options: SupabaseEmailOptions = {}) => {
+  let callCount = 0;
+  const selectResult = options.selectResult ?? { data: null, error: null };
+  const selectChain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue(selectResult)
+  };
+  const updateEq = vi.fn().mockResolvedValue(options.updateResult ?? { error: null });
+  const updateChain: any = {
+    update: vi.fn(() => ({ eq: updateEq }))
+  };
+  const insertChain: any = {
+    insert: vi.fn().mockResolvedValue(options.insertResult ?? { error: null })
+  };
+
+  const fromMock = vi.fn(() => {
+    callCount += 1;
+    if (callCount === 1) {
+      return selectChain;
+    }
+    if (callCount === 2) {
+      if (options.nextCall === 'update') return updateChain;
+      if (options.nextCall === 'insert') return insertChain;
+      throw new Error('Unexpected supabase call sequence');
+    }
+    throw new Error('Unexpected supabase.from invocation');
+  });
+
+  return {
+    supabaseService: {
+      client: {
+        from: fromMock
+      }
+    },
+    selectChain,
+    updateChain,
+    insertChain
+  };
 };
 
 describe('HomeComponent', () => {
@@ -861,6 +910,127 @@ describe('HomeComponent', () => {
     expect(comp.updatesAllowed).toBe('everyone');
   });
 
+  it('updateDefaultViewPreference returns false when no email is cached', async () => {
+    const userSessionService = {
+      ...mocks.userSessionService,
+      getUserEmail: () => null
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      userSessionService as any,
+      mocks.badgeService,
+      mocks.cacheService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      mocks.supabaseService
+    );
+
+    await expect(comp.updateDefaultViewPreference('personal')).resolves.toBe(false);
+  });
+
+  it('updateDefaultViewPreference updates existing subscriber record', async () => {
+    const supabase = makeSupabaseForEmail({
+      selectResult: { data: { id: 1 }, error: null },
+      nextCall: 'update'
+    });
+    const userSessionService = {
+      ...mocks.userSessionService,
+      getUserEmail: () => 'test@example.com',
+      updateUserSession: vi.fn().mockResolvedValue(undefined)
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      userSessionService as any,
+      mocks.badgeService,
+      mocks.cacheService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      supabase.supabaseService as any
+    );
+
+    const result = await comp.updateDefaultViewPreference('personal');
+
+    expect(result).toBe(true);
+    expect(supabase.supabaseService.client.from).toHaveBeenCalledTimes(2);
+    expect(supabase.updateChain.update).toHaveBeenCalled();
+    expect(userSessionService.updateUserSession).toHaveBeenCalledWith({ defaultPrayerView: 'personal' });
+  });
+
+  it('updateDefaultViewPreference inserts a subscriber when none exists', async () => {
+    const supabase = makeSupabaseForEmail({
+      selectResult: { data: null, error: null },
+      nextCall: 'insert'
+    });
+    const userSessionService = {
+      ...mocks.userSessionService,
+      getUserEmail: () => 'fresh@example.com',
+      updateUserSession: vi.fn().mockResolvedValue(undefined)
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      userSessionService as any,
+      mocks.badgeService,
+      mocks.cacheService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      supabase.supabaseService as any
+    );
+
+    const result = await comp.updateDefaultViewPreference('current');
+
+    expect(result).toBe(true);
+    expect(supabase.supabaseService.client.from).toHaveBeenCalledTimes(2);
+    expect(supabase.insertChain.insert).toHaveBeenCalledWith({
+      email: 'fresh@example.com',
+      default_prayer_view: 'current'
+    });
+    expect(userSessionService.updateUserSession).toHaveBeenCalledWith({ defaultPrayerView: 'current' });
+  });
+
+  it('updateDefaultViewPreference handles fetch errors gracefully', async () => {
+    const supabase = makeSupabaseForEmail({
+      selectResult: { data: null, error: new Error('fetch failure') }
+    });
+    const userSessionService = {
+      ...mocks.userSessionService,
+      getUserEmail: () => 'error@example.com',
+      updateUserSession: vi.fn().mockResolvedValue(undefined)
+    };
+
+    const comp = new HomeComponent(
+      mocks.prayerService,
+      mocks.promptService,
+      mocks.adminAuthService,
+      userSessionService as any,
+      mocks.badgeService,
+      mocks.cacheService,
+      mocks.toastService,
+      mocks.analyticsService,
+      mocks.cdr,
+      mocks.router,
+      supabase.supabaseService as any
+    );
+
+    await expect(comp.updateDefaultViewPreference('current')).resolves.toBe(false);
+    expect(userSessionService.updateUserSession).not.toHaveBeenCalled();
+    expect(supabase.supabaseService.client.from).toHaveBeenCalledTimes(1);
+  });
+
   describe('Badge count functionality', () => {
     it('should have getUnreadPromptCountByType method', () => {
       const comp = new HomeComponent(
@@ -995,6 +1165,81 @@ describe('HomeComponent', () => {
       ]);
 
       expect(comp).toBeDefined();
+    });
+
+    it('getUnreadPromptCountByType respects badge unread state', () => {
+      const prompts = [
+        { id: '1', type: 'Morning', title: 'Test 1', description: 'a' },
+        { id: '2', type: 'Morning', title: 'Test 2', description: 'b' },
+        { id: '3', type: 'Evening', title: 'Test 3', description: 'c' }
+      ];
+      const promptsSubject = new BehaviorSubject(prompts);
+      const customPromptService = {
+        ...mocks.promptService,
+        prompts$: promptsSubject.asObservable(),
+        promptsSubject
+      };
+      mocks.badgeService.isPromptUnread.mockImplementation(id => id === '2');
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        customPromptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      expect(comp.getUnreadPromptCountByType('Morning')).toBe(1);
+      expect(comp.getUnreadPromptCountByType('Evening')).toBe(0);
+    });
+  });
+
+  describe('Category selection helpers', () => {
+    it('togglePersonalCategory clears selection when already chosen', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.selectedPersonalCategories = ['Members'];
+      comp.togglePersonalCategory('Members');
+
+      expect(comp.selectedPersonalCategories).toEqual([]);
+    });
+
+    it('togglePersonalCategory selects a new category and isPersonalCategorySelected reports true', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.togglePersonalCategory('NewCat');
+      expect(comp.isPersonalCategorySelected('NewCat')).toBe(true);
+      expect(comp.isPersonalCategorySelected('Other')).toBe(false);
     });
   });
 
@@ -1363,6 +1608,34 @@ describe('HomeComponent', () => {
       expect(filtered[0].id).toBe('p1');
     });
 
+    it('getFilteredPersonalPrayers respects selected categories', () => {
+      const prayers = [
+        { id: 'p1', title: 'Alpha', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Morning' },
+        { id: 'p2', title: 'Beta', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Evening' }
+      ];
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+      comp.personalPrayers = prayers;
+      comp.selectedPersonalCategories = ['Evening'];
+
+      const filtered = comp.getFilteredPersonalPrayers();
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe('p2');
+    });
+
     it('markAllCurrentAsRead calls badgeService', () => {
       const comp = new HomeComponent(
         mocks.prayerService,
@@ -1478,6 +1751,38 @@ describe('HomeComponent', () => {
       await comp.onPersonalPrayerDrop(event);
 
       expect(comp.personalPrayers).toEqual(prayers);
+      expect(mocks.prayerService.updatePersonalPrayerOrder).not.toHaveBeenCalled();
+    });
+
+    it('onPersonalPrayerDrop shows error when multiple categories are selected', async () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.personalPrayers = [
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Leaders', display_order: 2 } as PrayerRequest
+      ];
+      comp.selectedPersonalCategories = ['Members', 'Leaders'];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      await comp.onPersonalPrayerDrop(event);
+
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Select a single category to reorder prayers');
       expect(mocks.prayerService.updatePersonalPrayerOrder).not.toHaveBeenCalled();
     });
 

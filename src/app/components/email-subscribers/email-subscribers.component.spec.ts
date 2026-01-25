@@ -1898,4 +1898,144 @@ describe('EmailSubscribersComponent', () => {
       expect(component.showAddForm).toBe(false);
     });
   });
+
+  describe('lifecycle and orientation helpers', () => {
+    it('registers window listeners and triggers search on init', () => {
+      const addSpy = vi.spyOn(window, 'addEventListener');
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      component.ngOnInit();
+
+      expect(addSpy).toHaveBeenCalledWith('orientationchange', expect.any(Function));
+      expect(addSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+      expect(searchSpy).toHaveBeenCalled();
+    });
+
+    it('removes listeners on destroy', () => {
+      component['orientationChangeListener'] = vi.fn();
+      component['resizeListener'] = vi.fn();
+      const removeSpy = vi.spyOn(window, 'removeEventListener');
+
+      component.ngOnDestroy();
+
+      expect(removeSpy).toHaveBeenCalledWith('orientationchange', component['orientationChangeListener']);
+      expect(removeSpy).toHaveBeenCalledWith('resize', component['resizeListener']);
+    });
+
+    it('updates orientation mode and marks for check', () => {
+      const widthSpy = vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1600);
+      const heightSpy = vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(600);
+      const markSpy = vi.spyOn(mockChangeDetectorRef, 'markForCheck');
+
+      (component as any).updateOrientationMode();
+
+      expect(component.isLandscape).toBe(true);
+      expect(markSpy).toHaveBeenCalled();
+
+      widthSpy.mockRestore();
+      heightSpy.mockRestore();
+    });
+
+    it('schedules an orientation update when orientation changes occur', () => {
+      vi.useFakeTimers();
+      const updateSpy = vi.spyOn(component as any, 'updateOrientationMode');
+
+      (component as any).onOrientationChange();
+      vi.runAllTimers();
+
+      expect(updateSpy).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+  });
+
+  describe('scroll helpers', () => {
+    it('scrolls to the container when navigating pages', () => {
+      component.totalItems = 20;
+      component.pageSize = 10;
+      component.currentPage = 1;
+      component.allSubscribers = Array.from({ length: 20 }, (_, i) => ({
+        ...mockSubscriber,
+        id: `sub-${i}`
+      }));
+      component.emailSubscribersContainer = {
+        nativeElement: {
+          getBoundingClientRect: () => ({ top: 150 })
+        }
+      } as any;
+
+      const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+      vi.useFakeTimers();
+      component.goToPage(2);
+      vi.runAllTimers();
+      vi.useRealTimers();
+
+      expect(component.currentPage).toBe(2);
+      expect(scrollSpy).toHaveBeenCalledWith(expect.objectContaining({ top: 150, behavior: 'smooth' }));
+    });
+  });
+
+  describe('sorting helpers', () => {
+    it('sorts subscribers by email in descending order', () => {
+      component.allSubscribers = [
+        { ...mockSubscriber, email: 'b@example.com' },
+        { ...mockSubscriber, email: 'a@example.com' }
+      ];
+      component.sortBy = 'email';
+      component.sortDirection = 'desc';
+
+      (component as any).sortSubscribers();
+
+      expect(component.allSubscribers[0].email).toBe('b@example.com');
+    });
+
+    it('returns the correct sort indicator', () => {
+      component.sortBy = 'name';
+      component.sortDirection = 'asc';
+      expect(component.getSortIndicator('name')).toBe(' ↑');
+      component.sortDirection = 'desc';
+      expect(component.getSortIndicator('name')).toBe(' ↓');
+      expect(component.getSortIndicator('email')).toBe('');
+    });
+
+    it('toggles sort direction when the same column is selected twice', () => {
+      component.sortBy = 'name';
+      component.sortDirection = 'asc';
+
+      component.toggleSort('name');
+
+      expect(component.sortDirection).toBe('desc');
+    });
+  });
+
+  describe('Planning Center search flows', () => {
+    it('populates results when the search succeeds', async () => {
+      component.pcSearchQuery = 'Jane';
+      const mockResult = {
+        people: [{
+          id: 'pc-1',
+          attributes: { name: 'Jane Doe', primary_email_address: 'jane@example.com', avatar: '', status: 'active' }
+        }],
+        count: 1
+      };
+      vi.mocked(planningCenter.searchPlanningCenterByName).mockResolvedValue(mockResult as any);
+
+      await component.handleSearchPlanningCenter();
+
+      expect(component.pcSearchResults).toEqual(mockResult.people);
+      expect(component.error).toBeNull();
+      expect(component.pcSearching).toBe(false);
+    });
+
+    it('handles search failures gracefully', async () => {
+      component.pcSearchQuery = 'Error';
+      vi.mocked(planningCenter.searchPlanningCenterByName).mockRejectedValue(new Error('Network'));
+
+      await component.handleSearchPlanningCenter();
+
+      expect(component.error).toContain('Network');
+      expect(component.pcSearchResults).toEqual([]);
+      expect(component.pcSearching).toBe(false);
+    });
+  });
 });
