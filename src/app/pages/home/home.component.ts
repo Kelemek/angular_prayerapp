@@ -349,7 +349,7 @@ import type { User } from '@supabase/supabase-js';
         <!-- Personal Category Filters -->
         @if (activeFilter === 'personal' && uniquePersonalCategories.length > 0) {
           <div cdkDropList 
-               cdkDropListOrientation="horizontal"
+               cdkDropListOrientation="mixed"
                [cdkDropListData]="uniquePersonalCategories"
                (cdkDropListDropped)="onCategoryDrop($event)"
                [cdkDropListDisabled]="isSwappingCategories"
