@@ -23,6 +23,15 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
           @if (dragHandle && isPersonal) {
             <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
           }
+          <!-- Avatar for Planning Center members -->
+          @if (prayer.prayer_image && prayer.id.startsWith('pc-member-')) {
+            <img 
+              [src]="prayer.prayer_image" 
+              [alt]="'Avatar for ' + prayer.prayer_for"
+              class="w-20 h-20 rounded-full object-cover border border-gray-300 dark:border-gray-600 flex-shrink-0"
+              loading="lazy"
+            />
+          }
           <div class="flex-1">
             <div class="relative flex items-center gap-2 flex-wrap">
               <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline">

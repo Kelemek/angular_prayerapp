@@ -170,10 +170,11 @@ async function fetchListMembers(listId: string, authHeader: string, corsHeaders:
 
       const data = await response.json()
       
-      // Extract member data with id and name
+      // Extract member data with id, name, and avatar
       const pageMembers = (data.data || []).map((person: any) => ({
         id: person.id,
-        name: person.attributes?.name || ''
+        name: person.attributes?.name || '',
+        avatar: person.attributes?.avatar || null
       }))
         .filter((member: any) => member.name.trim() !== '')
       

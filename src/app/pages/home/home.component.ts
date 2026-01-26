@@ -667,7 +667,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   
   // Planning Center list filtering
   planningCenterListId: string | null = null;
-  planningCenterListMembers: Array<{ id: string; name: string }> = [];
+  planningCenterListMembers: Array<{ id: string; name: string; avatar?: string | null }> = [];
   planningCenterListName: string | null = null;
   loadingPlanningCenterList = false;
   filteredPlanningCenterPrayers: PrayerRequest[] = [];
@@ -941,6 +941,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             approval_status: 'approved' as const,
             is_anonymous: false,
             type: 'prayer' as const,
+            prayer_image: member.avatar || null,
           };
         })
       );

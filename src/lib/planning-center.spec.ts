@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { lookupPersonByEmail, formatPersonName, PlanningCenterPerson, checkCachedPlanningCenterStatus, savePlanningCenterStatus, batchLookupPlanningCenter } from './planning-center';
+import { lookupPersonByEmail, formatPersonName, PlanningCenterPerson, checkCachedPlanningCenterStatus, savePlanningCenterStatus, batchLookupPlanningCenter, searchPlanningCenterByName, fetchPlanningCenterLists, fetchListMembers } from './planning-center';
 
 describe('planning-center', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -691,6 +691,275 @@ describe('planning-center', () => {
       // Should succeed without retries needed
       expect(results[0].retries).toBe(0);
       expect(results[0].failed).toBe(false);
+    });
+  });
+
+  describe('checkCachedPlanningCenterStatus', () => {
+    it('should return true when cached as in Planning Center', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ in_planning_center: true, planning_center_checked_at: new Date().toISOString() }]
+      } as Response);
+
+      const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
+      expect(result).toBe(true);
+    });
+
+    it('should return false when cached as not in Planning Center', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ in_planning_center: false, planning_center_checked_at: new Date().toISOString() }]
+      } as Response);
+
+      const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
+      expect(result).toBe(false);
+    });
+
+    it('should return null when no cache found', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => []
+      } as Response);
+
+      const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
+      expect(result).toBeNull();
+    });
+
+    it('should handle API error gracefully', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 500
+      } as Response);
+
+      const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('savePlanningCenterStatus', () => {
+    it('should save true status successfully', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true
+      } as Response);
+
+      await savePlanningCenterStatus('john@example.com', true, 'https://test.supabase.co', 'test-key');
+      
+      expect(fetchMock).toHaveBeenCalled();
+      const call = fetchMock.mock.calls[0];
+      expect(call[0]).toContain('email_subscribers');
+      expect(call[1].method).toBe('PATCH');
+      expect(JSON.parse(call[1].body as string)).toEqual(
+        expect.objectContaining({
+          in_planning_center: true
+        })
+      );
+    });
+
+    it('should save false status successfully', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true
+      } as Response);
+
+      await savePlanningCenterStatus('john@example.com', false, 'https://test.supabase.co', 'test-key');
+      
+      expect(fetchMock).toHaveBeenCalled();
+      const call = fetchMock.mock.calls[0];
+      expect(call[0]).toContain('email_subscribers');
+      expect(call[1].method).toBe('PATCH');
+      expect(JSON.parse(call[1].body as string)).toEqual(
+        expect.objectContaining({
+          in_planning_center: false
+        })
+      );
+    });
+
+    it('should handle save error gracefully', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 500
+      } as Response);
+
+      await savePlanningCenterStatus('john@example.com', true, 'https://test.supabase.co', 'test-key');
+      
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to save Planning Center status:', 500);
+    });
+  });
+
+  describe('searchPlanningCenterByName', () => {
+    it('should search by name successfully', async () => {
+      const mockResponse = {
+        people: [
+          {
+            id: '123',
+            type: 'Person',
+            attributes: {
+              first_name: 'John',
+              last_name: 'Doe',
+              name: 'John Doe',
+              avatar: 'https://example.com/avatar.jpg',
+              status: 'active',
+              created_at: '2024-01-01T00:00:00Z',
+              updated_at: '2024-01-01T00:00:00Z',
+            },
+          },
+        ],
+        count: 1,
+      };
+
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+        } as Response);
+
+      const result = await searchPlanningCenterByName('John Doe', 'https://test.supabase.co', 'test-key');
+
+      expect(result).toEqual({
+        people: mockResponse.people,
+        count: 1,
+      });
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    it('should return empty result when no match found', async () => {
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ people: [], count: 0 }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+        } as Response);
+
+      const result = await searchPlanningCenterByName('Nonexistent Person', 'https://test.supabase.co', 'test-key');
+
+      expect(result.count).toBe(0);
+      expect(result.people).toEqual([]);
+    });
+
+    it('should handle API error', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Server error' })
+      } as Response);
+
+      const result = await searchPlanningCenterByName('John Doe', 'https://test.supabase.co', 'test-key');
+
+      expect(result.error).toBe('Server error');
+    });
+  });
+
+  describe('fetchPlanningCenterLists', () => {
+    it('should fetch lists successfully', async () => {
+      const mockResponse = {
+        lists: [
+          { id: '1', name: 'List 1', description: 'First list' },
+          { id: '2', name: 'List 2', description: 'Second list' },
+        ],
+        count: 2
+      };
+
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await fetchPlanningCenterLists('https://test.supabase.co', 'test-key');
+
+      expect(result.lists).toHaveLength(2);
+      expect(result.lists[0].name).toBe('List 1');
+    });
+
+    it('should handle API error response', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: 'Unauthorized' })
+      } as Response);
+
+      const result = await fetchPlanningCenterLists('https://test.supabase.co', 'test-key');
+
+      expect(result.error).toBe('Unauthorized');
+    });
+
+    it('should handle network error', async () => {
+      fetchMock.mockRejectedValueOnce(new Error('Network failed'));
+
+      const result = await fetchPlanningCenterLists('https://test.supabase.co', 'test-key');
+
+      expect(result.error).toBe('Network failed');
+      expect(result.lists).toEqual([]);
+    });
+  });
+
+  describe('fetchListMembers', () => {
+    it('should fetch members with avatars successfully', async () => {
+      const mockResponse = {
+        members: [
+          { id: '1', name: 'John Doe', avatar: 'https://example.com/john.jpg' },
+          { id: '2', name: 'Jane Smith', avatar: 'https://example.com/jane.jpg' },
+        ],
+        count: 2
+      };
+
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await fetchListMembers('list-123', 'https://test.supabase.co', 'test-key');
+
+      expect(result.members).toHaveLength(2);
+      expect(result.members[0].avatar).toBe('https://example.com/john.jpg');
+    });
+
+    it('should handle missing listId', async () => {
+      const result = await fetchListMembers('', 'https://test.supabase.co', 'test-key');
+
+      expect(result.error).toBe('List ID is required');
+      expect(result.members).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('should handle whitespace-only listId', async () => {
+      const result = await fetchListMembers('   ', 'https://test.supabase.co', 'test-key');
+
+      expect(result.error).toBe('List ID is required');
+    });
+
+    it('should handle API error', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: 'List not found' })
+      } as Response);
+
+      const result = await fetchListMembers('invalid-list', 'https://test.supabase.co', 'test-key');
+
+      expect(result.error).toBe('List not found');
+    });
+
+    it('should handle network error', async () => {
+      fetchMock.mockRejectedValueOnce(new Error('Connection timeout'));
+
+      const result = await fetchListMembers('list-123', 'https://test.supabase.co', 'test-key');
+
+      expect(result.error).toBe('Connection timeout');
+    });
+
+    it('should handle response without members', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ count: 0 }),
+      } as Response);
+
+      const result = await fetchListMembers('list-123', 'https://test.supabase.co', 'test-key');
+
+      expect(result.members).toEqual([]);
     });
   });
 });

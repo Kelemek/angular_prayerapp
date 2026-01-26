@@ -368,7 +368,7 @@ export async function fetchPlanningCenterLists(supabaseUrl: string, supabaseKey:
 /**
  * Fetch member names from a specific Planning Center list
  */
-export async function fetchListMembers(listId: string, supabaseUrl: string, supabaseKey: string): Promise<{ members: Array<{ id: string; name: string }>; error?: string }> {
+export async function fetchListMembers(listId: string, supabaseUrl: string, supabaseKey: string): Promise<{ members: Array<{ id: string; name: string; avatar?: string | null }>; error?: string }> {
   if (!listId || listId.trim() === '') {
     return {
       members: [],

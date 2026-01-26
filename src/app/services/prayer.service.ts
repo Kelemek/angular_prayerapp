@@ -41,6 +41,7 @@ export interface PrayerRequest {
   last_reminder_sent?: string | null;
   category?: string | null;
   display_order?: number;
+  prayer_image?: string | null;
   updates: PrayerUpdate[];
 }
 
