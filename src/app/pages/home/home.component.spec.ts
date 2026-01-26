@@ -1879,4 +1879,987 @@ describe('HomeComponent', () => {
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder prayers');
     });
   });
+
+  describe('Utility methods', () => {
+    it('formatDate should return formatted date string', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const result = comp.formatDate('2024-01-15T10:30:00Z');
+      expect(result).toContain('Jan');
+      expect(result).toContain('15');
+      expect(result).toContain('2024');
+    });
+
+    it('getUserEmail should return cached email from userSessionService', () => {
+      mocks.userSessionService.getUserEmail.mockReturnValue('test@example.com');
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const result = comp.getUserEmail();
+      expect(result).toBe('test@example.com');
+    });
+
+    it('getUserEmail should fall back to localStorage keys', () => {
+      mocks.userSessionService.getUserEmail.mockReturnValue(null);
+      localStorage.setItem('approvalAdminEmail', 'admin@example.com');
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const result = comp.getUserEmail();
+      expect(result).toBe('admin@example.com');
+      localStorage.removeItem('approvalAdminEmail');
+    });
+
+    it('markAllCurrentAsRead should call badgeService', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.markAllCurrentAsRead();
+      expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'current');
+    });
+
+    it('markAllAnsweredAsRead should call badgeService', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.markAllAnsweredAsRead();
+      expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'answered');
+    });
+
+    it('markAllPromptsAsRead should call badgeService', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.markAllPromptsAsRead();
+      expect(mocks.badgeService.markAllAsRead).toHaveBeenCalledWith('prompts');
+    });
+  });
+
+  describe('Modal and editing methods', () => {
+    it('openEditModal should set state and mark for check', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const prayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
+      comp.openEditModal(prayer);
+
+      expect(comp.editingPrayer).toEqual(prayer);
+      expect(comp.showEditPersonalPrayer).toBe(true);
+      expect(mocks.cdr.markForCheck).toHaveBeenCalled();
+    });
+
+    it('onPersonalPrayerSaved should clear state and reload', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.editingPrayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
+      comp.showEditPersonalPrayer = true;
+      
+      const loadSpy = vi.spyOn(comp, 'loadPersonalPrayers');
+
+      comp.onPersonalPrayerSaved();
+
+      expect(comp.showEditPersonalPrayer).toBe(false);
+      expect(comp.editingPrayer).toBeNull();
+      expect(mocks.cdr.markForCheck).toHaveBeenCalled();
+      expect(loadSpy).toHaveBeenCalled();
+    });
+
+    it('openEditUpdateModal should set state', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const update = { id: 'u1', text: 'Update text' } as any;
+      comp.openEditUpdateModal({ update, prayerId: 'p1' });
+
+      expect(comp.editingUpdate).toEqual(update);
+      expect(comp.editingUpdatePrayerId).toBe('p1');
+      expect(comp.showEditPersonalUpdate).toBe(true);
+    });
+
+    it('onPersonalUpdateSaved should clear state and reload', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.editingUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.editingUpdatePrayerId = 'p1';
+      comp.showEditPersonalUpdate = true;
+
+      const loadSpy = vi.spyOn(comp, 'loadPersonalPrayers');
+
+      comp.onPersonalUpdateSaved();
+
+      expect(comp.showEditPersonalUpdate).toBe(false);
+      expect(comp.editingUpdate).toBeNull();
+      expect(comp.editingUpdatePrayerId).toBe('');
+      expect(loadSpy).toHaveBeenCalled();
+    });
+
+    it('openEditMemberUpdateModal should set state', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const update = { id: 'u1', text: 'Update' } as any;
+      comp.openEditMemberUpdateModal({ update, prayerId: 'pc-member-123' });
+
+      expect(comp.editingMemberUpdate).toEqual(update);
+      expect(comp.editingMemberUpdatePrayerId).toBe('pc-member-123');
+      expect(comp.showEditMemberUpdate).toBe(true);
+    });
+
+    it('onMemberUpdateSaved should clear state and reload member updates', (done) => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.editingMemberUpdatePrayerId = 'pc-member-123';
+      comp.showEditMemberUpdate = true;
+      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.filteredPlanningCenterPrayers = [{
+        id: 'pc-member-123',
+        prayer_for: 'Member',
+        title: 'Member Prayer',
+        updates: []
+      }] as any;
+
+      mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([{ id: 'u2', text: 'New update' }]);
+
+      comp.onMemberUpdateSaved();
+
+      expect(comp.showEditMemberUpdate).toBe(false);
+      expect(comp.editingMemberUpdate).toBeNull();
+      expect(comp.editingMemberUpdatePrayerId).toBe('');
+
+      // Wait for async operations
+      setTimeout(() => {
+        expect(comp.filteredPlanningCenterPrayers[0].updates).toHaveLength(1);
+        done();
+      }, 150);
+    });
+  });
+
+  describe('Admin navigation', () => {
+    it('navigateToAdmin should navigate when admin is active', () => {
+      mocks.adminAuthService.isAdmin$ = new BehaviorSubject(true).asObservable();
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.navigateToAdmin();
+
+      expect(mocks.router.navigate).toHaveBeenCalledWith(['/admin']);
+    });
+
+    it('navigateToAdmin should show MFA modal when admin session expired', () => {
+      mocks.adminAuthService.isAdmin$ = new BehaviorSubject(false).asObservable();
+      localStorage.setItem('userEmail', 'user@example.com');
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.navigateToAdmin();
+
+      expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: {
+          email: 'user@example.com',
+          sessionExpired: true
+        }
+      });
+      localStorage.removeItem('userEmail');
+    });
+
+    it('logout should call adminAuthService and show success toast', async () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      await comp.logout();
+
+      expect(mocks.adminAuthService.logout).toHaveBeenCalled();
+      expect(mocks.toastService.success).toHaveBeenCalledWith('Logged out successfully');
+    });
+  });
+
+  describe('Private member update reloading', () => {
+    it('onMemberUpdateSaved should handle missing member', (done) => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.editingMemberUpdatePrayerId = 'pc-member-999';
+      comp.showEditMemberUpdate = true;
+      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.filteredPlanningCenterPrayers = [] as any;
+
+      comp.onMemberUpdateSaved();
+
+      setTimeout(() => {
+        expect(comp.editingMemberUpdate).toBeNull();
+        done();
+      }, 150);
+    });
+
+    it('onMemberUpdateSaved should handle missing prayer card', (done) => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.editingMemberUpdatePrayerId = 'pc-member-123';
+      comp.showEditMemberUpdate = true;
+      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.filteredPlanningCenterPrayers = [{
+        id: 'pc-member-999',
+        prayer_for: 'Other Member',
+        title: 'Other Prayer',
+        updates: []
+      }] as any;
+
+      mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([]);
+
+      comp.onMemberUpdateSaved();
+
+      setTimeout(() => {
+        expect(comp.editingMemberUpdate).toBeNull();
+        done();
+      }, 150);
+    });
+
+    it('onMemberUpdateSaved should handle getMemberPrayerUpdates error', (done) => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.editingMemberUpdatePrayerId = 'pc-member-123';
+      comp.showEditMemberUpdate = true;
+      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.filteredPlanningCenterPrayers = [{
+        id: 'pc-member-123',
+        prayer_for: 'Member',
+        title: 'Member Prayer',
+        updates: []
+      }] as any;
+
+      mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockRejectedValue(new Error('Load failed'));
+
+      comp.onMemberUpdateSaved();
+
+      setTimeout(() => {
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
+        done();
+      }, 150);
+    });
+  });
+
+  describe('Show admin MFA modal', () => {
+    it('showAdminMfaModal should navigate with userEmail from localStorage', () => {
+      localStorage.setItem('userEmail', 'admin@example.com');
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp['showAdminMfaModal']();
+
+      expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: {
+          email: 'admin@example.com',
+          sessionExpired: true
+        }
+      });
+
+      localStorage.removeItem('userEmail');
+    });
+
+    it('showAdminMfaModal should show error when no email found', () => {
+      localStorage.clear();
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp['showAdminMfaModal']();
+
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Email not found. Please log in again.');
+      expect(mocks.router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('showAdminMfaModal should try multiple localStorage keys', () => {
+      localStorage.clear();
+      localStorage.setItem('prayerapp_user_email', 'user@prayer.app');
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp['showAdminMfaModal']();
+
+      expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: {
+          email: 'user@prayer.app',
+          sessionExpired: true
+        }
+      });
+
+      localStorage.clear();
+    });
+  });
+
+  describe('Filter search with search term', () => {
+    it('should return all prayers when no search term', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filteredPlanningCenterPrayers = [
+        { id: '1', prayer_for: 'John', title: 'Healing', description: '' } as any,
+        { id: '2', prayer_for: 'Jane', title: 'Wisdom', description: '' } as any
+      ];
+
+      comp.filters = { searchTerm: '' } as any;
+
+      const result = comp.getFilteredPlanningCenterPrayers([]);
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('should search in prayer_for field', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filteredPlanningCenterPrayers = [
+        { id: '1', prayer_for: 'John Doe', title: 'Healing', description: 'Needs prayer' } as any,
+        { id: '2', prayer_for: 'Jane Smith', title: 'Wisdom', description: 'Job interview' } as any
+      ];
+
+      comp.filters = { searchTerm: 'John' } as any;
+
+      const result = comp.getFilteredPlanningCenterPrayers([]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].prayer_for).toBe('John Doe');
+    });
+
+    it('should search case-insensitively in prayer_for', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filteredPlanningCenterPrayers = [
+        { id: '1', prayer_for: 'John Doe', title: '', description: '' } as any
+      ];
+
+      comp.filters = { searchTerm: 'JOHN' } as any;
+
+      const result = comp.getFilteredPlanningCenterPrayers([]);
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('should search in title field', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filteredPlanningCenterPrayers = [
+        { id: '1', prayer_for: 'John', title: 'Healing Surgery', description: '' } as any
+      ];
+
+      comp.filters = { searchTerm: 'Healing' } as any;
+
+      const result = comp.getFilteredPlanningCenterPrayers([]);
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('should search in description field', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filteredPlanningCenterPrayers = [
+        { id: '1', prayer_for: 'Jane', title: 'Work Issues', description: 'Difficult project deadline' } as any
+      ];
+
+      comp.filters = { searchTerm: 'deadline' } as any;
+
+      const result = comp.getFilteredPlanningCenterPrayers([]);
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('should return empty array when no matches found', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filteredPlanningCenterPrayers = [
+        { id: '1', prayer_for: 'John', title: 'Healing', description: '' } as any
+      ];
+
+      comp.filters = { searchTerm: 'xyz' } as any;
+
+      const result = comp.getFilteredPlanningCenterPrayers([]);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should trim whitespace from search term', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.filteredPlanningCenterPrayers = [
+        { id: '1', prayer_for: 'John', title: '', description: '' } as any
+      ];
+
+      comp.filters = { searchTerm: '  John  ' } as any;
+
+      const result = comp.getFilteredPlanningCenterPrayers([]);
+
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('Personal category count', () => {
+    it('getPersonalCategoryCount should count prayers by category', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.personalPrayers = [
+        { id: '1', category: 'Healing' } as any,
+        { id: '2', category: 'Healing' } as any,
+        { id: '3', category: 'Wisdom' } as any
+      ];
+
+      expect(comp.getPersonalCategoryCount('Healing')).toBe(2);
+      expect(comp.getPersonalCategoryCount('Wisdom')).toBe(1);
+    });
+
+    it('getPersonalCategoryCount should return 0 for non-existent category', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.personalPrayers = [
+        { id: '1', category: 'Healing' } as any
+      ];
+
+      expect(comp.getPersonalCategoryCount('NonExistent')).toBe(0);
+    });
+
+    it('getPersonalCategoryCount should work with empty prayers array', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.personalPrayers = [];
+
+      expect(comp.getPersonalCategoryCount('Healing')).toBe(0);
+    });
+  });
+
+  describe('Submit methods for modals', () => {
+    it('submitUpdate should call prayerService.addUpdate', async () => {
+      mocks.prayerService.addUpdate.mockResolvedValue(undefined);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const updateData = { id: 'u1', text: 'Update' };
+      await (comp as any).submitUpdate(updateData);
+
+      expect(mocks.prayerService.addUpdate).toHaveBeenCalledWith(updateData);
+    });
+
+    it('submitDeletion should call prayerService.requestDeletion', async () => {
+      mocks.prayerService.requestDeletion.mockResolvedValue(undefined);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const requestData = { id: 'p1', reason: 'Done' };
+      await (comp as any).submitDeletion(requestData);
+
+      expect(mocks.prayerService.requestDeletion).toHaveBeenCalledWith(requestData);
+    });
+
+    it('submitUpdateDeletion should call prayerService.requestUpdateDeletion', async () => {
+      mocks.prayerService.requestUpdateDeletion.mockResolvedValue(undefined);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const requestData = { id: 'u1', reason: 'Spam' };
+      await (comp as any).submitUpdateDeletion(requestData);
+
+      expect(mocks.prayerService.requestUpdateDeletion).toHaveBeenCalledWith(requestData);
+    });
+  });
+
+  describe('Error handling in member update reload', () => {
+    it('should handle detectChanges errors gracefully', (done) => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.editingMemberUpdatePrayerId = 'pc-member-123';
+      comp.showEditMemberUpdate = true;
+      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.filteredPlanningCenterPrayers = [{
+        id: 'pc-member-123',
+        prayer_for: 'Member',
+        title: 'Member Prayer',
+        updates: []
+      }] as any;
+
+      mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([
+        { id: 'u2', text: 'New update' }
+      ]);
+
+      mocks.cdr.detectChanges.mockImplementation(() => {
+        throw new Error('Change detection error');
+      });
+
+      comp.onMemberUpdateSaved();
+
+      setTimeout(() => {
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
+        done();
+      }, 150);
+    });
+  });
+
+  describe('getDisplayedPrompts', () => {
+    it('should return empty array when activeFilter is not prompts', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.activeFilter = 'prayers';
+
+      const result = comp.getDisplayedPrompts();
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return prompts when activeFilter is prompts', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.activeFilter = 'prompts';
+      const prompts = [
+        { id: '1', text: 'Prompt 1' } as any,
+        { id: '2', text: 'Prompt 2' } as any
+      ];
+      mocks.promptService.promptsSubject = { value: prompts } as any;
+
+      const result = comp.getDisplayedPrompts();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('1');
+    });
+  });
 });
