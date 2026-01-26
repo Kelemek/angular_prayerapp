@@ -52,6 +52,7 @@ export class CacheService {
     ['prayers', { key: 'prayers_cache', ttl: 20 * 60 * 1000 }],        // 20 min (was 5)
     ['updates', { key: 'updates_cache', ttl: 20 * 60 * 1000 }],        // 20 min (was 5)
     ['personalPrayers', { key: 'personalPrayers_cache', ttl: 20 * 60 * 1000 }],  // 20 min (was 5)
+    ['planningCenterListData', { key: 'planningCenterListData_cache', ttl: 30 * 60 * 1000 }],  // 30 min (dynamic key with listId)
     ['prompts', { key: 'prompts_cache', ttl: 60 * 60 * 1000 }],        // 1 hour (was 10 min)
     ['prayerTypes', { key: 'prayerTypes_cache', ttl: 60 * 60 * 1000 }],  // 1 hour (was 10 min)
     ['adminSettings', { key: 'adminSettings_cache', ttl: 60 * 60 * 1000 }],  // 1 hour (was 15 min)

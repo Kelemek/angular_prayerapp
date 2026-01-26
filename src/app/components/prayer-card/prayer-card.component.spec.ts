@@ -286,7 +286,7 @@ describe('PrayerCardComponent', () => {
     const spy = vi.spyOn(component.deleteUpdate, 'emit');
     component.handleDeleteUpdate('u1');
     await component.onConfirmUpdateDelete();
-    expect(spy).toHaveBeenCalledWith('u1');
+    expect(spy).toHaveBeenCalledWith({updateId: 'u1', prayerId: 'p1'});
     expect(component.showUpdateConfirmationDialog).toBe(false);
   });
 
@@ -1189,7 +1189,7 @@ describe('PrayerCardComponent', () => {
 
       component.onConfirmUpdateDelete();
 
-      expect(deleteUpdateSpy).toHaveBeenCalledWith('update1');
+      expect(deleteUpdateSpy).toHaveBeenCalledWith({updateId: 'update1', prayerId: 'p1'});
       expect(component.showUpdateConfirmationDialog).toBe(false);
       expect(component.updateConfirmationId).toBeNull();
     });
@@ -1436,7 +1436,7 @@ describe('PrayerCardComponent', () => {
         component.showUpdateConfirmationDialog = true;
         const emitSpy = vi.spyOn(component.deleteUpdate, 'emit');
         component.onConfirmUpdateDelete();
-        expect(emitSpy).toHaveBeenCalledWith('update1');
+        expect(emitSpy).toHaveBeenCalledWith({updateId: 'update1', prayerId: 'p1'});
         expect(component.showUpdateConfirmationDialog).toBe(false);
       });
 

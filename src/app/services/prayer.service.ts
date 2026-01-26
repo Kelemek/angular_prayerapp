@@ -15,7 +15,12 @@ export interface PrayerUpdate {
   prayer_id: string;
   content: string;
   author: string;
+  author_email?: string;
   created_at: string;
+  updated_at?: string;
+  is_anonymous?: boolean;
+  is_answered?: boolean;
+  approval_status?: string;
 }
 
 export interface PrayerRequest {
@@ -674,22 +679,25 @@ export class PrayerService {
   /**
    * Add an update to a Planning Center member prayer card
    */
-  async addMemberPrayerUpdate(personId: string, memberName: string, content: string, author: string, authorEmail: string = ''): Promise<boolean> {
+  async addMemberPrayerUpdate(personId: string, memberName: string, content: string, author: string, authorEmail: string = '', isAnswered: boolean = false, listId?: string): Promise<boolean> {
     try {
       const { data, error } = await this.supabase.client
         .from('member_prayer_updates')
         .insert({
           person_id: personId,
-          member_name: memberName,
           content,
-          author,
-          author_email: authorEmail,
-          approval_status: 'approved' // Member updates auto-approve
+          is_answered: isAnswered
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Clear both caches
+      this.cache.invalidate('memberPrayerUpdates');
+      if (listId) {
+        this.clearPlanningCenterListDataCache(listId);
+      }
 
       this.toast.success('Update added successfully');
       return true;
@@ -699,60 +707,47 @@ export class PrayerService {
       return false;
     }
   }
+
   /**
-   * Get updates for a Planning Center member by person_id with caching
+   * Get updates for a Planning Center member by person_id
+   * Caching is handled at the list level (planningCenterListData_{listId})
+   * This method fetches fresh from the database
    */
   async getMemberPrayerUpdates(personId: string): Promise<PrayerUpdate[]> {
     try {
-      // Check localStorage cache first
-      const cacheKey = `memberPrayerUpdates_${personId}`;
-      const cacheTimestampKey = `${cacheKey}_timestamp`;
-      const cachedData = localStorage.getItem(cacheKey);
-      const cachedTimestamp = localStorage.getItem(cacheTimestampKey);
-
-      const now = Date.now();
-      const thirtyMinutesMs = 30 * 60 * 1000;
-
-      // Check if cache is valid (less than 30 minutes old)
-      if (cachedData && cachedTimestamp) {
-        const age = now - parseInt(cachedTimestamp, 10);
-        if (age < thirtyMinutesMs) {
-          // Cache is still valid
-          try {
-            return JSON.parse(cachedData);
-          } catch (e) {
-            console.error('Error parsing cached member prayer updates:', e);
-          }
-        }
+      // Try to get all member updates from cache
+      const cachedUpdates = this.cache.get('memberPrayerUpdates') as Record<string, any[]> | undefined;
+      if (cachedUpdates) {
+        return cachedUpdates[personId] || [];
       }
 
-      // Cache miss or expired - fetch from database
+      // Cache miss or expired - fetch all member updates from database
       const { data, error } = await this.supabase.client
         .from('member_prayer_updates')
         .select('*')
-        .eq('person_id', personId)
-        .eq('approval_status', 'approved')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      const updates = (data || []).map(update => ({
-        id: update.id,
-        prayer_id: '', // Not applicable for member updates
-        content: update.content,
-        author: update.author,
-        author_email: update.author_email,
-        is_anonymous: update.is_anonymous || false,
-        created_at: update.created_at,
-        updated_at: update.updated_at,
-        approval_status: update.approval_status
-      }));
+      // Group updates by person_id for efficient caching - only store necessary fields
+      const updatesMap: Record<string, any[]> = {};
+      (data || []).forEach(update => {
+        if (!updatesMap[update.person_id]) {
+          updatesMap[update.person_id] = [];
+        }
+        updatesMap[update.person_id].push({
+          id: update.id,
+          content: update.content,
+          created_at: update.created_at,
+          updated_at: update.updated_at,
+          is_answered: update.is_answered
+        });
+      });
 
-      // Store in localStorage with timestamp
-      localStorage.setItem(cacheKey, JSON.stringify(updates));
-      localStorage.setItem(cacheTimestampKey, String(now));
+      // Cache all updates
+      this.cache.set('memberPrayerUpdates', updatesMap);
 
-      return updates;
+      return updatesMap[personId] || [];
     } catch (error) {
       console.error('Error fetching member prayer updates:', error);
       return [];
@@ -760,29 +755,35 @@ export class PrayerService {
   }
 
   /**
-   * Clear cache for member prayer updates (call after adding new update)
+   * Clear cache for Planning Center list data (call after adding/editing/deleting member updates)
+   * Clears the consolidated list cache so it refetches with updated member updates
+   * Note: listId needed because member updates are cached at the list level
    */
-  clearMemberPrayerUpdatesCache(personId: string): void {
-    const cacheKey = `memberPrayerUpdates_${personId}`;
-    const cacheTimestampKey = `${cacheKey}_timestamp`;
-    localStorage.removeItem(cacheKey);
-    localStorage.removeItem(cacheTimestampKey);
+  clearPlanningCenterListDataCache(listId: string): void {
+    const cacheKey = `planningCenterListData_${listId}`;
+    this.cache.invalidate(cacheKey);
   }
 
   /**
    * Delete a member prayer update by ID and clear cache
    */
-  async deleteMemberPrayerUpdate(updateId: string, personId: string): Promise<boolean> {
+  async deleteMemberPrayerUpdate(updateId: string, personId: string, listId?: string): Promise<boolean> {
     try {
       const { error } = await this.supabase.client
         .from('member_prayer_updates')
         .delete()
         .eq('id', updateId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[PrayerService] Error deleting member update:', error);
+        throw error;
+      }
 
-      // Clear cache to force refresh
-      this.clearMemberPrayerUpdatesCache(personId);
+      // Clear both caches
+      this.cache.invalidate('memberPrayerUpdates');
+      if (listId) {
+        this.clearPlanningCenterListDataCache(listId);
+      }
       
       this.toast.success('Update deleted successfully');
       return true;
@@ -796,21 +797,28 @@ export class PrayerService {
   /**
    * Update a member prayer update
    */
-  async updateMemberPrayerUpdate(updateId: string, personId: string, updates: Partial<PrayerUpdate>): Promise<boolean> {
+  async updateMemberPrayerUpdate(updateId: string, personId: string, updates: Partial<PrayerUpdate>, listId?: string): Promise<boolean> {
     try {
       const updateData: any = {};
       if (updates.content) updateData.content = updates.content;
+      if (updates.is_answered !== undefined) updateData.is_answered = updates.is_answered;
 
-      const { error } = await this.supabase.client
+      const { data, error } = await this.supabase.client
         .from('member_prayer_updates')
         .update(updateData)
-        .eq('id', updateId);
+        .eq('id', updateId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      // Clear cache to force refresh
-      this.clearMemberPrayerUpdatesCache(personId);
-      
+      // Clear both caches
+      this.cache.invalidate('memberPrayerUpdates');
+      if (listId) {
+        this.clearPlanningCenterListDataCache(listId);
+      }
+
       this.toast.success('Update saved successfully');
       return true;
     } catch (error) {

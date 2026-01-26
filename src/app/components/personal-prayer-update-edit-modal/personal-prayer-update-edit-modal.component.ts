@@ -85,6 +85,7 @@ export class PersonalPrayerUpdateEditModalComponent implements OnInit, OnChanges
   @Input() update: PrayerUpdate | null = null;
   @Input() prayerId: string = '';
   @Input() isMemberUpdate = false;
+  @Input() planningCenterListId: string | null = null; // For cache invalidation on member updates
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<Partial<PrayerUpdate>>();
 
@@ -129,7 +130,8 @@ export class PersonalPrayerUpdateEditModalComponent implements OnInit, OnChanges
         success = await this.prayerService.updateMemberPrayerUpdate(
           this.update.id,
           personId,
-          updates
+          updates,
+          this.planningCenterListId ?? undefined // Pass listId for cache invalidation
         );
       } else {
         success = await this.prayerService.updatePersonalPrayerUpdate(

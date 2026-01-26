@@ -234,6 +234,12 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
           >
             <div class="relative mb-2">
               <div class="flex items-center">
+                <!-- Answered badge for member updates -->
+                @if (update.is_answered && prayer.id.startsWith('pc-member-')) {
+                <span class="inline-flex items-center justify-center px-2 py-1 mr-2 bg-green-600 dark:bg-green-700 text-white rounded-full text-xs font-bold whitespace-nowrap">
+                  Answered
+                </span>
+                }
                 @if (!isPersonal && !prayer.id.startsWith('pc-member-')) {
                 <span class="text-sm text-gray-600 dark:text-gray-400">
                   Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.author }}</span>
@@ -263,6 +269,16 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    (click)="toggleMemberUpdateAnswered(update)"
+                    [title]="update.is_answered ? 'Mark as unanswered' : 'Mark as answered'"
+                    [attr.aria-label]="update.is_answered ? 'Mark as unanswered' : 'Mark as answered'"
+                    [class]="'p-1 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md ' + (update.is_answered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                   </button>
                   }
@@ -385,6 +401,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Output() editPersonalPrayer = new EventEmitter<PrayerRequest>();
   @Output() editPersonalUpdate = new EventEmitter<any>();
   @Output() editMemberUpdate = new EventEmitter<any>();
+  @Output() toggleUpdateAnswered = new EventEmitter<any>();
 
   prayerBadge$: Observable<boolean> | null = null;
   updateBadges$: Map<string, BehaviorSubject<boolean>> = new Map();
@@ -825,5 +842,13 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     } catch (error) {
       console.warn('Failed to mark update as read:', error);
     }
+  }
+
+  toggleMemberUpdateAnswered(update: any): void {
+    this.toggleUpdateAnswered.emit({
+      updateId: update.id,
+      prayerId: this.prayer.id,
+      isAnswered: !update.is_answered
+    });
   }
 }

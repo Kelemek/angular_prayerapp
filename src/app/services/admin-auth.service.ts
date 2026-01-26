@@ -508,6 +508,8 @@ export class AdminAuthService {
       this.cacheService.invalidateCategory('personalPrayers');
       this.cacheService.invalidateCategory('prayers');
       this.cacheService.invalidateCategory('prompts');
+      this.cacheService.invalidateCategory('planningCenterListData');
+      this.cacheService.invalidateCategory('memberPrayerUpdates');
       
       // Clear badge read tracking (which prayers/prompts user has read)
       localStorage.removeItem('read_prayers_data');

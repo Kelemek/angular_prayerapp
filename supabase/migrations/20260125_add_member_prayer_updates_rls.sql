@@ -1,18 +1,31 @@
 -- Add RLS policies for member_prayer_updates table
 
--- Disable RLS on this table - security is handled by client-side auth and data validation
--- The anon key is used for all operations, so RLS policies won't work
--- Instead, rely on application-level permission checks
-ALTER TABLE "public"."member_prayer_updates" DISABLE ROW LEVEL SECURITY;
+-- Enable RLS on this table
+ALTER TABLE "public"."member_prayer_updates" ENABLE ROW LEVEL SECURITY;
 
--- Grant anon key access to perform necessary operations
-grant delete on table "public"."member_prayer_updates" to "anon";
-grant insert on table "public"."member_prayer_updates" to "anon";
-grant select on table "public"."member_prayer_updates" to "anon";
-grant update on table "public"."member_prayer_updates" to "anon";
+-- Create permissive policies to allow all operations (security handled at application level)
+CREATE POLICY "Allow all select on member_prayer_updates" 
+ON "public"."member_prayer_updates" 
+FOR SELECT 
+USING (true);
 
--- Also grant authenticated role in case this changes in the future
-grant delete on table "public"."member_prayer_updates" to "authenticated";
-grant insert on table "public"."member_prayer_updates" to "authenticated";
-grant select on table "public"."member_prayer_updates" to "authenticated";
-grant update on table "public"."member_prayer_updates" to "authenticated";
+CREATE POLICY "Allow all insert on member_prayer_updates" 
+ON "public"."member_prayer_updates" 
+FOR INSERT 
+WITH CHECK (true);
+
+CREATE POLICY "Allow all update on member_prayer_updates" 
+ON "public"."member_prayer_updates" 
+FOR UPDATE 
+USING (true) 
+WITH CHECK (true);
+
+CREATE POLICY "Allow all delete on member_prayer_updates" 
+ON "public"."member_prayer_updates" 
+FOR DELETE 
+USING (true);
+
+-- Grant roles access to the table
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."member_prayer_updates" TO "anon";
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."member_prayer_updates" TO "authenticated";
+

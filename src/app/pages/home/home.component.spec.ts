@@ -6,6 +6,7 @@ import { PrayerRequest } from '../../services/prayer.service';
 const makeMocks = () => {
   const prayersSubject = new BehaviorSubject<any[]>([]);
   const promptsSubject = new BehaviorSubject<any[]>([]);
+  const userSessionSubject = new BehaviorSubject<any>(null);
   const prayerService: any = {
     prayers$: prayersSubject.asObservable(),
     prompts$: of([]),
@@ -44,7 +45,8 @@ const makeMocks = () => {
   };
 
   const userSessionService: any = {
-    userSession$: new BehaviorSubject(null).asObservable(),
+    userSessionSubject,
+    userSession$: userSessionSubject.asObservable(),
     getUserEmail: vi.fn(() => null),
     getUserFullName: vi.fn(() => null),
     getCurrentSession: vi.fn(() => null)
@@ -99,7 +101,7 @@ const makeMocks = () => {
     }
   };
 
-  return { prayerService, promptService, adminAuthService, userSessionService, badgeService, cacheService, toastService, analyticsService, cdr, router, supabaseService, prayersSubject, promptsSubject };
+  return { prayerService, promptService, adminAuthService, userSessionService, badgeService, cacheService, toastService, analyticsService, cdr, router, supabaseService, prayersSubject, promptsSubject, userSessionSubject };
 };
 
 interface SupabaseEmailOptions {
@@ -316,6 +318,9 @@ describe('HomeComponent', () => {
 
     comp.ngOnInit();
     
+    // Emit a user session to trigger the initialization flow
+    mocks.userSessionSubject.next({ defaultPrayerView: 'current' });
+    
     // Wait for async loadPersonalPrayers to complete
     await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -490,11 +495,11 @@ describe('HomeComponent', () => {
       mocks.supabaseService
     );
     mocks.prayerService.deleteUpdate.mockResolvedValue(undefined);
-    await comp.deleteUpdate('u1');
+    await comp.deleteUpdate({updateId: 'u1', prayerId: 'p1'});
     expect(mocks.toastService.success).toHaveBeenCalledWith('Update deleted successfully');
 
     mocks.prayerService.deleteUpdate.mockRejectedValue(new Error('bad'));
-    await comp.deleteUpdate('u2');
+    await comp.deleteUpdate({updateId: 'u2', prayerId: 'p2'});
     expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to delete update');
   });
 
@@ -1525,7 +1530,7 @@ describe('HomeComponent', () => {
         mocks.supabaseService
       );
 
-      await comp.deletePersonalUpdate('u1');
+      await comp.deletePersonalUpdate({updateId: 'u1', prayerId: 'p1'});
 
       expect(mocks.prayerService.deletePersonalPrayerUpdate).toHaveBeenCalledWith('u1');
       expect(mocks.cacheService.invalidate).toHaveBeenCalledWith('personalPrayers');
@@ -1548,7 +1553,7 @@ describe('HomeComponent', () => {
         mocks.supabaseService
       );
 
-      await comp.deletePersonalUpdate('u1');
+      await comp.deletePersonalUpdate({updateId: 'u1', prayerId: 'p1'});
 
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to delete update');
     });

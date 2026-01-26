@@ -199,8 +199,13 @@ export class PlanningCenterListMapperComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadSubscribers();
-    this.loadLists();
+    this.loadSubscribersAndLists();
+  }
+
+  async loadSubscribersAndLists() {
+    // Load lists first, then subscribers so that mappings can find list names
+    await this.loadLists();
+    await this.loadSubscribers();
   }
 
   async loadSubscribers() {

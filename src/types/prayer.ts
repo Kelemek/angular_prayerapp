@@ -26,6 +26,7 @@ export interface PrayerUpdate {
   author: string;
   author_email: string;
   is_anonymous?: boolean;
+  is_answered?: boolean;
   mark_as_answered?: boolean;
   created_at: string;
   updated_at?: string;
