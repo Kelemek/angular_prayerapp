@@ -1184,7 +1184,7 @@ describe('HomeComponent', () => {
         prompts$: promptsSubject.asObservable(),
         promptsSubject
       };
-      mocks.badgeService.isPromptUnread.mockImplementation(id => id === '2');
+      mocks.badgeService.isPromptUnread.mockImplementation((id: string) => id === '2');
 
       const comp = new HomeComponent(
         mocks.prayerService,
@@ -2046,7 +2046,7 @@ describe('HomeComponent', () => {
       comp.editingPrayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
       comp.showEditPersonalPrayer = true;
       
-      const loadSpy = vi.spyOn(comp, 'loadPersonalPrayers');
+      const loadSpy = vi.spyOn(comp as any, 'loadPersonalPrayers');
 
       comp.onPersonalPrayerSaved();
 
@@ -2098,7 +2098,7 @@ describe('HomeComponent', () => {
       comp.editingUpdatePrayerId = 'p1';
       comp.showEditPersonalUpdate = true;
 
-      const loadSpy = vi.spyOn(comp, 'loadPersonalPrayers');
+      const loadSpy = vi.spyOn(comp as any, 'loadPersonalPrayers');
 
       comp.onPersonalUpdateSaved();
 
@@ -2827,7 +2827,7 @@ describe('HomeComponent', () => {
         mocks.supabaseService
       );
 
-      comp.activeFilter = 'prayers';
+      comp.activeFilter = 'current';
 
       const result = comp.getDisplayedPrompts();
 

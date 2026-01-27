@@ -14,7 +14,7 @@ describe('planning-center', () => {
     
     // Mock global fetch
     fetchMock = vi.fn();
-    global.fetch = fetchMock;
+    global.fetch = fetchMock as any;
   });
 
   afterEach(() => {
@@ -50,16 +50,16 @@ describe('planning-center', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => [],
-        } as Response)
+        } as unknown as Response)
         // Mock Planning Center API call
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockResponse,
-        } as Response)
+        } as unknown as Response)
         // Mock cache save
         .mockResolvedValueOnce({
           ok: true,
-        } as Response);
+        } as unknown as Response);
 
       const result = await lookupPersonByEmail('john.doe@example.com', supabaseUrl, supabaseKey);
 
@@ -90,7 +90,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => [{ in_planning_center: true, planning_center_checked_at: new Date().toISOString() }],
-      } as Response);
+      } as unknown as Response);
 
       const result = await lookupPersonByEmail('cached@example.com', supabaseUrl, supabaseKey);
 
@@ -111,11 +111,11 @@ describe('planning-center', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockResponse,
-        } as Response)
+        } as unknown as Response)
         // Mock cache save
         .mockResolvedValueOnce({
           ok: true,
-        } as Response);
+        } as unknown as Response);
 
       const result = await lookupPersonByEmail('test@example.com', supabaseUrl, supabaseKey, true);
 
@@ -135,16 +135,16 @@ describe('planning-center', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => [],
-        } as Response)
+        } as unknown as Response)
         // Mock Planning Center API
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockResponse,
-        } as Response)
+        } as unknown as Response)
         // Mock cache save
         .mockResolvedValueOnce({
           ok: true,
-        } as Response);
+        } as unknown as Response);
 
       await lookupPersonByEmail('  john.doe@example.com  ', supabaseUrl, supabaseKey);
 
@@ -189,7 +189,7 @@ describe('planning-center', () => {
         ok: false,
         status: 404,
         json: async () => errorData,
-      } as Response);
+      } as unknown as Response);
 
       const result = await lookupPersonByEmail('john.doe@example.com', supabaseUrl, supabaseKey);
 
@@ -211,7 +211,7 @@ describe('planning-center', () => {
         ok: false,
         status: 500,
         json: async () => ({}),
-      } as Response);
+      } as unknown as Response);
 
       const result = await lookupPersonByEmail('john.doe@example.com', supabaseUrl, supabaseKey);
 
@@ -229,7 +229,7 @@ describe('planning-center', () => {
         json: async () => {
           throw new Error('Invalid JSON');
         },
-      } as Response);
+      } as unknown as Response);
 
       const result = await lookupPersonByEmail('john.doe@example.com', supabaseUrl, supabaseKey);
 
@@ -306,7 +306,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const result = await lookupPersonByEmail('doe@example.com', supabaseUrl, supabaseKey);
 
@@ -324,7 +324,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const result = await lookupPersonByEmail('john.doe@example.com', supabaseUrl, supabaseKey);
 
@@ -356,7 +356,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const result = await lookupPersonByEmail('john.doe@example.com', supabaseUrl, supabaseKey);
 
@@ -490,7 +490,7 @@ describe('planning-center', () => {
         return {
           ok: true,
           json: async () => ({ people: [], count: 0 })
-        } as Response;
+        } as unknown as Response;
       });
 
       const results = await batchLookupPlanningCenter(emails, supabaseUrl, supabaseKey, {
@@ -512,7 +512,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValue({
         ok: true,
         json: async () => ({ people: [], count: 0 })
-      } as Response);
+      } as unknown as Response);
 
       await batchLookupPlanningCenter(emails, supabaseUrl, supabaseKey, {
         concurrency: 1,
@@ -535,14 +535,14 @@ describe('planning-center', () => {
           return {
             ok: true,
             json: async () => ({ people: [], count: 0 })
-          } as Response;
+          } as unknown as Response;
         }
         
         // Cache check returns empty
         return {
           ok: true,
           json: async () => []
-        } as Response;
+        } as unknown as Response;
       });
 
       const results = await batchLookupPlanningCenter(emails, 'https://test.supabase.co', 'test-key', {
@@ -569,7 +569,7 @@ describe('planning-center', () => {
         return {
           ok: true,
           json: async () => []
-        } as Response;
+        } as unknown as Response;
       });
 
       const results = await batchLookupPlanningCenter(emails, 'https://test.supabase.co', 'test-key', {
@@ -601,21 +601,21 @@ describe('planning-center', () => {
               ok: false,
               status: 500,
               json: async () => ({ error: 'Network timeout' })
-            } as Response;
+            } as unknown as Response;
           }
           
           // Others succeed
           return {
             ok: true,
             json: async () => ({ people: [], count: 0 })
-          } as Response;
+          } as unknown as Response;
         }
         
         // Cache check returns empty
         return {
           ok: true,
           json: async () => []
-        } as Response;
+        } as unknown as Response;
       });
 
       const results = await batchLookupPlanningCenter(
@@ -656,7 +656,7 @@ describe('planning-center', () => {
         return {
           ok: true,
           json: async () => ({ people: [], count: 0 })
-        } as Response;
+        } as unknown as Response;
       });
 
       const results = await batchLookupPlanningCenter(emails, supabaseUrl, supabaseKey);
@@ -673,14 +673,14 @@ describe('planning-center', () => {
           return {
             ok: true,
             json: async () => ({ people: [{ id: '123', type: 'Person', attributes: {} }], count: 1 })
-          } as Response;
+          } as unknown as Response;
         }
         
         // Cache check returns empty
         return {
           ok: true,
           json: async () => []
-        } as Response;
+        } as unknown as Response;
       });
 
       const results = await batchLookupPlanningCenter(emails, 'https://test.supabase.co', 'test-key', {
@@ -699,7 +699,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => [{ in_planning_center: true, planning_center_checked_at: new Date().toISOString() }]
-      } as Response);
+      } as unknown as Response);
 
       const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
       expect(result).toBe(true);
@@ -709,7 +709,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => [{ in_planning_center: false, planning_center_checked_at: new Date().toISOString() }]
-      } as Response);
+      } as unknown as Response);
 
       const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
       expect(result).toBe(false);
@@ -719,7 +719,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => []
-      } as Response);
+      } as unknown as Response);
 
       const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
       expect(result).toBeNull();
@@ -729,7 +729,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: false,
         status: 500
-      } as Response);
+      } as unknown as Response);
 
       const result = await checkCachedPlanningCenterStatus('john@example.com', 'https://test.supabase.co', 'test-key');
       expect(result).toBeNull();
@@ -740,7 +740,7 @@ describe('planning-center', () => {
     it('should save true status successfully', async () => {
       fetchMock.mockResolvedValueOnce({
         ok: true
-      } as Response);
+      } as unknown as Response);
 
       await savePlanningCenterStatus('john@example.com', true, 'https://test.supabase.co', 'test-key');
       
@@ -758,7 +758,7 @@ describe('planning-center', () => {
     it('should save false status successfully', async () => {
       fetchMock.mockResolvedValueOnce({
         ok: true
-      } as Response);
+      } as unknown as Response);
 
       await savePlanningCenterStatus('john@example.com', false, 'https://test.supabase.co', 'test-key');
       
@@ -777,7 +777,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: false,
         status: 500
-      } as Response);
+      } as unknown as Response);
 
       await savePlanningCenterStatus('john@example.com', true, 'https://test.supabase.co', 'test-key');
       
@@ -810,10 +810,10 @@ describe('planning-center', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockResponse,
-        } as Response)
+        } as unknown as Response)
         .mockResolvedValueOnce({
           ok: true,
-        } as Response);
+        } as unknown as Response);
 
       const result = await searchPlanningCenterByName('John Doe', 'https://test.supabase.co', 'test-key');
 
@@ -829,10 +829,10 @@ describe('planning-center', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ people: [], count: 0 }),
-        } as Response)
+        } as unknown as Response)
         .mockResolvedValueOnce({
           ok: true,
-        } as Response);
+        } as unknown as Response);
 
       const result = await searchPlanningCenterByName('Nonexistent Person', 'https://test.supabase.co', 'test-key');
 
@@ -845,7 +845,7 @@ describe('planning-center', () => {
         ok: false,
         status: 500,
         json: async () => ({ error: 'Server error' })
-      } as Response);
+      } as unknown as Response);
 
       const result = await searchPlanningCenterByName('John Doe', 'https://test.supabase.co', 'test-key');
 
@@ -866,7 +866,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchPlanningCenterLists('https://test.supabase.co', 'test-key');
 
@@ -879,7 +879,7 @@ describe('planning-center', () => {
         ok: false,
         status: 401,
         json: async () => ({ error: 'Unauthorized' })
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchPlanningCenterLists('https://test.supabase.co', 'test-key');
 
@@ -909,7 +909,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchListMembers('list-123', 'https://test.supabase.co', 'test-key');
 
@@ -936,7 +936,7 @@ describe('planning-center', () => {
         ok: false,
         status: 404,
         json: async () => ({ error: 'List not found' })
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchListMembers('invalid-list', 'https://test.supabase.co', 'test-key');
 
@@ -955,7 +955,7 @@ describe('planning-center', () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ count: 0 }),
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchListMembers('list-123', 'https://test.supabase.co', 'test-key');
 

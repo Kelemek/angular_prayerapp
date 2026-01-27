@@ -141,10 +141,10 @@ describe('PresentationSettingsModalComponent', () => {
       expect(component.localPrayerTimerMinutes).toBe(15);
     });
 
-    it('should handle contentType "both"', () => {
-      component.contentType = 'both';
+    it('should handle contentType "all"', () => {
+      component.contentType = 'all';
       component.syncLocalState();
-      expect(component.localContentType).toBe('both');
+      expect(component.localContentType).toBe('all');
     });
 
     it('should handle theme changes', () => {

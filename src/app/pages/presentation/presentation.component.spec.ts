@@ -574,7 +574,7 @@ describe('PresentationComponent', () => {
       expect(component.prayers).toEqual(prayers);
     });
 
-    it('shuffleItems with contentType both shuffles both prayers and prompts', () => {
+    it('shuffleItems with contentType all shuffles both prayers and prompts', () => {
       const prayers = [
         { id: 'p1', prayer_for: 'John' } as any,
         { id: 'p2', prayer_for: 'Jane' } as any
@@ -584,7 +584,7 @@ describe('PresentationComponent', () => {
         { id: 'pr2', type: 'reflection' } as any
       ];
       
-      component.contentType = 'both';
+      component.contentType = 'all';
       component.prayers = prayers;
       component.prompts = prompts;
       
@@ -701,11 +701,11 @@ describe('PresentationComponent', () => {
     expect(component.prayers.length).toBe(1);
   });
 
-  it('loadContent handles both prayers and prompts and randomize triggers shuffle', async () => {
+  it('loadContent handles all prayers and prompts and randomize triggers shuffle', async () => {
     const pSpy = vi.spyOn(component, 'fetchPrayers').mockImplementation(() => Promise.resolve());
     const prSpy = vi.spyOn(component, 'fetchPrompts').mockImplementation(() => Promise.resolve());
     const shuffleSpy = vi.spyOn(component, 'shuffleItems').mockImplementation(() => {});
-    component.contentType = 'both';
+    component.contentType = 'all';
     component.randomize = true;
     await component.loadContent();
     expect(pSpy).toHaveBeenCalled();
@@ -1326,12 +1326,12 @@ describe('PresentationComponent', () => {
       expect(component.items).toEqual(prompts);
     });
 
-    it('items returns combined prayers and prompts when contentType is both', () => {
+    it('items returns combined prayers and prompts when contentType is all', () => {
       const prayers = [{ id: 'p1', prayer_for: 'John' } as any];
       const prompts = [{ id: 'pr1', type: 'encouragement' } as any];
       component.prayers = prayers;
       component.prompts = prompts;
-      component.contentType = 'both';
+      component.contentType = 'all';
       
       const items = component.items;
       expect(items).toHaveLength(2);
