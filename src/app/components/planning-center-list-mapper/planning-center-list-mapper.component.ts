@@ -20,7 +20,10 @@ interface EmailSubscriber {
   imports: [CommonModule, FormsModule],
   template: `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+        <svg class="text-blue-600 dark:text-blue-400 w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+        </svg>
         Planning Center List Mapping
       </h2>
       <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
