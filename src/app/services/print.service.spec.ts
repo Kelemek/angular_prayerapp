@@ -64,6 +64,17 @@ describe('PrintService', () => {
       order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null })
     };
 
+    // Wrap the from method to handle prayer_updates properly
+    const originalFrom = mockSupabaseClient.from;
+    mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
+      if (table === 'prayer_updates') {
+        return {
+          select: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
+      }
+      return originalFrom(table);
+    });
+
     mockSupabaseService = {
       client: mockSupabaseClient
     } as any;
