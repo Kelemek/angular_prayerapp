@@ -2786,4 +2786,8 @@ CREATE TRIGGER update_prayers_updated_at BEFORE UPDATE ON public.prayers FOR EAC
 
 CREATE TRIGGER update_update_deletion_requests_updated_at BEFORE UPDATE ON public.update_deletion_requests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Grant permissions on backup_tables view
+grant select on table "public"."backup_tables" to "anon";
+grant select on table "public"."backup_tables" to "authenticated";
+grant select on table "public"."backup_tables" to "service_role";
 

@@ -488,23 +488,35 @@ export class BackupStatusComponent implements OnInit {
         if (tableResponse.ok) {
           const tableList = await tableResponse.json();
           tables = tableList.map((t: { table_name: string }) => t.table_name);
+          console.log(`Successfully discovered ${tables.length} tables from backup_tables view`);
         } else {
+          const errorText = await tableResponse.text();
+          console.warn(`Could not fetch from backup_tables view: ${tableResponse.status} - ${errorText}`);
           throw new Error('Could not fetch table list');
         }
-      } catch {
+      } catch (error) {
         // Fallback to hardcoded list if view doesn't exist
+        console.warn('Falling back to hardcoded table list. Error:', error);
         tables = [
+          'account_approval_requests',
           'admin_settings',
           'analytics',
+          'approval_codes',
           'backup_logs',
+          'deletion_requests',
+          'email_queue',
           'email_subscribers',
+          'email_templates',
+          'personal_prayer_updates',
+          'personal_prayers',
           'prayer_prompts',
           'prayer_types',
           'prayer_updates',
           'prayers',
           'status_change_requests',
           'update_deletion_requests',
-          'user_preferences'
+          'user_preferences',
+          'verification_codes'
         ];
       }
 
