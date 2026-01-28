@@ -2063,4 +2063,406 @@ describe('UserSettingsComponent', () => {
     expect(prayerData.prayers).toContain('prayer-1');
     expect(promptData.prompts).toContain('prompt-1');
   });
+
+  describe('onDefaultViewChange', () => {
+    beforeEach(() => {
+      component.email = 'test@example.com';
+    });
+
+    it('should update default view when email exists', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      await component.onDefaultViewChange('personal');
+
+      expect(component.defaultPrayerView).toBe('personal');
+      expect(component.savingDefaultView).toBe(false);
+      expect(component.successDefaultView).toContain('Default view set to');
+    });
+
+    it('should create new record if subscriber does not exist', async () => {
+      const insertSpy = vi.fn(() => Promise.resolve({ data: null, error: null }));
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: null,
+              error: null
+            }))
+          }))
+        })),
+        insert: insertSpy
+      }));
+
+      await component.onDefaultViewChange('current');
+
+      expect(insertSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'test@example.com',
+          default_prayer_view: 'current'
+        })
+      );
+      expect(component.defaultPrayerView).toBe('current');
+    });
+
+    it('should return early if email is empty', async () => {
+      component.email = '';
+
+      await component.onDefaultViewChange('personal');
+
+      expect(component.error).toBe('Email not found. Please log in again.');
+      expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
+    });
+
+    it('should handle fetch error when checking subscriber', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: null,
+              error: new Error('Fetch error')
+            }))
+          }))
+        }))
+      }));
+
+      await component.onDefaultViewChange('personal');
+
+      expect(component.error).toBeTruthy();
+      expect(component.defaultPrayerView).toBe('current'); // Should revert
+    });
+
+    it('should handle update error', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({
+            data: null,
+            error: new Error('Update error')
+          }))
+        }))
+      }));
+
+      component.defaultPrayerView = 'current';
+      await component.onDefaultViewChange('personal');
+
+      expect(component.error).toBeTruthy();
+      expect(component.defaultPrayerView).toBe('current'); // Should revert to original
+    });
+
+    it('should handle insert error', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: null,
+              error: null
+            }))
+          }))
+        })),
+        insert: vi.fn(() => Promise.resolve({
+          data: null,
+          error: new Error('Insert error')
+        }))
+      }));
+
+      component.defaultPrayerView = 'current';
+      await component.onDefaultViewChange('personal');
+
+      expect(component.error).toBeTruthy();
+      expect(component.defaultPrayerView).toBe('current'); // Should revert to original
+    });
+
+    it('should update user session service', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      await component.onDefaultViewChange('personal');
+
+      expect(mockUserSessionService.updateUserSession).toHaveBeenCalledWith({
+        defaultPrayerView: 'personal'
+      });
+    });
+
+    it('should clear success message after 3 seconds', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      await component.onDefaultViewChange('personal');
+      expect(component.successDefaultView).toBeTruthy();
+
+      vi.advanceTimersByTime(3000);
+
+      expect(component.successDefaultView).toBeNull();
+    });
+
+    it('should set proper text for current view', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      await component.onDefaultViewChange('current');
+
+      expect(component.successDefaultView).toContain('Current Prayers');
+    });
+
+    it('should set proper text for personal view', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      await component.onDefaultViewChange('personal');
+
+      expect(component.successDefaultView).toContain('Personal Prayers');
+    });
+  });
+
+  describe('onBadgeFunctionalityToggle - markAllItemsAsRead', () => {
+    it('should call markAllItemsAsRead when enabling badge functionality', async () => {
+      component.email = 'test@example.com';
+      component.badgeFunctionalityEnabled = false;
+      const markAllItemsSpy = vi.spyOn(component as any, 'markAllItemsAsRead');
+
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      component.badgeFunctionalityEnabled = true;
+      await component.onBadgeFunctionalityToggle();
+
+      expect(markAllItemsSpy).toHaveBeenCalled();
+    });
+
+    it('should not call markAllItemsAsRead when disabling badge functionality', async () => {
+      component.email = 'test@example.com';
+      component.badgeFunctionalityEnabled = true;
+      const markAllItemsSpy = vi.spyOn(component as any, 'markAllItemsAsRead');
+
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      component.badgeFunctionalityEnabled = false;
+      await component.onBadgeFunctionalityToggle();
+
+      expect(markAllItemsSpy).not.toHaveBeenCalled();
+    });
+
+    it('should clear badge success message after 3 seconds', async () => {
+      component.email = 'test@example.com';
+      component.badgeFunctionalityEnabled = false;
+
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      component.badgeFunctionalityEnabled = true;
+      await component.onBadgeFunctionalityToggle();
+      expect(component.successBadge).toBeTruthy();
+
+      vi.advanceTimersByTime(3000);
+
+      expect(component.successBadge).toBeNull();
+    });
+
+    it('should set success message when enabling badges', async () => {
+      component.email = 'test@example.com';
+      component.badgeFunctionalityEnabled = false;
+
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      component.badgeFunctionalityEnabled = true;
+      await component.onBadgeFunctionalityToggle();
+
+      expect(component.successBadge).toContain('enabled');
+    });
+
+    it('should set success message when disabling badges', async () => {
+      component.email = 'test@example.com';
+      component.badgeFunctionalityEnabled = true;
+
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      component.badgeFunctionalityEnabled = false;
+      await component.onBadgeFunctionalityToggle();
+
+      expect(component.successBadge).toContain('disabled');
+    });
+  });
+
+  describe('onEmailChange', () => {
+    it('should emit email change event', () => {
+      component.email = 'newemail@example.com';
+      const emailChangeSpy = vi.spyOn(component['emailChange$'], 'next');
+
+      component.onEmailChange();
+
+      expect(emailChangeSpy).toHaveBeenCalledWith('newemail@example.com');
+    });
+  });
+
+  describe('Badge functionality toggle - insert error', () => {
+    it('should handle insert error when creating badge functionality record', async () => {
+      component.email = 'test@example.com';
+      component.badgeFunctionalityEnabled = false;
+
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: null,
+              error: null
+            }))
+          }))
+        })),
+        insert: vi.fn(() => Promise.resolve({
+          data: null,
+          error: new Error('Insert error')
+        }))
+      }));
+
+      component.badgeFunctionalityEnabled = true;
+      await component.onBadgeFunctionalityToggle();
+
+      expect(component.error).toBeTruthy();
+      expect(component.badgeFunctionalityEnabled).toBe(false); // Should revert
+    });
+  });
+
+  describe('loadPreferencesAutomatically - error handling', () => {
+    it('should handle error when loading preferences', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: null,
+              error: new Error('Load error')
+            }))
+          }))
+        }))
+      }));
+
+      await component['loadPreferencesAutomatically']('test@example.com');
+
+      expect(component.receiveNotifications).toBe(true); // Default on error
+      expect(component.preferencesLoaded).toBe(true);
+      consoleSpy.mockRestore();
+    });
+  });
 });

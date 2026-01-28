@@ -1880,6 +1880,400 @@ describe('HomeComponent', () => {
     });
   });
 
+  describe('Category Drag and Drop', () => {
+    it('onCategoryDragStarted should set dragging flag and cursor', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.onCategoryDragStarted();
+
+      expect(comp.isCategoryDragging).toBe(true);
+      expect(document.body.style.cursor).toBe('grabbing');
+    });
+
+    it('onCategoryDragEnded should clear dragging flag and cursor', () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.isCategoryDragging = true;
+      document.body.style.cursor = 'grabbing';
+
+      comp.onCategoryDragEnded();
+
+      expect(comp.isCategoryDragging).toBe(false);
+      expect(document.body.style.cursor).toBe('');
+    });
+
+    it('onCategoryDrop should return early if index does not change', async () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 0
+      } as any;
+
+      await comp.onCategoryDrop(event);
+
+      expect(mocks.prayerService.swapCategoryRanges).not.toHaveBeenCalled();
+      expect(mocks.prayerService.reorderCategories).not.toHaveBeenCalled();
+    });
+
+    it('onCategoryDrop should return early if already swapping', async () => {
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.isSwappingCategories = true;
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      await comp.onCategoryDrop(event);
+
+      expect(mocks.prayerService.swapCategoryRanges).not.toHaveBeenCalled();
+    });
+
+    it('onCategoryDrop should use swapCategoryRanges for adjacent swap', async () => {
+      mocks.prayerService.swapCategoryRanges.mockResolvedValue(true);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([
+        { id: '1', title: 'Prayer 1', category: 'Leaders', display_order: 1 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 2 } as PrayerRequest
+      ]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalPrayers = [
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Leaders', display_order: 2 } as PrayerRequest
+      ];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      await comp.onCategoryDrop(event);
+
+      expect(mocks.prayerService.swapCategoryRanges).toHaveBeenCalledWith('Members', 'Leaders');
+      expect(mocks.cacheService.invalidate).toHaveBeenCalledWith('personalPrayers');
+      expect(comp.isSwappingCategories).toBe(false);
+    });
+
+    it('onCategoryDrop should use reorderCategories for non-adjacent swap', async () => {
+      mocks.prayerService.reorderCategories.mockResolvedValue(true);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([
+        { id: '1', title: 'Prayer 1', category: 'C', display_order: 1 } as PrayerRequest
+      ]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.uniquePersonalCategories = ['A', 'B', 'C', 'D', 'E'];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 4
+      } as any;
+
+      await comp.onCategoryDrop(event);
+
+      expect(mocks.prayerService.reorderCategories).toHaveBeenCalledWith(['B', 'C', 'D', 'E', 'A']);
+    });
+
+    it('onCategoryDrop should show error and rollback on swap failure', async () => {
+      mocks.prayerService.swapCategoryRanges.mockResolvedValue(false);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      await comp.onCategoryDrop(event);
+
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder categories');
+      // Should be rolled back to original order
+      expect(comp.uniquePersonalCategories[0]).toBe('Members');
+      expect(comp.uniquePersonalCategories[1]).toBe('Leaders');
+    });
+
+    it('onCategoryDrop should show error and rollback on swap exception', async () => {
+      mocks.prayerService.swapCategoryRanges.mockRejectedValue(new Error('Swap error'));
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await comp.onCategoryDrop(event);
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error reordering categories:', expect.any(Error));
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder categories');
+      // Should be rolled back
+      expect(comp.uniquePersonalCategories[0]).toBe('Members');
+      expect(comp.uniquePersonalCategories[1]).toBe('Leaders');
+      consoleSpy.mockRestore();
+    });
+
+    it('onCategoryDrop should reload prayers and update categories on success', async () => {
+      const reloadedPrayers = [
+        { id: '1', title: 'Prayer 1', category: 'Leaders', display_order: 1 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 2 } as PrayerRequest
+      ];
+      mocks.prayerService.swapCategoryRanges.mockResolvedValue(true);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue(reloadedPrayers);
+      mocks.cacheService.get.mockReturnValue(null);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalPrayers = [];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      await comp.onCategoryDrop(event);
+
+      expect(mocks.cacheService.invalidate).toHaveBeenCalledWith('personalPrayers');
+      expect(mocks.prayerService.getPersonalPrayers).toHaveBeenCalledWith(true);
+      expect(comp.personalPrayers).toEqual(reloadedPrayers);
+      expect(mocks.cacheService.set).toHaveBeenCalledWith('personalPrayers', reloadedPrayers);
+    });
+  });
+
+  describe('Personal Prayer Drag and Drop - Edge Cases', () => {
+    it('onPersonalPrayerDrop should handle moving to first position when no other prayer exists', async () => {
+      mocks.prayerService.updatePersonalPrayerOrder.mockResolvedValue(true);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest
+      ]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest
+      ];
+      comp.personalPrayers = prayers;
+      comp.selectedPersonalCategories = ['Members'];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 0
+      } as any;
+
+      await comp.onPersonalPrayerDrop(event);
+
+      expect(mocks.prayerService.updatePersonalPrayerOrder).not.toHaveBeenCalled(); // No change in index
+    });
+
+    it('onPersonalPrayerDrop should handle error and show error toast on exception', async () => {
+      mocks.prayerService.updatePersonalPrayerOrder.mockRejectedValue(new Error('Update error'));
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1000 } as PrayerRequest
+      ];
+      comp.personalPrayers = prayers;
+      comp.selectedPersonalCategories = ['Members'];
+
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1
+      } as any;
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await comp.onPersonalPrayerDrop(event);
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error reordering personal prayers:', expect.any(Error));
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder prayers');
+      consoleSpy.mockRestore();
+    });
+
+    it('onPersonalPrayerDrop should insert prayer at first position when it is the only one', async () => {
+      mocks.prayerService.updatePersonalPrayerOrder.mockResolvedValue(true);
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest
+      ]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+
+      const prayers: PrayerRequest[] = [
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1000 } as PrayerRequest,
+        { id: '3', title: 'Prayer 3', category: 'Members', display_order: 999 } as PrayerRequest
+      ];
+      comp.personalPrayers = prayers;
+      comp.selectedPersonalCategories = ['Members'];
+
+      const event = {
+        previousIndex: 1,
+        currentIndex: 0
+      } as any;
+
+      await comp.onPersonalPrayerDrop(event);
+
+      expect(mocks.prayerService.updatePersonalPrayerOrder).toHaveBeenCalled();
+      expect(mocks.toastService.error).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Utility methods', () => {
     it('formatDate should return formatted date string', () => {
       const comp = new HomeComponent(

@@ -6254,4 +6254,160 @@ describe('PrayerService - Integration Tests', () => {
       });
     });
   });
+
+  describe('Coverage - Additional edge cases', () => {
+    it('should handle approval status in prayers', async () => {
+      const mockEmail = 'user@example.com';
+      
+      mockSupabaseService.client.auth = {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { email: mockEmail } } }
+        })
+      };
+
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService,
+        mockBadgeService
+      );
+
+      const prayers: PrayerRequest[] = [
+        {
+          id: '1',
+          title: 'Pending Prayer',
+          description: 'Desc',
+          status: 'current',
+          requester: 'John',
+          prayer_for: 'Health',
+          approval_status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          date_requested: new Date().toISOString(),
+          updates: []
+        } as PrayerRequest
+      ];
+
+      (service as any).allPrayersSubject.next(prayers);
+
+      const allPrayers = (service as any).allPrayersSubject.value;
+      expect(allPrayers[0].approval_status).toBe('pending');
+    });
+
+    it('should handle prayers with images', async () => {
+      const mockEmail = 'user@example.com';
+      
+      mockSupabaseService.client.auth = {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { email: mockEmail } } }
+        })
+      };
+
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService,
+        mockBadgeService
+      );
+
+      const prayer: PrayerRequest = {
+        id: '1',
+        title: 'Prayer with Image',
+        description: 'Desc',
+        status: 'current',
+        requester: 'John',
+        prayer_for: 'Health',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        date_requested: new Date().toISOString(),
+        prayer_image: 'https://example.com/image.jpg',
+        updates: []
+      } as PrayerRequest;
+
+      (service as any).allPrayersSubject.next([prayer]);
+
+      const allPrayers = (service as any).allPrayersSubject.value;
+      expect(allPrayers[0].prayer_image).toBe('https://example.com/image.jpg');
+    });
+
+    it('should handle prayers with anonymous flag', async () => {
+      const mockEmail = 'user@example.com';
+      
+      mockSupabaseService.client.auth = {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { email: mockEmail } } }
+        })
+      };
+
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService,
+        mockBadgeService
+      );
+
+      const prayer: PrayerRequest = {
+        id: '1',
+        title: 'Anonymous Prayer',
+        description: 'Desc',
+        status: 'current',
+        requester: 'Anonymous',
+        prayer_for: 'Health',
+        is_anonymous: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        date_requested: new Date().toISOString(),
+        updates: []
+      } as PrayerRequest;
+
+      (service as any).allPrayersSubject.next([prayer]);
+
+      const allPrayers = (service as any).allPrayersSubject.value;
+      expect(allPrayers[0].is_anonymous).toBe(true);
+    });
+
+    it('should handle prayers with null email', async () => {
+      const mockEmail = 'user@example.com';
+      
+      mockSupabaseService.client.auth = {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { email: mockEmail } } }
+        })
+      };
+
+      service = new PrayerService(
+        mockSupabaseService,
+        mockToastService,
+        mockEmailNotificationService,
+        mockVerificationService,
+        mockCacheService,
+        mockBadgeService
+      );
+
+      const prayer: PrayerRequest = {
+        id: '1',
+        title: 'Prayer without email',
+        description: 'Desc',
+        status: 'current',
+        requester: 'John',
+        prayer_for: 'Health',
+        email: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        date_requested: new Date().toISOString(),
+        updates: []
+      } as PrayerRequest;
+
+      (service as any).allPrayersSubject.next([prayer]);
+
+      const allPrayers = (service as any).allPrayersSubject.value;
+      expect(allPrayers[0].email).toBeNull();
+    });
+  });
 });
