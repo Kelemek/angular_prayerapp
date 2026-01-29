@@ -371,7 +371,14 @@ prayers$ = this.prayersSubject.asObservable();
   - List fetching and member lookup
   - Cached on client-side for performance
   - Members sorted by last name (handles suffixes)
+- **Admin Auth**: check-admin-status Edge Function (verifies admin status using service role)
 - **Rate Limiting**: Email processor respects Microsoft Graph limits
+
+### Removed/Deprecated Features
+
+- **Approval Codes System** (removed Jan 2026): One-time approval links via `approval_codes` table and `validate-approval-code` Edge Function
+  - Replaced with direct `/admin` portal links requiring standard authentication
+  - Account approval codes still use simple base64 encoding (no database)
 
 ---
 

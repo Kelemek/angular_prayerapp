@@ -4,6 +4,20 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - January 2026
 
+### Code Cleanup: Removed Unused Approval Codes Infrastructure ✅
+- ✅ Removed unused `approval_codes` table and related code
+  - Admin notification emails now link directly to `/admin` portal (standard login required)
+  - Personalized one-time approval links were no longer being generated
+  - Removed `ApprovalLinksService.generateApprovalLink()` method
+  - Removed `ApprovalLinksService.validateApprovalCode()` method
+  - Removed `validate-approval-code` Edge Function
+  - Dropped `approval_codes` database table via migration
+  - Kept account approval/denial codes (simple base64 encoding, no database required)
+
+- ✅ Security improvements
+  - Restricted `backup_tables` view access to service_role only
+  - Removed unnecessary public access to database schema information
+
 ### Planning Center Members List Mapping ✅
 - ✅ Added admin interface for mapping email subscribers to Planning Center lists
   - Search and select email subscribers
