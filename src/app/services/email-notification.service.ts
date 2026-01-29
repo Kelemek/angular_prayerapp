@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { ApprovalLinksService } from './approval-links.service';
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -78,8 +77,7 @@ export interface AdminNotificationPayload {
 })
 export class EmailNotificationService {
   constructor(
-    private supabase: SupabaseService,
-    private approvalLinks: ApprovalLinksService
+    private supabase: SupabaseService
   ) {}
 
   /**

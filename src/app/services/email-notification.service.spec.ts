@@ -14,7 +14,6 @@ function makeFromQuery(result: any) {
 describe('EmailNotificationService', () => {
   let service: EmailNotificationService;
   let mockSupabase: any;
-  let mockApprovalLinks: any;
 
   beforeEach(() => {
     mockSupabase = {
@@ -25,12 +24,7 @@ describe('EmailNotificationService', () => {
       directQuery: vi.fn()
     };
 
-    mockApprovalLinks = {
-      generateCode: vi.fn().mockReturnValue('code-123'),
-      generateApprovalLink: vi.fn().mockResolvedValue(null)
-    };
-
-    service = new EmailNotificationService(mockSupabase as any, mockApprovalLinks as any);
+    service = new EmailNotificationService(mockSupabase as any);
   });
 
   afterEach(() => {
