@@ -1812,7 +1812,6 @@ export class PrayerService {
       this.cache.set('personalPrayers', updatedPrayers);
 
       console.log('[PrayerService] Personal prayer update updated successfully');
-      this.toast.success('Prayer update saved');
       return true;
     } catch (error) {
       console.error('Error updating personal prayer update:', error);

@@ -5909,7 +5909,6 @@ describe('PrayerService - Integration Tests', () => {
         const result = await service.updatePersonalPrayerUpdate('update1', 'prayer1', { content: 'New content' });
         
         expect(result).toBe(true);
-        expect(mockToastService.success).toHaveBeenCalled();
       });
     });
 
