@@ -399,8 +399,34 @@ export async function fetchListMembers(listId: string, supabaseUrl: string, supa
     }
 
     const data = await response.json();
+    
+    // Sort members by last name ascending
+    const members = (data.members || []).sort((a: any, b: any) => {
+      // Extract last name, handling suffixes like Jr., Sr., III, etc.
+      const getLastName = (fullName: string) => {
+        const suffixes = ['jr', 'sr', 'ii', 'iii', 'iv', 'v', 'jr.', 'sr.', 'ii.', 'iii.', 'iv.', 'v.'];
+        const parts = fullName.trim().split(' ');
+        
+        // Remove suffix if present
+        let nameWithoutSuffix = [...parts];
+        const lastPart = parts[parts.length - 1]?.toLowerCase();
+        if (lastPart && suffixes.includes(lastPart)) {
+          nameWithoutSuffix = parts.slice(0, -1);
+        }
+        
+        // Return the last remaining word as the last name
+        return nameWithoutSuffix.length > 0 
+          ? nameWithoutSuffix[nameWithoutSuffix.length - 1].toLowerCase()
+          : fullName.toLowerCase();
+      };
+      
+      const lastNameA = getLastName(a.name);
+      const lastNameB = getLastName(b.name);
+      return lastNameA.localeCompare(lastNameB);
+    });
+    
     return {
-      members: data.members || []
+      members
     };
   } catch (error) {
     console.error('Error in fetchListMembers:', error);
