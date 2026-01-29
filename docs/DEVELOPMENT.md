@@ -367,7 +367,10 @@ prayers$ = this.prayersSubject.asObservable();
 
 - **Database**: Supabase client (REST API under the hood)
 - **Email**: Microsoft Graph API via backend edge function
-- **Planning Center**: REST API (direct from frontend for reads)
+- **Planning Center**: REST API via Edge Functions (planning-center-lists, planning-center-lookup)
+  - List fetching and member lookup
+  - Cached on client-side for performance
+  - Members sorted by last name (handles suffixes)
 - **Rate Limiting**: Email processor respects Microsoft Graph limits
 
 ---

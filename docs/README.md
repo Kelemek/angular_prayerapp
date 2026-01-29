@@ -32,6 +32,7 @@ A comprehensive prayer request management system for Cross Pointe Church built w
 - ✅ Personal prayers (private user prayers)
 - ✅ Theme system (light/dark)
 - ✅ Planning Center contact lookup
+- ✅ Planning Center members list mapping (filter prayers by list members)
 - ✅ Badge indicators (unread prayers/prompts)
 
 ## 🚀 Getting Started

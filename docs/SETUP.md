@@ -224,6 +224,40 @@ Email queue is processed by GitHub Actions workflow:
    - Auto-populate name and phone from Planning Center
    - Link prayers to Planning Center contacts
 
+### Members List Mapping
+
+The app supports mapping email subscribers to Planning Center lists. This allows users to view prayers filtered by specific list members.
+
+**How it works:**
+
+1. **Admin Configuration** (Admin > Planning Center List Mapping):
+   - Search for an email subscriber
+   - Select a Planning Center list (e.g., "Small Group A")
+   - Map subscriber to list
+   - Subscriber can now filter prayers by list members
+
+2. **User Experience**:
+   - If mapped, user sees member avatars in presentation mode
+   - Can filter to show only prayers from their list members
+   - Members are sorted alphabetically by last name
+   - Handles suffixes (Jr., Sr., III) correctly
+
+3. **Presentation Mode**:
+   - Select "Members" content type to show member prayer updates
+   - Select "All" to include members along with other prayers
+   - Member updates appear in chronological order
+
+**Edge Function Required:**
+```bash
+supabase functions deploy planning-center-lists
+```
+
+**Database Schema:**
+```sql
+-- email_subscribers table includes:
+planning_center_list_id TEXT  -- Maps subscriber to PC list
+```
+
 ### Disable (Optional)
 
 If you don't use Planning Center, set token to empty string. App will work without it.

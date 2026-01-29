@@ -4,6 +4,33 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - January 2026
 
+### Planning Center Members List Mapping ✅
+- ✅ Added admin interface for mapping email subscribers to Planning Center lists
+  - Search and select email subscribers
+  - Browse and filter Planning Center lists
+  - Create/update/delete subscriber-to-list mappings
+  - View all current mappings in admin dashboard
+
+- ✅ Presentation mode supports members content
+  - "Members" content type shows prayer updates from list members
+  - "All" content type includes members along with prayers, prompts, and personal prayers
+  - Member avatars displayed in presentation cards
+  - Members sorted alphabetically by last name (client-side)
+
+- ✅ Smart last name sorting with suffix handling
+  - Removes suffixes (Jr, Sr, II, III, IV, V) before sorting
+  - Handles multiple last names correctly
+  - Case-insensitive alphabetical ordering
+
+- ✅ Planning Center Edge Functions
+  - `planning-center-lists` function fetches lists and members via PC API
+  - Client-side caching for improved performance
+  - CORS headers support modern Supabase client
+
+- ✅ Database schema updates
+  - Added `planning_center_list_id` column to `email_subscribers` table
+  - Stores mapping between subscribers and PC lists
+
 ### Personal Prayers Export Feature ✅
 - ✅ Added `downloadPrintablePersonalPrayerList()` method to PrintService
   - Retrieves user's personal prayers via PrayerService.getPersonalPrayers()
