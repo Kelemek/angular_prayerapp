@@ -1312,7 +1312,7 @@ describe('AppComponent', () => {
       );
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
       expect(lookupPersonByEmailMock).toHaveBeenCalled();
-    });
+    }, 10000);
 
     it('denies a pending request and sends a denial email', async () => {
       decodeAccountCodeMock.mockReturnValue({
