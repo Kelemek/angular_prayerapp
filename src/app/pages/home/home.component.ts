@@ -1564,11 +1564,20 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Filter by search term if present
     if (this.filters.searchTerm && this.filters.searchTerm.trim()) {
       const searchLower = this.filters.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(p => 
-        p.prayer_for.toLowerCase().includes(searchLower) ||
-        p.description.toLowerCase().includes(searchLower) ||
-        p.title.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter(p => {
+        // Search in prayer fields
+        const prayerMatch = p.prayer_for.toLowerCase().includes(searchLower) ||
+          p.description.toLowerCase().includes(searchLower) ||
+          p.title.toLowerCase().includes(searchLower);
+        
+        // Search in update content
+        const updateMatch = p.updates && p.updates.length > 0 &&
+          p.updates.some(update =>
+            update.content && update.content.toLowerCase().includes(searchLower)
+          );
+
+        return prayerMatch || updateMatch;
+      });
     }
 
     // Filter by selected categories

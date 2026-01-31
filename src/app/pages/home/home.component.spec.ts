@@ -1612,6 +1612,56 @@ describe('HomeComponent', () => {
       expect(filtered[0].id).toBe('p1');
     });
 
+    it('getFilteredPersonalPrayers filters by update content', () => {
+      const prayers = [
+        { 
+          id: 'p1', 
+          title: 'Prayer 1', 
+          description: 'Desc', 
+          prayer_for: 'Person', 
+          status: 'current' as any, 
+          requester: 'Me', 
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString(), 
+          date_requested: new Date().toISOString(), 
+          updates: [{ content: 'This has searchable update text' }] 
+        },
+        { 
+          id: 'p2', 
+          title: 'Prayer 2', 
+          description: 'Desc', 
+          prayer_for: 'Person', 
+          status: 'current' as any, 
+          requester: 'Me', 
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString(), 
+          date_requested: new Date().toISOString(), 
+          updates: [{ content: 'Nothing here' }] 
+        }
+      ];
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.supabaseService
+      );
+      comp.personalPrayers = prayers as any;
+      comp.filters = { searchTerm: 'searchable' };
+
+      const filtered = comp.getFilteredPersonalPrayers();
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe('p1');
+    });
+
     it('getFilteredPersonalPrayers respects selected categories', () => {
       const prayers = [
         { id: 'p1', title: 'Alpha', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Morning' },
