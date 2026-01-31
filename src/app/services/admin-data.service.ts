@@ -497,14 +497,6 @@ export class AdminDataService {
       prayerFor: prayer.prayer_for,
       status: prayer.status
     }).catch(err => console.error('Failed to send broadcast notification:', err));
-
-    this.emailNotification.sendRequesterApprovalNotification({
-      title: prayer.title,
-      description: prayer.description,
-      requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
-      requesterEmail: prayer.email,
-      prayerFor: prayer.prayer_for
-    }).catch(err => console.error('Failed to send requester notification:', err));
   }
 
   async approveUpdate(id: string): Promise<void> {
