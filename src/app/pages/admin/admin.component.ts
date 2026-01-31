@@ -463,7 +463,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                   }
 
                   @if (!analyticsStats.loading) {
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   <!-- Today -->
                   <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
                     <div class="flex items-center gap-2 mb-2">
