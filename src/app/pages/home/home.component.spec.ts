@@ -2902,7 +2902,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: '' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(2);
     });
@@ -2929,7 +2929,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: 'John' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(1);
       expect(result[0].prayer_for).toBe('John Doe');
@@ -2956,7 +2956,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: 'JOHN' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(1);
     });
@@ -2995,7 +2995,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: 'specific update' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('1');
@@ -3022,7 +3022,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: 'Healing' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(1);
     });
@@ -3048,7 +3048,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: 'deadline' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(1);
     });
@@ -3074,7 +3074,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: 'xyz' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(0);
     });
@@ -3100,7 +3100,7 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: '  John  ' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers([]);
+      const result = comp.getFilteredPlanningCenterPrayers();
 
       expect(result).toHaveLength(1);
     });
