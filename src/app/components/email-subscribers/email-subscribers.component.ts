@@ -841,7 +841,8 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortBy = column;
-      this.sortDirection = 'asc';
+      // Default to descending for Activity column (newest first), ascending for others
+      this.sortDirection = column === 'last_activity_date' ? 'desc' : 'asc';
     }
     this.currentPage = 1; // Reset to first page
     this.sortSubscribers();
@@ -1060,25 +1061,56 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
 
   async handleToggleActive(id: string, currentStatus: boolean) {
     try {
-      const { error } = await this.supabase.client
+      // Fetch subscriber to get their email for the confirmation dialog
+      const { data: subscriber, error: fetchError } = await this.supabase.client
         .from('email_subscribers')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
+        .select('email')
+        .eq('id', id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
+      if (!subscriber) throw new Error('Subscriber not found');
 
-      this.toast.success(currentStatus ? 'Subscriber deactivated' : 'Subscriber activated');
-      
-      // Update the local data instead of resetting pagination
-      const subscriber = this.allSubscribers.find(s => s.id === id);
-      if (subscriber) {
-        subscriber.is_active = !currentStatus;
-        this.totalActiveCount = this.allSubscribers.filter(s => s.is_active).length;
-        this.cdr.markForCheck();
-      }
+      // Show confirmation dialog
+      this.confirmationTitle = currentStatus ? 'Deactivate Subscriber' : 'Activate Subscriber';
+      this.confirmationMessage = currentStatus 
+        ? `Are you sure you want to stop sending email notifications to ${subscriber.email}?`
+        : `Are you sure you want to start sending email notifications to ${subscriber.email}?`;
+      this.confirmationDetails = currentStatus 
+        ? 'This user will no longer receive prayer request emails.'
+        : 'This user will begin receiving prayer request emails again.';
+      this.confirmationConfirmText = currentStatus ? 'Deactivate' : 'Activate';
+      this.isDeleteConfirmation = false;
+
+      this.confirmationAction = async () => {
+        try {
+          const { error } = await this.supabase.client
+            .from('email_subscribers')
+            .update({ is_active: !currentStatus })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          this.toast.success(currentStatus ? 'Subscriber deactivated' : 'Subscriber activated');
+          
+          // Update the local data instead of resetting pagination
+          const sub = this.allSubscribers.find(s => s.id === id);
+          if (sub) {
+            sub.is_active = !currentStatus;
+            this.totalActiveCount = this.allSubscribers.filter(s => s.is_active).length;
+            this.cdr.markForCheck();
+          }
+        } catch (err: any) {
+          console.error('Error toggling subscriber status:', err);
+          this.toast.error('Failed to update subscriber status');
+        }
+      };
+
+      this.showConfirmationDialog = true;
+      this.cdr.markForCheck();
     } catch (err: any) {
-      console.error('Error toggling subscriber status:', err);
-      this.toast.error('Failed to update subscriber status');
+      console.error('Error preparing status toggle action:', err);
+      this.toast.error('Failed to prepare status toggle action');
     }
   }
 
