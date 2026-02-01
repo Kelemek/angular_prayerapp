@@ -953,6 +953,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
     try {
       this.analyticsStats = await this.analyticsService.getStats();
+      this.cdr.markForCheck();
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {
