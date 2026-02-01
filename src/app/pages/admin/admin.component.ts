@@ -841,16 +841,16 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     // Set tab based on priority
     if (hasPendingPrayers) {
-      this.activeTab = 'prayers';
+      this.onTabChange('prayers');
     } else if (hasPendingUpdates) {
-      this.activeTab = 'updates';
+      this.onTabChange('updates');
     } else if (hasPendingDeletions) {
-      this.activeTab = 'deletions';
+      this.onTabChange('deletions');
     } else if (hasPendingAccounts) {
-      this.activeTab = 'accounts';
+      this.onTabChange('accounts');
     } else {
       // If nothing is pending, default to settings
-      this.activeTab = 'settings';
+      this.onTabChange('settings');
     }
   }
 

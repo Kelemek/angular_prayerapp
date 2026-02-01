@@ -143,6 +143,26 @@ describe('AdminComponent', () => {
     expect(tabSpy).toHaveBeenCalledWith('settings');
   });
 
+  it('setInitialTab defaults to settings and loads analytics if nothing pending', () => {
+    // Setup
+    component.activeTab = 'prayers';
+    component['adminData'] = {
+      pendingPrayers: [],
+      pendingUpdates: [],
+      pendingDeletionRequests: [],
+      pendingUpdateDeletionRequests: [],
+      pendingAccountRequests: []
+    };
+    const loadSpy = vi.spyOn(component, 'loadAnalytics');
+    
+    // Act
+    component['setInitialTab']();
+    
+    // Assert
+    expect(component.activeTab).toBe('settings');
+    expect(loadSpy).toHaveBeenCalled();
+  });
+
   it('loadAnalytics sets stats on success and toggles loading', async () => {
     component.analyticsStats.loading = false;
     await component.loadAnalytics();
