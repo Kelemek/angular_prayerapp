@@ -1823,44 +1823,6 @@ describe('AdminDataService', () => {
     });
   });
 
-  describe('Status change requests handling', () => {
-    it('should load pending status change requests in Phase 1', async () => {
-      const mockStatusChangeRequests = [
-        { id: '1', prayer_id: 'prayer-1', prayers: { title: 'Prayer Title' }, approval_status: 'pending' }
-      ];
-
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'status_change_requests') {
-          return createMockQueryChain(mockStatusChangeRequests, null);
-        }
-        return createMockQueryChain([], null);
-      });
-
-      await service.fetchAdminData();
-
-      const data = await firstValueFrom(service.data$);
-      expect(data.pendingStatusChangeRequests).toBeDefined();
-    });
-
-    it('should handle status change request transformation with prayer titles', async () => {
-      const mockStatusChangeRequests = [
-        { id: '1', prayer_id: 'prayer-1', prayers: { title: 'Prayer Title' }, approval_status: 'pending' }
-      ];
-
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'status_change_requests') {
-          return createMockQueryChain(mockStatusChangeRequests, null);
-        }
-        return createMockQueryChain([], null);
-      });
-
-      await service.fetchAdminData();
-
-      const data = await firstValueFrom(service.data$);
-      expect(data.pendingStatusChangeRequests[0].prayer_title).toBe('Prayer Title');
-    });
-  });
-
   describe('Branch coverage - error handling', () => {
     it('should handle requester notification error in approvePrayer', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

@@ -513,7 +513,6 @@ export class BackupStatusComponent implements OnInit {
           'prayer_types',
           'prayer_updates',
           'prayers',
-          'status_change_requests',
           'update_deletion_requests',
           'user_preferences',
           'verification_codes'
@@ -664,7 +663,6 @@ export class BackupStatusComponent implements OnInit {
         'prayer_prompts',
         'email_subscribers',
         'user_preferences',
-        'status_change_requests',
         'update_deletion_requests',
         'admin_settings'
       ];

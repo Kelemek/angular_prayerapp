@@ -64,7 +64,6 @@ jobs:
                 'prayer_types',
                 'prayer_updates',
                 'prayers',
-                'status_change_requests',
                 'update_deletion_requests',
                 'user_preferences'
               ];

@@ -7,7 +7,6 @@ import type {
   PrayerRequest, 
   PrayerUpdate, 
   DeletionRequest, 
-  StatusChangeRequest,
   UpdateDeletionRequest 
 } from '../types/prayer';
 
@@ -15,7 +14,6 @@ interface AdminData {
   pendingPrayers: PrayerRequest[];
   pendingUpdates: (PrayerUpdate & { prayer_title?: string })[];
   pendingDeletionRequests: (DeletionRequest & { prayer_title?: string })[];
-  pendingStatusChangeRequests: (StatusChangeRequest & { prayer_title?: string })[];
   pendingUpdateDeletionRequests: (UpdateDeletionRequest & {
     prayer_updates?: {
       content?: string;
@@ -36,7 +34,6 @@ interface AdminData {
   approvedUpdates: (PrayerUpdate & { prayer_title?: string })[];
   deniedPrayers: PrayerRequest[];
   deniedUpdates: (PrayerUpdate & { prayer_title?: string })[];
-  deniedStatusChangeRequests: (StatusChangeRequest & { prayer_title?: string })[];
   deniedDeletionRequests: (DeletionRequest & { prayer_title?: string })[];
   deniedUpdateDeletionRequests: (UpdateDeletionRequest & {
     prayer_updates?: {
@@ -62,14 +59,12 @@ export class AdminDataService {
     pendingPrayers: [],
     pendingUpdates: [],
     pendingDeletionRequests: [],
-    pendingStatusChangeRequests: [],
     pendingUpdateDeletionRequests: [],
     pendingAccountRequests: [],
     approvedPrayers: [],
     approvedUpdates: [],
     deniedPrayers: [],
     deniedUpdates: [],
-    deniedStatusChangeRequests: [],
     deniedDeletionRequests: [],
     deniedUpdateDeletionRequests: [],
     approvedPrayersCount: 0,
@@ -111,7 +106,6 @@ export class AdminDataService {
         pendingPrayersResult,
         pendingUpdatesResult,
         pendingDeletionRequestsResult,
-        pendingStatusChangeRequestsResult,
         pendingUpdateDeletionRequestsResult,
         pendingAccountRequestsResult
       ] = await Promise.all([
@@ -132,13 +126,6 @@ export class AdminDataService {
         // Pending deletion requests
         supabaseClient
           .from('deletion_requests')
-          .select('*, prayers!inner(title)')
-          .eq('approval_status', 'pending')
-          .order('created_at', { ascending: false }),
-        
-        // Pending status change requests
-        supabaseClient
-          .from('status_change_requests')
           .select('*, prayers!inner(title)')
           .eq('approval_status', 'pending')
           .order('created_at', { ascending: false }),
@@ -176,24 +163,17 @@ export class AdminDataService {
         prayer_title: d.prayers?.title
       }));
 
-      const pendingStatusChangeRequests = (pendingStatusChangeRequestsResult.data || []).map((s: any) => ({
-        ...s,
-        prayer_title: s.prayers?.title
-      }));
-
       // Update with pending data immediately
       this.dataSubject.next({
         pendingPrayers: pendingPrayersResult.data || [],
         pendingUpdates,
         pendingDeletionRequests,
-        pendingStatusChangeRequests,
         pendingUpdateDeletionRequests: pendingUpdateDeletionRequestsResult.data || [],
         pendingAccountRequests: pendingAccountRequestsResult.data || [],
         approvedPrayers: [],
         approvedUpdates: [],
         deniedPrayers: [],
         deniedUpdates: [],
-        deniedStatusChangeRequests: [],
         deniedDeletionRequests: [],
         deniedUpdateDeletionRequests: [],
         approvedPrayersCount: 0,
@@ -237,7 +217,6 @@ export class AdminDataService {
         approvedUpdatesResult,
         deniedPrayersResult,
         deniedUpdatesResult,
-        deniedStatusChangeRequestsResult,
         deniedDeletionRequestsResult,
         deniedUpdateDeletionRequestsResult
       ] = await Promise.all([
@@ -290,12 +269,6 @@ export class AdminDataService {
           .order('denied_at', { ascending: false }),
         
         supabaseClient
-          .from('status_change_requests')
-          .select('*, prayers!inner(title)')
-          .eq('approval_status', 'denied')
-          .order('reviewed_at', { ascending: false }),
-        
-        supabaseClient
           .from('deletion_requests')
           .select('*, prayers!inner(title)')
           .eq('approval_status', 'denied')
@@ -320,11 +293,6 @@ export class AdminDataService {
         prayer_title: u.prayers?.title
       }));
 
-      const deniedStatusChangeRequests = (deniedStatusChangeRequestsResult.data || []).map((s: any) => ({
-        ...s,
-        prayer_title: s.prayers?.title
-      }));
-
       const deniedDeletionRequests = (deniedDeletionRequestsResult.data || []).map((d: any) => ({
         ...d,
         prayer_title: d.prayers?.title
@@ -337,7 +305,6 @@ export class AdminDataService {
         approvedUpdates,
         deniedPrayers: deniedPrayersResult.data || [],
         deniedUpdates,
-        deniedStatusChangeRequests,
         deniedDeletionRequests,
         deniedUpdateDeletionRequests: deniedUpdateDeletionRequestsResult.data || [],
         approvedPrayersCount: approvedPrayersCountResult.count || 0,

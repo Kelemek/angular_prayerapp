@@ -5,7 +5,6 @@ import type {
   PrayerUpdate, 
   DeletionRequest, 
   UpdateDeletionRequest,
-  StatusChangeRequest,
   PrayerTypeRecord,
   PrayerPrompt,
   PrayerFilters
@@ -148,20 +147,6 @@ describe('Prayer Types (src/types)', () => {
       };
       
       expect(request.update_id).toBe('456');
-    });
-
-    it('should allow valid StatusChangeRequest object', () => {
-      const request: StatusChangeRequest = {
-        id: '789',
-        prayer_id: '123',
-        requested_status: PrayerStatus.ANSWERED,
-        requested_by: 'John Doe',
-        approval_status: 'pending',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      };
-      
-      expect(request.requested_status).toBe(PrayerStatus.ANSWERED);
     });
 
     it('should allow valid PrayerTypeRecord object', () => {

@@ -96,7 +96,6 @@ jobs:
               'prayer_prompts',
               'email_subscribers',
               'user_preferences',
-              'status_change_requests',
               'update_deletion_requests',
               'admin_settings',
               'analytics'

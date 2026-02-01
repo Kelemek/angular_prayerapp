@@ -72,21 +72,6 @@ export interface UpdateDeletionRequest {
   updated_at: string;
 }
 
-export interface StatusChangeRequest {
-  id: string;
-  prayer_id: string;
-  requested_status: PrayerStatus;
-  reason?: string | null;
-  requested_by: string;
-  requested_email?: string | null;
-  approval_status: 'pending' | 'approved' | 'denied';
-  reviewed_by?: string | null;
-  reviewed_at?: string | null;
-  denial_reason?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 
 
 export const PrayerStatus = {
