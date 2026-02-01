@@ -219,8 +219,8 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
 
       <!-- Recent Updates -->
       @if (prayer.updates && prayer.updates.length > 0) {
-      <div class="pt-4">
-        <div class="flex items-center justify-between mb-3">
+      <div class=>
+        <div class="flex items-center justify-between mb-2">
           <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
             Recent Updates @if (!showAllUpdates && getDisplayedUpdates().length < prayer.updates.length) {<span>({{ getDisplayedUpdates().length }} of {{ prayer.updates.length }})</span>}
           </h4>
@@ -254,7 +254,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
                   Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.author }}</span>
                 </span>
                 }
-                <div class="ml-auto flex items-center gap-1">
+                <div class="ml-auto flex items-center gap-2">
                   @if (isPersonal) {
                   <button
                     (click)="editPersonalUpdate.emit({update: update, prayerId: prayer.id})"
@@ -306,7 +306,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
                   }
                 </div>
               </div>
-              <span class="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+              <span class="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 {{ getUpdateDisplayDate(update) }}
               </span>
             </div>
