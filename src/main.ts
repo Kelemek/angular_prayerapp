@@ -8,6 +8,8 @@ import { APP_INITIALIZER } from '@angular/core';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { AdminAuthService } from './app/services/admin-auth.service';
+import { BrandingService } from './app/services/branding.service';
+import { BRANDING_SERVICE_TOKEN } from './app/components/app-logo/app-logo.component';
 
 // Initialize Sentry asynchronously to avoid blocking render
 const initSentryLater = async () => {
@@ -94,12 +96,31 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
     provideHttpClient(),
     provideAnimations(),
+    BrandingService,
+    { provide: BRANDING_SERVICE_TOKEN, useExisting: BrandingService },
     {
       provide: IMAGE_CONFIG,
       useValue: {
         disableImageSizeWarning: true,
         disableImageLazyLoadWarning: true
       }
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (brandingService: BrandingService) => {
+        return async () => {
+          try {
+            console.log('[AppInitialization] Initializing BrandingService to load logos before rendering');
+            await brandingService.initialize();
+            console.log('[AppInitialization] BrandingService initialization complete');
+          } catch (error) {
+            console.error('[AppInitialization] BrandingService initialization failed:', error);
+            // Continue initialization even if branding fails
+          }
+        };
+      },
+      deps: [BrandingService],
+      multi: true
     },
     {
       provide: APP_INITIALIZER,

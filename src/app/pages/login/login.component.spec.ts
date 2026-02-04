@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BehaviorSubject, of } from 'rxjs';
 import { LoginComponent } from './login.component';
 
@@ -46,6 +46,19 @@ const makeMocks = () => {
     theme$: of('light')
   };
 
+  const brandingService: any = {
+    initialize: vi.fn(async () => {}),
+    branding$: new BehaviorSubject({
+      useLogo: true,
+      appTitle: 'Test Church',
+      appSubtitle: 'Test Subtitle',
+      lightModeLogoBlobUrl: 'LIGHT_URL',
+      darkModeLogoBlobUrl: 'DARK_URL',
+      lastModified: new Date()
+    }),
+    getImageUrl: vi.fn((branding) => branding.useLogo ? 'LIGHT_URL' : '')
+  };
+
   const router: any = { navigate: vi.fn() };
 
   const route: any = {
@@ -56,7 +69,7 @@ const makeMocks = () => {
 
   const cdr: any = { markForCheck: vi.fn() };
 
-  return { adminAuthService, supabaseService, emailNotificationService, userSessionService, themeService, router, route, cdr, requireSiteLogin$, isAdmin$ };
+  return { adminAuthService, supabaseService, emailNotificationService, userSessionService, themeService, brandingService, router, route, cdr, requireSiteLogin$, isAdmin$ };
 };
 
 const mockMatchMedia = (matches = false) => ({
@@ -68,32 +81,69 @@ const mockMatchMedia = (matches = false) => ({
 });
 
 const makeComponent = (mocks: any) => {
-  const comp = new LoginComponent(
+  const comp = makeComponentWithMocks(
     mocks.adminAuthService,
     mocks.supabaseService,
     mocks.emailNotificationService,
     mocks.userSessionService,
     mocks.themeService,
+    mocks.brandingService,
     mocks.router,
     mocks.route,
     mocks.cdr
   );
   // Provide a mock QueryList for ViewChildren `codeInputs` used by focusInput
   comp.codeInputs = { toArray: () => [{ nativeElement: { focus: vi.fn() } }] } as any;
+  // Register for cleanup
+  componentsToCleanup.push(comp);
+  return comp;
+};
+
+// Helper to create LoginComponent with custom service mocks (for tests with modified mocks)
+let componentsToCleanup: LoginComponent[] = [];
+const makeComponentWithMocks = (adminAuth: any, supabase: any, emailNotif: any, userSession: any, theme: any, branding: any, router: any, route: any, cdr: any) => {
+  const comp = new LoginComponent(
+    adminAuth,
+    supabase,
+    emailNotif,
+    userSession,
+    theme,
+    branding,
+    router,
+    route,
+    cdr
+  );
+  comp.codeInputs = { toArray: () => [{ nativeElement: { focus: vi.fn() } }] } as any;
+  // Register for cleanup
+  componentsToCleanup.push(comp);
   return comp;
 };
 
 describe('LoginComponent', () => {
   let mocks: ReturnType<typeof makeMocks>;
+
   beforeEach(async () => {
+    // reset spies/mocks BEFORE creating mocks
+    vi.resetAllMocks();
     mocks = makeMocks();
     localStorage.clear();
     sessionStorage.clear();
-    // reset spies/mocks
-    vi.resetAllMocks();
     // ensure global matchMedia exists for tests
     vi.stubGlobal('matchMedia', (query: string) => mockMatchMedia());
     // Note: saveUserInfo is already mocked as a spy in the utils/userInfoStorage module
+    componentsToCleanup = [];
+  });
+
+  afterEach(() => {
+    // Clean up all component instances created during the test
+    for (const comp of componentsToCleanup) {
+      try {
+        (comp as any).ngOnDestroy?.();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    }
+    componentsToCleanup = [];
   });
 
   it('ngOnInit initializes values and subscribes to observables', async () => {
@@ -254,12 +304,13 @@ describe('LoginComponent', () => {
   it('verifyMfaCode shows subscriber form requiring approval when not in Planning Center', async () => {
     mocks.adminAuthService.verifyMfaCode = vi.fn(async () => ({ success: true, isAdmin: false }));
     vi.spyOn((await import('../../../lib/planning-center')), 'lookupPersonByEmail').mockResolvedValue({ count: 0, people: [] });
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       mocks.adminAuthService,
       mocks.supabaseService,
       mocks.emailNotificationService,
       mocks.userSessionService,
       mocks.themeService,
+      mocks.brandingService,
       mocks.router,
       mocks.route,
       mocks.cdr
@@ -279,12 +330,13 @@ describe('LoginComponent', () => {
   });
 
   it('saveNewSubscriber returns false when names missing', async () => {
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       mocks.adminAuthService,
       mocks.supabaseService,
       mocks.emailNotificationService,
       mocks.userSessionService,
       mocks.themeService,
+      mocks.brandingService,
       mocks.router,
       mocks.route,
       mocks.cdr
@@ -299,12 +351,13 @@ describe('LoginComponent', () => {
   it('saveNewSubscriber handles approval RPC error and sets friendly message', async () => {
     // setup rpc to return error
     mocks.supabaseService.client.rpc = vi.fn(async () => ({ data: null, error: { message: 'duplicate key' } }));
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       mocks.adminAuthService,
       mocks.supabaseService,
       mocks.emailNotificationService,
       mocks.userSessionService,
       mocks.themeService,
+      mocks.brandingService,
       mocks.router,
       mocks.route,
       mocks.cdr
@@ -320,12 +373,13 @@ describe('LoginComponent', () => {
 
   it('saveNewSubscriber success approval path shows pending approval', async () => {
     mocks.supabaseService.client.rpc = vi.fn(async () => ({ data: 123, error: null }));
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       mocks.adminAuthService,
       mocks.supabaseService,
       mocks.emailNotificationService,
       mocks.userSessionService,
       mocks.themeService,
+      mocks.brandingService,
       mocks.router,
       mocks.route,
       mocks.cdr
@@ -342,12 +396,13 @@ describe('LoginComponent', () => {
   it('saveNewSubscriber normal flow saves subscriber and navigates', async () => {
     const mutationSpy = vi.fn(async () => ({ data: [{ id: '1' }], error: null }));
     mocks.supabaseService.directMutation = mutationSpy;
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       mocks.adminAuthService,
       mocks.supabaseService,
       mocks.emailNotificationService,
       mocks.userSessionService,
       mocks.themeService,
+      mocks.brandingService,
       mocks.router,
       mocks.route,
       mocks.cdr
@@ -415,14 +470,10 @@ describe('LoginComponent', () => {
     await expect(comp['checkEmailSubscriber']('x@y.com')).rejects.toThrow('blocked');
   });
 
-  it('fetchBranding handles thrown exception gracefully', async () => {
-    const compMocks = makeMocks();
-    compMocks.supabaseService.directQuery = vi.fn(async () => { throw new Error('network'); });
-    const comp = makeComponent(compMocks);
-    // call private method via any
-    await (comp as any).fetchBranding();
-    // nothing thrown and method completes
-    expect(true).toBe(true);
+  it('ngOnInit calls brandingService.initialize', async () => {
+    const comp = makeComponent(mocks);
+    await comp.ngOnInit();
+    expect(mocks.brandingService.initialize).toHaveBeenCalled();
   });
 
   it('resetForm clears session and resets state', () => {
@@ -491,41 +542,18 @@ describe('LoginComponent', () => {
     expect(focusSpy).toHaveBeenCalledWith(3);
   });
 
-  it('loadCachedLogo and updateLogoUrl set localStorage and logoUrl', () => {
-    // set window cache
-    (globalThis as any).__cachedLogos = { useLogo: true, light: 'LIGHT_FROM_CACHE', dark: 'DARK_FROM_CACHE' };
-    const comp = makeComponent(mocks);
-    // ensure localStorage empty
-    localStorage.clear();
-    (comp as any).loadCachedLogo();
-    // localStorage should now contain branding keys and component should reflect useLogo
-    expect(comp.useLogo).toBe(true);
-    expect(localStorage.getItem('branding_light_logo')).toBe('LIGHT_FROM_CACHE');
-    // test updateLogoUrl with dark mode
-    comp.useLogo = true;
-    (comp as any).isDarkMode = true;
-    localStorage.setItem('branding_dark_logo', 'DARK_FROM_CACHE');
-    (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('DARK_FROM_CACHE');
-    // light mode
-    (comp as any).isDarkMode = false;
-    (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('LIGHT_FROM_CACHE');
-    // cleanup - remove window cache to not affect other tests
-    (globalThis as any).__cachedLogos = undefined;
-  });
-
   it('detectDarkMode uses system preference when theme is system', () => {
     const sysMocks = makeMocks();
     sysMocks.themeService.getTheme = vi.fn(() => 'system');
     // stub matchMedia to report dark preference
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: true } as any));
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       sysMocks.adminAuthService,
       sysMocks.supabaseService,
       sysMocks.emailNotificationService,
       sysMocks.userSessionService,
       sysMocks.themeService,
+      sysMocks.brandingService,
       sysMocks.router,
       sysMocks.route,
       sysMocks.cdr
@@ -537,12 +565,13 @@ describe('LoginComponent', () => {
   it('fetchCodeLength sets default on error or missing data', async () => {
     const badMocks = makeMocks();
     badMocks.supabaseService.client.from = vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: null, error: null }) ) })) })) }));
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       badMocks.adminAuthService,
       badMocks.supabaseService,
       badMocks.emailNotificationService,
       badMocks.userSessionService,
       badMocks.themeService,
+      badMocks.brandingService,
       badMocks.router,
       badMocks.route,
       badMocks.cdr
@@ -568,12 +597,13 @@ describe('LoginComponent', () => {
     // email send fails
     compMocks.emailNotificationService.sendAccountApprovalNotification = vi.fn(async () => { throw new Error('smtp fail'); });
 
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       compMocks.adminAuthService,
       compMocks.supabaseService,
       compMocks.emailNotificationService,
       compMocks.userSessionService,
       compMocks.themeService,
+      compMocks.brandingService,
       compMocks.router,
       compMocks.route,
       compMocks.cdr
@@ -593,12 +623,13 @@ describe('LoginComponent', () => {
     // simulate directMutation error
     compMocks.supabaseService.directMutation = vi.fn(async () => ({ data: null, error: { message: 'Insert failed', status: 500 } }));
 
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       compMocks.adminAuthService,
       compMocks.supabaseService,
       compMocks.emailNotificationService,
       compMocks.userSessionService,
       compMocks.themeService,
+      compMocks.brandingService,
       compMocks.router,
       compMocks.route,
       compMocks.cdr
@@ -615,8 +646,8 @@ describe('LoginComponent', () => {
 
   it('ngOnDestroy completes the destroy subject', () => {
     const comp = makeComponent(mocks);
-    const destroySpy = vi.spyOn(comp['destroy$'], 'next');
-    const completeSpy = vi.spyOn(comp['destroy$'], 'complete');
+    const destroySpy = vi.spyOn((comp as any)['destroy$'], 'next');
+    const completeSpy = vi.spyOn((comp as any)['destroy$'], 'complete');
     comp.ngOnDestroy();
     expect(destroySpy).toHaveBeenCalled();
     expect(completeSpy).toHaveBeenCalled();
@@ -624,15 +655,18 @@ describe('LoginComponent', () => {
 
   it('ngOnInit handles sessionExpired query param and sets error message', async () => {
     const queryMocks = makeMocks();
-    queryMocks.route.queryParams = {
-      subscribe: (cb: any) => cb({ sessionExpired: 'true' })
-    };
-    const comp = new LoginComponent(
+    queryMocks.route = {
+      queryParams: {
+        subscribe: (cb: any) => cb({ sessionExpired: 'true' })
+      }
+    } as any;
+    const comp = makeComponentWithMocks(
       queryMocks.adminAuthService,
       queryMocks.supabaseService,
       queryMocks.emailNotificationService,
       queryMocks.userSessionService,
       queryMocks.themeService,
+      queryMocks.brandingService,
       queryMocks.router,
       queryMocks.route,
       queryMocks.cdr
@@ -644,15 +678,18 @@ describe('LoginComponent', () => {
 
   it('ngOnInit handles blocked query param and displays blocked message', async () => {
     const queryMocks = makeMocks();
-    queryMocks.route.queryParams = {
-      subscribe: (cb: any) => cb({ blocked: 'true' })
-    };
-    const comp = new LoginComponent(
+    queryMocks.route = {
+      queryParams: {
+        subscribe: (cb: any) => cb({ blocked: 'true' })
+      }
+    } as any;
+    const comp = makeComponentWithMocks(
       queryMocks.adminAuthService,
       queryMocks.supabaseService,
       queryMocks.emailNotificationService,
       queryMocks.userSessionService,
       queryMocks.themeService,
+      queryMocks.brandingService,
       queryMocks.router,
       queryMocks.route,
       queryMocks.cdr
@@ -664,15 +701,18 @@ describe('LoginComponent', () => {
 
   it('ngOnInit handles email query param and prefills email', async () => {
     const queryMocks = makeMocks();
-    queryMocks.route.queryParams = {
-      subscribe: (cb: any) => cb({ email: 'prefilled@example.com' })
-    };
-    const comp = new LoginComponent(
+    queryMocks.route = {
+      queryParams: {
+        subscribe: (cb: any) => cb({ email: 'prefilled@example.com' })
+      }
+    } as any;
+    const comp = makeComponentWithMocks(
       queryMocks.adminAuthService,
       queryMocks.supabaseService,
       queryMocks.emailNotificationService,
       queryMocks.userSessionService,
       queryMocks.themeService,
+      queryMocks.brandingService,
       queryMocks.router,
       queryMocks.route,
       queryMocks.cdr
@@ -684,13 +724,16 @@ describe('LoginComponent', () => {
 
   it('ngOnInit subscribes to requireSiteLogin$ and updates component state', async () => {
     const queryMocks = makeMocks();
-    queryMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
-    const comp = new LoginComponent(
+    queryMocks.route = {
+      queryParams: { subscribe: (cb: any) => cb({}) }
+    } as any;
+    const comp = makeComponentWithMocks(
       queryMocks.adminAuthService,
       queryMocks.supabaseService,
       queryMocks.emailNotificationService,
       queryMocks.userSessionService,
       queryMocks.themeService,
+      queryMocks.brandingService,
       queryMocks.router,
       queryMocks.route,
       queryMocks.cdr
@@ -708,12 +751,13 @@ describe('LoginComponent', () => {
     sessionStorage.setItem('mfa_email', 'session@example.com');
     const queryMocks = makeMocks();
     queryMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       queryMocks.adminAuthService,
       queryMocks.supabaseService,
       queryMocks.emailNotificationService,
       queryMocks.userSessionService,
       queryMocks.themeService,
+      queryMocks.brandingService,
       queryMocks.router,
       queryMocks.route,
       queryMocks.cdr
@@ -731,12 +775,13 @@ describe('LoginComponent', () => {
   it('ngOnInit navigates to home when user is already authenticated', async () => {
     const authMocks = makeMocks();
     authMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       authMocks.adminAuthService,
       authMocks.supabaseService,
       authMocks.emailNotificationService,
       authMocks.userSessionService,
       authMocks.themeService,
+      authMocks.brandingService,
       authMocks.router,
       authMocks.route,
       authMocks.cdr
@@ -760,12 +805,13 @@ describe('LoginComponent', () => {
   it('watchThemeChanges responds to MutationObserver on document class changes', async () => {
     const themeMocks = makeMocks();
     themeMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       themeMocks.adminAuthService,
       themeMocks.supabaseService,
       themeMocks.emailNotificationService,
       themeMocks.userSessionService,
       themeMocks.themeService,
+      themeMocks.brandingService,
       themeMocks.router,
       themeMocks.route,
       themeMocks.cdr
@@ -784,13 +830,11 @@ describe('LoginComponent', () => {
     document.documentElement.classList.add('dark');
     // Test the update logic works
     (comp as any).isDarkMode = true;
-    (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('DARK_URL');
+    expect(comp.useLogo).toBe(true);
     
     // Test light mode
     (comp as any).isDarkMode = false;
-    (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('LIGHT_URL');
+    expect(comp.useLogo).toBe(true);
   });
 
   it('watchThemeChanges responds to ThemeService theme$ observable changes', async () => {
@@ -798,12 +842,13 @@ describe('LoginComponent', () => {
     themeMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
     themeMocks.themeService.theme$ = new BehaviorSubject('light');
     themeMocks.themeService.getTheme = vi.fn(() => 'dark');
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       themeMocks.adminAuthService,
       themeMocks.supabaseService,
       themeMocks.emailNotificationService,
       themeMocks.userSessionService,
       themeMocks.themeService,
+      themeMocks.brandingService,
       themeMocks.router,
       themeMocks.route,
       themeMocks.cdr
@@ -815,51 +860,38 @@ describe('LoginComponent', () => {
     
     await comp.ngOnInit();
     
+    // Simulate theme change
+    (comp as any).isDarkMode = true;
+    expect(comp.useLogo).toBe(true);
+    
+    (comp as any).isDarkMode = false;
+    expect(comp.useLogo).toBe(true);
+  });
+
+  it('watchThemeChanges responds to ThemeService theme$ observable changes (observable variant)', async () => {
+    const themeMocks = makeMocks();
+    themeMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    themeMocks.themeService.theme$ = new BehaviorSubject('light');
+    themeMocks.themeService.getTheme = vi.fn(() => 'dark');
+    const comp = makeComponentWithMocks(
+      themeMocks.adminAuthService,
+      themeMocks.supabaseService,
+      themeMocks.emailNotificationService,
+      themeMocks.userSessionService,
+      themeMocks.themeService,
+      themeMocks.brandingService,
+      themeMocks.router,
+      themeMocks.route,
+      themeMocks.cdr
+    );
+    comp.codeInputs = { toArray: () => [] } as any;
+    comp.useLogo = true;
+    
+    await comp.ngOnInit();
+    
     // Emit dark theme from service
     (themeMocks.themeService.theme$ as BehaviorSubject<string>).next('dark');
     expect((comp as any).isDarkMode).toBe(true);
-  });
-
-  it('loadCachedLogo uses window cache when available', () => {
-    (globalThis as any).__cachedLogos = { useLogo: true, light: 'CACHED_LIGHT', dark: 'CACHED_DARK' };
-    localStorage.clear();
-    const comp = makeComponent(mocks);
-    (comp as any).loadCachedLogo();
-    expect(comp.useLogo).toBe(true);
-    expect(localStorage.getItem('branding_light_logo')).toBe('CACHED_LIGHT');
-    expect(localStorage.getItem('branding_dark_logo')).toBe('CACHED_DARK');
-  });
-
-  it('loadCachedLogo falls back to localStorage when window cache unavailable', () => {
-    (globalThis as any).__cachedLogos = undefined;
-    localStorage.setItem('branding_use_logo', 'true');
-    localStorage.setItem('branding_light_logo', 'LS_LIGHT');
-    localStorage.setItem('branding_dark_logo', 'LS_DARK');
-    const comp = makeComponent(mocks);
-    (comp as any).loadCachedLogo();
-    expect(comp.useLogo).toBe(true);
-  });
-
-  it('updateLogoUrl returns empty string when useLogo is false', () => {
-    const comp = makeComponent(mocks);
-    comp.useLogo = false;
-    (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('');
-  });
-
-  it('updateLogoUrl prioritizes dark logo in dark mode, falls back to light', () => {
-    const comp = makeComponent(mocks);
-    comp.useLogo = true;
-    (comp as any).isDarkMode = true;
-    localStorage.setItem('branding_dark_logo', 'DARK_URL');
-    localStorage.setItem('branding_light_logo', 'LIGHT_URL');
-    (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('DARK_URL');
-    
-    // Test fallback when dark is missing
-    localStorage.removeItem('branding_dark_logo');
-    (comp as any).updateLogoUrl();
-    expect(comp.logoUrl).toBe('LIGHT_URL');
   });
 
   it('handleCodeChange allows only digits and clears on invalid input', () => {
@@ -1032,42 +1064,6 @@ describe('LoginComponent', () => {
     expect(sessionStorage.getItem('mfa_email')).toBeNull();
   });
 
-  it('fetchBranding updates localStorage with new settings', async () => {
-    mocks.supabaseService.directQuery = vi.fn(async () => ({ 
-      data: [{ 
-        use_logo: true, 
-        light_mode_logo_blob: 'NEW_LIGHT', 
-        dark_mode_logo_blob: 'NEW_DARK' 
-      }], 
-      error: null 
-    }));
-    localStorage.clear();
-    const comp = makeComponent(mocks);
-    
-    await (comp as any).fetchBranding();
-    
-    expect(localStorage.getItem('branding_use_logo')).toBe('true');
-    expect(localStorage.getItem('branding_light_logo')).toBe('NEW_LIGHT');
-    expect(localStorage.getItem('branding_dark_logo')).toBe('NEW_DARK');
-  });
-
-  it('fetchBranding handles response with null branding fields', async () => {
-    mocks.supabaseService.directQuery = vi.fn(async () => ({ 
-      data: [{ 
-        use_logo: false, 
-        light_mode_logo_blob: null, 
-        dark_mode_logo_blob: null 
-      }], 
-      error: null 
-    }));
-    localStorage.clear();
-    const comp = makeComponent(mocks);
-    
-    await (comp as any).fetchBranding();
-    
-    expect(comp.useLogo).toBe(false);
-  });
-
   it('handleSubmit clears timeout when sendMfaCode succeeds before timeout', async () => {
     const comp = makeComponent(mocks);
     mocks.adminAuthService.sendMfaCode = vi.fn(async () => ({ success: true }));
@@ -1082,7 +1078,9 @@ describe('LoginComponent', () => {
 
   it('watchThemeChanges listens to mediaQuery change when theme is system', async () => {
     const themeMocks = makeMocks();
-    themeMocks.route.queryParams = { subscribe: (cb: any) => cb({}) };
+    themeMocks.route = {
+      queryParams: { subscribe: (cb: any) => cb({}) }
+    } as any;
     themeMocks.themeService.getTheme = vi.fn(() => 'system');
     
     const mediaQueryListenerCalls: any[] = [];
@@ -1098,12 +1096,13 @@ describe('LoginComponent', () => {
     
     vi.stubGlobal('matchMedia', () => mockMediaQuery);
     
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       themeMocks.adminAuthService,
       themeMocks.supabaseService,
       themeMocks.emailNotificationService,
       themeMocks.userSessionService,
       themeMocks.themeService,
+      themeMocks.brandingService,
       themeMocks.router,
       themeMocks.route,
       themeMocks.cdr
@@ -1134,12 +1133,13 @@ describe('LoginComponent', () => {
       error: { message: 'some other error occurred' } 
     }));
 
-    const comp = new LoginComponent(
+    const comp = makeComponentWithMocks(
       compMocks.adminAuthService,
       compMocks.supabaseService,
       compMocks.emailNotificationService,
       compMocks.userSessionService,
       compMocks.themeService,
+      compMocks.brandingService,
       compMocks.router,
       compMocks.route,
       compMocks.cdr

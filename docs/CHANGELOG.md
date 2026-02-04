@@ -2,7 +2,30 @@
 
 Major features and milestones for the Prayer App.
 
-## [Current] - January 2026
+## [Current] - February 2026
+
+### Logo Flash Optimization ✅
+- ✅ Eliminated visual flash of text logo on page refresh
+  - BrandingService now initializes during APP_INITIALIZER (before component tree renders)
+  - Logo data cached in localStorage and loaded synchronously on app boot
+  - Added lightweight metadata-only queries to check for logo updates
+  - Only fetches full logo data from Supabase when admin changes branding
+  - Browser preload hints improve image load timing
+  - Backward-compatible with existing branding system (no breaking changes)
+
+- ✅ Database optimization with migration
+  - Added `branding_last_modified` column to `admin_settings` table
+  - Automatic trigger tracks when branding fields actually change
+  - Metadata-only queries (~3s timeout) prevent downloading large base64 blobs unnecessarily
+  - Efficient cache invalidation strategy
+
+- ✅ Performance improvements
+  - Reduced unnecessary database queries (only when branding changes)
+  - Faster subsequent page loads (logos loaded from cache)
+  - Minimal bandwidth for unchanged logos (metadata check only)
+  - Better perceived performance on slower connections
+
+## [Previous] - January 2026
 
 ### Email Badge Logout with Confirmation Modal ✅
 - ✅ Email badge in header is now clickable to log out

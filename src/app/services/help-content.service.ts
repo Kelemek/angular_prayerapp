@@ -21,10 +21,13 @@ export class HelpContentService {
   }
 
   /**
-   * Initialize help content from database or fallback to defaults
+   * Initialize help content from code (no database needed)
    */
   private initializeHelpContent(): void {
-    this.loadFromDatabase();
+    // Load default sections from code
+    // Note: help_sections table is not used - all help content is defined in code
+    this.sectionsSubject.next(this.getDefaultSections());
+    this.isLoadingSubject.next(false);
   }
 
   /**
@@ -32,44 +35,6 @@ export class HelpContentService {
    */
   getSections(): Observable<HelpSection[]> {
     return this.sections$;
-  }
-
-  /**
-   * Load help sections from Supabase database
-   */
-  private async loadFromDatabase(): Promise<void> {
-    this.isLoadingSubject.next(true);
-    this.errorSubject.next(null);
-
-    try {
-      const { data, error } = await this.supabaseService
-        .getClient()
-        .from('help_sections')
-        .select('*')
-        .order('order', { ascending: true });
-
-      this.isLoadingSubject.next(false);
-
-      if (error) {
-        console.warn('Failed to load help sections from database, using defaults:', error);
-        this.errorSubject.next('Using default help content.');
-        this.sectionsSubject.next(this.getDefaultSections());
-      } else if (data && data.length > 0) {
-        const sections = (data as unknown as HelpSection[]).map((section) => ({
-          ...section,
-          createdAt: new Date(section.createdAt),
-          updatedAt: new Date(section.updatedAt),
-        }));
-        this.sectionsSubject.next(sections);
-      } else {
-        this.sectionsSubject.next(this.getDefaultSections());
-      }
-    } catch (error) {
-      console.error('Error loading help sections:', error);
-      this.isLoadingSubject.next(false);
-      this.errorSubject.next('Failed to load help content.');
-      this.sectionsSubject.next(this.getDefaultSections());
-    }
   }
 
   /**

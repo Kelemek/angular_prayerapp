@@ -97,9 +97,16 @@ describe('HelpContentService', () => {
       });
     });
 
-    it('should call loadFromDatabase during initialization', () => {
-      const clientMock = supabaseService.getClient();
-      expect(clientMock.from).toHaveBeenCalledWith('help_sections');
+    it('should load default sections during initialization', () => {
+      let loadedSections: HelpSection[] = [];
+      service.getSections().subscribe((sections) => {
+        loadedSections = sections;
+      });
+
+      // Should have loaded the default sections from code
+      expect(loadedSections.length).toBeGreaterThan(0);
+      // Should have the hardcoded 'Creating Prayers' section
+      expect(loadedSections.some(s => s.id === 'help_prayers')).toBe(true);
     });
 
     it('should handle empty data from database', async () => {
@@ -164,28 +171,7 @@ describe('HelpContentService', () => {
       expect(sections.length).toBeGreaterThan(0);
     });
 
-    it('should load data from database when available', async () => {
-      // Create new service with mock database data
-      const mockDatabaseSections = [
-        {
-          id: 'test-1',
-          title: 'Test Section 1',
-          description: 'Test Description 1',
-          icon: '<svg></svg>',
-          content: [{ subtitle: 'Sub', text: 'Text', examples: [] }],
-          order: 1,
-          isActive: true,
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-          createdBy: 'test',
-        },
-      ];
-
-      supabaseService.getClient().from().order.mockResolvedValueOnce({
-        data: mockDatabaseSections,
-        error: null,
-      });
-
+    it('should load data from code on initialization', async () => {
       const { HelpContentService } = await import('./help-content.service');
       const newService = new HelpContentService(supabaseService);
 
@@ -196,11 +182,11 @@ describe('HelpContentService', () => {
         sections = data;
       });
 
-      // Should use database data
-      expect(sections.length).toBe(1);
-      expect(sections[0].id).toBe('test-1');
-      expect(sections[0].createdAt instanceof Date).toBe(true);
-      expect(sections[0].updatedAt instanceof Date).toBe(true);
+      // Should load default sections from code
+      expect(sections.length).toBeGreaterThan(0);
+      // Should have the hardcoded sections (like "Creating Prayers", "Managing Prayers", etc.)
+      const sectionIds = sections.map(s => s.id);
+      expect(sectionIds).toContain('help_prayers');
     });
   });
 

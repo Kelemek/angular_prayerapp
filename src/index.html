@@ -46,6 +46,26 @@
             dark: darkLogo,
             useLogo: useLogo === 'true'
           };
+          
+          // Add link preload hints for cached logos
+          // This tells browser to prioritize loading these images if they're data URLs
+          if (lightLogo && lightLogo.startsWith('data:')) {
+            const lightLink = document.createElement('link');
+            lightLink.rel = 'preload';
+            lightLink.as = 'image';
+            lightLink.href = lightLogo;
+            lightLink.media = '(prefers-color-scheme: light)';
+            document.head.appendChild(lightLink);
+          }
+          
+          if (darkLogo && darkLogo.startsWith('data:')) {
+            const darkLink = document.createElement('link');
+            darkLink.rel = 'preload';
+            darkLink.as = 'image';
+            darkLink.href = darkLogo;
+            darkLink.media = '(prefers-color-scheme: dark)';
+            document.head.appendChild(darkLink);
+          }
         }
       })();
     </script>

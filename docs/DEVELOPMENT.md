@@ -100,6 +100,41 @@ this.supabase.client.from('table').select()
 - getUserProfile()           // Get user data
 ```
 
+#### BrandingService
+```typescript
+// App branding (logos, titles) with optimized caching
+- initialize()               // Load from cache + check for DB updates
+- getBranding()              // Get current branding data
+- getImageUrl()              // Get correct logo URL (light/dark mode)
+
+// Architecture:
+// 1. Synchronous cache load (localStorage) on app bootstrap
+// 2. Lightweight metadata check (branding_last_modified timestamp)
+// 3. Full fetch only if DB timestamp is newer than cache
+// 4. Falls back to cache on network errors
+// 5. Emits through Observable for reactive updates
+
+// Observable:
+branding$: Observable<BrandingData>  // Subscribable branding stream
+
+// Data structure:
+interface BrandingData {
+  useLogo: boolean;
+  lightLogo: string | null;      // Base64 data URL
+  darkLogo: string | null;       // Base64 data URL
+  appTitle: string;
+  appSubtitle: string;
+  lastModified: Date | null;     // Cache validation timestamp
+}
+
+// Performance Optimization:
+// - First visit: Caches logos in localStorage after fetch
+// - Subsequent visits: Loads from cache (instant, no flash)
+// - Smart updates: Only re-fetches if admin changed branding
+// - Metadata-only queries: 3s timeout for lightweight timestamp check
+// - Full fetches: 10s timeout only when needed
+```
+
 #### EmailNotificationService
 ```typescript
 // Email queue management
@@ -566,6 +601,31 @@ async handleLogout(): Promise<void> {
 
 ## Performance
 
+### Branding Service Caching
+
+The BrandingService implements a multi-tier caching strategy to eliminate logo flash and reduce database queries:
+
+**Cache Layers**:
+1. **localStorage** - Persists logos across page refreshes
+2. **Metadata queries** - Check if branding changed (lightweight timestamp query)
+3. **Full data fetch** - Download logos only if admin changed them
+
+**How It Works**:
+- App bootstrap calls `BrandingService.initialize()` during `APP_INITIALIZER`
+- Synchronously loads logos from localStorage (no async wait)
+- Queries `admin_settings.branding_last_modified` timestamp (~3s timeout)
+- Compares timestamp: if newer than cached version, fetches full data (~10s timeout)
+- Falls back to cache if network fails
+- Components render with logos available immediately (no flash)
+
+**Performance Benefits**:
+- **First visit**: Normal load from Supabase, then cache
+- **Subsequent visits with no changes**: Only metadata query (3s, no logo download)
+- **After admin updates logo**: Full fetch triggered by timestamp change
+- **No logo flash**: Bootstrap ensures logos load before component tree renders
+
+**Database**: Uses new `branding_last_modified` timestamp column with automatic trigger
+
 ### Database Optimization
 
 - Indexes on frequently queried columns
@@ -580,6 +640,7 @@ async handleLogout(): Promise<void> {
 - Lazy-load admin routes
 - Image optimization (PNG/WebP)
 - Bundle analysis: `npm run build:analyze`
+- Logo preload hints in HTML head for browser priority
 
 ### Monitoring
 
@@ -587,6 +648,7 @@ async handleLogout(): Promise<void> {
 - Monitor Core Web Vitals
 - Check Vercel deployment logs
 - Supabase query performance
+- BrandingService logs: `[BrandingService]` prefix in console
 
 ---
 

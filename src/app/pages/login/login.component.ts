@@ -6,6 +6,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ThemeService } from '../../services/theme.service';
 import { UserSessionService } from '../../services/user-session.service';
 import { EmailNotificationService } from '../../services/email-notification.service';
+import { BrandingService } from '../../services/branding.service';
 import { Subject, takeUntil } from 'rxjs';
 import { lookupPersonByEmail } from '../../../lib/planning-center';
 import { environment } from '../../../environments/environment';
@@ -449,6 +450,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private emailNotificationService: EmailNotificationService,
     private userSessionService: UserSessionService,
     private themeService: ThemeService,
+    private brandingService: BrandingService,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
@@ -461,11 +463,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     // Watch for theme changes
     this.watchThemeChanges();
     
-    // Load logo from cache/localStorage
-    this.loadCachedLogo();
-    
-    // Fetch fresh branding from database (will update cache)
-    await this.fetchBranding();
+    // Load branding from service
+    this.initializeBranding();
     
     // Get returnUrl and sessionExpired flag from query params
     this.route.queryParams.subscribe(params => {
@@ -491,7 +490,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(requireSiteLogin => {
         this.requireSiteLogin = requireSiteLogin;
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
       });
     
     // Fetch code length from admin settings (supports 4, 6, or 8 digits)
@@ -509,7 +508,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.success = true;
       this.waitingForMfaCode = true;
       this.email = savedEmail;
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
       
       // Focus first input after a short delay
       setTimeout(() => {
@@ -546,7 +545,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     event.preventDefault();
     this.error = '';
     this.loading = true;
-    this.cdr.markForCheck();
+    this.cdr?.markForCheck?.();
 
     try {
       // If waiting for MFA code, verify it
@@ -561,7 +560,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         console.warn('[AdminLogin] MFA code request timed out');
         this.loading = false;
         this.error = 'Request timed out. Please try again.';
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
       }, 15000);
 
       const result = await this.adminAuthService.sendMfaCode(this.email);
@@ -577,19 +576,19 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Save to sessionStorage
         sessionStorage.setItem('mfa_email_sent', 'true');
         sessionStorage.setItem('mfa_email', this.email);
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
       } else {
         console.error('[AdminLogin] MFA code failed:', result.error);
         this.error = result.error || 'Failed to send MFA code. Please try again.';
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
       }
     } catch (err) {
       console.error('[AdminLogin] Exception in handleSubmit:', err);
       this.error = err instanceof Error ? err.message : 'An error occurred. Please try again.';
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
     } finally {
       this.loading = false;
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
     }
   }
 
@@ -602,7 +601,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       
       this.loading = true;
       this.error = '';
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
       
       // Sanitize input before checking
       this.sanitizeCodeInput();
@@ -610,7 +609,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (!this.isCodeComplete()) {
         this.error = 'Please enter the complete code from your email';
         this.loading = false;
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
         return;
       }
 
@@ -640,7 +639,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           } catch (navError) {
             console.error('[AdminLogin] Navigation error:', navError);
             this.loading = false;
-            this.cdr.markForCheck();
+            this.cdr?.markForCheck?.();
           }
         }, 1000);
       } else {
@@ -649,13 +648,13 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.error = result.error || 'Invalid code. Please try again.';
         this.mfaCode = new Array(this.codeLength).fill(''); // Clear code for retry
         this.focusInput(0);
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
       }
     } catch (err) {
       this.loading = false;
       console.error('[AdminLogin] Exception in verifyMfaCode:', err);
       this.error = err instanceof Error ? err.message : 'An error occurred. Please try again.';
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
     }
   }
 
@@ -663,7 +662,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     try {
       this.resendLoading = true;
       this.error = '';
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
 
       console.log('[AdminLogin] Resending MFA code to:', this.email);
 
@@ -676,19 +675,19 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.mfaCode = new Array(this.codeLength).fill('');
         this.error = '';
         this.focusInput(0);
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
       } else {
         console.error('[AdminLogin] Resend failed:', result.error);
         this.error = result.error || 'Failed to resend code. Please try again.';
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
       }
     } catch (err) {
       console.error('[AdminLogin] Exception in handleResendCode:', err);
       this.error = err instanceof Error ? err.message : 'An error occurred. Please try again.';
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
     } finally {
       this.resendLoading = false;
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
     }
   }
 
@@ -706,7 +705,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.showSubscriberForm = false;
         this.showPendingApproval = true;
         this.loading = false;
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
         return;
       }
       
@@ -730,7 +729,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         
         this.showSubscriberForm = true;
         this.loading = false;
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
         return;
       }
     } catch (blockError) {
@@ -741,7 +740,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.error = errorMsg;
       }
       this.loading = false;
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
       return;
     }
     
@@ -787,7 +786,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     let value = this.mfaCodeInput.replace(/\D/g, '').slice(0, this.codeLength);
     this.mfaCodeInput = value;
     this.mfaCode = value.split('');
-    this.cdr.markForCheck();
+    this.cdr?.markForCheck?.();
   }
 
   onCodeInput(): void {
@@ -913,40 +912,19 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.firstName = '';
     this.lastName = '';
     this.affiliationReason = '';
-    this.cdr.markForCheck();
+    this.cdr?.markForCheck?.();
   }
 
-  private loadCachedLogo() {
-    // Load from window cache first (set by index.html script)
-    const windowCache = (window as any).__cachedLogos;
+  private async initializeBranding() {
+    await this.brandingService.initialize();
     
-    if (windowCache?.useLogo !== undefined) {
-      this.useLogo = windowCache.useLogo;
-    }
-
-    // Also check localStorage directly
-    const useLogo = localStorage.getItem('branding_use_logo');
-    const lightLogo = localStorage.getItem('branding_light_logo');
-    const darkLogo = localStorage.getItem('branding_dark_logo');
-    
-    if (useLogo) {
-      this.useLogo = useLogo === 'true';
-    }
-
-    if (this.useLogo) {
-      // Store both light and dark logos
-      if (windowCache?.light) {
-        localStorage.setItem('branding_light_logo', windowCache.light);
-      }
-      if (windowCache?.dark) {
-        localStorage.setItem('branding_dark_logo', windowCache.dark);
-      }
-      
-      // Update image URL based on current dark mode state
-      this.updateLogoUrl();
-    }
-    
-    this.cdr.markForCheck();
+    this.brandingService.branding$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(branding => {
+        this.useLogo = branding.useLogo;
+        this.logoUrl = this.brandingService.getImageUrl(branding);
+        this.cdr?.markForCheck?.();
+      });
   }
 
   private detectDarkMode() {
@@ -968,7 +946,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark !== this.isDarkMode) {
         this.isDarkMode = isDark;
-        this.updateLogoUrl();
       }
     });
 
@@ -982,7 +959,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(theme => {
         this.detectDarkMode();
-        this.updateLogoUrl();
       });
 
     // Listen for system theme changes when user has system theme selected
@@ -990,62 +966,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     mediaQuery.addEventListener('change', () => {
       if (this.themeService.getTheme() === 'system') {
         this.detectDarkMode();
-        this.updateLogoUrl();
       }
     });
-  }
-
-  private updateLogoUrl() {
-    if (!this.useLogo) {
-      this.logoUrl = '';
-      this.cdr.markForCheck();
-      return;
-    }
-
-    const lightLogo = localStorage.getItem('branding_light_logo');
-    const darkLogo = localStorage.getItem('branding_dark_logo');
-
-    this.logoUrl = this.isDarkMode ? (darkLogo || lightLogo || '') : (lightLogo || '');
-    this.cdr.markForCheck();
-  }
-
-  private async fetchBranding() {
-    try {
-      const { data, error } = await this.supabaseService.directQuery<{
-        use_logo: boolean;
-        light_mode_logo_blob: string;
-        dark_mode_logo_blob: string;
-      }>(
-        'admin_settings',
-        {
-          select: 'use_logo, light_mode_logo_blob, dark_mode_logo_blob',
-          eq: { id: 1 },
-          limit: 1
-        }
-      );
-
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        const settings = data[0];
-        
-        if (settings.use_logo !== null && settings.use_logo !== undefined) {
-          this.useLogo = settings.use_logo;
-          localStorage.setItem('branding_use_logo', String(settings.use_logo));
-        }
-        
-        if (settings.light_mode_logo_blob) {
-          localStorage.setItem('branding_light_logo', settings.light_mode_logo_blob);
-        }
-        
-        if (settings.dark_mode_logo_blob) {
-          localStorage.setItem('branding_dark_logo', settings.dark_mode_logo_blob);
-        }
-
-        // Update the logo URL with fresh data
-        this.updateLogoUrl();
-      }
-    } catch (error) {
-      console.error('Failed to fetch branding settings:', error);
-    }
   }
 
   private async checkEmailSubscriber(email: string): Promise<boolean> {
@@ -1121,12 +1043,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     try {
       if (!this.firstName.trim() || !this.lastName.trim()) {
         this.error = 'Please enter your first and last name';
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
         return false;
       }
 
       this.loading = true;
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
 
       console.log('[AdminLogin] Saving new subscriber or approval request:', this.email, { requiresApproval: this.requiresApproval });
 
@@ -1169,7 +1091,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           }
           
           this.loading = false;
-          this.cdr.markForCheck();
+          this.cdr?.markForCheck?.();
           return false;
         }
 
@@ -1197,7 +1119,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.showSubscriberForm = false;
         this.showPendingApproval = true;
         this.loading = false;
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
         return true;
       }
 
@@ -1230,7 +1152,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         });
         this.error = `Failed to save subscriber: ${error.message || 'Unknown error'}`;
         this.loading = false;
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck?.();
         return false;
       }
 
@@ -1271,7 +1193,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       console.error('[AdminLogin] Exception saving subscriber:', err);
       this.error = err instanceof Error ? err.message : 'An error occurred. Please try again.';
       this.loading = false;
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck?.();
       return false;
     }
   }
