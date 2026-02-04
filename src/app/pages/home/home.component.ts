@@ -38,20 +38,93 @@ import { environment } from '../../../environments/environment';
       <!-- Header -->
       <header class="w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div class="w-full max-w-6xl mx-auto px-4 py-4 sm:py-6">
-          <!-- Header: Logo and controls (responsive layout handled by component) -->
-          <div class="flex items-start justify-between gap-3">
-            <!-- Logo on left (responsive width) -->
-            <div class="flex items-center gap-3 min-w-0">
+          <!-- Mobile layout: indicator in top row with logo -->
+          <div class="sm:hidden flex items-start justify-between mb-3">
+            <!-- Logo on left -->
+            <div class="flex items-center gap-3">
               <app-logo (logoStatusChange)="hasLogo = $event"></app-logo>
             </div>
             
-            <!-- Right side: Email and controls (responsive stack) -->
+            <!-- Email Indicator - Top Right -->
+            @if ((userSessionService.userSession$ | async); as session) {
+              <button
+                (click)="showLogoutConfirmation = true"
+                class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
+                title="Click to log out"
+              >
+                {{ session.email }}
+              </button>
+            } @else {
+              <button
+                (click)="showLogoutConfirmation = true"
+                class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
+                title="Click to log out"
+              >
+                {{ getUserEmail() }}
+              </button>
+            }
+          </div>
+          
+          <!-- Mobile buttons row -->
+          <div class="sm:hidden flex items-center gap-2 flex-wrap">
+            <button
+              (click)="showHelp = true"
+              class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+              title="Help"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                <text x="12" y="16" text-anchor="middle" fill="currentColor" font-size="14" font-weight="bold">?</text>
+              </svg>
+            </button>
+            <button
+              (click)="showSettings = true"
+              class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+              title="Settings"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button
+              routerLink="/presentation"
+              class="flex items-center gap-1 bg-[#2F5F54] dark:bg-[#2F5F54] text-white px-3 py-2 rounded-lg hover:bg-[#1a3a2e] dark:hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-[#2F5F54] transition-colors text-sm"
+              title="Prayer Mode"
+            >
+              <span>Pray</span>
+            </button>
+            <button
+              (click)="showPrayerForm = true"
+              class="flex items-center gap-1 bg-blue-600 dark:bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm"
+            >
+              <span>Request</span>
+            </button>
+            @if (hasAdminEmail$ | async) {
+              <button
+                (click)="navigateToAdmin()"
+                class="flex items-center gap-1 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-2 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-sm"
+                title="Admin Portal"
+              >
+                <span>Admin</span>
+              </button>
+            }
+          </div>
+          
+          <!-- Desktop layout: Logo on left, controls on right -->
+          <div class="hidden sm:flex items-start justify-between">
+            <!-- Logo on left -->
+            <div class="flex items-center gap-3">
+              <app-logo (logoStatusChange)="hasLogo = $event"></app-logo>
+            </div>
+            
+            <!-- Right side: Email and controls -->
             <div class="flex flex-col items-end gap-2">
               <!-- Email Indicator -->
               @if ((userSessionService.userSession$ | async); as session) {
                 <button
                   (click)="showLogoutConfirmation = true"
-                  class="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
+                  class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
                   title="Click to log out"
                 >
                   {{ session.email }}
@@ -59,18 +132,18 @@ import { environment } from '../../../environments/environment';
               } @else {
                 <button
                   (click)="showLogoutConfirmation = true"
-                  class="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
+                  class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
                   title="Click to log out"
                 >
                   {{ getUserEmail() }}
                 </button>
               }
               
-              <!-- Controls: Mobile and Desktop -->
-              <div class="flex flex-col sm:flex-row items-center gap-2">
+              <!-- Controls: Desktop only -->
+              <div class="flex items-center gap-2">
                 <button
                   (click)="showHelp = true"
-                  class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                  class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
                   title="Help & Guidance"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -80,7 +153,7 @@ import { environment } from '../../../environments/environment';
                 </button>
                 <button
                   (click)="showSettings = true"
-                  class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                  class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
                   title="Settings"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -107,7 +180,7 @@ import { environment } from '../../../environments/environment';
                     class="flex items-center gap-1 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-2 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-sm"
                     title="Admin Portal"
                   >
-                    <span>Admin</span>
+                  <span>Admin</span>
                   </button>
                 }
               </div>
