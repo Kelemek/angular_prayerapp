@@ -14,6 +14,7 @@ interface EmailQueueItem {
   status: string;
   attempts: number;
   last_error: string | null;
+  processing_started_at?: string;
 }
 
 interface EmailTemplate {
@@ -54,6 +55,7 @@ const supabase = createClient(
 );
 
 let cachedToken: { token: string; expires: number } | null = null;
+const templateCache = new Map<string, EmailTemplate>();
 
 /**
  * Get OAuth access token from Microsoft Identity Platform
@@ -193,21 +195,95 @@ function applyTemplateVariables(
 }
 
 /**
- * Fetch email template from database
+ * Lock emails for processing by marking them as "processing"
+ * Prevents concurrent instances from processing the same emails
  */
-async function getTemplate(templateKey: string): Promise<EmailTemplate | null> {
+async function lockEmailsForProcessing(emailIds: string[]): Promise<void> {
+  if (emailIds.length === 0) {
+    return;
+  }
+
+  console.log(`🔒 Locking ${emailIds.length} email(s) for processing...`);
+
+  const { error: lockError } = await supabase
+    .from('email_queue')
+    .update({
+      status: 'processing',
+      processing_started_at: new Date().toISOString()
+    })
+    .in('id', emailIds);
+
+  if (lockError) {
+    throw new Error(`Failed to lock emails for processing: ${lockError.message}`);
+  }
+
+  console.log(`✅ Emails locked: ${emailIds.length}`);
+}
+
+/**
+ * Extract unique template keys from a batch of queue items
+ */
+function getUniqueTemplateKeys(queueItems: EmailQueueItem[]): string[] {
+  const keys = new Set(queueItems.map(item => item.template_key));
+  return Array.from(keys);
+}
+
+/**
+ * Prefetch multiple templates from database
+ */
+async function prefetchTemplates(templateKeys: string[]): Promise<void> {
+  // Filter to only fetch templates not already cached
+  const keysToFetch = templateKeys.filter(key => !templateCache.has(key));
+  
+  if (keysToFetch.length === 0) {
+    console.log(`📦 All ${templateKeys.length} template(s) already cached`);
+    return;
+  }
+
+  console.log(`📥 Prefetching ${keysToFetch.length} template(s) from database...`);
+
   const { data, error } = await supabase
     .from('email_templates')
     .select('*')
-    .eq('template_key', templateKey)
-    .single();
+    .in('template_key', keysToFetch);
 
   if (error) {
-    console.error(`Error fetching template ${templateKey}:`, error);
-    return null;
+    throw new Error(`Failed to prefetch templates: ${error.message}`);
   }
 
-  return data;
+  if (!data || data.length === 0) {
+    throw new Error(`Database query returned no templates for keys: ${keysToFetch.join(', ')}. Check that email_templates table exists and contains these template keys.`);
+  }
+
+  // Validate all requested templates were found
+  const fetchedKeys = new Set(data.map(t => t.template_key));
+  const missingKeys = keysToFetch.filter(key => !fetchedKeys.has(key));
+
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Missing email templates in database. Not found: ${missingKeys.join(', ')}. ` +
+      `This will cause emails to fail. Verify these template_key values exist in email_templates table.`
+    );
+  }
+
+  // Cache all fetched templates
+  for (const template of data) {
+    templateCache.set(template.template_key, template);
+  }
+
+  console.log(`✅ Cached ${data.length} template(s): ${data.map(t => t.template_key).join(', ')}`);
+}
+
+/**
+ * Get template from cache (must be prefetched first)
+ */
+function getTemplate(templateKey: string): EmailTemplate | null {
+  const template = templateCache.get(templateKey);
+  if (!template) {
+    console.error(`Template not found in cache: ${templateKey}`);
+    return null;
+  }
+  return template;
 }
 
 /**
@@ -230,10 +306,10 @@ async function processEmail(
       `📧 Processing email ${email.id} to ${email.recipient} (attempt ${email.attempts + 1}/${MAX_RETRIES})`
     );
 
-    // Fetch template
-    const template = await getTemplate(email.template_key);
+    // Get template from cache (should already be prefetched)
+    const template = getTemplate(email.template_key);
     if (!template) {
-      throw new Error(`Template not found: ${email.template_key}`);
+      throw new Error(`Template not found in cache: ${email.template_key}`);
     }
 
     // Apply variables
@@ -275,10 +351,11 @@ async function processEmail(
         `🔄 Will retry (${attempts}/${MAX_RETRIES}), queuing for next batch`
       );
 
-      // Update with error info
+      // Update with error info and reset status to pending for next run
       const { error: updateError } = await supabase
         .from('email_queue')
         .update({
+          status: 'pending',
           attempts,
           last_error: errorMessage,
           updated_at: new Date().toISOString()
@@ -292,22 +369,17 @@ async function processEmail(
       return false;
     }
 
-    // Max retries exceeded - mark as failed
+    // Max retries exceeded - delete the email from queue
     console.log(
-      `❌ Max retries exceeded for ${email.id}, marking as failed`
+      `❌ Max retries exceeded for ${email.id}, deleting from queue`
     );
-    const { error: updateError } = await supabase
+    const { error: deleteError } = await supabase
       .from('email_queue')
-      .update({
-        status: 'failed',
-        attempts,
-        last_error: `${errorMessage} (max retries exceeded)`,
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('id', email.id);
 
-    if (updateError) {
-      console.error(`Error marking email as failed: ${email.id}`, updateError);
+    if (deleteError) {
+      console.error(`Error deleting failed email from queue: ${email.id}`, deleteError);
     }
 
     return false;
@@ -352,6 +424,14 @@ async function processEmailQueue(): Promise<void> {
       }
 
       console.log(`📧 Found ${queueItems.length} email(s) in batch ${batchNumber}`);
+
+      // Lock these emails for processing (prevent concurrent duplicate sends)
+      const emailIds = (queueItems as EmailQueueItem[]).map(item => item.id);
+      await lockEmailsForProcessing(emailIds);
+
+      // Prefetch all unique templates for this batch
+      const templateKeys = getUniqueTemplateKeys(queueItems as EmailQueueItem[]);
+      await prefetchTemplates(templateKeys);
 
       // Process each email
       let batchSuccessCount = 0;
