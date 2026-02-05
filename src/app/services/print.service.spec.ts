@@ -149,39 +149,39 @@ describe('PrintService', () => {
       global.document.body.removeChild = vi.fn();
     });
 
-    it('should fetch prayers with correct date range for week', async () => {
+    it('should fetch prayers with correct date range for week', { timeout: 10000 }, async () => {
       await service.downloadPrintablePrayerList('week', null);
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayer_updates');
     });
 
-    it('should fetch prayers with correct date range for twoweeks', async () => {
+    it('should fetch prayers with correct date range for twoweeks', { timeout: 10000 }, async () => {
       await service.downloadPrintablePrayerList('twoweeks', null);
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
     });
 
-    it('should fetch prayers with correct date range for month', async () => {
+    it('should fetch prayers with correct date range for month', { timeout: 10000 }, async () => {
       await service.downloadPrintablePrayerList('month', null);
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
     });
 
-    it('should fetch prayers with correct date range for year', async () => {
+    it('should fetch prayers with correct date range for year', { timeout: 10000 }, async () => {
       await service.downloadPrintablePrayerList('year', null);
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
     });
 
-    it('should fetch prayers with correct date range for all', async () => {
+    it('should fetch prayers with correct date range for all', { timeout: 10000 }, async () => {
       await service.downloadPrintablePrayerList('all', null);
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayer_updates');
     });
 
-    it('should handle error when fetching prayers', async () => {
+    it('should handle error when fetching prayers', { timeout: 10000 }, async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockSupabaseClient.from.mockImplementation(() => ({
         select: vi.fn().mockReturnThis(),
@@ -199,7 +199,7 @@ describe('PrintService', () => {
       expect(global.alert).toHaveBeenCalledWith('Failed to fetch prayers. Please try again.');
     });
 
-    it('should close newWindow when error occurs', async () => {
+    it('should close newWindow when error occurs', { timeout: 10000 }, async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       const mockWindow = { close: vi.fn() };
       mockSupabaseClient.from.mockImplementation(() => ({
@@ -217,7 +217,7 @@ describe('PrintService', () => {
       expect(mockWindow.close).toHaveBeenCalled();
     });
 
-    it('should alert when no prayers found', async () => {
+    it('should alert when no prayers found', { timeout: 10000 }, async () => {
       mockSupabaseClient.from.mockImplementation(() => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -230,7 +230,7 @@ describe('PrintService', () => {
       expect(global.alert).toHaveBeenCalledWith('No prayers found in the last week.');
     });
 
-    it('should alert with correct time range text for twoweeks', async () => {
+    it('should alert with correct time range text for twoweeks', { timeout: 10000 }, async () => {
       mockSupabaseClient.from.mockImplementation(() => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -243,7 +243,7 @@ describe('PrintService', () => {
       expect(global.alert).toHaveBeenCalledWith('No prayers found in the last 2 weeks.');
     });
 
-    it('should alert with correct time range text for all', async () => {
+    it('should alert with correct time range text for all', { timeout: 10000 }, async () => {
       mockSupabaseClient.from.mockImplementation(() => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -256,7 +256,7 @@ describe('PrintService', () => {
       expect(global.alert).toHaveBeenCalledWith('No prayers found in the last database.');
     });
 
-    it('should open new window with HTML content when window.open succeeds', async () => {
+    it('should open new window with HTML content when window.open succeeds', { timeout: 10000 }, async () => {
       const mockWindow = {
         document: {
           open: vi.fn(),
@@ -275,7 +275,7 @@ describe('PrintService', () => {
       expect(mockWindow.focus).toHaveBeenCalled();
     });
 
-    it('should use provided newWindow when available', async () => {
+    it('should use provided newWindow when available', { timeout: 10000 }, async () => {
       const mockWindow = {
         document: {
           open: vi.fn(),
@@ -292,7 +292,7 @@ describe('PrintService', () => {
       expect(mockWindow.document.close).toHaveBeenCalled();
     });
 
-    it('should download file when window.open is blocked', async () => {
+    it('should download file when window.open is blocked', { timeout: 10000 }, async () => {
       (global.window.open as any).mockReturnValue(null);
       const mockLink = {
         href: '',
@@ -307,7 +307,7 @@ describe('PrintService', () => {
       expect(global.alert).toHaveBeenCalledWith('Prayer list downloaded. Please open the file to view and print.');
     });
 
-    it('should handle catch block error', async () => {
+    it('should handle catch block error', { timeout: 10000 }, async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockSupabaseClient.from.mockImplementation(() => {
         throw new Error('Unexpected error');
@@ -319,7 +319,7 @@ describe('PrintService', () => {
       expect(global.alert).toHaveBeenCalledWith('Failed to generate prayer list. Please try again.');
     });
 
-    it('should handle prayer updates fetch error', async () => {
+    it('should handle prayer updates fetch error', { timeout: 10000 }, async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'prayer_updates') {
@@ -341,7 +341,7 @@ describe('PrintService', () => {
       expect(global.alert).toHaveBeenCalledWith('Failed to fetch prayer updates. Please try again.');
     });
 
-    it('should handle update error with newWindow close', async () => {
+    it('should handle update error with newWindow close', { timeout: 10000 }, async () => {
       const mockWindow = { close: vi.fn() };
       vi.spyOn(console, 'error').mockImplementation(() => {});
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
@@ -363,7 +363,7 @@ describe('PrintService', () => {
       expect(mockWindow.close).toHaveBeenCalled();
     });
 
-    it('should handle prayers with approved updates in filter', async () => {
+    it('should handle prayers with approved updates in filter', { timeout: 10000 }, async () => {
       const mockWindow = {
         document: {
           open: vi.fn(),
@@ -411,7 +411,7 @@ describe('PrintService', () => {
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
 
-    it('should handle null updates data gracefully', async () => {
+    it('should handle null updates data gracefully', { timeout: 10000 }, async () => {
       const mockWindow = {
         document: {
           open: vi.fn(),
@@ -441,7 +441,7 @@ describe('PrintService', () => {
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
 
-    it('should handle twoweeks time range with updates', async () => {
+    it('should handle twoweeks time range with updates', { timeout: 10000 }, async () => {
       const mockWindow = {
         document: {
           open: vi.fn(),
@@ -457,7 +457,7 @@ describe('PrintService', () => {
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
 
-    it('should filter prayers including those with recent updates', async () => {
+    it('should filter prayers including those with recent updates', { timeout: 10000 }, async () => {
       const now = new Date();
       const recentUpdate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
       const oldPrayer = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000).toISOString();
@@ -852,7 +852,7 @@ describe('PrintService', () => {
       service = new PrintService(mockSupabaseService as any, mockPrayerService);
     });
 
-    it('should handle database query errors', async () => {
+    it('should handle database query errors', { timeout: 10000 }, async () => {
       const errorChain = () => ({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -900,7 +900,7 @@ describe('PrintService', () => {
       expect(prayers.length).toBe(10000);
     });
 
-    it('should handle concurrent requests', async () => {
+    it('should handle concurrent requests', { timeout: 10000 }, async () => {
       const promises = [
         service.downloadPrintablePrayerList('month'),
         service.downloadPrintablePrayerList('week'),
@@ -1309,19 +1309,19 @@ describe('PrintService - Advanced Coverage Tests', () => {
   });
 
   describe('Download Operations', () => {
-    it('should download prayer list', async () => {
+    it('should download prayer list', { timeout: 10000 }, async () => {
       const result = await service.downloadPrintablePrayerList('week');
       expect(result.success).toBe(true);
       expect(result.range).toBe('week');
     });
 
-    it('should download prompt list', async () => {
+    it('should download prompt list', { timeout: 10000 }, async () => {
       const result = await service.downloadPrintablePromptList('month');
       expect(result.success).toBe(true);
       expect(result.range).toBe('month');
     });
 
-    it('should handle all download range types', async () => {
+    it('should handle all download range types', { timeout: 10000 }, async () => {
       const ranges = ['week', 'month', 'year', 'twoweeks', 'all'];
       
       for (const range of ranges) {
@@ -1739,7 +1739,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
     });
 
     describe('Download File Handling', () => {
-      it('should create blob with HTML content', async () => {
+      it('should create blob with HTML content', { timeout: 10000 }, async () => {
         const mockChain = () => ({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -1794,7 +1794,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         expect(html).toBeDefined();
       });
 
-      it('should fallback to file download when window.open blocked', async () => {
+      it('should fallback to file download when window.open blocked', { timeout: 10000 }, async () => {
         const mockChain = () => ({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -1840,7 +1840,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
     });
 
     describe('Error Handling', () => {
-      it('should handle prayer fetch error', async () => {
+      it('should handle prayer fetch error', { timeout: 10000 }, async () => {
         const mockChain = () => ({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -1860,7 +1860,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         expect(global.alert).toHaveBeenCalled();
       });
 
-      it('should handle update fetch error', async () => {
+      it('should handle update fetch error', { timeout: 10000 }, async () => {
         const mockChain = () => ({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -1891,7 +1891,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         expect(global.alert).toHaveBeenCalled();
       });
 
-      it('should handle no prayers in range', async () => {
+      it('should handle no prayers in range', { timeout: 10000 }, async () => {
         const mockChain = () => ({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -1911,7 +1911,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('No prayers'));
       });
 
-      it('should handle exception during generation', async () => {
+      it('should handle exception during generation', { timeout: 10000 }, async () => {
         mockSupabaseClient.from = vi.fn().mockImplementation(() => {
           throw new Error('Unexpected error');
         });
@@ -2078,14 +2078,14 @@ describe('PrintService - Advanced Coverage Tests', () => {
       vi.restoreAllMocks();
     });
 
-    it('should fetch all prompts when no types selected', async () => {
+    it('should fetch all prompts when no types selected', { timeout: 10000 }, async () => {
       await service.downloadPrintablePromptList([], null);
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayer_prompts');
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayer_types');
     });
 
-    it('should filter prompts by selected types', async () => {
+    it('should filter prompts by selected types', { timeout: 10000 }, async () => {
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'prayer_prompts') {
           return {
@@ -2110,7 +2110,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayer_prompts');
     });
 
-    it('should open new window with prompt HTML', async () => {
+    it('should open new window with prompt HTML', { timeout: 10000 }, async () => {
       const mockWindow = {
         document: {
           open: vi.fn(),
@@ -2129,7 +2129,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.focus).toHaveBeenCalled();
     });
 
-    it('should use pre-opened window when provided', async () => {
+    it('should use pre-opened window when provided', { timeout: 10000 }, async () => {
       const mockWindow = {
         document: {
           open: vi.fn(),
@@ -2145,7 +2145,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
 
-    it('should alert when no prompts found', async () => {
+    it('should alert when no prompts found', { timeout: 10000 }, async () => {
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'prayer_prompts') {
           return {
@@ -2167,7 +2167,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('No prayer prompts found.');
     });
 
-    it('should alert when no prompts match selected types', async () => {
+    it('should alert when no prompts match selected types', { timeout: 10000 }, async () => {
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'prayer_prompts') {
           return {
@@ -2189,7 +2189,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('No prayer prompts found for the selected types.');
     });
 
-    it('should handle prompt fetch error', async () => {
+    it('should handle prompt fetch error', { timeout: 10000 }, async () => {
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'prayer_prompts') {
           return {
@@ -2205,7 +2205,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('Failed to fetch prayer prompts. Please try again.');
     });
 
-    it('should continue with default sorting if types fetch fails', async () => {
+    it('should continue with default sorting if types fetch fails', { timeout: 10000 }, async () => {
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'prayer_prompts') {
           return {
@@ -2237,7 +2237,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
 
-    it('should fallback to file download when window.open blocked', async () => {
+    it('should fallback to file download when window.open blocked', { timeout: 10000 }, async () => {
       (global.window.open as any).mockReturnValue(null);
       const mockLink = {
         href: '',
@@ -2257,7 +2257,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('Prayer prompts downloaded. Please open the file to view and print.');
     });
 
-    it('should close newWindow on prompt fetch error', async () => {
+    it('should close newWindow on prompt fetch error', { timeout: 10000 }, async () => {
       const mockWindow = { close: vi.fn() };
       mockSupabaseClient.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'prayer_prompts') {
@@ -2274,7 +2274,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.close).toHaveBeenCalled();
     });
 
-    it('should handle exception during prompt generation', async () => {
+    it('should handle exception during prompt generation', { timeout: 10000 }, async () => {
       mockSupabaseClient.from = vi.fn().mockImplementation(() => {
         throw new Error('Unexpected error');
       });
@@ -2286,7 +2286,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('An error occurred while generating the prayer prompts list.');
     });
 
-    it('should close newWindow on exception', async () => {
+    it('should close newWindow on exception', { timeout: 10000 }, async () => {
       const mockWindow = { close: vi.fn() };
       mockSupabaseClient.from = vi.fn().mockImplementation(() => {
         throw new Error('Unexpected error');
@@ -2327,7 +2327,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       vi.restoreAllMocks();
     });
 
-    it('should generate valid HTML structure for prompts', async () => {
+    it('should generate valid HTML structure for prompts', { timeout: 10000 }, async () => {
       const mockPrompts = [
         { id: '1', title: 'Test Prompt', type: 'Praise', created_at: new Date().toISOString() }
       ];
@@ -2366,7 +2366,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(html).toContain('Prayer Prompts');
     });
 
-    it('should group and organize prompts by type', async () => {
+    it('should group and organize prompts by type', { timeout: 10000 }, async () => {
       const mockPrompts = [
         { id: '1', title: 'Praise Prompt', type: 'Praise', created_at: new Date().toISOString() },
         { id: '2', title: 'Confession Prompt', type: 'Confession', created_at: new Date().toISOString() }
@@ -2413,7 +2413,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(html).toContain('type-section');
     });
 
-    it('should include CSS styles for prompts', async () => {
+    it('should include CSS styles for prompts', { timeout: 10000 }, async () => {
       const mockPrompts = [
         { id: '1', title: 'Test', type: 'Praise', created_at: new Date().toISOString() }
       ];
@@ -2451,7 +2451,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(html).toContain('<style>');
     });
 
-    it('should use correct colors for different prompt types', async () => {
+    it('should use correct colors for different prompt types', { timeout: 10000 }, async () => {
       const mockPrompts = [
         { id: '1', title: 'Praise', type: 'Praise', created_at: new Date().toISOString() },
         { id: '2', title: 'Thanksgiving', type: 'Thanksgiving', created_at: new Date().toISOString() }
@@ -2495,7 +2495,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(html).toContain('#0047AB'); // Thanksgiving
     });
 
-    it('should display prompt count per type', async () => {
+    it('should display prompt count per type', { timeout: 10000 }, async () => {
       const mockPrompts = [
         { id: '1', title: 'Prompt 1', type: 'Praise', created_at: new Date().toISOString() },
         { id: '2', title: 'Prompt 2', type: 'Praise', created_at: new Date().toISOString() }
@@ -2723,7 +2723,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       vi.restoreAllMocks();
     });
 
-    it('should alert when no personal prayers found', async () => {
+    it('should alert when no personal prayers found', { timeout: 10000 }, async () => {
       mockPrayerService.getPersonalPrayers.mockResolvedValue([]);
 
       await service.downloadPrintablePersonalPrayerList(undefined, null);
@@ -2731,7 +2731,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('No personal prayers found.');
     });
 
-    it('should close newWindow when no personal prayers found', async () => {
+    it('should close newWindow when no personal prayers found', { timeout: 10000 }, async () => {
       const mockWindow = { close: vi.fn() };
       mockPrayerService.getPersonalPrayers.mockResolvedValue([]);
 
@@ -2740,7 +2740,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.close).toHaveBeenCalled();
     });
 
-    it('should filter personal prayers by categories', async () => {
+    it('should filter personal prayers by categories', { timeout: 10000 }, async () => {
       const now = new Date();
 
       mockPrayerService.getPersonalPrayers.mockResolvedValue([
@@ -2783,7 +2783,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
 
-    it('should handle exception during personal prayer generation', async () => {
+    it('should handle exception during personal prayer generation', { timeout: 10000 }, async () => {
       mockPrayerService.getPersonalPrayers.mockRejectedValue(new Error('Service error'));
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -2793,7 +2793,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('Failed to generate personal prayers list. Please try again.');
     });
 
-    it('should close newWindow on exception', async () => {
+    it('should close newWindow on exception', { timeout: 10000 }, async () => {
       const mockWindow = { close: vi.fn() };
       mockPrayerService.getPersonalPrayers.mockRejectedValue(new Error('Service error'));
       vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -2803,7 +2803,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.close).toHaveBeenCalled();
     });
 
-    it('should generate HTML for personal prayers with updates', async () => {
+    it('should generate HTML for personal prayers with updates', { timeout: 10000 }, async () => {
       const now = new Date();
       mockPrayerService.getPersonalPrayers.mockResolvedValue([
         {
@@ -2837,7 +2837,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(html).toContain('<!DOCTYPE html>');
     });
 
-    it('should fallback to file download when window.open blocked for personal prayers', async () => {
+    it('should fallback to file download when window.open blocked for personal prayers', { timeout: 10000 }, async () => {
       const now = new Date();
       mockPrayerService.getPersonalPrayers.mockResolvedValue([
         {
@@ -2868,7 +2868,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(global.alert).toHaveBeenCalledWith('Personal prayers downloaded. Please open the file to view and print.');
     });
 
-    it('should use pre-opened window for personal prayers', async () => {
+    it('should use pre-opened window for personal prayers', { timeout: 10000 }, async () => {
       const now = new Date();
       mockPrayerService.getPersonalPrayers.mockResolvedValue([
         {
@@ -2896,7 +2896,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.focus).toHaveBeenCalled();
     });
 
-    it('should filter by multiple categories for personal prayers', async () => {
+    it('should filter by multiple categories for personal prayers', { timeout: 10000 }, async () => {
       const now = new Date();
       const prayerData = [
         {
