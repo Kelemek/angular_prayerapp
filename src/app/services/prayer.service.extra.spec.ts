@@ -46,7 +46,7 @@ describe('PrayerService extra coverage', () => {
 
   it('triggerBackgroundRecovery tolerates loadPrayers rejection and shows cache fallback', async () => {
     const supabase = makeSupabase();
-    const cache = { get: vi.fn(() => [{ id: 'c1', title: 'C', description: 'D', status: 'current', requester: 'R', prayer_for: 'P', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }]), set: vi.fn() };
+    const cache = { get: vi.fn(() => [{ id: 'c1', title: 'C', description: 'D', status: 'current', requester: 'R', prayer_for: 'P', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }]), set: vi.fn(), invalidate: vi.fn() };
 
     const service = new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, cache as any, noopBadgeService as any, noopUserSessionService as any);
 
@@ -63,7 +63,7 @@ describe('PrayerService extra coverage', () => {
   it('setupVisibilityListener falls back to cache when silent refresh fails', async () => {
     const supabase = makeSupabase();
     const cached = [{ id: 'c2', title: 'C2', description: 'D2', status: 'current', requester: 'R', prayer_for: 'P', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }];
-    const cache = { get: vi.fn(() => cached), set: vi.fn() };
+    const cache = { get: vi.fn(() => cached), set: vi.fn(), invalidate: vi.fn() };
 
     const service = new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, cache as any, noopBadgeService as any, noopUserSessionService as any);
 
@@ -84,7 +84,7 @@ describe('PrayerService extra coverage', () => {
 
   it('setupInactivityListener resets timer on activity events without throwing', () => {
     const supabase = makeSupabase();
-    const cache = { get: vi.fn(() => null), set: vi.fn() };
+    const cache = { get: vi.fn(() => null), set: vi.fn(), invalidate: vi.fn() };
     const service = new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, cache as any, noopBadgeService as any, noopUserSessionService as any);
 
     // make threshold small and call setup directly
