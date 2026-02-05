@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, fromEvent } from 'rxjs';
+import { BehaviorSubject, Observable, fromEvent, distinctUntilChanged } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
 import { EmailNotificationService } from './email-notification.service';
 import { VerificationService } from './verification.service';
 import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
+import { UserSessionService } from './user-session.service';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type PrayerStatus = 'current' | 'answered' | 'archived';
@@ -85,14 +86,36 @@ export class PrayerService {
     private emailNotification: EmailNotificationService,
     private verificationService: VerificationService,
     private cache: CacheService,
-    private badgeService: BadgeService
+    private badgeService: BadgeService,
+    private userSessionService: UserSessionService
   ) {
     this.initializePrayers();
   }
 
   private async initializePrayers(): Promise<void> {
     await this.loadPrayers();
-    await this.loadPersonalPrayers();
+    
+    // Subscribe to user session changes to auto-load personal prayers
+    this.userSessionService.userSession$
+      .pipe(
+        // Only trigger when user email changes (not on every session field change)
+        distinctUntilChanged((prev, curr) => 
+          prev?.email === curr?.email
+        )
+      )
+      .subscribe((session) => {
+        if (session?.email) {
+          // Automatically load personal prayers when user logs in
+          this.loadPersonalPrayers().catch(err => 
+            console.error('[PrayerService] Error loading personal prayers on session change:', err)
+          );
+        } else {
+          // Clear personal prayers when user logs out
+          this.allPersonalPrayersSubject.next([]);
+          this.cache.invalidate('personalPrayers');
+        }
+      });
+    
     this.setupRealtimeSubscription();
     this.setupVisibilityListener();
     this.setupInactivityListener();
@@ -2094,7 +2117,8 @@ export class PrayerService {
         console.log('[PrayerService]', result.message);
       }
 
-      // Note: Component will invalidate cache and reload with forceRefresh
+      // Reload personal prayers to reflect the new category order in the UI
+      await this.loadPersonalPrayers();
       return true;
     } catch (error) {
       console.error('[PrayerService] Error reordering categories:', error);
@@ -2151,6 +2175,8 @@ export class PrayerService {
       const error = results.find(r => r.error);
       if (error?.error) throw error.error;
 
+      // Reload personal prayers to reflect the new category order in the UI
+      await this.loadPersonalPrayers();
       return true;
     } catch (error) {
       console.error('[PrayerService] Fallback reorder failed:', error);
@@ -2200,8 +2226,8 @@ export class PrayerService {
         console.log('[PrayerService]', result.message);
       }
 
-      // Note: Component will invalidate cache and reload with forceRefresh
-      // No need to reload here since we'd get stale cached data
+      // Reload personal prayers to reflect the swapped category order in the UI
+      await this.loadPersonalPrayers();
       return true;
     } catch (error) {
       console.error('[PrayerService] Exception swapping categories:', error);

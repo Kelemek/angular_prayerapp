@@ -797,7 +797,19 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.isAdmin = isAdmin;
       });
 
-    // Wait for the first real user session before applying default view and loading
+    // Subscribe to personal prayers from the service (automatically loaded by service on session change)
+    this.prayerService.allPersonalPrayers$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(async prayers => {
+        this.personalPrayers = prayers;
+        this.personalPrayersCount = prayers.length;
+        if (prayers.length > 0) {
+          await this.extractUniqueCategories(prayers);
+        }
+        this.cdr.markForCheck();
+      });
+
+    // Wait for the first real user session to apply the default view preference
     this.userSessionService.userSession$
       .pipe(
         filter(session => !!session),
@@ -807,14 +819,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       .subscribe(session => {
         const s = session!;
         this.activeFilter = s.defaultPrayerView ?? 'current';
-
-        // Load personal prayers first, then apply filter
-        this.loadPersonalPrayers().catch(error => {
-          console.error('Error loading personal prayers in ngOnInit:', error);
-        }).then(() => {
-          // Apply the user's preferred filter after personal prayers are ready
-          this.setFilter(this.activeFilter);
-        });
+        // Apply the user's preferred filter
+        this.setFilter(this.activeFilter);
 
         // Load planning center data in the background (don't wait for it)
         this.loadPlanningCenterListData().catch(error => {
@@ -825,38 +831,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   onPrayerFormClose(event: {isPersonal?: boolean}): void {
     this.showPrayerForm = false;
-    // If a personal prayer was added, refresh the personal prayers list
-    // Service updates observable and cache immediately, so just reload local state
-    if (event?.isPersonal) {
-      this.cacheService.invalidate('personalPrayers');
-      this.loadPersonalPrayers();
-    }
-  }
-
-  private async loadPersonalPrayers(): Promise<void> {
-    try {
-      // Check cache first
-      const cached = this.cacheService.get<PrayerRequest[]>('personalPrayers');
-      if (cached) {
-        this.personalPrayers = cached;
-        this.personalPrayersCount = cached.length;
-        await this.extractUniqueCategories(cached);
-        this.cdr.detectChanges();
-        return;
-      }
-
-      const personalPrayers = await this.prayerService.getPersonalPrayers();
-      
-      // Cache the personal prayers
-      this.cacheService.set('personalPrayers', personalPrayers);
-      
-      this.personalPrayers = personalPrayers;
-      this.personalPrayersCount = personalPrayers.length;
-      await this.extractUniqueCategories(personalPrayers);
-      this.cdr.detectChanges();
-    } catch (error) {
-      console.error('Error loading personal prayers:', error);
-    }
+    // Personal prayers are automatically updated by the service observable
+    // No need for manual invalidation or reload
   }
 
   private async loadPlanningCenterListData(): Promise<void> {
@@ -1062,8 +1038,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       // Show personal prayers only
       this.filters = { searchTerm: this.filters.searchTerm };
       this.prayerService.applyFilters({ search: this.filters.searchTerm });
-      // Ensure personal prayers are loaded and categories are extracted
-      this.loadPersonalPrayers();
+      // Personal prayers are automatically loaded via service observable subscription
     } else if (filter === 'planning_center_list') {
       // Load prayers for planning center list members
       this.filters = { searchTerm: this.filters.searchTerm };
@@ -1150,13 +1125,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   deletePersonalPrayer(id: string): void {
-    this.prayerService.deletePersonalPrayer(id).then((success) => {
-      if (success) {
-        // Service updates cache and observable - just reload local component state
-        this.cacheService.invalidate('personalPrayers');
-        this.loadPersonalPrayers();
-      }
+    this.prayerService.deletePersonalPrayer(id).catch((error) => {
+      console.error('Error deleting personal prayer:', error);
     });
+    // Service updates cache and observable automatically
   }
 
   async addUpdate(updateData: any): Promise<void> {
@@ -1222,9 +1194,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         if (updateData.mark_as_answered) {
           await this.prayerService.updatePersonalPrayer(updateData.prayer_id, { category: 'Answered' });
         }
-        // Service updates observable and cache immediately - reload local state
-        this.cacheService.invalidate('personalPrayers');
-        this.loadPersonalPrayers();
+        // Service updates observable and cache automatically
       }
     } catch (error) {
       console.error('Error adding personal prayer update:', error);
@@ -1266,9 +1236,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       const {updateId} = event;
       const success = await this.prayerService.deletePersonalPrayerUpdate(updateId);
       if (success) {
-        // Service updates cache and observable - just reload local component state
-        this.cacheService.invalidate('personalPrayers');
-        this.loadPersonalPrayers();
+        // Service updates cache and observable automatically
       }
     } catch (error) {
       console.error('Error deleting personal prayer update:', error);
@@ -1296,6 +1264,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       
       // Get the prayer being moved
       const movedPrayer = filteredPrayers[event.previousIndex];
+      
+      // Save the original personalPrayers state for potential rollback
+      const originalPersonalPrayers = [...this.personalPrayers];
       
       // Reorder the filtered array
       moveItemInArray(filteredPrayers, event.previousIndex, event.currentIndex);
@@ -1333,24 +1304,12 @@ export class HomeComponent implements OnInit, OnDestroy {
       const success = await this.prayerService.updatePersonalPrayerOrder(filteredPrayers);
 
       if (success) {
-        // Invalidate cache to ensure fresh data on next load
-        this.cacheService.invalidate('personalPrayers');
-        
-        // Reload prayers from database with force refresh to ensure we get updated display_order
-        const personalPrayers = await this.prayerService.getPersonalPrayers(true);
-        this.personalPrayers = personalPrayers;
-        this.personalPrayersCount = personalPrayers.length;
-        
-        // Update cache with fresh data
-        this.cacheService.set('personalPrayers', personalPrayers);
-        
+        // Service updates cache and observable automatically
         this.cdr.detectChanges();
       } else {
         this.toastService.error('Failed to reorder prayers');
-        // Reload to restore original order
-        this.cacheService.invalidate('personalPrayers');
-        const personalPrayers = await this.prayerService.getPersonalPrayers(true);
-        this.personalPrayers = personalPrayers;
+        // Rollback the UI to the original state
+        this.personalPrayers = originalPersonalPrayers;
         this.cdr.detectChanges();
       }
     } catch (error) {
@@ -1407,17 +1366,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
 
       if (success) {
-        // Invalidate cache and force reload prayers from database
-        this.cacheService.invalidate('personalPrayers');
-        const personalPrayers = await this.prayerService.getPersonalPrayers(true);
-        this.personalPrayers = personalPrayers;
-        this.personalPrayersCount = personalPrayers.length;
-        
-        // Update cache with fresh data
-        this.cacheService.set('personalPrayers', personalPrayers);
-        
-        // Re-extract categories from the reloaded prayers to match the new database order
-        await this.extractUniqueCategories(personalPrayers);
+        // Service updates cache and observable automatically
+        // Re-extract categories from the prayers to match the new database order
+        await this.extractUniqueCategories(this.personalPrayers);
         
         this.cdr.detectChanges();
       } else {
@@ -1716,8 +1667,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.showEditPersonalPrayer = false;
     this.editingPrayer = null;
     this.cdr.markForCheck();
-    // Reload personal prayers to reflect the changes
-    this.loadPersonalPrayers();
+    // Personal prayers will be refreshed via service observable subscription
   }
 
   openEditUpdateModal(event: {update: PrayerUpdate, prayerId: string}): void {
@@ -1732,8 +1682,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.editingUpdate = null;
     this.editingUpdatePrayerId = '';
     this.cdr.markForCheck();
-    // Reload personal prayers to reflect the changes
-    this.loadPersonalPrayers();
+    // Personal prayers will be refreshed via service observable subscription
   }
 
   openEditMemberUpdateModal(event: {update: PrayerUpdate, prayerId: string}): void {
