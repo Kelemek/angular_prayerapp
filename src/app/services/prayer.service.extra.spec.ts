@@ -15,7 +15,7 @@ const makeSupabase = (overrides: any = {}) => ({
 const noopToast = { success: vi.fn(), error: vi.fn() };
 const noopEmail = { sendAdminNotification: vi.fn().mockResolvedValue(undefined) };
 const noopVerify = {};
-const noopCache = { get: vi.fn(() => null), set: vi.fn() };
+const noopCache = { get: vi.fn(() => null), set: vi.fn(), invalidate: vi.fn() };
 const noopBadgeService = {};
 const noopUserSessionService = { userSession$: new (require('rxjs').BehaviorSubject)(null).asObservable() };
 

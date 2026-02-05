@@ -511,7 +511,7 @@ describe('PrayerService', () => {
       }
     } as any;
 
-    const localService = new (PrayerService as any)(existingEmailSupabase, toast, emailNotification, verificationService, cache);
+    const localService = new (PrayerService as any)(existingEmailSupabase, toast, emailNotification, verificationService, cache, badgeService, userSessionService);
 
     const result = await localService.addPrayer({ title: 'T', description: 'D', status: 'current', requester: 'R', prayer_for: 'P', email: 'already@exists.com', is_anonymous: false });
     expect(result).toBe(true);
@@ -1117,7 +1117,7 @@ describe('PrayerService - Integration Tests', () => {
 
       // constructing service will call initializePrayers which sets up realtime subscription
       expect(() => {
-        const s = new (PrayerService as any)(localSupabase, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService);
+        const s = new (PrayerService as any)(localSupabase, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService, {}, { userSession$: new BehaviorSubject(null).asObservable() });
         expect(s).toBeTruthy();
       }).not.toThrow();
     });
@@ -1216,7 +1216,7 @@ describe('PrayerService - Integration Tests', () => {
       } as any;
 
       expect(() => {
-        const s = new (PrayerService as any)(localSupabase, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService);
+        const s = new (PrayerService as any)(localSupabase, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService, {}, { userSession$: new BehaviorSubject(null).asObservable() });
         expect(s).toBeTruthy();
       }).not.toThrow();
     });
