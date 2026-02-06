@@ -120,24 +120,35 @@ import { environment } from '../../../environments/environment';
             
             <!-- Right side: Email and controls -->
             <div class="flex flex-col items-end gap-2">
-              <!-- Email Indicator -->
-              @if ((userSessionService.userSession$ | async); as session) {
-                <button
-                  (click)="showLogoutConfirmation = true"
-                  class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
-                  title="Click to log out"
-                >
-                  {{ session.email }}
-                </button>
-              } @else {
-                <button
-                  (click)="showLogoutConfirmation = true"
-                  class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
-                  title="Click to log out"
-                >
-                  {{ getUserEmail() }}
-                </button>
-              }
+              <!-- Top row: Admin button and Email Indicator -->
+              <div class="flex items-center gap-2">
+                @if (hasAdminEmail$ | async) {
+                  <button
+                    (click)="navigateToAdmin()"
+                    class="flex items-center gap-1 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-2 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-xs"
+                    title="Admin Portal"
+                  >
+                  <span>Admin</span>
+                  </button>
+                }
+                @if ((userSessionService.userSession$ | async); as session) {
+                  <button
+                    (click)="showLogoutConfirmation = true"
+                    class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
+                    title="Click to log out"
+                  >
+                    {{ session.email }}
+                  </button>
+                } @else {
+                  <button
+                    (click)="showLogoutConfirmation = true"
+                    class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
+                    title="Click to log out"
+                  >
+                    {{ getUserEmail() }}
+                  </button>
+                }
+              </div>
               
               <!-- Controls: Desktop only -->
               <div class="flex items-center gap-2">
@@ -174,15 +185,6 @@ import { environment } from '../../../environments/environment';
                 >
                   <span>Request</span>
                 </button>
-                @if (hasAdminEmail$ | async) {
-                  <button
-                    (click)="navigateToAdmin()"
-                    class="flex items-center gap-1 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-2 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-sm"
-                    title="Admin Portal"
-                  >
-                  <span>Admin</span>
-                  </button>
-                }
               </div>
             </div>
           </div>
