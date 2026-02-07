@@ -342,16 +342,6 @@ describe('AdminComponent', () => {
     expect(loadSpy).toHaveBeenCalled();
   });
 
-  it('handle*Save methods are callable and log', () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    component.handleBrandingSave();
-    component.handlePromptManagerSave();
-    component.handlePrayerTypesManagerSave();
-    component.handleEmailSettingsSave();
-    component.handleUserManagementSave();
-    expect(logSpy).toHaveBeenCalled();
-    logSpy.mockRestore();
-  });
 
   it('getAdminEmail returns empty string when no session', () => {
     userSessionService.getCurrentSession = vi.fn().mockReturnValue(null);

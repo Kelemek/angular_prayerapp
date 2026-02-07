@@ -642,19 +642,19 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
             @if (activeSettingsTab === 'content') {
               <div class="space-y-6">
                 <div class="mb-4">
-                  <app-github-settings (onSave)="handleGitHubSettingsSave()"></app-github-settings>
+                  <app-github-settings></app-github-settings>
                 </div>
                 <div class="mb-4">
-                  <app-branding (onSave)="handleBrandingSave()"></app-branding>
+                  <app-branding></app-branding>
                 </div>
                 <div class="mb-4">
-                  <app-prompt-manager (onSave)="handlePromptManagerSave()"></app-prompt-manager>
+                  <app-prompt-manager></app-prompt-manager>
                 </div>
                 <div class="mb-4">
-                <app-prayer-types-manager (onSave)="handlePrayerTypesManagerSave()"></app-prayer-types-manager>
+                <app-prayer-types-manager></app-prayer-types-manager>
               </div>
                 <div class="mb-4">
-                  <app-planning-center-list-mapper (onSave)="handlePlanningCenterListMapperSave()"></app-planning-center-list-mapper>
+                  <app-planning-center-list-mapper></app-planning-center-list-mapper>
                 </div>
               </div>
             }
@@ -662,7 +662,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
             @if (activeSettingsTab === 'email') {
               <div class="space-y-6">
                 <div class="mb-4">
-                  <app-email-settings (onSave)="handleEmailSettingsSave()"></app-email-settings>
+                  <app-email-settings></app-email-settings>
                 </div>
               </div>
             }
@@ -686,7 +686,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
             @if (activeSettingsTab === 'security') {
               <div>
                 <div class="mb-4">
-                  <app-admin-user-management (onSave)="handleUserManagementSave()"></app-admin-user-management>
+                  <app-admin-user-management></app-admin-user-management>
                 </div>
                 <div class="mb-4">
                   <app-email-verification-settings></app-email-verification-settings>
@@ -795,12 +795,6 @@ export class AdminComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(data => {
         this.adminData = data;
-        console.log('[Admin] Admin data updated:', {
-          pendingPrayers: data.pendingPrayers?.length,
-          pendingUpdates: data.pendingUpdates?.length,
-          pendingDeletions: data.pendingDeletionRequests?.length,
-          pendingAccounts: data.pendingAccountRequests?.length
-        });
         this.cdr.markForCheck();
         
         // Set initial tab based on pending items (only if still on default and data is loaded)
@@ -974,41 +968,6 @@ export class AdminComponent implements OnInit, OnDestroy {
     if (tab === 'analytics' && this.analyticsStats.totalPageViews === 0) {
       this.loadAnalytics();
     }
-  }
-
-  handleBrandingSave() {
-    // Could refresh data or show notification
-    console.log('Branding settings saved');
-  }
-
-  handleGitHubSettingsSave() {
-    // Could refresh data or show notification
-    console.log('GitHub settings saved');
-  }
-
-  handlePromptManagerSave() {
-    // Could refresh data or show notification
-    console.log('Prompt manager action completed');
-  }
-
-  handlePrayerTypesManagerSave() {
-    // Could refresh data or show notification
-    console.log('Prayer types manager action completed');
-  }
-
-  handlePlanningCenterListMapperSave() {
-    // Could refresh data or show notification
-    console.log('Planning Center list mapping action completed');
-  }
-
-  handleEmailSettingsSave() {
-    // Could refresh data or show notification
-    console.log('Email settings saved');
-  }
-
-  handleUserManagementSave() {
-    // Could refresh data or show notification
-    console.log('User management action completed');
   }
 
   ngOnDestroy() {
