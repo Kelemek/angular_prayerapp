@@ -16,6 +16,7 @@ interface PrayerUpdate {
   created_at: string;
   denial_reason?: string | null;
   approval_status?: string;
+  is_anonymous?: boolean;
 }
 
 interface Prayer {
@@ -908,7 +909,7 @@ interface EditUpdateForm {
                   </div>
                   }
                   <div class="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                    <span class="font-medium">By:</span> {{ update.author }}
+                    <span class="font-medium">By:</span> {{ update.is_anonymous ? 'Anonymous' : update.author }}
                   </div>
                 </div>
                 }

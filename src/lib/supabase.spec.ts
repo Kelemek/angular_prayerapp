@@ -44,4 +44,51 @@ describe('supabase', () => {
     expect(supabase).toHaveProperty('_url', 'https://test.supabase.co');
     expect(supabase).toHaveProperty('_key', 'test-anon-key');
   });
+
+  it('should execute lock function without acquiring locks', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    // Get the lock function from the createClient call
+    const call = (createClient as any).mock.calls[0];
+    const lockFn = call[2].auth.lock;
+    
+    // Test the lock function
+    const mockFn = vi.fn(async () => 'test-result');
+    const result = await lockFn('test-lock', 5000, mockFn);
+    
+    expect(result).toBe('test-result');
+    expect(mockFn).toHaveBeenCalledOnce();
+  });
+
+  it('should handle lock function with async operations', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    const call = (createClient as any).mock.calls[0];
+    const lockFn = call[2].auth.lock;
+    
+    // Test with a more complex async function
+    const testValue = { data: 'value' };
+    const asyncFn = vi.fn(async () => testValue);
+    const result = await lockFn('another-lock', 3000, asyncFn);
+    
+    expect(result).toEqual(testValue);
+    expect(asyncFn).toHaveBeenCalledOnce();
+  });
+
+  it('should pass through function errors from lock callback', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    const call = (createClient as any).mock.calls[0];
+    const lockFn = call[2].auth.lock;
+    
+    const testError = new Error('Lock operation failed');
+    const errorFn = vi.fn(async () => {
+      throw testError;
+    });
+    
+    await expect(lockFn('error-lock', 1000, errorFn)).rejects.toThrow(
+      'Lock operation failed'
+    );
+    expect(errorFn).toHaveBeenCalledOnce();
+  });
 });

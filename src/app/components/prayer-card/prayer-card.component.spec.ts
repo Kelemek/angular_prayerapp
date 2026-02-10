@@ -1458,6 +1458,121 @@ describe('PrayerCardComponent', () => {
         });
         expect(component.showAddUpdateButton()).toBe(true);
       });
+
+      it('handleSharePrayer should emit delete event and close modal', async () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          title: 'Personal Prayer',
+          description: 'Description',
+          status: 'current',
+          requester: 'Test User',
+          prayer_for: 'Health',
+          date_requested: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          updates: []
+        };
+        
+        const mockPrayerService = {
+          sharePrayerForApproval: vi.fn().mockResolvedValue('public-prayer-1')
+        };
+        
+        (component as any).prayerService = mockPrayerService;
+        
+        const deleteSpy = vi.spyOn(component.delete, 'emit');
+        
+        await component.handleSharePrayer();
+        
+        expect(mockPrayerService.sharePrayerForApproval).toHaveBeenCalledWith('prayer-1');
+        expect(component.showShareModal).toBe(false);
+        expect(deleteSpy).toHaveBeenCalledWith('prayer-1');
+      });
+
+      it('handleSharePrayer should handle share service error gracefully', async () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          title: 'Personal Prayer',
+          description: 'Description',
+          status: 'current',
+          requester: 'Test User',
+          prayer_for: 'Health',
+          date_requested: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          updates: []
+        };
+        
+        const mockPrayerService = {
+          sharePrayerForApproval: vi.fn().mockRejectedValue(new Error('Share failed'))
+        };
+        
+        (component as any).prayerService = mockPrayerService;
+        
+        // Should not throw - error handling is managed by the service
+        await component.handleSharePrayer();
+        
+        expect(component.isShareLoading).toBe(false);
+      });
+
+      it('handleSharePrayer should set loading state correctly', async () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          title: 'Personal Prayer',
+          description: 'Description',
+          status: 'current',
+          requester: 'Test User',
+          prayer_for: 'Health',
+          date_requested: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          updates: []
+        };
+        
+        let resolveShare: any;
+        const mockPrayerService = {
+          sharePrayerForApproval: vi.fn(() => new Promise(resolve => { resolveShare = resolve; }))
+        };
+        
+        (component as any).prayerService = mockPrayerService;
+        
+        const sharePromise = component.handleSharePrayer();
+        
+        expect(component.isShareLoading).toBe(true);
+        
+        resolveShare('public-prayer-1');
+        await sharePromise;
+        
+        expect(component.isShareLoading).toBe(false);
+      });
+
+      it('handleSharePrayer should not run when not personal prayer', async () => {
+        component.isPersonal = false;
+        component.prayer = {
+          id: 'prayer-1',
+          title: 'Public Prayer',
+          description: 'Description',
+          status: 'current',
+          requester: 'Test User',
+          prayer_for: 'Health',
+          date_requested: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          updates: []
+        };
+        
+        const mockPrayerService = {
+          sharePrayerForApproval: vi.fn()
+        };
+        
+        (component as any).prayerService = mockPrayerService;
+        
+        await component.handleSharePrayer();
+        
+        expect(mockPrayerService.sharePrayerForApproval).not.toHaveBeenCalled();
+      });
     });
   });
 

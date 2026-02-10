@@ -23,8 +23,12 @@ import { CommonModule } from '@angular/common';
           </p>
           
           @if (details) {
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <p class="text-sm text-red-700 dark:text-red-300">
+            <div [class]="isDangerous ?
+              'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3' :
+              'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3'">
+              <p [class]="isDangerous ?
+                'text-sm text-red-700 dark:text-red-300' :
+                'text-sm text-blue-700 dark:text-blue-300'">
                 {{ details }}
               </p>
             </div>

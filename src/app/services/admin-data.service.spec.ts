@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AdminDataService } from './admin-data.service';
+import { AdminDataService, type AdminData } from './admin-data.service';
 import { SupabaseService } from './supabase.service';
 import { PrayerService } from './prayer.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -40,7 +40,10 @@ describe('AdminDataService', () => {
       then: vi.fn((callback) => callback({ data: returnData, error: returnError }))
     })),
     update: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve({ data: returnData, error: returnError }))
+      eq: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ data: returnData, error: returnError })),
+        then: vi.fn((callback) => callback({ data: returnData, error: returnError }))
+      }))
     })),
     insert: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -83,6 +86,7 @@ describe('AdminDataService', () => {
       sendRequesterApprovalNotification: vi.fn(() => Promise.resolve()),
       sendDeniedPrayerNotification: vi.fn(() => Promise.resolve()),
       sendApprovedUpdateNotification: vi.fn(() => Promise.resolve()),
+      sendUpdateAuthorApprovalNotification: vi.fn(() => Promise.resolve()),
       sendDeniedUpdateNotification: vi.fn(() => Promise.resolve()),
       getTemplate: vi.fn(() => Promise.resolve({
         subject: 'Test Subject {{firstName}}',
@@ -120,8 +124,8 @@ describe('AdminDataService', () => {
 
   describe('fetchAdminData', () => {
     it('should fetch all pending data successfully', async () => {
-      const mockPendingPrayers = [{ id: '1', title: 'Test Prayer', approval_status: 'pending' }];
-      const mockPendingUpdates = [{ id: '1', content: 'Test Update', prayers: { title: 'Prayer Title' } }];
+      const mockPendingPrayers = [{ id: '1', title: 'Test Prayer', approval_status: 'pending', email: null }];
+      const mockPendingUpdates = [{ id: '1', content: 'Test Update', prayers: { title: 'Prayer Title' }, author_email: null }];
       const mockPendingAccounts = [{ id: '1', email: 'test@example.com', first_name: 'John', last_name: 'Doe', approval_status: 'pending', created_at: '2024-01-01' }];
 
       mockSupabaseClient.from = vi.fn((table: string) => {
@@ -139,6 +143,14 @@ describe('AdminDataService', () => {
               }))
             }))
           };
+        } else if (table === 'email_subscribers') {
+          return {
+            select: vi.fn(() => ({
+              in: vi.fn(() => ({
+                then: vi.fn((callback) => callback({ data: [], error: null }))
+              }))
+            }))
+          };
         }
         return createMockQueryChain([], null);
       });
@@ -146,7 +158,7 @@ describe('AdminDataService', () => {
       await service.fetchAdminData();
 
       const data = await firstValueFrom(service.data$);
-      expect(data.pendingPrayers).toEqual(mockPendingPrayers);
+      expect(data.pendingPrayers).toEqual([{ id: '1', title: 'Test Prayer', approval_status: 'pending', email: null, in_planning_center: null }]);
       expect(data.pendingAccountRequests).toEqual(mockPendingAccounts);
       expect(data.loading).toBe(false);
       expect(data.error).toBeNull();
@@ -329,15 +341,34 @@ describe('AdminDataService', () => {
     });
 
     it('should handle prayer not found error', async () => {
-      mockSupabaseClient.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ error: null }))
+              }))
+            }))
+          };
+        }
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null }))
+          })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }));
+        };
+      });
 
-      await expect(service.approvePrayer('1')).rejects.toThrow('Prayer not found');
+      // Should not throw - when prayer is not found after update, it logs error and returns early
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+      await service.approvePrayer('1');
+
+      // Verify we tried to fetch admin data even though prayer wasn't found
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
     });
 
     it('should handle update error', async () => {
@@ -375,7 +406,10 @@ describe('AdminDataService', () => {
           }))
         })),
         update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error: null }))
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null })),
+            then: vi.fn((callback) => callback({ error: null }))
+          }))
         }))
       }));
 
@@ -438,7 +472,10 @@ describe('AdminDataService', () => {
           }))
         })),
         update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error: null }))
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null })),
+            then: vi.fn((callback) => callback({ error: null }))
+          }))
         }))
       }));
 
@@ -937,33 +974,71 @@ describe('AdminDataService', () => {
   describe('approvePrayer - comprehensive error handling', () => {
     it('should handle fetch query error', async () => {
       const error = new Error('Query failed');
-      mockSupabaseClient.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({ data: null, error }))
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ error: null }))
+              }))
+            }))
+          };
+        }
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null }))
+          })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn(() => Promise.resolve({ data: null, error }))
+            }))
           }))
-        }))
-      }));
+        };
+      });
 
-      await expect(service.approvePrayer('1')).rejects.toThrow('Query failed');
+      // Should not throw - error logged and returns early
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+      await service.approvePrayer('1');
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
     });
 
     it('should handle update status error after fetching prayer', async () => {
-      const mockPrayer = { id: '1', title: 'Test', description: 'Desc', requester: 'John', email: 'john@example.com' };
+      const mockPrayer = { 
+        id: '1', 
+        title: 'Test', 
+        description: 'Desc', 
+        requester: 'John', 
+        email: 'john@example.com',
+        prayer_for: 'healing'
+      };
       const error = new Error('Update status failed');
 
-      mockSupabaseClient.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayer_updates') {
+          return {
+            update: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ error }))
+              }))
+            }))
+          };
+        }
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null }))
+          })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn(() => Promise.resolve({ data: mockPrayer, error: null }))
+            }))
           }))
-        })),
-        update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error }))
-        }))
-      }));
+        };
+      });
 
-      await expect(service.approvePrayer('1')).rejects.toThrow('Update status failed');
+      // Should not throw even with prayer_updates error - prayer approval should succeed
+      mockPrayerService.loadPrayers = vi.fn(() => Promise.resolve());
+      await service.approvePrayer('1');
+      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
     });
 
     it('should handle anonymous prayer without sending requester notification', async () => {
@@ -1729,12 +1804,20 @@ describe('AdminDataService', () => {
 
   describe('data$ Observable behavior', () => {
     it('should emit data updates on successful fetch', async () => {
-      const mockPrayers = [{ id: '1', title: 'Test', approval_status: 'pending' }];
+      const mockPrayers = [{ id: '1', title: 'Test', approval_status: 'pending', email: null }];
       const emissions: AdminData[] = [];
 
       mockSupabaseClient.from = vi.fn((table: string) => {
         if (table === 'prayers') {
           return createMockQueryChain(mockPrayers, null);
+        } else if (table === 'email_subscribers') {
+          return {
+            select: vi.fn(() => ({
+              in: vi.fn(() => ({
+                then: vi.fn((callback) => callback({ data: [], error: null }))
+              }))
+            }))
+          };
         }
         return createMockQueryChain([], null);
       });
@@ -1746,7 +1829,7 @@ describe('AdminDataService', () => {
       await service.fetchAdminData();
 
       expect(emissions.length).toBeGreaterThan(0);
-      expect(emissions[emissions.length - 1].pendingPrayers).toEqual(mockPrayers);
+      expect(emissions[emissions.length - 1].pendingPrayers).toEqual([{ id: '1', title: 'Test', approval_status: 'pending', email: null, in_planning_center: null }]);
 
       subscription.unsubscribe();
     });
@@ -1839,7 +1922,10 @@ describe('AdminDataService', () => {
 
       mockSupabaseClient.from = vi.fn(() => ({
         update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ data: [mockPrayer], error: null }))
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ data: [mockPrayer], error: null })),
+            then: vi.fn((callback) => callback({ data: [mockPrayer], error: null }))
+          }))
         })),
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -2057,7 +2143,10 @@ describe('AdminDataService', () => {
 
       mockSupabaseClient.from = vi.fn(() => ({
         update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ data: [mockPrayer], error: null }))
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ data: [mockPrayer], error: null })),
+            then: vi.fn((callback) => callback({ data: [mockPrayer], error: null }))
+          }))
         })),
         select: vi.fn(() => ({
           eq: vi.fn(() => ({

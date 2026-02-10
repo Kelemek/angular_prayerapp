@@ -16,6 +16,7 @@ export interface Prayer {
     content: string;
     author: string;
     created_at: string;
+    is_anonymous?: boolean;
   }>;
 }
 
@@ -552,7 +553,8 @@ export class PrintService {
             month: 'short',
             day: 'numeric'
           });
-          return `<div class="update-item"><span class="update-meta">Updated by: ${this.escapeHtml(update.author || 'Anonymous')} • ${updateDate}:</span> ${this.escapeHtml(update.content)}</div>`;
+          const authorName = (update as any).is_anonymous ? 'Anonymous' : (update.author || 'Anonymous');
+          return `<div class="update-item"><span class="update-meta">Updated by: ${this.escapeHtml(authorName)} • ${updateDate}:</span> ${this.escapeHtml(update.content)}</div>`;
         }).join('')}
       </div>
     ` : '';

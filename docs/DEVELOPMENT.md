@@ -213,6 +213,183 @@ downloadPersonalPrayers(timeRange: 'week' | 'month' | 'year' | 'all') {
 - Logs detailed error messages to console
 - Shows descriptive alert messages
 
+#### Personal Prayer Sharing to Public Prayer Feature
+
+**Overview**:
+
+This feature allows users to share their personal prayers to the public prayer list for community support while keeping their personal copy in their account for reference. The shared prayer goes through the normal admin approval workflow before appearing publicly.
+
+**Key Components**:
+
+1. **Data Flow**:
+   - User initiates sharing from personal prayer card (share icon button)
+   - System creates a copy as a public prayer with "pending" approval status
+   - All updates from the personal prayer are copied to the public version
+   - Original personal prayer is kept (not deleted)
+   - Admin receives notification to review and approve/deny the prayer
+
+2. **SharePrayerForApproval Method** (PrayerService):
+
+```typescript
+/**
+ * Share a personal prayer - create public copy for approval without deleting personal
+ * The personal prayer stays in the user's account for their reference
+ * The public prayer will go through the normal approval process
+ * @param personalPrayerId The ID of the personal prayer to share
+ * @returns Promise<string> The ID of the newly created public prayer
+ */
+async sharePrayerForApproval(personalPrayerId: string): Promise<string>
+```
+
+**Process Steps**:
+
+   - **Step 1**: Fetch the personal prayer with all its updates
+   - **Step 2**: Get the user's name from session or extract from email
+   - **Step 3**: Create a new public prayer in the "prayers" table with:
+     - All content from personal prayer (title, description, prayer_for)
+     - Requester name (user's full name or formatted email)
+     - Email address for contact
+     - Status matching personal prayer (current/answered)
+     - Approval status set to "pending"
+   - **Step 4**: Copy all updates/comments from personal prayer to public prayer
+   - **Step 5**: Keep the personal prayer intact (no deletion)
+   - **Step 6**: Send admin notification about the new public prayer request
+
+3. **UI Components**:
+
+**Prayer Card** (`prayer-card.component.ts`):
+   - Shows "share" icon button when `isPersonal = true`
+   - Click opens share confirmation modal
+   - Modal shows:
+     - Prayer title and description
+     - Message: "Share this prayer to the public prayer list?"
+     - Confirmation and cancel buttons
+   - "handleSharePrayer()" called on confirmation
+   - Loading spinner during share operation
+   - Emits delete event to notify parent to refresh list after successful share
+
+**Share Modal**:
+```html
+@if (isPersonal) {
+  <button
+    (click)="showShareModal = true"
+    aria-label="Share personal prayer"
+    title="Share prayer to public"
+    class="text-blue-500 hover:text-blue-700 dark:text-blue-400"
+  >
+    <!-- Share icon SVG -->
+  </button>
+}
+```
+
+4. **Error Handling**:
+
+```typescript
+// Service catches and handles errors:
+- Prayer not found: "Personal prayer not found"
+- Create public prayer fails: "Failed to create public prayer"
+- Update copy fails: Logs warning but doesn't block (prayer created successfully)
+- Session/email issues: Shows appropriate error message
+
+// Component error handling:
+- Wraps sharePrayerForApproval in try-catch
+- Shows toast/error notifications to user
+- Manages isShareLoading state during operation
+- Closes modal automatically on success
+```
+
+5. **Database Impact**:
+
+**Table: prayers** (public prayers table):
+```sql
+INSERT INTO prayers (
+  title, description, prayer_for, 
+  requester, email, status, 
+  approval_status, created_at, updated_at
+) VALUES (...)
+```
+
+**Table: prayer_updates** (copy updates):
+```sql
+INSERT INTO prayer_updates (
+  prayer_id, content, author, author_email,
+  is_anonymous, approval_status, created_at
+) VALUES (...)
+```
+
+**Table: personal_prayers** (unchanged):
+```sql
+-- Personal prayer remains unchanged, not deleted
+-- User can still see and edit their personal copy
+```
+
+6. **User Experience Flow**:
+
+```
+Personal Prayer View
+  ↓
+[User clicks share icon]
+  ↓
+Share Confirmation Modal
+  ↓
+[User clicks "Confirm"]
+  ↓
+System Creates Public Prayer Copy
+  ↓
+System Copies All Updates
+  ↓
+Admin Notification Sent
+  ↓
+Personal Prayer List Refreshed
+  ↓
+Success Toast: "Prayer shared! It has been submitted for admin approval."
+```
+
+7. **Configuration**:
+
+No configuration needed. Feature uses:
+- Current user session for requester email
+- App's standard approval workflow
+- Existing email notification system
+
+8. **Testing**:
+
+The feature is covered by tests in:
+- `prayer-card.component.spec.ts` - UI interaction tests
+- `prayer.service.spec.ts` - Service logic tests
+
+Key test scenarios:
+- Successful share (personal prayer kept, public prayer created)
+- Share with updates (all updates copied)
+- Error handling (prayer not found, database errors)
+- Loading state management
+- Modal interactions
+
+**Example Test**:
+```typescript
+it('handleSharePrayer should share personal prayer', async () => {
+  component.isPersonal = true;
+  component.prayer = mockPrayer;
+  
+  const sharePromise = component.handleSharePrayer();
+  expect(component.isShareLoading).toBe(true);
+  
+  await sharePromise;
+  
+  expect(component.isShareLoading).toBe(false);
+  expect(component.showShareModal).toBe(false);
+});
+```
+
+9. **Troubleshooting**:
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Share button not visible | Prayer not marked as personal | Check `isPersonal` property |
+| "Prayer shared" message but doesn't appear public | Waiting for admin approval | Check admin dashboard for pending prayers |
+| Share fails silently | User not logged in | Verify user session is active |
+| Updates not copied | Updates didn't copy cleanly | Check database for partial records, admin can re-share or manually copy |
+
 #### BadgeService
 ```typescript
 // Track read/unread status for prayers and prompts

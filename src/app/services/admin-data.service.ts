@@ -10,7 +10,7 @@ import type {
   UpdateDeletionRequest 
 } from '../types/prayer';
 
-interface AdminData {
+export interface AdminData {
   pendingPrayers: PrayerRequest[];
   pendingUpdates: (PrayerUpdate & { prayer_title?: string })[];
   pendingDeletionRequests: (DeletionRequest & { prayer_title?: string })[];
@@ -85,7 +85,9 @@ export class AdminDataService {
   ) {}
 
   async fetchAdminData(silent = false, force = false): Promise<void> {
-    if (this.isFetching && !force) return;
+    if (this.isFetching && !force) {
+      return;
+    }
 
     try {
       this.isFetching = true;
@@ -119,7 +121,7 @@ export class AdminDataService {
         // Pending updates with full prayer details
         supabaseClient
           .from('prayer_updates')
-          .select('*, prayers!inner(id, title, description, requester, prayer_for, status)')
+          .select('*, prayers!inner(id, title, description, requester, prayer_for, status, email)')
           .eq('approval_status', 'pending')
           .order('created_at', { ascending: false }),
         
@@ -152,10 +154,39 @@ export class AdminDataService {
         throw pendingAccountRequestsResult.error;
       }
 
-      // Transform data
+      // Collect all unique emails to look up Planning Center status
+      const emailsToLookup = new Set<string>();
+      
+      (pendingPrayersResult.data || []).forEach((prayer: any) => {
+        if (prayer.email) {
+          emailsToLookup.add(prayer.email.toLowerCase());
+        }
+      });
+      
+      (pendingUpdatesResult.data || []).forEach((update: any) => {
+        if (update.author_email) {
+          emailsToLookup.add(update.author_email.toLowerCase());
+        }
+      });
+
+      // Fetch Planning Center statuses in one batch
+      const pcStatusMap = await this.fetchPlanningCenterStatuses(Array.from(emailsToLookup));
+
+      // Transform data with Planning Center status
+      const pendingPrayers = (pendingPrayersResult.data || []).map((prayer: any) => ({
+        ...prayer,
+        in_planning_center: pcStatusMap.get(prayer.email?.toLowerCase()) ?? null
+      }));
+
       const pendingUpdates = (pendingUpdatesResult.data || []).map((u: any) => ({
         ...u,
-        prayer_title: u.prayers?.title
+        prayer_title: u.prayers?.title,
+        in_planning_center: pcStatusMap.get(u.author_email?.toLowerCase()) ?? null,
+        // Also add in_planning_center to the nested prayer object
+        prayers: u.prayers ? {
+          ...u.prayers,
+          in_planning_center: pcStatusMap.get(u.prayers.email?.toLowerCase()) ?? null
+        } : u.prayers
       }));
 
       const pendingDeletionRequests = (pendingDeletionRequestsResult.data || []).map((d: any) => ({
@@ -165,7 +196,7 @@ export class AdminDataService {
 
       // Update with pending data immediately
       this.dataSubject.next({
-        pendingPrayers: pendingPrayersResult.data || [],
+        pendingPrayers,
         pendingUpdates,
         pendingDeletionRequests,
         pendingUpdateDeletionRequests: pendingUpdateDeletionRequestsResult.data || [],
@@ -204,7 +235,7 @@ export class AdminDataService {
    * Load approved and denied data asynchronously in the background.
    * This doesn't block the initial admin portal load.
    */
-  private async loadApprovedAndDeniedDataAsync(): Promise<void> {
+  async loadApprovedAndDeniedDataAsync(): Promise<void> {
     try {
       const supabaseClient = this.supabase.client;
 
@@ -321,16 +352,7 @@ export class AdminDataService {
   async approvePrayer(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
-    // First get the prayer details before approving
-    const { data: prayer, error: fetchError } = await supabaseClient
-      .from('prayers')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (fetchError) throw fetchError;
-    if (!prayer) throw new Error('Prayer not found');
-    
+    // Update approval status in the database
     const { error } = await supabaseClient
       .from('prayers')
       .update({ 
@@ -341,7 +363,38 @@ export class AdminDataService {
 
     if (error) throw error;
     
-    // Send approval email to requester immediately (don't let email failures block)
+    // Also approve all pending updates for this prayer
+    const { error: updateError } = await supabaseClient
+      .from('prayer_updates')
+      .update({ 
+        approval_status: 'approved',
+        approved_at: new Date().toISOString()
+      })
+      .eq('prayer_id', id)
+      .eq('approval_status', 'pending');
+
+    if (updateError) {
+      console.error('[AdminDataService] Error approving updates:', updateError);
+      // Don't throw - we still want the prayer approval to succeed
+    }
+    
+    // Fetch the latest prayer data AFTER approval is confirmed and admin edits are complete
+    // This ensures the email contains any admin edits that were made before approval
+    const { data: prayer, error: fetchError } = await supabaseClient
+      .from('prayers')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !prayer) {
+      console.error('[AdminDataService] Error fetching prayer for approval email:', fetchError);
+      // Don't throw - approval already succeeded, just skip email
+      await this.fetchAdminData(true, true);
+      await this.prayerService.loadPrayers();
+      return;
+    }
+    
+    // Send approval email to requester with final approved data (don't let email failures block)
     this.emailNotification.sendRequesterApprovalNotification({
       title: prayer.title,
       description: prayer.description,
@@ -358,6 +411,10 @@ export class AdminDataService {
   /**
    * Send notification emails to all subscribers for an approved prayer
    * Called when admin clicks the "Send Emails" button
+   * 
+   * For shared personal prayers:
+   * - If it has updates: send approved update notification with the most recent update
+   * - If no updates: send approved prayer notification
    */
   async sendApprovedPrayerEmails(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
@@ -372,14 +429,61 @@ export class AdminDataService {
     if (fetchError) throw fetchError;
     if (!prayer) throw new Error('Prayer not found');
     
-    // Send email notifications to all subscribers (don't let email failures block)
-    this.emailNotification.sendApprovedPrayerNotification({
-      title: prayer.title,
-      description: prayer.description,
-      requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
-      prayerFor: prayer.prayer_for,
-      status: prayer.status
-    }).catch(err => console.error('Failed to send broadcast notification:', err));
+    // For shared personal prayers, check if it has updates
+    if (prayer.is_shared_personal_prayer) {
+      // Fetch the most recent update with the prayer data (using same pattern as sendApprovedUpdateEmails)
+      const { data: updates, error: updatesError } = await supabaseClient
+        .from('prayer_updates')
+        .select('*, prayers(title, description, status)')
+        .eq('prayer_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (updatesError) {
+        console.error('[AdminDataService] Error fetching updates for shared prayer:', updatesError);
+      }
+
+      const hasUpdates = updates && updates.length > 0;
+      
+      if (hasUpdates) {
+        // Send update notification with the most recent update (using same pattern as sendApprovedUpdateEmails)
+        const latestUpdate = updates[0];
+        const prayerData = latestUpdate.prayers && typeof latestUpdate.prayers === 'object' ? latestUpdate.prayers : null;
+        
+        const prayerTitle = prayerData && 'title' in prayerData
+          ? String(prayerData.title)
+          : prayer.title;
+        const prayerDescription = prayerData && 'description' in prayerData
+          ? String(prayerData.description)
+          : prayer.description;
+        
+        this.emailNotification.sendApprovedUpdateNotification({
+          prayerTitle: prayerTitle,
+          prayerDescription: prayerDescription,
+          content: latestUpdate.content,
+          author: latestUpdate.is_anonymous ? 'Anonymous' : (latestUpdate.author || 'Anonymous'),
+          markedAsAnswered: latestUpdate.mark_as_answered || false
+        }).catch(err => console.error('Failed to send update notification:', err));
+      } else {
+        // Send prayer notification if no updates
+        this.emailNotification.sendApprovedPrayerNotification({
+          title: prayer.title,
+          description: prayer.description,
+          requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+          prayerFor: prayer.prayer_for,
+          status: prayer.status
+        }).catch(err => console.error('Failed to send prayer notification:', err));
+      }
+    } else {
+      // For regular prayers, always send prayer notification
+      this.emailNotification.sendApprovedPrayerNotification({
+        title: prayer.title,
+        description: prayer.description,
+        requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+        prayerFor: prayer.prayer_for,
+        status: prayer.status
+      }).catch(err => console.error('Failed to send broadcast notification:', err));
+    }
 
     // Trigger email processor immediately
     await this.triggerEmailProcessor().catch(err => 
@@ -411,6 +515,22 @@ export class AdminDataService {
 
     if (error) throw error;
     
+    // Also deny all pending updates for this prayer
+    const { error: updateError } = await supabaseClient
+      .from('prayer_updates')
+      .update({ 
+        approval_status: 'denied',
+        denied_at: new Date().toISOString()
+      })
+      .eq('prayer_id', id)
+      .eq('approval_status', 'pending');
+
+    if (updateError) {
+      console.error('[AdminDataService] Error denying updates:', updateError);
+      // Don't throw - we still want the prayer denial to succeed
+    } else {
+    }
+    
     // Send email notification to the requester (don't let email failures block the denial)
     if (prayer.email) {
       this.emailNotification.sendDeniedPrayerNotification({
@@ -429,9 +549,15 @@ export class AdminDataService {
   async editPrayer(id: string, updates: Partial<PrayerRequest>): Promise<void> {
     const supabaseClient = this.supabase.client;
     
+    // If prayer_for is being updated, also update title to keep them in sync
+    const dataToUpdate = { ...updates };
+    if (updates.prayer_for) {
+      dataToUpdate.title = `Prayer for ${updates.prayer_for}`;
+    }
+    
     const { error } = await supabaseClient
       .from('prayers')
-      .update(updates)
+      .update(dataToUpdate)
       .eq('id', id);
 
     if (error) throw error;
@@ -469,15 +595,15 @@ export class AdminDataService {
   async approveUpdate(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
     
-    // First get the update details, prayer title, and prayer status before approving
-    const { data: update, error: fetchError } = await supabaseClient
+    // First get the update details, prayer title, and prayer status to check initial state
+    const { data: updateInitial, error: fetchInitialError } = await supabaseClient
       .from('prayer_updates')
       .select('*, prayers(title, status)')
       .eq('id', id)
       .single();
 
-    if (fetchError) throw fetchError;
-    if (!update) throw new Error('Update not found');
+    if (fetchInitialError) throw fetchInitialError;
+    if (!updateInitial) throw new Error('Update not found');
     
     const { error } = await supabaseClient
       .from('prayer_updates')
@@ -490,7 +616,7 @@ export class AdminDataService {
     if (error) throw error;
 
     // Get the prayer's current status
-    const prayerData = update.prayers && typeof update.prayers === 'object' ? update.prayers : null;
+    const prayerData = updateInitial.prayers && typeof updateInitial.prayers === 'object' ? updateInitial.prayers : null;
     const currentPrayerStatus = prayerData && 'status' in prayerData ? String(prayerData.status) : null;
 
     // Update prayer status based on the logic:
@@ -499,7 +625,7 @@ export class AdminDataService {
     // 3. Otherwise, leave status unchanged
     let newPrayerStatus: string | null = null;
     
-    if (update.mark_as_answered) {
+    if (updateInitial.mark_as_answered) {
       newPrayerStatus = 'answered';
     } else if (currentPrayerStatus === 'answered' || currentPrayerStatus === 'archived') {
       newPrayerStatus = 'current';
@@ -510,27 +636,36 @@ export class AdminDataService {
       const { error: prayerError } = await supabaseClient
         .from('prayers')
         .update({ status: newPrayerStatus })
-        .eq('id', update.prayer_id);
+        .eq('id', updateInitial.prayer_id);
       
       if (prayerError) {
         console.error('Failed to update prayer status:', prayerError);
       }
     }
 
-    // Send approval email to update author immediately (don't let email failures block)
-    if (update.author_email) {
-      const prayerTitle = prayerData && 'title' in prayerData
-        ? String(prayerData.title)
+    // Fetch the latest update data AFTER approval is confirmed and admin edits are complete
+    // This ensures the email contains any admin edits that were made before approval
+    const { data: update, error: fetchError } = await supabaseClient
+      .from('prayer_updates')
+      .select('*, prayers(title)')
+      .eq('id', id)
+      .single();
+
+    if (!fetchError && update) {
+      // Send approval email to update author (don't let email failures block)
+      const prayerTitle = update?.prayers && 'title' in update.prayers
+        ? String(update.prayers.title)
         : 'Prayer';
-      this.emailNotification.sendRequesterApprovalNotification({
-        title: prayerTitle,
-        description: update.content,
-        requester: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
-        requesterEmail: update.author_email,
-        prayerFor: prayerTitle
-      }).catch(err => console.error('Failed to send update approval notification:', err));
+      
+      this.emailNotification.sendUpdateAuthorApprovalNotification({
+        prayerTitle: prayerTitle,
+        content: update.content || '',
+        author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
+        authorEmail: update.author_email || ''
+      }).catch(err => console.error('Failed to send update author approval notification:', err));
     }
-    
+
+    // Refresh admin data and main prayer list (force to bypass concurrent fetch guard)
     await this.fetchAdminData(true, true);
     await this.prayerService.loadPrayers();
   }
@@ -889,7 +1024,6 @@ export class AdminDataService {
     // Send welcome email to the newly approved subscriber
     try {
       await this.emailNotification.sendSubscriberWelcomeNotification(request.email);
-      console.log('[AccountApproval] Welcome email sent to newly approved subscriber');
     } catch (welcomeEmailError) {
       console.error('Failed to send welcome email:', welcomeEmailError);
       // Don't fail the approval if welcome email fails
@@ -977,7 +1111,6 @@ export class AdminDataService {
    */
   private async triggerEmailProcessor(): Promise<void> {
     try {
-      console.log('🚀 Triggering email processor via Edge Function...');
       
       const response = await this.supabase.client.functions.invoke('trigger-email-processor', {
         method: 'POST',
@@ -988,11 +1121,46 @@ export class AdminDataService {
         return;
       }
 
-      console.log('📊 Edge Function response:', response.data);
-      console.log('✅ Email processor workflow triggered successfully');
     } catch (error) {
       console.error('❌ Failed to trigger email processor:', error instanceof Error ? error.message : error);
       // Don't throw - email processing will still happen, just slower
+    }
+  }
+
+  /**
+   * Fetch Planning Center status for multiple email addresses
+   * Returns a map of email -> in_planning_center status
+   */
+  private async fetchPlanningCenterStatuses(emails: string[]): Promise<Map<string, boolean>> {
+    const statusMap = new Map<string, boolean>();
+    
+    if (!emails || emails.length === 0) {
+      return statusMap;
+    }
+
+    try {
+      const supabaseClient = this.supabase.client;
+      
+      // Fetch all email_subscribers records for the given emails
+      const { data, error } = await supabaseClient
+        .from('email_subscribers')
+        .select('email, in_planning_center')
+        .in('email', emails.map(e => e.toLowerCase()));
+
+      if (error) {
+        console.error('Error fetching Planning Center statuses:', error);
+        return statusMap;
+      }
+
+      // Build the map
+      (data || []).forEach((record: any) => {
+        statusMap.set(record.email.toLowerCase(), record.in_planning_center === true);
+      });
+
+      return statusMap;
+    } catch (error) {
+      console.error('Error fetching Planning Center statuses:', error);
+      return statusMap;
     }
   }
 }

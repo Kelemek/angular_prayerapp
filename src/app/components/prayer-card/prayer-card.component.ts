@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectionStrategy, OnDestroy, OnChanges, SimpleChanges, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Observable, BehaviorSubject, Subject } from 'rxjs';import { takeUntil } from 'rxjs/operators';import { PrayerRequest } from '../../services/prayer.service';
+import { Observable, BehaviorSubject, Subject } from 'rxjs';import { takeUntil } from 'rxjs/operators';import { PrayerRequest, PrayerService } from '../../services/prayer.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { UserSessionService } from '../../services/user-session.service';
 import { BadgeService } from '../../services/badge.service';
@@ -56,6 +56,20 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
           </div>
         </div>
         <div class="flex items-center gap-2">
+          @if (isPersonal) {
+          <button
+            (click)="showShareModal = true"
+            aria-label="Share personal prayer"
+            title="Share prayer to public"
+            class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+              <polyline points="16 6 12 2 8 6"></polyline>
+              <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+          </button>
+          }
           @if (isPersonal) {
           <button
             (click)="editPersonalPrayer.emit(prayer)"
@@ -251,7 +265,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
                 }
                 @if (!isPersonal && !prayer.id.startsWith('pc-member-')) {
                 <span class="text-sm text-gray-600 dark:text-gray-400">
-                  Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.author }}</span>
+                  Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.is_anonymous ? 'Anonymous' : update.author }}</span>
                 </span>
                 }
                 <div class="ml-auto flex items-center gap-2">
@@ -377,6 +391,20 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
       </app-confirmation-dialog>
       }
 
+      <!-- Share Prayer Modal -->
+      @if (showShareModal) {
+      <app-confirmation-dialog
+        [title]="'Share Prayer?'"
+        [message]="'A copy of your prayer will be submitted for admin approval to share publicly.'"
+        [details]="'Your personal prayer stays in your private list. When approved, it will also appear on the main prayer board for the church to lift up in prayer.'"
+        [isDangerous]="false"
+        [confirmText]="'Share Prayer'"
+        [cancelText]="'Cancel'"
+        (confirm)="handleSharePrayer()"
+        (cancel)="showShareModal = false">
+      </app-confirmation-dialog>
+      }
+
       <!-- Update Confirmation Dialog -->
       @if (showUpdateConfirmationDialog) {
       <app-confirmation-dialog
@@ -423,6 +451,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   showUpdateDeleteRequestForm: string | null = null;
   showAllUpdates = false;
   showConfirmationDialog = false;
+  showShareModal = false;
+  isShareLoading = false;
   showUpdateConfirmationDialog = false;
   updateConfirmationTitle = '';
   updateConfirmationMessage = '';
@@ -442,7 +472,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     private supabase: SupabaseService,
     private userSessionService: UserSessionService,
-    public badgeService: BadgeService
+    public badgeService: BadgeService,
+    private prayerService: PrayerService
   ) {}
 
   ngOnInit(): void {
@@ -689,7 +720,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     
     // Get user name from UserSessionService cache
     const userSession = this.userSessionService.getCurrentSession();
-    let authorName = this.updateIsAnonymous ? 'Anonymous' : (userSession?.fullName || this.getCurrentUserName());
+    // Always store the real name; is_anonymous flag controls display
+    const authorName = userSession?.fullName || this.getCurrentUserName();
     
     const updateData = {
       prayer_id: this.prayer.id,
@@ -859,5 +891,26 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
       prayerId: this.prayer.id,
       isAnswered: !update.is_answered
     });
+  }
+
+  async handleSharePrayer(): Promise<void> {
+    if (!this.isPersonal) return;
+    
+    try {
+      this.isShareLoading = true;
+      await this.prayerService.sharePrayerForApproval(this.prayer.id);
+      
+      // Close the modal
+      this.showShareModal = false;
+      
+      // Emit delete event to notify parent component to refresh the prayer list
+      // The personal prayer has been deleted and converted to public
+      this.delete.emit(this.prayer.id);
+    } catch (error) {
+      console.error('Error sharing prayer:', error);
+      // Error handling is managed by the service toast
+    } finally {
+      this.isShareLoading = false;
+    }
   }
 }

@@ -390,6 +390,10 @@ export class HelpContentService {
             text: 'The search feature works with personal prayers too. Use the search bar to find personal prayers by the prayer subject, description, or category. This is helpful when you have many personal prayers and want to quickly find prayers about a specific topic.',
           },
           {
+            subtitle: 'Sharing Personal Prayers to the Community',
+            text: 'If you\'d like to share a personal prayer with the prayer community for additional support, you can click the share button (upload icon) on any personal prayer card. This creates a public copy of your prayer that will be submitted for administrator approval. Your original personal prayer remains in your account so you can continue to track it privately. Once approved by an administrator, your shared prayer will appear in the community prayer list along with all its updates. This is a great way to request community prayer support when you\'re ready to share.',
+          },
+          {
             subtitle: 'Privacy & Personal Data',
             text: 'Your personal prayers are completely private and stored securely. They are never shared with other users or the prayer community. Only you can see, edit, or manage your personal prayers. Your privacy is fully protected while you maintain your personal prayer journal.',
           },

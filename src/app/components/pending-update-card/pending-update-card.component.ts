@@ -64,7 +64,7 @@ import { environment } from '../../../environments/environment';
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
-              <span>By {{ update.author }}</span>
+              <span>By {{ update.is_anonymous ? 'Anonymous' : update.author }}</span>
             </div>
             @if (update.mark_as_answered) {
             <div class="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded font-medium">

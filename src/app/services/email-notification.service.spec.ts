@@ -149,6 +149,34 @@ describe('EmailNotificationService', () => {
     expect(spySend).toHaveBeenCalled();
   });
 
+  it('sendUpdateAuthorApprovalNotification returns early when no email', async () => {
+    const spy = vi.spyOn(service as any, 'sendEmail');
+    await service.sendUpdateAuthorApprovalNotification({ prayerTitle: 'Prayer', content: 'Update text', author: 'John', authorEmail: '' } as any);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('sendUpdateAuthorApprovalNotification sends when template present', async () => {
+    const tpl = { subject: 'Update Approved: {{prayerTitle}}', html_body: '<b>{{prayerTitle}}</b> - {{updateContent}}', text_body: 't' } as any;
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(tpl as any);
+    const spySend = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined as any);
+    await service.sendUpdateAuthorApprovalNotification({ prayerTitle: 'Prayer Title', content: 'Update content', author: 'John Doe', authorEmail: 'john@example.com' } as any);
+    expect(spySend).toHaveBeenCalledWith(expect.objectContaining({
+      to: ['john@example.com'],
+      subject: expect.any(String),
+      htmlBody: expect.any(String),
+      textBody: expect.any(String)
+    }));
+  });
+
+  it('sendUpdateAuthorApprovalNotification uses fallback HTML when template not found', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(null as any);
+    const spySend = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined as any);
+    await service.sendUpdateAuthorApprovalNotification({ prayerTitle: 'Prayer Title', content: 'Update content', author: 'John Doe', authorEmail: 'john@example.com' } as any);
+    expect(spySend).toHaveBeenCalled();
+    const callArgs = spySend.mock.calls[0][0];
+    expect(callArgs.htmlBody).toContain('Prayer Title');
+  });
+
   it('sendAdminNotification sends to admins when configured and calls helper for each admin', async () => {
     // return one admin
     mockSupabase.client.from = vi.fn().mockReturnValue({

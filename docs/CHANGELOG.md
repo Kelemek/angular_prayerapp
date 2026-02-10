@@ -4,6 +4,41 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Personal Prayer Sharing to Public Prayer Feature ✅
+- ✅ Users can now share personal prayers to the public prayer list for community support
+  - Share button on personal prayer cards (share icon)
+  - Confirmation modal before sharing
+  - Personal prayer copy remains in user's account for reference
+  - Shared prayer becomes a new public prayer with "pending" approval status
+  - Admin receives notification to review and approve/deny
+
+- ✅ Seamless data copying workflow
+  - All updates/comments from personal prayer copied to public version
+  - Prayer metadata preserved (title, description, prayer_for, status)
+  - Requester name from user session or extracted from email
+  - Email address included for admin contact
+
+- ✅ Service implementation
+  - `PrayerService.sharePrayerForApproval()` method handles all logic
+  - Creates new prayer in `prayers` table with `approval_status: 'pending'`
+  - Copies all related prayer updates to new public prayer
+  - Sends admin notification about new prayer request
+  - Refreshes user's personal prayers list after successful share
+
+- ✅ UI improvements
+  - Prayer card component displays share button for personal prayers
+  - Loading spinner during share operation
+  - Success toast notification: "Prayer shared! It has been submitted for admin approval."
+  - Error handling with user-friendly messages
+  - Modal closes automatically on successful share
+
+- ✅ Documentation
+  - Added comprehensive feature guide to DEVELOPMENT.md (Core Services section)
+  - Includes data flow, process steps, UI components, error handling
+  - Database impact overview (prayers, prayer_updates, personal_prayers tables)
+  - User experience flow diagram
+  - Testing guidance and troubleshooting tips
+
 ### Logo Flash Optimization ✅
 - ✅ Eliminated visual flash of text logo on page refresh
   - BrandingService now initializes during APP_INITIALIZER (before component tree renders)

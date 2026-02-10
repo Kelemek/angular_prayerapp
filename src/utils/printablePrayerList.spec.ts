@@ -839,6 +839,9 @@ describe('printablePrayerList', () => {
     });
 
     it('should filter and attach approved updates to prayers', async () => {
+      // Mock current date to be in January 2026 to match test data
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
       const mockPrayers: Prayer[] = [
         {
           id: '1',
@@ -961,6 +964,9 @@ describe('printablePrayerList', () => {
     });
 
     it('should filter prayers by date range with updates', async () => {
+      // Mock current date to be in January 2026 to match test data
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
       const oldPrayer: Prayer = {
         id: '1',
         title: 'Old Prayer',

@@ -6,8 +6,9 @@ import { AdminDataService } from '../../services/admin-data.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { UserSessionService } from '../../services/user-session.service';
 import { AnalyticsService, AnalyticsStats } from '../../services/analytics.service';
-import { PendingPrayerCardComponent } from '../../components/pending-prayer-card/pending-prayer-card.component';
-import { PendingUpdateCardComponent } from '../../components/pending-update-card/pending-update-card.component';
+import { AdminPrayerApprovalComponent } from '../../components/admin-prayer-approval/admin-prayer-approval.component';
+import { AdminUpdateApprovalComponent } from '../../components/admin-update-approval/admin-update-approval.component';
+import { ConsolidatedPrayerApprovalComponent } from '../../components/consolidated-prayer-approval/consolidated-prayer-approval.component';
 import { PendingDeletionCardComponent } from '../../components/pending-deletion-card/pending-deletion-card.component';
 import { PendingUpdateDeletionCardComponent } from '../../components/pending-update-deletion-card/pending-update-deletion-card.component';
 import { PendingAccountApprovalCardComponent } from '../../components/pending-account-approval-card/pending-account-approval-card.component';
@@ -35,8 +36,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    PendingPrayerCardComponent,
-    PendingUpdateCardComponent,
+    ConsolidatedPrayerApprovalComponent,
     PendingDeletionCardComponent,
     PendingUpdateDeletionCardComponent,
     PendingAccountApprovalCardComponent,
@@ -112,29 +112,17 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
       <!-- Content -->
       <main class="w-full max-w-6xl mx-auto px-4 py-6">
         <!-- Stats Grid -->
-        <div class="grid grid-cols-5 sm:grid-cols-5 gap-2 sm:gap-4 mb-8">
+        <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
           <button
             (click)="onTabChange('prayers')"
             [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 sm:p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 flex flex-col justify-between ' + (activeTab === 'prayers' ? 'ring-2 ring-blue-500' : '')"
           >
             <div class="text-center self-start w-full">
               <div class="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
-                {{ adminData?.pendingPrayers?.length || 0 }}
+                {{ consolidatedApprovals.length || 0 }}
               </div>
             </div>
-            <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400"><span class="hidden lg:inline">Pending </span>Prayers</div>
-          </button>
-
-          <button
-            (click)="onTabChange('updates')"
-            [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 sm:p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 flex flex-col justify-between ' + (activeTab === 'updates' ? 'ring-2 ring-blue-500' : '')"
-          >
-            <div class="text-center self-start w-full">
-              <div class="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {{ adminData?.pendingUpdates?.length || 0 }}
-              </div>
-            </div>
-            <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400"><span class="hidden lg:inline">Pending </span>Updates</div>
+            <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400"><span class="hidden lg:inline">Pending </span>Approvals</div>
           </button>
 
           <button
@@ -175,22 +163,6 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
           </button>
         </div>
 
-        <!-- Alert for pending items -->
-        @if (totalPendingCount > 0) {
-          <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-6">
-            <div class="flex items-center gap-2">
-              <svg class="text-green-600 dark:text-green-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-              <p class="text-green-800 dark:text-green-200">
-                You have {{ totalPendingCount }} items pending approval.
-              </p>
-            </div>
-          </div>
-        }
-
         <!-- Loading State -->
         @if (adminData?.loading) {
           <div class="text-center py-12">
@@ -214,71 +186,38 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
 
         <!-- Tab Content -->
         @if (!adminData?.loading && !adminData?.error) {
-          <!-- Prayers Tab -->
+          <!-- Approvals Tab (Prayers + Updates Consolidated) -->
           @if (activeTab === 'prayers') {
             <div>
-              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-                Pending Prayer Requests ({{ adminData?.pendingPrayers?.length || 0 }})
-              </h2>
               
-              @if ((adminData?.pendingPrayers?.length || 0) === 0) {
+              @if ((consolidatedApprovals.length || 0) === 0) {
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
                   <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                   </svg>
                   <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    No pending prayer requests
+                    No pending approvals
                   </h3>
                   <p class="text-gray-500 dark:text-gray-400">
-                    All prayer requests have been reviewed.
+                    All prayer requests and updates have been reviewed.
                   </p>
                 </div>
               }
 
               <div class="space-y-6">
-                @for (prayer of adminData?.pendingPrayers; track trackByPrayerId($index, prayer)) {
-                  <app-pending-prayer-card
-                    [prayer]="prayer"
-                    (approve)="approvePrayer($event)"
-                    (deny)="denyPrayer($event.id, $event.reason)"
-                    (edit)="editPrayer($event.id, $event.updates)"
-                  ></app-pending-prayer-card>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Updates Tab -->
-          @if (activeTab === 'updates') {
-            <div>
-              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-                Pending Prayer Updates ({{ adminData?.pendingUpdates?.length || 0 }})
-              </h2>
-              
-              @if ((adminData?.pendingUpdates?.length || 0) === 0) {
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
-                  <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                  </svg>
-                  <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    No pending prayer updates
-                  </h3>
-                  <p class="text-gray-500 dark:text-gray-400">
-                    All prayer updates have been reviewed.
-                  </p>
-                </div>
-              }
-
-              <div class="space-y-6">
-                @for (update of adminData?.pendingUpdates; track trackByUpdateId($index, update)) {
-                  <app-pending-update-card
-                    [update]="update"
-                    (approve)="approveUpdate($event)"
-                    (deny)="denyUpdate($event.id, $event.reason)"
-                    (edit)="editUpdate($event.id, $event.updates)"
-                  ></app-pending-update-card>
+                @for (item of consolidatedApprovals; track trackByPrayerId($index, item.prayer)) {
+                  <app-consolidated-prayer-approval
+                    [prayer]="item.prayer"
+                    [pendingUpdates]="item.pendingUpdates"
+                    [hasAnyPendingUpdates]="item.hasAnyPendingUpdates"
+                    (onApprovePrayer)="approvePrayer($event)"
+                    (onDenyPrayer)="denyPrayer($event.id, $event.reason || '')"
+                    (onApproveUpdate)="approveUpdate($event)"
+                    (onDenyUpdate)="denyUpdate($event.id, $event.reason || '')"
+                    (onPrayerEdited)="handlePrayerEdited($event.id)"
+                    (onUpdateEdited)="handleUpdateEdited($event.id)"
+                  ></app-consolidated-prayer-approval>
                 }
               </div>
             </div>
@@ -287,9 +226,6 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
           <!-- Deletions Tab -->
           @if (activeTab === 'deletions') {
             <div>
-              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-                Pending Deletion Requests ({{ (adminData?.pendingDeletionRequests?.length || 0) + (adminData?.pendingUpdateDeletionRequests?.length || 0) }})
-              </h2>
               
               @if ((adminData?.pendingDeletionRequests?.length || 0) === 0 && (adminData?.pendingUpdateDeletionRequests?.length || 0) === 0) {
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
@@ -353,10 +289,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
           <!-- Accounts Tab -->
           @if (activeTab === 'accounts') {
             <div>
-              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-                Pending Account Approvals ({{ adminData?.pendingAccountRequests?.length || 0 }})
-              </h2>
-
+              
               @if ((adminData?.pendingAccountRequests?.length || 0) === 0) {
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700">
                   <svg class="mx-auto mb-4 text-gray-400 dark:text-gray-500" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -742,6 +675,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   activeTab: AdminTab = 'prayers';
   activeSettingsTab: SettingsTab = 'analytics';
   adminData: any = null;
+  consolidatedApprovals: any[] = [];
   analyticsStats: AnalyticsStats = {
     todayPageViews: 0,
     weekPageViews: 0,
@@ -795,6 +729,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(data => {
         this.adminData = data;
+        this.consolidatedApprovals = this.buildConsolidatedApprovals(data);
         this.cdr.markForCheck();
         
         // Set initial tab based on pending items (only if still on default and data is loaded)
@@ -829,15 +764,14 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     const hasPendingPrayers = (this.adminData.pendingPrayers || []).length > 0;
     const hasPendingUpdates = (this.adminData.pendingUpdates || []).length > 0;
+    const hasPendingApprovals = hasPendingPrayers || hasPendingUpdates;
     const hasPendingDeletions = (this.adminData.pendingDeletionRequests || []).length > 0 || 
                                (this.adminData.pendingUpdateDeletionRequests || []).length > 0;
     const hasPendingAccounts = (this.adminData.pendingAccountRequests || []).length > 0;
 
     // Set tab based on priority
-    if (hasPendingPrayers) {
+    if (hasPendingApprovals) {
       this.onTabChange('prayers');
-    } else if (hasPendingUpdates) {
-      this.onTabChange('updates');
     } else if (hasPendingDeletions) {
       this.onTabChange('deletions');
     } else if (hasPendingAccounts) {
@@ -858,10 +792,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     // Helper to check for any pending items
     const hasPendingPrayers = (this.adminData.pendingPrayers || []).length > 0;
     const hasPendingUpdates = (this.adminData.pendingUpdates || []).length > 0;
+    const hasPendingApprovals = hasPendingPrayers || hasPendingUpdates;
     const hasPendingDeletions = (this.adminData.pendingDeletionRequests || []).length > 0 || 
                                (this.adminData.pendingUpdateDeletionRequests || []).length > 0;
     const hasPendingAccounts = (this.adminData.pendingAccountRequests || []).length > 0;
-    const hasAnyPending = hasPendingPrayers || hasPendingUpdates || hasPendingDeletions || hasPendingAccounts;
+    const hasAnyPending = hasPendingApprovals || hasPendingDeletions || hasPendingAccounts;
 
     // If nothing pending at all, go to settings
     if (!hasAnyPending) {
@@ -871,36 +806,15 @@ export class AdminComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // If on prayers tab, check if all prayers are done
+    // If on prayers tab (consolidated with updates), check if all are done
     if (this.activeTab === 'prayers') {
-      if (!hasPendingPrayers) {
-        // Move to updates if there are any
-        if (hasPendingUpdates) {
-          this.onTabChange('updates');
-        } else if (hasPendingDeletions) {
-          // Move to deletions if there are any
-          this.onTabChange('deletions');
-        } else if (hasPendingAccounts) {
-          // Move to accounts if there are any
-          this.onTabChange('accounts');
-        } else {
-          // Nothing pending anywhere
-          this.onTabChange('settings');
-        }
-      }
-    }
-    // If on updates tab, check if all updates are done
-    else if (this.activeTab === 'updates') {
-      if (!hasPendingUpdates) {
+      if (!hasPendingApprovals) {
         // Move to deletions if there are any
         if (hasPendingDeletions) {
           this.onTabChange('deletions');
         } else if (hasPendingAccounts) {
           // Move to accounts if there are any
           this.onTabChange('accounts');
-        } else if (hasPendingPrayers) {
-          // Cycle back to prayers if any exist
-          this.onTabChange('prayers');
         } else {
           // Nothing pending anywhere
           this.onTabChange('settings');
@@ -913,12 +827,9 @@ export class AdminComponent implements OnInit, OnDestroy {
         // Move to accounts if there are any
         if (hasPendingAccounts) {
           this.onTabChange('accounts');
-        } else if (hasPendingPrayers) {
+        } else if (hasPendingApprovals) {
           // Cycle back to prayers if any exist
           this.onTabChange('prayers');
-        } else if (hasPendingUpdates) {
-          // Cycle to updates if any exist
-          this.onTabChange('updates');
         } else {
           // Nothing pending anywhere
           this.onTabChange('settings');
@@ -928,10 +839,8 @@ export class AdminComponent implements OnInit, OnDestroy {
     // If on accounts tab, check if all accounts are done
     else if (this.activeTab === 'accounts') {
       if (!hasPendingAccounts) {
-        if (hasPendingPrayers) {
+        if (hasPendingApprovals) {
           this.onTabChange('prayers');
-        } else if (hasPendingUpdates) {
-          this.onTabChange('updates');
         } else if (hasPendingDeletions) {
           this.onTabChange('deletions');
         } else {
@@ -977,8 +886,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   get totalPendingCount(): number {
     if (!this.adminData) return 0;
-    return (this.adminData.pendingPrayers?.length || 0) +
-           (this.adminData.pendingUpdates?.length || 0) +
+    return (this.consolidatedApprovals?.length || 0) +
            (this.adminData.pendingDeletionRequests?.length || 0) +
            (this.adminData.pendingUpdateDeletionRequests?.length || 0) +
            (this.adminData.pendingAccountRequests?.length || 0);
@@ -1001,7 +909,6 @@ export class AdminComponent implements OnInit, OnDestroy {
   async approvePrayer(id: string) {
     try {
       await this.adminDataService.approvePrayer(id);
-      this.autoProgressTabs();
       // Show dialog asking if they want to send notification
       this.sendDialogPrayerId = id;
       // Get the prayer title from current data
@@ -1012,6 +919,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.sendDialogType = 'prayer';
       this.showSendNotificationDialog = true;
       this.cdr.markForCheck();
+      // autoProgressTabs is called via subscription when data updates
+      this.autoProgressTabs();
     } catch (error) {
       console.error('Error approving prayer:', error);
     }
@@ -1020,6 +929,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   async denyPrayer(id: string, reason: string) {
     try {
       await this.adminDataService.denyPrayer(id, reason);
+      // Auto-progress tabs via subscription
       this.autoProgressTabs();
     } catch (error) {
       console.error('Error denying prayer:', error);
@@ -1030,29 +940,26 @@ export class AdminComponent implements OnInit, OnDestroy {
     try {
       // First save the prayer
       await this.adminDataService.editPrayer(id, updates);
-      // Then show the dialog asking if they want to send notification
-      this.sendDialogPrayerId = id;
-      // Get the prayer title - prefer the updated title if provided, otherwise get from current data
-      let title = updates?.title;
-      if (!title) {
-        const prayer = this.adminData?.pendingPrayers?.find((p: any) => p.id === id);
-        if (prayer) {
-          title = prayer.title;
-        }
-      }
-      this.sendDialogPrayerTitle = title;
-      this.sendDialogType = 'prayer';
-      this.showSendNotificationDialog = true;
-      this.cdr.markForCheck();
+      // Refresh the admin data to get the updated prayer info
+      this.adminDataService.refresh();
     } catch (error) {
       console.error('Error editing prayer:', error);
     }
   }
 
+  handlePrayerEdited(id: string): void {
+    // Trigger refresh of admin data to update the display
+    this.adminDataService.refresh();
+  }
+
+  handleUpdateEdited(id: string): void {
+    // Trigger refresh of admin data to update the display
+    this.adminDataService.refresh();
+  }
+
   async approveUpdate(id: string) {
     try {
       await this.adminDataService.approveUpdate(id);
-      this.autoProgressTabs();
       // Show dialog asking if they want to send notification
       this.sendDialogUpdateId = id;
       // Get the prayer title from current data
@@ -1063,6 +970,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.sendDialogType = 'update';
       this.showSendNotificationDialog = true;
       this.cdr.markForCheck();
+      // Auto-progress tabs via subscription
+      this.autoProgressTabs();
     } catch (error) {
       console.error('Error approving update:', error);
     }
@@ -1071,6 +980,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   async denyUpdate(id: string, reason: string) {
     try {
       await this.adminDataService.denyUpdate(id, reason);
+      // Auto-progress tabs via subscription
       this.autoProgressTabs();
     } catch (error) {
       console.error('Error denying update:', error);
@@ -1103,6 +1013,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   async approveDeletionRequest(id: string) {
     try {
       await this.adminDataService.approveDeletionRequest(id);
+      // Auto-progress tabs via subscription
       this.autoProgressTabs();
     } catch (error) {
       console.error('Error approving deletion request:', error);
@@ -1112,6 +1023,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   async denyDeletionRequest(id: string, reason: string) {
     try {
       await this.adminDataService.denyDeletionRequest(id, reason);
+      // Auto-progress tabs via subscription
       this.autoProgressTabs();
     } catch (error) {
       console.error('Error denying deletion request:', error);
@@ -1121,6 +1033,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   async approveUpdateDeletionRequest(id: string) {
     try {
       await this.adminDataService.approveUpdateDeletionRequest(id);
+      // Auto-progress tabs via subscription
       this.autoProgressTabs();
     } catch (error) {
       console.error('Error approving update deletion request:', error);
@@ -1130,10 +1043,58 @@ export class AdminComponent implements OnInit, OnDestroy {
   async denyUpdateDeletionRequest(id: string, reason: string) {
     try {
       await this.adminDataService.denyUpdateDeletionRequest(id, reason);
+      // Auto-progress tabs via subscription
       this.autoProgressTabs();
     } catch (error) {
       console.error('Error denying update deletion request:', error);
     }
+  }
+
+  /**
+   * Build consolidated approvals by grouping pending updates under their parent prayers
+   * Includes: All pending prayers + All prayers that have pending updates (even if already approved)
+   */
+  buildConsolidatedApprovals(data: any): any[] {
+    if (!data) {
+      return [];
+    }
+
+    const updatesMap = new Map<string, any[]>();
+    const prayersMap = new Map<string, any>();
+    
+    // Add all pending prayers to the map
+    if (data.pendingPrayers) {
+      data.pendingPrayers.forEach((prayer: any) => {
+        prayersMap.set(prayer.id, prayer);
+      });
+    }
+    
+    // Map all pending updates by prayer_id and add those prayers to the map
+    if (data.pendingUpdates) {
+      (data.pendingUpdates || []).forEach((update: any) => {
+        const prayerId = update.prayer_id;
+        
+        // Add/update the prayer in the map from the update's prayer data
+        if (update.prayers && !prayersMap.has(prayerId)) {
+          prayersMap.set(prayerId, update.prayers);
+        }
+        
+        // Map the update
+        if (!updatesMap.has(prayerId)) {
+          updatesMap.set(prayerId, []);
+        }
+        updatesMap.get(prayerId)!.push(update);
+      });
+    }
+
+    // Build consolidated approvals with all prayers (pending + those with pending updates) and their pending updates
+    const result = Array.from(prayersMap.values()).map((prayer: any) => ({
+      prayer,
+      pendingUpdates: updatesMap.get(prayer.id) || [],
+      hasAnyPendingUpdates: data.pendingUpdates && (data.pendingUpdates.length > 0)
+    }));
+    
+    return result;
   }
 
   // TrackBy functions for ngFor optimization
@@ -1156,8 +1117,9 @@ export class AdminComponent implements OnInit, OnDestroy {
   async approveAccountRequest(requestId: string) {
     try {
       await this.adminDataService.approveAccountRequest(requestId);
-      // Reload admin data - will automatically update via subscription
       this.cdr.markForCheck();
+      // Auto-progress tabs via subscription
+      this.autoProgressTabs();
     } catch (error) {
       console.error('Error approving account request:', error);
     }
@@ -1166,8 +1128,9 @@ export class AdminComponent implements OnInit, OnDestroy {
   async denyAccountRequest(requestId: string, reason: string) {
     try {
       await this.adminDataService.denyAccountRequest(requestId, reason);
-      // Reload admin data - will automatically update via subscription
       this.cdr.markForCheck();
+      // Auto-progress tabs via subscription
+      this.autoProgressTabs();
     } catch (error) {
       console.error('Error denying account request:', error);
     }
@@ -1177,8 +1140,9 @@ export class AdminComponent implements OnInit, OnDestroy {
     try {
       if (this.sendDialogType === 'prayer' && this.sendDialogPrayerId) {
         // Check if this is from approval or direct submission
-        // If approved flag is set, use the approval email method
-        const prayer = this.adminData?.pendingPrayers?.find((p: any) => p.id === this.sendDialogPrayerId);
+        // Search both pending and approved prayers since prayer may have already moved to approved
+        const prayer = this.adminData?.pendingPrayers?.find((p: any) => p.id === this.sendDialogPrayerId)
+          || this.adminData?.approvedPrayers?.find((p: any) => p.id === this.sendDialogPrayerId);
         if (prayer?.approval_status === 'approved') {
           await this.adminDataService.sendApprovedPrayerEmails(this.sendDialogPrayerId);
         } else {
@@ -1187,7 +1151,8 @@ export class AdminComponent implements OnInit, OnDestroy {
         }
       } else if (this.sendDialogType === 'update' && this.sendDialogUpdateId) {
         // Check if this is from approval or direct submission
-        const update = this.adminData?.pendingUpdates?.find((u: any) => u.id === this.sendDialogUpdateId);
+        const update = this.adminData?.pendingUpdates?.find((u: any) => u.id === this.sendDialogUpdateId)
+          || this.adminData?.approvedUpdates?.find((u: any) => u.id === this.sendDialogUpdateId);
         if (update?.approval_status === 'approved') {
           await this.adminDataService.sendApprovedUpdateEmails(this.sendDialogUpdateId);
         } else {

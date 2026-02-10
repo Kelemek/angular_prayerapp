@@ -15,6 +15,7 @@ export interface Prayer {
     content: string;
     author: string;
     created_at: string;
+    is_anonymous?: boolean;
   }>;
 }
 
@@ -566,7 +567,8 @@ function generatePrayerHTML(prayer: Prayer): string {
           month: 'short',
           day: 'numeric'
         });
-        return `<div class="update-item"><span class="update-meta">Updated by: ${update.author || 'Anonymous'} • ${updateDate}:</span> ${update.content}</div>`;
+        const authorName = update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous');
+        return `<div class="update-item"><span class="update-meta">Updated by: ${authorName} • ${updateDate}:</span> ${update.content}</div>`;
       }).join('')}
     </div>
   ` : '';

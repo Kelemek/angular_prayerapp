@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, fromEvent, distinctUntilChanged } from 'rxjs';
+import { BehaviorSubject, Observable, fromEvent, distinctUntilChanged, first } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -22,6 +22,7 @@ export interface PrayerUpdate {
   is_anonymous?: boolean;
   is_answered?: boolean;
   approval_status?: string;
+  in_planning_center?: boolean | null;
 }
 
 export interface PrayerRequest {
@@ -44,6 +45,8 @@ export interface PrayerRequest {
   display_order?: number;
   prayer_image?: string | null;
   updates: PrayerUpdate[];
+  in_planning_center?: boolean | null;
+  is_shared_personal_prayer?: boolean;
 }
 
 export interface PrayerFilters {
@@ -195,6 +198,7 @@ export class PrayerService {
             prayer_id: u.prayer_id,
             content: u.content,
             author: u.author,
+            is_anonymous: u.is_anonymous,
             created_at: u.created_at
           }))
         } as PrayerRequest;
@@ -2322,6 +2326,122 @@ export class PrayerService {
     } catch (error) {
       console.error('[PrayerService] Fallback swap failed:', error);
       return false;
+    }
+  }
+
+  /**
+   * Share a personal prayer - create public copy for approval without deleting personal
+   * The personal prayer stays in the user's account for their reference
+   * The public prayer will go through the normal approval process
+   * @param personalPrayerId The ID of the personal prayer to share
+   */
+  async sharePrayerForApproval(personalPrayerId: string): Promise<string> {
+    try {
+      // Step 1: Fetch the personal prayer with its updates
+      const { data: personalPrayer, error: fetchError } = await this.supabase.client
+        .from('personal_prayers')
+        .select(`
+          id,
+          title,
+          description,
+          prayer_for,
+          user_email,
+          category,
+          created_at,
+          personal_prayer_updates (
+            id,
+            content,
+            author,
+            author_email,
+            mark_as_answered,
+            created_at
+          )
+        `)
+        .eq('id', personalPrayerId)
+        .single();
+
+      if (fetchError) throw new Error(`Failed to fetch personal prayer: ${fetchError.message}`);
+      if (!personalPrayer) throw new Error('Personal prayer not found');
+
+      // Step 2: Get the user's name from the session
+      const session = await this.userSessionService.userSession$.pipe(first()).toPromise();
+      let requesterName = session?.fullName || personalPrayer.user_email;
+      
+      // If no fullName in session, extract from email
+      if (!session?.fullName) {
+        const emailPart = personalPrayer.user_email.split('@')[0];
+        requesterName = emailPart
+          .replace(/[._-]/g, ' ')
+          .split(' ')
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      }
+      
+      // Step 3: Create a new public prayer in the normal prayers table with pending status
+      const publicPrayerData = {
+        title: personalPrayer.title,
+        description: personalPrayer.description,
+        status: personalPrayer.category === 'Answered' ? 'answered' : 'current' as PrayerStatus,
+        requester: requesterName,
+        prayer_for: personalPrayer.prayer_for,
+        email: personalPrayer.user_email,
+        is_anonymous: false,
+        approval_status: 'pending' as const,
+        is_shared_personal_prayer: true
+      };
+
+      const { data: newPrayer, error: createError } = await this.supabase.client
+        .from('prayers')
+        .insert(publicPrayerData)
+        .select()
+        .single();
+
+      if (createError) throw new Error(`Failed to create public prayer: ${createError.message}`);
+      if (!newPrayer) throw new Error('Failed to create public prayer');
+
+      // Step 3: Copy all updates from personal prayer to public prayer
+      const updates = personalPrayer.personal_prayer_updates || [];
+      if (updates.length > 0) {
+        const updatesCopy = updates.map((update: any) => ({
+          prayer_id: newPrayer.id,
+          content: update.content,
+          author: update.author,
+          author_email: update.author_email || null,
+          is_anonymous: false,
+          approval_status: 'pending' as const,
+          created_at: update.created_at
+        }));
+
+        const { error: updatesCopyError } = await this.supabase.client
+          .from('prayer_updates')
+          .insert(updatesCopy);
+
+        if (updatesCopyError) {
+          console.error('Failed to copy updates, but public prayer was created:', updatesCopyError);
+          // Don't throw here - the prayer was created successfully
+        }
+      }
+
+      // Step 4: Keep the personal prayer - user can see it in their account and edit if needed
+      // Step 5: Send admin notification about the new public prayer request
+      this.emailNotification.sendAdminNotification({
+        type: 'prayer',
+        title: personalPrayer.title,
+        description: personalPrayer.description,
+        requester: personalPrayer.user_email,
+        requestId: newPrayer.id
+      }).catch(err => console.error('Failed to send admin notification:', err));
+
+      // Refresh user's personal prayers
+      await this.loadPersonalPrayers();
+
+      this.toast.success('Prayer shared! It has been submitted for admin approval.');
+      return newPrayer.id;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to share prayer';
+      console.error('[PrayerService] Error sharing prayer:', error);
+      this.toast.error(errorMessage);
+      throw error;
     }
   }
 

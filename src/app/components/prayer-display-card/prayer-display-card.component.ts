@@ -18,6 +18,7 @@ interface Prayer {
     author: string;
     created_at: string;
     is_answered?: boolean;
+    is_anonymous?: boolean;
   }>;
   updates?: Array<{
     id: string;
@@ -25,6 +26,7 @@ interface Prayer {
     author: string;
     created_at: string;
     is_answered?: boolean;
+    is_anonymous?: boolean;
   }>;
 }
 
@@ -129,7 +131,7 @@ interface PrayerPrompt {
             <div class="flex items-start justify-between mb-2">
               <div class="text-sm md:text-base lg:text-lg text-gray-700 dark:text-gray-300">
                 @if (!isPersonalPrayer() && !isMemberPrayer()) {
-                  Updated by: {{ update.author }} • {{ formatDate(update.created_at) }}
+                  Updated by: {{ update.is_anonymous ? 'Anonymous' : update.author }} • {{ formatDate(update.created_at) }}
                 } @else {
                   {{ formatDate(update.created_at) }}
                 }

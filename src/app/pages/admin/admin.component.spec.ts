@@ -80,16 +80,16 @@ describe('AdminComponent', () => {
     expect(autoSpy).toHaveBeenCalled();
   });
 
-  it('autoProgressTabs moves tabs based on data (prayers -> updates)', () => {
+  it('autoProgressTabs stays on prayers when updates exist (consolidated approvals)', () => {
     component.activeTab = 'prayers';
     component['adminData'] = { pendingPrayers: [], pendingUpdates: [{ id: 'u1' }], pendingDeletionRequests: [] };
     const tabSpy = vi.spyOn(component, 'onTabChange');
     component['autoProgressTabs']();
-    expect(tabSpy).toHaveBeenCalledWith('updates');
+    expect(tabSpy).not.toHaveBeenCalled(); // Should stay on prayers since updates exist
   });
 
-  it('autoProgressTabs cycles correctly for updates and deletions', () => {
-    component.activeTab = 'updates';
+  it('autoProgressTabs moves prayers->deletions when both prayers and updates empty', () => {
+    component.activeTab = 'prayers';
     component['adminData'] = { 
       pendingUpdates: [], 
       pendingDeletionRequests: [{ id: 'd1' }], 
@@ -203,6 +203,11 @@ describe('AdminComponent', () => {
       pendingUpdateDeletionRequests: [],
       pendingAccountRequests: [1]
     };
+    // Build consolidated approvals based on the data (2 prayers + 1 prayer with update = 3 consolidated items if updates merged)
+    // But since the test uses simple numbers instead of prayer objects, we need to mock consolidatedApprovals
+    component.consolidatedApprovals = [1, 2, 3]; // 2 pending prayers + 1 prayer with update = 3 consolidated
+    
+    // Total: 3 consolidated + 3 deletion requests + 0 update deletion requests + 1 account request = 7
     expect(component.totalPendingCount).toBe(7);
   });
 
@@ -363,20 +368,26 @@ describe('AdminComponent', () => {
     expect(tabSpy).toHaveBeenCalledWith('deletions');
   });
 
-  it('autoProgressTabs moves updates->prayers when deletions empty but prayers exist', () => {
-    component.activeTab = 'updates';
+  it('autoProgressTabs consolidates prayers and updates in same tab', () => {
+    component.activeTab = 'prayers';
     component['adminData'] = { pendingUpdates: [], pendingDeletionRequests: [], pendingPrayers: [{ id: 'p1' }] };
     const tabSpy = vi.spyOn(component, 'onTabChange');
     component['autoProgressTabs']();
-    expect(tabSpy).toHaveBeenCalledWith('prayers');
+    expect(tabSpy).not.toHaveBeenCalled(); // Stay on prayers since prayer exists
   });
 
-  it('autoProgressTabs moves deletions->updates when deletions empty but updates exist', () => {
-    component.activeTab = 'deletions';
-    component['adminData'] = { pendingDeletionRequests: [], pendingPrayers: [], pendingUpdates: [{ id: 'u1' }] };
+  it('autoProgressTabs moves prayers->deletions when both prayers and updates empty', () => {
+    component.activeTab = 'prayers';
+    component['adminData'] = { 
+      pendingDeletionRequests: [{ id: 'd1' }], 
+      pendingPrayers: [], 
+      pendingUpdates: [],
+      pendingUpdateDeletionRequests: [],
+      pendingAccountRequests: []
+    };
     const tabSpy = vi.spyOn(component, 'onTabChange');
     component['autoProgressTabs']();
-    expect(tabSpy).toHaveBeenCalledWith('updates');
+    expect(tabSpy).toHaveBeenCalledWith('deletions');
   });
 
   it('totalPendingCount returns 0 when adminData is null or missing fields', () => {
@@ -544,16 +555,16 @@ describe('AdminComponent', () => {
       expect(adminDataService.editPrayer).toHaveBeenCalledWith('p1', prayerData);
     });
 
-    it('should show send notification dialog after editing prayer', async () => {
+    it('should refresh admin data after editing prayer', async () => {
       component['adminData'] = {
         pendingPrayers: [{ id: 'p1', title: 'Test Prayer', approval_status: 'pending' }]
       };
       adminDataService.editPrayer = vi.fn().mockResolvedValue(undefined);
+      adminDataService.refresh = vi.fn();
 
       await component.editPrayer('p1', { title: 'Updated' });
 
-      expect(component.showSendNotificationDialog).toBe(true);
-      expect(component.sendDialogType).toBe('prayer');
+      expect(adminDataService.refresh).toHaveBeenCalled();
     });
   });
 
@@ -680,8 +691,8 @@ describe('AdminComponent', () => {
     });
 
     it('should update activeTab when onTabChange is called', () => {
-      component.onTabChange('updates');
-      expect(component.activeTab).toBe('updates');
+      component.onTabChange('prayers');
+      expect(component.activeTab).toBe('prayers');
 
       component.onTabChange('deletions');
       expect(component.activeTab).toBe('deletions');
@@ -935,7 +946,7 @@ describe('AdminComponent', () => {
 
       component['setInitialTab']();
 
-      expect(component.activeTab).toBe('updates');
+      expect(component.activeTab).toBe('prayers'); // Consolidated with prayers
     });
 
     it('defaults to deletions tab if only pending deletion requests exist', () => {
