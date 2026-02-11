@@ -2133,8 +2133,8 @@ export class PrayerService {
         console.log('[PrayerService]', result.message);
       }
 
-      // Reload personal prayers to reflect the new category order in the UI
-      await this.loadPersonalPrayers();
+      // Update local state and cache only (no refetch = no egress)
+      this.applyCategoryReorderLocally(orderedCategories);
       return true;
     } catch (error) {
       console.error('[PrayerService] Error reordering categories:', error);
@@ -2191,13 +2191,73 @@ export class PrayerService {
       const error = results.find(r => r.error);
       if (error?.error) throw error.error;
 
-      // Reload personal prayers to reflect the new category order in the UI
-      await this.loadPersonalPrayers();
+      // Update local state and cache only (no refetch = no egress)
+      this.applyCategoryReorderLocally(orderedCategories);
       return true;
     } catch (error) {
       console.error('[PrayerService] Fallback reorder failed:', error);
       return false;
     }
+  }
+
+  /**
+   * Update in-memory state and cache after a category swap (no refetch).
+   * Keeps UI in sync and avoids Supabase egress from loadPersonalPrayers().
+   */
+  private applyCategorySwapLocally(categoryA: string, categoryB: string): void {
+    const allPrayers = this.allPersonalPrayersSubject.value;
+    const prayersA = allPrayers.filter(p => p.category === categoryA);
+    const prayersB = allPrayers.filter(p => p.category === categoryB);
+    if (prayersA.length === 0 || prayersB.length === 0) return;
+
+    const minOrderA = Math.min(...prayersA.map(p => p.display_order ?? 0));
+    const minOrderB = Math.min(...prayersB.map(p => p.display_order ?? 0));
+    const prefixA = Math.floor(minOrderA / 1000);
+    const prefixB = Math.floor(minOrderB / 1000);
+
+    const updated = allPrayers.map(p => {
+      const cat = p.category as string | null | undefined;
+      if (cat === categoryA) {
+        const lastThree = (p.display_order ?? 0) % 1000;
+        return { ...p, display_order: prefixB * 1000 + lastThree };
+      }
+      if (cat === categoryB) {
+        const lastThree = (p.display_order ?? 0) % 1000;
+        return { ...p, display_order: prefixA * 1000 + lastThree };
+      }
+      return p;
+    });
+    const sorted = [...updated].sort((a, b) => {
+      const oa = a.display_order ?? 0;
+      const ob = b.display_order ?? 0;
+      if (ob !== oa) return ob - oa;
+      return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+    this.allPersonalPrayersSubject.next(sorted);
+    this.cache.set('personalPrayers', sorted);
+  }
+
+  /**
+   * Update in-memory state and cache after a full category reorder (no refetch).
+   * Keeps UI in sync and avoids Supabase egress from loadPersonalPrayers().
+   */
+  private applyCategoryReorderLocally(orderedCategories: (string | null)[]): void {
+    const allPrayers = this.allPersonalPrayersSubject.value;
+    const updated = allPrayers.map(p => {
+      const idx = orderedCategories.indexOf(p.category as string | null);
+      if (idx === -1) return p;
+      const newPrefix = orderedCategories.length - idx;
+      const lastThree = (p.display_order ?? 0) % 1000;
+      return { ...p, display_order: newPrefix * 1000 + lastThree };
+    });
+    const sorted = [...updated].sort((a, b) => {
+      const oa = a.display_order ?? 0;
+      const ob = b.display_order ?? 0;
+      if (ob !== oa) return ob - oa;
+      return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+    this.allPersonalPrayersSubject.next(sorted);
+    this.cache.set('personalPrayers', sorted);
   }
 
   /**
@@ -2242,8 +2302,8 @@ export class PrayerService {
         console.log('[PrayerService]', result.message);
       }
 
-      // Reload personal prayers to reflect the swapped category order in the UI
-      await this.loadPersonalPrayers();
+      // Update local state and cache only (no refetch = no egress)
+      this.applyCategorySwapLocally(categoryA, categoryB);
       return true;
     } catch (error) {
       console.error('[PrayerService] Exception swapping categories:', error);
@@ -2324,10 +2384,8 @@ export class PrayerService {
       const step3Error = step3Results.find(r => r.error);
       if (step3Error?.error) throw step3Error.error;
 
-      // Reload personal prayers from database
-      const userPersonalPrayers = await this.getPersonalPrayers();
-      this.allPersonalPrayersSubject.next(userPersonalPrayers);
-
+      // Update local state and cache only (no refetch = no egress)
+      this.applyCategorySwapLocally(categoryA, categoryB);
       return true;
     } catch (error) {
       console.error('[PrayerService] Fallback swap failed:', error);

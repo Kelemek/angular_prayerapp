@@ -818,7 +818,7 @@ describe('PrayerService - Integration Tests', () => {
     );
 
       // Wait for initialization
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const prayers = await firstValueFrom(service.allPrayers$);
       expect(prayers).toBeDefined();
@@ -851,7 +851,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const prayers = await firstValueFrom(service.allPrayers$);
       if (prayers.length > 0) {
@@ -876,7 +876,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(mockCacheService.set).toHaveBeenCalledWith('prayers', expect.any(Array));
     });
@@ -903,7 +903,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const error = await firstValueFrom(service.error$);
       // Error should be set or prayers should be empty
@@ -922,7 +922,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // Verify that from was called with 'prayers'
       expect(mockSupabaseService.client.from).toHaveBeenCalledWith('prayers');
@@ -955,7 +955,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const prayers = await firstValueFrom(service.allPrayers$);
       if (prayers.length > 0) {
@@ -974,7 +974,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const prayers = await firstValueFrom(service.allPrayers$);
       // Verify prayers are loaded
@@ -1026,7 +1026,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const prayers = await firstValueFrom(service.allPrayers$);
       if (prayers.length > 0) {
@@ -1782,7 +1782,7 @@ describe('PrayerService - Integration Tests', () => {
     );
 
       // wait for init load
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(mockToastService.error).toHaveBeenCalled();
       const err = await firstValueFrom(service.error$);
@@ -2015,7 +2015,7 @@ describe('PrayerService - Integration Tests', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       (service as any).setupRealtimeSubscription();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
@@ -2058,7 +2058,7 @@ describe('PrayerService - Integration Tests', () => {
       const loadSpy = vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
 
       (service as any).triggerBackgroundRecovery();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(loadSpy).toHaveBeenCalledWith(true);
       loadSpy.mockRestore();
@@ -2156,7 +2156,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect((service as any).allPrayersSubject.value).toEqual(cachedPrayers);
       // Error may or may not be set depending on timing; just verify cache was used
@@ -2228,7 +2228,7 @@ describe('PrayerService - Integration Tests', () => {
       Object.defineProperty(document, 'hidden', { value: false, configurable: true });
 
       document.dispatchEvent(new Event('visibilitychange'));
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       triggerSpy.mockRestore();
     });
@@ -2707,7 +2707,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const allPrayers = (service as any).allPrayersSubject.value;
       expect(allPrayers[0].id).toBe('1');
@@ -3905,7 +3905,7 @@ describe('PrayerService - Integration Tests', () => {
       document.dispatchEvent(visibilityChangeEvent);
 
       // Allow event handlers to process
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(mockSupabaseService.client.from).toHaveBeenCalled();
     });
