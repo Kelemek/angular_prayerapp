@@ -429,9 +429,9 @@ import { environment } from '../../../environments/environment';
                 <button
                   (click)="togglePersonalCategory(category)"
                   [disabled]="isSwappingCategories"
-                  [class]="'w-full whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 relative ' + (isPersonalCategorySelected(category) ? 'bg-[#2F5F54] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') + (isSwappingCategories ? ' opacity-50 cursor-not-allowed' : '')"
+                  [class]="'w-full whitespace-nowrap pl-7 pr-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 relative ' + (isPersonalCategorySelected(category) ? 'bg-[#2F5F54] text-white shadow-md' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') + (isSwappingCategories ? ' opacity-50 cursor-not-allowed' : '')"
                 >
-                  <svg cdkDragHandle width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class]="'flex-shrink-0 ' + (isSwappingCategories ? 'cursor-not-allowed' : 'cursor-grab')">
+                  <svg cdkDragHandle width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class]="'flex-shrink-0 absolute left-2 top-1/2 -translate-y-1/2 ' + (isSwappingCategories ? 'cursor-not-allowed' : 'cursor-grab')">
                     <circle cx="9" cy="5" r="1"></circle>
                     <circle cx="9" cy="12" r="1"></circle>
                     <circle cx="9" cy="19" r="1"></circle>
@@ -439,7 +439,7 @@ import { environment } from '../../../environments/environment';
                     <circle cx="15" cy="12" r="1"></circle>
                     <circle cx="15" cy="19" r="1"></circle>
                   </svg>
-                  <span class="cursor-pointer">{{ category }} ({{ getPersonalCategoryCount(category) }})</span>
+                  <span class="cursor-pointer flex-1 text-center">{{ category }} ({{ getPersonalCategoryCount(category) }})</span>
                   @if (isSwappingCategories) {
                     <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -583,6 +583,21 @@ import { environment } from '../../../environments/environment';
                    class="space-y-3">
                 @for (prayer of getFilteredPersonalPrayers(); track prayer.id) {
                   <div cdkDrag>
+                    <ng-template #dragHandle>
+                      <div
+                        cdkDragHandle
+                        class="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 flex-shrink-0 absolute left-3 top-1/2 -translate-y-1/2 pr-2"
+                      >
+                        <svg class="block" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="9" cy="5" r="1"></circle>
+                          <circle cx="9" cy="12" r="1"></circle>
+                          <circle cx="9" cy="19" r="1"></circle>
+                          <circle cx="15" cy="5" r="1"></circle>
+                          <circle cx="15" cy="12" r="1"></circle>
+                          <circle cx="15" cy="19" r="1"></circle>
+                        </svg>
+                      </div>
+                    </ng-template>
                     <app-prayer-card
                       [prayer]="prayer"
                       [isAdmin]="(isAdmin$ | async) || false"
@@ -598,18 +613,6 @@ import { environment } from '../../../environments/environment';
                       (editPersonalUpdate)="openEditUpdateModal($event)"
                       [dragHandle]="selectedPersonalCategories.length === 1 ? dragHandle : null"
                     ></app-prayer-card>
-                    <ng-template #dragHandle>
-                      <div cdkDragHandle class="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 flex-shrink-0">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <circle cx="9" cy="5" r="1"></circle>
-                          <circle cx="9" cy="12" r="1"></circle>
-                          <circle cx="9" cy="19" r="1"></circle>
-                          <circle cx="15" cy="5" r="1"></circle>
-                          <circle cx="15" cy="12" r="1"></circle>
-                          <circle cx="15" cy="19" r="1"></circle>
-                        </svg>
-                      </div>
-                    </ng-template>
                   </div>
                 }
               </div>

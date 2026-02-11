@@ -14,7 +14,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div 
-      [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] p-6 mb-4 transition-colors relative ' + getBorderClass()"
+      [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] p-6 mb-4 transition-colors relative ' + (dragHandle && isPersonal ? ' pl-10 ' : '') + getBorderClass()"
     >
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
