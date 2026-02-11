@@ -8,7 +8,7 @@ import { VerificationService } from '../../services/verification.service';
   imports: [FormsModule],
   template: `
     @if (isOpen) {
-      <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4"
+      <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-[60] p-4"
         (click)="onClose.emit()">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6"
           (click)="$event.stopPropagation()">

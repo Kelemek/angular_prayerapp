@@ -169,43 +169,42 @@ describe('ToastService', () => {
   describe('getToastStyles', () => {
     it('should return success styles for success type', () => {
       const styles = service.getToastStyles('success');
-      expect(styles).toContain('bg-green-100');
+      expect(styles).toContain('bg-green-700');
       expect(styles).toContain('text-green-800');
-      expect(styles).toContain('border-green-200');
-      expect(styles).toContain('dark:bg-green-900/30');
+      expect(styles).toContain('border-green-600');
+      expect(styles).toContain('backdrop-blur-md');
     });
 
     it('should return error styles for error type', () => {
       const styles = service.getToastStyles('error');
-      expect(styles).toContain('bg-red-100');
+      expect(styles).toContain('bg-red-700');
       expect(styles).toContain('text-red-800');
-      expect(styles).toContain('border-red-200');
-      expect(styles).toContain('dark:bg-red-900/30');
+      expect(styles).toContain('border-red-600');
+      expect(styles).toContain('backdrop-blur-md');
     });
 
     it('should return warning styles for warning type', () => {
       const styles = service.getToastStyles('warning');
-      expect(styles).toContain('bg-yellow-100');
-      expect(styles).toContain('text-yellow-800');
-      expect(styles).toContain('border-yellow-200');
-      expect(styles).toContain('dark:bg-yellow-900/30');
+      expect(styles).toContain('bg-amber-600');
+      expect(styles).toContain('text-amber-900');
+      expect(styles).toContain('border-amber-500');
+      expect(styles).toContain('backdrop-blur-md');
     });
 
     it('should return info styles for info type (default)', () => {
       const styles = service.getToastStyles('info');
-      expect(styles).toContain('bg-blue-100');
+      expect(styles).toContain('bg-blue-700');
       expect(styles).toContain('text-blue-800');
-      expect(styles).toContain('border-blue-200');
-      expect(styles).toContain('dark:bg-blue-900/30');
+      expect(styles).toContain('border-blue-600');
+      expect(styles).toContain('backdrop-blur-md');
     });
 
     it('should return default info styles for any other type', () => {
-      // Testing default case by passing any string that's not a recognized type
       const styles = service.getToastStyles('custom');
-      expect(styles).toContain('bg-blue-100');
+      expect(styles).toContain('bg-blue-700');
       expect(styles).toContain('text-blue-800');
-      expect(styles).toContain('border-blue-200');
-      expect(styles).toContain('dark:bg-blue-900/30');
+      expect(styles).toContain('border-blue-600');
+      expect(styles).toContain('backdrop-blur-md');
     });
   });
 });

@@ -520,7 +520,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                   </div>
 
                   <!-- Archived Prayers -->
-                  <div class="bg-[#C9A961] bg-opacity-15 dark:bg-opacity-25 rounded-lg p-4 border border-[#C9A961]">
+                  <div class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-[#C9A961] dark:border-[#C9A961]">
                     <div class="flex items-center gap-2 mb-2">
                       <svg class="text-[#6B5D45] dark:text-[#D4AF85]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="5" width="18" height="16" rx="2"></rect>

@@ -286,7 +286,7 @@ interface BackupLog {
 
   <!-- Restore Dialog -->
   @if (showRestoreDialog) {
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         Restore Database from Backup

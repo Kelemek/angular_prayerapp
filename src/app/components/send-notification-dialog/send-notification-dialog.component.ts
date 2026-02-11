@@ -9,7 +9,7 @@ export type NotificationType = 'prayer' | 'update' | 'subscriber';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
         <!-- Header -->
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">

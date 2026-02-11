@@ -1,74 +1,298 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-/* Prevent layout shift when scrollbar appears/disappears */
-html {
-  scrollbar-gutter: stable;
+@source './**/*.{html,ts}';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-church-green-dark: #004b3d;
+  --color-church-green-medium: #2f5f54;
+  --color-church-green: #39704d;
+  --color-church-gray-warm: #988f83;
+  --color-church-cream: #e8e5e1;
+  --color-church-blue: #0047ab;
+  --color-church-blue-dark: #3e5266;
+  --color-church-navy: #1f2937;
+  --color-church-gold-dark: #b8860b;
+  --color-church-gold: #c9a961;
+  --color-church-gold-light: #f4c542;
+  --color-church-slate: #2b2b2b;
+
+  --color-primary-50: #f0f4f3;
+  --color-primary-100: #e8e5e1;
+  --color-primary-200: #d1ccc4;
+  --color-primary-300: #988f83;
+  --color-primary-400: #6b6256;
+  --color-primary-500: #2f5f54;
+  --color-primary-600: #39704d;
+  --color-primary-700: #004b3d;
+  --color-primary-800: #2b2b2b;
+  --color-primary-900: #1f2937;
+
+  --color-accent-50: #fef9e7;
+  --color-accent-100: #fdf4d3;
+  --color-accent-200: #f4c542;
+  --color-accent-300: #c9a961;
+  --color-accent-400: #b8860b;
+  --color-accent-500: #0047ab;
+  --color-accent-600: #3e5266;
+  --color-accent-700: #004b3d;
 }
 
-/* Church Theme Color Overrides - Maps Tailwind grays to church brand colors */
-@layer utilities {
-  /* Background colors - light theme */
-  .bg-gray-50 { @apply !bg-[#F8F7F5]; }
-  .bg-gray-100 { @apply !bg-[#E8E5E1]; }
-  .bg-gray-200 { @apply !bg-[#D1CCC4]; }
-  .bg-gray-300 { @apply !bg-[#988F83]; }
-  .bg-gray-700 { @apply !bg-[#6B6256]; }
-  .bg-gray-800 { @apply !bg-white; }
-  .bg-gray-900 { @apply !bg-[#F8F7F5]; }
-  
-  /* Background colors - dark theme */
-  .dark .bg-gray-50 { @apply !bg-[#2B2B2B]; }
-  .dark .bg-gray-100 { @apply !bg-[#3E5266]; }
-  .dark .bg-gray-200 { @apply !bg-[#2F5F54]; }
-  .dark .bg-gray-300 { @apply !bg-[#3E5266]; }
-  .dark .bg-gray-600 { @apply !bg-[#2F5F54]; }
-  .dark .bg-gray-700 { @apply !bg-[#3E5266]; }
-  .dark .bg-gray-800 { @apply !bg-[#1F2937]; }
-  .dark .bg-gray-900 { @apply !bg-[#2B2B2B]; }
-  
-  /* Text colors - light theme */
-  .text-gray-400 { @apply !text-[#988F83]; }
-  .text-gray-500 { @apply !text-[#988F83]; }
-  .text-gray-600 { @apply !text-[#6B6256]; }
-  .text-gray-700 { @apply !text-[#2B2B2B]; }
-  .text-gray-800 { @apply !text-[#2B2B2B]; }
-  .text-gray-900 { @apply !text-[#2B2B2B]; }
-  
-  /* Text colors - dark theme */
-  .dark .text-gray-100 { @apply !text-[#E8E5E1]; }
-  .dark .text-gray-200 { @apply !text-[#D1CCC4]; }
-  .dark .text-gray-300 { @apply !text-[#D1CCC4]; }
-  .dark .text-gray-400 { @apply !text-[#988F83]; }
-  .dark .text-gray-500 { @apply !text-[#988F83]; }
-  
-  /* Border colors - light theme */
-  .border-gray-100 { @apply !border-[#E8E5E1]; }
-  .border-gray-200 { @apply !border-[#D1CCC4]; }
-  .border-gray-300 { @apply !border-[#D1CCC4]; }
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
 
-  
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility bg-gray-50 {
+  /* Background colors - light theme */
+  @apply bg-[#F8F7F5]!;
+
+  /* Background colors - dark theme */
+  .dark & {
+    @apply bg-[#2B2B2B]!;
+  }
+}
+@utility bg-gray-100 {
+  @apply bg-[#E8E5E1]!;
+  .dark & {
+    @apply bg-[#3E5266]!;
+  }
+}
+@utility bg-gray-200 {
+  @apply bg-[#D1CCC4]!;
+  .dark & {
+    @apply bg-[#2F5F54]!;
+  }
+}
+@utility bg-gray-300 {
+  @apply bg-[#988F83]!;
+  .dark & {
+    @apply bg-[#3E5266]!;
+  }
+}
+@utility bg-gray-700 {
+  @apply bg-[#6B6256]!;
+  .dark & {
+    @apply bg-[#3E5266]!;
+  }
+}
+@utility bg-gray-800 {
+  @apply bg-white!;
+  .dark & {
+    @apply bg-[#1F2937]!;
+  }
+}
+@utility bg-gray-900 {
+  @apply bg-[#F8F7F5]!;
+  .dark & {
+    @apply bg-[#2B2B2B]!;
+  }
+}
+@utility dark {
+  /* Background colors - dark theme */
+  & .bg-gray-50 {
+    @apply bg-[#2B2B2B]!;
+  }
+  & .bg-gray-100 {
+    @apply bg-[#3E5266]!;
+  }
+  & .bg-gray-200 {
+    @apply bg-[#2F5F54]!;
+  }
+  & .bg-gray-300 {
+    @apply bg-[#3E5266]!;
+  }
+  & .bg-gray-600 {
+    @apply bg-[#2F5F54]!;
+  }
+  & .bg-gray-700 {
+    @apply bg-[#3E5266]!;
+  }
+  & .bg-gray-800 {
+    @apply bg-[#1F2937]!;
+  }
+  & .bg-gray-900 {
+    @apply bg-[#2B2B2B]!;
+  }
+
+  /* Text colors - dark theme */
+  & .text-gray-100 {
+    @apply text-[#E8E5E1]!;
+  }
+  & .text-gray-200 {
+    @apply text-[#D1CCC4]!;
+  }
+  & .text-gray-300 {
+    @apply text-[#D1CCC4]!;
+  }
+  & .text-gray-400 {
+    @apply text-[#988F83]!;
+  }
+  & .text-gray-500 {
+    @apply text-[#988F83]!;
+  }
+
   /* Border colors - dark theme */
-  .dark .border-gray-600 { @apply !border-[#3E5266]; }
-  .dark .border-gray-700 { @apply !border-[#2F5F54]; }
-  .dark .border-gray-800 { @apply !border-[#2B2B2B]; }
-  
+  & .border-gray-600 {
+    @apply border-[#3E5266]!;
+  }
+  & .border-gray-700 {
+    @apply border-[#2F5F54]!;
+  }
+  & .border-gray-800 {
+    @apply border-[#2B2B2B]!;
+  }
+  & .bg-green-600 {
+    @apply bg-[#39704D]!;
+  }
+  & .bg-green-700 {
+    @apply bg-[#004B3D]!;
+  }
+  & .hover\:bg-green-700:hover {
+    @apply bg-[#004B3D]!;
+  }
+  & .bg-blue-600 {
+    @apply bg-[#0047AB]!;
+  }
+  & .bg-blue-700 {
+    @apply bg-[#3E5266]!;
+  }
+  & .hover\:bg-blue-700:hover {
+    @apply bg-[#3E5266]!;
+  }
+}
+@utility bg-gray-600 {
+  .dark & {
+    @apply bg-[#2F5F54]!;
+  }
+}
+@utility text-gray-400 {
+  /* Text colors - light theme */
+  @apply text-[#988F83]!;
+  .dark & {
+    @apply text-[#988F83]!;
+  }
+}
+@utility text-gray-500 {
+  @apply text-[#988F83]!;
+  .dark & {
+    @apply text-[#988F83]!;
+  }
+}
+@utility text-gray-600 {
+  @apply text-[#6B6256]!;
+}
+@utility text-gray-700 {
+  @apply text-[#2B2B2B]!;
+}
+@utility text-gray-800 {
+  @apply text-[#2B2B2B]!;
+}
+@utility text-gray-900 {
+  @apply text-[#2B2B2B]!;
+}
+@utility text-gray-100 {
+  /* Text colors - dark theme */
+  .dark & {
+    @apply text-[#E8E5E1]!;
+  }
+}
+@utility text-gray-200 {
+  .dark & {
+    @apply text-[#D1CCC4]!;
+  }
+}
+@utility text-gray-300 {
+  .dark & {
+    @apply text-[#D1CCC4]!;
+  }
+}
+@utility border-gray-100 {
+  /* Border colors - light theme */
+  @apply border-[#E8E5E1]!;
+}
+@utility border-gray-200 {
+  @apply border-[#D1CCC4]!;
+}
+@utility border-gray-300 {
+  @apply border-[#D1CCC4]!;
+}
+@utility border-gray-600 {
+  /* Border colors - dark theme */
+  .dark & {
+    @apply border-[#3E5266]!;
+  }
+}
+@utility border-gray-700 {
+  .dark & {
+    @apply border-[#2F5F54]!;
+  }
+}
+@utility border-gray-800 {
+  .dark & {
+    @apply border-[#2B2B2B]!;
+  }
+}
+@utility bg-green-600 {
   /* Update green to use church green */
-  .bg-green-600 { @apply !bg-[#39704D]; }
-  .bg-green-700 { @apply !bg-[#004B3D]; }
-  .hover\:bg-green-700:hover { @apply !bg-[#004B3D]; }
-  .dark .bg-green-600 { @apply !bg-[#39704D]; }
-  .dark .bg-green-700 { @apply !bg-[#004B3D]; }
-  .dark .hover\:bg-green-700:hover { @apply !bg-[#004B3D]; }
-  
+  @apply bg-[#39704D]!;
+  .dark & {
+    @apply bg-[#39704D]!;
+  }
+}
+@utility bg-green-700 {
+  @apply bg-[#004B3D]!;
+  .dark & {
+    @apply bg-[#004B3D]!;
+  }
+}
+@utility bg-blue-600 {
   /* Update blue to use church blue */
-  .bg-blue-600 { @apply !bg-[#0047AB]; }
-  .bg-blue-700 { @apply !bg-[#3E5266]; }
-  .hover\:bg-blue-700:hover { @apply !bg-[#3E5266]; }
-  .dark .bg-blue-600 { @apply !bg-[#0047AB]; }
-  .dark .bg-blue-700 { @apply !bg-[#3E5266]; }
-  .dark .hover\:bg-blue-700:hover { @apply !bg-[#3E5266]; }
+  @apply bg-[#0047AB]!;
+  .dark & {
+    @apply bg-[#0047AB]!;
+  }
+}
+@utility bg-blue-700 {
+  @apply bg-[#3E5266]!;
+  .dark & {
+    @apply bg-[#3E5266]!;
+  }
+}
+@layer utilities {
+  /* Hover overrides for church green/blue (cannot be @utility in v4) */
+  .hover\:bg-green-700:hover {
+    background-color: #004B3D !important;
+  }
+  .dark .hover\:bg-green-700:hover {
+    background-color: #004B3D !important;
+  }
+  .hover\:bg-blue-700:hover {
+    background-color: #3E5266 !important;
+  }
+  .dark .hover\:bg-blue-700:hover {
+    background-color: #3E5266 !important;
+  }
+  /* Prevent layout shift when scrollbar appears/disappears */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  /* Church Theme Color Overrides - Maps Tailwind grays to church brand colors */
 }
 
 /* Church Theme Variables */

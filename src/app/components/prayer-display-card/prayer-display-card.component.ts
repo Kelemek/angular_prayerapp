@@ -190,11 +190,11 @@ export class PrayerDisplayCardComponent {
     const baseClasses = 'px-5 py-2 rounded-full border ';
     switch (status) {
       case 'current':
-        return baseClasses + 'bg-[#0047AB] bg-opacity-20 text-[#0047AB] dark:bg-[#0047AB] dark:bg-opacity-30 dark:text-[#4A90E2] border-[#0047AB]';
+        return baseClasses + 'bg-blue-50 dark:bg-blue-900/20 text-[#0047AB] dark:text-[#4A90E2] border-[#0047AB] dark:border-[#0047AB]';
       case 'answered':
-        return baseClasses + 'bg-[#39704D] bg-opacity-20 text-[#39704D] dark:bg-[#39704D] dark:bg-opacity-30 dark:text-[#5FB876] border-[#39704D]';
+        return baseClasses + 'bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] border-[#39704D] dark:border-[#39704D]';
       default:
-        return baseClasses + 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+        return baseClasses + 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-400 dark:border-gray-600';
     }
   }
 

@@ -74,18 +74,20 @@ export class ToastService {
   }
 
   /**
-   * Get CSS classes for toast type
+   * Get CSS classes for toast type.
+   * Uses transparent background with backdrop blur; border and text carry the type color.
    */
   getToastStyles(type: string): string {
+    const base = 'backdrop-blur-md border shadow-lg ';
     switch (type) {
       case 'success':
-        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700';
+        return base + 'bg-green-700/20 dark:bg-green-800/25 text-green-800 dark:text-green-100 border-green-600 dark:border-green-600';
       case 'error':
-        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700';
+        return base + 'bg-red-700/20 dark:bg-red-800/25 text-red-800 dark:text-red-100 border-red-600 dark:border-red-600';
       case 'warning':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700';
+        return base + 'bg-amber-600/20 dark:bg-amber-700/25 text-amber-900 dark:text-amber-100 border-amber-500 dark:border-amber-600';
       default:
-        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700';
+        return base + 'bg-blue-700/20 dark:bg-blue-800/25 text-blue-800 dark:text-blue-100 border-blue-600 dark:border-blue-600';
     }
   }
 }

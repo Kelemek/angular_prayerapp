@@ -147,7 +147,7 @@ type TimeFilter = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
       <!-- Timer Notification -->
       @if (showTimerNotification) {
       <div
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+        class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-3xl p-12 shadow-2xl border-4 border-green-400 text-center max-w-2xl mx-4 animate-pulse relative">
           <button
             (click)="showTimerNotification = false"

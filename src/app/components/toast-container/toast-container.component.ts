@@ -12,10 +12,10 @@ import { Observable } from 'rxjs';
     <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 space-y-2 w-full max-w-md px-4">
       @for (toast of toasts$ | async; track toast.id) {
         <div
-          [class]="'flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg animate-slide-down ' + toastService.getToastStyles(toast.type)"
+          [class]="'flex items-center gap-3 px-4 py-3 rounded-lg animate-slide-down ' + toastService.getToastStyles(toast.type)"
         >
           <!-- Icon -->
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
           </svg>
           
@@ -25,7 +25,8 @@ import { Observable } from 'rxjs';
           <!-- Close Button -->
           <button
             (click)="toastService.removeToast(toast.id)"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-auto"
+            class="opacity-90 hover:opacity-100 text-inherit ml-auto p-0.5 rounded focus:outline-none focus:ring-2 focus:ring-white/50"
+            aria-label="Dismiss"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>

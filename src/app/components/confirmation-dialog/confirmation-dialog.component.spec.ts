@@ -153,8 +153,8 @@ describe('ConfirmationDialogComponent - Core Logic', () => {
     });
 
     it('should have semi-transparent backdrop', () => {
-      const backdrop = 'bg-black/50';
-      expect(backdrop).toContain('black');
+      const backdrop = 'bg-gray-900/50';
+      expect(backdrop).toContain('gray');
     });
 
     it('should center dialog on screen', () => {

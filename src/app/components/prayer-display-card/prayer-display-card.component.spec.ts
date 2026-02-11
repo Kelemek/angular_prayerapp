@@ -156,16 +156,18 @@ describe('PrayerDisplayCardComponent', () => {
       const { fixture } = await render(PrayerDisplayCardComponent);
       
       const classes = fixture.componentInstance.getStatusBadgeClasses('current');
-      expect(classes).toContain('bg-[#0047AB]');
+      expect(classes).toContain('bg-blue-50');
       expect(classes).toContain('text-[#0047AB]');
+      expect(classes).toContain('border-[#0047AB]');
     });
 
     it('should return answered status classes', async () => {
       const { fixture } = await render(PrayerDisplayCardComponent);
       
       const classes = fixture.componentInstance.getStatusBadgeClasses('answered');
-      expect(classes).toContain('bg-[#39704D]');
+      expect(classes).toContain('bg-green-50');
       expect(classes).toContain('text-[#39704D]');
+      expect(classes).toContain('border-[#39704D]');
     });
 
     it('should return default classes for unknown status', async () => {

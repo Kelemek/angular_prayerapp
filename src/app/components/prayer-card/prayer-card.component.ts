@@ -126,7 +126,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
         <button
           (click)="toggleAddUpdate()"
           title="Add an update to this prayer"
-          class="px-3 py-1 text-xs bg-[#39704D] bg-opacity-10 dark:bg-opacity-20 text-[#39704D] dark:text-[#5FB876] rounded-md border border-[#39704D] hover:bg-opacity-20 dark:hover:bg-opacity-30"
+          class="px-3 py-1 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] rounded-md border border-[#39704D] dark:border-[#39704D] hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800"
         >
           Add Update
         </button>
@@ -135,7 +135,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
 
       <!-- Add Update Form -->
       @if (showAddUpdateForm) {
-      <form #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-[#39704D] bg-opacity-10 dark:bg-[#39704D] dark:bg-opacity-20 border border-[#39704D] dark:border-[#39704D] rounded-lg" role="region" [attr.aria-labelledby]="'addUpdateTitle-' + prayer.id">
+      <form #updateForm="ngForm" (ngSubmit)="updateForm.valid && handleAddUpdate()" class="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-[#39704D] dark:border-[#39704D] rounded-lg" role="region" [attr.aria-labelledby]="'addUpdateTitle-' + prayer.id">
         <h4 [id]="'addUpdateTitle-' + prayer.id" class="text-sm font-medium text-[#39704D] dark:text-[#5FB876] mb-3">Add Prayer Update</h4>
         <div class="space-y-2">
           <textarea
@@ -177,7 +177,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
             <button
               type="submit"
               [disabled]="!updateForm.valid"
-              class="px-3 py-1 text-sm bg-[#39704D] text-white rounded-md hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-3 py-1.5 text-sm font-medium bg-[#39704D] text-white rounded-md border border-[#2d5a3f] hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               aria-label="Submit prayer update"
             >
               Add Update
@@ -185,7 +185,7 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
             <button
               type="button"
               (click)="showAddUpdateForm = false"
-              class="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              class="px-3 py-1.5 text-sm font-medium bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               aria-label="Cancel prayer update form"
             >
               Cancel
@@ -613,11 +613,11 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
 
   getStatusBadgeClasses(): string {
     if (this.prayer.status === 'current') {
-      return 'bg-[#0047AB] bg-opacity-20 dark:bg-opacity-30 text-[#0047AB] dark:text-[#4A90E2] border border-[#0047AB]';
+      return 'bg-blue-50 dark:bg-blue-900/20 text-[#0047AB] dark:text-[#4A90E2] border border-[#0047AB] dark:border-[#0047AB]';
     } else if (this.prayer.status === 'answered') {
-      return 'bg-[#39704D] bg-opacity-20 dark:bg-opacity-30 text-[#39704D] dark:text-[#5FB876] border border-[#39704D]';
+      return 'bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] border border-[#39704D] dark:border-[#39704D]';
     } else {
-      return 'bg-[#C9A961] bg-opacity-20 dark:bg-opacity-30 text-[#C9A961] dark:text-[#D4AF85] border border-[#C9A961]';
+      return 'bg-amber-50 dark:bg-amber-900/20 text-[#C9A961] dark:text-[#D4AF85] border border-[#C9A961] dark:border-[#C9A961]';
     }
   }
 

@@ -98,7 +98,7 @@ describe('ToastContainerComponent', () => {
       
       await vi.waitFor(() => {
         const toast = fixture.nativeElement.querySelector('.animate-slide-down');
-        expect(toast?.className).toContain('bg-green-100');
+        expect(toast?.className).toContain('bg-green-700');
       });
     });
 
@@ -108,7 +108,7 @@ describe('ToastContainerComponent', () => {
       
       await vi.waitFor(() => {
         const toast = fixture.nativeElement.querySelector('.animate-slide-down');
-        expect(toast?.className).toContain('bg-red-100');
+        expect(toast?.className).toContain('bg-red-700');
       });
     });
 
@@ -118,7 +118,7 @@ describe('ToastContainerComponent', () => {
       
       await vi.waitFor(() => {
         const toast = fixture.nativeElement.querySelector('.animate-slide-down');
-        expect(toast?.className).toContain('bg-yellow-100');
+        expect(toast?.className).toContain('bg-amber-600');
       });
     });
 
@@ -128,7 +128,7 @@ describe('ToastContainerComponent', () => {
       
       await vi.waitFor(() => {
         const toast = fixture.nativeElement.querySelector('.animate-slide-down');
-        expect(toast?.className).toContain('bg-blue-100');
+        expect(toast?.className).toContain('bg-blue-700');
       });
     });
   });

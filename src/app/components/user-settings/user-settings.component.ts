@@ -25,7 +25,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
     <!-- Modal Overlay -->
     @if (isOpen) {
     <div 
-      class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4"
+      class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-2 sm:p-4"
       style="padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom));"
       (click)="onClose.emit()"
     >

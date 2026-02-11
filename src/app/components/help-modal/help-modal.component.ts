@@ -14,7 +14,7 @@ import { map } from 'rxjs/operators';
   template: `
     @if (isOpen) {
       <!-- Modal Backdrop -->
-      <div class="fixed inset-0 bg-black/50 dark:bg-black/70 z-40" (click)="onClose()" aria-hidden="true"></div>
+      <div class="fixed inset-0 bg-gray-900/50 z-40" (click)="onClose()" aria-hidden="true"></div>
 
       <!-- Modal Container -->
       <div
