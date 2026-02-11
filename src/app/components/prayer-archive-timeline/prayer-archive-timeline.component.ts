@@ -460,7 +460,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
 
   private async filterCurrentMonth(): Promise<void> {
     // Process ALL prayers first (this calculates reminder/archive dates)
-    await this.processPrayers(this.allPrayers);
+    this.processPrayers(this.allPrayers);
     
     // Calculate min and max months from all events
     if (this.allEvents.length > 0) {
@@ -508,7 +508,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
   }
 
-  private async processPrayers(prayers: PrayerRequest[]): Promise<void> {
+  private processPrayers(prayers: PrayerRequest[]): void {
     const allEvents: TimelineEvent[] = [];
 
     const today = new Date();
@@ -549,22 +549,11 @@ export class PrayerArchiveTimelineComponent implements OnInit {
         continue;
       }
 
-      // Get the most recent update for this prayer
-      let lastActivityDate: Date | null = null;
-      try {
-        const { data: updates, error } = await this.supabase.client
-          .from('prayer_updates')
-          .select('created_at')
-          .eq('prayer_id', prayer.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (!error && updates && updates.length > 0) {
-          lastActivityDate = new Date(updates[0].created_at);
-        }
-      } catch (err) {
-        console.error(`Error fetching updates for prayer ${prayer.id}:`, err);
-      }
+      // Use already-loaded updates from prayer (no extra Supabase egress)
+      const lastActivityDate: Date | null =
+        prayer.updates?.length > 0
+          ? new Date(prayer.updates[0].created_at)
+          : null;
 
       const lastReminderSent = prayer.last_reminder_sent;
       
