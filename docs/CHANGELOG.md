@@ -449,4 +449,5 @@ The personal prayers feature extends the existing PrintService architecture:
 
 ## License
 
+
 © 2024-2026 Cross Pointe Church. All rights reserved.
