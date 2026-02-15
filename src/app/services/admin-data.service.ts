@@ -485,10 +485,7 @@ export class AdminDataService {
       }).catch(err => console.error('Failed to send broadcast notification:', err));
     }
 
-    // Trigger email processor immediately
-    await this.triggerEmailProcessor().catch(err => 
-      console.error('Failed to trigger email processor:', err)
-    );
+    // Email processor is already triggered by sendApprovedPrayerNotification/sendApprovedUpdateNotification
   }
 
   async denyPrayer(id: string, reason: string): Promise<void> {
@@ -705,10 +702,7 @@ export class AdminDataService {
       markedAsAnswered: update.mark_as_answered || false
     }).catch(err => console.error('Failed to send update notification:', err));
 
-    // Trigger email processor immediately
-    await this.triggerEmailProcessor().catch(err => 
-      console.error('Failed to trigger email processor:', err)
-    );
+    // Email processor is already triggered by sendApprovedUpdateNotification
   }
 
   async denyUpdate(id: string, reason: string): Promise<void> {
@@ -1102,28 +1096,6 @@ export class AdminDataService {
     } catch (error) {
       console.error('Error sending subscriber welcome email:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Trigger the GitHub Actions email processor workflow
-   * Sends an immediate request to process the email queue
-   */
-  private async triggerEmailProcessor(): Promise<void> {
-    try {
-      
-      const response = await this.supabase.client.functions.invoke('trigger-email-processor', {
-        method: 'POST',
-      });
-
-      if (response.error) {
-        console.error('❌ Edge Function error:', response.error);
-        return;
-      }
-
-    } catch (error) {
-      console.error('❌ Failed to trigger email processor:', error instanceof Error ? error.message : error);
-      // Don't throw - email processing will still happen, just slower
     }
   }
 
