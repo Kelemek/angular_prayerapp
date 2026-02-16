@@ -299,18 +299,19 @@ interface CSVRow {
         <div class="space-y-3">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Name</label>
-            <div class="flex gap-2">
+            <!-- Keep input + button on one line; allow input to shrink so the row stays within the header width -->
+            <div class="flex gap-2 max-w-full">
               <input
                 type="text"
                 [(ngModel)]="pcSearchQuery"
                 (keyup.enter)="handleSearchPlanningCenter()"
                 placeholder="Enter name to search..."
-                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 (click)="handleSearchPlanningCenter()"
                 [disabled]="pcSearching || !pcSearchQuery.trim()"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer"
+                class="shrink-0 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer whitespace-nowrap"
               >
                 @if (pcSearching) {
                   Searching...
@@ -390,19 +391,20 @@ interface CSVRow {
       <!-- Search Form -->
       <div class="mb-4 max-w-full">
         <label for="search" class="sr-only">Search subscribers</label>
-        <div class="flex gap-2">
+        <!-- Stack input and button on small screens to avoid overflow -->
+        <div class="flex flex-col sm:flex-row gap-2">
           <input
             id="search"
             type="text"
             [(ngModel)]="searchQuery"
             (keyup.enter)="handleSearch()"
             placeholder="Search by email or name..."
-            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 w-full"
           />
           <button
             (click)="handleSearch()"
             [disabled]="searching"
-            class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:bg-blue-400 text-sm cursor-pointer"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:bg-blue-400 text-sm cursor-pointer w-full sm:w-auto"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
