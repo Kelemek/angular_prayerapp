@@ -537,6 +537,13 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
             this.initializeUpdateBadge(update.id);
           }
         });
+        // Refresh badge state for all updates so only the new one shows unread (existing
+        // updates may still have been left true from initial ngOnInit before any were marked read)
+        if (currentPrayer.updates && Array.isArray(currentPrayer.updates)) {
+          currentPrayer.updates.forEach(update => {
+            this.updateUpdateBadge(update.id);
+          });
+        }
       }
     }
   }
