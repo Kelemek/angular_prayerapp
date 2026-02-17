@@ -447,9 +447,9 @@ interface CSVRow {
 
       @if (!searching && hasSearched && subscribers.length > 0) {
       <div>
-        <div [class]="'grid mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 ' + (isLandscape ? 'grid-cols-12' : 'hidden md:grid-cols-12')">
-          <button (click)="toggleSort('name')" class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by name">Name{{ getSortIndicator('name') }}</button>
-          <button (click)="toggleSort('email')" class="col-span-4 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by email">Email{{ getSortIndicator('email') }}</button>
+        <div class="hidden mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 md:grid md:grid-cols-12">
+          <button (click)="toggleSort('name')" class="col-span-3 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by name">Name{{ getSortIndicator('name') }}</button>
+          <button (click)="toggleSort('email')" class="col-span-3 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by email">Email{{ getSortIndicator('email') }}</button>
           <button (click)="toggleSort('created_at')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by join date">Added{{ getSortIndicator('created_at') }}</button>
           <button (click)="toggleSort('last_activity_date')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by last activity">Activity{{ getSortIndicator('last_activity_date') }}</button>
           <button (click)="toggleSort('is_active')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by status">Status{{ getSortIndicator('is_active') }}</button>
@@ -457,28 +457,28 @@ interface CSVRow {
           <button (click)="toggleSort('in_planning_center')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by Planning Center status">Planning Center{{ getSortIndicator('in_planning_center') }}</button>
         </div>
         <div class="space-y-2">
-          @for (subscriber of subscribers; track subscriber.id) { <div [class]="'grid gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 ' + (isLandscape ? 'grid-cols-12 items-start' : 'grid-cols-2 md:grid-cols-12 md:items-start')">
+          @for (subscriber of subscribers; track subscriber.id) { <div class="grid gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 grid-cols-2 md:grid-cols-12 md:items-start">
             <!-- Name column -->
-            <div [class]="'text-left ' + (isLandscape ? 'col-span-2' : 'col-span-1 md:col-span-2')">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Name</p>
+            <div class="text-left col-span-1 md:col-span-3">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Name</p>
               <h4 class="font-medium text-gray-900 dark:text-gray-100 truncate" [title]="subscriber.name">{{ subscriber.name }}</h4>
             </div>
             
             <!-- Email column -->
-            <div [class]="'text-left ' + (isLandscape ? 'col-span-4' : 'col-span-1 md:col-span-4')">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Email</p>
+            <div class="text-left col-span-1 md:col-span-3">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Email</p>
               <p class="text-sm text-gray-600 dark:text-gray-400 truncate" [title]="subscriber.email">{{ subscriber.email }}</p>
             </div>
             
             <!-- Added column -->
             <div class="col-span-1 md:col-span-1">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Added</p>
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Added</p>
               <p class="text-xs text-gray-500 dark:text-gray-500" [title]="'Joined: ' + (subscriber.created_at | date:'medium')">{{ subscriber.created_at | date:'short' }}</p>
             </div>
             
             <!-- Activity column -->
             <div class="col-span-1 md:col-span-1">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Activity</p>
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Activity</p>
               @if (subscriber.last_activity_date) {
               <p class="text-xs text-gray-500 dark:text-gray-500" [title]="'Last active: ' + (subscriber.last_activity_date | date:'medium')">{{ subscriber.last_activity_date | date:'short' }}</p>
               } @else {
@@ -488,7 +488,7 @@ interface CSVRow {
             
             <!-- Status column -->
             <div class="col-span-1 md:col-span-1 flex items-center gap-1">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Status</p>
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Status</p>
               <button
                 (click)="handleToggleActive(subscriber.id, subscriber.is_active)"
                 [class]="subscriber.is_active ? 
@@ -513,7 +513,7 @@ interface CSVRow {
 
             <!-- Blocked column -->
             <div class="col-span-1 md:col-span-1 flex items-center gap-1">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Blocked</p>
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Blocked</p>
               <button
                 (click)="handleToggleBlocked(subscriber.id, subscriber.is_blocked)"
                 [class]="subscriber.is_blocked ? 
@@ -530,7 +530,7 @@ interface CSVRow {
 
             <!-- Planning Center column -->
             <div class="col-span-1 md:col-span-1 flex items-center gap-1">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Planning Center</p>
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Planning Center</p>
               @if (subscriber.in_planning_center === true) {
               <span class="text-lg text-green-600 dark:text-green-400" title="This person is verified in Planning Center">✓</span>
               } @else if (subscriber.in_planning_center === false) {
@@ -540,19 +540,41 @@ interface CSVRow {
               }
             </div>
 
-            <!-- Delete button column -->
-            <div class="col-span-1 md:col-span-1 flex items-center gap-1">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden" [class.hidden]="isLandscape">Delete</p>
-              <button
-                (click)="handleDelete(subscriber.id, subscriber.email)"
-                class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer"
-                [title]="subscriber.is_admin ? 'Remove this admin from email list (they keep their admin login access)' : 'Permanently delete this subscriber from the list'"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
+            <!-- Actions (Edit + Delete) column -->
+            <div class="col-span-1 md:col-span-1">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Actions</p>
+              <!-- Keep actions comfortably inside the row container on all screen sizes -->
+              <div class="flex items-center pr-1 justify-start gap-3 md:justify-center md:gap-1">
+                <!-- Edit subscriber -->
+                <div class="flex items-center gap-1">
+                  <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Edit</span>
+                  <button
+                    (click)="openEditSubscriberModal(subscriber)"
+                    class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                    title="Edit subscriber name"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Delete subscriber -->
+                <div class="flex items-center gap-1">
+                  <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:hidden">Delete</span>
+                  <button
+                    (click)="handleDelete(subscriber.id, subscriber.email)"
+                    class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer"
+                    [title]="subscriber.is_admin ? 'Remove this admin from email list (they keep their admin login access)' : 'Permanently delete this subscriber from the list'"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           }
@@ -653,6 +675,63 @@ interface CSVRow {
         (cancel)="onCancelDialog()">
       </app-confirmation-dialog>
       }
+
+      <!-- Edit Subscriber Dialog -->
+      @if (showEditSubscriberDialog) {
+      <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full border border-gray-200 dark:border-gray-700">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Subscriber</h2>
+          </div>
+          <div class="px-6 py-4 space-y-4">
+            @if (editError) {
+            <div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded text-sm text-red-700 dark:text-red-200">
+              {{ editError }}
+            </div>
+            }
+            <div>
+              <label for="editName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+              <input
+                id="editName"
+                type="text"
+                [(ngModel)]="editName"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label for="editEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email (read-only)</label>
+              <input
+                id="editEmail"
+                type="email"
+                [ngModel]="editEmail"
+                disabled
+                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Email address cannot be changed. To use a different email, create a new subscriber with the new address.
+              </p>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <button
+              type="button"
+              (click)="closeEditSubscriberModal()"
+              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              (click)="saveEditSubscriber()"
+              [disabled]="editSaving"
+              class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm font-medium cursor-pointer"
+            >
+              {{ editSaving ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      }
     </div>
   `,
   styles: [`
@@ -712,6 +791,14 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   confirmationAction: (() => Promise<void>) | null = null;
   isDeleteConfirmation = false;
   confirmationConfirmText = 'Confirm';
+
+  // Edit subscriber dialog properties (name-only edit)
+  showEditSubscriberDialog = false;
+  editSubscriberId: string | null = null;
+  editName = '';
+  editEmail = '';
+  editSaving = false;
+  editError: string | null = null;
 
   // Landscape/Portrait detection
   isLandscape = false;
@@ -791,6 +878,69 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     this.csvSuccess = null;
     this.csvData = [];
     this.cdr.markForCheck();
+  }
+
+  openEditSubscriberModal(subscriber: EmailSubscriber) {
+    this.editSubscriberId = subscriber.id;
+    this.editName = subscriber.name || '';
+    this.editEmail = subscriber.email;
+    this.editError = null;
+    this.showEditSubscriberDialog = true;
+    this.cdr.markForCheck();
+  }
+
+  closeEditSubscriberModal() {
+    this.showEditSubscriberDialog = false;
+    this.editSubscriberId = null;
+    this.editName = '';
+    this.editEmail = '';
+    this.editError = null;
+    this.editSaving = false;
+    this.cdr.markForCheck();
+  }
+
+  async saveEditSubscriber() {
+    if (!this.editSubscriberId) {
+      return;
+    }
+
+    const trimmedName = this.editName.trim();
+    if (!trimmedName) {
+      this.editError = 'Name is required';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    try {
+      this.editSaving = true;
+      this.editError = null;
+      this.cdr.markForCheck();
+
+      const { error } = await this.supabase.client
+        .from('email_subscribers')
+        .update({ name: trimmedName })
+        .eq('id', this.editSubscriberId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local data so the grid reflects the new name
+      const sub = this.allSubscribers.find(s => s.id === this.editSubscriberId);
+      if (sub) {
+        sub.name = trimmedName;
+      }
+      this.loadPageData();
+      this.toast.success('Subscriber updated');
+      this.closeEditSubscriberModal();
+    } catch (err: any) {
+      console.error('Error updating subscriber:', err);
+      this.editError = err?.message || 'Failed to update subscriber';
+      this.cdr.markForCheck();
+    } finally {
+      this.editSaving = false;
+      this.cdr.markForCheck();
+    }
   }
 
   async handleSearch() {

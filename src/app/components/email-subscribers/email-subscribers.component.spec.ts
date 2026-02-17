@@ -115,6 +115,13 @@ describe('EmailSubscribersComponent', () => {
       expect(component.pageSize).toBe(10);
       expect(component.totalItems).toBe(0);
       expect(component.allSubscribers).toEqual([]);
+      // Edit subscriber dialog defaults
+      expect((component as any).showEditSubscriberDialog).toBe(false);
+      expect((component as any).editSubscriberId).toBeNull();
+      expect((component as any).editName).toBe('');
+      expect((component as any).editEmail).toBe('');
+      expect((component as any).editSaving).toBe(false);
+      expect((component as any).editError).toBeNull();
     });
   });
 
@@ -1573,6 +1580,88 @@ describe('EmailSubscribersComponent', () => {
       expect(component.showConfirmationDialog).toBe(false);
       expect(component.confirmationAction).toBeNull();
       expect(component.isDeleteConfirmation).toBe(false);
+    });
+
+    it('should open edit subscriber modal with correct initial values', () => {
+      const subscriber = {
+        id: 'sub-1',
+        name: 'Original Name',
+        email: 'user@example.com',
+        is_active: true,
+        is_blocked: false,
+        is_admin: false,
+        created_at: '2024-01-01',
+        last_activity_date: '2024-01-01',
+        in_planning_center: false
+      } as any;
+
+      component.openEditSubscriberModal(subscriber);
+
+      expect(component['editSubscriberId']).toBe('sub-1');
+      expect(component['editName']).toBe('Original Name');
+      expect(component['editEmail']).toBe('user@example.com');
+      expect(component['showEditSubscriberDialog']).toBe(true);
+    });
+
+    it('should close edit subscriber modal and reset state', () => {
+      component['editSubscriberId'] = 'sub-1';
+      component['editName'] = 'Changed';
+      component['editEmail'] = 'user@example.com';
+      component['editError'] = 'Some error';
+      component['editSaving'] = true;
+      component['showEditSubscriberDialog'] = true;
+
+      component.closeEditSubscriberModal();
+
+      expect(component['editSubscriberId']).toBeNull();
+      expect(component['editName']).toBe('');
+      expect(component['editEmail']).toBe('');
+      expect(component['editError']).toBeNull();
+      expect(component['editSaving']).toBe(false);
+      expect(component['showEditSubscriberDialog']).toBe(false);
+    });
+
+    it('should validate name when saving edited subscriber', async () => {
+      component['editSubscriberId'] = 'sub-1';
+      component['editName'] = '   '; // only whitespace
+
+      await component.saveEditSubscriber();
+
+      expect(component['editError']).toBe('Name is required');
+    });
+
+    it('should update subscriber name via Supabase when saving edit', async () => {
+      const mockUpdate = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.client.from.mockReturnValue({
+        update: () => ({ eq: mockUpdate })
+      } as any);
+
+      const existing = {
+        id: 'sub-1',
+        name: 'Old Name',
+        email: 'user@example.com',
+        is_active: true,
+        is_blocked: false,
+        is_admin: false,
+        created_at: '2024-01-01',
+        last_activity_date: '2024-01-01',
+        in_planning_center: false
+      } as any;
+
+      component.allSubscribers = [existing];
+      component['editSubscriberId'] = 'sub-1';
+      component['editName'] = 'New Name';
+
+      const loadPageDataSpy = vi.spyOn(component as any, 'loadPageData').mockImplementation(() => {});
+      const closeSpy = vi.spyOn(component as any, 'closeEditSubscriberModal').mockImplementation(() => {});
+
+      await component.saveEditSubscriber();
+
+      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('email_subscribers');
+      expect(mockUpdate).toHaveBeenCalledWith('id', 'sub-1');
+      expect(existing.name).toBe('New Name');
+      expect(loadPageDataSpy).toHaveBeenCalled();
+      expect(closeSpy).toHaveBeenCalled();
     });
 
     // Tests for non-existent component property sortOrder - commented out
