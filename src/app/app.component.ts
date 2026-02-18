@@ -29,6 +29,20 @@ export class AppComponent implements OnInit {
     this.setupGlobalErrorHandler();
     // Listen for navigation events and scroll to top on mobile
     this.setupScrollToTopOnNavigation();
+    // Initialize Capacitor for mobile apps
+    this.initializeCapacitor();
+  }
+
+  /**
+   * Initialize Capacitor service for mobile app features
+   */
+  private async initializeCapacitor(): Promise<void> {
+    try {
+      const { CapacitorService } = await import('./services/capacitor.service');
+      this.injector.get(CapacitorService);
+    } catch (error) {
+      console.debug('Capacitor service not available (running on web)', error);
+    }
   }
 
   /**
