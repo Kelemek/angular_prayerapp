@@ -20,7 +20,8 @@
     "cap:icons": "cp public/apple-touch-icon.png resources/logo.png && npx @capacitor/assets generate --iconBackgroundColor '#1a365d' --iconBackgroundColorDark '#1a365d' --splashBackgroundColor '#1a365d' --splashBackgroundColorDark '#1a365d'",
     "cap:icons:generate": "npx @capacitor/assets generate --iconBackgroundColor '#1a365d' --iconBackgroundColorDark '#1a365d' --splashBackgroundColor '#1a365d' --splashBackgroundColorDark '#1a365d'",
     "cap:dev": "ng build --configuration development && npx cap sync",
-    "cap:prod": "ng build --configuration production && npx cap sync"
+    "cap:prod": "ng build --configuration production && npx cap sync",
+    "resize-app-store-screenshots": "node scripts/resize-app-store-screenshots.js"
   },
   "dependencies": {
     "@angular/animations": "^21.1.3",
