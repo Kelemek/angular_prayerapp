@@ -790,7 +790,7 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
 
   // Sorting properties
   sortBy: 'name' | 'email' | 'created_at' | 'last_activity_date' | 'is_active' | 'receive_push' | 'is_blocked' | 'in_planning_center' = 'last_activity_date';
-  sortDirection: 'asc' | 'desc' = 'desc';
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   // Planning Center search properties
   pcSearchTab = false;
