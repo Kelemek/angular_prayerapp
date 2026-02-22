@@ -1,0 +1,41 @@
+name: Cleanup Device Tokens
+
+on:
+  schedule:
+    # Run daily at 3 AM UTC (low traffic)
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  cleanup-tokens:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Cleanup Device Tokens Edge Function
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ secrets.SUPABASE_URL }}/functions/v1/cleanup-device-tokens' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}' \
+            -H 'Content-Type: application/json')
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "Error: Cleanup device tokens failed with status $HTTP_CODE"
+            exit 1
+          fi
+          
+          DELETED=$(echo "$BODY" | grep -o '"deleted":[0-9]*' | cut -d':' -f2)
+          if [ -n "$DELETED" ]; then
+            echo "Successfully removed $DELETED old device token(s)"
+          else
+            echo "Cleanup device tokens completed"
+          fi
+          
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "::warning::Cleanup device tokens function failed. Check logs for details."

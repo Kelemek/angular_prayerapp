@@ -137,13 +137,8 @@ The function sends **Android** via **FCM HTTP v1** (service account) and **iOS**
   - **Implementation:** In the email-subscribers component, either (1) when loading the subscriber list, run a separate query or RPC that returns per-email device counts and merge into the list, or (2) when the user expands/clicks "Devices" for a row, call `supabase.from('device_tokens').select('platform, last_seen_at').eq('user_email', subscriber.email)` and show the result in a small popover or inline section.
   - **Why it's optional:** You can send push notifications without this; it's mainly for admins to see who has the app installed and how many devices.
 
-- [ ] **Automatic token cleanup**
-  - Consider periodic cleanup of old tokens (30+ days unused)
-  - Run periodically: 
-  ```sql
-  DELETE FROM device_tokens 
-  WHERE last_seen_at < NOW() - INTERVAL '30 days'
-  ```
+- [x] **Automatic token cleanup**
+  - Implemented via Edge Function `cleanup-device-tokens` and GitHub Actions workflow (daily at 3 AM UTC). Removes `device_tokens` where `last_seen_at` is older than 30 days. Related `push_notification_log` rows are removed by CASCADE. Deploy the function with `./scripts/deploy-functions.sh cleanup-device-tokens` or `all`.
 
 ## Phase 6: Send Notifications from Admin
 

@@ -1,8 +1,9 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, Subscription, interval, timer } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { CacheService } from './cache.service';
+import { PushNotificationService } from './push-notification.service';
 import type { User } from '@supabase/supabase-js';
 
 @Injectable({
@@ -30,6 +31,7 @@ export class AdminAuthService {
   public adminSessionExpired$ = this.adminSessionExpiredSubject.asObservable();
 
   private router = inject(Router);
+  private injector = inject(Injector);
 
   constructor(private supabase: SupabaseService, private cacheService: CacheService) {
     this.initializeAuth().catch(error => {
@@ -486,7 +488,15 @@ export class AdminAuthService {
     try {
       // Get user email before clearing auth state
       const userEmail = this.userSubject.value?.email || localStorage.getItem('mfa_authenticated_email');
-      
+
+      // Remove this device's push token so we don't send notifications after logout
+      try {
+        const pushService = this.injector.get(PushNotificationService);
+        await pushService.removeDeviceToken();
+      } catch {
+        // Ignore if push service not available (e.g. web) or remove fails
+      }
+
       await this.supabase.client.auth.signOut();
       this.userSubject.next(null);
       this.isAdminSubject.next(false);
