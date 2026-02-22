@@ -1620,11 +1620,11 @@ export class PrayerService {
   }
 
   /**
-   * Update personal prayer (title, description, and/or category)
+   * Update personal prayer (title, prayer_for, description, and/or category)
    */
   async updatePersonalPrayer(
     id: string,
-    updates: Partial<Pick<PrayerRequest, 'title' | 'description' | 'category'>>
+    updates: Partial<Pick<PrayerRequest, 'title' | 'prayer_for' | 'description' | 'category'>>
   ): Promise<boolean> {
     try {
       const userEmail = await this.getUserEmail();
@@ -1688,13 +1688,14 @@ export class PrayerService {
 
       if (error) throw error;
 
-      // Update local state and cache
+      // Update local state and cache (include prayer_for and title so card title updates immediately)
       const personalPrayers = this.allPersonalPrayersSubject.value;
       const updatedPrayers = personalPrayers.map(p =>
         p.id === id 
           ? { 
               ...p, 
               title: updates.title ?? p.title,
+              prayer_for: updates.prayer_for ?? p.prayer_for,
               description: updates.description ?? p.description,
               category: newCategory,
               display_order: newDisplayOrder,
