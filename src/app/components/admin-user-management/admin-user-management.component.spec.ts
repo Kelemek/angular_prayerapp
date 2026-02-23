@@ -55,6 +55,7 @@ describe('AdminUserManagementComponent', () => {
     mockEmailService = {
       getTemplate: vi.fn().mockResolvedValue(null),
       applyTemplateVariables: vi.fn((t: string) => t),
+      getEmailBaseUrl: vi.fn(() => 'http://localhost:4200'),
       sendEmail: vi.fn().mockResolvedValue(undefined),
     };
 

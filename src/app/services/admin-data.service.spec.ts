@@ -102,6 +102,7 @@ describe('AdminDataService', () => {
         }
         return result;
       }),
+      getEmailBaseUrl: vi.fn(() => 'http://localhost:4200'),
       sendEmail: vi.fn(() => Promise.resolve())
     } as unknown as EmailNotificationService;
 
