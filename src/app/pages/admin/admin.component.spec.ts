@@ -9,6 +9,7 @@ describe('AdminComponent', () => {
   let adminAuthService: any;
   let userSessionService: any;
   let router: any;
+  let ngZone: any;
   let cdr: any;
 
   beforeEach(() => {
@@ -59,9 +60,10 @@ describe('AdminComponent', () => {
     };
 
     router = { navigate: vi.fn() };
+    ngZone = { run: (fn: () => void) => fn() };
     cdr = { markForCheck: vi.fn() };
 
-    component = new AdminComponent(router, adminDataService, analyticsService, adminAuthService, userSessionService, cdr);
+    component = new AdminComponent(router, adminDataService, analyticsService, adminAuthService, userSessionService, ngZone, cdr);
   });
 
   it('subscribes and fetches admin data on init', async () => {

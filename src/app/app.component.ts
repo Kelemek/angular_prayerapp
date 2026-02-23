@@ -1,6 +1,7 @@
 import { Component, OnInit, Injector, ErrorHandler, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
+import { AdminDataService } from './services/admin-data.service';
 import { filter } from 'rxjs';
 
 @Component({
@@ -421,7 +422,15 @@ export class AppComponent implements OnInit {
           filter((event) => event.data?.['target'] === 'admin')
         )
         .subscribe(() => {
-          this.router.navigate(['/admin']);
+          // Pre-fetch admin data so the approval list is ready when the page loads.
+          // Run in NgZone so change detection runs when the app was resumed from background.
+          const adminDataService = this.injector.get(AdminDataService);
+          adminDataService.fetchAdminData(false, true).catch((err) => {
+            console.error('[AppComponent] Failed to pre-fetch admin data after push tap:', err);
+          });
+          this.ngZone.run(() => {
+            this.router.navigate(['/admin']);
+          });
         });
     } catch (error) {
       // Likely running on web where Capacitor/PrayerService lazy imports may not be needed

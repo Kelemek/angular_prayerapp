@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -708,6 +708,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     private analyticsService: AnalyticsService,
     public adminAuthService: AdminAuthService,
     public userSessionService: UserSessionService,
+    private ngZone: NgZone,
     public cdr: ChangeDetectorRef
   ) {}
 
@@ -724,28 +725,31 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Subscribe to admin data
+    // Subscribe to admin data. Run updates inside NgZone so change detection runs when
+    // the app was resumed from background (e.g. tap on approval push notification).
     this.adminDataService.data$
       .pipe(takeUntil(this.destroy$))
       .subscribe(data => {
-        this.adminData = data;
-        this.consolidatedApprovals = this.buildConsolidatedApprovals(data);
-        this.cdr.markForCheck();
-        
-        // Set initial tab based on pending items (only if still on default and data is loaded)
-        // We skip the initial empty state by checking hasFetchStarted
-        if (this.activeTab === 'prayers' && this.hasFetchStarted && !data.loading) {
-          this.setInitialTab();
-        }
-        
-        // Auto-progress through tabs when each section is complete
-        // Only run this when we have valid data (fetch started and not loading)
-        if (this.hasFetchStarted && !data.loading) {
-          this.autoProgressTabs();
-        }
+        this.ngZone.run(() => {
+          this.adminData = data;
+          this.consolidatedApprovals = this.buildConsolidatedApprovals(data);
+          this.cdr.markForCheck();
+
+          // Set initial tab based on pending items (only if still on default and data is loaded)
+          // We skip the initial empty state by checking hasFetchStarted
+          if (this.activeTab === 'prayers' && this.hasFetchStarted && !data.loading) {
+            this.setInitialTab();
+          }
+
+          // Auto-progress through tabs when each section is complete
+          // Only run this when we have valid data (fetch started and not loading)
+          if (this.hasFetchStarted && !data.loading) {
+            this.autoProgressTabs();
+          }
+        });
       });
 
-    // Initial fetch
+    // Initial fetch (or join the pre-fetch started by push-tap navigation)
     this.hasFetchStarted = true;
     this.adminDataService.fetchAdminData();
     
