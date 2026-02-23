@@ -458,7 +458,7 @@ export class AdminUserManagementComponent implements OnInit {
       // Fetch admin_invitation template from database
       const template = await this.emailService.getTemplate('admin_invitation');
       
-      const appUrl = window.location.origin;
+      const appUrl = this.emailService.getEmailBaseUrl();
       const adminLink = `${appUrl}/admin`;
       
       let subject: string;

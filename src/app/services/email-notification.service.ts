@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { environment } from '../../environments/environment';
 import { SupabaseService } from './supabase.service';
 import { PushNotificationService } from './push-notification.service';
 
@@ -89,6 +90,21 @@ export class EmailNotificationService {
     private supabase: SupabaseService,
     private pushNotification: PushNotificationService
   ) {}
+
+  /**
+   * Base URL for links in emails. Website (browser): uses current origin so no change from old behavior.
+   * Native app (Capacitor): origin is capacitor://localhost, so uses environment.appUrl (e.g. https on Vercel, http for local native dev).
+   */
+  getEmailBaseUrl(): string {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    if (origin && (origin.startsWith('http://') || origin.startsWith('https://'))) {
+      return origin;
+    }
+    if (typeof environment !== 'undefined' && environment.appUrl) {
+      return environment.appUrl.replace(/\/$/, '');
+    }
+    return origin;
+  }
 
   /**
    * Send a single email using Supabase edge function
@@ -248,7 +264,7 @@ export class EmailNotificationService {
         requesterName: payload.requester,
         prayerDescription: payload.description,
         status: payload.status,
-        appLink: `${window.location.origin}/`
+        appLink: `${this.getEmailBaseUrl()}/`
       };
 
       // Fetch all active subscribers
@@ -302,7 +318,7 @@ export class EmailNotificationService {
         prayerDescription: payload.prayerDescription,
         authorName: payload.author,
         updateContent: payload.content,
-        appLink: window.location.origin
+        appLink: this.getEmailBaseUrl()
       };
 
       // Fetch all active subscribers
@@ -361,7 +377,7 @@ export class EmailNotificationService {
             prayerTitle: payload.title,
             prayerFor: payload.prayerFor,
             prayerDescription: payload.description,
-            appLink: `${window.location.origin}/`
+            appLink: `${this.getEmailBaseUrl()}/`
           };
           console.log('[EmailNotificationService.sendRequesterApprovalNotification] Template variables:', variables);
           console.log('[EmailNotificationService.sendRequesterApprovalNotification] Template HTML before substitution:', template.html_body.substring(0, 200));
@@ -412,7 +428,7 @@ export class EmailNotificationService {
             prayerTitle: payload.title,
             prayerDescription: payload.description,
             denialReason: payload.denialReason,
-            appLink: `${window.location.origin}/`
+            appLink: `${this.getEmailBaseUrl()}/`
           };
           subject = this.applyTemplateVariables(template.subject, variables);
           body = this.applyTemplateVariables(template.text_body, variables);
@@ -454,7 +470,7 @@ export class EmailNotificationService {
             prayerTitle: payload.prayerTitle,
             updateContent: payload.content,
             denialReason: payload.denialReason,
-            appLink: `${window.location.origin}/`
+            appLink: `${this.getEmailBaseUrl()}/`
           };
           subject = this.applyTemplateVariables(template.subject, variables);
           body = this.applyTemplateVariables(template.text_body, variables);
@@ -496,7 +512,7 @@ export class EmailNotificationService {
             prayerTitle: payload.prayerTitle,
             updateContent: payload.content,
             author: payload.author,
-            appLink: `${window.location.origin}/`
+            appLink: `${this.getEmailBaseUrl()}/`
           };
           subject = this.applyTemplateVariables(template.subject, variables);
           body = this.applyTemplateVariables(template.text_body, variables);
@@ -622,8 +638,8 @@ export class EmailNotificationService {
   private async sendAccountApprovalNotificationToEmail(email: string, firstName: string, lastName: string, affiliationReason: string, adminEmail: string): Promise<void> {
     try {
       // Link to admin site - admins will log in normally
-      const appUrl = window.location.origin;
-      const adminLink = `${appUrl}/admin`;
+      const baseUrl = this.getEmailBaseUrl();
+      const adminLink = `${baseUrl}/admin`;
       
       // Get template from database
       const template = await this.getTemplate('account_approval_request');
@@ -683,7 +699,7 @@ export class EmailNotificationService {
   private async sendAdminNotificationToEmail(payload: AdminNotificationPayload, adminEmail: string): Promise<void> {
     try {
       // Link to admin site - admins will log in normally to handle approvals
-      const adminLink = `${window.location.origin}/admin`;
+      const adminLink = `${this.getEmailBaseUrl()}/admin`;
 
       let subject: string;
       let body: string;
@@ -776,7 +792,7 @@ export class EmailNotificationService {
   // HTML template generators (fallbacks when templates not found in DB)
 
   private generateApprovedPrayerHTML(payload: ApprovedPrayerPayload): string {
-    const appUrl = `${window.location.origin}/`;
+    const appUrl = `${this.getEmailBaseUrl()}/`;
 
     return `
       <!DOCTYPE html>
@@ -812,7 +828,7 @@ export class EmailNotificationService {
   }
 
   private generateAnsweredPrayerHTML(payload: ApprovedPrayerPayload): string {
-    const appUrl = `${window.location.origin}/`;
+    const appUrl = `${this.getEmailBaseUrl()}/`;
 
     return `
       <!DOCTYPE html>
@@ -848,7 +864,7 @@ export class EmailNotificationService {
   }
 
   private generateApprovedUpdateHTML(payload: ApprovedUpdatePayload): string {
-    const appUrl = `${window.location.origin}/`;
+    const appUrl = `${this.getEmailBaseUrl()}/`;
     const isAnswered = payload.markedAsAnswered || false;
 
     const gradientColors = isAnswered ? '#10b981, #059669' : '#3b82f6, #2563eb';
@@ -894,7 +910,7 @@ export class EmailNotificationService {
   }
 
   private generateRequesterApprovalHTML(payload: RequesterApprovalPayload): string {
-    const appUrl = `${window.location.origin}/`;
+    const appUrl = `${this.getEmailBaseUrl()}/`;
 
     return `
       <!DOCTYPE html>
@@ -944,7 +960,7 @@ export class EmailNotificationService {
   }
 
   private generateDeniedPrayerHTML(payload: DeniedPrayerPayload): string {
-    const appUrl = `${window.location.origin}/`;
+    const appUrl = `${this.getEmailBaseUrl()}/`;
 
     return `
       <!DOCTYPE html>
@@ -981,7 +997,7 @@ export class EmailNotificationService {
   }
 
   private generateDeniedUpdateHTML(payload: DeniedUpdatePayload): string {
-    const appUrl = `${window.location.origin}/`;
+    const appUrl = `${this.getEmailBaseUrl()}/`;
 
     return `
       <!DOCTYPE html>
@@ -1018,7 +1034,7 @@ export class EmailNotificationService {
   }
 
   private generateUpdateAuthorApprovalHTML(payload: UpdateAuthorApprovalPayload): string {
-    const appUrl = `${window.location.origin}/`;
+    const appUrl = `${this.getEmailBaseUrl()}/`;
 
     return `
       <!DOCTYPE html>
@@ -1157,7 +1173,7 @@ export class EmailNotificationService {
 
       if (template) {
         const variables = {
-          appLink: `${window.location.origin}/`
+          appLink: `${this.getEmailBaseUrl()}/`
         };
         subject = this.applyTemplateVariables(template.subject, variables);
         htmlContent = this.applyTemplateVariables(template.html_body, variables);
@@ -1218,7 +1234,7 @@ export class EmailNotificationService {
             <p style="margin-bottom: 15px;">We'd love to hear from you! Whether you have suggestions to improve the app, questions about how things work, or feedback about your experience, we're all ears.</p>
             <p style="margin-bottom: 15px;"><strong>📝 Share Your Feedback:</strong> You can submit feedback directly through the app using the feedback form. Just look for the "Send Feedback" option in your user menu. Your thoughts help us create a better experience for everyone.</p>
             <div style="margin-top: 30px; text-align: center;">
-              <a href="${window.location.origin}/" style="background: #39704D; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Enter the Prayer App</a>
+              <a href="${this.getEmailBaseUrl()}/" style="background: #39704D; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Enter the Prayer App</a>
             </div>
           </div>
           <div style="margin-top: 25px; text-align: center; color: #988F83; font-size: 13px; border-top: 1px solid #D1CCC4; padding-top: 20px;">

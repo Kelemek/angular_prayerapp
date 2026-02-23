@@ -1069,13 +1069,13 @@ export class AdminDataService {
           firstName: request.first_name,
           lastName: request.last_name,
           email: request.email,
-          loginLink: `${window.location.origin}/login`
+          loginLink: `${this.emailNotification.getEmailBaseUrl()}/login`
         });
         const text = this.emailNotification.applyTemplateVariables(template.text_body, {
           firstName: request.first_name,
           lastName: request.last_name,
           email: request.email,
-          loginLink: `${window.location.origin}/login`
+          loginLink: `${this.emailNotification.getEmailBaseUrl()}/login`
         });
 
         await this.emailNotification.sendEmail({

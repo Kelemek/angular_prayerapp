@@ -304,13 +304,13 @@ export class AppComponent implements OnInit {
               firstName: request.first_name,
               lastName: request.last_name,
               email: request.email,
-              loginLink: `${window.location.origin}/login`
+              loginLink: `${emailService.getEmailBaseUrl()}/login`
             });
             const text = emailService.applyTemplateVariables(template.text_body, {
               firstName: request.first_name,
               lastName: request.last_name,
               email: request.email,
-              loginLink: `${window.location.origin}/login`
+              loginLink: `${emailService.getEmailBaseUrl()}/login`
             });
 
             await emailService.sendEmail({
