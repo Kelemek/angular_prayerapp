@@ -17,6 +17,7 @@ describe('PushNotificationService', () => {
     };
     mockUserSession = {
       getCurrentSession: vi.fn().mockReturnValue(null),
+      userSession$: { subscribe: vi.fn((fn: (s: any) => void) => { fn(null); return { unsubscribe: vi.fn() }; }) },
     };
     mockCapacitor = {
       pushToken$: { subscribe: vi.fn((fn: (t: any) => void) => fn(null)) },

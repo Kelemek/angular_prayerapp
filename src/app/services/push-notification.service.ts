@@ -18,6 +18,7 @@ export class PushNotificationService {
     private capacitor: CapacitorService
   ) {
     this.setupDeviceTokenHandling();
+    this.setupSessionChangeHandling();
   }
 
   /**
@@ -27,6 +28,21 @@ export class PushNotificationService {
     this.capacitor.pushToken$.subscribe(async (token) => {
       if (token && this.capacitor.isNative()) {
         console.log('New push token received, storing in backend:', token);
+        await this.storeDeviceToken(token);
+      }
+    });
+  }
+
+  /**
+   * When the user session becomes available (e.g. after first login), store the device token
+   * if we already have one. Fixes the case where the token arrived before login.
+   */
+  private setupSessionChangeHandling(): void {
+    this.userSession.userSession$.subscribe(async (session) => {
+      if (!session?.email?.trim() || !this.capacitor.isNative()) return;
+      const token = this.capacitor.getPushToken();
+      if (token) {
+        console.log('User session available, storing existing push token');
         await this.storeDeviceToken(token);
       }
     });
