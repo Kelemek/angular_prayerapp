@@ -68,6 +68,17 @@
           }
         }
       })();
+
+      // Mark native Capacitor app so we can scope safe-area behavior
+      (function() {
+        try {
+          if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+            document.documentElement.classList.add('native-app');
+          }
+        } catch (e) {
+          // Ignore - defaults to web behavior
+        }
+      })();
     </script>
   </head>
   <body>
