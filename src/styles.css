@@ -411,12 +411,17 @@ html, body {
     left: 0;
     right: 0;
     height: env(safe-area-inset-top);
-    /* Match previous behavior: solid strip matching header base colors */
-    background-color: #ffffff;
+    /* Use same translucency as header and add blur so the strip visually
+       continues the header as much as Safari allows. */
+    background-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     z-index: 9999;
   }
   html.dark body::before {
-    background-color: #1f2937;
+    background-color: rgba(31, 41, 55, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
   /* Web/Safari: keep sticky header below safe area strip */
   header.sticky {
