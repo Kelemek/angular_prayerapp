@@ -386,6 +386,13 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Viewport scroll container: fallback when safe-area not supported (e.g. desktop) */
+.safe-area-viewport {
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Safe area padding for notch/camera cutout - Capacitor only */
 @supports (padding: env(safe-area-inset-top)) {
   html {
@@ -411,17 +418,31 @@ html, body {
     left: 0;
     right: 0;
     height: env(safe-area-inset-top);
-    /* Use same translucency as header and add blur so the strip visually
-       continues the header as much as Safari allows. */
-    background-color: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    /* Make safe-area strip opaque so content never shows through while scrolling */
+    background-color: #F8F7F5;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     z-index: 9999;
   }
   html.dark body::before {
-    background-color: rgba(31, 41, 55, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background-color: #1F2937;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Web/Safari: bottom safe-area strip above home indicator */
+  body::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: env(safe-area-inset-bottom);
+    background-color: #F8F7F5;
+    z-index: 9999;
+  }
+  html.dark body::after {
+    background-color: #1F2937;
   }
   /* Web/Safari: keep sticky header below safe area strip */
   header.sticky {
@@ -443,6 +464,16 @@ html, body {
   .safe-area-overlay {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Viewport-sized scroll container that sits below safe area; header sticky inside it so content scrolls to top of header but never into safe area */
+  .safe-area-viewport {
+    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .safe-area-viewport header.sticky {
+    top: 0;
   }
 }
 

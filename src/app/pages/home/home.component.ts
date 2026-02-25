@@ -36,6 +36,13 @@ import { environment } from '../../../environments/environment';
   imports: [CommonModule, RouterModule, DragDropModule, PrayerFormComponent, PrayerFiltersComponent, SkeletonLoaderComponent, AppLogoComponent, PrayerCardComponent, PromptCardComponent, UserSettingsComponent, HelpModalComponent, PersonalPrayerEditModalComponent, PersonalPrayerUpdateEditModalComponent, ConfirmationDialogComponent, PullToRefreshDirective],
   template: `
     <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
+      <!-- Scroll viewport below safe area: header sticky inside so content scrolls under header to top of header, never into safe area -->
+      <div
+        class="safe-area-viewport w-full bg-gray-50 dark:bg-gray-900"
+        appPullToRefresh
+        [refreshing]="isRefreshing"
+        (refresh)="onPullToRefresh()"
+      >
       <!-- Header -->
       <header class="w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div class="w-full max-w-6xl mx-auto px-4 py-4 sm:py-6">
@@ -193,12 +200,7 @@ import { environment } from '../../../environments/environment';
       </header>
 
       <!-- Main Content -->
-      <main
-        class="w-full flex-1 max-w-6xl mx-auto px-4 py-6"
-        appPullToRefresh
-        [refreshing]="isRefreshing"
-        (refresh)="onPullToRefresh()"
-      >
+      <main class="w-full max-w-6xl mx-auto px-4 py-6">
         <!-- Top refresh indicator -->
         <div
           *ngIf="isRefreshing"
@@ -678,6 +680,7 @@ import { environment } from '../../../environments/environment';
           </div>
         }
       </main>
+      </div>
 
       <!-- No Footer Links -->
     </div>

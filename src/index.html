@@ -7,7 +7,8 @@
     <!-- Viewport meta for responsive design -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     <meta name="description" content="Cross Pointe Church prayer request platform. Submit prayer requests, view community prayers, and stay connected with our church community." />
-    <meta name="theme-color" content="#2F5F54" />
+    <!-- Align browser chrome/safe-area color with header background instead of green brand color -->
+    <meta name="theme-color" content="#F8F7F5" />
     
     <!-- Resource hints for performance -->
     <link rel="preconnect" href="https://eqiafsygvfaifhoaewxi.supabase.co" />
@@ -16,7 +17,8 @@
     <style>
       :root { color-scheme: light dark; }
       body { background-color: #f9fafb; margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
-      html.dark body { background-color: #111827; }
+      /* Align dark body background with app shell container so header and safe-area overlay blend consistently */
+      html.dark body { background-color: #2B2B2B; }
       
       /* Prevent iOS zoom on input focus */
       input[type="text"], input[type="email"], textarea, select {
@@ -25,11 +27,20 @@
     </style>
     <title>Cross Pointe Church - Prayer Requests</title>
     <script>
-      // Apply theme immediately to prevent flash
+      // Apply theme immediately to prevent flash and sync theme-color with header
       (function() {
         const theme = localStorage.getItem('theme') || 'system';
-        if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+
+        if (isDark) {
           document.documentElement.classList.add('dark');
+        }
+
+        // Update theme-color meta to match header background in light/dark
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+          meta.setAttribute('content', isDark ? '#1F2937' : '#F8F7F5');
         }
       })();
       
