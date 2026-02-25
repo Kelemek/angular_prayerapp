@@ -37,6 +37,9 @@
   --color-accent-500: #0047ab;
   --color-accent-600: #3e5266;
   --color-accent-700: #004b3d;
+  /* Shared header background colors for light/dark translucent header & safe area */
+  --header-bg-light: rgba(255, 255, 255, 0.5);
+  --header-bg-dark: rgba(31, 41, 55, 0.5);
 }
 
 /*
@@ -390,7 +393,8 @@ html, body {
     -webkit-overflow-scrolling: touch;
   }
   body {
-    padding-top: env(safe-area-inset-top);
+    /* Let the header own the top safe-area padding so its translucent
+       background and blur extend seamlessly into the notch area. */
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
@@ -398,23 +402,11 @@ html, body {
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
   }
-  /* Safe area strip uses same background as header (white / dark gray-800) */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: env(safe-area-inset-top);
-    background-color: #ffffff;
-    z-index: 9999;
-  }
-  html.dark body::before {
-    background-color: #1f2937;
-  }
-  /* Keep sticky header below the safe area (do not scroll into notch) */
+  /* Make sticky headers include the safe-area inset in their own padding,
+     so the header background/blur is continuous into the status-bar area. */
   header.sticky {
-    top: env(safe-area-inset-top);
+    top: 0;
+    padding-top: env(safe-area-inset-top);
   }
   /* Utility class for full-screen overlays/modals to respect safe area */
   .safe-area-overlay {
