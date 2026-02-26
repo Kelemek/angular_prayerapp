@@ -92,12 +92,15 @@ export class EmailNotificationService {
   ) {}
 
   /**
-   * Base URL for links in emails. Website (browser): uses current origin so no change from old behavior.
-   * Native app (Capacitor): origin is capacitor://localhost, so uses environment.appUrl (e.g. https on Vercel, http for local native dev).
+   * Base URL for links in emails. Website (browser): uses current origin.
+   * Native app (Capacitor): origin can be capacitor://localhost or https://localhost (Android),
+   * so we use environment.appUrl when origin is localhost or non-http(s) so links always point to the real web app.
    */
   getEmailBaseUrl(): string {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    if (origin && (origin.startsWith('http://') || origin.startsWith('https://'))) {
+    const isLocalhost = origin.includes('localhost');
+    const isHttpOrigin = origin && (origin.startsWith('http://') || origin.startsWith('https://'));
+    if (isHttpOrigin && !isLocalhost) {
       return origin;
     }
     if (typeof environment !== 'undefined' && environment.appUrl) {
