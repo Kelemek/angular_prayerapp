@@ -4,6 +4,18 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Info Page (`/info`) ✅
+- ✅ **Public landing/overview page at `/info`**
+  - Hero with app icon, “Cross Pointe Prayer Community” title, and short description.
+  - CTAs: Web App (with QR), App Store (with QR), Android (coming soon).
+  - Interactive feature preview: mock header (Help, Settings, Pray, Request), filter tabs (Current, Answered, Total, Prompts, Personal), and sample cards with modals (badges, prompt categories, personal actions).
+  - Theme toggle and light/dark support; uses BrandingService for optional church logo.
+  - No auth required; linked from login (“Learn more about this app”) and support (“About the app”).
+
+- ✅ **Implementation**
+  - `src/app/pages/info/info.component.ts` (standalone, lazy-loaded).
+  - Route added in `app.routes.ts`; documented in README.md, docs/README.md, and DEVELOPMENT.md (Public Routes, Info Page section).
+
 ### Push Notifications and Email/Push Preferences ✅
 - ✅ **`receive_push` default false and set only when device token is registered**
   - New subscribers and existing rows default to `receive_push = false`. When the native app stores a device token (`PushNotificationService.storeDeviceToken()`), it sets `receive_push = true` for that subscriber. Users can turn push off in Settings.

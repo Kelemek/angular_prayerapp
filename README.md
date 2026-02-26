@@ -43,6 +43,7 @@ Quick links:
 - **9+ notification types** including approval, denial, status changes, and more
 
 ### 📱 User Experience
+- **Info/Landing Page** (`/info`): Public overview with app icon, Web App/App Store/Android CTAs, and interactive feature preview
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Real-time Updates**: Live prayer updates using Supabase real-time subscriptions
 - **Theme Support**: Light and dark mode with persistent user preferences

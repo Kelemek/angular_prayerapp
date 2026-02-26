@@ -68,32 +68,25 @@ describe('InfoComponent', () => {
     it('should have previewFilter as current', () => {
       expect(component.previewFilter).toBe('current');
     });
-
     it('should have headerPreview as null', () => {
       expect(component.headerPreview).toBeNull();
     });
-
     it('should have showPromptCategoriesModal false', () => {
       expect(component.showPromptCategoriesModal).toBe(false);
     });
-
     it('should have showBadgesModal false', () => {
       expect(component.showBadgesModal).toBe(false);
     });
-
     it('should have showPersonalCategoriesModal false', () => {
       expect(component.showPersonalCategoriesModal).toBe(false);
     });
-
     it('should have personalActionModal null', () => {
       expect(component.personalActionModal).toBeNull();
     });
-
     it('should have empty brandingImageUrl and brandingUseLogo false', () => {
       expect(component.brandingImageUrl).toBe('');
       expect(component.brandingUseLogo).toBe(false);
     });
-
     it('should have empty webAppQrUrl and iosStoreQrUrl before init', () => {
       expect(component.webAppQrUrl).toBe('');
       expect(component.iosStoreQrUrl).toBe('');
@@ -108,12 +101,10 @@ describe('InfoComponent', () => {
       expect(component.iosStoreQrUrl).toContain('api.qrserver.com');
       expect(component.iosStoreQrUrl).toContain(encodeURIComponent('https://apps.apple.com/us/app/cross-pointe-prayer/id6759469929'));
     });
-
     it('should call brandingService.initialize', async () => {
       await component.ngOnInit();
       expect(mockBrandingService.initialize).toHaveBeenCalled();
     });
-
     it('should subscribe to branding$ and update brandingUseLogo and brandingImageUrl', async () => {
       await component.ngOnInit();
       mockBrandingService.getImageUrl.mockReturnValue('https://example.com/logo.png');
@@ -167,7 +158,6 @@ describe('InfoComponent', () => {
       component.openHeaderModal('card-pray-for');
       expect(component.headerPreview).toBe('card-pray-for');
     });
-
     it('should clear headerPreview when closeHeaderModal is called', () => {
       component.openHeaderModal('help');
       component.closeHeaderModal();
@@ -180,7 +170,6 @@ describe('InfoComponent', () => {
       component.openPromptCategoriesModal();
       expect(component.showPromptCategoriesModal).toBe(true);
     });
-
     it('should set showPromptCategoriesModal false when closePromptCategoriesModal is called', () => {
       component.openPromptCategoriesModal();
       component.closePromptCategoriesModal();
@@ -193,7 +182,6 @@ describe('InfoComponent', () => {
       component.openBadgesModal();
       expect(component.showBadgesModal).toBe(true);
     });
-
     it('should set showBadgesModal false when closeBadgesModal is called', () => {
       component.openBadgesModal();
       component.closeBadgesModal();
@@ -210,7 +198,6 @@ describe('InfoComponent', () => {
       component.openPersonalActionModal('delete');
       expect(component.personalActionModal).toBe('delete');
     });
-
     it('should clear personalActionModal when closePersonalActionModal is called', () => {
       component.openPersonalActionModal('share');
       component.closePersonalActionModal();
@@ -223,7 +210,6 @@ describe('InfoComponent', () => {
       component.openPersonalCategoriesModal();
       expect(component.showPersonalCategoriesModal).toBe(true);
     });
-
     it('should set showPersonalCategoriesModal false when closePersonalCategoriesModal is called', () => {
       component.openPersonalCategoriesModal();
       component.closePersonalCategoriesModal();
@@ -255,7 +241,6 @@ describe('InfoComponent', () => {
       expect(el.textContent).toContain('Prayer Community');
       expect(el.textContent).toContain('A focused place for our church');
     });
-
     it('should show theme toggle and CTA buttons', async () => {
       await component.ngOnInit();
       fixture.detectChanges();
@@ -265,7 +250,6 @@ describe('InfoComponent', () => {
       expect(el.textContent).toContain('App Store');
       expect(el.textContent).toContain('Android');
     });
-
     it('should show filter tabs with Current, Answered, Total, Prompts, Personal', async () => {
       await component.ngOnInit();
       fixture.detectChanges();
@@ -276,7 +260,6 @@ describe('InfoComponent', () => {
       expect(el.textContent).toContain('Prompts');
       expect(el.textContent).toContain('Personal');
     });
-
     it('should open badges modal when badge button is clicked', async () => {
       await component.ngOnInit();
       fixture.detectChanges();
@@ -286,7 +269,6 @@ describe('InfoComponent', () => {
       fixture.detectChanges();
       expect(component.showBadgesModal).toBe(true);
     });
-
     it('should set previewFilter when filter tab is clicked', async () => {
       await component.ngOnInit();
       fixture.detectChanges();

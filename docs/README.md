@@ -36,6 +36,7 @@ A comprehensive prayer request management system for Cross Pointe Church built w
 - ✅ Planning Center contact lookup
 - ✅ Planning Center members list mapping (filter prayers by list members)
 - ✅ Badge indicators (unread prayers/prompts)
+- ✅ **Info page** (`/info`) – Public landing/overview with app icon, CTAs (Web App, App Store, Android), and interactive feature preview (filters, modals)
 
 ## 🚀 Getting Started
 
@@ -63,7 +64,7 @@ See [SETUP.md - Deployment section](SETUP.md#deployment)
 src/
 ├── app/
 │   ├── components/       # Reusable UI components
-│   ├── pages/            # Page components (home, admin, etc)
+│   ├── pages/            # Page components (home, info, admin, login, etc)
 │   ├── services/         # Business logic services
 │   ├── guards/           # Route guards
 │   ├── types/            # TypeScript types

@@ -70,7 +70,7 @@ export class AppLogoComponent implements OnInit, OnDestroy {
         this.appTitle = branding.appTitle;
         this.appSubtitle = branding.appSubtitle;
         this.updateImageUrl(branding);
-        this.cdr.markForCheck();
+        this.cdr?.markForCheck();
       });
   }
 
@@ -78,13 +78,13 @@ export class AppLogoComponent implements OnInit, OnDestroy {
     if (!this.useLogo) {
       this.imageUrl = '';
       this.logoStatusChange.emit(false);
-      this.cdr.markForCheck();
+      this.cdr?.markForCheck();
       return;
     }
 
     this.imageUrl = this.brandingService.getImageUrl(branding);
     const hasLogo = this.useLogo && !!this.imageUrl;
     this.logoStatusChange.emit(hasLogo);
-    this.cdr.markForCheck();
+    this.cdr?.markForCheck();
   }
 }

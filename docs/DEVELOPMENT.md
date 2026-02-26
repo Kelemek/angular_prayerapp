@@ -4,7 +4,7 @@ For developers working on the Prayer App codebase.
 
 ## Table of Contents
 
-1. [Architecture](#architecture)
+1. [Architecture](#architecture) (includes [Public Routes](#public-routes) and [Info Page](#info-page))
 2. [Testing](#testing)
 3. [Code Quality](#code-quality)
 4. [Performance](#performance)
@@ -32,6 +32,7 @@ src/
 │   ├── pages/
 │   │   ├── admin/                   # Admin portal
 │   │   ├── home.component.ts        # Main app page
+│   │   ├── info/                    # Info/landing page (public, /info)
 │   │   └── ...other pages
 │   ├── services/
 │   │   ├── supabase.service.ts      # Database client
@@ -57,6 +58,28 @@ src/
 │   └── ...utilities
 └── main.ts                           # Bootstrap
 ```
+
+### Public Routes
+
+| Path | Guard | Purpose |
+|------|--------|--------|
+| `/` | siteAuthGuard | Home – prayer list, filters, prompts, personal |
+| `/info` | none | Info/landing page – app overview, CTAs, feature preview |
+| `/login` | none | Login / MFA verification |
+| `/privacy` | none | Privacy policy |
+| `/support` | none | Support and help links |
+| `/admin` | siteAuthGuard, adminGuard | Admin portal |
+| `/presentation` | siteAuthGuard | Prayer presentation mode |
+
+### Info Page
+
+The **info page** (`/info`) is a public landing/overview. It is used to introduce the app and drive installs:
+
+- **Hero**: App icon, “Cross Pointe Prayer Community” title, short description
+- **CTAs**: Web App (with QR), App Store (with QR), Android (coming soon)
+- **Feature overview**: Interactive preview of the main app (mock header, filter tabs, sample cards). Users can tap filter tabs (Current, Answered, Total, Prompts, Personal) and open modals (Help, Settings, badges, prompt categories, personal actions) to see how the app works
+- **Theme**: Supports light/dark mode via theme toggle
+- **Implementation**: `src/app/pages/info/info.component.ts` (standalone). Lazy-loaded in `app.routes.ts`. Uses `BrandingService` (via `BRANDING_SERVICE_TOKEN`) for optional logo; no auth required.
 
 ### Core Services
 

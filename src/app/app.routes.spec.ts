@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { routes } from './app.routes';
+import { routes, routerConfig } from './app.routes';
 
 describe('AppRoutes', () => {
   it('should have routes defined', () => {
@@ -81,13 +81,29 @@ describe('AppRoutes', () => {
   });
 
   it('should have all essential routes', () => {
-    // Verify that all essential routes exist without hard-coding the count
-    const essentialPaths = ['', 'login', 'admin', 'presentation', '**'];
+    const essentialPaths = ['', 'info', 'login', 'admin', 'presentation', 'privacy', 'support', '**'];
     const routePaths = routes.map(r => r.path);
-    
     essentialPaths.forEach(path => {
       expect(routePaths).toContain(path);
     });
+  });
+
+  it('should have info route without canActivate', () => {
+    const infoRoute = routes.find(r => r.path === 'info');
+    expect(infoRoute).toBeDefined();
+    expect(infoRoute?.canActivate).toBeUndefined();
+  });
+
+  it('should have privacy route with loadComponent', () => {
+    const privacyRoute = routes.find(r => r.path === 'privacy');
+    expect(privacyRoute).toBeDefined();
+    expect(privacyRoute?.loadComponent).toBeInstanceOf(Function);
+  });
+
+  it('should have support route with loadComponent', () => {
+    const supportRoute = routes.find(r => r.path === 'support');
+    expect(supportRoute).toBeDefined();
+    expect(supportRoute?.loadComponent).toBeInstanceOf(Function);
   });
 
   it('should have admin route with preload hint', () => {
@@ -137,4 +153,41 @@ describe('AppRoutes', () => {
       expect(module).toBeDefined();
     }
   }, 10000);
+
+  it('should lazy load info component successfully', async () => {
+    const infoRoute = routes.find(r => r.path === 'info');
+    expect(infoRoute?.loadComponent).toBeDefined();
+    if (infoRoute?.loadComponent) {
+      const loaded = await infoRoute.loadComponent();
+      expect(loaded).toBeDefined();
+    }
+  }, 10000);
+
+  it('should lazy load privacy component successfully', async () => {
+    const privacyRoute = routes.find(r => r.path === 'privacy');
+    expect(privacyRoute?.loadComponent).toBeDefined();
+    if (privacyRoute?.loadComponent) {
+      const loaded = await privacyRoute.loadComponent();
+      expect(loaded).toBeDefined();
+    }
+  }, 10000);
+
+  it('should lazy load support component successfully', async () => {
+    const supportRoute = routes.find(r => r.path === 'support');
+    expect(supportRoute?.loadComponent).toBeDefined();
+    if (supportRoute?.loadComponent) {
+      const loaded = await supportRoute.loadComponent();
+      expect(loaded).toBeDefined();
+    }
+  }, 10000);
+});
+
+describe('routerConfig', () => {
+  it('should have scrollPositionRestoration as top', () => {
+    expect(routerConfig.scrollPositionRestoration).toBe('top');
+  });
+
+  it('should have scrollOffset as [0, 0]', () => {
+    expect(routerConfig.scrollOffset).toEqual([0, 0]);
+  });
 });
