@@ -97,9 +97,8 @@ import { Subject, takeUntil } from 'rxjs';
 
               <!-- Android CTA + QR -->
               <div class="w-full flex flex-col items-center gap-2">
-                <button
-                  type="button"
-                  class="w-full inline-flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-400 dark:border-gray-600 px-5 py-3 text-sm sm:text-base text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-gray-800/40 font-medium cursor-pointer"
+                <div
+                  class="w-full inline-flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-400 dark:border-gray-600 px-5 py-3 text-sm sm:text-base text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-gray-800/40 font-medium"
                   title="Android app coming soon"
                 >
                   <span class="flex w-full items-center justify-center">
@@ -112,18 +111,19 @@ import { Subject, takeUntil } from 'rxjs';
                     </div>
                   </span>
                   <div
-                    class="h-20 w-20 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-100 flex items-center justify-center p-1"
+                    class="h-20 w-20 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-100/50 dark:bg-gray-800/50 flex items-center justify-center p-1"
                     aria-hidden="true"
                   >
-                    <div class="h-14 w-14 grid grid-cols-5 grid-rows-5 gap-0 shrink-0">
-                      <div class="bg-black"></div><div class="bg-black"></div><div class="bg-black"></div><div class="bg-black"></div><div class="bg-black"></div>
-                      <div class="bg-black"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-black"></div>
-                      <div class="bg-black"></div><div class="bg-white"></div><div class="bg-black"></div><div class="bg-white"></div><div class="bg-black"></div>
-                      <div class="bg-black"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-black"></div>
-                      <div class="bg-black"></div><div class="bg-black"></div><div class="bg-black"></div><div class="bg-black"></div><div class="bg-black"></div>
-                    </div>
+                    <button
+                      type="button"
+                      (click)="openAndroidTesterModal()"
+                      class="text-xs sm:text-sm font-medium text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 dark:hover:text-emerald-200 hover:underline cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-inset rounded px-2 py-1"
+                      aria-label="Want to help test the Android app? Open more info"
+                    >
+                      Want to help test?
+                    </button>
                   </div>
-                </button>
+                </div>
               </div>
           </div>
 
@@ -651,6 +651,39 @@ import { Subject, takeUntil } from 'rxjs';
         </div>
       }
 
+      @if (showAndroidTesterModal) {
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60"
+          (click)="closeAndroidTesterModal()"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Android app testers"
+        >
+          <div
+            class="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-3 text-gray-800 dark:text-gray-200"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              (click)="closeAndroidTesterModal()"
+              class="absolute top-3 right-3 p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+              aria-label="Close"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+            <p class="font-medium text-gray-900 dark:text-gray-100 text-base">Android app testers needed</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+              The Android version of the Prayer app is in development. I’m looking for people with Android devices who are willing to install an early build, try it out, and share feedback so we can fix issues before a wider release.
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+              If you’d like to help, please contact <strong class="text-gray-800 dark:text-gray-200">Mark Larson</strong>.
+            </p>
+          </div>
+        </div>
+      }
+
       @if (personalActionModal !== null) {
         <div
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60"
@@ -737,6 +770,7 @@ export class InfoComponent implements OnInit, OnDestroy {
   headerPreview: 'help' | 'settings' | 'pray' | 'request' | 'search' | 'card-update' | 'card-pray-for' | null = null;
   showPromptCategoriesModal = false;
   showBadgesModal = false;
+  showAndroidTesterModal = false;
   showPersonalCategoriesModal = false;
   personalActionModal: 'share' | 'edit' | 'delete' | null = null;
 
@@ -797,6 +831,14 @@ export class InfoComponent implements OnInit, OnDestroy {
 
   closeBadgesModal(): void {
     this.showBadgesModal = false;
+  }
+
+  openAndroidTesterModal(): void {
+    this.showAndroidTesterModal = true;
+  }
+
+  closeAndroidTesterModal(): void {
+    this.showAndroidTesterModal = false;
   }
 
   openPersonalActionModal(which: 'share' | 'edit' | 'delete'): void {
