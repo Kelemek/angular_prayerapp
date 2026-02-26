@@ -38,9 +38,9 @@ export class SupabaseService {
           // Identify as native app for better compatibility with native HTTP stacks (iOS, Android)
           'x-client-info': `supabase-js/${this.getClientVersion()}`
         },
-        fetch: (url: string, options?: RequestInit) => {
+        fetch: (input: URL | RequestInfo, options?: RequestInit) => {
           // Enhanced fetch wrapper for native app compatibility
-          return this.fetchWithNativeCompat(url, options);
+          return this.fetchWithNativeCompat(input, options);
         }
       },
       db: {
@@ -147,8 +147,8 @@ export class SupabaseService {
           headers: {
             'x-client-info': `supabase-js/${this.getClientVersion()}`
           },
-          fetch: (url: string, options?: RequestInit) => {
-            return this.fetchWithNativeCompat(url, options);
+          fetch: (input: URL | RequestInfo, options?: RequestInit) => {
+            return this.fetchWithNativeCompat(input, options);
           }
         },
         db: {
@@ -188,7 +188,7 @@ export class SupabaseService {
    * Enhanced fetch wrapper for native app compatibility
    * Handles CORS and timeout issues specific to native HTTP stacks (iOS, Android)
    */
-  private fetchWithNativeCompat(url: string, options?: RequestInit): Promise<Response> {
+  private fetchWithNativeCompat(input: URL | RequestInfo, options?: RequestInit): Promise<Response> {
     // Ensure proper headers for native compatibility
     const headers = new Headers(options?.headers || {});
     
@@ -198,7 +198,8 @@ export class SupabaseService {
     }
     
     // Add explicit CORS mode for edge function calls
-    const isEdgeFunction = url.includes('/functions/');
+    const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+    const isEdgeFunction = urlStr.includes('/functions/');
     const mode: RequestMode = isEdgeFunction ? 'cors' : (options?.mode || 'cors');
     
     const fetchOptions: RequestInit = {
@@ -210,7 +211,7 @@ export class SupabaseService {
     };
 
     // Wrap with timeout for native app reliability
-    return this.fetchWithTimeout(fetch(url, fetchOptions), 30000);
+    return this.fetchWithTimeout(fetch(input, fetchOptions), 30000);
   }
 
   /**
