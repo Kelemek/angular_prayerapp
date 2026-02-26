@@ -10,12 +10,38 @@ import { Subject, takeUntil } from 'rxjs';
   selector: 'app-info',
   standalone: true,
   imports: [CommonModule, RouterModule, ThemeToggleComponent],
+  styles: `
+    /* Safe area support for notched/dynamic island devices */
+    :host {
+      --safe-area-inset-top: env(safe-area-inset-top, 0px);
+      --safe-area-inset-right: env(safe-area-inset-right, 0px);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    }
+
+    .safe-area-container {
+      padding-top: max(1.25rem, var(--safe-area-inset-top));
+      padding-bottom: max(1.25rem, var(--safe-area-inset-bottom));
+    }
+
+    .safe-area-horizontal {
+      padding-left: max(1rem, var(--safe-area-inset-left));
+      padding-right: max(1rem, var(--safe-area-inset-right));
+      padding-top: 2.5rem;
+      padding-bottom: 4rem;
+    }
+
+    .safe-area-top-right {
+      top: max(1rem, var(--safe-area-inset-top));
+      right: max(1rem, var(--safe-area-inset-right));
+    }
+  `,
   template: `
-    <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
-      <div class="absolute top-4 right-4 z-10">
+    <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors safe-area-container">
+      <div class="absolute z-10 safe-area-top-right">
         <app-theme-toggle></app-theme-toggle>
       </div>
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-16">
+      <div class="max-w-6xl mx-auto safe-area-horizontal space-y-16">
         <!-- Hero: image + title + description -->
         <section class="space-y-10">
           <div class="space-y-6">
@@ -761,8 +787,7 @@ import { Subject, takeUntil } from 'rxjs';
         </div>
       }
     </div>
-  `,
-  styles: []
+  `
 })
 export class InfoComponent implements OnInit, OnDestroy {
   private readonly iosStoreUrl = 'https://apps.apple.com/us/app/cross-pointe-prayer/id6759469929';

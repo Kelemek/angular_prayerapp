@@ -35,7 +35,12 @@ export class SupabaseService {
       },
       global: {
         headers: {
-          'x-client-info': 'supabase-js'
+          // Identify as native app for better compatibility with native HTTP stacks (iOS, Android)
+          'x-client-info': `supabase-js/${this.getClientVersion()}`
+        },
+        fetch: (url: string, options?: RequestInit) => {
+          // Enhanced fetch wrapper for native app compatibility
+          return this.fetchWithNativeCompat(url, options);
         }
       },
       db: {
@@ -140,7 +145,10 @@ export class SupabaseService {
         },
         global: {
           headers: {
-            'x-client-info': 'supabase-js'
+            'x-client-info': `supabase-js/${this.getClientVersion()}`
+          },
+          fetch: (url: string, options?: RequestInit) => {
+            return this.fetchWithNativeCompat(url, options);
           }
         },
         db: {
@@ -158,6 +166,73 @@ export class SupabaseService {
       console.error('[SupabaseService] Reconnection failed:', err);
       throw err;
     }
+  }
+
+  /**
+   * Get client version info (web vs native)
+   */
+  private getClientVersion(): string {
+    try {
+      // Check if running in Capacitor (native app)
+      if (typeof (window as any).Capacitor !== 'undefined') {
+        const platform = (window as any).Capacitor?.getPlatform?.() || 'native';
+        return `capacitor-${platform}`;
+      }
+    } catch {
+      // Fall through to web
+    }
+    return 'web';
+  }
+
+  /**
+   * Enhanced fetch wrapper for native app compatibility
+   * Handles CORS and timeout issues specific to native HTTP stacks (iOS, Android)
+   */
+  private fetchWithNativeCompat(url: string, options?: RequestInit): Promise<Response> {
+    // Ensure proper headers for native compatibility
+    const headers = new Headers(options?.headers || {});
+    
+    // Ensure content-type is set for POST requests
+    if (options?.method === 'POST' && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    
+    // Add explicit CORS mode for edge function calls
+    const isEdgeFunction = url.includes('/functions/');
+    const mode: RequestMode = isEdgeFunction ? 'cors' : (options?.mode || 'cors');
+    
+    const fetchOptions: RequestInit = {
+      ...options,
+      headers,
+      mode,
+      // Ensure credentials aren't sent (API key in header, not cookies)
+      credentials: 'omit'
+    };
+
+    // Wrap with timeout for native app reliability
+    return this.fetchWithTimeout(fetch(url, fetchOptions), 30000);
+  }
+
+  /**
+   * Wrap fetch with timeout to prevent hanging on native apps
+   * Properly clears timeout to prevent orphaned timers
+   */
+  private fetchWithTimeout(fetchPromise: Promise<Response>, timeoutMs: number): Promise<Response> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const timeoutPromise = new Promise<Response>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error(`Fetch timeout after ${timeoutMs}ms - network may be slow or unavailable`)),
+        timeoutMs
+      );
+    });
+
+    return Promise.race([fetchPromise, timeoutPromise]).finally(() => {
+      // Clear the timeout regardless of whether fetch succeeded or timed out
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+    });
   }
 
   /**

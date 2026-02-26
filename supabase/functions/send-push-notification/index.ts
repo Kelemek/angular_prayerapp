@@ -25,7 +25,9 @@ import { createAppleNotificationJwt } from 'jsr:@narumincho/apple-notification-j
 // Required when invoking from browser or Capacitor (origin capacitor://localhost)
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
+  'Access-Control-Max-Age': '86400'
 };
 
 interface PushNotificationRequest {
@@ -144,7 +146,7 @@ async function sendViaApns(
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
   if (req.method !== 'POST') {
     return new Response('Method not allowed', {
