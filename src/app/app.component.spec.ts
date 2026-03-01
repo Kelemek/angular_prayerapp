@@ -90,6 +90,16 @@ vi.mock('./services/toast.service', () => {
   };
 });
 
+vi.mock('./services/modal.service', () => {
+  return {
+    ModalService: class {
+      printInstructionsModalOpen$ = new Subject();
+      openPrintInstructionsModal() {}
+      closePrintInstructionsModal() {}
+    }
+  };
+});
+
 vi.mock('../lib/planning-center', () => ({
   lookupPersonByEmail: lookupPersonByEmailMock
 }));
@@ -107,6 +117,7 @@ describe('AppComponent', () => {
   let mockInjector: any;
   let mockNgZone: any;
   let mockCdr: any;
+  let mockModalService: any;
   let routerEventsSubject: Subject<any>;
 
   beforeEach(() => {
@@ -126,6 +137,13 @@ describe('AppComponent', () => {
     mockCdr = {
       markForCheck: vi.fn(),
       detectChanges: vi.fn()
+    };
+
+    // Create mock ModalService
+    mockModalService = {
+      printInstructionsModalOpen$: new Subject(),
+      openPrintInstructionsModal: vi.fn(),
+      closePrintInstructionsModal: vi.fn()
     };
 
     // Create mock Injector
@@ -164,7 +182,7 @@ describe('AppComponent', () => {
     });
 
     // Create component
-    component = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+    component = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
   });
 
   afterEach(() => {
@@ -826,7 +844,7 @@ describe('AppComponent', () => {
       window.location.search = '?code=account_approve_test123';
       
       // Create new component with mocked services
-      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       
       await testComponent.ngOnInit();
       
@@ -841,7 +859,7 @@ describe('AppComponent', () => {
         type: 'deny'
       });
       
-      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       
       await testComponent.ngOnInit();
       
@@ -852,7 +870,7 @@ describe('AppComponent', () => {
       window.location.search = '?code=account_approve_test';
       
       expect(async () => {
-        const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+        const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
         await testComponent.ngOnInit();
       }).not.toThrow();
     });
@@ -860,7 +878,7 @@ describe('AppComponent', () => {
     it('should call router navigate after processing approval code', async () => {
       window.location.search = '?code=account_approve_test';
       
-      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await testComponent.ngOnInit();
 
       // Check if navigate was called
@@ -870,7 +888,7 @@ describe('AppComponent', () => {
     it('should handle non-account codes properly', async () => {
       window.location.search = '?code=someOtherCode';
       
-      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await testComponent.ngOnInit();
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
@@ -879,7 +897,7 @@ describe('AppComponent', () => {
     it('should handle empty code gracefully', async () => {
       window.location.search = '';
       
-      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await testComponent.ngOnInit();
 
       // Should not navigate if no code
@@ -889,7 +907,7 @@ describe('AppComponent', () => {
     it('should handle codes with special characters', async () => {
       window.location.search = '?code=account_approve_%2F%3F%40';
       
-      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const testComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       
       expect(async () => {
         await testComponent.ngOnInit();
@@ -992,7 +1010,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
@@ -1008,7 +1026,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       
       // Just verify that ngOnInit doesn't throw for account_approve codes
       expect(async () => {
@@ -1026,7 +1044,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       
       // Just verify that ngOnInit doesn't throw for account_deny codes
       expect(async () => {
@@ -1044,7 +1062,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(mockRouter.navigate).not.toHaveBeenCalled();
@@ -1060,7 +1078,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(mockRouter.navigate).not.toHaveBeenCalled();
@@ -1076,7 +1094,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
@@ -1092,7 +1110,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(window.history.replaceState).toHaveBeenCalled();
@@ -1108,7 +1126,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(mockRouter.navigate).not.toHaveBeenCalled();
@@ -1124,7 +1142,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
@@ -1140,7 +1158,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       
       // Just verify that ngOnInit doesn't throw for account_deny codes
       expect(async () => {
@@ -1158,7 +1176,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
@@ -1174,7 +1192,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       // Should navigate to admin with the decoded code
@@ -1191,7 +1209,7 @@ describe('AppComponent', () => {
         writable: true
       });
 
-      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr);
+      const newComponent = new AppComponent(mockRouter, mockInjector, mockNgZone, mockCdr, mockModalService);
       await newComponent.ngOnInit();
 
       // Should not match account_approve_ because of case sensitivity

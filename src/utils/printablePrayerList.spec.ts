@@ -822,6 +822,187 @@ describe('printablePrayerList', () => {
     });
   });
 
+  describe('PrintablePrayerList - generatePrintableHTML', () => {
+    it('should generate HTML with proper structure', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Prayer Title',
+          prayer_for: 'John Doe',
+          description: 'Please pray for healing',
+          requester: 'Jane Smith',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-05T00:00:00Z',
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('month', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      expect(htmlContent).toContain('<!DOCTYPE html>');
+      expect(htmlContent).toContain('<html>');
+      expect(htmlContent).toContain('</html>');
+      expect(htmlContent).toContain('Church Prayer List');
+    });
+
+    it('should generate correct date range header for twoweeks', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Prayer Title',
+          prayer_for: 'John Doe',
+          description: 'Prayer request',
+          requester: 'Jane Smith',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-10T00:00:00Z',
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('twoweeks', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      expect(htmlContent).toContain('January');
+    });
+
+    it('should sort prayers by recent activity with updates', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Prayer Title 1',
+          prayer_for: 'John Doe',
+          description: 'Created earlier but has recent update',
+          requester: 'Jane Smith',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-05T00:00:00Z',
+        },
+        {
+          id: '2',
+          title: 'Prayer Title 2',
+          prayer_for: 'Mary Johnson',
+          description: 'Created later but no updates',
+          requester: 'Bob Wilson',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-12T00:00:00Z',
+        },
+      ];
+
+      const mockUpdates = [
+        {
+          id: 'u1',
+          prayer_id: '1',
+          content: 'Recent update content',
+          author: 'Jane',
+          approval_status: 'approved',
+          created_at: '2026-01-14T00:00:00Z',
+          is_anonymous: false,
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: mockUpdates, error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('month', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      // Both prayers should be in HTML
+      expect(htmlContent).toContain('John Doe');
+      expect(htmlContent).toContain('Mary Johnson');
+      // Update should be rendered
+      expect(htmlContent).toContain('Recent update content');
+    });
+  });
+
   describe('PrintablePrayerList - Prayer Updates and Filtering', () => {
     let mockSupabase: any;
 
@@ -1059,6 +1240,373 @@ describe('printablePrayerList', () => {
       await downloadPrintablePrayerList('month');
 
       expect(global.alert).toHaveBeenCalledWith('Failed to fetch prayer updates. Please try again.');
+    });
+
+    it('should render updates section with multiple updates in chronological order', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Prayer with updates',
+          prayer_for: 'Healing request',
+          description: 'Please pray for recovery',
+          requester: 'Jane Smith',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ];
+
+      const mockUpdates = [
+        {
+          id: 'u1',
+          prayer_id: '1',
+          content: 'First update',
+          author: 'Jane Smith',
+          approval_status: 'approved',
+          created_at: '2026-01-10T00:00:00Z',
+          is_anonymous: false,
+        },
+        {
+          id: 'u2',
+          prayer_id: '1',
+          content: 'Second update (most recent)',
+          author: 'John Doe',
+          approval_status: 'approved',
+          created_at: '2026-01-12T00:00:00Z',
+          is_anonymous: false,
+        },
+        {
+          id: 'u3',
+          prayer_id: '1',
+          content: 'Third update',
+          author: 'Anonymous',
+          approval_status: 'approved',
+          created_at: '2026-01-11T00:00:00Z',
+          is_anonymous: true,
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: mockUpdates, error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('month', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      // All approved updates should be in HTML
+      expect(htmlContent).toContain('First update');
+      expect(htmlContent).toContain('Second update (most recent)');
+      expect(htmlContent).toContain('Third update');
+      
+      // Anonymous update should show "Anonymous"
+      expect(htmlContent).toContain('Anonymous');
+      
+      // Most recent update should appear first
+      const secondUpdateIndex = htmlContent.indexOf('Second update');
+      const firstUpdateIndex = htmlContent.indexOf('First update');
+      expect(secondUpdateIndex).toBeLessThan(firstUpdateIndex);
+    });
+
+    it('should handle prayers with no updates gracefully', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Prayer without updates',
+          prayer_for: 'Healing request',
+          description: 'Please pray for recovery',
+          requester: 'Jane Smith',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-10T00:00:00Z',
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('month', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      // Should still render prayer without updates section
+      expect(htmlContent).toContain('Healing request');
+      expect(htmlContent).not.toContain('Updates (0)');
+    });
+
+    it('should render answered prayers section separately', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Current Prayer',
+          prayer_for: 'Healing',
+          description: 'Current request',
+          requester: 'Jane Smith',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-10T00:00:00Z',
+        },
+        {
+          id: '2',
+          title: 'Answered Prayer',
+          prayer_for: 'Recovery',
+          description: 'Prayer was answered',
+          requester: 'Bob Wilson',
+          status: 'answered',
+          approval_status: 'approved',
+          created_at: '2026-01-05T00:00:00Z',
+          date_answered: '2026-01-12T00:00:00Z',
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('month', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      // Should have both sections
+      expect(htmlContent).toContain('Current Prayer Requests');
+      expect(htmlContent).toContain('Answered Prayers');
+      
+      // Both prayers should be present
+      expect(htmlContent).toContain('Healing');
+      expect(htmlContent).toContain('Recovery');
+      
+      // Answered date should be displayed
+      expect(htmlContent).toContain('Answered on');
+    });
+
+    it('should handle prayers with answered date properly', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Answered Prayer',
+          prayer_for: 'Healing',
+          description: 'Prayer was answered',
+          requester: 'Jane Smith',
+          status: 'answered',
+          approval_status: 'approved',
+          created_at: '2026-01-05T00:00:00Z',
+          date_answered: '2026-01-12T00:00:00Z',
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('month', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      // Should display answered date
+      expect(htmlContent).toContain('Answered on');
+      expect(htmlContent).toContain('January');
+    });
+
+    it('should handle week time range for prayers with updates', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Recent Prayer',
+          prayer_for: 'Healing',
+          description: 'Created this week',
+          requester: 'Jane Smith',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-12T00:00:00Z',
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('week', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      expect(htmlContent).toContain('Healing');
+      expect(htmlContent).toContain('Church Prayer List');
+    });
+
+    it('should handle year time range for prayers', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+      
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'Yearly Prayer',
+          prayer_for: 'Recovery',
+          description: 'Created this year',
+          requester: 'Bob Wilson',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2025-06-01T00:00:00Z',
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('year', newWindow as any);
+
+      expect(newWindow.document.write).toHaveBeenCalled();
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      
+      expect(htmlContent).toContain('Recovery');
     });
   });
 
