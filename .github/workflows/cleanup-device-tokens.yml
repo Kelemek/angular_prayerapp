@@ -29,10 +29,15 @@ jobs:
           fi
           
           DELETED=$(echo "$BODY" | grep -o '"deleted":[0-9]*' | cut -d':' -f2)
+          PUSH_LOG=$(echo "$BODY" | grep -o '"pushLogDeleted":[0-9]*' | cut -d':' -f2)
           if [ -n "$DELETED" ]; then
             echo "Successfully removed $DELETED old device token(s)"
-          else
-            echo "Cleanup device tokens completed"
+          fi
+          if [ -n "$PUSH_LOG" ]; then
+            echo "Successfully removed $PUSH_LOG old push log entry(ies)"
+          fi
+          if [ -z "$DELETED" ] && [ -z "$PUSH_LOG" ]; then
+            echo "Cleanup completed (nothing to remove)"
           fi
           
       - name: Notify on Failure

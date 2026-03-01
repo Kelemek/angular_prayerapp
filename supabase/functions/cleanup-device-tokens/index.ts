@@ -9,6 +9,7 @@ const corsHeaders = {
 }
 
 const CLEANUP_DAYS = 30
+const PUSH_LOG_RETENTION_DAYS = 7
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -51,8 +52,24 @@ serve(async (req) => {
     const deletedCount = Array.isArray(deleted) ? deleted.length : 0
     console.log(`Cleaned up ${deletedCount} device token(s) older than ${CLEANUP_DAYS} days`)
 
+    const pushCutoff = new Date()
+    pushCutoff.setDate(pushCutoff.getDate() - PUSH_LOG_RETENTION_DAYS)
+    const pushCutoffIso = pushCutoff.toISOString()
+
+    const { data: pushDeleted, error: pushError } = await supabaseClient
+      .from('push_notification_log')
+      .delete()
+      .lt('sent_at', pushCutoffIso)
+      .select('id')
+
+    const pushDeletedCount = Array.isArray(pushDeleted) ? pushDeleted.length : 0
+    if (pushError) {
+      console.error('Error cleaning up push notification log:', pushError)
+    } else {
+      console.log(`Cleaned up ${pushDeletedCount} push log entry(ies) older than ${PUSH_LOG_RETENTION_DAYS} days`)
+    }
     return new Response(
-      JSON.stringify({ deleted: deletedCount }),
+      JSON.stringify({ deleted: deletedCount, pushLogDeleted: pushDeletedCount }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
