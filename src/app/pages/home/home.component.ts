@@ -60,7 +60,8 @@ import { environment } from '../../../environments/environment';
                 class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
                 title="Click to log out"
               >
-                {{ session.email }}
+                <span class="hidden xs:inline">{{ session.email }}</span>
+                <span class="xs:hidden">Logged In</span>
               </button>
             } @else {
               <button
@@ -68,7 +69,8 @@ import { environment } from '../../../environments/environment';
                 class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
                 title="Click to log out"
               >
-                {{ getUserEmail() }}
+                <span class="hidden xs:inline">{{ getUserEmail() }}</span>
+                <span class="xs:hidden">Logged In</span>
               </button>
             }
           </div>
@@ -145,7 +147,8 @@ import { environment } from '../../../environments/environment';
                     class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
                     title="Click to log out"
                   >
-                    {{ session.email }}
+                    <span class="hidden sm:inline">{{ session.email }}</span>
+                    <span class="sm:hidden">Logged In</span>
                   </button>
                 } @else {
                   <button
@@ -153,7 +156,8 @@ import { environment } from '../../../environments/environment';
                     class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
                     title="Click to log out"
                   >
-                    {{ getUserEmail() }}
+                    <span class="hidden sm:inline">{{ getUserEmail() }}</span>
+                    <span class="sm:hidden">Logged In</span>
                   </button>
                 }
               </div>
