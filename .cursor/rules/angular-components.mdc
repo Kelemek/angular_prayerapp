@@ -1,0 +1,37 @@
+---
+description: Angular component and app conventions (standalone, Tailwind, routing)
+globs: src/**/*.ts, src/**/*.html
+alwaysApply: false
+---
+
+# Angular Conventions
+
+## Components
+
+- Use **standalone** components only. Set `standalone: true` and list `imports` explicitly.
+- Use component selector prefix **`app-`** (e.g. `selector: 'app-confirmation-dialog'`).
+- Prefer **ChangeDetectionStrategy.OnPush** for better performance.
+- Use **inline templates** for small components; external `.html` for larger ones.
+- Prefer **CSS** (no preprocessor). Use Tailwind utility classes in templates; avoid adding `styles: []` unless needed.
+
+## Styling (Tailwind v4)
+
+- Use Tailwind classes in templates. Design tokens live in `src/styles.css` under `@theme` (e.g. `church-green`, `church-gold`, `primary-*`, `accent-*`).
+- Support **dark mode** with `dark:` variants (e.g. `text-gray-900 dark:text-gray-100`, `bg-white dark:bg-gray-800`).
+- Prefer theme colors: `church-green`, `church-cream`, `church-gold`, `primary-*`, `accent-*` over raw grays when they fit the design.
+
+## Services
+
+- Use **`providedIn: 'root'`** for app-wide services.
+- Inject `SupabaseService` for database/auth; use `environment` for config (e.g. `environment.supabaseUrl`).
+- Report unexpected errors to **Sentry** (e.g. `Sentry.captureException(error)`).
+
+## Routing
+
+- Use **lazy loading**: `loadComponent: () => import('./pages/...').then(m => m.SomeComponent)`.
+- Use **functional guards**: `canActivate: [siteAuthGuard]`, `canActivate: [adminGuard]`.
+- Route config is in `src/app/app.routes.ts`; optional `data: { preload: true }` for preload hints.
+
+## Types
+
+- Shared models live in `src/app/types/` (e.g. `prayer.ts`). Use these interfaces for Supabase data and component inputs/outputs.

@@ -1,0 +1,36 @@
+---
+description: Supabase Edge Functions (Deno) patterns and conventions
+globs: supabase/functions/**/*.ts
+alwaysApply: false
+---
+
+# Supabase Edge Functions (Deno)
+
+## Structure
+
+- Each function lives in `supabase/functions/<name>/index.ts`.
+- Use **Deno** runtime. Entry point: `serve(async (req) => { ... })` from `https://deno.land/std@0.168.0/http/server.ts`.
+- Create Supabase client with `createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)` from `https://esm.sh/@supabase/supabase-js@2`.
+- Read env at top level: `const SUPABASE_URL = Deno.env.get('SUPABASE_URL');` and `SUPABASE_SERVICE_ROLE_KEY`.
+
+## CORS
+
+- Handle **OPTIONS** first and return 204 with headers:
+  - `Access-Control-Allow-Origin: '*'`
+  - `Access-Control-Allow-Methods: 'POST, OPTIONS'` (adjust for GET if needed)
+  - `Access-Control-Allow-Headers: 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform'`
+- Include `'Access-Control-Allow-Origin': '*'` on **all** JSON responses (success and error).
+
+## Responses
+
+- Return **JSON** with `Content-Type: application/json` and CORS header.
+- Success: `return new Response(JSON.stringify({ success: true, ... }), { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });`
+- Client errors (400): `{ error: '...', details?: '...' }`.
+- Server errors (500): validate env vars early; on failure return `{ error: '...', details?: '...' }` and log with `console.error`.
+- Validate request body and required env vars before using them.
+
+## Conventions
+
+- Use **single quotes** and consistent formatting (deno.json `fmt`).
+- Log with `console.log` / `console.error` for debugging (e.g. `✅` / `❌` prefixes).
+- For function-to-function calls use `supabase.functions.invoke('other-function', { body: { ... } })`.
