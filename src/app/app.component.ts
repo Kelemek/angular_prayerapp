@@ -1,6 +1,7 @@
-import { Component, OnInit, Injector, ErrorHandler, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, Injector, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Capacitor } from '@capacitor/core';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
 import { PrintInstructionsModalComponent } from './components/print-instructions-modal/print-instructions-modal.component';
 import { AdminDataService } from './services/admin-data.service';
@@ -12,14 +13,16 @@ import { filter } from 'rxjs';
   standalone: true,
   imports: [CommonModule, RouterOutlet, ToastContainerComponent, PrintInstructionsModalComponent],
   template: `
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <router-outlet></router-outlet>
-      <app-toast-container></app-toast-container>
-      <app-print-instructions-modal 
-        [isOpen]="(printInstructionsModalOpen$ | async) || false" 
-        (closeModal)="closePrintInstructionsModal()">
-      </app-print-instructions-modal>
-    </div>
+    <ng-container>
+      <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <router-outlet></router-outlet>
+        <app-toast-container></app-toast-container>
+        <app-print-instructions-modal 
+          [isOpen]="(printInstructionsModalOpen$ | async) || false" 
+          (closeModal)="closePrintInstructionsModal()">
+        </app-print-instructions-modal>
+      </div>
+    </ng-container>
   `,
   styles: []
 })
@@ -35,6 +38,10 @@ export class AppComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private modalService: ModalService
   ) {
+    // Add native-app class immediately so bottom blur strip shows before first paint
+    if (Capacitor.isNativePlatform()) {
+      document.documentElement.classList.add('native-app');
+    }
     this.printInstructionsModalOpen$ = this.modalService.printInstructionsModalOpen$;
     // Set up global error handler for unhandled errors
     this.setupGlobalErrorHandler();
@@ -50,6 +57,10 @@ export class AppComponent implements OnInit {
    */
   private async initializeCapacitor(): Promise<void> {
     try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        document.documentElement.classList.add('native-app');
+      }
       const { CapacitorService } = await import('./services/capacitor.service');
       const { PushNotificationService } = await import('./services/push-notification.service');
       this.injector.get(CapacitorService);

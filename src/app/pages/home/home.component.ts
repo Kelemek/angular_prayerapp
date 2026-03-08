@@ -684,6 +684,8 @@ import { environment } from '../../../environments/environment';
           </div>
         }
       </main>
+      <!-- Native app: bottom safe zone bar - matches header (bg-white/50 dark:bg-gray-800/50 backdrop-blur-md) -->
+      <footer class="bottom-safe-bar w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 sticky bottom-0 z-50" aria-hidden="true"></footer>
       </div>
 
       <!-- No Footer Links -->

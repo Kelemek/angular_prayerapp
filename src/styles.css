@@ -458,6 +458,20 @@ html, body {
   .native-app body::before {
     display: none;
   }
+  /* Native app: hide body::after (we use sticky footer in home instead) */
+  .native-app body::after {
+    display: none;
+  }
+  /* Bottom safe bar: sticky footer inside viewport (matches header - content scrolls behind, blur works) */
+  .bottom-safe-bar {
+    display: none;
+  }
+  .native-app .bottom-safe-bar {
+    display: block;
+    min-height: max(env(safe-area-inset-bottom, 0px), 34px);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
   .native-app header.sticky {
     top: 0;
     padding-top: env(safe-area-inset-top);
@@ -478,9 +492,16 @@ html, body {
     top: 0;
   }
 
-  /* Native app: scroll viewport should fill full visible height above bottom safe area (body already has no padding) */
+  /* Native app: full viewport so sticky footer can stick at bottom; content scrolls behind header & footer */
   .native-app .safe-area-viewport {
-    height: calc(100vh - env(safe-area-inset-bottom));
+    height: 100vh;
+  }
+  .native-app .main-page-shell {
+    min-height: 0;
+    height: 100vh;
+  }
+  .native-app .main-page-shell .safe-area-viewport {
+    height: 100%;
   }
 
   /* Web: no bottom safe zone on main page - match admin portal (content extends to bottom) */
