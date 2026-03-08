@@ -35,7 +35,7 @@ import { environment } from '../../../environments/environment';
   standalone: true,
   imports: [CommonModule, RouterModule, DragDropModule, PrayerFormComponent, PrayerFiltersComponent, SkeletonLoaderComponent, AppLogoComponent, PrayerCardComponent, PromptCardComponent, UserSettingsComponent, HelpModalComponent, PersonalPrayerEditModalComponent, PersonalPrayerUpdateEditModalComponent, ConfirmationDialogComponent, PullToRefreshDirective],
   template: `
-    <div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="main-page-shell w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       <!-- Scroll viewport below safe area: header sticky inside so content scrolls under header to top of header, never into safe area -->
       <div
         class="safe-area-viewport w-full bg-gray-50 dark:bg-gray-900"

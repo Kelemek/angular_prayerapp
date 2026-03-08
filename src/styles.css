@@ -445,16 +445,6 @@ html, body {
     background-color: #1F2937;
   }
 
-  /* Web: no bottom safe zone on main page - match admin portal (effectively remove it) */
-  html:not(.native-app) body {
-    padding-bottom: 0;
-  }
-  html:not(.native-app) body::after {
-    display: none;
-  }
-  html:not(.native-app) .safe-area-viewport {
-    height: calc(100vh - env(safe-area-inset-top));
-  }
   /* Web/Safari: keep sticky header below safe area strip */
   header.sticky {
     top: env(safe-area-inset-top);
@@ -491,6 +481,26 @@ html, body {
   /* Native app: scroll viewport should fill full visible height above bottom safe area (body already has no padding) */
   .native-app .safe-area-viewport {
     height: calc(100vh - env(safe-area-inset-bottom));
+  }
+
+  /* Web: no bottom safe zone on main page - match admin portal (content extends to bottom) */
+  html:not(.native-app) body {
+    padding-bottom: 0;
+  }
+  html:not(.native-app) body::after {
+    display: none;
+  }
+  /* Prevent app-root wrapper from forcing extra height below main page content */
+  html:not(.native-app) app-root > div {
+    min-height: 0;
+    height: auto;
+  }
+  html:not(.native-app) .main-page-shell {
+    min-height: 0;
+    height: calc(100vh - env(safe-area-inset-top));
+  }
+  html:not(.native-app) .main-page-shell .safe-area-viewport {
+    height: 100%;
   }
 }
 
