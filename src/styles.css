@@ -444,6 +444,17 @@ html, body {
   html.dark body::after {
     background-color: #1F2937;
   }
+
+  /* Web: no bottom safe zone on main page - match admin portal (effectively remove it) */
+  html:not(.native-app) body {
+    padding-bottom: 0;
+  }
+  html:not(.native-app) body::after {
+    display: none;
+  }
+  html:not(.native-app) .safe-area-viewport {
+    height: calc(100vh - env(safe-area-inset-top));
+  }
   /* Web/Safari: keep sticky header below safe area strip */
   header.sticky {
     top: env(safe-area-inset-top);
