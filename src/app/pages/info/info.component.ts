@@ -78,7 +78,7 @@ import { Subject, takeUntil } from 'rxjs';
                     </span>
                   </span>
                   <div
-                    class="h-20 w-20 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-100 flex items-center justify-center p-1"
+                    class="h-20 w-20 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1 ring-2 ring-emerald-400/50"
                     aria-hidden="true"
                   >
                     @if (webAppQrUrl) {
@@ -93,6 +93,7 @@ import { Subject, takeUntil } from 'rxjs';
                       </div>
                     }
                   </div>
+                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Tap or Scan</span>
                 </button>
               </div>
 
@@ -113,15 +114,16 @@ import { Subject, takeUntil } from 'rxjs';
                     </span>
                   </span>
                   <div
-                    class="h-20 w-20 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-100 flex items-center justify-center p-1"
+                    class="h-20 w-20 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1 ring-2 ring-emerald-400/50"
                     aria-hidden="true"
                   >
                     <img [src]="iosStoreQrUrl" alt="QR code for App Store" class="h-14 w-14 shrink-0 rounded object-contain" width="56" height="56" />
                   </div>
+                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Tap or Scan</span>
                 </button>
               </div>
 
-              <!-- Android CTA + QR -->
+              <!-- Android: coming soon (same height as Web/iOS cards) -->
               <div class="w-full flex flex-col items-center gap-2">
                 <div
                   class="w-full inline-flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-400 dark:border-gray-600 px-5 py-3 text-sm sm:text-base text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-gray-800/40 font-medium"
@@ -136,19 +138,8 @@ import { Subject, takeUntil } from 'rxjs';
                       <span class="block text-[11px] uppercase tracking-wide text-amber-600 dark:text-amber-300">Coming soon</span>
                     </div>
                   </span>
-                  <div
-                    class="h-20 w-20 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-100/50 dark:bg-gray-800/50 flex items-center justify-center p-1"
-                    aria-hidden="true"
-                  >
-                    <button
-                      type="button"
-                      (click)="openAndroidTesterModal()"
-                      class="text-xs sm:text-sm font-medium text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 dark:hover:text-emerald-200 hover:underline cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-inset rounded px-2 py-1"
-                      aria-label="Want to help test the Android app? Open more info"
-                    >
-                      Want to help test?
-                    </button>
-                  </div>
+                  <div class="h-20 w-20 shrink-0" aria-hidden="true"></div>
+                  <span class="text-[11px] font-medium invisible select-none">Tap or Scan</span>
                 </div>
               </div>
           </div>
