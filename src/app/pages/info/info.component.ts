@@ -66,7 +66,7 @@ import { Subject, takeUntil } from 'rxjs';
                 <button
                   type="button"
                   routerLink="/"
-                  class="group w-full inline-flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors cursor-pointer"
+                  class="group w-full inline-flex flex-row sm:flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors cursor-pointer"
                 >
                   <span class="flex w-full items-center justify-center">
                     <span class="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg overflow-hidden bg-gray-300 dark:bg-gray-800">
@@ -78,7 +78,7 @@ import { Subject, takeUntil } from 'rxjs';
                     </span>
                   </span>
                   <div
-                    class="h-20 w-20 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1 ring-2 ring-emerald-400/50"
+                    class="h-20 w-20 min-h-20 min-w-20 shrink-0 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1 ring-2 ring-emerald-400/50"
                     aria-hidden="true"
                   >
                     @if (webAppQrUrl) {
@@ -102,10 +102,10 @@ import { Subject, takeUntil } from 'rxjs';
                 <button
                   type="button"
                   (click)="openIosStore()"
-                  class="group w-full inline-flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors cursor-pointer"
+                  class="group w-full inline-flex flex-row sm:flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors cursor-pointer"
                 >
                   <span class="flex w-full items-center justify-center">
-                    <span class="mr-3 flex h-9 w-9 items-center justify-center rounded-lg bg-black">
+                    <span class="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black">
                       <span class="text-xl sm:text-2xl font-semibold text-white">&#63743;</span>
                     </span>
                     <span class="text-left leading-tight">
@@ -114,7 +114,7 @@ import { Subject, takeUntil } from 'rxjs';
                     </span>
                   </span>
                   <div
-                    class="h-20 w-20 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1 ring-2 ring-emerald-400/50"
+                    class="h-20 w-20 min-h-20 min-w-20 shrink-0 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1 ring-2 ring-emerald-400/50"
                     aria-hidden="true"
                   >
                     <img [src]="iosStoreQrUrl" alt="QR code for App Store" class="h-14 w-14 shrink-0 rounded object-contain" width="56" height="56" />
@@ -126,7 +126,7 @@ import { Subject, takeUntil } from 'rxjs';
               <!-- Android: coming soon (same layout as Web/iOS, deselected look) -->
               <div class="w-full flex flex-col items-center gap-2">
                 <div
-                  class="w-full inline-flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 text-sm sm:text-base font-medium opacity-75"
+                  class="w-full inline-flex flex-row sm:flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 text-sm sm:text-base font-medium opacity-75"
                   title="Android app coming soon"
                 >
                   <span class="flex w-full items-center justify-center">
@@ -139,12 +139,12 @@ import { Subject, takeUntil } from 'rxjs';
                     </span>
                   </span>
                   <div
-                    class="h-20 w-20 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1 shrink-0"
+                    class="h-20 w-20 min-h-20 min-w-20 shrink-0 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 flex items-center justify-center p-1"
                     aria-hidden="true"
                   >
                     <span class="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-300 text-center leading-tight">Coming soon</span>
                   </div>
-                  <span class="text-[11px] font-medium invisible select-none">Tap or Scan</span>
+                  <span class="text-[11px] font-medium text-gray-400 dark:text-gray-500 select-none">Tap or Scan</span>
                 </div>
               </div>
           </div>
