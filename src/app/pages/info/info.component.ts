@@ -93,7 +93,7 @@ import { Subject, takeUntil } from 'rxjs';
                       </div>
                     }
                   </div>
-                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Tap or Scan</span>
+                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-800 group-hover:dark:text-emerald-200 transition-colors">Tap or Scan</span>
                 </button>
               </div>
 
@@ -119,7 +119,7 @@ import { Subject, takeUntil } from 'rxjs';
                   >
                     <img [src]="iosStoreQrUrl" alt="QR code for App Store" class="h-16 w-16 shrink-0 rounded object-contain" width="64" height="64" loading="lazy" />
                   </div>
-                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Tap or Scan</span>
+                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-800 group-hover:dark:text-emerald-200 transition-colors">Tap or Scan</span>
                 </button>
               </div>
 
@@ -155,7 +155,7 @@ import { Subject, takeUntil } from 'rxjs';
                       </div>
                     }
                   </div>
-                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Tap or Scan</span>
+                  <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-800 group-hover:dark:text-emerald-200 transition-colors">Tap or Scan</span>
                 </button>
               </div>
           </div>
