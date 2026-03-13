@@ -798,7 +798,7 @@ import { Subject, takeUntil } from 'rxjs';
 })
 export class InfoComponent implements OnInit, OnDestroy {
   private readonly iosStoreUrl = 'https://apps.apple.com/us/app/cross-pointe-prayer/id6759469929';
-  private readonly androidStoreUrl = 'https://play.google.com/store/apps/details?id=com.prayerapp.mobile&hl=en-US&ah=Ghbr4bYQ1m2dzQHiDSMTuk1p39Y&pli=1';
+  private readonly androidStoreUrl = 'https://play.google.com/store/apps/details?id=com.prayerapp.mobile';
   previewFilter: 'current' | 'answered' | 'total' | 'prompts' | 'personal' = 'current';
   headerPreview: 'help' | 'settings' | 'pray' | 'request' | 'search' | 'card-update' | 'card-pray-for' | null = null;
   showPromptCategoriesModal = false;
