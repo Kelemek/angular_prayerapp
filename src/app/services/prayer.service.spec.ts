@@ -57,6 +57,7 @@ describe('PrayerService', () => {
       maybeSingle: () => Promise.resolve({ data: null, error: null })
     }));
     supabase.client.rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    supabase.ensureConnected = vi.fn().mockResolvedValue(undefined);
 
     service = new PrayerService(supabase, toast, emailNotification, verificationService as any, cache, badgeService, userSessionService);
   });
@@ -460,7 +461,8 @@ describe('PrayerService', () => {
     errSpy.mockRestore();
   });
 
-  it('triggerBackgroundRecovery uses cached data and restarts realtime subscription', async () => {
+  it('triggerBackgroundRecovery schedules resume refresh which uses cached data and restarts realtime', async () => {
+    vi.useFakeTimers();
     const cached = [makePrayer({ id: 'cache1' })];
     cache.get.mockReturnValue(cached);
     (service as any).realtimeChannel = null;
@@ -468,9 +470,11 @@ describe('PrayerService', () => {
     vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
 
     (service as any).triggerBackgroundRecovery();
+    await vi.advanceTimersByTimeAsync(500);
     expect((service as any).allPrayersSubject.value).toEqual(cached);
     expect(setupSpy).toHaveBeenCalled();
     setupSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   it('cleanup removes realtime channel and clears timeout', async () => {
@@ -486,32 +490,18 @@ describe('PrayerService', () => {
     // This test is skipped - the fake timer behavior is unreliable
   });
 
-  it('visibilitychange triggers silent loadPrayers (visibility listener)', async () => {
-    service = new PrayerService(
-      supabase,
-      toast,
-      emailNotification,
-      verificationService,
-      cache,
-      badgeService,
-      userSessionService
-    );
-
+  it('scheduleResumeRefresh after debounce calls ensureConnected and loadPrayers(true)', async () => {
     const loadSpy = vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
+    const ensureSpy = vi.spyOn(supabase, 'ensureConnected').mockResolvedValue(undefined);
 
-    // Ensure document appears visible
-    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
-    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
-    // Wait for listener registration
-    // Wait for listener registration (allow event loop to settle)
-    await new Promise((res) => setTimeout(res, 0));
-    document.dispatchEvent(new Event('visibilitychange'));
-    // allow async handlers to run
-    await new Promise((res) => setTimeout(res, 0));
+    (service as any).scheduleResumeRefresh();
+    await new Promise((r) => setTimeout(r, 500));
 
-    expect(loadSpy).toHaveBeenCalled();
+    expect(ensureSpy).toHaveBeenCalled();
+    expect(loadSpy).toHaveBeenCalledWith(true);
     loadSpy.mockRestore();
-  });
+    ensureSpy.mockRestore();
+  }, 5000);
 
   it('realtime subscribe receives CLOSED status and logs warning', async () => {
     // Create a supabase mock that calls subscribe callback with 'CLOSED'
@@ -761,7 +751,8 @@ describe('PrayerService - Integration Tests', () => {
           subscribe: vi.fn()
         })),
         removeChannel: vi.fn().mockResolvedValue(undefined)
-      }
+      },
+      ensureConnected: vi.fn().mockResolvedValue(undefined)
     };
 
     // Mock Toast Service
@@ -1293,8 +1284,8 @@ describe('PrayerService - Integration Tests', () => {
       expect(mockToastService.error).toHaveBeenCalled();
     });
 
-    it('triggerBackgroundRecovery handles exceptions when cache.get throws initially', () => {
-      // make cache.get throw on first call, then return cached data on second call
+    it('triggerBackgroundRecovery handles exceptions when cache.get throws initially', async () => {
+      vi.useFakeTimers();
       const cached = [{ id: 'cached1', title: 'C', description: 'D', status: 'current', requester: 'R', prayer_for: 'P', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }];
       let calls = 0;
       mockCacheService.get = vi.fn(() => {
@@ -1302,12 +1293,14 @@ describe('PrayerService - Integration Tests', () => {
         if (calls === 1) throw new Error('cache boom');
         return cached;
       });
+      vi.spyOn(service as any, 'loadPrayers').mockRejectedValue(new Error('load fail'));
 
       (service as any).realtimeChannel = null;
 
       expect(() => (service as any).triggerBackgroundRecovery()).not.toThrow();
-      // second call should have returned cached data and applied it
+      await vi.advanceTimersByTimeAsync(500);
       expect((service as any).allPrayersSubject.value).toEqual(cached);
+      vi.useRealTimers();
     });
   });
 
@@ -2087,6 +2080,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('triggerBackgroundRecovery with no cached data and silently reloads', async () => {
+      vi.useFakeTimers();
       service = new PrayerService(
         mockSupabaseService,
         mockToastService,
@@ -2101,10 +2095,11 @@ describe('PrayerService - Integration Tests', () => {
       const loadSpy = vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
 
       (service as any).triggerBackgroundRecovery();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await vi.advanceTimersByTimeAsync(500);
 
       expect(loadSpy).toHaveBeenCalledWith(true);
       loadSpy.mockRestore();
+      vi.useRealTimers();
     });
 
     it('triggerBackgroundRecovery with cached data shows it while reloading', async () => {
@@ -2152,13 +2147,16 @@ describe('PrayerService - Integration Tests', () => {
       const setupSpy = vi.spyOn(service as any, 'setupRealtimeSubscription').mockImplementation(() => {});
       const loadSpy = vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
 
+      vi.useFakeTimers();
       (service as any).triggerBackgroundRecovery();
+      await vi.advanceTimersByTimeAsync(500);
 
       expect(setupSpy).toHaveBeenCalled();
       expect(loadSpy).toHaveBeenCalledWith(true);
 
       setupSpy.mockRestore();
       loadSpy.mockRestore();
+      vi.useRealTimers();
     });
 
     it('loadPrayers with error and fallback to cache shows cached data', async () => {

@@ -78,6 +78,12 @@ export class PrayerService {
   private inactivityThresholdMs = 5 * 60 * 1000; // 5 minutes of inactivity
   private backgroundRecoveryTimeouts: Map<string, number> = new Map();
   private isInBackground = document.hidden;
+  /** Debounce resume-triggered refresh so visibility/focus/app-became-visible only trigger one load */
+  private resumeRefreshTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private static readonly RESUME_REFRESH_DEBOUNCE_MS = 400;
+  /** Avoid multiple "Failed to load prayers" toasts when several loads fail at once (e.g. after long background) */
+  private lastLoadErrorToastTime = 0;
+  private static readonly LOAD_ERROR_TOAST_COOLDOWN_MS = 10_000;
 
   public allPrayers$ = this.allPrayersSubject.asObservable();
   public prayers$ = this.prayersSubject.asObservable();
@@ -239,7 +245,11 @@ export class PrayerService {
       } else {
         // No cache available
         this.errorSubject.next(errorMessage);
-        this.toast.error('Failed to load prayers');
+        const now = Date.now();
+        if (now - this.lastLoadErrorToastTime > PrayerService.LOAD_ERROR_TOAST_COOLDOWN_MS) {
+          this.lastLoadErrorToastTime = now;
+          this.toast.error('Failed to load prayers');
+        }
       }
     } finally {
       this.loadingSubject.next(false);
@@ -412,11 +422,9 @@ export class PrayerService {
   private setupInactivityListener(): void {
     // Refresh when window regains focus (tab becomes visible again)
     fromEvent(window, 'focus').subscribe(() => {
-      console.log('[PrayerService] Window regained focus, refreshing data');
-      this.loadPrayers(true).catch(err => {
-        console.debug('[PrayerService] Background refresh failed:', err);
-        // Silently fail - keep showing cached data
-      });
+      if (!document.hidden) {
+        this.scheduleResumeRefresh();
+      }
     });
 
     // Track inactivity - reset timer on any user activity
@@ -439,13 +447,10 @@ export class PrayerService {
       });
     });
 
-    // When document gains focus after being in background, trigger refresh
+    // When document becomes visible, trigger a single debounced refresh (with ensureConnected first)
     fromEvent(document, 'visibilitychange').subscribe(() => {
       if (!document.hidden) {
-        console.log('[PrayerService] Window regained focus, refreshing data');
-        this.loadPrayers(true).catch(err => {
-          console.debug('[PrayerService] Background refresh failed:', err);
-        });
+        this.scheduleResumeRefresh();
       }
     });
   }
@@ -483,46 +488,57 @@ export class PrayerService {
   }
 
   /**
-   * Trigger background recovery - refresh data and ensure connections are healthy
+   * Schedule a single resume refresh (debounced). Called from visibilitychange, focus, and app-became-visible
+   * so we only run one refresh after coming back from background instead of several.
    */
-  private triggerBackgroundRecovery(): void {
+  private scheduleResumeRefresh(): void {
+    if (this.resumeRefreshTimeoutId != null) {
+      clearTimeout(this.resumeRefreshTimeoutId);
+    }
+    this.resumeRefreshTimeoutId = setTimeout(() => {
+      this.resumeRefreshTimeoutId = null;
+      this.runResumeRefresh();
+    }, PrayerService.RESUME_REFRESH_DEBOUNCE_MS);
+  }
+
+  /**
+   * Run resume refresh once: ensure session/connection, then load prayers. Used after long background
+   * so the session is refreshed before fetching (avoids "Failed to load prayers" from expired token).
+   */
+  private async runResumeRefresh(): Promise<void> {
     try {
-      console.log('[PrayerService] Background recovery triggered');
-      
-      // Ensure we have cached data to show while refreshing
-      const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
-      if (cachedPrayers && cachedPrayers.length > 0) {
-        console.log('[PrayerService] Using cached data during recovery');
-        this.allPrayersSubject.next(cachedPrayers);
-        this.applyFilters(this.currentFilters);
-      }
-      
-      // Silently refresh data in the background
-      this.loadPrayers(true).catch(err => {
-        console.debug('[PrayerService] Recovery refresh failed, keeping cached data visible:', err);
-        // If refresh fails, ensure cached data is shown
-        const cached = this.cache.get<PrayerRequest[]>('prayers');
-        if (cached && cached.length > 0) {
-          this.allPrayersSubject.next(cached);
+      console.log('[PrayerService] Resume refresh: ensuring connection then loading prayers');
+      try {
+        const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
+        if (cachedPrayers && cachedPrayers.length > 0) {
+          this.allPrayersSubject.next(cachedPrayers);
           this.applyFilters(this.currentFilters);
         }
-      });
-      
-      // Restart realtime subscription if it was lost
-      if (!this.realtimeChannel) {
-        console.log('[PrayerService] Restarting realtime subscription after background');
-        this.setupRealtimeSubscription();
+      } catch {
+        // Cache may throw (e.g. storage unavailable); continue to refresh
       }
+      await this.supabase.ensureConnected();
+      await this.loadPrayers(true);
     } catch (err) {
-      console.error('[PrayerService] Background recovery failed:', err);
-      // Still try to show cached data
+      console.debug('[PrayerService] Resume refresh failed, keeping cached data visible:', err);
       const cached = this.cache.get<PrayerRequest[]>('prayers');
       if (cached && cached.length > 0) {
-        console.log('[PrayerService] Showing cached data as fallback');
         this.allPrayersSubject.next(cached);
         this.applyFilters(this.currentFilters);
       }
+    } finally {
+      if (!this.realtimeChannel) {
+        this.setupRealtimeSubscription();
+      }
     }
+  }
+
+  /**
+   * Trigger background recovery - refresh data and ensure connections are healthy.
+   * Now invoked only via scheduleResumeRefresh for a single debounced run.
+   */
+  private triggerBackgroundRecovery(): void {
+    this.scheduleResumeRefresh();
   }
 
   /**
@@ -1092,18 +1108,7 @@ export class PrayerService {
   private setupVisibilityListener(): void {
     fromEvent(document, 'visibilitychange').subscribe(() => {
       if (document.visibilityState === 'visible') {
-        console.log('[PrayerService] Page became visible, silently refreshing data in background');
-        // ALWAYS use silent refresh (true) to keep UI visible - never show loading state for auto-refresh
-        this.loadPrayers(true).catch(err => {
-          console.debug('[PrayerService] Silent refresh failed, keeping cached data visible:', err);
-          // Fallback: show cached data if available
-          const cached = this.cache.get<PrayerRequest[]>('prayers');
-          if (cached && cached.length > 0) {
-            console.log('[PrayerService] Showing cached data while refresh failed');
-            this.allPrayersSubject.next(cached);
-            this.applyFilters(this.currentFilters);
-          }
-        });
+        this.scheduleResumeRefresh();
       }
     });
   }

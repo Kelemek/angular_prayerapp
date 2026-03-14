@@ -9,6 +9,7 @@ const makeSupabase = (overrides: any = {}) => ({
     channel: vi.fn(() => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn(() => ({})) })),
     removeChannel: vi.fn()
   },
+  ensureConnected: vi.fn().mockResolvedValue(undefined),
   ...overrides
 });
 
@@ -45,41 +46,38 @@ describe('PrayerService extra coverage', () => {
   });
 
   it('triggerBackgroundRecovery tolerates loadPrayers rejection and shows cache fallback', async () => {
+    vi.useFakeTimers();
     const supabase = makeSupabase();
     const cache = { get: vi.fn(() => [{ id: 'c1', title: 'C', description: 'D', status: 'current', requester: 'R', prayer_for: 'P', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }]), set: vi.fn(), invalidate: vi.fn() };
 
     const service = new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, cache as any, noopBadgeService as any, noopUserSessionService as any);
 
-    // stub loadPrayers to reject when called from recovery
     vi.spyOn(service as any, 'loadPrayers').mockImplementation(() => Promise.reject(new Error('boom')));
 
-    // should not throw even though loadPrayers rejects; cached data should be applied
-    expect(() => (service as any).triggerBackgroundRecovery()).not.toThrow();
-    // cached data applied synchronously
+    (service as any).triggerBackgroundRecovery();
+    await vi.advanceTimersByTimeAsync(500);
     const all = (service as any).allPrayersSubject.value;
     expect(all && all.length > 0).toBe(true);
+    vi.useRealTimers();
   });
 
   it('setupVisibilityListener falls back to cache when silent refresh fails', async () => {
+    vi.useFakeTimers();
     const supabase = makeSupabase();
+    (supabase as any).ensureConnected = vi.fn().mockResolvedValue(undefined);
     const cached = [{ id: 'c2', title: 'C2', description: 'D2', status: 'current', requester: 'R', prayer_for: 'P', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }];
     const cache = { get: vi.fn(() => cached), set: vi.fn(), invalidate: vi.fn() };
 
     const service = new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, cache as any, noopBadgeService as any, noopUserSessionService as any);
 
-    // force loadPrayers to reject when visibility handler runs
     vi.spyOn(service as any, 'loadPrayers').mockImplementation(() => Promise.reject(new Error('silent')));
 
-    // ensure document.visibilityState appears visible and dispatch event
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
-    // run the handler
     document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(500);
 
-    // allow microtasks
-    await Promise.resolve();
-
-    // ensure the method completed and the visible list is an array (cached may be applied depending on timing)
     expect(Array.isArray((service as any).allPrayersSubject.value)).toBe(true);
+    vi.useRealTimers();
   });
 
   it('setupInactivityListener resets timer on activity events without throwing', () => {
