@@ -286,12 +286,8 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
             [class]="'bg-gray-100 dark:bg-gray-700 rounded-lg p-6 border relative ' + getBorderClass()"
           >
             <div class="relative mb-2">
-              <div class="flex items-start relative">
+              <div class="flex items-start relative min-h-8">
                 <div class="flex-1 min-w-0 pr-20">
-                  <!-- Personal: update content in row so it aligns with action buttons -->
-                  @if (isPersonal) {
-                  <p class="text-sm text-gray-700 dark:text-gray-300 mb-0">{{ update.content }}</p>
-                  }
                   <!-- Answered badge for member updates -->
                   @if (update.is_answered && prayer.id.startsWith('pc-member-')) {
                   <span class="inline-flex items-center justify-center px-2 py-1 mr-2 bg-green-600 dark:bg-green-700 text-white rounded-full text-xs font-bold whitespace-nowrap">
@@ -373,9 +369,8 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
               </button>
             }
 
-            @if (!isPersonal) {
+            <!-- Update content on its own row below meta (Answered / Updated by + buttons) for all types; min-h-8 on row above prevents overlap when left column is empty -->
             <p class="text-sm text-gray-700 dark:text-gray-300">{{ update.content }}</p>
-            }
 
             @if (showUpdateDeleteRequestForm === update.id && !isAdmin) {
             <form #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="region" [attr.aria-labelledby]="'updateDeleteFormTitle-' + update.id">
