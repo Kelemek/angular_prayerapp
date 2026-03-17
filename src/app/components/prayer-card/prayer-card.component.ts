@@ -19,13 +19,13 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
     <div 
       [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] p-6 mb-4 transition-colors relative ' + (dragHandle && isPersonal ? ' pl-10 ' : '') + getBorderClass()"
     >
+      <!-- Drag Handle: rendered as first child so absolute left-3 top-1/2 is relative to card root (not header) -->
+      @if (dragHandle && isPersonal) {
+        <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
+      }
       <!-- Header -->
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-3 flex-1">
-          <!-- Drag Handle (only for personal prayers) -->
-          @if (dragHandle && isPersonal) {
-            <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
-          }
+      <div class="flex items-start justify-between mb-4 relative">
+        <div class="flex items-start gap-3 flex-1 min-w-0 pr-24">
           <!-- Avatar for Planning Center members -->
           @if (prayer.prayer_image && prayer.id.startsWith('pc-member-')) {
             <img 
@@ -58,7 +58,7 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
             </div>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
           @if (isPersonal) {
           <button
             (click)="showShareModal = true"
@@ -91,7 +91,7 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
             (click)="handleDeleteClick()"
             aria-label="Delete prayer request"
             title="Delete prayer request"
-            class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
+            class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
@@ -286,19 +286,25 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
             [class]="'bg-gray-100 dark:bg-gray-700 rounded-lg p-6 border relative ' + getBorderClass()"
           >
             <div class="relative mb-2">
-              <div class="flex items-center">
-                <!-- Answered badge for member updates -->
-                @if (update.is_answered && prayer.id.startsWith('pc-member-')) {
-                <span class="inline-flex items-center justify-center px-2 py-1 mr-2 bg-green-600 dark:bg-green-700 text-white rounded-full text-xs font-bold whitespace-nowrap">
-                  Answered
-                </span>
-                }
-                @if (!isPersonal && !prayer.id.startsWith('pc-member-')) {
-                <span class="text-sm text-gray-600 dark:text-gray-400">
-                  Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.is_anonymous ? 'Anonymous' : update.author }}</span>
-                </span>
-                }
-                <div class="ml-auto flex items-center gap-2">
+              <div class="flex items-start relative">
+                <div class="flex-1 min-w-0 pr-20">
+                  <!-- Personal: update content in row so it aligns with action buttons -->
+                  @if (isPersonal) {
+                  <p class="text-sm text-gray-700 dark:text-gray-300 mb-0">{{ update.content }}</p>
+                  }
+                  <!-- Answered badge for member updates -->
+                  @if (update.is_answered && prayer.id.startsWith('pc-member-')) {
+                  <span class="inline-flex items-center justify-center px-2 py-1 mr-2 bg-green-600 dark:bg-green-700 text-white rounded-full text-xs font-bold whitespace-nowrap">
+                    Answered
+                  </span>
+                  }
+                  @if (!isPersonal && !prayer.id.startsWith('pc-member-')) {
+                  <span class="text-sm text-gray-600 dark:text-gray-400">
+                    Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.is_anonymous ? 'Anonymous' : update.author }}</span>
+                  </span>
+                  }
+                </div>
+                <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
                   @if (isPersonal) {
                   <button
                     (click)="editPersonalUpdate.emit({update: update, prayerId: prayer.id})"
@@ -306,7 +312,7 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
                     title="Edit update"
                     class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
@@ -319,7 +325,7 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
                     title="Edit update"
                     class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
@@ -330,7 +336,7 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
                     [attr.aria-label]="update.is_answered ? 'Mark as unanswered' : 'Mark as answered'"
                     [class]="'p-1 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + (update.is_answered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                   </button>
@@ -340,9 +346,9 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
                     (click)="handleDeleteUpdate(update.id)"
                     aria-label="Delete prayer update"
                     title="Delete this update"
-                    class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
+                    class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="3 6 5 6 21 6"></polyline>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
@@ -367,8 +373,10 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
               </button>
             }
 
+            @if (!isPersonal) {
             <p class="text-sm text-gray-700 dark:text-gray-300">{{ update.content }}</p>
-            
+            }
+
             @if (showUpdateDeleteRequestForm === update.id && !isAdmin) {
             <form #updateDeleteForm="ngForm" (ngSubmit)="updateDeleteForm.valid && handleUpdateDeletionRequest()" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="region" [attr.aria-labelledby]="'updateDeleteFormTitle-' + update.id">
               <h4 [id]="'updateDeleteFormTitle-' + update.id" class="text-xs font-medium text-red-700 dark:text-red-400 mb-2">Request Update Deletion</h4>
