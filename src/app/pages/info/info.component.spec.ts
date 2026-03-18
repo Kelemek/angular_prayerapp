@@ -205,6 +205,19 @@ describe('InfoComponent', () => {
     });
   });
 
+  describe('android help modal', () => {
+    it('should set showAndroidHelpModal when openAndroidHelpModal is called', () => {
+      component.openAndroidHelpModal();
+      expect(component.showAndroidHelpModal).toBe(true);
+    });
+
+    it('should clear showAndroidHelpModal when closeAndroidHelpModal is called', () => {
+      component.openAndroidHelpModal();
+      component.closeAndroidHelpModal();
+      expect(component.showAndroidHelpModal).toBe(false);
+    });
+  });
+
   describe('personal categories modal', () => {
     it('should set showPersonalCategoriesModal true when openPersonalCategoriesModal is called', () => {
       component.openPersonalCategoriesModal();
@@ -250,6 +263,13 @@ describe('InfoComponent', () => {
       expect(el.textContent).toContain('App Store');
       expect(el.textContent).toContain('Google Play');
     });
+    it('should show android coming soon help trigger', async () => {
+      await component.ngOnInit();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.textContent).toContain('Coming soon');
+      expect(el.textContent).toContain('Want to help?');
+    });
     it('should show filter tabs with Current, Answered, Total, Prompts, Personal', async () => {
       await component.ngOnInit();
       fixture.detectChanges();
@@ -268,6 +288,16 @@ describe('InfoComponent', () => {
       badgeBtn.click();
       fixture.detectChanges();
       expect(component.showBadgesModal).toBe(true);
+    });
+    it('should open android help modal when want to help is clicked', async () => {
+      await component.ngOnInit();
+      fixture.detectChanges();
+      const buttons = fixture.nativeElement.querySelectorAll('button');
+      const helpBtn = Array.from(buttons).find((b: Element) => b.textContent?.includes('Want to help?')) as HTMLButtonElement | undefined;
+      expect(helpBtn).toBeTruthy();
+      helpBtn?.click();
+      fixture.detectChanges();
+      expect(component.showAndroidHelpModal).toBe(true);
     });
     it('should set previewFilter when filter tab is clicked', async () => {
       await component.ngOnInit();

@@ -769,6 +769,18 @@ describe('AdminDataService', () => {
 
       expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
     });
+
+    it('should throw when deletion request cannot be fetched', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: new Error('Fetch failed') }))
+          }))
+        }))
+      }));
+
+      await expect(service.approveUpdateDeletionRequest('1')).rejects.toThrow('Fetch failed');
+    });
   });
 
   describe('denyUpdateDeletionRequest', () => {
@@ -782,6 +794,16 @@ describe('AdminDataService', () => {
       await service.denyUpdateDeletionRequest('1', 'Not necessary');
 
       expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
+    });
+
+    it('should throw when update deletion update fails', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+        }))
+      }));
+
+      await expect(service.denyUpdateDeletionRequest('1', 'Not necessary')).rejects.toThrow('Update failed');
     });
   });
 
@@ -859,6 +881,193 @@ describe('AdminDataService', () => {
       await service.approveAccountRequest('1');
 
       expect(mockEmailNotificationService.sendEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sendApprovedPrayerEmails', () => {
+    it('should throw when the prayer cannot be fetched', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: new Error('Fetch failed') }))
+          }))
+        }))
+      }));
+
+      await expect(service.sendApprovedPrayerEmails('1')).rejects.toThrow('Fetch failed');
+    });
+
+    it('should throw when the prayer is missing', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.sendApprovedPrayerEmails('1')).rejects.toThrow('Prayer not found');
+    });
+
+    it('should send approved update email for shared personal prayers with updates', async () => {
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({
+                  data: {
+                    id: '1',
+                    title: 'Shared Prayer',
+                    description: 'Shared description',
+                    requester: 'John',
+                    prayer_for: 'Jane',
+                    status: 'current',
+                    is_anonymous: false,
+                    is_shared_personal_prayer: true,
+                    email: 'john@example.com'
+                  },
+                  error: null
+                }))
+              }))
+            }))
+          };
+        }
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({
+                    data: [{
+                      content: 'Latest shared update',
+                      author: 'Shared Author',
+                      author_email: 'author@example.com',
+                      is_anonymous: false,
+                      mark_as_answered: true,
+                      prayers: { title: 'Shared Prayer', description: 'Shared description' }
+                    }],
+                    error: null
+                  }))
+                }))
+              }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.sendApprovedPrayerEmails('1');
+
+      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(expect.objectContaining({
+        prayerTitle: 'Shared Prayer',
+        content: 'Latest shared update',
+        author: 'Shared Author',
+        markedAsAnswered: true
+      }));
+    });
+
+    it('should send prayer notification for shared personal prayers without updates', async () => {
+      mockSupabaseClient.from = vi.fn((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({
+                  data: {
+                    id: '1',
+                    title: 'Shared Prayer',
+                    description: 'Shared description',
+                    requester: 'John',
+                    prayer_for: 'Jane',
+                    status: 'current',
+                    is_anonymous: false,
+                    is_shared_personal_prayer: true,
+                    email: 'john@example.com'
+                  },
+                  error: null
+                }))
+              }))
+            }))
+          };
+        }
+        if (table === 'prayer_updates') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({ data: [], error: null }))
+                }))
+              }))
+            }))
+          };
+        }
+        return createMockQueryChain([], null);
+      });
+
+      await service.sendApprovedPrayerEmails('1');
+
+      expect(mockEmailNotificationService.sendApprovedPrayerNotification).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Shared Prayer',
+        prayerFor: 'Jane'
+      }));
+    });
+
+    it('should send broadcast notification for regular prayers', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({
+              data: {
+                id: '1',
+                title: 'Regular Prayer',
+                description: 'Regular description',
+                requester: 'John',
+                prayer_for: 'Jane',
+                status: 'current',
+                is_anonymous: false,
+                is_shared_personal_prayer: false,
+                email: 'john@example.com'
+              },
+              error: null
+            }))
+          }))
+        }))
+      }));
+
+      await service.sendApprovedPrayerEmails('1');
+
+      expect(mockEmailNotificationService.sendApprovedPrayerNotification).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Regular Prayer',
+        prayerFor: 'Jane'
+      }));
+      expect(mockPushNotificationService.sendPushToSubscribers).toHaveBeenCalled();
+    });
+  });
+
+  describe('sendApprovedUpdateEmails', () => {
+    it('should throw when the update cannot be fetched', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: new Error('Fetch failed') }))
+          }))
+        }))
+      }));
+
+      await expect(service.sendApprovedUpdateEmails('1')).rejects.toThrow('Fetch failed');
+    });
+
+    it('should throw when the update is missing', async () => {
+      mockSupabaseClient.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        }))
+      }));
+
+      await expect(service.sendApprovedUpdateEmails('1')).rejects.toThrow('Update not found');
     });
   });
 

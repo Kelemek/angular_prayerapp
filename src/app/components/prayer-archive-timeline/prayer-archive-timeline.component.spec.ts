@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PrayerArchiveTimelineComponent } from './prayer-archive-timeline.component';
 
 describe('PrayerArchiveTimelineComponent - Core Logic', () => {
+  it('should create a valid component instance reference in coverage tests', () => {
+    expect(PrayerArchiveTimelineComponent).toBeDefined();
+  });
+
   describe('Date Formatting', () => {
     it('should format date as YYYY-MM-DD', () => {
       const date = new Date('2026-01-15T12:34:56Z');
@@ -198,6 +202,23 @@ describe('PrayerArchiveTimelineComponent - Core Logic', () => {
       expect(grouped.size).toBe(2);
       expect(grouped.get('2026-01-15').length).toBe(2);
       expect(grouped.get('2026-01-16').length).toBe(1);
+    });
+
+    it('should create distinct group entries for distinct dates', () => {
+      const events = [
+        { date: new Date('2026-01-15'), name: 'A' },
+        { date: new Date('2026-01-16'), name: 'B' },
+        { date: new Date('2026-01-17'), name: 'C' }
+      ];
+
+      const grouped = new Map<string, typeof events>([]);
+      for (const event of events) {
+        const key = event.date.toISOString().split('T')[0];
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key)!.push(event);
+      }
+
+      expect(grouped.size).toBe(3);
     });
   });
 

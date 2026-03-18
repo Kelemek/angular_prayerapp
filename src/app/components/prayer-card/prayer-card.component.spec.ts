@@ -305,6 +305,31 @@ describe('PrayerCardComponent', () => {
     expect(component.showUpdateDeleteRequestForm).toBeNull();
   });
 
+  it('showUpdateDeleteButton respects original-requestor policy for updates', () => {
+    component.isAdmin = false;
+    component.deletionsAllowed = 'original-requestor';
+    component.prayer.email = 'test@example.com';
+    mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+      email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      fullName: 'John Doe',
+      isActive: true
+    });
+
+    expect(component.showUpdateDeleteButton()).toBe(true);
+
+    mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
+      email: 'other@example.com',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      fullName: 'Jane Doe',
+      isActive: true
+    });
+
+    expect(component.showUpdateDeleteButton()).toBe(false);
+  });
+
   it('getDisplayedUpdates handles various cases', () => {
     // no updates
     component.prayer.updates = undefined as any;
@@ -391,6 +416,53 @@ describe('PrayerCardComponent', () => {
     const payload = spy.mock.calls[0][0];
     expect(payload.requester_first_name).toBe('First');
     expect(payload.requester_last_name).toBe('Last Middle');
+  });
+
+  it('handleDeleteUpdate opens confirmation dialog for personal updates', () => {
+    component.isPersonal = true;
+    component.handleDeleteUpdate('u-personal');
+
+    expect(component.showUpdateConfirmationDialog).toBe(true);
+    expect(component.updateConfirmationId).toBe('u-personal');
+    expect(component.updateConfirmationTitle).toBe('Delete Update');
+  });
+
+  it('confirmPrayFor skips increment when encouragement service blocks it', async () => {
+    const localPrayerService = {
+      incrementPrayedFor: vi.fn()
+    };
+    const localPrayerEncouragementService = {
+      getPrayerEncouragementEnabled$: vi.fn().mockReturnValue(of(true)),
+      canPrayFor: vi.fn().mockReturnValue(false),
+      recordPrayedFor: vi.fn()
+    };
+    const localCdr = { markForCheck: vi.fn() };
+
+    const localComponent = new PrayerCardComponent(
+      mockSupabaseService as any,
+      mockUserSessionService as any,
+      { getBadgeFunctionalityEnabled$: () => of(false) } as any,
+      localPrayerService as any,
+      localPrayerEncouragementService as any,
+      localCdr as any
+    );
+    localComponent.prayer = {
+      id: 'prayer-2',
+      prayer_for: 'Community',
+      description: 'Please pray',
+      requester: 'Jane Doe',
+      email: 'test@example.com',
+      is_anonymous: false,
+      status: 'current',
+      created_at: new Date().toISOString(),
+      updates: [],
+      prayed_for_count: 0
+    } as any;
+
+    await localComponent.confirmPrayFor();
+
+    expect(localPrayerEncouragementService.recordPrayedFor).not.toHaveBeenCalled();
+    expect(localPrayerService.incrementPrayedFor).not.toHaveBeenCalled();
   });
 
   describe('Badge functionality', () => {

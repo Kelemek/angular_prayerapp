@@ -292,6 +292,99 @@ describe('BadgeService', () => {
     });
   });
 
+  describe('markAllAsReadByStatus and unread helpers', () => {
+    beforeEach(() => {
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [
+          { id: 'prayer-1', status: 'current', updated_at: '2024-01-01', updates: [{ id: 'u1', created_at: '2024-01-01' }] },
+          { id: 'prayer-2', status: 'answered', updated_at: '2024-01-01', updates: [{ id: 'u2', created_at: '2024-01-01' }] },
+          { id: 'prayer-3', status: 'current', updated_at: '2024-01-01', updates: [] }
+        ]
+      }));
+      localStorage.setItem('prompts_cache', JSON.stringify({
+        data: [
+          { id: 'prompt-1', status: 'current', updated_at: '2024-01-01', updates: [] },
+          { id: 'prompt-2', status: 'answered', updated_at: '2024-01-01', updates: [{ id: 'pu1', created_at: '2024-01-01' }] }
+        ]
+      }));
+      localStorage.setItem('read_prayers_data', JSON.stringify({ prayers: ['prayer-3'], updates: [] }));
+      localStorage.setItem('read_prompts_data', JSON.stringify({ prompts: [], updates: [] }));
+    });
+
+    it('should mark only prayers with the requested status as read', () => {
+      service.markAllAsReadByStatus('prayers', 'current');
+
+      const readData = JSON.parse(localStorage.getItem('read_prayers_data') || '{}');
+      expect(readData.prayers).toContain('prayer-1');
+      expect(readData.prayers).not.toContain('prayer-2');
+      expect(readData.prayers).toContain('prayer-3');
+    });
+
+    it('should mark only prompts with the requested status as read', () => {
+      service.markAllAsReadByStatus('prompts', 'answered');
+
+      const readData = JSON.parse(localStorage.getItem('read_prompts_data') || '{}');
+      expect(readData.prompts).toContain('prompt-2');
+      expect(readData.prompts).not.toContain('prompt-1');
+    });
+
+    it('should return unread ids for prayers and prompts', () => {
+      expect(service.getUnreadIds('prayers')).toEqual(['prayer-1', 'prayer-2']);
+      expect(service.getUnreadIds('prompts')).toEqual(['prompt-1', 'prompt-2']);
+    });
+
+    it('should expose individual badge streams per item', async () => {
+      const badge$ = service.hasIndividualBadge$('prayers', 'prayer-1');
+      const value = await firstValueFrom(badge$.pipe(take(1)));
+
+      expect(typeof value).toBe('boolean');
+      expect(service.checkIndividualBadge('prayers', 'prayer-1')).toBe(true);
+    });
+
+    it('should return false for missing or malformed cached items in checkIndividualBadge', () => {
+      localStorage.setItem('prayers_cache', JSON.stringify({ data: [{ id: 'prayer-1', status: 'current' }] }));
+      expect(service.checkIndividualBadge('prayers', 'missing')).toBe(false);
+
+      localStorage.setItem('prayers_cache', 'not-json');
+      expect(service.checkIndividualBadge('prayers', 'prayer-1')).toBe(false);
+    });
+
+    it('should return empty unread ids for malformed cache data', () => {
+      localStorage.setItem('prayers_cache', JSON.stringify({ data: { bad: true } }));
+      localStorage.setItem('prompts_cache', JSON.stringify({ data: { bad: true } }));
+
+      expect(service.getUnreadIds('prayers')).toEqual([]);
+      expect(service.getUnreadIds('prompts')).toEqual([]);
+    });
+
+    it('should warn when markAllUpdatesAsRead fails', () => {
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [{ id: 'prayer-1', updates: [{ id: 'u1' }] }]
+      }));
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const getSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+        throw new Error('read failed');
+      });
+
+      (service as any).markAllUpdatesAsRead([{ id: 'prayer-1', updates: [{ id: 'u1' }] }], 'prayers');
+
+      expect(warnSpy).toHaveBeenCalled();
+      expect(getSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+      getSpy.mockRestore();
+    });
+
+    it('should return early for invalid cached item arrays in markItemUpdatesAsRead', () => {
+      const getSpy = vi.spyOn(localStorage, 'getItem').mockReturnValue(JSON.stringify({ data: { bad: true } }) as any);
+
+      (service as any).markItemUpdatesAsRead('prayer-1', 'prayers');
+      (service as any).markItemUpdatesAsRead('prompt-1', 'prompts');
+
+      expect(getSpy).toHaveBeenCalled();
+      getSpy.mockRestore();
+    });
+  });
+
   describe('storage listener', () => {
     it('should handle storage events', () => {
       localStorage.setItem('prayers_cache', JSON.stringify({
@@ -1313,6 +1406,49 @@ describe('BadgeService - Additional Coverage Tests', () => {
       const unreadIds = service.getUnreadIds('prompts');
       expect(Array.isArray(unreadIds)).toBe(true);
       expect(unreadIds.length).toBe(0);
+    });
+
+    it('should mark item updates as read for prayers and prompts', () => {
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [{ id: 'prayer-1', status: 'current', updates: [{ id: 'u1' }, { id: 'u2' }] }]
+      }));
+      localStorage.setItem('prompts_cache', JSON.stringify({
+        data: [{ id: 'prompt-1', status: 'current', updates: [{ id: 'pu1' }, { id: 'pu2' }] }]
+      }));
+
+      (service as any).markItemUpdatesAsRead('prayer-1', 'prayers');
+      (service as any).markItemUpdatesAsRead('prompt-1', 'prompts');
+
+      expect(service.getUnreadIds('prayers')).toEqual(['prayer-1']);
+      expect(service.getUnreadIds('prompts')).toEqual(['prompt-1']);
+    });
+
+    it('should warn when read prayers data cannot be written', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+        throw new Error('write failed');
+      });
+
+      (service as any).setReadPrayersData({ prayers: ['prayer-1'], updates: ['u1'] });
+
+      expect(warnSpy).toHaveBeenCalled();
+      expect(setItemSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+      setItemSpy.mockRestore();
+    });
+
+    it('should warn when read prompts data cannot be written', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+        throw new Error('write failed');
+      });
+
+      (service as any).setReadPromptsData({ prompts: ['prompt-1'], updates: ['pu1'] });
+
+      expect(warnSpy).toHaveBeenCalled();
+      expect(setItemSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+      setItemSpy.mockRestore();
     });
 
     it('should return unread prayer IDs when cache exists', () => {

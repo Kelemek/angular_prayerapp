@@ -217,6 +217,14 @@ describe('AdminUserManagementComponent', () => {
     expect(sent.textBody).toContain('Zed');
   });
 
+  it('sendInvitationEmail rethrows when template lookup fails unexpectedly', async () => {
+    mockEmailService.getTemplate.mockRejectedValue(new Error('template fail'));
+    const sendSpy = mockEmailService.sendEmail;
+
+    await expect(component.sendInvitationEmail('z@y.com', 'Zed')).rejects.toThrow('template fail');
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
   it('deleteAdmin prevents deleting last admin', async () => {
     component.admins = [{ email: 'only@x.com', name: 'Only', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false }];
 
@@ -256,6 +264,79 @@ describe('AdminUserManagementComponent', () => {
     await component.deleteAdmin('a@x.com');
 
     expect(component.error).toBe('Failed to remove admin access');
+  });
+
+  it('handleToggleReceiveEmails opens confirmation when disabling and toggles immediately when enabling', () => {
+    component.handleToggleReceiveEmails('admin@example.com', 'Admin User', true);
+    expect(component.showConfirmationDialog).toBe(true);
+    expect(component.confirmationTitle).toBe('Disable email notifications?');
+    expect(component.confirmationConfirmText).toBe('Disable');
+    expect(component.confirmationAction).toBeTruthy();
+
+    const toggleSpy = vi.spyOn(component, 'toggleReceiveEmails').mockResolvedValue();
+    component.onCancelDialog();
+
+    component.handleToggleReceiveEmails('admin@example.com', 'Admin User', false);
+    expect(toggleSpy).toHaveBeenCalledWith('admin@example.com', false);
+    expect(component.showConfirmationDialog).toBe(false);
+  });
+
+  it('handleToggleReceivePush opens confirmation when disabling and toggles immediately when enabling', () => {
+    component.handleToggleReceivePush('admin@example.com', 'Admin User', true);
+    expect(component.showConfirmationDialog).toBe(true);
+    expect(component.confirmationTitle).toBe('Disable push notifications?');
+    expect(component.confirmationConfirmText).toBe('Disable');
+    expect(component.confirmationAction).toBeTruthy();
+
+    const toggleSpy = vi.spyOn(component, 'toggleReceivePush').mockResolvedValue();
+    component.onCancelDialog();
+
+    component.handleToggleReceivePush('admin@example.com', 'Admin User', false);
+    expect(toggleSpy).toHaveBeenCalledWith('admin@example.com', false);
+    expect(component.showConfirmationDialog).toBe(false);
+  });
+
+  it('handleDeleteAdmin opens danger confirmation and onConfirmDialog runs queued action', async () => {
+    component.admins = [
+      { email: 'a@x.com', name: 'A', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false },
+      { email: 'b@x.com', name: 'B', created_at: '2020-01-02', receive_admin_emails: false, receive_admin_push: false }
+    ];
+
+    const deleteSpy = vi.spyOn(component, 'deleteAdmin').mockResolvedValue();
+    component.handleDeleteAdmin('a@x.com', 'Admin A');
+
+    expect(component.showConfirmationDialog).toBe(true);
+    expect(component.confirmationIsDangerous).toBe(true);
+    expect(component.confirmationTitle).toBe('Remove admin access?');
+
+    await component.onConfirmDialog();
+
+    expect(deleteSpy).toHaveBeenCalledWith('a@x.com');
+    expect(component.showConfirmationDialog).toBe(false);
+    expect(component.confirmationAction).toBeNull();
+  });
+
+  it('deleteAdmin returns early when trying to remove the last admin', async () => {
+    component.admins = [
+      { email: 'only@x.com', name: 'Only', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false }
+    ];
+
+    const updateSpy = vi.spyOn(mockClient, 'update');
+    await component.deleteAdmin('only@x.com');
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(component.error).toBe('Cannot delete the last admin user');
+  });
+
+  it('onConfirmDialog clears dialog state without action', async () => {
+    component.showConfirmationDialog = true;
+    component.confirmationIsDangerous = true;
+    component.confirmationAction = null;
+
+    await component.onConfirmDialog();
+
+    expect(component.showConfirmationDialog).toBe(false);
+    expect(component.confirmationIsDangerous).toBe(false);
   });
 
   it('deleteAdmin handles non-object error (primitive)', async () => {
@@ -511,6 +592,20 @@ describe('AdminUserManagementComponent', () => {
 
     expect(mockToast.success).toHaveBeenCalled();
     expect(loadSpy).toHaveBeenCalled();
+  });
+
+  it('toggleReceivePush sets error when update fails', async () => {
+    component.admins = [
+      { email: 'a@x.com', name: 'A', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false }
+    ];
+
+    mockClient.setResponses([
+      { error: { message: 'push update failed' } }
+    ]);
+
+    await component.toggleReceivePush('a@x.com', true);
+
+    expect(component.error).toBe('Failed to update push preference');
   });
 
   it('toggleReceiveEmails triggers toast.success and reloads admins', async () => {

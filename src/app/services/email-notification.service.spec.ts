@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { EmailNotificationService } from './email-notification.service';
+import { environment } from '../../environments/environment';
 
 function makeFromQuery(result: any) {
   return {
@@ -64,12 +65,23 @@ describe('EmailNotificationService', () => {
     await expect(service.sendEmail({ to: 'a@b', subject: 's' })).rejects.toThrow();
   });
 
+  it('sendEmail throws when the function returns success false', async () => {
+    mockSupabase.client.functions.invoke.mockResolvedValue({ data: { success: false, error: 'bad payload' }, error: null });
+    await expect(service.sendEmail({ to: 'a@b', subject: 's' })).rejects.toThrow('bad payload');
+  });
+
   it('sendEmailToAllSubscribers calls supabase function and errors on failure', async () => {
     mockSupabase.client.functions.invoke.mockResolvedValue({ data: { success: true }, error: null });
     await expect(service.sendEmailToAllSubscribers({ subject: 's' })).resolves.toBeUndefined();
 
     mockSupabase.client.functions.invoke.mockResolvedValue({ data: null, error: { message: 'boom' } });
     await expect(service.sendEmailToAllSubscribers({ subject: 's' })).rejects.toThrow();
+  });
+
+  it('sendEmailToAllSubscribers throws when the edge function returns a failure payload', async () => {
+    mockSupabase.client.functions.invoke.mockResolvedValue({ data: { success: false, error: 'Queue failed' }, error: null });
+
+    await expect(service.sendEmailToAllSubscribers({ subject: 's' })).rejects.toThrow('Queue failed');
   });
 
   it('sendApprovedPrayerNotification uses fallback when template missing', async () => {
@@ -98,6 +110,32 @@ describe('EmailNotificationService', () => {
     
     // Should still queue emails even without template
     expect(enqueueSpy).toHaveBeenCalledWith('user@test.com', 'approved_prayer', expect.any(Object));
+  });
+
+  it('sendApprovedPrayerNotification logs queue and trigger failures', async () => {
+    mockSupabase.client.from = vi.fn((table: string) => {
+      if (table === 'email_subscribers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [{ email: 'user@test.com' }], error: null })
+            })
+          })
+        };
+      }
+      return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+    });
+
+    vi.spyOn(service as any, 'enqueueEmail').mockRejectedValueOnce(new Error('Queue failed'));
+    vi.spyOn(service as any, 'triggerEmailProcessor').mockRejectedValueOnce(new Error('Trigger failed'));
+
+    await expect(service.sendApprovedPrayerNotification({
+      title: 'T',
+      description: 'D',
+      requester: 'R',
+      prayerFor: 'PF',
+      status: 'current'
+    } as any)).resolves.toBeUndefined();
   });
 
   it('sendRequesterApprovalNotification returns early when no email', async () => {
@@ -154,6 +192,13 @@ describe('EmailNotificationService', () => {
     expect(spySend).toHaveBeenCalled();
   });
 
+  it('sendDeniedPrayerNotification uses fallback when template missing', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(null as any);
+    const spySend = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined as any);
+    await service.sendDeniedPrayerNotification({ title: 'T', description: 'D', requester: 'R', requesterEmail: 'u@u', denialReason: 'reason' } as any);
+    expect(spySend).toHaveBeenCalled();
+  });
+
   it('sendUpdateAuthorApprovalNotification returns early when no email', async () => {
     const spy = vi.spyOn(service as any, 'sendEmail');
     await service.sendUpdateAuthorApprovalNotification({ prayerTitle: 'Prayer', content: 'Update text', author: 'John', authorEmail: '' } as any);
@@ -200,6 +245,21 @@ describe('EmailNotificationService', () => {
     );
   });
 
+  it('sendAdminNotification returns early when no admin subscribers exist', async () => {
+    mockSupabase.client.from = vi.fn().mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            eq: async () => ({ data: [], error: null })
+          })
+        })
+      })
+    });
+    const spy = vi.spyOn(service as any, 'sendAdminNotificationToEmail');
+    await service.sendAdminNotification({ type: 'prayer', title: 'Need approval', requester: 'John' } as any);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('sendAccountApprovalNotification calls sendPushToAdmins with account approval payload', async () => {
     mockSupabase.directQuery.mockResolvedValue({ data: [{ email: 'admin@x.com' }], error: null });
     const spyHelper = vi.spyOn(service as any, 'sendAccountApprovalNotificationToEmail').mockResolvedValue(undefined as any);
@@ -210,6 +270,249 @@ describe('EmailNotificationService', () => {
       body: 'Jane Doe (user@test.com)',
       data: { type: 'account_approval_request' },
     });
+  });
+
+  it('getEmailBaseUrl falls back to appUrl for localhost origins', () => {
+    const originalWindow = globalThis.window;
+    vi.stubGlobal('window', { location: { origin: 'http://localhost:4200' } });
+
+    expect(service.getEmailBaseUrl()).toBe('http://localhost:4200');
+
+    if (originalWindow) {
+      vi.stubGlobal('window', originalWindow);
+    } else {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('getEmailBaseUrl returns the current origin for non-localhost http origins', () => {
+    const originalWindow = globalThis.window;
+    const originalAppUrl = environment.appUrl;
+    environment.appUrl = '';
+    vi.stubGlobal('window', { location: { origin: 'https://prayer.example.com' } });
+
+    expect(service.getEmailBaseUrl()).toBe('https://prayer.example.com');
+
+    environment.appUrl = originalAppUrl;
+    if (originalWindow) {
+      vi.stubGlobal('window', originalWindow);
+    } else {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('getEmailBaseUrl returns origin when no appUrl is configured', () => {
+    const originalWindow = globalThis.window;
+    const originalAppUrl = environment.appUrl;
+    environment.appUrl = '';
+    vi.stubGlobal('window', { location: { origin: '' } });
+
+    expect(service.getEmailBaseUrl()).toBe('');
+
+    environment.appUrl = originalAppUrl;
+    if (originalWindow) {
+      vi.stubGlobal('window', originalWindow);
+    } else {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('sendAdminNotificationToEmail uses fallback for unknown notification type', async () => {
+    vi.spyOn(service as any, 'getTemplate').mockResolvedValueOnce(null as any);
+    const sendSpy = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined as any);
+
+    await (service as any).sendAdminNotificationToEmail(
+      { type: 'unexpected', title: 'Test Title' } as any,
+      'admin@test.com'
+    );
+
+    expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({
+      to: ['admin@test.com'],
+      subject: 'New Admin Action Required'
+    }));
+  });
+
+  it('sendAccountApprovalNotification handles admin query errors gracefully', async () => {
+    mockSupabase.directQuery.mockResolvedValue({ data: null, error: { message: 'Query failed' } });
+
+    await expect(service.sendAccountApprovalNotification('user@test.com', 'Jane', 'Doe')).resolves.toBeUndefined();
+  });
+
+  it('sendAccountApprovalNotificationToEmail returns early when template is missing', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(null as any);
+    const sendSpy = vi.spyOn(service as any, 'sendEmail').mockResolvedValue(undefined as any);
+
+    await (service as any).sendAccountApprovalNotificationToEmail(
+      'user@test.com',
+      'Jane',
+      'Doe',
+      '',
+      'admin@test.com'
+    );
+
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  it('sendAccountApprovalNotificationToEmail catches sendEmail failures', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce({
+      subject: 'Subject',
+      html_body: 'HTML',
+      text_body: 'Text'
+    } as any);
+    vi.spyOn(service as any, 'sendEmail').mockRejectedValueOnce(new Error('Send failed'));
+
+    await expect((service as any).sendAccountApprovalNotificationToEmail(
+      'user@test.com',
+      'Jane',
+      'Doe',
+      '',
+      'admin@test.com'
+    )).resolves.toBeUndefined();
+  });
+
+  it('sendAccountApprovalNotification catches unexpected query errors', async () => {
+    mockSupabase.directQuery.mockRejectedValue(new Error('Unexpected query failure'));
+
+    await expect(service.sendAccountApprovalNotification('user@test.com', 'Jane', 'Doe')).resolves.toBeUndefined();
+  });
+
+  it('sendAdminNotification handles push notification failures gracefully', async () => {
+    mockSupabase.client.from = vi.fn().mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          eq: async () => ({ data: [{ email: 'admin@test.com' }], error: null })
+        })
+      })
+    });
+    mockPushNotification.sendPushToAdmins.mockRejectedValueOnce(new Error('Push failed'));
+    const sendSpy = vi.spyOn(service as any, 'sendAdminNotificationToEmail').mockResolvedValue(undefined as any);
+
+    await service.sendAdminNotification({ type: 'prayer', title: 'Need approval', requester: 'John' } as any);
+
+    expect(sendSpy).toHaveBeenCalled();
+  });
+
+  it('sendAccountApprovalNotification handles push notification failures gracefully', async () => {
+    mockSupabase.directQuery.mockResolvedValue({ data: [{ email: 'admin@x.com' }], error: null });
+    mockPushNotification.sendPushToAdmins.mockRejectedValueOnce(new Error('Push failed'));
+    const sendSpy = vi.spyOn(service as any, 'sendAccountApprovalNotificationToEmail').mockResolvedValue(undefined as any);
+
+    await service.sendAccountApprovalNotification('user@test.com', 'Jane', 'Doe');
+
+    expect(sendSpy).toHaveBeenCalled();
+  });
+
+  it('sendDeniedPrayerNotification catches sendEmail failures', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(null as any);
+    vi.spyOn(service as any, 'sendEmail').mockRejectedValueOnce(new Error('Send failed'));
+
+    await expect(service.sendDeniedPrayerNotification({
+      title: 'Prayer',
+      description: 'Desc',
+      requester: 'Requester',
+      requesterEmail: 'r@test.com',
+      denialReason: 'Reason'
+    } as any)).resolves.toBeUndefined();
+  });
+
+  it('sendDeniedUpdateNotification catches sendEmail failures', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(null as any);
+    vi.spyOn(service as any, 'sendEmail').mockRejectedValueOnce(new Error('Send failed'));
+
+    await expect(service.sendDeniedUpdateNotification({
+      prayerTitle: 'Prayer',
+      content: 'Update',
+      author: 'Author',
+      authorEmail: 'a@test.com',
+      denialReason: 'Reason'
+    } as any)).resolves.toBeUndefined();
+  });
+
+  it('sendUpdateAuthorApprovalNotification catches sendEmail failures', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(null as any);
+    vi.spyOn(service as any, 'sendEmail').mockRejectedValueOnce(new Error('Send failed'));
+
+    await expect(service.sendUpdateAuthorApprovalNotification({
+      prayerTitle: 'Prayer',
+      content: 'Update',
+      author: 'Author',
+      authorEmail: 'a@test.com'
+    } as any)).resolves.toBeUndefined();
+  });
+
+  it('sendAdminNotification catches unexpected helper failures', async () => {
+    mockSupabase.client.from = vi.fn().mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          eq: async () => ({ data: [{ email: 'admin@test.com' }], error: null })
+        })
+      })
+    });
+    vi.spyOn(service as any, 'sendAdminNotificationToEmail').mockRejectedValueOnce(new Error('Helper failed'));
+
+    await expect(service.sendAdminNotification({ type: 'prayer', title: 'Need approval', requester: 'John' } as any)).resolves.toBeUndefined();
+  });
+
+  it('sendApprovedUpdateNotification returns early when no active subscribers exist', async () => {
+    mockSupabase.client.from = vi.fn((table: string) => {
+      if (table === 'email_subscribers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null })
+            })
+          })
+        };
+      }
+      return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+    });
+    const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail');
+
+    await service.sendApprovedUpdateNotification({
+      prayerTitle: 'Prayer',
+      content: 'Update',
+      author: 'Author',
+      markedAsAnswered: false
+    } as any);
+
+    expect(enqueueSpy).not.toHaveBeenCalled();
+  });
+
+  it('sendApprovedUpdateNotification logs queue failures and trigger failures', async () => {
+    mockSupabase.client.from = vi.fn((table: string) => {
+      if (table === 'email_subscribers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [{ email: 'user@test.com' }], error: null })
+            })
+          })
+        };
+      }
+      return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+    });
+    vi.spyOn(service as any, 'enqueueEmail').mockRejectedValueOnce(new Error('Queue failed'));
+    vi.spyOn(service as any, 'triggerEmailProcessor').mockRejectedValueOnce(new Error('Trigger failed'));
+
+    await expect(service.sendApprovedUpdateNotification({
+      prayerTitle: 'Prayer',
+      content: 'Update',
+      author: 'Author',
+      markedAsAnswered: false
+    } as any)).resolves.toBeUndefined();
+  });
+
+  it('sendRequesterApprovalNotification catches sendEmail failures', async () => {
+    vi.spyOn(service, 'getTemplate').mockResolvedValueOnce(null as any);
+    vi.spyOn(service as any, 'sendEmail').mockRejectedValueOnce(new Error('Send failed'));
+
+    await expect(service.sendRequesterApprovalNotification({
+      title: 'Prayer',
+      description: 'Desc',
+      requester: 'Requester',
+      requesterEmail: 'r@test.com',
+      prayerFor: 'For'
+    } as any)).resolves.toBeUndefined();
   });
 });
 

@@ -5436,6 +5436,49 @@ describe('PrayerService - Integration Tests', () => {
       });
     });
 
+    describe('loadPersonalPrayers additional branches', () => {
+      it('returns early and warns when user email is missing', async () => {
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null } })
+        };
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        await (service as any).loadPersonalPrayers();
+
+        expect(warnSpy).toHaveBeenCalledWith('[PrayerService] User email not available for personal prayers');
+        warnSpy.mockRestore();
+      });
+
+      it('uses cached personal prayers on silent refresh and skips db query', async () => {
+        const cachedPrayers = [{
+          id: 'cached-1',
+          title: 'Cached Prayer',
+          description: 'Cached desc',
+          status: 'current',
+          prayer_for: 'User',
+          requester: 'user@example.com',
+          email: 'user@example.com',
+          is_anonymous: false,
+          date_requested: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          approval_status: 'approved' as const,
+          type: 'prayer' as const,
+          updates: []
+        }];
+
+        mockCacheService.get.mockReturnValue(cachedPrayers);
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({ data: { session: { user: { email: 'user@example.com' } } } })
+        };
+        const cacheGetSpy = vi.spyOn(mockCacheService, 'get');
+
+        await expect((service as any).loadPersonalPrayers(true)).resolves.toBeUndefined();
+
+        expect(cacheGetSpy).toHaveBeenCalledWith('personalPrayers');
+      });
+    });
+
     describe('getCategoryRange', () => {
       it('should return uncategorized range for null category', async () => {
         const mockEmail = 'user@example.com';
@@ -5533,6 +5576,39 @@ describe('PrayerService - Integration Tests', () => {
         const result = await (service as any).getCategoryRange('NonExistent');
         expect(result).not.toBeNull();
       });
+
+      it('should throw when category query returns an error', async () => {
+        const mockEmail = 'user@example.com';
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } }
+          })
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService,
+      userSessionService
+    );
+
+        mockSupabaseService.client.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: null,
+                error: new Error('category query failed')
+              })
+            })
+          })
+        });
+
+        await expect((service as any).getCategoryRange('Family')).rejects.toThrow('category query failed');
+      });
     });
 
     describe('getUniqueCategoriesForUser', () => {
@@ -5611,6 +5687,62 @@ describe('PrayerService - Integration Tests', () => {
 
         const result = await service.getUniqueCategoriesForUser([]);
         expect(result).toEqual([]);
+      });
+    });
+
+    describe('getCategoryPrayerCount', () => {
+      it('returns 0 when user email is unavailable', async () => {
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null } })
+        };
+
+        const result = await (service as any).getCategoryPrayerCount('Family');
+        expect(result).toBe(0);
+      });
+
+      it('returns prayer count for a category', async () => {
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: 'test@example.com' } } }
+          })
+        };
+        mockSupabaseService.client.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [{ id: '1' }, { id: '2' }, { id: '3' }],
+                error: null
+              })
+            })
+          })
+        });
+
+        const result = await (service as any).getCategoryPrayerCount('Family');
+        expect(result).toBe(3);
+      });
+
+      it('returns 0 when the category count query errors', async () => {
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: 'test@example.com' } } }
+          })
+        };
+        mockSupabaseService.client.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: null,
+                error: new Error('count failed')
+              })
+            })
+          })
+        });
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const result = await (service as any).getCategoryPrayerCount('Family');
+        expect(result).toBe(0);
+        expect(errorSpy).toHaveBeenCalled();
+        errorSpy.mockRestore();
       });
     });
 
@@ -5792,6 +5924,16 @@ describe('PrayerService - Integration Tests', () => {
         
         expect(result).toBe(false);
         expect(mockToastService.error).toHaveBeenCalled();
+      });
+
+      it('should return false when user email is unavailable', async () => {
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null } })
+        };
+
+        const result = await service.deletePersonalPrayer('1');
+
+        expect(result).toBe(false);
       });
     });
 
@@ -6144,6 +6286,16 @@ describe('PrayerService - Integration Tests', () => {
         
         expect(result).toBe(false);
         expect(mockToastService.error).toHaveBeenCalled();
+      });
+
+      it('should return false when user email is unavailable', async () => {
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null } })
+        };
+
+        const result = await service.markPersonalPrayerUpdateAsAnswered('update1');
+
+        expect(result).toBe(false);
       });
     });
 

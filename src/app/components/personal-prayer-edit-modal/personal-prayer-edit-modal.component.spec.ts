@@ -304,6 +304,73 @@ describe('PersonalPrayerEditModalComponent', () => {
     });
   });
 
+  describe('category dropdown interactions', () => {
+    beforeEach(() => {
+      component.availableCategories = ['Health', 'Family', 'Work'];
+      component.formData.category = '';
+    });
+
+    it('should filter categories and open dropdown on input', () => {
+      component.onCategoryInput({ target: { value: 'fa' } } as any);
+
+      expect(component.formData.category).toBe('fa');
+      expect(component.filteredCategories).toEqual(['Family']);
+      expect(component.showCategoryDropdown).toBe(true);
+    });
+
+    it('should select category and mark for check', () => {
+      component.showCategoryDropdown = true;
+      component.filteredCategories = ['Family'];
+
+      component.selectCategory('Family');
+
+      expect(component.formData.category).toBe('Family');
+      expect(component.showCategoryDropdown).toBe(false);
+      expect(component.filteredCategories).toEqual([]);
+      expect(changeDetectorRef.markForCheck).toHaveBeenCalled();
+    });
+
+    it('should navigate and accept dropdown selections with keyboard', () => {
+      component.showCategoryDropdown = true;
+      component.filteredCategories = ['Health', 'Family', 'Work'];
+
+      const downEvent = { key: 'ArrowDown', preventDefault: vi.fn() } as any;
+      component.onCategoryKeyDown(downEvent);
+      expect(component.selectedCategoryIndex).toBe(0);
+
+      const downEvent2 = { key: 'ArrowDown', preventDefault: vi.fn() } as any;
+      component.onCategoryKeyDown(downEvent2);
+      expect(component.selectedCategoryIndex).toBe(1);
+
+      const upEvent = { key: 'ArrowUp', preventDefault: vi.fn() } as any;
+      component.onCategoryKeyDown(upEvent);
+      expect(component.selectedCategoryIndex).toBe(0);
+
+      const enterEvent = { key: 'Enter', preventDefault: vi.fn() } as any;
+      component.onCategoryKeyDown(enterEvent);
+      expect(component.formData.category).toBe('Health');
+    });
+
+    it('should close dropdown on Escape', () => {
+      component.showCategoryDropdown = true;
+      component.filteredCategories = ['Health'];
+
+      const escapeEvent = { key: 'Escape', preventDefault: vi.fn() } as any;
+      component.onCategoryKeyDown(escapeEvent);
+
+      expect(component.showCategoryDropdown).toBe(false);
+      expect(component.selectedCategoryIndex).toBe(-1);
+    });
+
+    it('should close dropdown on outside document click', () => {
+      component.showCategoryDropdown = true;
+
+      component.onDocumentClick({ target: document.createElement('div') } as MouseEvent);
+
+      expect(component.showCategoryDropdown).toBe(false);
+    });
+  });
+
   describe('cancel', () => {
     it('should clear form data', () => {
       component.formData.prayer_for = 'Test';
