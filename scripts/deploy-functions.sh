@@ -50,6 +50,10 @@ case $FUNCTION_NAME in
         echo "   1. Configure reminder interval in Admin Settings"
         echo "   2. Test with 'Send Reminders Now' button"
         ;;
+    "send-user-hourly-prayer-reminders")
+        deploy_function "send-user-hourly-prayer-reminders" ""
+        echo "💡 Hourly GitHub Action calls this with SUPABASE_SERVICE_KEY; set APP_URL on the function."
+        ;;
     "send-verification-code")
         deploy_function "send-verification-code" "--no-verify-jwt"
         echo "💡 Remember: send-verification-code runs without JWT verification"
@@ -67,6 +71,7 @@ case $FUNCTION_NAME in
         deploy_function "send-notification" "--no-verify-jwt"
         deploy_function "send-verification-code" "--no-verify-jwt"
         deploy_function "send-prayer-reminders" ""
+        deploy_function "send-user-hourly-prayer-reminders" ""
         echo "🎉 All functions deployed successfully!"
         ;;
     *)
@@ -78,6 +83,7 @@ case $FUNCTION_NAME in
         echo "  send-notification        - Email sending (no JWT)"
         echo "  send-verification-code   - Email verification codes (no JWT)"
         echo "  send-prayer-reminders    - Automated prayer reminders"
+        echo "  send-user-hourly-prayer-reminders - User hourly self-reminders (cron)"
         echo "  all                      - Deploy all functions (default)"
         echo ""
         exit 1

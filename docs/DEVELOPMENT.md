@@ -1061,6 +1061,15 @@ Update the prayer's `archived_at` timestamp in the Supabase dashboard (or use se
 - Reminder service: `src/app/services/email-notification.service.ts`
 - Settings: `admin_settings` table in Supabase
 
+### User hourly prayer reminders (self nudges)
+
+Users can save one or more **local clock hours** (with an IANA time zone) in **Settings**. A separate process runs **every hour** and notifies matching users:
+
+- **Table**: `user_prayer_hour_reminders` (see migrations). Each row stores an IANA zone (from the device when the user saved the slot) and a **local wall hour** 0–23. Matching uses `EXTRACT(HOUR FROM (NOW() AT TIME ZONE iana_timezone)) = local_hour`, so only due rows are selected (low egress). **DST**: Postgres applies the IANA rules (e.g. `America/Chicago`), so the reminder follows local civil time across spring/fall transitions (no separate DST flag).
+- **Edge function**: `supabase/functions/send-user-hourly-prayer-reminders/` — requires `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`, uses `APP_URL` for email/push links. Prefers **push** when `email_subscribers.receive_push` is true and a `device_tokens` row exists; otherwise **email** via `send-email`.
+- **GitHub Actions**: `.github/workflows/send-user-hourly-prayer-reminders.yml` (`cron: 0 * * * *`), same `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` secrets as other workflows.
+- **App**: `UserPrayerReminderService` + cache on `UserSessionData`; settings UI is hour-only and saves `Intl.DateTimeFormat().resolvedOptions().timeZone`. Rows created before a device time-zone change keep their stored IANA until removed.
+
 ---
 
 ## Contributing

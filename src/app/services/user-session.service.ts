@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { AdminAuthService } from './admin-auth.service';
 import { first } from 'rxjs/operators';
+import type { UserPrayerHourReminderSlot } from '../types/user-prayer-hour-reminder';
 
 export interface UserSessionData {
   email: string;
@@ -13,6 +14,9 @@ export interface UserSessionData {
   receivePush?: boolean;
   badgeFunctionalityEnabled?: boolean;
   defaultPrayerView?: 'current' | 'personal';
+  /** Cached hourly self-reminder slots; undefined = never fetched this session. */
+  prayerHourReminders?: UserPrayerHourReminderSlot[];
+  prayerHourRemindersFetchedAt?: number;
 }
 
 /**

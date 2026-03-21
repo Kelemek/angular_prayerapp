@@ -15,6 +15,8 @@ import { CapacitorService } from '../../services/capacitor.service';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { getUserInfo } from '../../../utils/userInfoStorage';
 import { GitHubFeedbackFormComponent } from '../github-feedback-form/github-feedback-form.component';
+import { UserPrayerReminderService } from '../../services/user-prayer-reminder.service';
+import type { UserPrayerHourReminderSlot } from '../../types/user-prayer-hour-reminder';
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
@@ -729,6 +731,74 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
           </div>
           }
 
+          <!-- Prayer reminders (hourly self nudges) -->
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2">
+            <div class="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+              Prayer reminders
+            </div>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Choose times to get a short reminder to pray. On the native app with push enabled you will get a push; otherwise we will email you. Times use your device time zone (top of each hour).
+            </p>
+            @if (loadingPrayerReminders) {
+              <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400" role="status">
+                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Loading reminders…
+              </div>
+            } @else if (prayerReminderSlots.length === 0) {
+              <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No reminder hours saved yet.</p>
+            } @else {
+              <ul class="space-y-2" role="list">
+                @for (slot of prayerReminderSlots; track slot.id) {
+                  <li class="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600">
+                    <span class="text-sm text-gray-800 dark:text-gray-200">{{ formatPrayerReminderSlotLabel(slot) }}</span>
+                    <button
+                      type="button"
+                      (click)="removePrayerReminderSlot(slot.id)"
+                      [disabled]="savingPrayerReminder"
+                      class="text-xs font-medium text-red-600 dark:text-red-400 hover:underline disabled:opacity-50 cursor-pointer"
+                      [attr.aria-label]="'Remove reminder ' + formatPrayerReminderSlotLabel(slot)"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-end">
+              <div class="flex flex-col gap-1">
+                <label for="reminder-hour-select" class="text-xs font-medium text-gray-700 dark:text-gray-300">Hour</label>
+                <select
+                  id="reminder-hour-select"
+                  name="reminderHour"
+                  [(ngModel)]="selectedReminderHour"
+                  class="text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 min-w-[8rem]"
+                  aria-label="Reminder hour"
+                >
+                  @for (opt of reminderHourOptions; track opt.value) {
+                    <option [ngValue]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              </div>
+              <button
+                type="button"
+                (click)="addPrayerReminderSlot()"
+                [disabled]="savingPrayerReminder || !email.trim()"
+                class="px-3 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer sm:self-end"
+              >
+                {{ savingPrayerReminder ? 'Saving…' : 'Add reminder' }}
+              </button>
+            </div>
+            @if (prayerReminderError) {
+              <p class="text-xs sm:text-sm text-red-600 dark:text-red-400" role="alert">{{ prayerReminderError }}</p>
+            }
+            @if (prayerReminderSuccess) {
+              <p class="text-xs sm:text-sm text-green-600 dark:text-green-400" role="status">{{ prayerReminderSuccess }}</p>
+            }
+          </div>
+
           <!-- GitHub Feedback Form -->
           @if (githubFeedbackEnabled) {
           <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
@@ -832,7 +902,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
     }
   `]
 })
-export class UserSettingsComponent implements OnInit, OnDestroy {
+export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
   @Input() isOpen = false;
   @Output() onClose = new EventEmitter<void>();
 
@@ -873,6 +943,15 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   githubFeedbackEnabled = false;
   showDeleteAccountVerification = false;
   deletingAccount = false;
+
+  /** Hourly self prayer reminders */
+  prayerReminderSlots: UserPrayerHourReminderSlot[] = [];
+  loadingPrayerReminders = false;
+  savingPrayerReminder = false;
+  prayerReminderError: string | null = null;
+  prayerReminderSuccess: string | null = null;
+  selectedReminderHour = 9;
+  reminderHourOptions: { value: number; label: string }[] = [];
 
   private destroy$ = new Subject<void>();
   private emailChange$ = new Subject<string>();
@@ -916,10 +995,16 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     private badgeService: BadgeService,
     public userSessionService: UserSessionService,
     public capacitorService: CapacitorService,
+    private userPrayerReminderService: UserPrayerReminderService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.reminderHourOptions = Array.from({ length: 24 }, (_, h) => ({
+      value: h,
+      label: this.formatHour12(h),
+    }));
+
     // Load current theme and text size from services
     this.theme = this.themeService.getTheme() as ThemeOption;
     this.textSize = this.textSizeService.getTextSize();
@@ -1011,6 +1096,10 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
       this.successNotification = null;
       this.successPushNotification = null;
       this.successBadge = null;
+
+      this.prayerReminderError = null;
+      this.prayerReminderSuccess = null;
+      this.loadPrayerRemindersForModal();
       
       // Reset flag after a short delay
       setTimeout(() => {
@@ -1051,6 +1140,122 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('Error loading GitHub feedback status:', err);
       this.githubFeedbackEnabled = false;
+    }
+  }
+
+  formatHour12(h: number): string {
+    const d = new Date();
+    d.setHours(h, 0, 0, 0);
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
+  /** IANA zone from the device (used when saving new reminder hours). */
+  get deviceIanaTimezone(): string {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
+  }
+
+  formatPrayerReminderSlotLabel(slot: UserPrayerHourReminderSlot): string {
+    const hour = this.formatHour12(slot.local_hour);
+    if (slot.iana_timezone === this.deviceIanaTimezone) {
+      return hour;
+    }
+    return `${hour} · ${slot.iana_timezone}`;
+  }
+
+  private loadPrayerRemindersForModal(): void {
+    this.prayerReminderError = null;
+    const session = this.userSessionService.getCurrentSession();
+    if (session?.prayerHourReminders !== undefined) {
+      this.prayerReminderSlots = [...session.prayerHourReminders];
+    }
+    if (!this.email?.trim()) {
+      this.prayerReminderSlots = [];
+      this.loadingPrayerReminders = false;
+      this.cdr.markForCheck();
+      return;
+    }
+    const needsBlockingLoad = session?.prayerHourReminders === undefined;
+    this.loadingPrayerReminders = needsBlockingLoad;
+    this.cdr.markForCheck();
+    this.userPrayerReminderService
+      .ensureLoaded(false)
+      .then((slots) => {
+        this.prayerReminderSlots = [...slots];
+        this.loadingPrayerReminders = false;
+        this.cdr.markForCheck();
+      })
+      .catch((err: unknown) => {
+        console.error('Prayer reminders load failed:', err);
+        this.prayerReminderError =
+          err && typeof err === 'object' && 'message' in err
+            ? String((err as { message: string }).message)
+            : 'Failed to load prayer reminders';
+        this.loadingPrayerReminders = false;
+        this.cdr.markForCheck();
+      });
+  }
+
+  async addPrayerReminderSlot(): Promise<void> {
+    if (!this.email?.trim()) {
+      return;
+    }
+    this.savingPrayerReminder = true;
+    this.prayerReminderError = null;
+    this.prayerReminderSuccess = null;
+    this.cdr.markForCheck();
+    try {
+      const slots = await this.userPrayerReminderService.addSlot(
+        this.email.trim(),
+        this.deviceIanaTimezone,
+        this.selectedReminderHour
+      );
+      this.prayerReminderSlots = [...slots];
+      this.prayerReminderSuccess = 'Reminder saved.';
+      setTimeout(() => {
+        this.prayerReminderSuccess = null;
+        this.cdr.markForCheck();
+      }, 2500);
+    } catch (err: unknown) {
+      const code =
+        err && typeof err === 'object' && 'code' in err ? String((err as { code: string }).code) : '';
+      if (code === '23505') {
+        this.prayerReminderError = 'You already have a reminder for that hour and time zone.';
+      } else {
+        this.prayerReminderError =
+          err && typeof err === 'object' && 'message' in err
+            ? String((err as { message: string }).message)
+            : 'Could not save reminder.';
+      }
+    } finally {
+      this.savingPrayerReminder = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async removePrayerReminderSlot(id: string): Promise<void> {
+    if (!this.email?.trim()) {
+      return;
+    }
+    this.savingPrayerReminder = true;
+    this.prayerReminderError = null;
+    this.prayerReminderSuccess = null;
+    this.cdr.markForCheck();
+    try {
+      const slots = await this.userPrayerReminderService.removeSlot(this.email.trim(), id);
+      this.prayerReminderSlots = [...slots];
+      this.prayerReminderSuccess = 'Reminder removed.';
+      setTimeout(() => {
+        this.prayerReminderSuccess = null;
+        this.cdr.markForCheck();
+      }, 2500);
+    } catch (err: unknown) {
+      this.prayerReminderError =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message: string }).message)
+          : 'Could not remove reminder.';
+    } finally {
+      this.savingPrayerReminder = false;
+      this.cdr.markForCheck();
     }
   }
 

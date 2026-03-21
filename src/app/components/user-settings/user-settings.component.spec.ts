@@ -97,6 +97,12 @@ describe('UserSettingsComponent', () => {
       showPushNotificationSetting: vi.fn(() => false)
     };
 
+    const mockUserPrayerReminderService = {
+      ensureLoaded: vi.fn(() => Promise.resolve([])),
+      addSlot: vi.fn(() => Promise.resolve([])),
+      removeSlot: vi.fn(() => Promise.resolve([]))
+    };
+
     mockChangeDetectorRef = {
       detectChanges: vi.fn(),
       markForCheck: vi.fn()
@@ -128,6 +134,7 @@ describe('UserSettingsComponent', () => {
       mockBadgeService as any,
       mockUserSessionService,
       mockCapacitorService as CapacitorService,
+      mockUserPrayerReminderService as any,
       mockChangeDetectorRef as ChangeDetectorRef
     );
   });
