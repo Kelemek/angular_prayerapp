@@ -25,7 +25,11 @@ const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
       }
       <!-- Header -->
       <div class="flex items-start justify-between mb-4 relative">
-        <div class="flex items-start gap-3 flex-1 min-w-0 pr-24">
+        <div
+          class="flex gap-3 flex-1 min-w-0 pr-24"
+          [class.items-center]="activeFilter === 'planning_center_list'"
+          [class.items-start]="activeFilter !== 'planning_center_list'"
+        >
           <!-- Avatar for Planning Center members -->
           @if (prayer.prayer_image && prayer.id.startsWith('pc-member-')) {
             <img 
