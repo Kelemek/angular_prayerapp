@@ -1,7 +1,9 @@
 /**
- * Hourly job: send self prayer reminders (push if native + receive_push, else email).
- * Auth matches send-prayer-reminders: Supabase Edge JWT verification only (no in-function Bearer check).
- * Invoked from GitHub Actions with secrets.SUPABASE_URL + secrets.SUPABASE_SERVICE_KEY.
+ * Hourly job: send self prayer reminders.
+ * Email when email_subscribers.is_active !== false (matches UserSessionData.isActive).
+ * Push when receive_push and a device_tokens row exists (matches receivePush + native token).
+ * Both run when both are enabled.
+ * Auth matches send-prayer-reminders: Supabase Edge JWT verification only.
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -129,15 +131,21 @@ serve(async (req) => {
         | { email: string; receive_push: boolean | null; is_active: boolean | null; is_blocked: boolean | null }
         | undefined;
 
-      if (!sub || sub.is_blocked || sub.is_active === false) {
+      if (!sub || sub.is_blocked) {
         continue;
       }
 
       const recipient = sub.email;
       const lower = recipient.toLowerCase();
-      const usePush = !!sub.receive_push && hasToken.has(lower);
+      // Align with UserSessionService: is_active ?? true for "email subscription"
+      const wantEmail = sub.is_active !== false;
+      const wantPush = !!sub.receive_push && hasToken.has(lower);
 
-      if (usePush) {
+      if (!wantEmail && !wantPush) {
+        continue;
+      }
+
+      if (wantPush) {
         const { error: pushErr } = await supabase.functions.invoke('send-push-notification', {
           body: {
             emails: [recipient],
@@ -155,22 +163,23 @@ serve(async (req) => {
         } else {
           pushesSent++;
         }
-        continue;
       }
 
-      const { error: mailErr } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: recipient,
-          subject: emailSubject,
-          textBody: emailText,
-          htmlBody: emailHtml,
-        },
-      });
-      if (mailErr) {
-        console.error('Email failed for', recipient, mailErr);
-        errors.push(`${recipient} email: ${mailErr.message ?? String(mailErr)}`);
-      } else {
-        emailsSent++;
+      if (wantEmail) {
+        const { error: mailErr } = await supabase.functions.invoke('send-email', {
+          body: {
+            to: recipient,
+            subject: emailSubject,
+            textBody: emailText,
+            htmlBody: emailHtml,
+          },
+        });
+        if (mailErr) {
+          console.error('Email failed for', recipient, mailErr);
+          errors.push(`${recipient} email: ${mailErr.message ?? String(mailErr)}`);
+        } else {
+          emailsSent++;
+        }
       }
     }
 

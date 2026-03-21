@@ -737,7 +737,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
               Prayer reminders
             </div>
             <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Choose times to get a short reminder to pray. On the native app with push enabled you will get a push; otherwise we will email you. Times use your device time zone (top of each hour).
+              Choose times to get a short reminder to pray. We email you when email notifications are on, and send a push when push is on and this device is registered—if both are on, you get both. Times use your device time zone (top of each hour).
             </p>
             @if (loadingPrayerReminders) {
               <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400" role="status">
