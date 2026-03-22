@@ -774,7 +774,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                   id="reminder-hour-select"
                   name="reminderHour"
                   [(ngModel)]="selectedReminderHour"
-                  class="text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 min-w-[8rem]"
+                  class="h-9 min-h-[2.25rem] box-border text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-0 min-w-[8rem] leading-normal"
                   aria-label="Reminder hour"
                 >
                   @for (opt of reminderHourOptions; track opt.value) {
@@ -786,7 +786,7 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
                 type="button"
                 (click)="addPrayerReminderSlot()"
                 [disabled]="savingPrayerReminder || !email.trim()"
-                class="px-3 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer sm:self-end"
+                class="h-9 min-h-[2.25rem] shrink-0 px-3 py-0 text-sm font-medium leading-normal rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer inline-flex items-center justify-center sm:self-end"
               >
                 {{ savingPrayerReminder ? 'Saving…' : 'Add reminder' }}
               </button>
