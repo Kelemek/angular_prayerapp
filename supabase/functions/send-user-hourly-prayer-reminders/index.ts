@@ -3,6 +3,9 @@
  * Email when email_subscribers.is_active !== false (matches UserSessionData.isActive).
  * Push when receive_push and a device_tokens row exists (matches receivePush + native token).
  * Both run when both are enabled.
+ * Email body uses email_templates.user_hourly_prayer_reminder with {{appLink}} (same pattern as send-verification-code).
+ * Set Edge secret APP_URL to match Angular environment.appUrl in production.
+ * If APP_URL is host-only (no https://), it is prefixed with https:// so mail clients do not rewrite links to x-webdoc://…
  * Auth matches send-prayer-reminders: Supabase Edge JWT verification only.
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -21,6 +24,32 @@ interface ReminderRow {
   user_email: string;
   iana_timezone: string;
   local_hour: number;
+}
+
+/** Absolute http(s) base for email <a href>; host-only values get https:// (avoids x-webdoc:// in Apple Mail). */
+function normalizeAppUrl(raw: string | undefined, fallback: string): string {
+  let u = (raw ?? fallback).trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(u)) {
+    if (/^localhost\b/i.test(u) || /^127\.0\.0\.1\b/.test(u)) {
+      u = `http://${u}`;
+    } else {
+      u = `https://${u}`;
+    }
+  }
+  return u;
+}
+
+/** When email_templates row is missing (migration not applied). */
+function hourlyReminderFallbackParts(appLink: string): {
+  subject: string;
+  textBody: string;
+  htmlBody: string;
+} {
+  return {
+    subject: 'Prayer reminder',
+    textBody: `Take a moment to pray.\n\nOpen the app: ${appLink}\n`,
+    htmlBody: `<p>Take a moment to pray.</p><p><a href="${appLink}">Open the prayer app</a></p>`,
+  };
 }
 
 serve(async (req) => {
@@ -48,12 +77,10 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const appUrl = (Deno.env.get('APP_URL') ?? 'http://localhost:4200').replace(/\/$/, '');
+  const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
+  const appLink = `${appUrl}/`;
   const pushTitle = 'Prayer reminder';
   const pushBody = 'Take a moment to pray.';
-  const emailSubject = 'Prayer reminder';
-  const emailText = `Take a moment to pray.\n\nOpen the app: ${appUrl}/\n`;
-  const emailHtml = `<p>Take a moment to pray.</p><p><a href="${appUrl}/">Open the prayer app</a></p>`;
 
   try {
     const { data: dueRows, error: rpcError } = await supabase.rpc(
@@ -78,6 +105,18 @@ serve(async (req) => {
           emailsSent: 0,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: hourlyTemplate } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('template_key', 'user_hourly_prayer_reminder')
+      .maybeSingle();
+
+    if (!hourlyTemplate) {
+      console.warn(
+        'email_templates.user_hourly_prayer_reminder not found; using inline fallback. Run migration or add template in admin.'
       );
     }
 
@@ -153,7 +192,7 @@ serve(async (req) => {
             body: pushBody,
             data: {
               type: 'prayer_reminder',
-              url: `${appUrl}/`,
+              url: appLink,
             },
           },
         });
@@ -166,12 +205,27 @@ serve(async (req) => {
       }
 
       if (wantEmail) {
+        const variables: Record<string, string> = { appLink };
+        let subject: string;
+        let textBody: string;
+        let htmlBody: string;
+        if (hourlyTemplate) {
+          subject = applyTemplateVariables(hourlyTemplate.subject, variables);
+          textBody = applyTemplateVariables(hourlyTemplate.text_body, variables);
+          htmlBody = applyTemplateVariables(hourlyTemplate.html_body, variables);
+        } else {
+          const fb = hourlyReminderFallbackParts(appLink);
+          subject = fb.subject;
+          textBody = fb.textBody;
+          htmlBody = fb.htmlBody;
+        }
+
         const { error: mailErr } = await supabase.functions.invoke('send-email', {
           body: {
             to: recipient,
-            subject: emailSubject,
-            textBody: emailText,
-            htmlBody: emailHtml,
+            subject,
+            textBody,
+            htmlBody,
           },
         });
         if (mailErr) {
@@ -205,3 +259,15 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Replace template variables with actual values
+ * Supports {{variableName}} syntax
+ */
+function applyTemplateVariables(content: string, variables: Record<string, string>): string {
+  let result = content;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value || '');
+  }
+  return result;
+}

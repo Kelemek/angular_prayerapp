@@ -229,7 +229,7 @@ serve(async (req) => {
 
         // Prepare template variables
         const requesterName = prayer.is_anonymous ? 'Friend' : prayer.requester
-        const baseUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
+        const baseUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:5173')
         const appLink = `${baseUrl}/`
 
         const variables: Record<string, string> = {
@@ -390,6 +390,21 @@ serve(async (req) => {
 })
 
 /**
+ * Absolute http(s) base for email links; host-only APP_URL gets https:// (avoids x-webdoc:// in some mail clients).
+ */
+function normalizeAppUrl(raw: string | undefined, fallback: string): string {
+  let u = (raw ?? fallback).trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(u)) {
+    if (/^localhost\b/i.test(u) || /^127\.0\.0\.1\b/.test(u)) {
+      u = `http://${u}`;
+    } else {
+      u = `https://${u}`;
+    }
+  }
+  return u;
+}
+
+/**
  * Replace template variables with actual values
  * Supports {{variableName}} syntax
  */
@@ -402,7 +417,7 @@ function applyTemplateVariables(content: string, variables: Record<string, strin
 }
 
 function generateReminderHTML(prayer: Prayer, enableAutoArchive: boolean, daysBeforeArchive: number): string {
-  const baseUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
+  const baseUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:5173')
   const appUrl = `${baseUrl}/`
   const requesterName = prayer.is_anonymous ? 'Friend' : prayer.requester
 
