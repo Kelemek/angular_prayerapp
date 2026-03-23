@@ -48,7 +48,7 @@ Quick links:
 - **Real-time Updates**: Live prayer updates using Supabase real-time subscriptions
 - **Theme Support**: Light and dark mode with persistent user preferences
 - **Text Size**: Default, Larger, or Largest text in Settings; preference saved and applied app-wide
-- **Prayer reminders**: Optional hourly nudges at chosen clock hours (device time zone); email and/or push based on subscription settings—documented in [`docs/CHANGELOG.md`](docs/CHANGELOG.md) and [`docs/README.md`](docs/README.md)
+- **Prayer reminders**: Optional hourly nudges at chosen clock hours (device time zone); email and/or push based on subscription settings. Scheduling runs in Supabase (`pg_cron` + Vault); see [`docs/SETUP.md`](docs/SETUP.md), [`docs/CHANGELOG.md`](docs/CHANGELOG.md), and [`docs/README.md`](docs/README.md)
 - **Advanced Filtering**: Search and filter prayers by category, status, or keywords
 - **Printable Lists**: Generate printable prayer request and prayer prompt lists
 

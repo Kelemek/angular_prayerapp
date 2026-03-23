@@ -116,7 +116,7 @@ So to point the native app at your **dev** site: run **`npm run cap:dev`**, then
 - **Same domain/CORS** - Running locally, no CORS issues
 - **Native features** - Can add camera, contacts, etc. via Capacitor plugins later
 - **Push vs email preferences** - `is_active` controls **email** (mass notifications). **Push** is controlled by `receive_push`, which is set to `true` only when the user installs the app and a device token is registered; they can turn it off in Settings. When an admin approves a prayer or update, the requester/author gets a push notification if they have push enabled.
-- **Personal prayer reminders (Settings)** - Users can choose clock hours for optional hourly “nudge” reminders; **push** uses the same device token path when `receive_push` is on. See [CHANGELOG.md](../CHANGELOG.md) (*Prayer reminders (hourly nudges)*) and [DEVELOPMENT.md](../DEVELOPMENT.md) (*User hourly prayer reminders*).
+- **Personal prayer reminders (Settings)** - Users can choose clock hours for optional hourly “nudge” reminders; **push** uses the same device token path when `receive_push` is on. Scheduling is via Supabase `pg_cron` (see [SETUP.md](../SETUP.md)). See also [CHANGELOG.md](../CHANGELOG.md) (*Prayer reminders (hourly nudges)*) and [DEVELOPMENT.md](../DEVELOPMENT.md) (*User hourly prayer reminders*).
 
 ## File Structure
 

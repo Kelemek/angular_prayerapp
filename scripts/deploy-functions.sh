@@ -52,7 +52,7 @@ case $FUNCTION_NAME in
         ;;
     "send-user-hourly-prayer-reminders")
         deploy_function "send-user-hourly-prayer-reminders" ""
-        echo "💡 Hourly GitHub Action uses SUPABASE_SERVICE_KEY like send-prayer-reminders; set APP_URL on the function."
+        echo "💡 Hourly invoke: Supabase pg_cron + Vault (project_url + service_role_key); set APP_URL on the function. See docs/SETUP.md."
         ;;
     "send-verification-code")
         deploy_function "send-verification-code" "--no-verify-jwt"

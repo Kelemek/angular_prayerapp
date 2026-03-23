@@ -141,7 +141,7 @@ Major features and milestones for the Prayer App.
 
 - ✅ **Implementation**
   - **DB**: `user_prayer_hour_reminders` (IANA timezone + local wall hour per row); RPC `get_user_prayer_hour_reminders_due_now()` for hourly matching. Migration: `20260315120000_user_prayer_hour_reminders.sql`.
-  - **Edge**: `supabase/functions/send-user-hourly-prayer-reminders/` — invoked hourly via `.github/workflows/send-user-hourly-prayer-reminders.yml` (`cron: 0 * * * *`), secrets `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (same pattern as `send-prayer-reminders`).
+  - **Edge**: `supabase/functions/send-user-hourly-prayer-reminders/` — invoked hourly via **Supabase `pg_cron` + `pg_net`** (migration `20260316130000_schedule_user_hourly_prayer_reminders_cron.sql`), Vault secrets `project_url` + `service_role_key`. Replaces former GitHub Action workflow for this job. See [SETUP.md](SETUP.md).
   - **App**: `UserPrayerReminderService` (stale-while-revalidate cache on session), `UserSessionService` fields `prayerHourReminders` / `prayerHourRemindersFetchedAt`; UI in `user-settings.component.ts`. Unit tests: `user-prayer-reminder.service.spec.ts`.
   - **Help**: Standalone section **`help_prayer_reminders`** (“Prayer reminders”) in `help-content.service.ts`, plus **“Prayer reminders (hourly nudges)”** under **App Settings** (above Feedback Form). See **DEVELOPMENT.md** (Settings + “User hourly prayer reminders”).
 

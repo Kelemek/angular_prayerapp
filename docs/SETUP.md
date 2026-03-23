@@ -108,7 +108,7 @@ VITE_SENTRY_DSN=https://...
 
 ### GitHub Secrets
 
-For GitHub Actions to work, add these secrets:
+For GitHub Actions to work, add these secrets (still required for workflows such as `send-prayer-reminders` that invoke Edge Functions):
 
 ```
 SUPABASE_URL
@@ -143,6 +143,49 @@ supabase db push
 # Option 2: Via Supabase Dashboard
 # SQL Editor > Run migrations manually
 ```
+
+### User hourly prayer reminders (Vault + pg_cron)
+
+Migration `20260316130000_schedule_user_hourly_prayer_reminders_cron.sql` enables **`pg_net`** and **`pg_cron`** and registers an hourly job (`invoke-user-hourly-prayer-reminders`, `0 * * * *` UTC) that POSTs to the Edge Function `send-user-hourly-prayer-reminders` using secrets from **Supabase Vault** (same behavior as the former GitHub Action).
+
+**1. Create Vault secrets** (Supabase Dashboard → **Project Settings** → **Vault**, or SQL Editor). Required names:
+
+| Secret name | Value |
+|---------------|--------|
+| `project_url` | Your project API URL, e.g. `https://YOUR_PROJECT_REF.supabase.co` (no trailing slash) |
+| `service_role_key` | **service_role** JWT from **Settings → API** (same value as GitHub secret `SUPABASE_SERVICE_KEY`) |
+
+```sql
+select vault.create_secret('https://YOUR_PROJECT_REF.supabase.co', 'project_url');
+select vault.create_secret('YOUR_SERVICE_ROLE_JWT', 'service_role_key');
+```
+
+If these already exist from another setup, do not duplicate them—only the names must match.
+
+**2. Extensions**: If `supabase db push` fails on `CREATE EXTENSION`, enable **pg_net** and **pg_cron** in the Dashboard (**Database → Extensions**) and re-run the migration or apply the SQL from the migration file manually.
+
+**3. Verify manually** (after secrets exist):
+
+```sql
+select net.http_post(
+  url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1)
+    || '/functions/v1/send-user-hourly-prayer-reminders',
+  headers := jsonb_build_object(
+    'Content-Type', 'application/json',
+    'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)
+  ),
+  body := '{}'::jsonb,
+  timeout_milliseconds := 120000
+);
+
+-- After a few seconds, inspect the HTTP result (status should be 200 if the function succeeded):
+select id, status_code, content, error_msg
+from net._http_response
+order by created desc
+limit 5;
+```
+
+Confirm the Edge Function logs in **Supabase → Edge Functions → send-user-hourly-prayer-reminders → Logs**. Optionally `select * from cron.job where jobname = 'invoke-user-hourly-prayer-reminders';` to confirm the schedule.
 
 ### Database Tables
 
