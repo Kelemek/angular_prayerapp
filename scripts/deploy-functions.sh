@@ -55,6 +55,10 @@ case $FUNCTION_NAME in
         deploy_function "send-user-hourly-prayer-reminders" ""
         echo "💡 Hourly invoke: Supabase pg_cron + Vault (project_url + service_role_key); set APP_URL on the function. See docs/SETUP.md."
         ;;
+    "cleanup-device-tokens")
+        deploy_function "cleanup-device-tokens" ""
+        echo "💡 Daily invoke: Supabase pg_cron (invoke-cleanup-device-tokens, 03:00 UTC) + Vault. See docs/SETUP.md."
+        ;;
     "send-verification-code")
         deploy_function "send-verification-code" "--no-verify-jwt"
         echo "💡 Remember: send-verification-code runs without JWT verification"
@@ -73,6 +77,7 @@ case $FUNCTION_NAME in
         deploy_function "send-verification-code" "--no-verify-jwt"
         deploy_function "send-prayer-reminders" ""
         deploy_function "send-user-hourly-prayer-reminders" ""
+        deploy_function "cleanup-device-tokens" ""
         echo "🎉 All functions deployed successfully!"
         ;;
     *)
@@ -85,6 +90,7 @@ case $FUNCTION_NAME in
         echo "  send-verification-code   - Email verification codes (no JWT)"
         echo "  send-prayer-reminders    - Automated prayer reminders"
         echo "  send-user-hourly-prayer-reminders - User hourly self-reminders (cron)"
+        echo "  cleanup-device-tokens    - Stale device tokens + push log cleanup (cron)"
         echo "  all                      - Deploy all functions (default)"
         echo ""
         exit 1

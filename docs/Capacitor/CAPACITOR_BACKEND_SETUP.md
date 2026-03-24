@@ -138,7 +138,7 @@ The function sends **Android** via **FCM HTTP v1** (service account) and **iOS**
   - **Why it's optional:** You can send push notifications without this; it's mainly for admins to see who has the app installed and how many devices.
 
 - [x] **Automatic token cleanup**
-  - Implemented via Edge Function `cleanup-device-tokens` and GitHub Actions workflow (daily at 3 AM UTC). Removes `device_tokens` where `last_seen_at` is older than 30 days (related `push_notification_log` rows removed by CASCADE). Also removes `push_notification_log` rows where `sent_at` is older than 7 days. Deploy with `./scripts/deploy-functions.sh cleanup-device-tokens` or `all`.
+  - Implemented via Edge Function `cleanup-device-tokens`, invoked daily by **Supabase `pg_cron`** (migration `20260318120000_schedule_cleanup_device_tokens_cron.sql`, `0 3 * * *` UTC; Vault `project_url` + `service_role_key`). Removes `device_tokens` where `last_seen_at` is older than 30 days (related `push_notification_log` rows removed by CASCADE). Also removes `push_notification_log` rows where `sent_at` is older than 7 days. Deploy with `./scripts/deploy-functions.sh cleanup-device-tokens` or `all`.
 
 ## Phase 6: Send Notifications from Admin
 

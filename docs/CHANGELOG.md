@@ -150,6 +150,11 @@ Major features and milestones for the Prayer App.
   - Migration `20260317120000_schedule_send_prayer_reminders_cron.sql` registers job **`invoke-send-prayer-reminders`** (`0 10 * * *` UTC), POSTing to **`send-prayer-reminders`** via **`pg_net`**, using the same Vault secrets **`project_url`** + **`service_role_key`** as the hourly user reminders job.
   - Removed `.github/workflows/send-prayer-reminders.yml`. See [SETUP.md](SETUP.md) (Community prayer reminders) and [DEVELOPMENT.md](DEVELOPMENT.md) (Archiving Workflow).
 
+### Device token cleanup (`cleanup-device-tokens`) scheduling ✅
+- ✅ **Daily Edge Function trigger moved from GitHub Actions to Supabase `pg_cron`**
+  - Migration `20260318120000_schedule_cleanup_device_tokens_cron.sql` registers job **`invoke-cleanup-device-tokens`** (`0 3 * * *` UTC), POSTing to **`cleanup-device-tokens`** via **`pg_net`**, using Vault **`project_url`** + **`service_role_key`**.
+  - Removed `.github/workflows/cleanup-device-tokens.yml`. See [SETUP.md](SETUP.md) (Device token cleanup) and [Capacitor/CAPACITOR_BACKEND_SETUP.md](Capacitor/CAPACITOR_BACKEND_SETUP.md).
+
 ## [Previous] - January 2026
 
 ### Email Badge Logout with Confirmation Modal ✅

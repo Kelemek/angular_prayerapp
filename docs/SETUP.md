@@ -108,7 +108,7 @@ VITE_SENTRY_DSN=https://...
 
 ### GitHub Secrets
 
-For GitHub Actions to work, add these secrets (still required for workflows that invoke Supabase, e.g. `cleanup-device-tokens`, `process-email-queue`, backup/restore):
+For GitHub Actions to work, add these secrets (still required for workflows that invoke Supabase, e.g. `process-email-queue`, backup/restore):
 
 ```
 SUPABASE_URL
@@ -212,6 +212,32 @@ limit 5;
 ```
 
 Check **Edge Functions → send-prayer-reminders → Logs**. Confirm schedule: `select * from cron.job where jobname = 'invoke-send-prayer-reminders';`
+
+### Device token cleanup (`cleanup-device-tokens`)
+
+Migration `20260318120000_schedule_cleanup_device_tokens_cron.sql` registers a **daily** job (`invoke-cleanup-device-tokens`, **`0 3 * * *` UTC**) that POSTs to the Edge Function **`cleanup-device-tokens`** (stale `device_tokens` and old `push_notification_log` rows). Uses the **same Vault secrets** (`project_url`, `service_role_key`).
+
+**Verify manually** (after secrets exist):
+
+```sql
+select net.http_post(
+  url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1)
+    || '/functions/v1/cleanup-device-tokens',
+  headers := jsonb_build_object(
+    'Content-Type', 'application/json',
+    'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)
+  ),
+  body := '{}'::jsonb,
+  timeout_milliseconds := 120000
+);
+
+select id, status_code, content, error_msg
+from net._http_response
+order by created desc
+limit 5;
+```
+
+Confirm schedule: `select * from cron.job where jobname = 'invoke-cleanup-device-tokens';`
 
 ### Database Tables
 
