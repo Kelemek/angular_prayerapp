@@ -159,7 +159,7 @@ interface TimelineDay {
                                   <circle cx="12" cy="12" r="10"></circle>
                                   <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
-                                <span class="text-sm">Reminder sending</span>
+                                <span class="text-sm">Reminder will send</span>
                               }
                               @case ('reminder-sent') {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -333,6 +333,8 @@ export class PrayerArchiveTimelineComponent implements OnInit {
   isLoading = false;
   reminderIntervalDays = 30;
   daysBeforeArchive = 30;
+  private readonly reminderJobHourUtc = 10;
+  private readonly reminderJobMinuteUtc = 0;
 
   timelineEvents: TimelineDay[] = [];
   
@@ -464,7 +466,10 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     
     // Calculate min and max months from all events
     if (this.allEvents.length > 0) {
-      const months = this.allEvents.map(e => new Date(e.date.getFullYear(), e.date.getMonth(), 1));
+      const months = this.allEvents.map(e => {
+        const [year, month] = this.getLocalDateString(e.date).split('-').map(Number);
+        return new Date(year, month - 1, 1);
+      });
       this.minMonth = new Date(Math.min(...months.map(d => d.getTime())));
       this.maxMonth = new Date(Math.max(...months.map(d => d.getTime())));
     } else {
@@ -508,8 +513,29 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
   }
 
+  private getNextDailyRunAfterUtc(base: Date, runHourUtc: number, runMinuteUtc: number): Date {
+    const candidate = new Date(Date.UTC(
+      base.getUTCFullYear(),
+      base.getUTCMonth(),
+      base.getUTCDate(),
+      runHourUtc,
+      runMinuteUtc,
+      0,
+      0
+    ));
+
+    if (base.getTime() < candidate.getTime()) {
+      return candidate;
+    }
+
+    const next = new Date(candidate);
+    next.setUTCDate(next.getUTCDate() + 1);
+    return next;
+  }
+
   private processPrayers(prayers: PrayerRequest[]): void {
     const allEvents: TimelineEvent[] = [];
+    const millisecondsInDay = 24 * 60 * 60 * 1000;
 
     const today = new Date();
     const todayLocalStr = this.getLocalDateString(today);
@@ -556,6 +582,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           : null;
 
       const lastReminderSent = prayer.last_reminder_sent;
+      const lastActivityExactDate = lastActivityDate ? new Date(lastActivityDate) : new Date(prayer.created_at);
       
       if (lastReminderSent) {
         // Reminder was actually sent - show it
@@ -583,12 +610,16 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           archiveDate.setDate(archiveDate.getDate() + this.daysBeforeArchive);
           
           const archiveDaysUntil = Math.ceil((archiveDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
-          
+          const archiveRunAt = this.getNextDailyRunAfterUtc(
+            new Date(new Date(lastReminderSent).getTime() + this.daysBeforeArchive * millisecondsInDay),
+            this.reminderJobHourUtc,
+            this.reminderJobMinuteUtc
+          );
           if (archiveDaysUntil <= -2) {
             // Archive date has passed by at least 2 days - show as missed
             // (Give system 2 extra days buffer for auto-archive job to execute)
             allEvents.push({
-              date: archiveDate,
+              date: archiveRunAt,
               prayer: { id: prayer.id, title: prayer.title },
               eventType: 'archive-missed',
               daysUntil: 0
@@ -596,7 +627,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           } else if (archiveDaysUntil > 0) {
             // Archive date is in the future
             allEvents.push({
-              date: archiveDate,
+              date: archiveRunAt,
               prayer: { id: prayer.id, title: prayer.title },
               eventType: 'archive-upcoming',
               daysUntil: archiveDaysUntil
@@ -623,6 +654,12 @@ export class PrayerArchiveTimelineComponent implements OnInit {
         
         const nextReminderDate = new Date(baseDate);
         nextReminderDate.setDate(nextReminderDate.getDate() + this.reminderIntervalDays);
+        const nextReminderDueExact = new Date(lastActivityExactDate.getTime() + this.reminderIntervalDays * millisecondsInDay);
+        const nextReminderRunAt = this.getNextDailyRunAfterUtc(
+          nextReminderDueExact,
+          this.reminderJobHourUtc,
+          this.reminderJobMinuteUtc
+        );
         
         const reminderDaysUntil = Math.ceil((nextReminderDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
         
@@ -630,23 +667,27 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           // Reminder should have been sent but wasn't - show as missed
           // (Give system 2 extra days buffer before marking as missed)
           allEvents.push({
-            date: nextReminderDate,
+            date: nextReminderRunAt,
             prayer: { id: prayer.id, title: prayer.title },
             eventType: 'reminder-missed',
-            daysUntil: 0
+              daysUntil: 0
           });
           
           // Also check for missed archive
           const archiveDate = new Date(nextReminderDate);
           archiveDate.setDate(archiveDate.getDate() + this.daysBeforeArchive);
-          
+          const archiveRunAt = this.getNextDailyRunAfterUtc(
+            new Date(nextReminderDueExact.getTime() + this.daysBeforeArchive * millisecondsInDay),
+            this.reminderJobHourUtc,
+            this.reminderJobMinuteUtc
+          );
           const archiveDaysUntil = Math.ceil((archiveDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
           
           if (archiveDaysUntil <= -2) {
             // Archive date has passed by at least 2 days - show as missed
             // (Give system 2 extra days buffer for auto-archive job to execute)
             allEvents.push({
-              date: archiveDate,
+              date: archiveRunAt,
               prayer: { id: prayer.id, title: prayer.title },
               eventType: 'archive-missed',
               daysUntil: 0
@@ -654,7 +695,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
           } else if (archiveDaysUntil > 0) {
             // Archive date is still in the future
             allEvents.push({
-              date: archiveDate,
+              date: archiveRunAt,
               prayer: { id: prayer.id, title: prayer.title },
               eventType: 'archive-upcoming',
               daysUntil: archiveDaysUntil
@@ -664,7 +705,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
         } else {
           // Reminder is still upcoming
           allEvents.push({
-            date: nextReminderDate,
+            date: nextReminderRunAt,
             prayer: { id: prayer.id, title: prayer.title },
             eventType: 'reminder-upcoming',
             daysUntil: reminderDaysUntil
@@ -680,7 +721,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     const groupedByDate = new Map<string, TimelineEvent[]>();
     
     events.forEach(event => {
-      const dateKey = event.date.toISOString().split('T')[0];
+      const dateKey = this.getLocalDateString(event.date);
       if (!groupedByDate.has(dateKey)) {
         groupedByDate.set(dateKey, []);
       }
@@ -689,7 +730,9 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     
     return Array.from(groupedByDate.entries())
       .map(([dateStr, dayEvents]) => {
-        const date = new Date(dateStr);
+        const [year, month, day] = dateStr.split('-').map(Number);
+        // Noon UTC avoids "previous day" rendering in many negative offsets.
+        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
         return {
           date,
           dateStr: this.formatDate(date),

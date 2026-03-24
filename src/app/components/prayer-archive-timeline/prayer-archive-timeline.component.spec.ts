@@ -2128,4 +2128,69 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
       expect(spy).toHaveBeenCalled();
     });
   });
+
+  describe('Execution Timing Projection', () => {
+    it('should project same-day run when due before 10:00 UTC', () => {
+      const base = new Date('2026-03-25T02:05:00Z');
+      const run = (component as any).getNextDailyRunAfterUtc(base, 10, 0);
+
+      expect(run.toISOString()).toBe('2026-03-25T10:00:00.000Z');
+    });
+
+    it('should project next-day run when due after 10:00 UTC', () => {
+      const base = new Date('2026-03-25T20:30:00Z');
+      const run = (component as any).getNextDailyRunAfterUtc(base, 10, 0);
+
+      expect(run.toISOString()).toBe('2026-03-26T10:00:00.000Z');
+    });
+
+    it('should place reminder-upcoming event at projected run timestamp', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+
+      const prayers = [
+        {
+          id: '1',
+          title: 'Prayer 1',
+          status: 'current',
+          created_at: '2026-01-01T20:30:00Z'
+        } as any
+      ];
+
+      await (component as any).processPrayers(prayers);
+
+      const events = (component as any).allEvents;
+      const reminderUpcoming = events.find((e: any) => e.eventType === 'reminder-upcoming');
+
+      expect(reminderUpcoming).toBeDefined();
+      expect(reminderUpcoming.date.toISOString()).toBe('2026-02-01T10:00:00.000Z');
+
+      vi.useRealTimers();
+    });
+
+    it('should place archive-upcoming event at projected run timestamp', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-10T12:00:00Z'));
+
+      const prayers = [
+        {
+          id: '1',
+          title: 'Prayer 1',
+          status: 'current',
+          created_at: '2026-01-01T08:00:00Z',
+          last_reminder_sent: '2026-03-01T10:00:00Z'
+        } as any
+      ];
+
+      await (component as any).processPrayers(prayers);
+
+      const events = (component as any).allEvents;
+      const archiveUpcoming = events.find((e: any) => e.eventType === 'archive-upcoming');
+
+      expect(archiveUpcoming).toBeDefined();
+      expect(archiveUpcoming.date.toISOString()).toBe('2026-04-01T10:00:00.000Z');
+
+      vi.useRealTimers();
+    });
+  });
 });
