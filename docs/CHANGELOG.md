@@ -145,6 +145,11 @@ Major features and milestones for the Prayer App.
   - **App**: `UserPrayerReminderService` (stale-while-revalidate cache on session), `UserSessionService` fields `prayerHourReminders` / `prayerHourRemindersFetchedAt`; UI in `user-settings.component.ts`. Unit tests: `user-prayer-reminder.service.spec.ts`.
   - **Help**: Standalone section **`help_prayer_reminders`** (“Prayer reminders”) in `help-content.service.ts`, plus **“Prayer reminders (hourly nudges)”** under **App Settings** (above Feedback Form). See **DEVELOPMENT.md** (Settings + “User hourly prayer reminders”).
 
+### Community prayer reminders (`send-prayer-reminders`) scheduling ✅
+- ✅ **Daily Edge Function trigger moved from GitHub Actions to Supabase `pg_cron`**
+  - Migration `20260317120000_schedule_send_prayer_reminders_cron.sql` registers job **`invoke-send-prayer-reminders`** (`0 10 * * *` UTC), POSTing to **`send-prayer-reminders`** via **`pg_net`**, using the same Vault secrets **`project_url`** + **`service_role_key`** as the hourly user reminders job.
+  - Removed `.github/workflows/send-prayer-reminders.yml`. See [SETUP.md](SETUP.md) (Community prayer reminders) and [DEVELOPMENT.md](DEVELOPMENT.md) (Archiving Workflow).
+
 ## [Previous] - January 2026
 
 ### Email Badge Logout with Confirmation Modal ✅

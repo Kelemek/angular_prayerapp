@@ -992,9 +992,9 @@ A prayer is archived when **all** of the following conditions are met:
 
 ### Archiving Workflow
 
-Executed by the `send-prayer-reminders` GitHub Actions workflow:
+Executed by **Supabase `pg_cron`** (migration `20260317120000_schedule_send_prayer_reminders_cron.sql`, job `invoke-send-prayer-reminders`, **daily 10:00 UTC** — e.g. 4:00 AM CST / 5:00 AM CDT depending on DST). Replaces the former GitHub Actions workflow for this job.
 
-1. **Daily execution** (~4:15 AM CST)
+1. **Daily execution** at that UTC time
 2. For each prayer:
    - Check if eligible for reminder (30+ days since last reminder)
    - Send reminder email if needed

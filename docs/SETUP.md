@@ -108,7 +108,7 @@ VITE_SENTRY_DSN=https://...
 
 ### GitHub Secrets
 
-For GitHub Actions to work, add these secrets (still required for workflows such as `send-prayer-reminders` that invoke Edge Functions):
+For GitHub Actions to work, add these secrets (still required for workflows that invoke Supabase, e.g. `cleanup-device-tokens`, `process-email-queue`, backup/restore):
 
 ```
 SUPABASE_URL
@@ -186,6 +186,32 @@ limit 5;
 ```
 
 Confirm the Edge Function logs in **Supabase → Edge Functions → send-user-hourly-prayer-reminders → Logs**. Optionally `select * from cron.job where jobname = 'invoke-user-hourly-prayer-reminders';` to confirm the schedule.
+
+### Community prayer reminders (`send-prayer-reminders`)
+
+Migration `20260317120000_schedule_send_prayer_reminders_cron.sql` registers a **daily** job (`invoke-send-prayer-reminders`, **`0 10 * * *` UTC**) that POSTs to the Edge Function **`send-prayer-reminders`** (reminder emails + auto-archive per `admin_settings`). Uses the **same Vault secrets** as above (`project_url`, `service_role_key`).
+
+**Verify manually** (after secrets exist):
+
+```sql
+select net.http_post(
+  url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1)
+    || '/functions/v1/send-prayer-reminders',
+  headers := jsonb_build_object(
+    'Content-Type', 'application/json',
+    'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)
+  ),
+  body := '{}'::jsonb,
+  timeout_milliseconds := 300000
+);
+
+select id, status_code, content, error_msg
+from net._http_response
+order by created desc
+limit 5;
+```
+
+Check **Edge Functions → send-prayer-reminders → Logs**. Confirm schedule: `select * from cron.job where jobname = 'invoke-send-prayer-reminders';`
 
 ### Database Tables
 

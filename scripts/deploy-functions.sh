@@ -46,6 +46,7 @@ case $FUNCTION_NAME in
         ;;
     "send-prayer-reminders")
         deploy_function "send-prayer-reminders" ""
+        echo "💡 Daily invoke: Supabase pg_cron (invoke-send-prayer-reminders, 10:00 UTC) + Vault (project_url + service_role_key). See docs/SETUP.md."
         echo "💡 Next steps:"
         echo "   1. Configure reminder interval in Admin Settings"
         echo "   2. Test with 'Send Reminders Now' button"
