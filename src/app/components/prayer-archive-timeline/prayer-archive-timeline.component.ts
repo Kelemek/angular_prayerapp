@@ -749,21 +749,15 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
     const dateFormatted = new Date(date);
     dateFormatted.setHours(0, 0, 0, 0);
     
     // Compare using local timezone strings
     const dateLocalStr = this.getLocalDateString(dateFormatted);
     const todayLocalStr = this.getLocalDateString(today);
-    const tomorrowLocalStr = this.getLocalDateString(tomorrow);
     
     if (dateLocalStr === todayLocalStr) {
       return 'Today';
-    } else if (dateLocalStr === tomorrowLocalStr) {
-      return 'Tomorrow';
     } else {
       return dateFormatted.toLocaleDateString('en-US', { 
         weekday: 'short', 

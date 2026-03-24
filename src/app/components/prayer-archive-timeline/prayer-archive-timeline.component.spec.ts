@@ -1971,13 +1971,13 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
       expect(formatted).toBe('Today');
     });
 
-    it('should show "Tomorrow" for tomorrow date', () => {
+    it('should show formatted date for tomorrow date', () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       
       const formatted = (component as any).formatDate(tomorrow);
       
-      expect(formatted).toBe('Tomorrow');
+      expect(formatted).toMatch(/\w+,\s+\w+\s+\d+,\s+\d{4}/);
     });
 
     it('should show formatted date for other dates', () => {
