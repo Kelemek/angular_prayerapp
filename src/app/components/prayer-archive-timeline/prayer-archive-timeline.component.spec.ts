@@ -1628,6 +1628,17 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
     });
   });
 
+  describe('local calendar day anchor (reminder sent vs upcoming)', () => {
+    it('should keep same YYYY-MM-DD as source instant after anchor for America/New_York', () => {
+      component.userTimezone = 'America/New_York';
+      const c = component as any;
+      const sentAt = new Date('2026-03-24T10:00:00.000Z');
+      expect(c.getLocalDateString(sentAt)).toBe('2026-03-24');
+      const anchor = c.getLocalDateAtMidnight(sentAt);
+      expect(c.getLocalDateString(anchor)).toBe('2026-03-24');
+    });
+  });
+
   describe('ngOnInit', () => {
     it('should call loadSettings on init', async () => {
       const loadSettingsSpy = vi.spyOn(component as any, 'loadSettings');
@@ -1879,20 +1890,19 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
   });
 
   describe('Get Local Date At Midnight', () => {
-    it('should return date at midnight', () => {
+    it('should anchor local calendar day at noon UTC', () => {
       const testDate = new Date('2026-01-15T12:34:56Z');
       const result = (component as any).getLocalDateAtMidnight(testDate);
       
-      expect(result.getUTCHours()).toBe(0);
+      expect(result.getUTCHours()).toBe(12);
       expect(result.getUTCMinutes()).toBe(0);
       expect(result.getUTCSeconds()).toBe(0);
     });
 
-    it('should convert date to UTC midnight representation', () => {
+    it('should convert date to stable UTC anchor for grouping', () => {
       const testDate = new Date('2026-01-15T12:34:56Z');
       const result = (component as any).getLocalDateAtMidnight(testDate);
       
-      // Result should be a valid date
       expect(result).toBeDefined();
       expect(result instanceof Date).toBe(true);
     });
@@ -1902,8 +1912,7 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
       const result = (component as any).getLocalDateAtMidnight(testDate);
       
       expect(result).toBeDefined();
-      // Should be at midnight UTC
-      expect(result.getUTCHours()).toBe(0);
+      expect(result.getUTCHours()).toBe(12);
     });
   });
 

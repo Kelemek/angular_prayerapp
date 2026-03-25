@@ -501,16 +501,15 @@ export class PrayerArchiveTimelineComponent implements OnInit {
   }
 
   /**
-   * Convert a UTC date to a local date at midnight (00:00:00 in local timezone)
-   * This ensures events from UTC timestamps are properly placed in the correct local date
-   * Uses UTC date creation to avoid timezone offset issues
+   * Anchor a calendar day from the user's local YYYY-MM-DD so grouping and labels stay stable.
+   * Uses noon UTC (not midnight UTC): midnight UTC is often the *previous* local calendar day in
+   * Americas, which made "reminder sent" jump to yesterday after send while "reminder upcoming"
+   * still used the real job run time (~10:00 UTC).
    */
   private getLocalDateAtMidnight(utcDate: Date): Date {
     const localDateStr = this.getLocalDateString(utcDate);
-    // Parse YYYY-MM-DD format
     const [year, month, day] = localDateStr.split('-').map(Number);
-    // Create UTC date representing midnight on that day in local time
-    return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
   }
 
   private getNextDailyRunAfterUtc(base: Date, runHourUtc: number, runMinuteUtc: number): Date {
@@ -540,7 +539,7 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     const today = new Date();
     const todayLocalStr = this.getLocalDateString(today);
     const [todayYear, todayMonth, todayDay] = todayLocalStr.split('-').map(Number);
-    const todayLocal = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay, 0, 0, 0));
+    const todayLocal = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay, 12, 0, 0));
 
     for (const prayer of prayers) {
       // Show answered prayers with when they were marked as answered
