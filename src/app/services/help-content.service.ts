@@ -319,6 +319,14 @@ export class HelpContentService {
             text: 'The "Pray For" button appears only on community prayers (not on your personal prayers or on member-list prayers). If you don\'t see the button, your church or community may have the feature turned off, or you may be viewing a personal prayer.',
           },
           {
+            subtitle: 'Show "Pray For" button',
+            text: 'In Settings, under Prayer encouragement on cards, you can turn the Pray For button off for your own account if you prefer not to see or use it on community cards. Prayer Encouragement can still be on for everyone else; this only hides the control for you. You can turn it back on anytime—your choice is saved to your account.',
+          },
+          {
+            subtitle: 'Show "Praying #" button',
+            text: 'In the same Settings section, you can hide the praying count (how many people have tapped Pray For) on cards when the app shows it—for example on requests you submitted. Your preference is saved to your account.',
+          },
+          {
             subtitle: 'Praying for the same request again',
             text: 'You can pray for the same request more than once. After you click "Pray For", a short cooldown applies so you can\'t click again immediately. Once the cooldown ends (after a few hours), you can click "Pray For" again to record another time you prayed for that request. This helps reflect ongoing prayer support over time.',
           },
@@ -636,6 +644,14 @@ export class HelpContentService {
           {
             subtitle: 'Enabling Badges',
             text: 'To turn on the badge feature, enable "Badge Functionality" in settings. Once enabled, you\'ll see notifications for unread prayers. You can toggle this setting at any time based on your preference.',
+          },
+          {
+            subtitle: 'Show "Pray For" button',
+            text: 'Under Prayer encouragement on cards in Settings, you can turn the Pray For button on or off for your own view on community prayer requests. When it is on, you can record that you prayed for a request. When it is off, the button is hidden on cards for you only; other people still see and use prayer encouragement as usual. Your choice is saved to your account.',
+          },
+          {
+            subtitle: 'Show "Praying #" button',
+            text: 'In the same section, you can show or hide the praying count (the number of people praying) on prayer cards when the app would display it—for example on your own requests. Your preference is saved to your account.',
           },
           {
             subtitle: 'Default Prayer View',

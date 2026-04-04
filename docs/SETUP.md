@@ -246,7 +246,7 @@ Key tables created by migrations:
 - `prayers` - Prayer requests
 - `prayer_updates` - Prayer status updates
 - `prayer_deletion_requests` - Deletion requests
-- `email_subscribers` - Email opt-in/out
+- `email_subscribers` - Email opt-in/out and per-user preferences (including `show_pray_for_button` and `show_praying_count` for Prayer Encouragement card UI; see [CHANGELOG](CHANGELOG.md))
 - `email_queue` - Email processing queue
 - `admin_users` - Admin access list
 - `admin_settings` - App configuration

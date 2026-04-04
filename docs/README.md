@@ -31,7 +31,7 @@ A comprehensive prayer request management system for Cross Pointe Church built w
 - ✅ Real-time updates via Supabase
 - ✅ Prayer timer & printable lists
 - ✅ Personal prayers (private user prayers)
-- ✅ **Prayer Encouragement (Pray For)**: Users can click “Pray For” on community prayers; requesters and admins see how many people have prayed (configurable cooldown; admin toggle and cooldown hours in Admin settings)
+- ✅ **Prayer Encouragement (Pray For)**: Users can click “Pray For” on community prayers; requesters and admins see how many people have prayed (configurable cooldown; admin toggle and cooldown hours in Admin settings). In **Settings**, **Prayer encouragement on cards** lets each user show or hide the Pray For control and the praying-count chip on cards for their own account (stored on `email_subscribers`; defaults on).
 - ✅ Theme system (light/dark)
 - ✅ **Text size** (Settings): Users can choose Default, Larger, or Largest text; preference is saved and applied app-wide for easier reading.
 - ✅ **Prayer reminders** (Settings): Optional hourly nudges at the top of chosen clock hours (device time zone); email and/or push depending on **Email subscription** and push registration. Separate from community prayer-update reminders. In-app Help: **Prayer reminders** topic + **App Settings** subsection.
@@ -99,7 +99,11 @@ src/
 - **Personal hourly prayer reminders (Settings):** Users can schedule **personal** “nudge” times (top of chosen hours, device time zone). Delivery uses **email** when mass email is on and/or **push** when the device is registered. The hourly trigger runs in **Supabase** (`pg_cron` + Vault); see [CHANGELOG](CHANGELOG.md) (*Prayer reminders (hourly nudges)*), [SETUP.md](SETUP.md) (User hourly prayer reminders), and [DEVELOPMENT.md](DEVELOPMENT.md) (*User hourly prayer reminders*). These are not the same as automated **community** prayer-update reminders configured by admins.
 
 ### Prayer Encouragement (Pray For)
-When enabled by an admin, community prayer cards show a **“Pray For”** button. Users can tap it to record that they prayed for that request; the count is shown to the person who submitted the prayer and to admins (who clicked is anonymous). A **cooldown** (configurable in Admin → Prayer Encouragement, 1–168 hours) limits how often the same user can click Pray For on the same prayer. Settings are stored in **`admin_settings`** (`prayer_encouragement_enabled`, `prayer_encouragement_cooldown_hours`) and cached in the app. The in-app **Help & Guidance** modal includes a “Prayer Encouragement (Pray For)” section for users.
+When enabled by an admin, community prayer cards show a **“Pray For”** button. Users can tap it to record that they prayed for that request; the count is shown to the person who submitted the prayer and to admins (who clicked is anonymous). A **cooldown** (configurable in Admin → Prayer Encouragement, 1–168 hours) limits how often the same user can click Pray For on the same prayer. Community-wide settings are stored in **`admin_settings`** (`prayer_encouragement_enabled`, `prayer_encouragement_cooldown_hours`) and cached in the app.
+
+**Per-user card UI:** In the main **Settings** modal, **Prayer encouragement on cards** offers **Show “Pray For” button** and **Show “Praying #” button** (checkboxes, default on). Preferences are on **`email_subscribers`** (`show_pray_for_button`, `show_praying_count`); they only affect what that user sees when Prayer Encouragement is enabled. See [CHANGELOG](CHANGELOG.md) (*Per-user visibility on cards*) and [DEVELOPMENT.md](DEVELOPMENT.md) (Prayer Encouragement section).
+
+The in-app **Help & Guidance** modal includes **Prayer Encouragement (Pray For)** and **App Settings** entries that describe these toggles.
 
 ---
 

@@ -31,7 +31,7 @@ Quick links:
 - **Add Prayer Requests**: Create new prayer requests with titles, descriptions, categories, and requester information
 - **Status Tracking**: Track prayers through various status stages (pending, approved, active, answered, closed)
 - **Updates**: Add prayer updates to track progress and answered prayers
-- **Pray For (Prayer Encouragement)**: Click “Pray For” on community prayers to encourage requesters; they see how many people have prayed (anonymous count). Admins can enable/disable the feature and set the cooldown (1–168 hours) in Admin settings.
+- **Pray For (Prayer Encouragement)**: Click “Pray For” on community prayers to encourage requesters; they see how many people have prayed (anonymous count). Admins can enable/disable the feature and set the cooldown (1–168 hours) in Admin settings. In **Settings**, users can hide the Pray For control and/or the praying-count chip on cards for their own view (`email_subscribers` prefs; see [`docs/CHANGELOG.md`](docs/CHANGELOG.md)).
 - **Categories**: Organize prayers by custom prayer types
 - **Admin Approval**: Moderation system with approval workflow
 

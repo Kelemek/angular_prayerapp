@@ -52,6 +52,13 @@ Major features and milestones for the Prayer App.
 - ✅ **Documentation**
   - docs/README.md (Core Capabilities, Key Concepts); README.md (Prayer Management, Admin Portal); DEVELOPMENT.md (PrayerEncouragementService, Prayer Encouragement section). In-app Help includes “Prayer Encouragement (Pray For)” section.
 
+- ✅ **Per-user visibility on cards (Settings)**
+  - **Prayer encouragement on cards** in the main settings modal: users can keep or turn off the **Show “Pray For” button** and **Show “Praying #” button** options for their own view (defaults on). Does not disable Prayer Encouragement for the community; it only hides those controls or the count chip for that subscriber.
+  - Stored on **`email_subscribers`**: `show_pray_for_button`, `show_praying_count` (both `boolean NOT NULL DEFAULT true`). Migration: `20260327120000_email_subscribers_prayer_encouragement_ui.sql`.
+  - **`UserSessionService`** selects these fields in `loadUserSession`, maps them to `UserSessionData`, exposes `getShowPrayForButton$()` and `getShowPrayingCount$()`, and **`updateUserSession`** keeps the cache in sync when toggles save.
+  - **`prayer-card`** gates the Pray For block and the N Praying chip with those observables in addition to `PrayerEncouragementService.getPrayerEncouragementEnabled$()`.
+  - In-app **Help**: **App Settings** and **Prayer Encouragement (Pray For)** both document the two toggles (`help-content.service.ts`).
+
 ### Personal Prayer Sharing to Public Prayer Feature ✅
 - ✅ Users can now share personal prayers to the public prayer list for community support
   - Share button on personal prayer cards (share icon)

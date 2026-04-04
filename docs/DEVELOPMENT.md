@@ -133,6 +133,7 @@ this.supabase.client.from('table').select()
 - getPrayedForCount(prayerId) // Fetches prayed_for_count for a prayer
 // Settings: admin_settings.prayer_encouragement_enabled, prayer_encouragement_cooldown_hours
 // UI: Admin → Prayer Encouragement (toggle + cooldown); prayer-card shows Pray For button and count
+// Per-user: UserSessionService getShowPrayForButton$ / getShowPrayingCount$ + email_subscribers columns
 ```
 
 #### PullToRefreshDirective
@@ -961,9 +962,10 @@ The **Pray For** feature lets community members indicate they have prayed for a 
 
 - **Service:** `PrayerEncouragementService` (`src/app/services/prayer-encouragement.service.ts`) — reads `prayer_encouragement_enabled` and `prayer_encouragement_cooldown_hours` from `admin_settings`, caches them, and provides `recordPrayedFor()` and count lookups.
 - **Admin UI:** `prayer-encouragement-settings` — toggle “Enable Prayer Encouragement” and cooldown (hours); cooldown control is shown only when the feature is enabled.
-- **Prayer card:** `prayer-card` — shows Pray For button and count when enabled; optional explanation modal with “Do not show again” (localStorage, cleared on logout).
-- **Database:** `admin_settings`: `prayer_encouragement_enabled` (boolean), `prayer_encouragement_cooldown_hours` (integer, default 4). `prayers`: `prayed_for_count`. Migrations: `20260224_prayer_encouragement.sql`, `20260225_prayer_encouragement_cooldown_hours.sql`.
-- **Help:** In-app Help & Guidance includes a “Prayer Encouragement (Pray For)” section (`help-content.service.ts`).
+- **Prayer card:** `prayer-card` — shows Pray For button and count when enabled; optional explanation modal with “Do not show again” (localStorage, cleared on logout). Also requires **`UserSessionService.getShowPrayForButton$()`** / **`getShowPrayingCount$()`** so each user can hide those elements via Settings.
+- **User preferences (Settings):** `user-settings` — section **Prayer encouragement on cards**; persists `show_pray_for_button` and `show_praying_count` on **`email_subscribers`** and calls **`updateUserSession`**. Migration: `20260327120000_email_subscribers_prayer_encouragement_ui.sql`.
+- **Database:** `admin_settings`: `prayer_encouragement_enabled` (boolean), `prayer_encouragement_cooldown_hours` (integer, default 4). `prayers`: `prayed_for_count`. `email_subscribers`: `show_pray_for_button`, `show_praying_count` (per-user card UI, default true). Migrations: `20260224_prayer_encouragement.sql`, `20260225_prayer_encouragement_cooldown_hours.sql`, `20260327120000_email_subscribers_prayer_encouragement_ui.sql`.
+- **Help:** In-app Help & Guidance includes “Prayer Encouragement (Pray For)” and **App Settings** topics for the two toggles (`help-content.service.ts`).
 
 ---
 

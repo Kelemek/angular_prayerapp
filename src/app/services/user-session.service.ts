@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { AdminAuthService } from './admin-auth.service';
-import { first } from 'rxjs/operators';
+import { distinctUntilChanged, first, map } from 'rxjs/operators';
 import type { UserPrayerHourReminderSlot } from '../types/user-prayer-hour-reminder';
 
 export interface UserSessionData {
@@ -13,6 +13,10 @@ export interface UserSessionData {
   receiveAdminEmails?: boolean;
   receivePush?: boolean;
   badgeFunctionalityEnabled?: boolean;
+  /** When false, hide Pray For / Prayed For on cards; undefined defaults to true. */
+  showPrayForButton?: boolean;
+  /** When false, hide the N Praying chip; undefined defaults to true. */
+  showPrayingCount?: boolean;
   defaultPrayerView?: 'current' | 'personal';
   /** Cached hourly self-reminder slots; undefined = never fetched this session. */
   prayerHourReminders?: UserPrayerHourReminderSlot[];
@@ -112,7 +116,9 @@ export class UserSessionService {
       const { data, error } = await Promise.race([
         this.supabase.client
           .from('email_subscribers')
-          .select('email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view')
+          .select(
+            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count'
+          )
           .eq('email', email.toLowerCase().trim())
           .maybeSingle(),
         new Promise((_, reject) => 
@@ -134,6 +140,8 @@ export class UserSessionService {
           receiveAdminEmails: false,
           receivePush: data.receive_push ?? false,
           badgeFunctionalityEnabled: data.badge_functionality_enabled ?? false,
+          showPrayForButton: data.show_pray_for_button ?? true,
+          showPrayingCount: data.show_praying_count ?? true,
           defaultPrayerView: data.default_prayer_view || 'current'
         };
         this.userSessionSubject.next(sessionData);
@@ -148,6 +156,8 @@ export class UserSessionService {
           receiveAdminEmails: false,
           receivePush: false,
           badgeFunctionalityEnabled: false,
+          showPrayForButton: true,
+          showPrayingCount: true,
           defaultPrayerView: 'current'
         };
         this.userSessionSubject.next(sessionData);
@@ -164,6 +174,8 @@ export class UserSessionService {
         receiveAdminEmails: false,
         receivePush: false,
         badgeFunctionalityEnabled: false,
+        showPrayForButton: true,
+        showPrayingCount: true,
         defaultPrayerView: 'current'
       };
       this.userSessionSubject.next(sessionData);
@@ -250,6 +262,26 @@ export class UserSessionService {
   getDefaultPrayerView(): 'current' | 'personal' {
     const session = this.userSessionSubject.value;
     return session?.defaultPrayerView || 'current';
+  }
+
+  /**
+   * Whether the current user sees the Pray For control on prayer cards (default true).
+   */
+  getShowPrayForButton$(): Observable<boolean> {
+    return this.userSession$.pipe(
+      map((s) => s?.showPrayForButton ?? true),
+      distinctUntilChanged()
+    );
+  }
+
+  /**
+   * Whether the current user sees the N Praying count chip (default true).
+   */
+  getShowPrayingCount$(): Observable<boolean> {
+    return this.userSession$.pipe(
+      map((s) => s?.showPrayingCount ?? true),
+      distinctUntilChanged()
+    );
   }
 
   /**

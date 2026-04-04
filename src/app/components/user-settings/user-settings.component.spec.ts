@@ -2691,4 +2691,79 @@ describe('UserSettingsComponent', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('Prayer encouragement UI toggles', () => {
+    beforeEach(() => {
+      component.email = 'test@example.com';
+      component.showPrayForButton = true;
+      component.showPrayingCount = true;
+    });
+
+    it('should persist show_pray_for_button and update session', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      component.showPrayForButton = false;
+      await component.onShowPrayForButtonToggle();
+
+      expect(mockUserSessionService.updateUserSession).toHaveBeenCalledWith({ showPrayForButton: false });
+      expect(component.successPrayerEncouragementUi).toContain('hidden');
+    });
+
+    it('should persist show_praying_count and update session', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+
+      component.showPrayingCount = false;
+      await component.onShowPrayingCountToggle();
+
+      expect(mockUserSessionService.updateUserSession).toHaveBeenCalledWith({ showPrayingCount: false });
+      expect(component.successPrayerEncouragementUi).toContain('hidden');
+    });
+
+    it('should revert showPrayForButton on insert error', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: null,
+              error: null
+            }))
+          }))
+        })),
+        insert: vi.fn(() => Promise.resolve({
+          data: null,
+          error: new Error('Insert error')
+        }))
+      }));
+
+      component.showPrayForButton = false;
+      await component.onShowPrayForButtonToggle();
+
+      expect(component.error).toBeTruthy();
+      expect(component.showPrayForButton).toBe(true);
+    });
+  });
 });

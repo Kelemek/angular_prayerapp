@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { UserSessionService } from './user-session.service';
 import { SupabaseService } from './supabase.service';
 import { AdminAuthService } from './admin-auth.service';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 
 describe('UserSessionService', () => {
   let service: UserSessionService;
@@ -2019,6 +2019,93 @@ describe('UserSessionService', () => {
       service.loadUserSession('');
       
       expect(service.isBadgeFunctionalityEnabled()).toBe(false);
+    });
+  });
+
+  describe('Prayer encouragement UI preferences', () => {
+    it('should map show_pray_for_button and show_praying_count from database', async () => {
+      mockSupabaseService.client.from = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                email: 'test@example.com',
+                name: 'John Doe',
+                is_active: true,
+                receive_push: false,
+                badge_functionality_enabled: false,
+                default_prayer_view: 'current',
+                show_pray_for_button: false,
+                show_praying_count: false
+              },
+              error: null
+            })
+          })
+        })
+      });
+
+      await service.loadUserSession('test@example.com');
+
+      const session = service.getCurrentSession();
+      expect(session?.showPrayForButton).toBe(false);
+      expect(session?.showPrayingCount).toBe(false);
+    });
+
+    it('should default show pray-for prefs to true when columns absent', async () => {
+      mockSupabaseService.client.from = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                email: 'test@example.com',
+                name: 'John Doe',
+                is_active: true,
+                receive_push: false,
+                badge_functionality_enabled: false,
+                default_prayer_view: 'current'
+              },
+              error: null
+            })
+          })
+        })
+      });
+
+      await service.loadUserSession('test@example.com');
+
+      const session = service.getCurrentSession();
+      expect(session?.showPrayForButton).toBe(true);
+      expect(session?.showPrayingCount).toBe(true);
+    });
+
+    it('getShowPrayForButton$ emits false when session disables button', async () => {
+      mockSupabaseService.client.from = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                email: 'test@example.com',
+                name: 'John Doe',
+                is_active: true,
+                receive_push: false,
+                badge_functionality_enabled: false,
+                default_prayer_view: 'current',
+                show_pray_for_button: false
+              },
+              error: null
+            })
+          })
+        })
+      });
+
+      await service.loadUserSession('test@example.com');
+      const v = await firstValueFrom(service.getShowPrayForButton$());
+      expect(v).toBe(false);
+    });
+
+    it('getShowPrayingCount$ emits true by default after load', async () => {
+      await service.loadUserSession('test@example.com');
+      const v = await firstValueFrom(service.getShowPrayingCount$());
+      expect(v).toBe(true);
     });
   });
 });

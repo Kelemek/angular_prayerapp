@@ -125,6 +125,29 @@ describe('HelpContentService', () => {
         (item) => item.subtitle === 'Delete your account'
       );
       expect(deleteAccountItem).toBe(true);
+      expect(
+        settingsSection!.content?.some((item) => item.subtitle === 'Show "Pray For" button')
+      ).toBe(true);
+      expect(
+        settingsSection!.content?.some((item) => item.subtitle === 'Show "Praying #" button')
+      ).toBe(true);
+    });
+
+    it('should include prayer encouragement UI settings in Prayer Encouragement section', () => {
+      let sections: HelpSection[] = [];
+      service.getSections().subscribe((data) => {
+        sections = data;
+      });
+
+      const encouragementSection = sections.find((s) => s.id === 'help_prayer_encouragement');
+      expect(encouragementSection).toBeDefined();
+      expect(encouragementSection!.content).toBeDefined();
+      expect(
+        encouragementSection!.content?.some((item) => item.subtitle === 'Show "Pray For" button')
+      ).toBe(true);
+      expect(
+        encouragementSection!.content?.some((item) => item.subtitle === 'Show "Praying #" button')
+      ).toBe(true);
     });
 
     it('should handle empty data from database', async () => {

@@ -46,6 +46,8 @@ describe('PrayerCardComponent', () => {
       userSession$: {
         subscribe: vi.fn()
       },
+      getShowPrayForButton$: vi.fn().mockReturnValue(of(true)),
+      getShowPrayingCount$: vi.fn().mockReturnValue(of(true)),
       getCurrentSession: vi.fn().mockReturnValue({
         email: 'test@example.com',
         firstName: 'John',
@@ -568,6 +570,13 @@ describe('PrayerCardComponent', () => {
 
     it('showPrayForModal defaults to false', () => {
       expect(prayForComponent.showPrayForModal).toBe(false);
+    });
+
+    it('UserSessionService exposes show-pray-for and show-praying-count streams for template', () => {
+      expect(typeof mockUserSessionService.getShowPrayForButton$).toBe('function');
+      expect(typeof mockUserSessionService.getShowPrayingCount$).toBe('function');
+      expect(mockUserSessionService.getShowPrayForButton$()).toBeTruthy();
+      expect(mockUserSessionService.getShowPrayingCount$()).toBeTruthy();
     });
   });
 

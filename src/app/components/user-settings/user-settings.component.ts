@@ -644,6 +644,107 @@ type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
             }
           </div>
 
+          <!-- Prayer encouragement on cards (viewer-only) -->
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-3">
+            <div class="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+              @if (prayerEncouragementUiLoaded) {
+              Prayer encouragement on cards
+              } @else {
+              <span class="inline-block h-5 w-56 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></span>
+              }
+            </div>
+            <div class="flex items-start gap-3">
+              @if (prayerEncouragementUiLoaded) {
+              <input
+                type="checkbox"
+                id="showPrayForButton"
+                [(ngModel)]="showPrayForButton"
+                (ngModelChange)="onShowPrayForButtonToggle()"
+                [disabled]="savingShowPrayForButton || savingShowPrayingCount"
+                name="showPrayForButton"
+                aria-label="Show Pray For button on prayer cards"
+                class="mt-1 h-4 w-4 text-blue-600 border-gray-300 bg-white dark:bg-gray-800 rounded focus:ring-blue-500 cursor-pointer focus:ring-2 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              } @else {
+              <div class="mt-1 h-4 w-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+              }
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <label for="showPrayForButton" class="text-sm sm:text-base text-gray-900 dark:text-gray-100 cursor-pointer">
+                    @if (prayerEncouragementUiLoaded) {
+                    Show &quot;Pray For&quot; button
+                    } @else {
+                    <span class="inline-block h-5 w-40 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></span>
+                    }
+                  </label>
+                  @if (savingShowPrayForButton) {
+                  <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  }
+                </div>
+                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  @if (prayerEncouragementUiLoaded && showPrayForButton !== null) {
+                  {{ savingShowPrayForButton ? 'Saving...' : (showPrayForButton ? 'You can record that you prayed for community requests.' : 'The Pray For button is hidden on cards for you.') }}
+                  } @else if (prayerEncouragementUiLoaded) {
+                  <span class="inline-block h-4 w-64 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></span>
+                  }
+                </p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              @if (prayerEncouragementUiLoaded) {
+              <input
+                type="checkbox"
+                id="showPrayingCount"
+                [(ngModel)]="showPrayingCount"
+                (ngModelChange)="onShowPrayingCountToggle()"
+                [disabled]="savingShowPrayForButton || savingShowPrayingCount"
+                name="showPrayingCount"
+                aria-label="Show Praying # button on prayer cards"
+                class="mt-1 h-4 w-4 text-blue-600 border-gray-300 bg-white dark:bg-gray-800 rounded focus:ring-blue-500 cursor-pointer focus:ring-2 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              } @else {
+              <div class="mt-1 h-4 w-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+              }
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <label for="showPrayingCount" class="text-sm sm:text-base text-gray-900 dark:text-gray-100 cursor-pointer">
+                    @if (prayerEncouragementUiLoaded) {
+                    Show &quot;Praying #&quot; button
+                    } @else {
+                    <span class="inline-block h-5 w-36 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></span>
+                    }
+                  </label>
+                  @if (savingShowPrayingCount) {
+                  <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  }
+                </div>
+                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  @if (prayerEncouragementUiLoaded && showPrayingCount !== null) {
+                  {{ savingShowPrayingCount ? 'Saving...' : (showPrayingCount ? 'When you may see it, the number of people praying is shown.' : 'The Praying count button is hidden on cards for you.') }}
+                  } @else if (prayerEncouragementUiLoaded) {
+                  <span class="inline-block h-4 w-64 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></span>
+                  }
+                </p>
+              </div>
+            </div>
+            @if (successPrayerEncouragementUi) {
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="flex items-start gap-2">
+                <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <p class="text-xs sm:text-sm text-green-800 dark:text-green-200">{{ successPrayerEncouragementUi }}</p>
+              </div>
+            </div>
+            }
+          </div>
+
           <!-- Default View Preference Control -->
           <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2">
             <div class="flex items-start gap-3">
@@ -911,21 +1012,27 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
   receiveNotifications: boolean | null = null;
   receivePushNotifications: boolean | null = null;
   badgeFunctionalityEnabled: boolean | null = null;
+  showPrayForButton: boolean | null = null;
+  showPrayingCount: boolean | null = null;
   theme: ThemeOption = 'system';
   textSize: TextSize = 'normal';
   saving = false;
   savingNotification = false;
   savingPushNotification = false;
   savingBadge = false;
+  savingShowPrayForButton = false;
+  savingShowPrayingCount = false;
   successPushNotification: string | null = null;
   savingDefaultView = false;
   error: string | null = null;
   success: string | null = null;
   successNotification: string | null = null;
   successBadge: string | null = null;
+  successPrayerEncouragementUi: string | null = null;
   successDefaultView: string | null = null;
   preferencesLoaded = false;
   badgePreferencesLoaded = false;
+  prayerEncouragementUiLoaded = false;
   defaultViewPreferencesLoaded = false;
   defaultPrayerView: 'current' | 'personal' | null = null;
   
@@ -1044,6 +1151,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
       this.isInitialLoad = true;
       this.preferencesLoaded = false;
       this.badgePreferencesLoaded = false;
+      this.prayerEncouragementUiLoaded = false;
       this.defaultViewPreferencesLoaded = false;
       
       // Get user info and preferences from UserSessionService cache
@@ -1061,6 +1169,10 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
         this.badgeFunctionalityEnabled = userSession.badgeFunctionalityEnabled ?? false;
         this.badgePreferencesLoaded = true;
 
+        this.showPrayForButton = userSession.showPrayForButton ?? true;
+        this.showPrayingCount = userSession.showPrayingCount ?? true;
+        this.prayerEncouragementUiLoaded = true;
+
         // Get default prayer view preference from cached session
         this.defaultPrayerView = userSession.defaultPrayerView || 'current';
         this.defaultViewPreferencesLoaded = true;
@@ -1077,6 +1189,9 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
           // Badge functionality defaults to false when no session
           this.badgeFunctionalityEnabled = false;
           this.badgePreferencesLoaded = true;
+          this.showPrayForButton = true;
+          this.showPrayingCount = true;
+          this.prayerEncouragementUiLoaded = true;
           // Default prayer view defaults to 'current' when no session
           this.defaultPrayerView = 'current';
           this.defaultViewPreferencesLoaded = true;
@@ -1086,6 +1201,9 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
           this.preferencesLoaded = true;
           this.badgeFunctionalityEnabled = false;
           this.badgePreferencesLoaded = true;
+          this.showPrayForButton = true;
+          this.showPrayingCount = true;
+          this.prayerEncouragementUiLoaded = true;
           this.defaultPrayerView = 'current';
           this.defaultViewPreferencesLoaded = true;
         }
@@ -1096,6 +1214,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
       this.successNotification = null;
       this.successPushNotification = null;
       this.successBadge = null;
+      this.successPrayerEncouragementUi = null;
 
       this.prayerReminderError = null;
       this.prayerReminderSuccess = null;
@@ -1655,6 +1774,124 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
       this.cdr.markForCheck();
     } finally {
       this.savingBadge = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async onShowPrayForButtonToggle(): Promise<void> {
+    const email = this.email.toLowerCase().trim();
+    if (!email) {
+      this.error = 'Email not found. Please log in again.';
+      return;
+    }
+    const next = this.showPrayForButton ?? true;
+    this.savingShowPrayForButton = true;
+    this.error = null;
+    this.successPrayerEncouragementUi = null;
+
+    try {
+      const { data: existingRecord, error: fetchError } = await this.supabase.client
+        .from('email_subscribers')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (existingRecord) {
+        const { error: updateError } = await this.supabase.client
+          .from('email_subscribers')
+          .update({ show_pray_for_button: next })
+          .eq('email', email);
+
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        const { error: insertError } = await this.supabase.client.from('email_subscribers').insert({
+          email,
+          name: this.name || '',
+          show_pray_for_button: next
+        });
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
+      await this.userSessionService.updateUserSession({ showPrayForButton: next });
+      this.successPrayerEncouragementUi = next ? 'Pray For button shown on cards' : 'Pray For button hidden on cards';
+      setTimeout(() => {
+        this.successPrayerEncouragementUi = null;
+        this.cdr.markForCheck();
+      }, 3000);
+    } catch (err) {
+      console.error('Error updating show Pray For preference:', err);
+      this.error = err instanceof Error ? err.message : 'Failed to update preference';
+      this.showPrayForButton = !next;
+    } finally {
+      this.savingShowPrayForButton = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async onShowPrayingCountToggle(): Promise<void> {
+    const email = this.email.toLowerCase().trim();
+    if (!email) {
+      this.error = 'Email not found. Please log in again.';
+      return;
+    }
+    const next = this.showPrayingCount ?? true;
+    this.savingShowPrayingCount = true;
+    this.error = null;
+    this.successPrayerEncouragementUi = null;
+
+    try {
+      const { data: existingRecord, error: fetchError } = await this.supabase.client
+        .from('email_subscribers')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (existingRecord) {
+        const { error: updateError } = await this.supabase.client
+          .from('email_subscribers')
+          .update({ show_praying_count: next })
+          .eq('email', email);
+
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        const { error: insertError } = await this.supabase.client.from('email_subscribers').insert({
+          email,
+          name: this.name || '',
+          show_praying_count: next
+        });
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
+      await this.userSessionService.updateUserSession({ showPrayingCount: next });
+      this.successPrayerEncouragementUi = next ? 'Praying count shown when available' : 'Praying count hidden on cards';
+      setTimeout(() => {
+        this.successPrayerEncouragementUi = null;
+        this.cdr.markForCheck();
+      }, 3000);
+    } catch (err) {
+      console.error('Error updating show praying count preference:', err);
+      this.error = err instanceof Error ? err.message : 'Failed to update preference';
+      this.showPrayingCount = !next;
+    } finally {
+      this.savingShowPrayingCount = false;
       this.cdr.markForCheck();
     }
   }
