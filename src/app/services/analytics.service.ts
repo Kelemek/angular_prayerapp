@@ -18,7 +18,15 @@ export interface AnalyticsStats {
 }
 
 /** Presets for Site Analytics activity chart (maps to window + RPC bucket). */
-export type PageViewTimeSeriesPreset = '12h' | '24h' | '48h' | '7d' | '30d';
+export type PageViewTimeSeriesPreset =
+  | '12h'
+  | '24h'
+  | '48h'
+  | '7d'
+  | '30d'
+  | '90d'
+  | '180d'
+  | '365d';
 
 export interface PageViewTimeSeriesPoint {
   bucketStart: string;
@@ -30,7 +38,10 @@ const PAGE_VIEW_PRESET_MS: Record<PageViewTimeSeriesPreset, number> = {
   '24h': 24 * 60 * 60 * 1000,
   '48h': 48 * 60 * 60 * 1000,
   '7d': 7 * 24 * 60 * 60 * 1000,
-  '30d': 30 * 24 * 60 * 60 * 1000
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
+  '180d': 180 * 24 * 60 * 60 * 1000,
+  '365d': 365 * 24 * 60 * 60 * 1000
 };
 
 const PAGE_VIEW_PRESET_BUCKET: Record<PageViewTimeSeriesPreset, 'hour' | 'day'> = {
@@ -38,7 +49,10 @@ const PAGE_VIEW_PRESET_BUCKET: Record<PageViewTimeSeriesPreset, 'hour' | 'day'> 
   '24h': 'hour',
   '48h': 'hour',
   '7d': 'day',
-  '30d': 'day'
+  '30d': 'day',
+  '90d': 'day',
+  '180d': 'day',
+  '365d': 'day'
 };
 
 /**

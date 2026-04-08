@@ -199,6 +199,26 @@ describe('AnalyticsService', () => {
       vi.useRealTimers();
     });
 
+    it('should call analytics_page_view_buckets with day bucket for 365d preset', async () => {
+      vi.useFakeTimers();
+      const end = new Date('2024-06-15T12:00:00.000Z');
+      vi.setSystemTime(end);
+
+      const rpcMock = vi.fn(() => Promise.resolve({ data: [], error: null }));
+      mockSupabaseClient.rpc = rpcMock;
+
+      await service.getPageViewTimeSeries('365d');
+
+      const start = new Date(end.getTime() - 365 * 24 * 60 * 60 * 1000);
+      expect(rpcMock).toHaveBeenCalledWith('analytics_page_view_buckets', {
+        p_start: start.toISOString(),
+        p_end: end.toISOString(),
+        p_bucket: 'day'
+      });
+
+      vi.useRealTimers();
+    });
+
     it('should zero-fill missing buckets and merge RPC counts', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2024-06-15T03:15:00.000Z'));

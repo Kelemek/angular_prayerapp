@@ -102,7 +102,10 @@ export class SiteAnalyticsActivityChartComponent implements AfterViewInit, OnDes
     { value: '24h', label: '24h' },
     { value: '48h', label: '2d' },
     { value: '7d', label: '7d' },
-    { value: '30d', label: '30d' }
+    { value: '30d', label: '30d' },
+    { value: '90d', label: '90d' },
+    { value: '180d', label: '180d' },
+    { value: '365d', label: '365d' }
   ];
 
   preset: PageViewTimeSeriesPreset = '24h';
@@ -179,10 +182,18 @@ export class SiteAnalyticsActivityChartComponent implements AfterViewInit, OnDes
     return this.preset === '12h' || this.preset === '24h' || this.preset === '48h';
   }
 
+  /** Day-based presets spanning months or years — include year on axis labels. */
+  private isLongDayRangePreset(): boolean {
+    return this.preset === '90d' || this.preset === '180d' || this.preset === '365d';
+  }
+
   private formatLabel(iso: string): string {
     const d = new Date(iso);
     if (this.isHourlyPreset()) {
       return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric' });
+    }
+    if (this.isLongDayRangePreset()) {
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     }
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
@@ -258,7 +269,7 @@ export class SiteAnalyticsActivityChartComponent implements AfterViewInit, OnDes
               color: colors.ticks,
               maxRotation: 45,
               autoSkip: true,
-              maxTicksLimit: this.isHourlyPreset() ? 12 : 10
+              maxTicksLimit: this.isHourlyPreset() ? 12 : this.isLongDayRangePreset() ? 16 : 10
             }
           },
           y: {
