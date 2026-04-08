@@ -35,8 +35,9 @@ type ChartDisplayMode = 'bar' | 'line';
             Activity over time
           </h4>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xl">
-            Logged-in usage only; each point is sampled about once every 5 minutes per user, not every
-            page view.
+            Bars or line: logged-in activity (sampled about every 5 minutes per user). Dots along the
+            bottom: prayer or update approvals (when subscriber bulk email is queued). Hover a dot for
+            titles.
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -205,7 +206,9 @@ export class SiteAnalyticsActivityChartComponent implements AfterViewInit, OnDes
       grid: dark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(148, 163, 184, 0.4)',
       ticks: dark ? '#94a3b8' : '#64748b',
       fill: dark ? 'rgba(59, 130, 246, 0.35)' : 'rgba(37, 99, 235, 0.25)',
-      stroke: dark ? '#60a5fa' : '#2563eb'
+      stroke: dark ? '#60a5fa' : '#2563eb',
+      approvalDot: dark ? '#fbbf24' : '#d97706',
+      approvalDotBorder: dark ? '#b45309' : '#92400e'
     };
   }
 
@@ -218,46 +221,90 @@ export class SiteAnalyticsActivityChartComponent implements AfterViewInit, OnDes
     const colors = this.chartColors();
     const labels = this.series.map((p) => this.formatLabel(p.bucketStart));
     const values = this.series.map((p) => p.count);
+    const approvalY = this.series.map((p) => (p.approvalCount > 0 ? 0 : null));
 
-    const datasets =
+    const activityDataset =
       this.displayMode === 'bar'
-        ? [
-            {
-              label: 'Activity',
-              data: values,
-              backgroundColor: colors.fill,
-              borderColor: colors.stroke,
-              borderWidth: 1
-            }
-          ]
-        : [
-            {
-              label: 'Activity',
-              data: values,
-              borderColor: colors.stroke,
-              backgroundColor: colors.fill,
-              fill: true,
-              tension: 0.25,
-              pointRadius: 2,
-              pointHoverRadius: 4
-            }
-          ];
+        ? {
+            type: 'bar' as const,
+            label: 'Activity',
+            data: values,
+            backgroundColor: colors.fill,
+            borderColor: colors.stroke,
+            borderWidth: 1,
+            order: 2
+          }
+        : {
+            type: 'line' as const,
+            label: 'Activity',
+            data: values,
+            borderColor: colors.stroke,
+            backgroundColor: colors.fill,
+            fill: true,
+            tension: 0.25,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            order: 2
+          };
+
+    const approvalsDataset = {
+      type: 'line' as const,
+      label: 'Approvals',
+      data: approvalY,
+      showLine: false,
+      pointRadius: (ctx: { raw?: unknown }) =>
+        ctx.raw === null || ctx.raw === undefined ? 0 : 8,
+      pointHoverRadius: 12,
+      pointBackgroundColor: colors.approvalDot,
+      pointBorderColor: colors.approvalDotBorder,
+      pointBorderWidth: 2,
+      order: 1
+    };
 
     this.chart = new Chart(canvas, {
-      type: this.displayMode,
-      data: { labels, datasets },
+      data: {
+        labels,
+        datasets: [activityDataset, approvalsDataset]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
+        interaction: { mode: 'nearest', intersect: true },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'top' as const,
+            labels: {
+              color: colors.ticks,
+              boxWidth: 12,
+              font: { size: 11 }
+            }
+          },
           tooltip: {
+            filter: (item: { datasetIndex: number; raw: unknown }) => {
+              if (item.datasetIndex === 1 && item.raw === null) return false;
+              return true;
+            },
             callbacks: {
-              title: (items) => {
+              title: (items: { dataIndex?: number }[]) => {
                 const i = items[0]?.dataIndex ?? 0;
                 const pt = this.series[i];
                 return pt ? new Date(pt.bucketStart).toLocaleString() : '';
+              },
+              label: (ctx: { datasetIndex: number; dataIndex: number; raw: unknown }) => {
+                if (ctx.datasetIndex === 0) {
+                  const v = ctx.raw as number;
+                  return `Activity: ${v}`;
+                }
+                const pt = this.series[ctx.dataIndex];
+                if (!pt || pt.approvalCount === 0) return '';
+                const out: string[] = [
+                  `${pt.approvalCount} approval${pt.approvalCount === 1 ? '' : 's'}`
+                ];
+                if (pt.approvalLabels.trim()) {
+                  out.push(...pt.approvalLabels.split('\n'));
+                }
+                return out;
               }
             }
           }
@@ -282,7 +329,8 @@ export class SiteAnalyticsActivityChartComponent implements AfterViewInit, OnDes
           }
         }
       }
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed chart + null line gaps
+    } as any);
     this.cdr.markForCheck();
   }
 }

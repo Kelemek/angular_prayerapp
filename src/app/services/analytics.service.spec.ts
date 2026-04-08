@@ -163,7 +163,7 @@ describe('AnalyticsService', () => {
   });
 
   describe('getPageViewTimeSeries', () => {
-    it('should call analytics_page_view_buckets with hour bucket for 24h preset', async () => {
+    it('should call both bucket RPCs with hour bucket for 24h preset', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2024-06-15T18:30:00.000Z'));
 
@@ -172,16 +172,18 @@ describe('AnalyticsService', () => {
 
       await service.getPageViewTimeSeries('24h');
 
-      expect(rpcMock).toHaveBeenCalledWith('analytics_page_view_buckets', {
+      const expected = {
         p_start: '2024-06-14T18:30:00.000Z',
         p_end: '2024-06-15T18:30:00.000Z',
         p_bucket: 'hour'
-      });
+      };
+      expect(rpcMock).toHaveBeenCalledWith('analytics_page_view_buckets', expected);
+      expect(rpcMock).toHaveBeenCalledWith('analytics_approval_buckets', expected);
 
       vi.useRealTimers();
     });
 
-    it('should call analytics_page_view_buckets with day bucket for 7d preset', async () => {
+    it('should call both bucket RPCs with day bucket for 7d preset', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
 
@@ -190,16 +192,18 @@ describe('AnalyticsService', () => {
 
       await service.getPageViewTimeSeries('7d');
 
-      expect(rpcMock).toHaveBeenCalledWith('analytics_page_view_buckets', {
+      const expected = {
         p_start: '2024-06-08T12:00:00.000Z',
         p_end: '2024-06-15T12:00:00.000Z',
         p_bucket: 'day'
-      });
+      };
+      expect(rpcMock).toHaveBeenCalledWith('analytics_page_view_buckets', expected);
+      expect(rpcMock).toHaveBeenCalledWith('analytics_approval_buckets', expected);
 
       vi.useRealTimers();
     });
 
-    it('should call analytics_page_view_buckets with day bucket for 365d preset', async () => {
+    it('should call both bucket RPCs with day bucket for 365d preset', async () => {
       vi.useFakeTimers();
       const end = new Date('2024-06-15T12:00:00.000Z');
       vi.setSystemTime(end);
@@ -210,11 +214,13 @@ describe('AnalyticsService', () => {
       await service.getPageViewTimeSeries('365d');
 
       const start = new Date(end.getTime() - 365 * 24 * 60 * 60 * 1000);
-      expect(rpcMock).toHaveBeenCalledWith('analytics_page_view_buckets', {
+      const expected = {
         p_start: start.toISOString(),
         p_end: end.toISOString(),
         p_bucket: 'day'
-      });
+      };
+      expect(rpcMock).toHaveBeenCalledWith('analytics_page_view_buckets', expected);
+      expect(rpcMock).toHaveBeenCalledWith('analytics_approval_buckets', expected);
 
       vi.useRealTimers();
     });
@@ -223,24 +229,56 @@ describe('AnalyticsService', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2024-06-15T03:15:00.000Z'));
 
-      mockSupabaseClient.rpc = vi.fn(() =>
-        Promise.resolve({
-          data: [
-            { bucket_start: '2024-06-15T01:00:00.000Z', event_count: 5 },
-            { bucket_start: '2024-06-15T02:00:00.000Z', event_count: 3 }
-          ],
-          error: null
-        })
-      );
+      mockSupabaseClient.rpc = vi.fn((name: string) => {
+        if (name === 'analytics_page_view_buckets') {
+          return Promise.resolve({
+            data: [
+              { bucket_start: '2024-06-15T01:00:00.000Z', event_count: 5 },
+              { bucket_start: '2024-06-15T02:00:00.000Z', event_count: 3 }
+            ],
+            error: null
+          });
+        }
+        return Promise.resolve({ data: [], error: null });
+      });
 
       const series = await service.getPageViewTimeSeries('12h');
 
       // 12h back from 03:15 -> 15:15 prior day; hour buckets from 15:00 previous day through 02:00 same day
       expect(series.length).toBeGreaterThan(0);
-      const byHour = Object.fromEntries(series.map((p) => [p.bucketStart, p.count]));
-      expect(byHour['2024-06-15T01:00:00.000Z']).toBe(5);
-      expect(byHour['2024-06-15T02:00:00.000Z']).toBe(3);
-      expect(byHour['2024-06-14T15:00:00.000Z']).toBe(0);
+      const byHour = Object.fromEntries(series.map((p) => [p.bucketStart, p]));
+      expect(byHour['2024-06-15T01:00:00.000Z'].count).toBe(5);
+      expect(byHour['2024-06-15T02:00:00.000Z'].count).toBe(3);
+      expect(byHour['2024-06-14T15:00:00.000Z'].count).toBe(0);
+      expect(byHour['2024-06-15T01:00:00.000Z'].approvalCount).toBe(0);
+
+      vi.useRealTimers();
+    });
+
+    it('should merge approval buckets by bucket_start', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-06-15T03:15:00.000Z'));
+
+      mockSupabaseClient.rpc = vi.fn((name: string) => {
+        if (name === 'analytics_page_view_buckets') {
+          return Promise.resolve({ data: [], error: null });
+        }
+        return Promise.resolve({
+          data: [
+            {
+              bucket_start: '2024-06-15T01:00:00.000Z',
+              approval_count: 2,
+              approval_labels: 'Prayer A\nPrayer B (update)'
+            }
+          ],
+          error: null
+        });
+      });
+
+      const series = await service.getPageViewTimeSeries('12h');
+      const row = series.find((p) => p.bucketStart === '2024-06-15T01:00:00.000Z');
+      expect(row?.approvalCount).toBe(2);
+      expect(row?.approvalLabels).toBe('Prayer A\nPrayer B (update)');
 
       vi.useRealTimers();
     });
@@ -257,7 +295,7 @@ describe('AnalyticsService', () => {
       const series = await service.getPageViewTimeSeries('24h');
 
       expect(series.length).toBe(24);
-      expect(series.every((p) => p.count === 0)).toBe(true);
+      expect(series.every((p) => p.count === 0 && p.approvalCount === 0)).toBe(true);
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
       vi.useRealTimers();

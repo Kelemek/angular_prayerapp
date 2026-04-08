@@ -25,7 +25,9 @@ describe('SiteAnalyticsActivityChartComponent', () => {
     getPageViewTimeSeries = vi.fn().mockResolvedValue(
       Array.from({ length: 3 }, (_, i) => ({
         bucketStart: `2024-01-0${i + 1}T12:00:00.000Z`,
-        count: i
+        count: i,
+        approvalCount: 0,
+        approvalLabels: ''
       }))
     );
   });

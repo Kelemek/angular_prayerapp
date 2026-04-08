@@ -30,7 +30,12 @@ export type PageViewTimeSeriesPreset =
 
 export interface PageViewTimeSeriesPoint {
   bucketStart: string;
+  /** Logged-in activity samples (page_view) for this bucket. */
   count: number;
+  /** Approved prayers + updates in this bucket (subscriber bulk send at approval). */
+  approvalCount: number;
+  /** First 8 titles, newline-separated; "+ N more" if count > 8. */
+  approvalLabels: string;
 }
 
 const PAGE_VIEW_PRESET_MS: Record<PageViewTimeSeriesPreset, number> = {
@@ -351,34 +356,59 @@ export class AnalyticsService {
   }
 
   /**
-   * Page views per time bucket for the activity chart (RPC aggregation + zero-filled gaps).
+   * Activity samples and approval events per time bucket for the Site Analytics chart.
    */
   async getPageViewTimeSeries(preset: PageViewTimeSeriesPreset): Promise<PageViewTimeSeriesPoint[]> {
     const rangeEnd = new Date();
     const rangeStart = new Date(rangeEnd.getTime() - PAGE_VIEW_PRESET_MS[preset]);
     const bucket = PAGE_VIEW_PRESET_BUCKET[preset];
     const bucketKeys = enumerateUtcBucketStarts(rangeStart, rangeEnd, bucket);
+    const pStart = rangeStart.toISOString();
+    const pEnd = rangeEnd.toISOString();
 
-    const { data, error } = await this.supabase.client.rpc('analytics_page_view_buckets', {
-      p_start: rangeStart.toISOString(),
-      p_end: rangeEnd.toISOString(),
-      p_bucket: bucket
-    });
+    const [pvResult, apResult] = await Promise.all([
+      this.supabase.client.rpc('analytics_page_view_buckets', {
+        p_start: pStart,
+        p_end: pEnd,
+        p_bucket: bucket
+      }),
+      this.supabase.client.rpc('analytics_approval_buckets', {
+        p_start: pStart,
+        p_end: pEnd,
+        p_bucket: bucket
+      })
+    ]);
 
-    if (error) {
-      console.error('[Analytics] getPageViewTimeSeries:', error);
-      return bucketKeys.map((bucketStart) => ({ bucketStart, count: 0 }));
+    if (pvResult.error) {
+      console.error('[Analytics] getPageViewTimeSeries page views:', pvResult.error);
+    }
+    if (apResult.error) {
+      console.error('[Analytics] getPageViewTimeSeries approvals:', apResult.error);
     }
 
     const counts = new Map<string, number>();
-    for (const row of data ?? []) {
+    for (const row of pvResult.data ?? []) {
       const key = new Date(row.bucket_start as string).toISOString();
       counts.set(key, Number(row.event_count));
     }
 
-    return bucketKeys.map((bucketStart) => ({
-      bucketStart,
-      count: counts.get(bucketStart) ?? 0
-    }));
+    const approvals = new Map<string, { count: number; labels: string }>();
+    for (const row of apResult.data ?? []) {
+      const key = new Date(row.bucket_start as string).toISOString();
+      approvals.set(key, {
+        count: Number(row.approval_count),
+        labels: String(row.approval_labels ?? '')
+      });
+    }
+
+    return bucketKeys.map((bucketStart) => {
+      const ap = approvals.get(bucketStart);
+      return {
+        bucketStart,
+        count: pvResult.error ? 0 : (counts.get(bucketStart) ?? 0),
+        approvalCount: apResult.error ? 0 : (ap?.count ?? 0),
+        approvalLabels: apResult.error ? '' : (ap?.labels ?? '')
+      };
+    });
   }
 }
