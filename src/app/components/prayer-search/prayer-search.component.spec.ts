@@ -1228,6 +1228,8 @@ describe('PrayerSearchComponent', () => {
       expect(mockSupabaseService.getClient().from().insert).toHaveBeenCalled();
       const insertCall = (mockSupabaseService.getClient().from().insert as any).mock.calls[0][0];
       expect(insertCall.title).toBe('Prayer for Guidance');
+      expect(insertCall.approval_status).toBe('approved');
+      expect(insertCall.approved_at).toBeDefined();
     });
 
     it('should handle save prayer with empty email', async () => {

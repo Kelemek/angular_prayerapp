@@ -1748,6 +1748,9 @@ export class PrayerSearchComponent implements OnInit {
       // Generate title from prayer_for field, matching the pattern used in prayer-form
       const generatedTitle = `Prayer for ${this.createForm.prayer_for.trim()}`;
 
+      // Admin creation is an implicit approval — match AdminDataService.approvePrayer DB fields
+      const approvedAt = new Date().toISOString();
+
       const { data, error: insertError } = await this.supabaseService.getClient()
         .from('prayers')
         .insert({
@@ -1758,7 +1761,8 @@ export class PrayerSearchComponent implements OnInit {
           prayer_for: this.createForm.prayer_for.trim(),
           status: this.createForm.status,
           is_anonymous: this.createForm.is_anonymous,
-          approval_status: 'approved'
+          approval_status: 'approved',
+          approved_at: approvedAt
         })
         .select()
         .single();
