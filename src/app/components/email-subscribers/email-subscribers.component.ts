@@ -32,6 +32,10 @@ interface CSVRow {
   error?: string;
 }
 
+function escapeForIlikePattern(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 @Component({
   selector: 'app-email-subscribers',
   standalone: true,
@@ -301,28 +305,28 @@ interface CSVRow {
         @if (pcSearchTab) {
         <div class="space-y-3">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Name</label>
-            <!-- Keep input + button on one line; allow input to shrink so the row stays within the header width -->
-            <div class="flex gap-2 max-w-full">
+            <label for="pcSearchNameInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Name</label>
+            <div class="relative max-w-full min-w-0">
               <input
-                type="text"
+                id="pcSearchNameInput"
+                type="search"
+                name="pcSearchName"
                 [(ngModel)]="pcSearchQuery"
-                (keyup.enter)="handleSearchPlanningCenter()"
-                placeholder="Enter name to search..."
-                class="flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                (ngModelChange)="onPcSearchQueryChange($event)"
+                (keydown)="onPcSearchKeydown($event)"
+                autocomplete="off"
+                placeholder="Type a name (min. {{ pcSearchMinChars }} characters) — searches Planning Center after you pause…"
+                class="w-full min-w-0 px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button
-                (click)="handleSearchPlanningCenter()"
-                [disabled]="pcSearching || !pcSearchQuery.trim()"
-                class="shrink-0 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer whitespace-nowrap"
-              >
-                @if (pcSearching) {
-                  Searching...
-                } @else {
-                  Search
-                }
-              </button>
+              @if (pcSearching) {
+              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+              </div>
+              }
             </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Debounced ({{ pcSearchDebounceMs }}ms) to limit Planning Center API calls. Press Enter to search immediately.
+            </p>
           </div>
 
           <!-- Search Results -->
@@ -393,29 +397,43 @@ interface CSVRow {
 
       <!-- Search Form -->
       <div class="mb-4 max-w-full">
-        <label for="search" class="sr-only">Search subscribers</label>
-        <!-- Stack input and button on small screens to avoid overflow -->
-        <div class="flex flex-col sm:flex-row gap-2">
+        <label for="subscriberListSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Search subscribers
+        </label>
+        <div class="relative min-w-0 w-full">
           <input
-            id="search"
+            id="subscriberListSearch"
             type="text"
+            name="subscriberListSearch"
             [(ngModel)]="searchQuery"
-            (keyup.enter)="handleSearch()"
-            placeholder="Search by email or name..."
-            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 w-full"
+            (ngModelChange)="onListSearchQueryChange($event)"
+            (keydown)="onListSearchKeydown($event)"
+            autocomplete="off"
+            placeholder="Search by email or name (min. {{ listSearchMinChars }} characters)…"
+            class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
           />
+          @if (searching) {
+          <div class="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2">
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+          </div>
+          }
+          @if (searchQuery) {
           <button
-            (click)="handleSearch()"
-            [disabled]="searching"
-            class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:bg-blue-400 text-sm cursor-pointer w-full sm:w-auto"
+            type="button"
+            (click)="clearListSearch()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            title="Clear search"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
-            {{ searching ? 'Searching...' : 'Search' }}
           </button>
+          }
         </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Debounced ({{ listSearchDebounceMs }}ms). Leave empty to show all subscribers after a short pause.
+        </p>
       </div>
 
       <!-- Results -->
@@ -432,8 +450,8 @@ interface CSVRow {
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <p>Click Search to view subscribers</p>
-        <p class="text-sm mt-1">Leave search field empty to see all subscribers</p>
+        <p>Could not load subscribers</p>
+        <p class="text-sm mt-1">Use the refresh button above to try again.</p>
       </div>
       }
 
@@ -767,6 +785,11 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   searchQuery = '';
   searching = false;
   hasSearched = false;
+
+  /** List filter — debounced; min length before querying (empty reloads all). */
+  readonly listSearchMinChars = 2;
+  readonly listSearchDebounceMs = 350;
+  private listSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   showAddForm = false;
   showCSVUpload = false;
   csvData: CSVRow[] = [];
@@ -803,6 +826,10 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   pcSearchSearched = false;
   pcSearchResults: PlanningCenterPerson[] = [];
   pcSelectedPerson: PlanningCenterPerson | null = null;
+  /** Debounced name search — external API; slightly longer delay than list search. */
+  readonly pcSearchMinChars = 2;
+  readonly pcSearchDebounceMs = 500;
+  private pcSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Send notification dialog properties
   showSendWelcomeEmailDialog = false;
@@ -868,12 +895,129 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.breakpointSub?.unsubscribe();
+    if (this.listSearchDebounceTimer) {
+      clearTimeout(this.listSearchDebounceTimer);
+      this.listSearchDebounceTimer = null;
+    }
+    if (this.pcSearchDebounceTimer) {
+      clearTimeout(this.pcSearchDebounceTimer);
+      this.pcSearchDebounceTimer = null;
+    }
     if (this.orientationChangeListener) {
       window.removeEventListener('orientationchange', this.orientationChangeListener);
     }
     if (this.resizeListener) {
       window.removeEventListener('resize', this.resizeListener);
     }
+  }
+
+  onListSearchQueryChange(value: string): void {
+    if (this.listSearchDebounceTimer) {
+      clearTimeout(this.listSearchDebounceTimer);
+      this.listSearchDebounceTimer = null;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      this.listSearchDebounceTimer = setTimeout(() => {
+        this.listSearchDebounceTimer = null;
+        void this.handleSearch();
+      }, this.listSearchDebounceMs);
+      return;
+    }
+    if (trimmed.length < this.listSearchMinChars) {
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.listSearchDebounceTimer = setTimeout(() => {
+      this.listSearchDebounceTimer = null;
+      void this.handleSearch();
+    }, this.listSearchDebounceMs);
+  }
+
+  onListSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.flushListSearchNow();
+    }
+  }
+
+  flushListSearchNow(): void {
+    if (this.listSearchDebounceTimer) {
+      clearTimeout(this.listSearchDebounceTimer);
+      this.listSearchDebounceTimer = null;
+    }
+    const trimmed = this.searchQuery.trim();
+    if (trimmed.length > 0 && trimmed.length < this.listSearchMinChars) {
+      this.cdr.markForCheck();
+      return;
+    }
+    void this.handleSearch();
+  }
+
+  clearListSearch(): void {
+    if (this.listSearchDebounceTimer) {
+      clearTimeout(this.listSearchDebounceTimer);
+      this.listSearchDebounceTimer = null;
+    }
+    this.searchQuery = '';
+    void this.handleSearch();
+  }
+
+  onPcSearchQueryChange(value: string): void {
+    if (this.pcSearchDebounceTimer) {
+      clearTimeout(this.pcSearchDebounceTimer);
+      this.pcSearchDebounceTimer = null;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      this.pcSearchDebounceTimer = setTimeout(() => {
+        this.pcSearchDebounceTimer = null;
+        this.pcSearchResults = [];
+        this.pcSearchSearched = false;
+        this.pcSelectedPerson = null;
+        this.error = null;
+        this.cdr.markForCheck();
+      }, this.pcSearchDebounceMs);
+      return;
+    }
+    if (trimmed.length < this.pcSearchMinChars) {
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.pcSearchDebounceTimer = setTimeout(() => {
+      this.pcSearchDebounceTimer = null;
+      void this.handleSearchPlanningCenter();
+    }, this.pcSearchDebounceMs);
+  }
+
+  onPcSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.flushPcSearchNow();
+    }
+  }
+
+  flushPcSearchNow(): void {
+    if (this.pcSearchDebounceTimer) {
+      clearTimeout(this.pcSearchDebounceTimer);
+      this.pcSearchDebounceTimer = null;
+    }
+    const trimmed = this.pcSearchQuery.trim();
+    if (!trimmed) {
+      this.error = 'Please enter a name to search';
+      this.cdr.markForCheck();
+      return;
+    }
+    if (trimmed.length < this.pcSearchMinChars) {
+      this.error = `Enter at least ${this.pcSearchMinChars} characters to search Planning Center`;
+      this.cdr.markForCheck();
+      return;
+    }
+    void this.handleSearchPlanningCenter();
   }
 
   private onOrientationChange() {
@@ -896,6 +1040,10 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     this.csvSuccess = null;
     this.newName = '';
     this.newEmail = '';
+    if (this.pcSearchDebounceTimer) {
+      clearTimeout(this.pcSearchDebounceTimer);
+      this.pcSearchDebounceTimer = null;
+    }
     // Reset Planning Center search
     this.pcSearchTab = false;
     this.pcSearchQuery = '';
@@ -991,8 +1139,11 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
         .select('*', { count: 'exact' })
         .order(this.sortBy, { ascending: this.sortDirection === 'asc' });
 
-      if (this.searchQuery.trim()) {
-        query = query.or(`email.ilike.%${this.searchQuery}%,name.ilike.%${this.searchQuery}%`);
+      const trimmedQuery = this.searchQuery.trim();
+      if (trimmedQuery) {
+        const escaped = escapeForIlikePattern(trimmedQuery);
+        const pattern = `%${escaped}%`;
+        query = query.or(`email.ilike.${pattern},name.ilike.${pattern}`);
       }
 
       const { data, error, count } = await query;
@@ -1678,8 +1829,14 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   }
 
   async handleSearchPlanningCenter() {
-    if (!this.pcSearchQuery.trim()) {
+    const trimmed = this.pcSearchQuery.trim();
+    if (!trimmed) {
       this.error = 'Please enter a name to search';
+      this.cdr.markForCheck();
+      return;
+    }
+    if (trimmed.length < this.pcSearchMinChars) {
+      this.error = `Enter at least ${this.pcSearchMinChars} characters to search Planning Center`;
       this.cdr.markForCheck();
       return;
     }
@@ -1693,7 +1850,7 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
 
     try {
       const result = await searchPlanningCenterByName(
-        this.pcSearchQuery,
+        trimmed,
         environment.supabaseUrl,
         environment.supabaseAnonKey
       );

@@ -89,7 +89,10 @@ describe('PrayerSearchComponent', () => {
       { provide: 'AdminDataService' } as any
     );
 
-    global.fetch = vi.fn();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => []
+    });
     global.confirm = vi.fn().mockReturnValue(true);
   });
 
@@ -867,17 +870,17 @@ describe('PrayerSearchComponent', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    it('should handle key press', () => {
+    it('should handle Enter to search immediately', () => {
       const spy = vi.spyOn(component, 'handleSearch');
-      const mockEvent = { key: 'Enter' } as any;
-      component.onKeyPress(mockEvent);
+      const mockEvent = { key: 'Enter', preventDefault: vi.fn() } as unknown as KeyboardEvent;
+      component.onMainSearchKeydown(mockEvent);
       expect(spy).toHaveBeenCalled();
     });
 
     it('should not search on other keys', () => {
       const spy = vi.spyOn(component, 'handleSearch');
-      const mockEvent = { key: 'a' } as any;
-      component.onKeyPress(mockEvent);
+      const mockEvent = { key: 'a', preventDefault: vi.fn() } as unknown as KeyboardEvent;
+      component.onMainSearchKeydown(mockEvent);
       expect(spy).not.toHaveBeenCalled();
     });
   });

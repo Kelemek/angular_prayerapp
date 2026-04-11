@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -60,7 +60,7 @@ interface CSVRow {
       </div>
 
       <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-        Search for prayer prompts by title, type, or description, or upload a CSV file to add multiple prompts.
+        Type at least {{ promptSearchMinChars }} characters to filter by title, type, or description (debounced). Prompts load automatically when you open this page. You can also upload a CSV to add multiple prompts.
       </p>
 
       <!-- Error Message -->
@@ -78,30 +78,49 @@ interface CSVRow {
       }
 
       <!-- Search Bar -->
-      <form (submit)="handleSearch($event)" class="mb-4">
-        <div class="flex gap-2">
-          <div class="flex-1 relative">
-            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              name="searchQuery"
-              placeholder="Search prompts by title, type, or description..."
-              class="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      <div class="mb-4">
+        <label for="promptManagerSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Search prompts
+        </label>
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input
+            id="promptManagerSearch"
+            type="text"
+            [(ngModel)]="searchQuery"
+            name="searchQuery"
+            (ngModelChange)="onPromptSearchQueryChange($event)"
+            (keydown)="onPromptSearchKeydown($event)"
+            autocomplete="off"
+            placeholder="Filter by title, type, or description (min. {{ promptSearchMinChars }} characters)…"
+            class="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          @if (searching) {
+          <div class="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2">
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
           </div>
+          }
+          @if (searchQuery) {
           <button
-            type="submit"
-            [disabled]="searching"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors cursor-pointer"
+            type="button"
+            (click)="clearPromptSearch()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            title="Clear filter"
           >
-            {{ searching ? 'Searching...' : 'Search' }}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
+          }
         </div>
-      </form>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Debounced ({{ promptSearchDebounceMs }}ms). Leave empty to show all loaded prompts after a short pause. Press Enter to refresh immediately.
+        </p>
+      </div>
 
       <!-- CSV Upload Section -->
       @if (showCSVUpload) {
@@ -302,13 +321,13 @@ interface CSVRow {
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <p>Enter a search term to find prompts</p>
-        <p class="text-sm mt-1">Search results will appear here</p>
+        <p>Loading prompts…</p>
+        <p class="text-sm mt-1">If this persists, reload the page.</p>
       </div>
       }
 
       @if (!searching && hasSearched && prompts.length === 0) {
-      <div class="text-center py-8 text-gray-500 dark:text-gray-400">>
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
         <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
           <path d="M9 18h6"></path>
@@ -484,7 +503,7 @@ interface CSVRow {
   `,
   styles: []
 })
-export class PromptManagerComponent implements OnInit {
+export class PromptManagerComponent implements OnInit, OnDestroy {
   @Output() onSave = new EventEmitter<void>();
 
   prompts: PrayerPrompt[] = [];
@@ -492,6 +511,9 @@ export class PromptManagerComponent implements OnInit {
   searchQuery = '';
   searching = false;
   hasSearched = false;
+  readonly promptSearchMinChars = 2;
+  readonly promptSearchDebounceMs = 350;
+  private promptSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   showAddForm = false;
   showCSVUpload = false;
   error: string | null = null;
@@ -518,8 +540,70 @@ export class PromptManagerComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
-    this.fetchPrayerTypes();
+  async ngOnInit(): Promise<void> {
+    await this.fetchPrayerTypes();
+    await this.handleSearch();
+  }
+
+  ngOnDestroy(): void {
+    if (this.promptSearchDebounceTimer) {
+      clearTimeout(this.promptSearchDebounceTimer);
+      this.promptSearchDebounceTimer = null;
+    }
+  }
+
+  onPromptSearchQueryChange(value: string): void {
+    if (this.promptSearchDebounceTimer) {
+      clearTimeout(this.promptSearchDebounceTimer);
+      this.promptSearchDebounceTimer = null;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      this.promptSearchDebounceTimer = setTimeout(() => {
+        this.promptSearchDebounceTimer = null;
+        void this.handleSearch();
+      }, this.promptSearchDebounceMs);
+      return;
+    }
+    if (trimmed.length < this.promptSearchMinChars) {
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.promptSearchDebounceTimer = setTimeout(() => {
+      this.promptSearchDebounceTimer = null;
+      void this.handleSearch();
+    }, this.promptSearchDebounceMs);
+  }
+
+  onPromptSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.flushPromptSearchNow();
+    }
+  }
+
+  flushPromptSearchNow(): void {
+    if (this.promptSearchDebounceTimer) {
+      clearTimeout(this.promptSearchDebounceTimer);
+      this.promptSearchDebounceTimer = null;
+    }
+    const trimmed = this.searchQuery.trim();
+    if (trimmed.length > 0 && trimmed.length < this.promptSearchMinChars) {
+      this.cdr.markForCheck();
+      return;
+    }
+    void this.handleSearch();
+  }
+
+  clearPromptSearch(): void {
+    if (this.promptSearchDebounceTimer) {
+      clearTimeout(this.promptSearchDebounceTimer);
+      this.promptSearchDebounceTimer = null;
+    }
+    this.searchQuery = '';
+    void this.handleSearch();
   }
 
   async fetchPrayerTypes() {
@@ -545,9 +629,7 @@ export class PromptManagerComponent implements OnInit {
     }
   }
 
-  async handleSearch(event: Event) {
-    event.preventDefault();
-
+  async handleSearch(): Promise<void> {
     try {
       this.searching = true;
       this.cdr.markForCheck();
@@ -703,7 +785,7 @@ export class PromptManagerComponent implements OnInit {
 
       // Refresh search results if user has already searched
       if (this.hasSearched) {
-        await this.handleSearch(new Event('submit'));
+        await this.handleSearch();
       }
 
       this.onSave.emit();
@@ -767,7 +849,7 @@ export class PromptManagerComponent implements OnInit {
 
       // Refresh search results if user has already searched
       if (this.hasSearched) {
-        await this.handleSearch(new Event('submit'));
+        await this.handleSearch();
       }
 
       this.onSave.emit();
@@ -823,7 +905,7 @@ export class PromptManagerComponent implements OnInit {
 
       // Refresh search results if user has already searched
       if (this.hasSearched) {
-        await this.handleSearch(new Event('submit'));
+        await this.handleSearch();
       }
 
       this.onSave.emit();

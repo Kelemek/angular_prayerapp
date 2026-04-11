@@ -59,15 +59,17 @@ describe('PromptManagerComponent', () => {
   });
 
   describe('ngOnInit', () => {
-    it('should fetch prayer types on init', async () => {
+    it('should fetch prayer types then load prompts', async () => {
       const mockTypes = [
         { name: 'Type1', display_order: 1, is_active: true },
         { name: 'Type2', display_order: 2, is_active: true }
       ];
 
-      mockSupabaseService.directQuery.mockResolvedValue({
-        data: mockTypes,
-        error: null
+      mockSupabaseService.directQuery.mockImplementation(async (table: string) => {
+        if (table === 'prayer_types') {
+          return { data: mockTypes, error: null };
+        }
+        return { data: [], error: null };
       });
 
       await component.ngOnInit();
@@ -80,7 +82,15 @@ describe('PromptManagerComponent', () => {
           order: { column: 'display_order', ascending: true }
         })
       );
+      expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
+        'prayer_prompts',
+        expect.objectContaining({
+          select: '*',
+          limit: 500
+        })
+      );
       expect(component.prayerTypes).toEqual(mockTypes);
+      expect(component.hasSearched).toBe(true);
     });
   });
 
@@ -158,6 +168,36 @@ describe('PromptManagerComponent', () => {
     });
   });
 
+  describe('prompt search debounce', () => {
+    it('Enter runs search immediately', () => {
+      const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.searchQuery = 'ab';
+      const ev = { key: 'Enter', preventDefault: vi.fn() } as unknown as KeyboardEvent;
+      component.onPromptSearchKeydown(ev);
+      expect(ev.preventDefault).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('ngOnDestroy cancels pending debounced search', () => {
+      vi.useFakeTimers();
+      const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.onPromptSearchQueryChange('ab');
+      vi.advanceTimersByTime(100);
+      component.ngOnDestroy();
+      vi.advanceTimersByTime(400);
+      expect(spy).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('clearPromptSearch clears query and reloads', () => {
+      component.searchQuery = 'test';
+      const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.clearPromptSearch();
+      expect(component.searchQuery).toBe('');
+      expect(spy).toHaveBeenCalled();
+    });
+  });
+
   describe('handleSearch', () => {
     it('should search prompts with query', async () => {
       const mockPrompts = [
@@ -170,7 +210,7 @@ describe('PromptManagerComponent', () => {
       });
 
       component.searchQuery = 'test';
-      await component.handleSearch(new Event('submit'));
+      await component.handleSearch();
 
       expect(component.searching).toBe(false);
       expect(component.hasSearched).toBe(true);
@@ -189,7 +229,7 @@ describe('PromptManagerComponent', () => {
       });
 
       component.searchQuery = 'test';
-      await component.handleSearch(new Event('submit'));
+      await component.handleSearch();
 
       expect(component.prompts).toHaveLength(1);
       expect(component.prompts[0].title).toBe('Test Prayer');
@@ -207,7 +247,7 @@ describe('PromptManagerComponent', () => {
       });
 
       component.searchQuery = 'praise';
-      await component.handleSearch(new Event('submit'));
+      await component.handleSearch();
 
       expect(component.prompts).toHaveLength(1);
       expect(component.prompts[0].type).toBe('Praise');
@@ -225,7 +265,7 @@ describe('PromptManagerComponent', () => {
       });
 
       component.searchQuery = 'special';
-      await component.handleSearch(new Event('submit'));
+      await component.handleSearch();
 
       expect(component.prompts).toHaveLength(1);
       expect(component.prompts[0].description).toContain('Special');
@@ -243,7 +283,7 @@ describe('PromptManagerComponent', () => {
       });
 
       component.searchQuery = '';
-      await component.handleSearch(new Event('submit'));
+      await component.handleSearch();
 
       expect(component.prompts).toHaveLength(2);
     });
@@ -256,7 +296,7 @@ describe('PromptManagerComponent', () => {
         error: new Error('Search failed')
       });
 
-      await component.handleSearch(new Event('submit'));
+      await component.handleSearch();
 
       expect(component.error).toContain('Failed to search prompts');
       expect(component.searching).toBe(false);
@@ -272,7 +312,7 @@ describe('PromptManagerComponent', () => {
         error: null
       });
 
-      await component.handleSearch(new Event('submit'));
+      await component.handleSearch();
 
       expect(component.error).toBeNull();
       expect(component.success).toBeNull();

@@ -92,7 +92,7 @@ function escapeForIlikePattern(value: string): string {
   </div>
 
   <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-    Search and filter prayers by title, requester, email, description, denial reasons, or prayer update content. Use dropdown filters to automatically load results. Delete individually or in bulk.
+    Type at least {{ mainSearchMinChars }} characters to search title, requester, email, description, denial reasons, or prayer update content (debounced). Dropdown filters load results when changed. Delete individually or in bulk.
   </p>
 
   <!-- Create New Prayer Button -->
@@ -316,17 +316,30 @@ function escapeForIlikePattern(value: string): string {
   }
 
   <!-- Search Input -->
-  <div class="flex gap-2 mb-4">
+  <div class="mb-4">
+    <label for="mainPrayerSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      Search Prayers
+    </label>
     <div class="flex-1 relative">
       <input
+        id="mainPrayerSearch"
         type="text"
+        name="mainPrayerSearch"
         [(ngModel)]="searchTerm"
-        (keypress)="onKeyPress($event)"
-        placeholder="Search by title, requester, email, description, prayer updates, or denial reasons..."
+        (ngModelChange)="onMainSearchTermChange($event)"
+        (keydown)="onMainSearchKeydown($event)"
+        autocomplete="off"
+        placeholder="Search by title, requester, email, description, prayer updates, or denial reasons (min. {{ mainSearchMinChars }} characters)…"
         class="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
       />
+      @if (searching) {
+      <div class="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2">
+        <div class="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"></div>
+      </div>
+      }
       @if (searchTerm) {
       <button
+        type="button"
         (click)="clearSearch()"
         class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
       >
@@ -337,22 +350,9 @@ function escapeForIlikePattern(value: string): string {
       </button>
       }
     </div>
-    <button
-      (click)="handleSearch()"
-      [disabled]="searching"
-      class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition-colors cursor-pointer"
-    >
-      @if (searching) {
-      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-      }
-      @if (!searching) {
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-      </svg>
-      }
-      {{ searching ? 'Searching...' : 'Search' }}
-    </button>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+      Debounced search ({{ mainSearchDebounceMs }}ms). Update matches use a targeted query instead of loading the full list. Results capped at {{ mainSearchResultLimit }} prayers.
+    </p>
   </div>
 
   <!-- Filter Dropdowns -->
@@ -1262,6 +1262,12 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
   private userSearchBlurTimer: ReturnType<typeof setTimeout> | null = null;
   private userSearchRequestSeq = 0;
 
+  /** Main prayer list text search — debounced like subscriber lookup. */
+  readonly mainSearchMinChars = 2;
+  readonly mainSearchDebounceMs = 350;
+  readonly mainSearchResultLimit = 100;
+  private mainSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   createForm: CreateForm = {
     description: '',
     firstName: '',
@@ -1345,6 +1351,10 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
       clearTimeout(this.userSearchBlurTimer);
       this.userSearchBlurTimer = null;
     }
+    if (this.mainSearchDebounceTimer) {
+      clearTimeout(this.mainSearchDebounceTimer);
+      this.mainSearchDebounceTimer = null;
+    }
     this.userSearchRequestSeq++;
   }
 
@@ -1363,6 +1373,61 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
       this.userSearchBlurTimer = null;
     }
     this.userSearchRequestSeq++;
+  }
+
+  onMainSearchTermChange(value: string): void {
+    if (this.mainSearchDebounceTimer) {
+      clearTimeout(this.mainSearchDebounceTimer);
+      this.mainSearchDebounceTimer = null;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      this.mainSearchDebounceTimer = setTimeout(() => {
+        this.mainSearchDebounceTimer = null;
+        void this.handleSearch();
+      }, this.mainSearchDebounceMs);
+      return;
+    }
+    if (trimmed.length < this.mainSearchMinChars) {
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.mainSearchDebounceTimer = setTimeout(() => {
+      this.mainSearchDebounceTimer = null;
+      void this.handleSearch();
+    }, this.mainSearchDebounceMs);
+  }
+
+  onMainSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.flushMainSearchNow();
+    }
+  }
+
+  /** Run search immediately (e.g. Enter) and skip pending debounce. */
+  flushMainSearchNow(): void {
+    if (this.mainSearchDebounceTimer) {
+      clearTimeout(this.mainSearchDebounceTimer);
+      this.mainSearchDebounceTimer = null;
+    }
+    const trimmed = this.searchTerm.trim();
+    if (trimmed.length > 0 && trimmed.length < this.mainSearchMinChars) {
+      this.cdr.markForCheck();
+      return;
+    }
+    void this.handleSearch();
+  }
+
+  private applyPrayerListFilters(params: URLSearchParams): void {
+    if (this.statusFilter && this.statusFilter !== 'all') {
+      params.set('status', `eq.${this.statusFilter}`);
+    }
+    if (this.approvalFilter && this.approvalFilter !== 'all' && this.approvalFilter !== 'denied' && this.approvalFilter !== 'pending') {
+      params.set('approval_status', `eq.${this.approvalFilter}`);
+    }
   }
 
   onUserSearchQueryChange(value: string): void {
@@ -1469,12 +1534,6 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
   }
 
   async handleSearch(): Promise<void> {
-    const hasSearchTerm = this.searchTerm.trim().length > 0;
-    const hasStatusFilter = this.statusFilter && this.statusFilter !== 'all';
-    const hasApprovalFilter = this.approvalFilter && this.approvalFilter !== 'all';
-    const hasAllStatusFilter = this.statusFilter === 'all';
-    const hasAllApprovalFilter = this.approvalFilter === 'all';
-
     try {
       this.searching = true;
       this.error = null;
@@ -1484,22 +1543,25 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
       const supabaseUrl = this.supabaseService.getSupabaseUrl();
       const supabaseKey = this.supabaseService.getSupabaseKey();
 
+      const trimmedSearch = this.searchTerm.trim();
+      const listSelect =
+        'id,title,requester,email,status,created_at,denial_reason,description,approval_status,prayer_for,prayer_updates(id,content,author,author_email,created_at,denial_reason,approval_status)';
+
       const params = new URLSearchParams();
-      params.set('select', 'id,title,requester,email,status,created_at,denial_reason,description,approval_status,prayer_for,prayer_updates(id,content,author,author_email,created_at,denial_reason,approval_status)');
+      params.set('select', listSelect);
       params.set('order', 'created_at.desc');
-      params.set('limit', '100');
+      params.set('limit', String(this.mainSearchResultLimit));
 
-      if (this.searchTerm.trim()) {
-        params.set('or', `(requester.ilike.%${this.searchTerm}%,email.ilike.%${this.searchTerm}%,title.ilike.%${this.searchTerm}%,description.ilike.%${this.searchTerm}%,denial_reason.ilike.%${this.searchTerm}%)`);
+      if (trimmedSearch) {
+        const escaped = escapeForIlikePattern(trimmedSearch);
+        const pattern = `%${escaped}%`;
+        params.set(
+          'or',
+          `(requester.ilike.${pattern},email.ilike.${pattern},title.ilike.${pattern},description.ilike.${pattern},denial_reason.ilike.${pattern})`
+        );
       }
 
-      if (this.statusFilter && this.statusFilter !== 'all') {
-        params.set('status', `eq.${this.statusFilter}`);
-      }
-
-      if (this.approvalFilter && this.approvalFilter !== 'all' && this.approvalFilter !== 'denied' && this.approvalFilter !== 'pending') {
-        params.set('approval_status', `eq.${this.approvalFilter}`);
-      }
+      this.applyPrayerListFilters(params);
 
       const url = `${supabaseUrl}/rest/v1/prayers?${params.toString()}`;
 
@@ -1526,28 +1588,19 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
       const data = await response.json();
       let results = data || [];
 
-      // Filter by search term in prayer updates content if search term exists
-      // The DB query already filters by prayer fields, but we need to also include
-      // prayers where the search term appears in any prayer update content
-      if (this.searchTerm.trim()) {
-        const searchLower = this.searchTerm.toLowerCase();
-        
-        // Fetch ALL prayers (no search filter) to check update content
-        const allParams = new URLSearchParams();
-        allParams.set('select', 'id,title,requester,email,status,created_at,denial_reason,description,approval_status,prayer_for,prayer_updates(id,content,author,author_email,created_at,denial_reason,approval_status)');
-        allParams.set('order', 'created_at.desc');
-        allParams.set('limit', '100');
+      // Prayers whose *updates* match the term (without downloading the full capped list).
+      if (trimmedSearch) {
+        const escaped = escapeForIlikePattern(trimmedSearch);
+        const pattern = `%${escaped}%`;
 
-        if (this.statusFilter && this.statusFilter !== 'all') {
-          allParams.set('status', `eq.${this.statusFilter}`);
-        }
+        const idParams = new URLSearchParams();
+        idParams.set('select', 'id,prayer_updates!inner(id)');
+        idParams.set('prayer_updates.content', `ilike.${pattern}`);
+        idParams.set('limit', String(this.mainSearchResultLimit));
+        this.applyPrayerListFilters(idParams);
 
-        if (this.approvalFilter && this.approvalFilter !== 'all' && this.approvalFilter !== 'denied' && this.approvalFilter !== 'pending') {
-          allParams.set('approval_status', `eq.${this.approvalFilter}`);
-        }
-
-        const allUrl = `${supabaseUrl}/rest/v1/prayers?${allParams.toString()}`;
-        const allResponse = await fetch(allUrl, {
+        const idUrl = `${supabaseUrl}/rest/v1/prayers?${idParams.toString()}`;
+        const idResponse = await fetch(idUrl, {
           method: 'GET',
           headers: {
             'apikey': supabaseKey,
@@ -1557,22 +1610,35 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
           signal: controller.signal
         });
 
-        if (allResponse.ok) {
-          const allData = await allResponse.json();
-          const updateMatches = (allData || []).filter((prayer: Prayer) =>
-            prayer.prayer_updates && prayer.prayer_updates.length > 0 &&
-            prayer.prayer_updates.some(update =>
-              update.content && update.content.toLowerCase().includes(searchLower)
-            )
+        if (idResponse.ok) {
+          const idRows: { id: string }[] = await idResponse.json();
+          const resultIds = new Set(results.map((p: Prayer) => p.id));
+          const missingIds = [...new Set((idRows || []).map(r => r.id).filter(Boolean))].filter(
+            id => !resultIds.has(id)
           );
 
-          // Combine results from prayer field matches and update content matches
-          const resultIds = new Set(results.map((p: Prayer) => p.id));
-          
-          // Add update matches that weren't already in the results
-          for (const match of updateMatches) {
-            if (!resultIds.has(match.id)) {
-              results.push(match);
+          if (missingIds.length > 0) {
+            const fullParams = new URLSearchParams();
+            fullParams.set('select', listSelect);
+            fullParams.set('id', `in.(${missingIds.join(',')})`);
+            this.applyPrayerListFilters(fullParams);
+
+            const fullUrl = `${supabaseUrl}/rest/v1/prayers?${fullParams.toString()}`;
+            const fullResponse = await fetch(fullUrl, {
+              method: 'GET',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+              },
+              signal: controller.signal
+            });
+
+            if (fullResponse.ok) {
+              const fullData: Prayer[] = await fullResponse.json();
+              for (const row of fullData || []) {
+                results.push(row);
+              }
             }
           }
         }
@@ -1673,12 +1739,6 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.loadPageData();
     this.cdr.markForCheck();
-  }
-
-  onKeyPress(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
-      this.handleSearch();
-    }
   }
 
   onStatusFilterChange(): void {
@@ -2335,6 +2395,10 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
   }
 
   clearSearch(): void {
+    if (this.mainSearchDebounceTimer) {
+      clearTimeout(this.mainSearchDebounceTimer);
+      this.mainSearchDebounceTimer = null;
+    }
     this.searchTerm = '';
     this.allPrayers = [];
     this.displayPrayers = [];
@@ -2342,6 +2406,7 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
     this.error = null;
     this.currentPage = 1;
     this.totalItems = 0;
+    void this.handleSearch();
   }
 
   getStatusColor(status: string): string {

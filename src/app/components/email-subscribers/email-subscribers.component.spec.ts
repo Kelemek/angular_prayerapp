@@ -190,6 +190,41 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
+  describe('list search debounce', () => {
+    it('Enter runs search immediately', () => {
+      const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      const ev = { key: 'Enter', preventDefault: vi.fn() } as unknown as KeyboardEvent;
+      component.onListSearchKeydown(ev);
+      expect(ev.preventDefault).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('does not search on other keys', () => {
+      const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.onListSearchKeydown({ key: 'a', preventDefault: vi.fn() } as unknown as KeyboardEvent);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('ngOnDestroy cancels pending debounced search', () => {
+      vi.useFakeTimers();
+      const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.onListSearchQueryChange('ab');
+      vi.advanceTimersByTime(100);
+      component.ngOnDestroy();
+      vi.advanceTimersByTime(400);
+      expect(spy).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('clearListSearch resets query and reloads', () => {
+      component.searchQuery = 'test';
+      const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      component.clearListSearch();
+      expect(component.searchQuery).toBe('');
+      expect(spy).toHaveBeenCalled();
+    });
+  });
+
   describe('handleSearch', () => {
     it('should fetch subscribers successfully', async () => {
       mockSupabaseService.client.from().select().order.mockResolvedValue({
@@ -2338,6 +2373,35 @@ describe('EmailSubscribersComponent', () => {
       component.toggleSort('name');
 
       expect(component.sortDirection).toBe('desc');
+    });
+  });
+
+  describe('Planning Center search debounce', () => {
+    it('Enter runs Planning Center search via flushPcSearchNow', () => {
+      const spy = vi.spyOn(component, 'handleSearchPlanningCenter').mockResolvedValue();
+      component.pcSearchQuery = 'Jane';
+      const ev = { key: 'Enter', preventDefault: vi.fn() } as unknown as KeyboardEvent;
+      component.onPcSearchKeydown(ev);
+      expect(ev.preventDefault).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('ngOnDestroy cancels pending Planning Center debounced search', () => {
+      vi.useFakeTimers();
+      const spy = vi.spyOn(component, 'handleSearchPlanningCenter').mockResolvedValue();
+      component.onPcSearchQueryChange('Jane');
+      vi.advanceTimersByTime(200);
+      component.ngOnDestroy();
+      vi.advanceTimersByTime(600);
+      expect(spy).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('handleSearchPlanningCenter rejects a single character', async () => {
+      component.pcSearchQuery = 'J';
+      await component.handleSearchPlanningCenter();
+      expect(component.error).toContain('at least 2 characters');
+      expect(planningCenter.searchPlanningCenterByName).not.toHaveBeenCalled();
     });
   });
 
