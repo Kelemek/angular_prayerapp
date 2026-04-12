@@ -120,9 +120,6 @@ function escapeForIlikePattern(value: string): string {
     aria-labelledby="prayer-editor-settings-trigger"
     class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
   >
-  <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-    Type at least {{ mainSearchMinChars }} characters to search title, requester, email, description, denial reasons, or prayer update content (debounced). Dropdown filters load results when changed. Delete individually or in bulk.
-  </p>
 
   <!-- Create New Prayer Button -->
   <div class="mb-4 flex justify-end">
