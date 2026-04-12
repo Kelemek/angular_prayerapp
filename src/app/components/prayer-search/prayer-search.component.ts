@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -85,7 +85,7 @@ function escapeForIlikePattern(value: string): string {
     type="button"
     id="prayer-editor-settings-trigger"
     class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-    (click)="sectionExpanded = !sectionExpanded"
+    (click)="onSectionToggle()"
     [attr.aria-expanded]="sectionExpanded"
     aria-controls="prayer-editor-panel"
   >
@@ -1260,7 +1260,7 @@ function escapeForIlikePattern(value: string): string {
   }
   `
 })
-export class PrayerSearchComponent implements OnInit, OnDestroy {
+export class PrayerSearchComponent implements OnDestroy {
   Math = Math;
   searchTerm = '';
   statusFilter = '';
@@ -1270,6 +1270,7 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
   deleting = false;
   error: string | null = null;
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
   selectedPrayers = new Set<string>();
   expandedCards = new Set<string>();
   editingPrayer: string | null = null;
@@ -1369,9 +1370,13 @@ export class PrayerSearchComponent implements OnInit, OnDestroy {
     return this.currentPage >= this.totalPages;
   }
 
-  ngOnInit(): void {
-    // Load initial results with default 10 items
-    this.handleSearch();
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.handleSearch();
+    }
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void {

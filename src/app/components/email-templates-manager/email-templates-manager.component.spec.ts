@@ -74,10 +74,13 @@ describe('EmailTemplatesManagerComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('ngOnInit calls loadTemplates', () => {
+  it('onSectionToggle calls loadTemplates on first expand', () => {
     const spy = vi.spyOn(component, 'loadTemplates');
-    component.ngOnInit();
-    expect(spy).toHaveBeenCalled();
+    component.onSectionToggle();
+    expect(spy).toHaveBeenCalledTimes(1);
+    component.onSectionToggle();
+    component.onSectionToggle();
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   describe('getSafeHtml', () => {

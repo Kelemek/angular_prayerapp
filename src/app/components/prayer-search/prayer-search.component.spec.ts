@@ -162,11 +162,14 @@ describe('PrayerSearchComponent', () => {
     });
   });
 
-  describe('ngOnInit', () => {
-    it('should call handleSearch', () => {
+  describe('onSectionToggle', () => {
+    it('calls handleSearch on first expand only', () => {
       const spy = vi.spyOn(component, 'handleSearch');
-      component.ngOnInit();
-      expect(spy).toHaveBeenCalled();
+      component.onSectionToggle();
+      expect(spy).toHaveBeenCalledTimes(1);
+      component.onSectionToggle();
+      component.onSectionToggle();
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 

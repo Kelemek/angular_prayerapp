@@ -47,7 +47,7 @@ function escapeForIlikePattern(value: string): string {
         type="button"
         id="email-subscribers-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="email-subscribers-panel"
       >
@@ -82,22 +82,6 @@ function escapeForIlikePattern(value: string): string {
         aria-labelledby="email-subscribers-trigger"
         class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
       >
-      <div class="flex justify-end mb-4">
-        <button
-          type="button"
-          (click)="handleSearch()"
-          [disabled]="searching"
-          class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
-          title="Refresh subscribers"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.animate-spin]="searching" class="text-gray-600 dark:text-gray-400">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-        </button>
-      </div>
-
       <div class="flex gap-2 mb-4 justify-end">
         <button
           (click)="toggleCSVUpload()"
@@ -831,6 +815,7 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   newEmail = '';
   submitting = false;
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
   error: string | null = null;
   csvSuccess: string | null = null;
   
@@ -903,9 +888,6 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // Auto-load first 10 subscribers on component init
-    this.handleSearch();
-    
     // Fewer pagination buttons on small screens so they don't overflow
     this.breakpointSub = this.breakpointObserver
       .observe('(max-width: 640px)')
@@ -925,6 +907,15 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     window.addEventListener('orientationchange', this.orientationChangeListener);
     // Also listen for resize events for broader compatibility
     window.addEventListener('resize', this.resizeListener);
+  }
+
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.handleSearch();
+    }
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy() {

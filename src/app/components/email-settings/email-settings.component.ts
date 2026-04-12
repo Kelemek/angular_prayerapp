@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -32,7 +32,7 @@ import { EmailSubscribersComponent } from '../email-subscribers/email-subscriber
           type="button"
           id="email-reminders-settings-trigger"
           class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-          (click)="remindersSectionExpanded = !remindersSectionExpanded"
+          (click)="onRemindersSectionToggle()"
           [attr.aria-expanded]="remindersSectionExpanded"
           aria-controls="email-reminders-panel"
         >
@@ -205,17 +205,18 @@ import { EmailSubscribersComponent } from '../email-subscribers/email-subscriber
   `,
   styles: []
 })
-export class EmailSettingsComponent implements OnInit {
+export class EmailSettingsComponent {
   @Output() onSave = new EventEmitter<void>();
 
   remindersSectionExpanded = false;
+  private remindersInitialLoadDone = false;
 
   enableReminders = false;
   reminderIntervalDays = 7;
   enableAutoArchive = false;
   daysBeforeArchive = 7;
   
-  loading = true;
+  loading = false;
   savingReminders = false;
   error: string | null = null;
   successVerification = false;
@@ -227,8 +228,13 @@ export class EmailSettingsComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
-    this.loadSettings();
+  onRemindersSectionToggle(): void {
+    this.remindersSectionExpanded = !this.remindersSectionExpanded;
+    if (this.remindersSectionExpanded && !this.remindersInitialLoadDone) {
+      this.remindersInitialLoadDone = true;
+      void this.loadSettings();
+    }
+    this.cdr.markForCheck();
   }
 
   async loadSettings() {

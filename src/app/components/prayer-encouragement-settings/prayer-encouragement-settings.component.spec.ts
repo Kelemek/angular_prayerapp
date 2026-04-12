@@ -30,7 +30,11 @@ describe('PrayerEncouragementSettingsComponent', () => {
       invalidateFlagCache: vi.fn()
     };
 
-    component = new PrayerEncouragementSettingsComponent(mockSupabase, mockPrayerEncouragementService);
+    component = new PrayerEncouragementSettingsComponent(
+      mockSupabase,
+      mockPrayerEncouragementService,
+      { markForCheck: vi.fn() } as any
+    );
   });
 
   it('should create', () => {
@@ -46,11 +50,13 @@ describe('PrayerEncouragementSettingsComponent', () => {
     expect(component.errorMessage).toBe('');
   });
 
-  describe('ngOnInit', () => {
-    it('should load settings on init', async () => {
-      await component.ngOnInit();
-      expect(mockSupabase.client.from).toHaveBeenCalledWith('admin_settings');
-      expect(component.prayerEncouragementEnabled).toBe(true);
+  describe('onSectionToggle', () => {
+    it('loads settings on first expand', async () => {
+      component.onSectionToggle();
+      await vi.waitFor(() => {
+        expect(mockSupabase.client.from).toHaveBeenCalledWith('admin_settings');
+        expect(component.prayerEncouragementEnabled).toBe(true);
+      });
     });
   });
 

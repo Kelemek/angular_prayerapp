@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -24,7 +24,7 @@ interface AdminUser {
         type="button"
         id="admin-user-management-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="admin-user-management-panel"
       >
@@ -349,10 +349,11 @@ interface AdminUser {
   `,
   styles: []
 })
-export class AdminUserManagementComponent implements OnInit {
+export class AdminUserManagementComponent {
   @Output() onSave = new EventEmitter<void>();
 
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
   admins: AdminUser[] = [];
   loading = false;
   error: string | null = null;
@@ -378,8 +379,13 @@ export class AdminUserManagementComponent implements OnInit {
     private emailService: EmailNotificationService
   ) {}
 
-  ngOnInit() {
-    this.loadAdmins();
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.loadAdmins();
+    }
+    this.cdr.markForCheck();
   }
 
   async loadAdmins() {

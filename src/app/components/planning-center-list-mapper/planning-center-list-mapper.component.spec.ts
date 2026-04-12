@@ -56,11 +56,11 @@ describe('PlanningCenterListMapperComponent', () => {
     );
   });
 
-  describe('ngOnInit', () => {
-    it('should load subscribers and lists on init', async () => {
+  describe('onSectionToggle', () => {
+    it('loads subscribers and lists on first expand', async () => {
       const loadSubscribersAndListsSpy = vi.spyOn(component, 'loadSubscribersAndLists');
 
-      component.ngOnInit();
+      component.onSectionToggle();
 
       expect(loadSubscribersAndListsSpy).toHaveBeenCalled();
     });

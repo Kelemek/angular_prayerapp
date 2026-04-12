@@ -249,7 +249,7 @@ describe('AdminUserManagementComponent', () => {
     await component.deleteAdmin('a@x.com');
 
     expect(mockToast.success).toHaveBeenCalledWith('Admin access removed for a@x.com');
-    expect(component.deletingEmail).toBeFalsy(); // cleared after success (null or undefined)
+    expect(component.success).toBe('Admin access removed for a@x.com');
     expect(emitSpy).toHaveBeenCalled();
   });
 
@@ -542,12 +542,12 @@ describe('AdminUserManagementComponent', () => {
     expect(component.getReceivingPushCount()).toBe(1);
   });
 
-  it('ngOnInit calls loadAdmins', async () => {
+  it('onSectionToggle calls loadAdmins on first expand', async () => {
     const loadSpy = vi.spyOn(component as any, 'loadAdmins').mockResolvedValue(undefined);
 
-    component.ngOnInit();
+    component.onSectionToggle();
 
-    expect(loadSpy).toHaveBeenCalled();
+    expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 
   it('loadAdmins handles null data (no error) and sets empty admins', async () => {

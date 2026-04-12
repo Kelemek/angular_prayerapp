@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -19,7 +19,7 @@ import type { PrayerTypeRecord } from '../../types/prayer';
         type="button"
         id="prayer-types-manager-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="prayer-types-manager-panel"
       >
@@ -304,13 +304,14 @@ import type { PrayerTypeRecord } from '../../types/prayer';
   `,
   styles: []
 })
-export class PrayerTypesManagerComponent implements OnInit {
+export class PrayerTypesManagerComponent {
   @Output() onSave = new EventEmitter<void>();
 
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
 
   types: PrayerTypeRecord[] = [];
-  loading = true;
+  loading = false;
   showAddForm = false;
   error: string | null = null;
   success: string | null = null;
@@ -336,8 +337,13 @@ export class PrayerTypesManagerComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
-    this.fetchTypes();
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.fetchTypes();
+    }
+    this.cdr.markForCheck();
   }
 
   async fetchTypes() {

@@ -63,11 +63,14 @@ describe('EmailVerificationSettingsComponent', () => {
     });
   });
 
-  describe('ngOnInit', () => {
-    it('should call loadSettings on initialization', () => {
+  describe('onSectionToggle', () => {
+    it('calls loadSettings on first expand only', () => {
       const loadSettingsSpy = vi.spyOn(component, 'loadSettings');
-      component.ngOnInit();
-      expect(loadSettingsSpy).toHaveBeenCalled();
+      component.onSectionToggle();
+      expect(loadSettingsSpy).toHaveBeenCalledTimes(1);
+      component.onSectionToggle();
+      component.onSectionToggle();
+      expect(loadSettingsSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -267,8 +270,9 @@ describe('EmailVerificationSettingsComponent', () => {
 
       await component.save();
 
-      const callArgs = upsertSpy.mock.calls[0][0];
-      expect(callArgs.require_email_verification).toBe(true);
+      expect(upsertSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ require_email_verification: true })
+      );
     });
 
     it('should call markForCheck on change detector', async () => {

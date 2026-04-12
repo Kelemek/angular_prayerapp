@@ -82,11 +82,15 @@ describe('AppBrandingComponent', () => {
     });
   });
 
-  describe('ngOnInit', () => {
-    it('should call loadSettings on initialization', () => {
+  describe('onSectionToggle', () => {
+    it('calls loadSettings on first expand only', () => {
       const loadSettingsSpy = vi.spyOn(component, 'loadSettings');
-      component.ngOnInit();
-      expect(loadSettingsSpy).toHaveBeenCalled();
+      component.onSectionToggle();
+      expect(component.sectionExpanded).toBe(true);
+      expect(loadSettingsSpy).toHaveBeenCalledTimes(1);
+      component.onSectionToggle();
+      component.onSectionToggle();
+      expect(loadSettingsSpy).toHaveBeenCalledTimes(1);
     });
   });
 

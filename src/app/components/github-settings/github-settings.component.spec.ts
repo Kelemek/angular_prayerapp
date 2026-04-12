@@ -27,7 +27,9 @@ describe('GitHubSettingsComponent', () => {
       })
     };
 
-    component = new GitHubSettingsComponent(mockGitHubFeedbackService);
+    component = new GitHubSettingsComponent(mockGitHubFeedbackService, {
+      markForCheck: vi.fn()
+    } as any);
   });
 
   afterEach(() => {
@@ -52,9 +54,11 @@ describe('GitHubSettingsComponent', () => {
       expect(component.isTestingConnection).toBe(false);
     });
 
-    it('should load configuration on init', async () => {
-      await component.ngOnInit();
-      expect(mockGitHubFeedbackService.getGitHubConfig).toHaveBeenCalled();
+    it('loads configuration on first section expand', async () => {
+      component.onSectionToggle();
+      await vi.waitFor(() => {
+        expect(mockGitHubFeedbackService.getGitHubConfig).toHaveBeenCalled();
+      });
     });
 
     it('should populate config from service response', async () => {

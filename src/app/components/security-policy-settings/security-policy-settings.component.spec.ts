@@ -62,9 +62,9 @@ describe('SecurityPolicySettingsComponent', () => {
       expect(component.error).toBe(null);
     });
 
-    it('should call loadSettings on init', async () => {
+    it('calls loadSettings on first section expand', async () => {
       const loadSettingsSpy = vi.spyOn(component, 'loadSettings');
-      await component.ngOnInit();
+      component.onSectionToggle();
       expect(loadSettingsSpy).toHaveBeenCalled();
     });
   });

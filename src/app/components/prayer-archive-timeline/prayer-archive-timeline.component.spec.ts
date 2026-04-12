@@ -1,4 +1,6 @@
+import { DestroyRef } from '@angular/core';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { BehaviorSubject } from 'rxjs';
 import { PrayerArchiveTimelineComponent } from './prayer-archive-timeline.component';
 
 describe('PrayerArchiveTimelineComponent - Core Logic', () => {
@@ -789,13 +791,6 @@ describe('PrayerArchiveTimelineComponent - Component Integration Tests', () => {
         this.canGoNext = this.displayMonth < new Date(today.getFullYear() + 1, today.getMonth(), 1);
       },
       
-      refreshData: function() {
-        this.isLoading = true;
-        setTimeout(() => {
-          this.isLoading = false;
-        }, 100);
-      },
-      
       getMonthName: function(date: Date): string {
         return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       },
@@ -916,36 +911,6 @@ describe('PrayerArchiveTimelineComponent - Component Integration Tests', () => {
       // After moving 6 months forward, month should be different (unless edge case)
       expect(typeof endMonth).toBe('number');
       expect(endMonth >= 0 && endMonth < 12).toBe(true);
-    });
-  });
-
-  describe('Data Refresh', () => {
-    it('should start loading on refresh', async () => {
-      component.isLoading = false;
-      component.refreshData();
-      expect(component.isLoading).toBe(true);
-    });
-
-    it('should stop loading after refresh completes', async () => {
-      component.refreshData();
-      await new Promise(resolve => setTimeout(resolve, 150));
-      expect(component.isLoading).toBe(false);
-    });
-
-    it('should handle rapid refresh calls', () => {
-      component.refreshData();
-      component.refreshData();
-      component.refreshData();
-      expect(component.isLoading).toBe(true);
-    });
-
-    it('should preserve timeline events during refresh', () => {
-      component.timelineEvents = [
-        { date: new Date(), prayer: { id: '1', title: 'Test' }, eventType: 'reminder-sent' as any, daysUntil: 0 }
-      ];
-      const originalLength = component.timelineEvents.length;
-      component.refreshData();
-      expect(component.timelineEvents.length).toBe(originalLength);
     });
   });
 
@@ -1147,12 +1112,6 @@ describe('PrayerArchiveTimelineComponent - Component Integration Tests', () => {
       } else {
         expect(newMonth).toBe(initialMonth + 1);
       }
-    });
-
-    it('should handle refresh button click', () => {
-      const wasLoading = component.isLoading;
-      component.refreshData();
-      expect(component.isLoading).toBe(true);
     });
 
     it('should handle rapid navigation clicks', () => {
@@ -1528,12 +1487,7 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
     // Create mock services
     prayerService = {
       loadPrayers: vi.fn().mockResolvedValue(undefined),
-      allPrayers$: {
-        subscribe: vi.fn((cb) => {
-          cb([]);
-          return { unsubscribe: vi.fn() };
-        })
-      }
+      allPrayers$: new BehaviorSubject<unknown[]>([])
     };
 
     supabaseService = {
@@ -1543,6 +1497,10 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
             eq: vi.fn().mockReturnValue({
               order: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue({ data: [], error: null })
+              }),
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { reminder_interval_days: 30, days_before_archive: 30 },
+                error: null
               })
             })
           }),
@@ -1565,11 +1523,13 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
 
     // Create component manually with mocked dependencies
     const cdr = { markForCheck: vi.fn() };
-    
+    const mockDestroyRef = { onDestroy: vi.fn() } as unknown as DestroyRef;
+
     component = new PrayerArchiveTimelineComponent(
       prayerService as any,
       supabaseService as any,
-      cdr as any
+      cdr as any,
+      mockDestroyRef
     );
   });
 
@@ -1588,10 +1548,6 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
 
     it('should initialize with empty timeline events', () => {
       expect(component.timelineEvents).toEqual([]);
-    });
-
-    it('should initialize with loading state false', () => {
-      expect(component.isLoading).toBe(false);
     });
 
     it('should detect user timezone', () => {
@@ -1639,48 +1595,44 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
     });
   });
 
-  describe('ngOnInit', () => {
-    it('should call loadSettings on init', async () => {
+  describe('onSectionToggle', () => {
+    it('calls loadSettings on first expand', async () => {
       const loadSettingsSpy = vi.spyOn(component as any, 'loadSettings');
-      
-      component.ngOnInit();
-      
+
+      component.onSectionToggle();
+
       expect(loadSettingsSpy).toHaveBeenCalled();
     });
 
-    it('should subscribe to prayers on init', async () => {
+    it('subscribes to prayers on first expand', async () => {
       const subscribeSpy = vi.spyOn(prayerService.allPrayers$, 'subscribe');
-      
-      component.ngOnInit();
-      
+
+      component.onSectionToggle();
+
       expect(subscribeSpy).toHaveBeenCalled();
     });
 
-    it('should set allPrayers when prayers emit', async () => {
+    it('sets allPrayers when prayers emit', async () => {
       const testPrayers = [
         { id: '1', title: 'Test Prayer' }
       ] as any;
-      
-      prayerService.allPrayers$.subscribe = vi.fn((cb) => {
-        cb(testPrayers);
-        return { unsubscribe: vi.fn() };
+
+      component.onSectionToggle();
+      (prayerService.allPrayers$ as BehaviorSubject<unknown[]>).next(testPrayers);
+
+      await vi.waitFor(() => {
+        expect((component as any).allPrayers).toEqual(testPrayers);
       });
-      
-      component.ngOnInit();
-      
-      // Component should process prayers after subscription
-      expect(component).toBeDefined();
     });
 
-    it('should filter current month on init', async () => {
+    it('filters current month after subscription emits', async () => {
       const filterSpy = vi.spyOn(component as any, 'filterCurrentMonth').mockResolvedValue(undefined);
-      
-      component.ngOnInit();
-      
-      // Wait for subscription callback
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      expect(filterSpy).toHaveBeenCalled();
+
+      component.onSectionToggle();
+
+      await vi.waitFor(() => {
+        expect(filterSpy).toHaveBeenCalled();
+      });
     });
   });
 
@@ -1766,43 +1718,6 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
       
       // Should attempt to restore scroll position
       expect(component.currentMonth.getMonth()).toBe(1); // February
-    });
-  });
-
-  describe('Refresh Data', () => {
-    it('should set isLoading to true', () => {
-      component.isLoading = false;
-      
-      component.refreshData();
-      
-      expect(component.isLoading).toBe(true);
-    });
-
-    it('should mark for check', () => {
-      const cdr = (component as any).cdr;
-      const spy = vi.spyOn(cdr, 'markForCheck');
-      
-      component.refreshData();
-      
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should load prayers with force refresh', async () => {
-      component.refreshData();
-      
-      // Wait for promise to resolve
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      expect(prayerService.loadPrayers).toHaveBeenCalledWith(true);
-    });
-
-    it('should stop loading after refresh completes', async () => {
-      component.refreshData();
-      
-      // Wait for promise to resolve
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      expect(component.isLoading).toBe(false);
     });
   });
 

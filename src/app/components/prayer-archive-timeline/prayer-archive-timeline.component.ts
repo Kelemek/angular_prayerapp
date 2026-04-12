@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { PrayerService, PrayerRequest } from '../../services/prayer.service';
 import { SupabaseService } from '../../services/supabase.service';
@@ -30,7 +31,7 @@ interface TimelineDay {
         type="button"
         id="prayer-archive-timeline-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="prayer-archive-timeline-panel"
       >
@@ -67,22 +68,6 @@ interface TimelineDay {
         aria-labelledby="prayer-archive-timeline-trigger"
         class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
       >
-      <div class="flex justify-end mb-6">
-        <button
-          type="button"
-          (click)="refreshData()"
-          class="flex items-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
-          [disabled]="isLoading"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.animate-spin]="isLoading">
-            <path d="M23 4v6h-6"></path>
-            <path d="M1 20v-6h6"></path>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"></path>
-          </svg>
-          {{ isLoading ? 'Refreshing...' : 'Refresh' }}
-        </button>
-      </div>
-
       <!-- Settings Info -->
       <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <div class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
@@ -363,9 +348,9 @@ interface TimelineDay {
     }
   `]
 })
-export class PrayerArchiveTimelineComponent implements OnInit {
+export class PrayerArchiveTimelineComponent {
   sectionExpanded = false;
-  isLoading = false;
+  private sectionInitialLoadDone = false;
   reminderIntervalDays = 30;
   daysBeforeArchive = 30;
   private readonly reminderJobHourUtc = 10;
@@ -386,7 +371,8 @@ export class PrayerArchiveTimelineComponent implements OnInit {
   constructor(
     private prayerService: PrayerService,
     private supabase: SupabaseService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private destroyRef: DestroyRef
   ) {
     // Detect user's timezone
     this.userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -424,14 +410,21 @@ export class PrayerArchiveTimelineComponent implements OnInit {
     return currentYear < maxYear || (currentYear === maxYear && currentMonth < maxMonthValue);
   }
 
-  ngOnInit(): void {
-    // Load settings from database
-    this.loadSettings();
-    
-    this.prayerService.allPrayers$.subscribe((prayers: PrayerRequest[]) => {
-      this.allPrayers = prayers;
-      this.filterCurrentMonth().catch(err => console.error('Error filtering prayers:', err));
-    });
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.loadSettings();
+      // Prayer list still comes from PrayerService (loaded app-wide); deferring only skips this
+      // component's admin_settings read and subscription until the section opens.
+      this.prayerService.allPrayers$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((prayers: PrayerRequest[]) => {
+          this.allPrayers = prayers;
+          this.filterCurrentMonth().catch(err => console.error('Error filtering prayers:', err));
+        });
+    }
+    this.cdr.markForCheck();
   }
 
   private async loadSettings(): Promise<void> {
@@ -459,20 +452,6 @@ export class PrayerArchiveTimelineComponent implements OnInit {
       console.error('Error loading timeline settings:', err);
       // Use defaults if load fails
     }
-  }
-
-  refreshData(): void {
-    this.isLoading = true;
-    this.cdr.markForCheck();
-    
-    // Reload both settings and prayers
-    Promise.all([
-      this.loadSettings(),
-      this.prayerService.loadPrayers(true)
-    ]).finally(() => {
-      this.isLoading = false;
-      this.cdr.markForCheck();
-    });
   }
 
   previousMonth(): void {

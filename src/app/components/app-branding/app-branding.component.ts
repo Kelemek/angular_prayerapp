@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 
@@ -13,7 +13,7 @@ import { SupabaseService } from '../../services/supabase.service';
         type="button"
         id="app-branding-settings-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="app-branding-panel"
       >
@@ -286,10 +286,11 @@ import { SupabaseService } from '../../services/supabase.service';
   `,
   styles: []
 })
-export class AppBrandingComponent implements OnInit {
+export class AppBrandingComponent {
   @Output() onSave = new EventEmitter<void>();
 
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
 
   appTitle = 'Church Prayer Manager';
   appSubtitle = 'Keeping our community connected in prayer';
@@ -308,8 +309,13 @@ export class AppBrandingComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
-    this.loadSettings();
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.loadSettings();
+    }
+    this.cdr.markForCheck();
   }
 
   async loadSettings() {

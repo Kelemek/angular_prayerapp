@@ -58,8 +58,8 @@ describe('PromptManagerComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('ngOnInit', () => {
-    it('should fetch prayer types then load prompts', async () => {
+  describe('onSectionToggle', () => {
+    it('fetches prayer types then loads prompts on first expand', async () => {
       const mockTypes = [
         { name: 'Type1', display_order: 1, is_active: true },
         { name: 'Type2', display_order: 2, is_active: true }
@@ -72,25 +72,27 @@ describe('PromptManagerComponent', () => {
         return { data: [], error: null };
       });
 
-      await component.ngOnInit();
+      component.onSectionToggle();
 
-      expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
-        'prayer_types',
-        expect.objectContaining({
-          select: '*',
-          eq: { is_active: true },
-          order: { column: 'display_order', ascending: true }
-        })
-      );
-      expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
-        'prayer_prompts',
-        expect.objectContaining({
-          select: '*',
-          limit: 500
-        })
-      );
-      expect(component.prayerTypes).toEqual(mockTypes);
-      expect(component.hasSearched).toBe(true);
+      await vi.waitFor(() => {
+        expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
+          'prayer_types',
+          expect.objectContaining({
+            select: '*',
+            eq: { is_active: true },
+            order: { column: 'display_order', ascending: true }
+          })
+        );
+        expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
+          'prayer_prompts',
+          expect.objectContaining({
+            select: '*',
+            limit: 500
+          })
+        );
+        expect(component.prayerTypes).toEqual(mockTypes);
+        expect(component.hasSearched).toBe(true);
+      });
     });
   });
 

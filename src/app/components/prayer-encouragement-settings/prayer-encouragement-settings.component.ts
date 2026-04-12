@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -14,7 +14,7 @@ import { PrayerEncouragementService } from '../../services/prayer-encouragement.
         type="button"
         id="prayer-encouragement-settings-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="prayer-encouragement-panel"
       >
@@ -147,8 +147,9 @@ import { PrayerEncouragementService } from '../../services/prayer-encouragement.
   `,
   styles: []
 })
-export class PrayerEncouragementSettingsComponent implements OnInit {
+export class PrayerEncouragementSettingsComponent {
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
   prayerEncouragementEnabled = false;
   cooldownHours = 4;
   isSaving = false;
@@ -157,11 +158,17 @@ export class PrayerEncouragementSettingsComponent implements OnInit {
 
   constructor(
     private supabase: SupabaseService,
-    private prayerEncouragementService: PrayerEncouragementService
+    private prayerEncouragementService: PrayerEncouragementService,
+    private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void {
-    this.loadSettings();
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.loadSettings();
+    }
+    this.cdr.markForCheck();
   }
 
   async loadSettings(): Promise<void> {

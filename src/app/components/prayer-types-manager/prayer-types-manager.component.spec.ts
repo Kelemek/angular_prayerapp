@@ -78,7 +78,7 @@ describe('PrayerTypesManagerComponent', () => {
 
   it('should have initial state', () => {
     expect(component.types).toEqual([]);
-    expect(component.loading).toBe(true);
+    expect(component.loading).toBe(false);
     expect(component.showAddForm).toBe(false);
     expect(component.error).toBeNull();
     expect(component.success).toBeNull();
@@ -88,11 +88,14 @@ describe('PrayerTypesManagerComponent', () => {
     expect(component.isActive).toBe(true);
   });
 
-  describe('ngOnInit', () => {
-    it('should fetch types on initialization', () => {
+  describe('onSectionToggle', () => {
+    it('fetches types on first expand only', () => {
       const spy = vi.spyOn(component, 'fetchTypes');
-      component.ngOnInit();
-      expect(spy).toHaveBeenCalled();
+      component.onSectionToggle();
+      expect(spy).toHaveBeenCalledTimes(1);
+      component.onSectionToggle();
+      component.onSectionToggle();
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 

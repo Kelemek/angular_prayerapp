@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -14,7 +14,7 @@ import { ToastService } from '../../services/toast.service';
         type="button"
         id="email-verification-settings-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="email-verification-settings-panel"
       >
@@ -145,8 +145,9 @@ import { ToastService } from '../../services/toast.service';
   `,
   styles: []
 })
-export class EmailVerificationSettingsComponent implements OnInit {
+export class EmailVerificationSettingsComponent {
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
   verificationCodeLength = 6;
   verificationCodeExpiryMinutes = 15;
   loading = false;
@@ -158,8 +159,13 @@ export class EmailVerificationSettingsComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
-    this.loadSettings();
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.loadSettings();
+    }
+    this.cdr.markForCheck();
   }
 
   async loadSettings() {

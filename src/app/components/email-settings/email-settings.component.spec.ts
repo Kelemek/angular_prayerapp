@@ -62,8 +62,8 @@ describe('EmailSettingsComponent', () => {
       expect(component.daysBeforeArchive).toBe(7);
     });
 
-    it('should have loading default to true', () => {
-      expect(component.loading).toBe(true);
+    it('should have loading default to false until reminders section opens', () => {
+      expect(component.loading).toBe(false);
     });
 
     it('should have savingReminders default to false', () => {
@@ -83,11 +83,15 @@ describe('EmailSettingsComponent', () => {
     });
   });
 
-  describe('ngOnInit', () => {
-    it('should call loadSettings on initialization', () => {
+  describe('onRemindersSectionToggle', () => {
+    it('calls loadSettings on first expand only', () => {
       const loadSettingsSpy = vi.spyOn(component, 'loadSettings');
-      component.ngOnInit();
-      expect(loadSettingsSpy).toHaveBeenCalled();
+      component.onRemindersSectionToggle();
+      expect(component.remindersSectionExpanded).toBe(true);
+      expect(loadSettingsSpy).toHaveBeenCalledTimes(1);
+      component.onRemindersSectionToggle();
+      component.onRemindersSectionToggle();
+      expect(loadSettingsSpy).toHaveBeenCalledTimes(1);
     });
   });
 

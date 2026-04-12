@@ -136,11 +136,16 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('ngOnInit', () => {
-    it('should call handleSearch', () => {
+  describe('onSectionToggle', () => {
+    it('calls handleSearch on first expand only', () => {
       const spy = vi.spyOn(component, 'handleSearch');
       component.ngOnInit();
-      expect(spy).toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
+      component.onSectionToggle();
+      expect(spy).toHaveBeenCalledTimes(1);
+      component.onSectionToggle();
+      component.onSectionToggle();
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -2268,7 +2273,7 @@ describe('EmailSubscribersComponent', () => {
   });
 
   describe('lifecycle and orientation helpers', () => {
-    it('registers window listeners and triggers search on init', () => {
+    it('registers window listeners on init without fetching subscribers', () => {
       const addSpy = vi.spyOn(window, 'addEventListener');
       const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
 
@@ -2276,7 +2281,7 @@ describe('EmailSubscribersComponent', () => {
 
       expect(addSpy).toHaveBeenCalledWith('orientationchange', expect.any(Function));
       expect(addSpy).toHaveBeenCalledWith('resize', expect.any(Function));
-      expect(searchSpy).toHaveBeenCalled();
+      expect(searchSpy).not.toHaveBeenCalled();
     });
 
     it('removes listeners on destroy', () => {

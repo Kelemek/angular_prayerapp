@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, OnDestroy } from '@angular/core';
+import { Component, Output, EventEmitter, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GitHubFeedbackService, GitHubIssueConfig } from '../../services/github-feedback.service';
@@ -14,7 +14,7 @@ import { Subject, takeUntil } from 'rxjs';
         type="button"
         id="github-settings-trigger"
         class="w-full flex items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="sectionExpanded = !sectionExpanded"
+        (click)="onSectionToggle()"
         [attr.aria-expanded]="sectionExpanded"
         aria-controls="github-settings-panel"
       >
@@ -229,10 +229,11 @@ import { Subject, takeUntil } from 'rxjs';
   `,
   styles: []
 })
-export class GitHubSettingsComponent implements OnInit, OnDestroy {
+export class GitHubSettingsComponent implements OnDestroy {
   @Output() onSave = new EventEmitter<void>();
 
   sectionExpanded = false;
+  private sectionInitialLoadDone = false;
 
   config: GitHubIssueConfig = {
     id: 1,
@@ -254,10 +255,18 @@ export class GitHubSettingsComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private githubFeedbackService: GitHubFeedbackService) {}
+  constructor(
+    private githubFeedbackService: GitHubFeedbackService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-  ngOnInit(): void {
-    this.loadConfiguration();
+  onSectionToggle(): void {
+    this.sectionExpanded = !this.sectionExpanded;
+    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      void this.loadConfiguration();
+    }
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void {
