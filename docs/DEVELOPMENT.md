@@ -633,6 +633,26 @@ prayers$ = this.prayersSubject.asObservable();
 - **Admin Auth**: check-admin-status Edge Function (verifies admin status using service role)
 - **Rate Limiting**: Email processor respects Microsoft Graph limits
 
+### Admin portal (Settings collapsibles)
+
+- **`src/app/pages/admin/admin.component.ts`** embeds settings subtabs (Analytics, Email, Content, Tools, Security). Each block is typically a standalone component (`prayer-encouragement-settings`, `github-settings`, `app-branding`, `prompt-manager`, `prayer-types-manager`, `planning-center-list-mapper`, `email-settings` / subscribers / templates / verification, `prayer-search`, `prayer-archive-timeline`, `backup-status`, `security-policy-settings`, `test-account-settings`, `admin-user-management`, etc.) with the same **card + collapsible header** pattern.
+- **Interaction**: When a section is **collapsed**, the outer card adds **`cursor-pointer`** and a shell **`(click)`** that runs the toggle only while collapsed, so the whole surface opens the panel; the visible header remains a **`<button type="button">`** (focusable, **`cursor-pointer`**) whose handler calls **`$event.stopPropagation()`** after toggling so the shell does not receive a second click. When **expanded**, only the header button collapses; clicks on forms and controls do not use the shell toggle.
+- **Prayer Editor** (`app-prayer-search`): Search hints for admins live in the main search **placeholder** (minimum length and fields); body copy above the toolbar was removed as duplicate.
+
+### Prayer Editor: Find subscriber (create prayer)
+
+- **When**: Shown on the **Create New Prayer** form inside [`prayer-search.component.ts`](src/app/components/prayer-search/prayer-search.component.ts) (Admin → Tools → Prayer Editor).
+- **Data source**: **`email_subscribers`** via Supabase client—**`name`** and **`email`** only, ordered by name, **`limit`** `userSearchResultLimit` (**20**).
+- **Query UX**: **`userSearchMinChars`** (**2**) before search runs; **350 ms** debounce on `ngModelChange`; **escaped** `ilike` wildcards; **in-flight sequence** counter so slower responses do not overwrite newer queries.
+- **Selection**: Dropdown rows call **`selectSubscriberUser`** on **`mousedown`** (avoids blur closing the list before click); first token of `name` → **first name**, remainder → **last name**, `email` copied; lookup state reset after pick.
+
+### Prayer Editor search (admin Tools)
+
+- **Location**: [`prayer-search.component.ts`](src/app/components/prayer-search/prayer-search.component.ts) under Admin → **Settings** → **Tools** (collapsible **Prayer Editor**).
+- **What is searched**: Prayer fields (title, description, requester, email, `prayer_for`, denial reasons on the prayer, etc.) plus **`prayer_updates.content`**—implemented with broad `select` embeddings and, for update-only matches, a filtered `prayer_updates` join / `ilike` pattern merged into the result ID set.
+- **Performance / UX**: **`mainSearchMinChars`** (default 2) gates requests; the main query path is **debounced** (`mainSearchDebounceMs`, **350 ms**) to limit round-trips. Subscriber lookup for **Create New Prayer** uses the separate debounced/capped flow documented above (**Find subscriber**).
+- **Parity with Home**: [`PrayerService`](src/app/services/prayer.service.ts) **`applyFilters`** matches the same **search** string against each prayer’s **`updates`** array **`content`** so filtering on the main list behaves consistently with the editor’s mental model.
+
 ### Removed/Deprecated Features
 
 - **Approval Codes System** (removed Jan 2026): One-time approval links via `approval_codes` table and `validate-approval-code` Edge Function

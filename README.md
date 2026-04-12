@@ -53,6 +53,8 @@ Quick links:
 - **Printable Lists**: Generate printable prayer request and prayer prompt lists
 
 ### ⚙️ Admin Portal
+- **Settings layout**: Collapsible cards under Settings (Content, Email, Tools, Security, etc.) share consistent spacing and shadows; when collapsed, you can click anywhere on a card to expand it.
+- **Prayer Editor (Tools)**: **Create New Prayer** includes **Find subscriber**: search `email_subscribers` by name or email (debounced, limited columns/rows), then pick a row to fill name and email. The main editor **search** also covers **prayer update** text, debounced with a minimum length; see [`docs/CHANGELOG.md`](docs/CHANGELOG.md) (*Prayer Editor: Find subscriber* and *Prayer Editor search — prayer updates & debounce*).
 - **Prayer Moderation**: Review, approve, or deny prayer requests and updates
 - **Prayer Encouragement**: Enable/disable “Pray For” and set cooldown (1–168 hours)
 - **User Management**: Manage admin access and user permissions

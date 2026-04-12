@@ -28,6 +28,9 @@ A comprehensive prayer request management system for Cross Pointe Church built w
 - ✅ Add prayer updates (logged-in users)
 - ✅ Email notifications (configurable)
 - ✅ Admin approval workflow
+- ✅ **Admin Settings UI**: Under Admin → Settings, collapsible sections use aligned card headers and consistent padding/shadows; when a section is collapsed, the **whole card** is clickable (pointer cursor).
+- ✅ **Prayer Editor: Find subscriber** (Admin → Tools, **Create New Prayer**): Search **`email_subscribers`** by name or email (minimal columns, capped rows, debounced) and pick a row to fill requester fields ([DEVELOPMENT.md](DEVELOPMENT.md#prayer-editor-find-subscriber-create-prayer)).
+- ✅ **Prayer Editor search** (Admin → Tools): Text search includes **prayer update bodies** as well as prayer fields; queries are **debounced** with a short **minimum character** threshold before hitting the API. The main prayer list uses the same update-content matching when the user filters by text ([DEVELOPMENT.md — Prayer Editor search](DEVELOPMENT.md#prayer-editor-search-admin-tools)).
 - ✅ Real-time updates via Supabase
 - ✅ Prayer timer & printable lists
 - ✅ Personal prayers (private user prayers)

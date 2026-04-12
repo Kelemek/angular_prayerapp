@@ -1,0 +1,40 @@
+---
+description: Keep CHANGELOG and project docs in sync with meaningful changes
+alwaysApply: true
+---
+
+# Documentation and changelog
+
+When you complete work that is **not** trivial (typos-only, pure formatting, or test-only refactors with no behavior change), **update documentation in the same change** so the next person does not rely on git archaeology.
+
+## Always update for these
+
+- **User-visible behavior**: new or changed flows (including **Admin** / Settings), UI patterns, copy that reflects behavior, Capacitor or auth changes.
+- **Data / API**: new or altered tables, columns, RLS, Edge Functions, env vars, migrations under `supabase/migrations/`.
+- **Integrations**: email, Planning Center, push, GitHub feedback, analytics, etc.
+- **Developer or operator impact**: new scripts, build steps, deployment, or troubleshooting that others will hit.
+
+## Where to write what
+
+| Audience / purpose | File |
+|--------------------|------|
+| **What shipped** (feature bullets, links to `src/…`, migrations) | `docs/CHANGELOG.md` — add under **`## [Current]`** (or the section the repo uses for unreleased work). |
+| **Capabilities / high-level product** | `docs/README.md` and/or root `README.md` when the public or internal “what this app does” list changes. |
+| **Architecture, admin tools, services, how-it-works** | `docs/DEVELOPMENT.md` when behavior, components, or data flow should be discoverable without reading code. |
+| **Install, env, deploy, cron, secrets** | `docs/SETUP.md` when setup or ops steps change. |
+| **Debugging / known failures** | `docs/TROUBLESHOOTING.md` when you fix or document a recurring issue. |
+
+Use **complete sentences** in changelog and docs; prefer **relative links** to repo paths. Do not duplicate long prose in three files—**CHANGELOG** carries “what changed”; **DEVELOPMENT** carries “how it works”; **README** stays short.
+
+## When you may skip
+
+- Mechanical refactors, renames with no semantic change, dependency bumps with no workflow change (unless SECURITY or breaking).
+- Single-line UI text with **no** behavior or expectation change.
+
+## Agent checklist before finishing a task
+
+1. If the change matches **Always update** above → edit **`docs/CHANGELOG.md`** in the same session.
+2. If admins, integrators, or new devs need to **find** the behavior → add or adjust **`docs/DEVELOPMENT.md`** and/or **`docs/README.md`** / **`README.md`** as appropriate.
+3. If setup or production steps change → **`docs/SETUP.md`** (and TROUBLESHOOTING if you added a known pitfall).
+
+If the user explicitly asks to **omit** docs for a quick experiment, follow their instruction; otherwise default to **updating docs**.
