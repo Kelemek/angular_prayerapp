@@ -11,6 +11,13 @@ describe('AdminComponent', () => {
   let router: any;
   let ngZone: any;
   let cdr: any;
+  let adminHelpDriverTour: {
+    destroy: ReturnType<typeof vi.fn>;
+    startEmailSubscribersTour: ReturnType<typeof vi.fn>;
+    startEmailSubscribersOverviewTour: ReturnType<typeof vi.fn>;
+    startPrayerEditorCreateTour: ReturnType<typeof vi.fn>;
+    startPrayerEditorManageTour: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     adminDataService = {
@@ -62,8 +69,24 @@ describe('AdminComponent', () => {
     router = { navigate: vi.fn() };
     ngZone = { run: (fn: () => void) => fn() };
     cdr = { markForCheck: vi.fn() };
+    adminHelpDriverTour = {
+      destroy: vi.fn(),
+      startEmailSubscribersTour: vi.fn(),
+      startEmailSubscribersOverviewTour: vi.fn(),
+      startPrayerEditorCreateTour: vi.fn(),
+      startPrayerEditorManageTour: vi.fn(),
+    };
 
-    component = new AdminComponent(router, adminDataService, analyticsService, adminAuthService, userSessionService, ngZone, cdr);
+    component = new AdminComponent(
+      router,
+      adminDataService,
+      analyticsService,
+      adminAuthService,
+      userSessionService,
+      ngZone,
+      cdr,
+      adminHelpDriverTour as never
+    );
   });
 
   it('subscribes and fetches admin data on init', async () => {
@@ -1026,6 +1049,29 @@ describe('AdminComponent', () => {
       
       expect(spy).toHaveBeenCalled();
       expect(component.activeTab).toBe('prayers');
+    });
+  });
+
+  describe('Admin help — Email Subscribers overview tour', () => {
+    it('onEmailSubscribersOverviewTourFromHelp navigates to email settings and starts tour after prepare', async () => {
+      const prepare = vi.fn().mockResolvedValue(undefined);
+      (component as { emailSettingsRef?: { prepareEmailSubscribersOverviewTour: () => Promise<void> } }).emailSettingsRef =
+        { prepareEmailSubscribersOverviewTour: prepare };
+      component.showAdminHelp = true;
+      component.onEmailSubscribersOverviewTourFromHelp();
+      expect(component.showAdminHelp).toBe(false);
+      expect(component.activeTab).toBe('settings');
+      expect(component.activeSettingsTab).toBe('email');
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+      expect(prepare).toHaveBeenCalled();
+      expect(adminHelpDriverTour.startEmailSubscribersOverviewTour).toHaveBeenCalled();
+    });
+
+    it('onEmailSubscribersOverviewTourFromHelp still starts overview tour when emailSettingsRef is missing', async () => {
+      (component as { emailSettingsRef?: unknown }).emailSettingsRef = undefined;
+      component.onEmailSubscribersOverviewTourFromHelp();
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+      expect(adminHelpDriverTour.startEmailSubscribersOverviewTour).toHaveBeenCalled();
     });
   });
 });

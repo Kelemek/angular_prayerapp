@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -206,6 +206,8 @@ import { EmailSubscribersComponent } from '../email-subscribers/email-subscriber
   styles: []
 })
 export class EmailSettingsComponent {
+  @ViewChild(EmailSubscribersComponent) emailSubscribers?: EmailSubscribersComponent;
+
   @Output() onSave = new EventEmitter<void>();
 
   remindersSectionExpanded = false;
@@ -337,5 +339,39 @@ export class EmailSettingsComponent {
     } else if (this.daysBeforeArchive > 90) {
       this.daysBeforeArchive = 90;
     }
+  }
+
+  /** Expand Email Subscribers and reset add form before the admin Email Subscribers driver.js tour. */
+  prepareEmailSubscribersTour(): void {
+    this.emailSubscribers?.prepareTourInitialState();
+  }
+
+  /** Overview tour: expand Email Subscribers, set list search to app-test, and load rows for column highlights. */
+  prepareEmailSubscribersOverviewTour(): Promise<void> {
+    return this.emailSubscribers?.prepareOverviewTourListState() ?? Promise.resolve();
+  }
+
+  openAddSubscriberFormForTour(): void {
+    this.emailSubscribers?.openAddFormForTour();
+  }
+
+  showPlanningCenterTabForTour(): void {
+    this.emailSubscribers?.showPlanningCenterTabForTour();
+  }
+
+  runPlanningCenterSearchTourDemo(): Promise<void> {
+    return this.emailSubscribers?.runPlanningCenterSearchTourDemo() ?? Promise.resolve();
+  }
+
+  selectTourPlanningCenterMatchFromDemoResults(): void {
+    this.emailSubscribers?.selectTourPlanningCenterMatchFromDemoResults();
+  }
+
+  applyTourDemoPlanningCenterAdd(): void {
+    this.emailSubscribers?.applyTourDemoPlanningCenterAdd();
+  }
+
+  clearEmailSubscribersTourDemoForm(): void {
+    this.emailSubscribers?.clearEmailSubscribersTourDemoForm();
   }
 }

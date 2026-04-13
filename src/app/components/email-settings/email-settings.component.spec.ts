@@ -394,4 +394,20 @@ describe('EmailSettingsComponent', () => {
       expect(component.daysBeforeArchive).toBe(90);
     });
   });
+
+  describe('prepareEmailSubscribersOverviewTour', () => {
+    it('delegates to emailSubscribers.prepareOverviewTourListState', async () => {
+      const prepareOverviewTourListState = vi.fn().mockResolvedValue(undefined);
+      (component as { emailSubscribers?: { prepareOverviewTourListState: () => Promise<void> } }).emailSubscribers = {
+        prepareOverviewTourListState,
+      };
+      await component.prepareEmailSubscribersOverviewTour();
+      expect(prepareOverviewTourListState).toHaveBeenCalled();
+    });
+
+    it('resolves when emailSubscribers is undefined', async () => {
+      (component as { emailSubscribers?: unknown }).emailSubscribers = undefined;
+      await expect(component.prepareEmailSubscribersOverviewTour()).resolves.toBeUndefined();
+    });
+  });
 });

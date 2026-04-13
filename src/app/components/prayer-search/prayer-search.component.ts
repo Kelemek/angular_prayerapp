@@ -124,6 +124,8 @@ function escapeForIlikePattern(value: string): string {
   <!-- Create New Prayer Button -->
   <div class="mb-4 flex justify-end">
     <button
+      type="button"
+      id="tour-prayer-editor-create-btn"
       (click)="startCreatePrayer()"
       class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
     >
@@ -155,7 +157,7 @@ function escapeForIlikePattern(value: string): string {
     </div>
 
     <form (submit)="createPrayer($event)" class="space-y-3">
-      <div class="relative">
+      <div id="tour-prayer-editor-field-find-subscriber" class="relative">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Find subscriber
         </label>
@@ -202,7 +204,7 @@ function escapeForIlikePattern(value: string): string {
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div id="tour-prayer-editor-field-names" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             First Name *
@@ -232,7 +234,7 @@ function escapeForIlikePattern(value: string): string {
         </div>
       </div>
 
-      <div>
+      <div id="tour-prayer-editor-field-email">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Email *
         </label>
@@ -246,7 +248,7 @@ function escapeForIlikePattern(value: string): string {
         />
       </div>
 
-      <div>
+      <div id="tour-prayer-editor-field-praying-for">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Praying For *
         </label>
@@ -263,7 +265,7 @@ function escapeForIlikePattern(value: string): string {
         </p>
       </div>
 
-      <div>
+      <div id="tour-prayer-editor-field-description">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Description *
         </label>
@@ -276,7 +278,7 @@ function escapeForIlikePattern(value: string): string {
         ></textarea>
       </div>
 
-      <div class="flex items-center cursor-pointer">
+      <div id="tour-prayer-editor-field-anonymous" class="flex items-center cursor-pointer">
         <input
           type="checkbox"
           [(ngModel)]="createForm.is_anonymous"
@@ -289,7 +291,7 @@ function escapeForIlikePattern(value: string): string {
         </label>
       </div>
 
-      <div>
+      <div id="tour-prayer-editor-field-status">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Status *
         </label>
@@ -312,6 +314,7 @@ function escapeForIlikePattern(value: string): string {
 
       <div class="flex gap-3">
         <button
+          id="tour-prayer-editor-create-submit"
           type="submit"
           [disabled]="!isCreateFormValid() || saving"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
@@ -531,11 +534,17 @@ function escapeForIlikePattern(value: string): string {
 
   @if (!searching && displayPrayers.length > 0) {
   <div class="space-y-1">
-    @for (prayer of displayPrayers; track prayer.id) {
-    <div [class]="'border rounded-lg transition-all duration-200 ' + (selectedPrayers.has(prayer.id) ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')">
+    @for (prayer of displayPrayers; track prayer.id; let i = $index) {
+    <div
+      [attr.id]="i === 0 ? 'tour-prayer-editor-first-card' : null"
+      [class]="'border rounded-lg transition-all duration-200 ' + (selectedPrayers.has(prayer.id) ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')">
       
       <!-- Compact Header - Always Visible -->
-      <div class="flex items-center gap-3 px-3 py-2 cursor-pointer" (click)="toggleExpandCard(prayer.id)">
+      <div
+        class="flex items-center gap-3 px-3 py-2 cursor-pointer"
+        [attr.id]="i === 0 ? 'tour-prayer-editor-first-row' : null"
+        (click)="toggleExpandCard(prayer.id)"
+      >
         <input
           type="checkbox"
           [checked]="selectedPrayers.has(prayer.id)"
@@ -589,6 +598,8 @@ function escapeForIlikePattern(value: string): string {
 
         <div class="flex flex-col gap-2 flex-shrink-0 pointer-events-auto">
           <button
+            type="button"
+            [attr.id]="i === 0 ? 'tour-prayer-editor-edit-first' : null"
             (click)="$event.stopPropagation(); startEditPrayer(prayer)"
             [disabled]="saving"
             class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
@@ -600,6 +611,8 @@ function escapeForIlikePattern(value: string): string {
             </svg>
           </button>
           <button
+            type="button"
+            [attr.id]="i === 0 ? 'tour-prayer-editor-delete-first' : null"
             (click)="$event.stopPropagation(); deletePrayer(prayer)"
             [disabled]="deleting"
             class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
@@ -624,6 +637,7 @@ function escapeForIlikePattern(value: string): string {
             @if (editingPrayer === prayer.id) {
             <div class="flex gap-2">
               <button
+                type="button"
                 (click)="savePrayer(prayer.id)"
                 [disabled]="saving"
                 class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
@@ -636,6 +650,8 @@ function escapeForIlikePattern(value: string): string {
                 {{ saving ? 'Saving...' : 'Save' }}
               </button>
               <button
+                type="button"
+                [attr.id]="i === 0 ? 'tour-prayer-editor-edit-cancel-first' : null"
                 (click)="cancelEdit()"
                 [disabled]="saving"
                 class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
@@ -653,8 +669,8 @@ function escapeForIlikePattern(value: string): string {
           
           <!-- Edit Mode Form -->
           @if (editingPrayer === prayer.id) {
-          <div class="space-y-4">
-            <div>
+          <div class="space-y-4" [attr.id]="i === 0 ? 'tour-prayer-editor-edit-form' : null">
+            <div [attr.id]="i === 0 ? 'tour-prayer-editor-edit-field-title' : null">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Title *
               </label>
@@ -666,7 +682,7 @@ function escapeForIlikePattern(value: string): string {
               />
             </div>
 
-            <div>
+            <div [attr.id]="i === 0 ? 'tour-prayer-editor-edit-field-description' : null">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Description *
               </label>
@@ -678,7 +694,7 @@ function escapeForIlikePattern(value: string): string {
               ></textarea>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" [attr.id]="i === 0 ? 'tour-prayer-editor-edit-field-requester-email' : null">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Requester *
@@ -704,7 +720,7 @@ function escapeForIlikePattern(value: string): string {
               </div>
             </div>
 
-            <div>
+            <div [attr.id]="i === 0 ? 'tour-prayer-editor-edit-field-praying-for' : null">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Praying For
               </label>
@@ -716,7 +732,7 @@ function escapeForIlikePattern(value: string): string {
               />
             </div>
 
-            <div>
+            <div [attr.id]="i === 0 ? 'tour-prayer-editor-edit-field-status' : null">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Status *
               </label>
@@ -1002,15 +1018,19 @@ function escapeForIlikePattern(value: string): string {
 
             <!-- Add Update Section -->
             @if (!editingPrayer) {
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div
+              class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+              [attr.id]="i === 0 ? 'tour-prayer-editor-add-update-section' : null"
+            >
               @if (addingUpdate === prayer.id) {
-              <div class="space-y-3">
+              <div class="space-y-3" [attr.id]="i === 0 ? 'tour-prayer-editor-add-update-form' : null">
                 <div class="flex items-center justify-between mb-2">
                   <h6 class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
                     Add New Update
                   </h6>
                   <div class="flex gap-2">
                     <button
+                      type="button"
                       (click)="saveNewUpdate(prayer.id)"
                       [disabled]="!isUpdateFormValid() || savingUpdate"
                       class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -1023,6 +1043,8 @@ function escapeForIlikePattern(value: string): string {
                       {{ savingUpdate ? 'Saving...' : 'Save Update' }}
                     </button>
                     <button
+                      type="button"
+                      [attr.id]="i === 0 ? 'tour-prayer-editor-add-update-cancel-first' : null"
                       (click)="cancelAddUpdate()"
                       [disabled]="savingUpdate"
                       class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
@@ -1037,7 +1059,7 @@ function escapeForIlikePattern(value: string): string {
                   </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-3" [attr.id]="i === 0 ? 'tour-prayer-editor-add-update-field-names' : null">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       First Name *
@@ -1065,7 +1087,7 @@ function escapeForIlikePattern(value: string): string {
                   </div>
                 </div>
 
-                <div>
+                <div [attr.id]="i === 0 ? 'tour-prayer-editor-add-update-field-author-email' : null">
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Author Email *
                   </label>
@@ -1078,7 +1100,7 @@ function escapeForIlikePattern(value: string): string {
                   />
                 </div>
 
-                <div>
+                <div [attr.id]="i === 0 ? 'tour-prayer-editor-add-update-field-content' : null">
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Update Content *
                   </label>
@@ -1095,6 +1117,8 @@ function escapeForIlikePattern(value: string): string {
 
               @if (addingUpdate !== prayer.id) {
               <button
+                type="button"
+                [attr.id]="i === 0 ? 'tour-prayer-editor-add-update-btn' : null"
                 (click)="addingUpdate = prayer.id"
                 class="ml-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
               >
@@ -1973,7 +1997,8 @@ export class PrayerSearchComponent implements OnDestroy {
       status: prayer.status
     };
     this.editingPrayer = prayer.id;
-    this.expandedCards.add(prayer.id);
+    this.expandedCards = new Set([...this.expandedCards, prayer.id]);
+    this.cdr.markForCheck();
   }
 
   cancelEdit(): void {
@@ -1986,6 +2011,93 @@ export class PrayerSearchComponent implements OnDestroy {
       prayer_for: '',
       status: ''
     };
+  }
+
+  /** Expand Prayer Editor, close create form — call before Admin Help Prayer Editor driver.js tour. */
+  preparePrayerEditorTourInitialState(): void {
+    if (!this.sectionExpanded) {
+      this.sectionExpanded = true;
+      if (!this.sectionInitialLoadDone) {
+        this.sectionInitialLoadDone = true;
+        void this.handleSearch();
+      }
+    }
+    this.cancelCreatePrayer();
+    this.cdr.markForCheck();
+  }
+
+  /** Opens the create form when the tour advances past “Create New Prayer” (same as clicking the button). */
+  openCreatePrayerFormForTour(): void {
+    this.startCreatePrayer();
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Load prayers, expand the first card, clear transient editor state — before the Prayer Editor “manage” driver.js tour.
+   * @returns whether at least one prayer is on the current page (for tour steps; avoids querying the DOM before paint).
+   */
+  async preparePrayerEditorManageTourInitialState(): Promise<boolean> {
+    if (!this.sectionExpanded) {
+      this.sectionExpanded = true;
+      if (!this.sectionInitialLoadDone) {
+        this.sectionInitialLoadDone = true;
+      }
+    }
+    this.cancelCreatePrayer();
+    this.cancelEdit();
+    this.cancelAddUpdate();
+    this.cancelEditUpdate();
+    await this.handleSearch();
+    const first = this.displayPrayers[0];
+    if (first) {
+      this.expandedCards = new Set([first.id]);
+    } else {
+      this.expandedCards = new Set();
+    }
+    this.cdr.markForCheck();
+    return this.displayPrayers.length > 0;
+  }
+
+  /** Admin Prayer Editor manage tour: open edit for the first visible prayer. */
+  openEditFormForTour(): void {
+    const prayer = this.displayPrayers[0];
+    if (prayer) {
+      this.startEditPrayer(prayer);
+    }
+    this.cdr.markForCheck();
+  }
+
+  /** Admin Prayer Editor manage tour: exit edit without saving. */
+  cancelEditForTour(): void {
+    this.cancelEdit();
+    this.cdr.markForCheck();
+  }
+
+  /** Admin Prayer Editor manage tour: open Add New Update for the first visible prayer. */
+  openAddUpdateFormForTour(): void {
+    const prayer = this.displayPrayers[0];
+    if (!prayer) {
+      return;
+    }
+    this.cancelEdit();
+    this.cancelEditUpdate();
+    this.expandedCards = new Set([prayer.id]);
+    this.addingUpdate = prayer.id;
+    this.newUpdate = { content: '', firstName: '', lastName: '', author_email: '' };
+    this.cdr.markForCheck();
+  }
+
+  /** Admin Prayer Editor manage tour: close add-update form without saving. */
+  cancelAddUpdateForTour(): void {
+    this.cancelAddUpdate();
+    this.cdr.markForCheck();
+  }
+
+  /** Admin Prayer Editor manage tour: if the driver is closed early, leave the panel in a neutral state. */
+  resetPrayerEditorManageTourUi(): void {
+    this.cancelEdit();
+    this.cancelAddUpdate();
+    this.cdr.markForCheck();
   }
 
   startCreatePrayer(): void {

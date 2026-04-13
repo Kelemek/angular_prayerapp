@@ -1,4 +1,13 @@
-import { Component, OnInit, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef, NgZone } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  NgZone,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -29,6 +38,8 @@ import { PrayerEncouragementSettingsComponent } from '../../components/prayer-en
 import { PlanningCenterListMapperComponent } from '../../components/planning-center-list-mapper/planning-center-list-mapper.component';
 import { ConfirmationDialogComponent } from '../../components/confirmation-dialog/confirmation-dialog.component';
 import { SiteAnalyticsActivityChartComponent } from '../../components/site-analytics-activity-chart/site-analytics-activity-chart.component';
+import { AdminHelpModalComponent } from '../../components/admin-help-modal/admin-help-modal.component';
+import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tour.service';
 
 type AdminTab = 'prayers' | 'updates' | 'deletions' | 'accounts' | 'settings';
 type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
@@ -59,7 +70,8 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
     PrayerEncouragementSettingsComponent,
     PlanningCenterListMapperComponent,
     ConfirmationDialogComponent,
-    SiteAnalyticsActivityChartComponent
+    SiteAnalyticsActivityChartComponent,
+    AdminHelpModalComponent
   ],
   styles: `
     /* Safe area support for notched/dynamic island devices */
@@ -123,17 +135,32 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                 </button>
               }
               
-              <!-- Navigation Controls -->
-              <button
-                (click)="goToHome()"
-                class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-900 transition-colors text-sm cursor-pointer"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="19" y1="12" x2="5" y2="12"></line>
-                  <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                Main Site
-              </button>
+              <!-- Navigation Controls: Help (left), Main Site -->
+              <div class="flex flex-row items-center gap-2">
+                <button
+                  type="button"
+                  (click)="showAdminHelp = true"
+                  class="flex items-center justify-center h-12 gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer"
+                  title="Help & Guidance"
+                  aria-label="Open admin help"
+                >
+                  <svg class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                    <text x="12" y="16" text-anchor="middle" fill="currentColor" font-size="14" font-weight="bold">?</text>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  (click)="goToHome()"
+                  class="flex items-center justify-center h-12 gap-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-900 transition-colors text-sm cursor-pointer"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                  Main Site
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -376,6 +403,8 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                 Content
               </button>
               <button
+                type="button"
+                id="admin-settings-tab-email"
                 (click)="onSettingsTabChange('email')"
                 [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 cursor-pointer ' + (activeSettingsTab === 'email' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
               >
@@ -386,6 +415,8 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                 Email
               </button>
               <button
+                type="button"
+                id="admin-settings-tab-tools"
                 (click)="onSettingsTabChange('tools')"
                 [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 cursor-pointer ' + (activeSettingsTab === 'tools' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
               >
@@ -629,7 +660,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
             @if (activeSettingsTab === 'email') {
               <div class="space-y-6">
                 <div class="mb-4">
-                  <app-email-settings></app-email-settings>
+                  <app-email-settings #emailSettings></app-email-settings>
                 </div>
               </div>
             }
@@ -638,7 +669,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
             @if (activeSettingsTab === 'tools') {
               <div class="space-y-6">
                 <div class="mb-4">
-                  <app-prayer-search></app-prayer-search>
+                  <app-prayer-search #prayerSearch></app-prayer-search>
                 </div>
                 <div class="mb-4">
                   <app-prayer-archive-timeline></app-prayer-archive-timeline>
@@ -693,6 +724,15 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
       }
 
       <!-- Logout Confirmation Modal -->
+      <app-admin-help-modal
+        [isOpen]="showAdminHelp"
+        (closeModal)="showAdminHelp = false"
+        (startEmailSubscribersTour)="onEmailSubscribersTourFromHelp()"
+        (startEmailSubscribersOverviewTour)="onEmailSubscribersOverviewTourFromHelp()"
+        (startPrayerEditorTour)="onPrayerEditorTourFromHelp()"
+        (startPrayerEditorManageTour)="onPrayerEditorManageTourFromHelp()"
+      ></app-admin-help-modal>
+
       @if (showLogoutConfirmation) {
         <app-confirmation-dialog
           title="Log Out?"
@@ -708,6 +748,9 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
   `
 })
 export class AdminComponent implements OnInit, OnDestroy {
+  @ViewChild('emailSettings') emailSettingsRef?: EmailSettingsComponent;
+  @ViewChild('prayerSearch') prayerSearchRef?: PrayerSearchComponent;
+
   activeTab: AdminTab = 'prayers';
   activeSettingsTab: SettingsTab = 'analytics';
   adminData: any = null;
@@ -730,6 +773,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   // Dialog state for send notification
   showSendNotificationDialog = false;
   showLogoutConfirmation = false;
+  showAdminHelp = false;
   sendDialogType: NotificationType = 'prayer';
   sendDialogPrayerTitle?: string;
   sendDialogPrayerId?: string;
@@ -745,8 +789,85 @@ export class AdminComponent implements OnInit, OnDestroy {
     public adminAuthService: AdminAuthService,
     public userSessionService: UserSessionService,
     private ngZone: NgZone,
-    public cdr: ChangeDetectorRef
+    public cdr: ChangeDetectorRef,
+    private adminHelpDriverTour: AdminHelpDriverTourService
   ) {}
+
+  /** From Admin Help: navigate to Email settings and start the Email Subscribers driver.js tour. */
+  onEmailSubscribersTourFromHelp(): void {
+    this.showAdminHelp = false;
+    this.onTabChange('settings');
+    this.onSettingsTabChange('email');
+    this.cdr.markForCheck();
+    window.setTimeout(() => {
+      this.emailSettingsRef?.prepareEmailSubscribersTour();
+      this.adminHelpDriverTour.startEmailSubscribersTour({
+        openAddForm: () => this.emailSettingsRef?.openAddSubscriberFormForTour(),
+        showPcSearchTab: () => this.emailSettingsRef?.showPlanningCenterTabForTour(),
+        runPlanningCenterSearchTourDemo: () =>
+          this.emailSettingsRef?.runPlanningCenterSearchTourDemo() ?? Promise.resolve(),
+        selectTourPlanningCenterMatchFromDemoResults: () =>
+          this.emailSettingsRef?.selectTourPlanningCenterMatchFromDemoResults(),
+        applyTourDemoPlanningCenterAdd: () => this.emailSettingsRef?.applyTourDemoPlanningCenterAdd(),
+        clearEmailSubscribersTourDemoForm: () =>
+          this.emailSettingsRef?.clearEmailSubscribersTourDemoForm(),
+      });
+    }, 150);
+  }
+
+  /** From Admin Help: Email settings — overview tour of the subscriber list (toolbar, search, table) without opening Add Subscriber. */
+  onEmailSubscribersOverviewTourFromHelp(): void {
+    this.showAdminHelp = false;
+    this.onTabChange('settings');
+    this.onSettingsTabChange('email');
+    this.cdr.markForCheck();
+    window.setTimeout(() => {
+      void Promise.resolve(this.emailSettingsRef?.prepareEmailSubscribersOverviewTour()).then(() => {
+        window.setTimeout(() => {
+          this.adminHelpDriverTour.startEmailSubscribersOverviewTour();
+          this.cdr.markForCheck();
+        }, 100);
+      });
+    }, 150);
+  }
+
+  /** From Admin Help: navigate to Tools → Prayer Editor and start the create-prayer driver.js tour. */
+  onPrayerEditorTourFromHelp(): void {
+    this.showAdminHelp = false;
+    this.onTabChange('settings');
+    this.onSettingsTabChange('tools');
+    this.cdr.markForCheck();
+    window.setTimeout(() => {
+      this.prayerSearchRef?.preparePrayerEditorTourInitialState();
+      this.adminHelpDriverTour.startPrayerEditorCreateTour({
+        openCreatePrayerForm: () => this.prayerSearchRef?.openCreatePrayerFormForTour(),
+      });
+    }, 200);
+  }
+
+  /** From Admin Help: Tools → Prayer Editor — edit, delete, and add-update tour. */
+  onPrayerEditorManageTourFromHelp(): void {
+    this.showAdminHelp = false;
+    this.onTabChange('settings');
+    this.onSettingsTabChange('tools');
+    this.cdr.markForCheck();
+    window.setTimeout(() => {
+      void this.prayerSearchRef?.preparePrayerEditorManageTourInitialState().then((hasPrayers) => {
+        const has = hasPrayers ?? false;
+        // Next macrotask so Angular has painted tour anchors before driver.js queries the DOM.
+        window.setTimeout(() => {
+          this.adminHelpDriverTour.startPrayerEditorManageTour(has, {
+            openEditFormForTour: () => this.prayerSearchRef?.openEditFormForTour(),
+            cancelEditForTour: () => this.prayerSearchRef?.cancelEditForTour(),
+            openAddUpdateFormForTour: () => this.prayerSearchRef?.openAddUpdateFormForTour(),
+            cancelAddUpdateForTour: () => this.prayerSearchRef?.cancelAddUpdateForTour(),
+            resetTourUiState: () => this.prayerSearchRef?.resetPrayerEditorManageTourUi(),
+          });
+          this.cdr.markForCheck();
+        }, 0);
+      });
+    }, 200);
+  }
 
   /**
    * Track user activity to prevent inactivity timeout

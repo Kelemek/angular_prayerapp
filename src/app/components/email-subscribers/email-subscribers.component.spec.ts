@@ -149,6 +149,31 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
+  describe('prepareOverviewTourListState', () => {
+    it('sets search to app-test, expands section, marks initial load done, and awaits handleSearch', async () => {
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+      (component as { sectionInitialLoadDone: boolean }).sectionInitialLoadDone = false;
+
+      await component.prepareOverviewTourListState();
+
+      expect(component.searchQuery).toBe('app-test');
+      expect(component.sectionExpanded).toBe(true);
+      expect(component.showAddForm).toBe(false);
+      expect((component as { sectionInitialLoadDone: boolean }).sectionInitialLoadDone).toBe(true);
+      expect(searchSpy).toHaveBeenCalled();
+    });
+
+    it('clears list search debounce timer before calling handleSearch', async () => {
+      (component as { listSearchDebounceTimer: ReturnType<typeof setTimeout> | null }).listSearchDebounceTimer =
+        setTimeout(() => {}, 99999);
+      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+
+      await component.prepareOverviewTourListState();
+
+      expect(searchSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('toggleAddForm', () => {
     it('should toggle showAddForm', () => {
       expect(component.showAddForm).toBe(false);

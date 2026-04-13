@@ -82,8 +82,9 @@ function escapeForIlikePattern(value: string): string {
         aria-labelledby="email-subscribers-trigger"
         class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
       >
-      <div class="flex gap-2 mb-4 justify-end">
+      <div id="tour-email-subscribers-toolbar" class="flex gap-2 mb-4 justify-end">
         <button
+          type="button"
           (click)="toggleCSVUpload()"
           title="Toggle CSV upload"
           class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm cursor-pointer"
@@ -104,6 +105,8 @@ function escapeForIlikePattern(value: string): string {
           {{ showCSVUpload ? 'Cancel CSV' : 'Upload CSV' }}
         </button>
         <button
+          type="button"
+          id="tour-email-add-subscriber-btn"
           (click)="toggleAddForm()"
           title="Add new subscriber"
           class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm cursor-pointer"
@@ -249,11 +252,15 @@ function escapeForIlikePattern(value: string): string {
 
       <!-- Add Subscriber Form -->
       @if (showAddForm) {
-      <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
+      <div
+        id="tour-email-add-subscriber-form-shell"
+        class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700"
+      >
         <!-- Search Planning Center Tab -->
         <div class="mb-4">
-          <div class="flex gap-2 border-b border-gray-300 dark:border-gray-600">
+          <div id="tour-email-add-mode-tabs" class="flex gap-2 border-b border-gray-300 dark:border-gray-600">
             <button
+              type="button"
               (click)="pcSearchTab = false"
               [class]="!pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium cursor-pointer' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer'"
               class="focus:outline-none"
@@ -261,6 +268,8 @@ function escapeForIlikePattern(value: string): string {
               Manual Entry
             </button>
             <button
+              id="tour-email-pc-search-tab"
+              type="button"
               (click)="pcSearchTab = true"
               [class]="pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium cursor-pointer' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer'"
               class="focus:outline-none"
@@ -272,6 +281,7 @@ function escapeForIlikePattern(value: string): string {
 
         <!-- Manual Entry Tab -->
         @if (!pcSearchTab) {
+        <div id="tour-email-manual-entry-form">
         <form (ngSubmit)="handleAddSubscriber()" class="space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -299,6 +309,7 @@ function escapeForIlikePattern(value: string): string {
           </div>
           <div class="flex gap-2">
             <button
+              id="tour-email-manual-add-subscriber-btn"
               type="submit"
               [disabled]="submitting"
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer"
@@ -314,6 +325,7 @@ function escapeForIlikePattern(value: string): string {
             </button>
           </div>
         </form>
+        </div>
         }
 
         <!-- Planning Center Search Tab -->
@@ -355,8 +367,9 @@ function escapeForIlikePattern(value: string): string {
           <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Found {{ pcSearchResults.length }} result(s):</p>
             <div class="space-y-2 max-h-64 overflow-y-auto">
-              @for (person of pcSearchResults; track person.id) {
+              @for (person of pcSearchResults; track person.id; let i = $index) {
               <div
+                [attr.id]="i === 0 ? 'tour-email-pc-search-result-mark' : null"
                 (click)="selectPlanningCenterPerson(person)"
                 class="p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
@@ -392,6 +405,7 @@ function escapeForIlikePattern(value: string): string {
 
           <div class="flex gap-2">
             <button
+              id="tour-email-add-selected-pc-btn"
               (click)="handleAddSelectedPlanningCenterPerson()"
               [disabled]="submitting || !pcSelectedPerson"
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors text-sm cursor-pointer"
@@ -411,7 +425,7 @@ function escapeForIlikePattern(value: string): string {
       }
 
       <!-- Search Form -->
-      <div class="mb-4 max-w-full">
+      <div id="tour-email-subscribers-search" class="mb-4 max-w-full">
         <label for="subscriberListSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Search subscribers
         </label>
@@ -451,7 +465,8 @@ function escapeForIlikePattern(value: string): string {
         </p>
       </div>
 
-      <!-- Results -->
+      <!-- Results (tour: list, empty states, pagination) -->
+      <div id="tour-email-subscribers-list-area">
       @if (searching) {
       <div class="text-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -495,27 +510,40 @@ function escapeForIlikePattern(value: string): string {
           <span class="col-span-2 text-left text-gray-700 dark:text-gray-300">Actions</span>
         </div>
         <div class="space-y-2">
-          @for (subscriber of subscribers; track subscriber.id) { <div class="grid gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 grid-cols-2 sm:grid-cols-[repeat(16,minmax(0,1fr))] sm:items-center">
+          @for (subscriber of subscribers; track subscriber.id) {
+          <div class="grid gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 grid-cols-2 sm:grid-cols-[repeat(16,minmax(0,1fr))] sm:items-center">
             <!-- Name column -->
-            <div class="text-left col-span-1 sm:col-span-4">
+            <div
+              class="text-left col-span-1 sm:col-span-4"
+              [attr.id]="$first ? 'tour-email-overview-name' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Name</p>
               <h4 class="font-medium text-gray-900 dark:text-gray-100 truncate" [title]="subscriber.name">{{ subscriber.name }}</h4>
             </div>
             
             <!-- Email column: full width on mobile so full email can wrap; on desktop truncate -->
-            <div class="text-left col-span-2 sm:col-span-2 min-w-0">
+            <div
+              class="text-left col-span-2 sm:col-span-2 min-w-0"
+              [attr.id]="$first ? 'tour-email-overview-email' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Email</p>
               <p class="text-sm text-gray-600 dark:text-gray-400 break-all sm:truncate" [title]="subscriber.email">{{ subscriber.email }}</p>
             </div>
             
             <!-- Added column -->
-            <div class="col-span-1 sm:col-span-2 flex items-center">
+            <div
+              class="col-span-1 sm:col-span-2 flex items-center"
+              [attr.id]="$first ? 'tour-email-overview-added' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Added</p>
               <p class="text-xs text-gray-500 dark:text-gray-500" [title]="'Joined: ' + (subscriber.created_at | date:'medium')">{{ subscriber.created_at | date:'short' }}</p>
             </div>
             
             <!-- Activity column -->
-            <div class="col-span-1 sm:col-span-2 flex items-center">
+            <div
+              class="col-span-1 sm:col-span-2 flex items-center"
+              [attr.id]="$first ? 'tour-email-overview-activity' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Activity</p>
               @if (subscriber.last_activity_date) {
               <p class="text-xs text-gray-500 dark:text-gray-500" [title]="'Last active: ' + (subscriber.last_activity_date | date:'medium')">{{ subscriber.last_activity_date | date:'short' }}</p>
@@ -524,8 +552,11 @@ function escapeForIlikePattern(value: string): string {
               }
             </div>
             
-            <!-- Email (is_active) column -->
-            <div class="col-span-1 sm:col-span-1 flex items-center gap-1">
+            <!-- Email (is_active) column — mass-email subscription -->
+            <div
+              class="col-span-1 sm:col-span-1 flex items-center gap-1"
+              [attr.id]="$first ? 'tour-email-overview-email-toggle' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Email</p>
               <button
                 (click)="handleToggleActive(subscriber.id, subscriber.is_active)"
@@ -550,7 +581,10 @@ function escapeForIlikePattern(value: string): string {
             </div>
 
             <!-- Push (receive_push) column -->
-            <div class="col-span-1 sm:col-span-1 flex items-center gap-1">
+            <div
+              class="col-span-1 sm:col-span-1 flex items-center gap-1"
+              [attr.id]="$first ? 'tour-email-overview-push' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Push</p>
               <button
                 (click)="handleToggleReceivePush(subscriber.id, (subscriber.receive_push ?? false))"
@@ -575,7 +609,10 @@ function escapeForIlikePattern(value: string): string {
             </div>
 
             <!-- PC column -->
-            <div class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center gap-1">
+            <div
+              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center gap-1"
+              [attr.id]="$first ? 'tour-email-overview-pc' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">PC</p>
               @if (subscriber.in_planning_center === true) {
               <span class="text-lg text-green-600 dark:text-green-400" title="This person is verified in Planning Center">✓</span>
@@ -587,7 +624,10 @@ function escapeForIlikePattern(value: string): string {
             </div>
 
             <!-- Blocked column -->
-            <div class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center gap-1">
+            <div
+              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center gap-1"
+              [attr.id]="$first ? 'tour-email-overview-block' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Blocked</p>
               <button
                 (click)="handleToggleBlocked(subscriber.id, subscriber.is_blocked)"
@@ -604,7 +644,10 @@ function escapeForIlikePattern(value: string): string {
             </div>
 
             <!-- Edit column -->
-            <div class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center">
+            <div
+              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center"
+              [attr.id]="$first ? 'tour-email-overview-edit' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Edit</p>
               <button
                 (click)="openEditSubscriberModal(subscriber)"
@@ -619,7 +662,10 @@ function escapeForIlikePattern(value: string): string {
             </div>
 
             <!-- Delete column -->
-            <div class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center">
+            <div
+              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center"
+              [attr.id]="$first ? 'tour-email-overview-delete' : null"
+            >
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Delete</p>
               <button
                 (click)="handleDelete(subscriber.id, subscriber.email)"
@@ -636,7 +682,7 @@ function escapeForIlikePattern(value: string): string {
           }
         </div>
 
-        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+        <div id="tour-email-subscribers-pagination" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
           <div class="flex items-center justify-between text-sm">
             <span class="text-gray-600 dark:text-gray-400">
               Found: <span class="font-semibold">{{ totalItems }}</span> subscriber(s) | 
@@ -708,6 +754,7 @@ function escapeForIlikePattern(value: string): string {
       </div>
       <!-- end @if (!searching && hasSearched && subscribers.length > 0) -->
       }
+      </div>
       </div>
       }
 
@@ -849,6 +896,9 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   readonly pcSearchMinChars = 2;
   readonly pcSearchDebounceMs = 500;
   private pcSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Admin tour: Planning Center demo — preview only; blocks real `handleAddSubscriber` while true. */
+  private pcSearchTourDemoActive = false;
+  private pcSearchTourDemoBlockManualSubmit = false;
 
   // Send notification dialog properties
   showSendWelcomeEmailDialog = false;
@@ -1075,7 +1125,130 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     this.pcSearchResults = [];
     this.pcSelectedPerson = null;
     this.pcSearchSearched = false;
+    this.pcSearchTourDemoActive = false;
+    this.pcSearchTourDemoBlockManualSubmit = false;
     this.cdr.markForCheck();
+  }
+
+  /** Admin help tour: expand section and close add form so driver steps match the DOM. */
+  prepareTourInitialState(): void {
+    this.sectionExpanded = true;
+    this.showAddForm = false;
+    this.showCSVUpload = false;
+    this.pcSearchTab = false;
+    this.pcSearchQuery = '';
+    this.pcSearchResults = [];
+    this.pcSelectedPerson = null;
+    this.pcSearchSearched = false;
+    this.pcSearchTourDemoActive = false;
+    this.pcSearchTourDemoBlockManualSubmit = false;
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Overview tour: expand section, set list search to `app-test`, and load rows so column highlights exist
+   * (e.g. App-Test Account in dev). Safe to call when the Email Subscribers panel is off-screen.
+   */
+  async prepareOverviewTourListState(): Promise<void> {
+    this.prepareTourInitialState();
+    if (!this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+    }
+    this.searchQuery = 'app-test';
+    if (this.listSearchDebounceTimer) {
+      clearTimeout(this.listSearchDebounceTimer);
+      this.listSearchDebounceTimer = null;
+    }
+    await this.handleSearch();
+    this.cdr.markForCheck();
+  }
+
+  openAddFormForTour(): void {
+    this.showAddForm = true;
+    this.showCSVUpload = false;
+    this.error = null;
+    this.cdr.markForCheck();
+  }
+
+  showPlanningCenterTabForTour(): void {
+    this.pcSearchTab = true;
+    this.cdr.markForCheck();
+  }
+
+  /** Admin tour: fill “Mark Larson”, search Planning Center, select a matching person (no add). */
+  runPlanningCenterSearchTourDemo(): Promise<void> {
+    this.pcSearchTourDemoActive = true;
+    this.pcSearchQuery = 'Mark Larson';
+    this.cdr.markForCheck();
+    return this.runTourDemoPlanningCenterSearchOnly();
+  }
+
+  /** Admin tour: select Mark Larson (or first result) after search results appear. */
+  selectTourPlanningCenterMatchFromDemoResults(): void {
+    const match = this.findMarkLarsonTourDemoMatch() ?? (this.pcSearchResults.length > 0 ? this.pcSearchResults[0] : null);
+    if (match) {
+      this.selectPlanningCenterPerson(match);
+    } else {
+      this.toast.info('Tour: No Planning Center results to select.');
+    }
+    this.cdr.markForCheck();
+  }
+
+  /** Admin tour: same as clicking Add Selected Subscriber; tour mode does not persist. */
+  applyTourDemoPlanningCenterAdd(): void {
+    if (!this.pcSelectedPerson) {
+      this.toast.info('Tour: No person selected — search may have had no match for “Mark Larson”.');
+      return;
+    }
+    void this.handleAddSelectedPlanningCenterPerson();
+  }
+
+  /** Admin tour: clear demo PC state and manual fields when the tour ends (no name/email left on the form). */
+  clearEmailSubscribersTourDemoForm(): void {
+    this.newName = '';
+    this.newEmail = '';
+    this.pcSearchTourDemoActive = false;
+    this.pcSearchTourDemoBlockManualSubmit = false;
+    this.pcSearchTab = false;
+    this.pcSearchQuery = '';
+    this.pcSearchResults = [];
+    this.pcSelectedPerson = null;
+    this.pcSearchSearched = false;
+    this.error = null;
+    if (this.pcSearchDebounceTimer) {
+      clearTimeout(this.pcSearchDebounceTimer);
+      this.pcSearchDebounceTimer = null;
+    }
+    this.cdr.markForCheck();
+  }
+
+  private async runTourDemoPlanningCenterSearchOnly(): Promise<void> {
+    if (this.pcSearchDebounceTimer) {
+      clearTimeout(this.pcSearchDebounceTimer);
+      this.pcSearchDebounceTimer = null;
+    }
+    await this.handleSearchPlanningCenter();
+    if (!this.pcSearchTourDemoActive) {
+      return;
+    }
+    if (this.pcSearchResults.length === 0) {
+      this.pcSearchTourDemoActive = false;
+      this.toast.info(
+        'Tour: No Planning Center results for “Mark Larson” in this environment. Try your own search.'
+      );
+    }
+    this.cdr.markForCheck();
+  }
+
+  private findMarkLarsonTourDemoMatch(): PlanningCenterPerson | null {
+    for (const p of this.pcSearchResults) {
+      const attrs = p.attributes;
+      const name = (attrs.name || `${attrs.first_name || ''} ${attrs.last_name || ''}`).trim().toLowerCase();
+      if (name.includes('mark larson') || (name.includes('mark') && name.includes('larson'))) {
+        return p;
+      }
+    }
+    return null;
   }
 
   toggleCSVUpload() {
@@ -1354,6 +1527,12 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   async handleAddSubscriber() {
     if (!this.newName.trim() || !this.newEmail.trim()) {
       this.error = 'Name and email are required';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    if (this.pcSearchTourDemoBlockManualSubmit) {
+      this.toast.info('Tour preview: close and reopen Add Subscriber, or refresh the page, to add a real subscriber.');
       this.cdr.markForCheck();
       return;
     }
@@ -1908,6 +2087,8 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   }
 
   async handleAddSelectedPlanningCenterPerson() {
+    const tourDemo = this.pcSearchTourDemoActive;
+
     if (!this.pcSelectedPerson) {
       this.error = 'Please select a person from Planning Center';
       this.cdr.markForCheck();
@@ -1925,11 +2106,26 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     
     // If we have both name and email, show success message and reset tab
     if (this.newName && this.newEmail) {
-      this.toast.info('Name and email filled in! Click "Add Subscriber" to complete.');
+      if (tourDemo) {
+        this.pcSearchTourDemoActive = false;
+        this.pcSearchTourDemoBlockManualSubmit = true;
+        this.toast.info(
+          'Tour: Name and email are filled in below. No subscriber was saved — this is a preview.'
+        );
+      } else {
+        this.toast.info('Name and email filled in! Click "Add Subscriber" to complete.');
+      }
       this.pcSearchTab = false;
     } else if (this.newName && !this.newEmail) {
-      // If we only have name, ask for email
-      this.toast.info('Name filled in! Please enter the email address for this contact.');
+      if (tourDemo) {
+        this.pcSearchTourDemoActive = false;
+        this.pcSearchTourDemoBlockManualSubmit = true;
+        this.toast.info(
+          'Tour: Name is filled in; add an email if needed. This tour does not save subscribers.'
+        );
+      } else {
+        this.toast.info('Name filled in! Please enter the email address for this contact.');
+      }
       this.pcSearchTab = false;
     }
     
