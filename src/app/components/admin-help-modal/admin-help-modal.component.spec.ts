@@ -105,4 +105,14 @@ describe('AdminHelpModalComponent', () => {
     expect(ev.stopPropagation).toHaveBeenCalled();
     expect(emitSpy).toHaveBeenCalled();
   });
+
+  it('onStartPrayerPromptsTypesTour emits and stops propagation', () => {
+    const comp = createComponent();
+    const emitSpy = vi.fn();
+    comp.startPrayerPromptsTypesTour.subscribe(emitSpy);
+    const ev = { stopPropagation: vi.fn() } as unknown as Event;
+    comp.onStartPrayerPromptsTypesTour(ev);
+    expect(ev.stopPropagation).toHaveBeenCalled();
+    expect(emitSpy).toHaveBeenCalled();
+  });
 });

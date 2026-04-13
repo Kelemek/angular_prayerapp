@@ -191,6 +191,18 @@ describe('AdminHelpDriverTourService', () => {
     });
   });
 
+  describe('startPrayerPromptsAndTypesTour', () => {
+    it('calls interruptGuidedTours and driver with Content / prompts / types steps', () => {
+      service.startPrayerPromptsAndTypesTour();
+      expect(helpDriverTour.interruptGuidedTours).toHaveBeenCalled();
+      const cfg = vi.mocked(driver).mock.calls[0][0] as { steps: { element?: string }[] };
+      expect(cfg.steps.length).toBeGreaterThan(10);
+      expect(cfg.steps.some((s) => s.element === '#admin-settings-tab-content')).toBe(true);
+      expect(cfg.steps.some((s) => s.element === '#tour-prompt-manager-toolbar')).toBe(true);
+      expect(cfg.steps.some((s) => s.element === '#tour-prayer-types-list-area')).toBe(true);
+    });
+  });
+
   describe('startEmailSubscribersTour', () => {
     it('starts driver with the interactive subscribers tour', () => {
       service.startEmailSubscribersTour({

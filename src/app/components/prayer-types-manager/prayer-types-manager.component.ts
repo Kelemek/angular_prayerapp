@@ -54,8 +54,9 @@ import type { PrayerTypeRecord } from '../../types/prayer';
         aria-labelledby="prayer-types-manager-trigger"
         class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
       >
-      <div class="flex justify-end mb-4">
+      <div id="tour-prayer-types-toolbar" class="flex justify-end mb-4">
         <button
+          type="button"
           (click)="toggleAddForm()"
           title="Add new prayer type"
           class="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap cursor-pointer"
@@ -68,7 +69,7 @@ import type { PrayerTypeRecord } from '../../types/prayer';
         </button>
       </div>
 
-      <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+      <p id="tour-prayer-types-intro" class="text-sm text-gray-600 dark:text-gray-300 mb-4">
         Manage the available types for prayer prompts. You can reorder, activate/deactivate, or delete types.
       </p>
 
@@ -167,6 +168,7 @@ import type { PrayerTypeRecord } from '../../types/prayer';
       </form>
       }
 
+      <div id="tour-prayer-types-list-area">
       <!-- Loading State -->
       @if (loading) {
       <div class="text-center py-8">
@@ -287,6 +289,9 @@ import type { PrayerTypeRecord } from '../../types/prayer';
       </div>
       }
       </div>
+      <!-- end tour-prayer-types-list-area -->
+
+      </div>
       }
 
       <!-- Confirmation Dialog -->
@@ -342,6 +347,25 @@ export class PrayerTypesManagerComponent {
     if (this.sectionExpanded && !this.sectionInitialLoadDone) {
       this.sectionInitialLoadDone = true;
       void this.fetchTypes();
+    }
+    this.cdr.markForCheck();
+  }
+
+  /** Admin help tour: expand section, close add form, load types if needed. */
+  async prepareTourInitialState(): Promise<void> {
+    this.cancelEdit();
+    if (!this.sectionExpanded) {
+      this.sectionExpanded = true;
+      if (!this.sectionInitialLoadDone) {
+        this.sectionInitialLoadDone = true;
+        await this.fetchTypes();
+      }
+      this.cdr.markForCheck();
+      return;
+    }
+    if (!this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      await this.fetchTypes();
     }
     this.cdr.markForCheck();
   }

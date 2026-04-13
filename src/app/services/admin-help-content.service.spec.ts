@@ -14,6 +14,7 @@ describe('AdminHelpContentService', () => {
     const ids = sections.map((s) => s.id);
     expect(ids).toContain('admin_help_email_subscribers_overview');
     expect(ids).toContain('admin_help_email_subscribers');
+    expect(ids).toContain('admin_help_prompts_and_types');
     const overview = sections.find((s) => s.id === 'admin_help_email_subscribers_overview');
     expect(overview?.title).toContain('Email Subscribers');
     expect(overview?.order).toBe(1);

@@ -60,8 +60,9 @@ interface CSVRow {
         aria-labelledby="prompt-manager-settings-trigger"
         class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
       >
-      <div class="flex flex-wrap gap-2 justify-end mb-4">
+      <div id="tour-prompt-manager-toolbar" class="flex flex-wrap gap-2 justify-end mb-4">
           <button
+            type="button"
             (click)="toggleCSVUpload()"
             title="Upload prompts from CSV"
             class="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm whitespace-nowrap cursor-pointer"
@@ -74,6 +75,7 @@ interface CSVRow {
             Upload CSV
           </button>
           <button
+            type="button"
             (click)="toggleAddForm()"
             title="Add new prayer prompt"
             class="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap cursor-pointer"
@@ -86,7 +88,7 @@ interface CSVRow {
           </button>
       </div>
 
-      <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+      <p id="tour-prompt-manager-intro" class="text-sm text-gray-600 dark:text-gray-300 mb-4">
         Type at least {{ promptSearchMinChars }} characters to filter by title, type, or description (debounced). Prompts load automatically when you open this page. You can also upload a CSV to add multiple prompts.
       </p>
 
@@ -105,7 +107,7 @@ interface CSVRow {
       }
 
       <!-- Search Bar -->
-      <div class="mb-4">
+      <div id="tour-prompt-manager-search" class="mb-4">
         <label for="promptManagerSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Search prompts
         </label>
@@ -334,6 +336,7 @@ interface CSVRow {
       </form>
       }
 
+      <div id="tour-prompt-manager-list-area">
       <!-- Search Results -->
       @if (searching) {
       <div class="text-center py-8">
@@ -515,6 +518,9 @@ interface CSVRow {
       </div>
       }
       </div>
+      <!-- end tour-prompt-manager-list-area -->
+
+      </div>
       }
 
       <!-- Confirmation Dialog -->
@@ -577,6 +583,32 @@ export class PromptManagerComponent implements OnDestroy {
     if (this.sectionExpanded && !this.sectionInitialLoadDone) {
       this.sectionInitialLoadDone = true;
       void this.bootstrapPromptSection();
+    }
+    this.cdr.markForCheck();
+  }
+
+  /** Admin help tour: expand section, close forms/CSV, load prompts if needed. */
+  async prepareTourInitialState(): Promise<void> {
+    this.cancelEdit();
+    this.showAddForm = false;
+    this.showCSVUpload = false;
+    this.csvData = [];
+    if (this.promptSearchDebounceTimer) {
+      clearTimeout(this.promptSearchDebounceTimer);
+      this.promptSearchDebounceTimer = null;
+    }
+    if (!this.sectionExpanded) {
+      this.sectionExpanded = true;
+      if (!this.sectionInitialLoadDone) {
+        this.sectionInitialLoadDone = true;
+        await this.bootstrapPromptSection();
+      }
+      this.cdr.markForCheck();
+      return;
+    }
+    if (!this.sectionInitialLoadDone) {
+      this.sectionInitialLoadDone = true;
+      await this.bootstrapPromptSection();
     }
     this.cdr.markForCheck();
   }

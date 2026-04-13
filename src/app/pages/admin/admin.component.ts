@@ -394,6 +394,8 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                 Analytics
               </button>
               <button
+                type="button"
+                id="admin-settings-tab-content"
                 (click)="onSettingsTabChange('content')"
                 [class]="'px-4 py-2 font-medium rounded-t-lg transition-colors flex items-center gap-2 cursor-pointer ' + (activeSettingsTab === 'content' ? 'bg-blue-600 text-white border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')"
               >
@@ -646,10 +648,10 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                   <app-branding></app-branding>
                 </div>
                 <div class="mb-4">
-                  <app-prompt-manager></app-prompt-manager>
+                  <app-prompt-manager #promptManager></app-prompt-manager>
                 </div>
                 <div class="mb-4">
-                  <app-prayer-types-manager></app-prayer-types-manager>
+                  <app-prayer-types-manager #prayerTypesManager></app-prayer-types-manager>
                 </div>
                 <div class="mb-4">
                   <app-planning-center-list-mapper></app-planning-center-list-mapper>
@@ -731,6 +733,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
         (startEmailSubscribersOverviewTour)="onEmailSubscribersOverviewTourFromHelp()"
         (startPrayerEditorTour)="onPrayerEditorTourFromHelp()"
         (startPrayerEditorManageTour)="onPrayerEditorManageTourFromHelp()"
+        (startPrayerPromptsTypesTour)="onPrayerPromptsTypesTourFromHelp()"
       ></app-admin-help-modal>
 
       @if (showLogoutConfirmation) {
@@ -750,6 +753,8 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
 export class AdminComponent implements OnInit, OnDestroy {
   @ViewChild('emailSettings') emailSettingsRef?: EmailSettingsComponent;
   @ViewChild('prayerSearch') prayerSearchRef?: PrayerSearchComponent;
+  @ViewChild('promptManager') promptManagerRef?: PromptManagerComponent;
+  @ViewChild('prayerTypesManager') prayerTypesManagerRef?: PrayerTypesManagerComponent;
 
   activeTab: AdminTab = 'prayers';
   activeSettingsTab: SettingsTab = 'analytics';
@@ -813,6 +818,24 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.emailSettingsRef?.clearEmailSubscribersTourDemoForm(),
       });
     }, 150);
+  }
+
+  /** From Admin Help: Content tab — Prayer Prompts and Prayer Types overview (no add forms opened). */
+  onPrayerPromptsTypesTourFromHelp(): void {
+    this.showAdminHelp = false;
+    this.onTabChange('settings');
+    this.onSettingsTabChange('content');
+    this.cdr.markForCheck();
+    window.setTimeout(() => {
+      void (async () => {
+        await this.promptManagerRef?.prepareTourInitialState();
+        await this.prayerTypesManagerRef?.prepareTourInitialState();
+        window.setTimeout(() => {
+          this.adminHelpDriverTour.startPrayerPromptsAndTypesTour();
+          this.cdr.markForCheck();
+        }, 150);
+      })();
+    }, 200);
   }
 
   /** From Admin Help: Email settings — overview tour of the subscriber list (toolbar, search, table) without opening Add Subscriber. */
