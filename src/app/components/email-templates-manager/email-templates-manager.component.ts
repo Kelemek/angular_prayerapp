@@ -246,7 +246,8 @@ interface EmailTemplate {
                     <li>• {{'{{actionDescription}}'}} - Description of action taken</li>
                     <li>• {{'{{denialReason}}'}} - Reason for denial/rejection</li>
                     <li>• {{'{{adminLink}}'}} - Link to admin portal</li>
-                    <li>• {{'{{appLink}}'}} - Link to main app (Edge <code class="text-[10px]">APP_URL</code>; prayer reminders + <strong>user_hourly_prayer_reminder</strong>)</li>
+                    <li>• {{'{{appLink}}'}} - Link to main app (Edge <code class="text-[10px]">APP_URL</code>; prayer reminders + hourly user reminder templates)</li>
+                    <li>• {{'{{spotlightPrayerKind}}'}}, {{'{{spotlightPrayerTitle}}'}}, {{'{{spotlightPrayerFor}}'}}, {{'{{spotlightPrayerDescription}}'}} (original request) — Hourly spotlight template. {{'{{updateContent}}'}} = latest update plain text. {{'{{spotlightUpdateBlockHtml}}'}} = optional HTML for the **Update** block (empty when there is no update). {{'{{spotlightLatestUpdateHtml}}'}} matches the block for legacy templates. {{'{{spotlightUpdateTextSection}}'}} = plain-text latest update section.</li>
                   </ul>
                 </div>
               </div>

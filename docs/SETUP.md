@@ -187,6 +187,8 @@ limit 5;
 
 Confirm the Edge Function logs in **Supabase → Edge Functions → send-user-hourly-prayer-reminders → Logs**. Optionally `select * from cron.job where jobname = 'invoke-user-hourly-prayer-reminders';` to confirm the schedule.
 
+After migration `20260414120000_user_hourly_reminder_spotlight_prayer.sql`, **Admin → Settings → Email** includes an **Hourly user prayer reminder email** control (`admin_settings.user_hourly_prayer_reminder_template_key`) and template **`user_hourly_prayer_reminder_with_spotlight`** (random **current** community or personal prayer from the last 14 days; default HTML matches **Prayer Update**-style containers; **`{{spotlightUpdateBlockHtml}}`** omits the Update block when there is no update). Deploy the updated `send-user-hourly-prayer-reminders` Edge Function when you ship that migration.
+
 ### Community prayer reminders (`send-prayer-reminders`)
 
 Migration `20260317120000_schedule_send_prayer_reminders_cron.sql` registers a **daily** job (`invoke-send-prayer-reminders`, **`0 10 * * *` UTC**) that POSTs to the Edge Function **`send-prayer-reminders`** (reminder emails + auto-archive per `admin_settings`). Uses the **same Vault secrets** as above (`project_url`, `service_role_key`).

@@ -395,6 +395,59 @@ describe('EmailSettingsComponent', () => {
     });
   });
 
+  describe('loadHourlyUserReminderTemplate', () => {
+    it('loads template key from admin_settings', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn((cols: string) => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() =>
+              String(cols).includes('user_hourly_prayer_reminder_template_key')
+                ? Promise.resolve({
+                    data: {
+                      user_hourly_prayer_reminder_template_key:
+                        'user_hourly_prayer_reminder_with_spotlight',
+                    },
+                    error: null,
+                  })
+                : Promise.resolve({ data: null, error: null })
+            ),
+          })),
+        })),
+      }));
+
+      await component.loadHourlyUserReminderTemplate();
+
+      expect(component.userHourlyReminderTemplateKey).toBe(
+        'user_hourly_prayer_reminder_with_spotlight'
+      );
+      expect(component.loadingHourlyTemplate).toBe(false);
+    });
+  });
+
+  describe('saveHourlyUserReminderTemplate', () => {
+    it('updates admin_settings and shows success', async () => {
+      const eqMock = vi.fn().mockResolvedValue({ error: null });
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
+      mockSupabaseService.client.from = vi.fn(() => ({
+        update: updateMock,
+      }));
+
+      component.userHourlyReminderTemplateKey = 'user_hourly_prayer_reminder_with_spotlight';
+      const emitSpy = vi.spyOn(component.onSave, 'emit');
+
+      await component.saveHourlyUserReminderTemplate();
+
+      expect(updateMock).toHaveBeenCalledWith({
+        user_hourly_prayer_reminder_template_key: 'user_hourly_prayer_reminder_with_spotlight',
+      });
+      expect(eqMock).toHaveBeenCalledWith('id', 1);
+      expect(component.successHourlyTemplate).toBe(true);
+      expect(mockToastService.success).toHaveBeenCalledWith('Hourly prayer reminder template saved.');
+      expect(emitSpy).toHaveBeenCalled();
+      expect(component.savingHourlyTemplate).toBe(false);
+    });
+  });
+
   describe('prepareEmailSubscribersOverviewTour', () => {
     it('delegates to emailSubscribers.prepareOverviewTourListState', async () => {
       const prepareOverviewTourListState = vi.fn().mockResolvedValue(undefined);

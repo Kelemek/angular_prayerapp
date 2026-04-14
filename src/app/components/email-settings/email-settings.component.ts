@@ -1,4 +1,12 @@
-import { Component, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
+import {
+  Component,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  ViewChild,
+  OnInit,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -197,6 +205,116 @@ import { EmailSubscribersComponent } from '../email-subscribers/email-subscriber
       </div>
       </div>
 
+      <!-- Hourly user prayer reminder (Settings → Prayer reminders) -->
+      <div class="mb-4">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+          [class.cursor-pointer]="!hourlySectionExpanded"
+          (click)="!hourlySectionExpanded && onHourlySectionToggle()"
+        >
+          <button
+            type="button"
+            id="email-hourly-reminder-settings-trigger"
+            class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+            (click)="onHourlySectionToggle(); $event.stopPropagation()"
+            [attr.aria-expanded]="hourlySectionExpanded"
+            aria-controls="email-hourly-reminder-panel"
+          >
+            <span class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0">
+              <svg class="text-blue-600 dark:text-blue-400 shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+              </svg>
+              Hourly user prayer reminder email
+            </span>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+              [class.rotate-180]="hourlySectionExpanded"
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          @if (hourlySectionExpanded) {
+            <div
+              id="email-hourly-reminder-panel"
+              role="region"
+              aria-labelledby="email-hourly-reminder-settings-trigger"
+              class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+            >
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Users opt in under <strong class="text-gray-800 dark:text-gray-200">Settings → Prayer reminders</strong>. This controls which template the hourly job sends. The
+                <strong class="text-gray-800 dark:text-gray-200">random recent prayer</strong> option picks a different <strong class="text-gray-800 dark:text-gray-200">current</strong> community or personal prayer when possible (created or updated in the last two weeks). Edit copy in <strong class="text-gray-800 dark:text-gray-200">Email Templates</strong> (keys <code class="text-xs">user_hourly_prayer_reminder</code> and <code class="text-xs">user_hourly_prayer_reminder_with_spotlight</code>).
+              </p>
+
+              @if (loadingHourlyTemplate) {
+                <div class="text-center py-6">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">Loading hourly reminder template…</p>
+                </div>
+              }
+
+              @if (!loadingHourlyTemplate) {
+                <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <label for="user-hourly-reminder-template" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email template</label>
+                  <select
+                    id="user-hourly-reminder-template"
+                    name="userHourlyReminderTemplateKey"
+                    [(ngModel)]="userHourlyReminderTemplateKey"
+                    class="w-full max-w-lg px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    aria-describedby="userHourlyReminderTemplateHelp"
+                  >
+                    @for (opt of hourlyReminderTemplateOptions; track opt.value) {
+                      <option [value]="opt.value">{{ opt.label }}</option>
+                    }
+                  </select>
+                  <p id="userHourlyReminderTemplateHelp" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Push notifications use the same spotlight title when that option is selected and a prayer is available.
+                  </p>
+                </div>
+              }
+
+              @if (successHourlyTemplate) {
+                <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md p-4 mb-4" role="status" aria-live="polite">
+                  <p class="text-sm text-green-800 dark:text-green-200">Hourly reminder template saved.</p>
+                </div>
+              }
+
+              <div class="flex justify-end">
+                <button
+                  type="button"
+                  (click)="saveHourlyUserReminderTemplate()"
+                  [disabled]="savingHourlyTemplate || loadingHourlyTemplate"
+                  class="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  aria-label="Save hourly reminder template"
+                >
+                  @if (savingHourlyTemplate) {
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  }
+                  @if (!savingHourlyTemplate) {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                  }
+                  {{ savingHourlyTemplate ? 'Saving…' : 'Save hourly reminder template' }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
       <!-- Email Templates Manager -->
       <div class="mb-4">
         <app-email-templates-manager></app-email-templates-manager>
@@ -205,19 +323,34 @@ import { EmailSubscribersComponent } from '../email-subscribers/email-subscriber
   `,
   styles: []
 })
-export class EmailSettingsComponent {
+export class EmailSettingsComponent implements OnInit {
   @ViewChild(EmailSubscribersComponent) emailSubscribers?: EmailSubscribersComponent;
 
   @Output() onSave = new EventEmitter<void>();
 
+  readonly hourlyReminderTemplateOptions = [
+    { value: 'user_hourly_prayer_reminder', label: 'Simple nudge (default)' },
+    {
+      value: 'user_hourly_prayer_reminder_with_spotlight',
+      label: 'Random recent prayer — last 2 weeks (community + personal)',
+    },
+  ] as const;
+
   remindersSectionExpanded = false;
   private remindersInitialLoadDone = false;
+
+  hourlySectionExpanded = false;
 
   enableReminders = false;
   reminderIntervalDays = 7;
   enableAutoArchive = false;
   daysBeforeArchive = 7;
-  
+
+  userHourlyReminderTemplateKey: string = 'user_hourly_prayer_reminder';
+  loadingHourlyTemplate = false;
+  savingHourlyTemplate = false;
+  successHourlyTemplate = false;
+
   loading = false;
   savingReminders = false;
   error: string | null = null;
@@ -230,6 +363,10 @@ export class EmailSettingsComponent {
     private cdr: ChangeDetectorRef
   ) {}
 
+  ngOnInit(): void {
+    void this.loadHourlyUserReminderTemplate();
+  }
+
   onRemindersSectionToggle(): void {
     this.remindersSectionExpanded = !this.remindersSectionExpanded;
     if (this.remindersSectionExpanded && !this.remindersInitialLoadDone) {
@@ -237,6 +374,78 @@ export class EmailSettingsComponent {
       void this.loadSettings();
     }
     this.cdr.markForCheck();
+  }
+
+  onHourlySectionToggle(): void {
+    this.hourlySectionExpanded = !this.hourlySectionExpanded;
+    this.cdr.markForCheck();
+  }
+
+  async loadHourlyUserReminderTemplate(): Promise<void> {
+    this.loadingHourlyTemplate = true;
+    this.successHourlyTemplate = false;
+    this.cdr.markForCheck();
+    try {
+      const { data, error } = await this.supabase.client
+        .from('admin_settings')
+        .select('user_hourly_prayer_reminder_template_key')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      const key = (data as { user_hourly_prayer_reminder_template_key?: string } | null)
+        ?.user_hourly_prayer_reminder_template_key;
+      if (
+        key === 'user_hourly_prayer_reminder' ||
+        key === 'user_hourly_prayer_reminder_with_spotlight'
+      ) {
+        this.userHourlyReminderTemplateKey = key;
+      }
+    } catch (err: unknown) {
+      console.error('Error loading hourly reminder template setting:', err);
+      const message =
+        err && typeof err === 'object' && 'message' in err ? String((err as Error).message) : 'Unknown error';
+      this.error = `Failed to load hourly reminder template: ${message}`;
+      this.cdr.markForCheck();
+    } finally {
+      this.loadingHourlyTemplate = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async saveHourlyUserReminderTemplate(): Promise<void> {
+    this.savingHourlyTemplate = true;
+    this.successHourlyTemplate = false;
+    this.error = null;
+    this.cdr.markForCheck();
+    try {
+      const { error } = await this.supabase.client
+        .from('admin_settings')
+        .update({ user_hourly_prayer_reminder_template_key: this.userHourlyReminderTemplateKey })
+        .eq('id', 1);
+
+      if (error) throw error;
+
+      this.successHourlyTemplate = true;
+      this.toast.success('Hourly prayer reminder template saved.');
+      this.onSave.emit();
+      this.cdr.markForCheck();
+      setTimeout(() => {
+        this.successHourlyTemplate = false;
+        this.cdr.markForCheck();
+      }, 3000);
+    } catch (err: unknown) {
+      console.error('Error saving hourly reminder template:', err);
+      const message =
+        err && typeof err === 'object' && 'message' in err ? String((err as Error).message) : 'Unknown error';
+      this.error = `Failed to save hourly reminder template: ${message}`;
+      this.toast.error('Failed to save hourly reminder template');
+      this.cdr.markForCheck();
+    } finally {
+      this.savingHourlyTemplate = false;
+      this.cdr.markForCheck();
+    }
   }
 
   async loadSettings() {
