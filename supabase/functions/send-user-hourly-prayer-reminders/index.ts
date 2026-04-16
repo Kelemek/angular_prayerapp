@@ -6,7 +6,8 @@
  * Template: admin_settings.user_hourly_prayer_reminder_template_key → email_templates (default user_hourly_prayer_reminder).
  * Spotlight template fills {{spotlightPrayerKind}}, {{spotlightPrayerTitle}}, {{spotlightPrayerFor}}, {{spotlightPrayerRequester}},
  * {{spotlightPrayerDescription}}, {{updateContent}}, {{spotlightUpdateBlockHtml}} (Update subsection HTML; empty if no update),
- * {{spotlightLatestUpdateHtml}} (alias), {{spotlightUpdateTextSection}}. Community prayers: requester = prayers.requester; personal: empty.
+ * {{spotlightLatestUpdateHtml}} (alias), {{spotlightUpdateTextSection}}. Community: {{spotlightPrayerRequester}} is **Anonymous**
+ * when `prayers.is_anonymous`, else `requester`; personal spotlight: **Me**.
  * Community spotlight: **all** approved + **current** `prayers` (app-wide; no date window).
  * Personal spotlight: **all** non-**Answered** `personal_prayers` for the recipient’s `user_email`. Previous pick avoided when possible.
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
@@ -44,10 +45,23 @@ interface SpotlightCandidate {
   key: string;
   title: string;
   prayerFor: string;
-  /** Community: `prayers.requester`. Personal prayers: no column — empty string. */
+  /**
+   * Community: public label for who submitted (`Anonymous` when `prayers.is_anonymous`, else `requester`).
+   * Personal spotlight: **Me** (subscriber’s own prayer).
+   */
   requester: string;
   description: string;
   kindLabel: string;
+}
+
+function communityRequesterForSpotlight(
+  isAnonymous: boolean | null | undefined,
+  requester: string | null | undefined
+): string {
+  if (isAnonymous === true) {
+    return 'Anonymous';
+  }
+  return requester?.trim() ? requester : '';
 }
 
 /** Absolute http(s) base for email <a href>; host-only values get https:// (avoids x-webdoc:// in Apple Mail). */
@@ -467,7 +481,8 @@ async function loadSpotlightCandidate(
   recipientEmail: string,
   lastSpotlightKey: string | null
 ): Promise<SpotlightCandidate | null> {
-  const commSelect = 'id, title, description, prayer_for, requester, created_at, updated_at';
+  const commSelect =
+    'id, title, description, prayer_for, requester, is_anonymous, created_at, updated_at';
   const { data: commRows, error: cErr } = await supabase
     .from('prayers')
     .select(commSelect)
@@ -496,12 +511,13 @@ async function loadSpotlightCandidate(
       description: string | null;
       prayer_for: string | null;
       requester: string | null;
+      is_anonymous: boolean | null;
     };
     candidates.push({
       key: `c:${row.id}`,
       title: row.title ?? '',
       prayerFor: row.prayer_for ?? '',
-      requester: row.requester ?? '',
+      requester: communityRequesterForSpotlight(row.is_anonymous, row.requester),
       description: row.description ?? '',
       kindLabel: 'Community prayer',
     });
@@ -520,7 +536,7 @@ async function loadSpotlightCandidate(
       key: `p:${row.id}`,
       title: row.title ?? '',
       prayerFor: row.prayer_for ?? '',
-      requester: '',
+      requester: 'Me',
       description: row.description ?? '',
       kindLabel: 'Personal prayer',
     });
