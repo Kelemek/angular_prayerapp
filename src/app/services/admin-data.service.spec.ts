@@ -945,7 +945,7 @@ describe('AdminDataService', () => {
                       author_email: 'author@example.com',
                       is_anonymous: false,
                       mark_as_answered: true,
-                      prayers: { title: 'Shared Prayer', description: 'Shared description' }
+                      prayers: { title: 'Shared Prayer', description: 'Shared description', status: 'current' }
                     }],
                     error: null
                   }))
@@ -963,6 +963,7 @@ describe('AdminDataService', () => {
         prayerTitle: 'Shared Prayer',
         content: 'Latest shared update',
         author: 'Shared Author',
+        prayerStatus: 'current',
         markedAsAnswered: true
       }));
     });
@@ -2443,7 +2444,8 @@ describe('AdminDataService', () => {
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
       expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          markedAsAnswered: true
+          markedAsAnswered: true,
+          prayerStatus: 'answered'
         })
       );
     });
@@ -2485,7 +2487,8 @@ describe('AdminDataService', () => {
       // Should transition 'answered' back to 'current'
       expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          markedAsAnswered: false
+          markedAsAnswered: false,
+          prayerStatus: 'current'
         })
       );
     });
@@ -2527,7 +2530,8 @@ describe('AdminDataService', () => {
       // Should transition 'archived' back to 'current'
       expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          author: 'Anonymous'
+          author: 'Anonymous',
+          prayerStatus: 'current'
         })
       );
     });
@@ -2603,7 +2607,8 @@ describe('AdminDataService', () => {
 
       expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          prayerTitle: 'Prayer'
+          prayerTitle: 'Prayer',
+          prayerStatus: 'current'
         })
       );
     });

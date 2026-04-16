@@ -470,10 +470,12 @@ describe('EmailNotificationService', () => {
 
     await service.sendApprovedUpdateNotification({
       prayerTitle: 'Prayer',
+      prayerDescription: '',
       content: 'Update',
       author: 'Author',
+      prayerStatus: 'current',
       markedAsAnswered: false
-    } as any);
+    });
 
     expect(enqueueSpy).not.toHaveBeenCalled();
   });
@@ -496,10 +498,12 @@ describe('EmailNotificationService', () => {
 
     await expect(service.sendApprovedUpdateNotification({
       prayerTitle: 'Prayer',
+      prayerDescription: '',
       content: 'Update',
       author: 'Author',
+      prayerStatus: 'current',
       markedAsAnswered: false
-    } as any)).resolves.toBeUndefined();
+    })).resolves.toBeUndefined();
   });
 
   it('sendRequesterApprovalNotification catches sendEmail failures', async () => {
@@ -1602,6 +1606,34 @@ describe('EmailNotificationService - Additional Logic', () => {
 
         await service.sendApprovedPrayerNotification(payload);
         expect(enqueueSpy).toHaveBeenCalledTimes(3);
+        expect(enqueueSpy.mock.calls[0][2].appLink).toContain('filter=current');
+      });
+
+      it('should queue appLink with filter=answered when prayer status is answered', async () => {
+        mockSupabase.client.from = vi.fn((table: string) => {
+          if (table === 'email_subscribers') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({ data: [{ email: 'user@test.com' }], error: null })
+                })
+              })
+            };
+          }
+          return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+        });
+
+        const enqueueSpy = vi.spyOn(service as any, 'enqueueEmail').mockResolvedValue(undefined);
+        vi.spyOn(service as any, 'triggerEmailProcessor').mockResolvedValue(undefined);
+
+        await service.sendApprovedPrayerNotification({
+          title: 'T',
+          description: 'D',
+          requester: 'R',
+          prayerFor: 'P',
+          status: 'answered'
+        });
+        expect(enqueueSpy.mock.calls[0][2].appLink).toContain('filter=answered');
       });
 
       it('should trigger email processor after queueing', async () => {
@@ -1654,8 +1686,10 @@ describe('EmailNotificationService - Additional Logic', () => {
 
         const payload = {
           prayerTitle: 'Prayer Title',
+          prayerDescription: 'Desc',
           content: 'Update content',
           author: 'Jane',
+          prayerStatus: 'current',
           markedAsAnswered: false
         };
 
@@ -1682,8 +1716,10 @@ describe('EmailNotificationService - Additional Logic', () => {
 
         const payload = {
           prayerTitle: 'Prayer Title',
+          prayerDescription: 'Desc',
           content: 'Update content',
           author: 'Jane',
+          prayerStatus: 'answered',
           markedAsAnswered: true
         };
 
@@ -1708,8 +1744,10 @@ describe('EmailNotificationService - Additional Logic', () => {
 
         const payload = {
           prayerTitle: 'Prayer Title',
+          prayerDescription: '',
           content: 'Update content',
           author: 'Jane',
+          prayerStatus: 'current',
           markedAsAnswered: false
         };
 
@@ -2195,8 +2233,10 @@ describe('EmailNotificationService - Additional Logic', () => {
       it('should generate approved update HTML', () => {
         const payload = {
           prayerTitle: 'Prayer Title',
+          prayerDescription: '',
           content: 'Update content',
           author: 'Jane',
+          prayerStatus: 'current',
           markedAsAnswered: false
         };
 

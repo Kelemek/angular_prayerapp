@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { RouterModule, Router, NavigationEnd, ActivatedRoute, Params } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PrayerFormComponent } from '../../components/prayer-form/prayer-form.component';
 import { PrayerFiltersComponent, PrayerFilters } from '../../components/prayer-filters/prayer-filters.component';
@@ -807,6 +807,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   // Subject for managing subscriptions
   private destroy$ = new Subject<void>();
 
+  /** From `/?filter=current|answered` on first load (mass email link); applied when session is ready. */
+  private initialEmailFilterTab: 'current' | 'answered' | null = null;
+
   /** Welcome + each help section + thank you (for global full-tour progress). */
   private fullGuidedTourTotalSteps = 0;
 
@@ -827,6 +830,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     private analyticsService: AnalyticsService,
     private cdr: ChangeDetectorRef,
     private router: Router,
+    private route: ActivatedRoute,
     private supabaseService: SupabaseService,
     private helpDriverTourService: HelpDriverTourService,
     private helpContentService: HelpContentService
@@ -838,6 +842,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    const initialTree = this.router.parseUrl(this.router.url);
+    const qf = initialTree.queryParams['filter'];
+    if (qf === 'current' || qf === 'answered') {
+      this.initialEmailFilterTab = qf;
+    }
+
     // Track page view on home component load
     this.analyticsService.trackPageView();
 
@@ -849,6 +859,15 @@ export class HomeComponent implements OnInit, OnDestroy {
       .subscribe((e) => {
         if (!this.isRouterUrlHome(e.urlAfterRedirects)) {
           return;
+        }
+        if (this.viewReady) {
+          const tree = this.router.parseUrl(e.urlAfterRedirects);
+          const filterParam = tree.queryParams['filter'];
+          if (filterParam === 'current' || filterParam === 'answered') {
+            this.setFilter(filterParam);
+            this.cdr.markForCheck();
+            this.navigateStrippingFilterQueryParam();
+          }
         }
         window.setTimeout(() => this.tryResumeFullGuidedTourQueue(), 400);
       });
@@ -940,9 +959,14 @@ export class HomeComponent implements OnInit, OnDestroy {
       )
       .subscribe(session => {
         const s = session!;
-        this.activeFilter = s.defaultPrayerView ?? 'current';
-        // Apply the user's preferred filter
+        const fromEmail = this.initialEmailFilterTab;
+        this.activeFilter =
+          fromEmail ?? (s.defaultPrayerView ?? 'current');
         this.setFilter(this.activeFilter);
+        if (fromEmail) {
+          this.initialEmailFilterTab = null;
+          this.navigateStrippingFilterQueryParam();
+        }
         this.viewReady = true;
         this.cdr.markForCheck();
 
@@ -951,6 +975,21 @@ export class HomeComponent implements OnInit, OnDestroy {
           console.error('Error loading planning center list data:', error);
         });
       });
+  }
+
+  /**
+   * Drop `filter` from the URL without relying on `queryParams: { filter: null }` + `merge`
+   * (Angular may serialize `null` as the string `"null"` or leave the param present).
+   */
+  private navigateStrippingFilterQueryParam(): void {
+    const q: Params = { ...(this.route.snapshot?.queryParams ?? {}) };
+    delete q['filter'];
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: q,
+      queryParamsHandling: '',
+      replaceUrl: true
+    });
   }
 
   onPrayerFormClose(event: {isPersonal?: boolean}): void {

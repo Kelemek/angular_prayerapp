@@ -471,12 +471,15 @@ export class AdminDataService {
         const prayerDescription = prayerData && 'description' in prayerData
           ? String(prayerData.description)
           : prayer.description;
-        
+        const prayerStatus =
+          prayerData && 'status' in prayerData ? String(prayerData.status) : String(prayer.status);
+
         this.emailNotification.sendApprovedUpdateNotification({
           prayerTitle: prayerTitle,
           prayerDescription: prayerDescription,
           content: latestUpdate.content,
           author: latestUpdate.is_anonymous ? 'Anonymous' : (latestUpdate.author || 'Anonymous'),
+          prayerStatus,
           markedAsAnswered: latestUpdate.mark_as_answered || false
         }).catch(err => console.error('Failed to send update notification:', err));
       } else {
@@ -744,11 +747,14 @@ export class AdminDataService {
     const prayerDescription = prayerData && 'description' in prayerData
       ? String(prayerData.description)
       : '';
+    const prayerStatus =
+      prayerData && 'status' in prayerData ? String(prayerData.status) : 'current';
     this.emailNotification.sendApprovedUpdateNotification({
       prayerTitle: prayerTitle,
       prayerDescription: prayerDescription,
       content: update.content,
       author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
+      prayerStatus,
       markedAsAnswered: update.mark_as_answered || false
     }).catch(err => console.error('Failed to send update notification:', err));
 
@@ -868,6 +874,9 @@ export class AdminDataService {
       }
     }
 
+    const subscriberLinkPrayerStatus =
+      newPrayerStatus ?? currentPrayerStatus ?? 'current';
+
     // Send mass email notification to all subscribers (don't let email failures block)
     const prayerTitle = prayerData && 'title' in prayerData
       ? String(prayerData.title)
@@ -880,6 +889,7 @@ export class AdminDataService {
       prayerDescription: prayerDescription,
       content: update.content,
       author: update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous'),
+      prayerStatus: subscriberLinkPrayerStatus,
       markedAsAnswered: update.mark_as_answered || false
     }).catch(err => console.error('Failed to send update notification:', err));
 

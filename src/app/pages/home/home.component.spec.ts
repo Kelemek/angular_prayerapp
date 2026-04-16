@@ -91,7 +91,11 @@ const makeMocks = () => {
   const router: any = {
     navigate: vi.fn(),
     events: NEVER,
+    url: '/',
+    parseUrl: vi.fn(() => ({ queryParams: {} as Record<string, string> }))
   };
+
+  const activatedRoute: any = {};
 
   const supabaseService: any = {
     client: {
@@ -132,7 +136,7 @@ const makeMocks = () => {
     getSections: vi.fn().mockReturnValue(of([])),
   };
 
-  return { prayerService, promptService, adminAuthService, userSessionService, badgeService, cacheService, toastService, analyticsService, cdr, router, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService };
+  return { prayerService, promptService, adminAuthService, userSessionService, badgeService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService };
 };
 
 interface SupabaseEmailOptions {
@@ -208,6 +212,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -228,6 +233,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -248,6 +254,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -267,6 +274,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -287,6 +295,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -307,6 +316,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -328,6 +338,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -348,6 +359,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -394,6 +406,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -416,6 +429,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -437,6 +451,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -461,6 +476,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -483,6 +499,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -505,6 +522,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -527,6 +545,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -554,6 +573,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -579,6 +599,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -610,6 +631,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -630,6 +652,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -655,6 +678,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -701,6 +725,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -728,6 +753,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -752,6 +778,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -774,6 +801,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -794,6 +822,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -838,6 +867,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mockSupabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -877,6 +907,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mockSupabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -913,6 +944,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mockSupabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -952,6 +984,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mockSupabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -994,6 +1027,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mockSupabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -1023,6 +1057,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       mocks.supabaseService,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -1053,6 +1088,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       supabase.supabaseService as any,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -1088,6 +1124,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       supabase.supabaseService as any,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -1125,6 +1162,7 @@ describe('HomeComponent', () => {
       mocks.analyticsService,
       mocks.cdr,
       mocks.router,
+      mocks.activatedRoute,
       supabase.supabaseService as any,
       mocks.helpDriverTourService,
       mocks.helpContentService
@@ -1148,6 +1186,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1176,6 +1215,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1208,6 +1248,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1240,6 +1281,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1267,6 +1309,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1306,6 +1349,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1329,6 +1373,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1352,6 +1397,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1376,6 +1422,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1399,6 +1446,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1429,6 +1477,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1454,6 +1503,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1482,6 +1532,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1513,6 +1564,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1542,6 +1594,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1571,6 +1624,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1596,6 +1650,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1623,6 +1678,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1652,6 +1708,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1704,6 +1761,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1734,6 +1792,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1759,6 +1818,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1781,6 +1841,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1803,6 +1864,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1827,6 +1889,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1853,6 +1916,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1887,6 +1951,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1933,6 +1998,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -1980,6 +2046,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2015,6 +2082,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2038,6 +2106,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2064,6 +2133,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2094,6 +2164,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2130,6 +2201,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2170,6 +2242,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2201,6 +2274,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2235,6 +2309,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2278,6 +2353,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2316,6 +2392,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2351,6 +2428,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2393,6 +2471,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2431,6 +2510,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2456,6 +2536,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2480,6 +2561,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2502,6 +2584,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2523,6 +2606,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2544,6 +2628,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2567,6 +2652,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2592,6 +2678,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2620,6 +2707,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2645,6 +2733,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2674,6 +2763,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2700,6 +2790,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2746,6 +2837,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2771,6 +2863,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2799,6 +2892,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2824,6 +2918,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2855,6 +2950,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2893,6 +2989,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2937,6 +3034,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2968,6 +3066,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -2994,6 +3093,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3025,6 +3125,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3054,6 +3155,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3084,6 +3186,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3112,6 +3215,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3154,6 +3258,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3182,6 +3287,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3210,6 +3316,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3238,6 +3345,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3268,6 +3376,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3295,6 +3404,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3319,6 +3429,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3345,6 +3456,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3370,6 +3482,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3395,6 +3508,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3421,6 +3535,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3469,6 +3584,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3493,6 +3609,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3529,6 +3646,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3563,6 +3681,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3578,6 +3697,51 @@ describe('HomeComponent', () => {
 
       // Filter should be set to the user's default view
       expect(comp.activeFilter).toBe('personal');
+    });
+
+    it('should strip filter query param after applying email deep link (replace query string, not filter: null)', async () => {
+      const mocks = makeMocks();
+      mocks.router.url = '/?filter=current';
+      mocks.router.parseUrl = vi.fn(() => ({
+        queryParams: { filter: 'current' }
+      }));
+      mocks.activatedRoute = {
+        snapshot: { queryParams: { filter: 'current' } }
+      };
+      mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
+      mocks.prayerService.getUniqueCategoriesForUser.mockResolvedValue([]);
+
+      const comp = new HomeComponent(
+        mocks.prayerService,
+        mocks.promptService,
+        mocks.adminAuthService,
+        mocks.userSessionService,
+        mocks.badgeService,
+        mocks.cacheService,
+        mocks.toastService,
+        mocks.analyticsService,
+        mocks.cdr,
+        mocks.router,
+        mocks.activatedRoute,
+        mocks.supabaseService,
+        mocks.helpDriverTourService,
+        mocks.helpContentService
+      );
+
+      comp.ngOnInit();
+      mocks.userSessionSubject.next({ defaultPrayerView: 'personal' });
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(comp.activeFilter).toBe('current');
+      expect(mocks.router.navigate).toHaveBeenCalledWith(
+        [],
+        expect.objectContaining({
+          queryParams: {},
+          queryParamsHandling: '',
+          replaceUrl: true
+        })
+      );
     });
 
     it('should load Planning Center data without blocking filter application', async () => {
@@ -3596,6 +3760,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3632,6 +3797,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService
@@ -3667,6 +3833,7 @@ describe('HomeComponent', () => {
         mocks.analyticsService,
         mocks.cdr,
         mocks.router,
+        mocks.activatedRoute,
         mocks.supabaseService,
         mocks.helpDriverTourService,
         mocks.helpContentService

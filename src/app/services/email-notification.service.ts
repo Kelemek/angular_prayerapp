@@ -37,6 +37,8 @@ export interface ApprovedUpdatePayload {
   prayerDescription: string;
   content: string;
   author: string;
+  /** Parent `prayers.status` — drives `?filter=` on subscriber email app link (current | answered). */
+  prayerStatus: string;
   markedAsAnswered?: boolean;
 }
 
@@ -107,6 +109,18 @@ export class EmailNotificationService {
       return environment.appUrl.replace(/\/$/, '');
     }
     return origin;
+  }
+
+  /**
+   * Subscriber mass-email link to home with Current or Answered tab pre-selected.
+   */
+  private buildSubscriberAppLink(prayerStatus: string): string {
+    const filter = prayerStatus === 'answered' ? 'answered' : 'current';
+    const base = this.getEmailBaseUrl().replace(/\/$/, '');
+    if (!base) {
+      return `/?filter=${filter}`;
+    }
+    return `${base}/?filter=${filter}`;
   }
 
   /**
@@ -261,13 +275,14 @@ export class EmailNotificationService {
       const templateKey = isAnswered ? 'prayer_answered' : 'approved_prayer';
 
       // Template variables to send with queued emails
+      const appLink = this.buildSubscriberAppLink(payload.status);
       const variables = {
         prayerTitle: payload.title,
         prayerFor: payload.prayerFor,
         requesterName: payload.requester,
         prayerDescription: payload.description,
         status: payload.status,
-        appLink: `${this.getEmailBaseUrl()}/`
+        appLink
       };
 
       // Fetch all active subscribers
@@ -316,12 +331,15 @@ export class EmailNotificationService {
       const templateKey = isAnswered ? 'prayer_answered' : 'approved_update';
 
       // Template variables to send with queued emails
+      const appLink = this.buildSubscriberAppLink(payload.prayerStatus);
       const variables = {
         prayerTitle: payload.prayerTitle,
         prayerDescription: payload.prayerDescription,
         authorName: payload.author,
         updateContent: payload.content,
-        appLink: this.getEmailBaseUrl()
+        /** Lets the queue processor fix `appLink` if a template omitted `?filter=`. */
+        prayerStatus: payload.prayerStatus ?? 'current',
+        appLink
       };
 
       // Fetch all active subscribers
@@ -795,7 +813,7 @@ export class EmailNotificationService {
   // HTML template generators (fallbacks when templates not found in DB)
 
   private generateApprovedPrayerHTML(payload: ApprovedPrayerPayload): string {
-    const appUrl = `${this.getEmailBaseUrl()}/`;
+    const appUrl = this.buildSubscriberAppLink(payload.status);
 
     return `
       <!DOCTYPE html>
@@ -831,7 +849,7 @@ export class EmailNotificationService {
   }
 
   private generateAnsweredPrayerHTML(payload: ApprovedPrayerPayload): string {
-    const appUrl = `${this.getEmailBaseUrl()}/`;
+    const appUrl = this.buildSubscriberAppLink(payload.status);
 
     return `
       <!DOCTYPE html>
@@ -867,7 +885,7 @@ export class EmailNotificationService {
   }
 
   private generateApprovedUpdateHTML(payload: ApprovedUpdatePayload): string {
-    const appUrl = `${this.getEmailBaseUrl()}/`;
+    const appUrl = this.buildSubscriberAppLink(payload.prayerStatus);
     const isAnswered = payload.markedAsAnswered || false;
 
     const gradientColors = isAnswered ? '#10b981, #059669' : '#3b82f6, #2563eb';

@@ -246,7 +246,7 @@ interface EmailTemplate {
                     <li>• {{'{{actionDescription}}'}} - Description of action taken</li>
                     <li>• {{'{{denialReason}}'}} - Reason for denial/rejection</li>
                     <li>• {{'{{adminLink}}'}} - Link to admin portal</li>
-                    <li>• {{'{{appLink}}'}} - Link to main app (Edge <code class="text-[10px]">APP_URL</code>; prayer reminders + hourly user reminder templates)</li>
+                    <li>• {{'{{appLink}}'}} - Link to main app (Edge <code class="text-[10px]">APP_URL</code>). Mass subscriber emails (<code class="text-[10px]">approved_prayer</code>, <code class="text-[10px]">approved_update</code>, <code class="text-[10px]">prayer_answered</code>) use <code class="text-[10px]">?filter=current</code> or <code class="text-[10px]">?filter=answered</code> so the home list opens on the right tab. Prayer reminders + hourly user reminders use the app root or configured URL.</li>
                     <li>• {{'{{spotlightPrayerKind}}'}}, {{'{{spotlightPrayerTitle}}'}}, {{'{{spotlightPrayerFor}}'}}, {{'{{spotlightPrayerDescription}}'}} (original request) — Hourly spotlight template (community: **all** approved **current** prayers app-wide; personal: that subscriber’s non-**Answered** only). {{'{{updateContent}}'}} = latest update plain text. {{'{{spotlightUpdateBlockHtml}}'}} = optional HTML for the **Update** block (empty when there is no update). {{'{{spotlightLatestUpdateHtml}}'}} matches the block for legacy templates. {{'{{spotlightUpdateTextSection}}'}} = plain-text latest update section.</li>
                   </ul>
                 </div>

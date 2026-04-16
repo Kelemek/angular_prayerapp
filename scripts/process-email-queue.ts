@@ -194,6 +194,45 @@ function applyTemplateVariables(
   return result;
 }
 
+const MASS_SUBSCRIBER_TEMPLATE_KEYS = new Set([
+  'approved_prayer',
+  'approved_update',
+  'prayer_answered'
+]);
+
+/**
+ * Mass subscriber emails must open home with ?filter=current|answered.
+ * If the DB template hardcodes `href="https://…/"` without {{appLink}}, or queue rows
+ * had a bare base URL, merge the filter onto the stored `appLink` (or APP_URL).
+ */
+function normalizeMassSubscriberAppLink(
+  templateKey: string,
+  vars: Record<string, string | null | undefined>
+): Record<string, string | null | undefined> {
+  if (!MASS_SUBSCRIBER_TEMPLATE_KEYS.has(templateKey)) {
+    return vars;
+  }
+  const statusRaw = String(
+    vars.status ?? vars.prayerStatus ?? 'current'
+  ).toLowerCase();
+  const filter = statusRaw === 'answered' ? 'answered' : 'current';
+  const raw = String(vars.appLink ?? '').trim();
+  if (raw.includes('filter=')) {
+    return vars;
+  }
+  let base = raw.replace(/\/$/, '');
+  if (!base) {
+    base = (process.env.APP_URL || '').replace(/\/$/, '');
+  }
+  if (!base) {
+    return { ...vars, appLink: `/?filter=${filter}` };
+  }
+  if (base.includes('?')) {
+    return { ...vars, appLink: `${base}&filter=${filter}` };
+  }
+  return { ...vars, appLink: `${base}/?filter=${filter}` };
+}
+
 /**
  * Lock emails for processing by marking them as "processing"
  * Prevents concurrent instances from processing the same emails
@@ -312,16 +351,15 @@ async function processEmail(
       throw new Error(`Template not found in cache: ${email.template_key}`);
     }
 
+    const vars = normalizeMassSubscriberAppLink(
+      email.template_key,
+      email.template_variables
+    );
+
     // Apply variables
-    const subject = applyTemplateVariables(template.subject, email.template_variables);
-    const htmlBody = applyTemplateVariables(
-      template.html_body,
-      email.template_variables
-    );
-    const textBody = applyTemplateVariables(
-      template.text_body,
-      email.template_variables
-    );
+    const subject = applyTemplateVariables(template.subject, vars);
+    const htmlBody = applyTemplateVariables(template.html_body, vars);
+    const textBody = applyTemplateVariables(template.text_body, vars);
 
     // Send email
     await sendViaGraphAPI(token, email.recipient, subject, htmlBody, textBody);
