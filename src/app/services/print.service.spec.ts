@@ -1533,6 +1533,24 @@ describe('PrintService - Advanced Coverage Tests', () => {
         expect(html).toContain('Jane Requester');
       });
 
+      it('should show Anonymous as requester when prayer is_anonymous', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test Prayer',
+          prayer_for: 'Someone',
+          description: 'Desc',
+          requester: 'Real Name',
+          is_anonymous: true,
+          status: 'current',
+          created_at: '2026-01-15T12:00:00Z',
+          prayer_updates: []
+        }];
+
+        const html = (service as any).generatePrintableHTML(prayers);
+        expect(html).toContain('Requested by Anonymous');
+        expect(html).not.toContain('Real Name');
+      });
+
       it('should include prayer description in HTML', () => {
         const prayers = [{
           id: '1',

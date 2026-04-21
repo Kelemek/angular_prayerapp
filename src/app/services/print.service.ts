@@ -10,6 +10,8 @@ export interface Prayer {
   prayer_for: string;
   description: string;
   requester: string;
+  /** When true, the printable list must not reveal the submitter's name */
+  is_anonymous?: boolean;
   status: string;
   created_at: string;
   date_answered?: string;
@@ -704,7 +706,8 @@ export class PrintService {
     ` : '';
 
     // Place requester and date on a single line; right-side show answered date if present
-    const requesterText = `Requested by ${this.escapeHtml(prayer.requester || 'Anonymous')}`;
+    const requesterDisplay = prayer.is_anonymous ? 'Anonymous' : (prayer.requester || 'Anonymous');
+    const requesterText = `Requested by ${this.escapeHtml(requesterDisplay)}`;
     const rightMeta = answeredDate ? `Answered on ${answeredDate}` : '';
 
     return `

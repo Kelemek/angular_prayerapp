@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Print Prayers — anonymous requesters ✅
+- **Behavior**: **Print Prayers** (Settings) now shows **Requested by Anonymous** when the community prayer has **`prayers.is_anonymous`**, matching prayer cards and reminder emails. Implementation: [`print.service.ts`](src/app/services/print.service.ts), [`printablePrayerList.ts`](src/utils/printablePrayerList.ts).
+- **Security**: [`printablePrayerList.ts`](src/utils/printablePrayerList.ts) now **HTML-escapes** **`prayer_for`**, **requester**, and **update author** when building printable HTML (same pattern as [`print.service.ts`](src/app/services/print.service.ts)), so malicious strings cannot break out of text context into raw markup.
+
 ### Rich-text editing for prayers and updates ✅
 - **Behavior**: Prayer descriptions and update content now support **bold**, **italic**, **underline** (TipTap `++text++` in Markdown), **strikethrough**, **bullet** / **numbered lists**, and **blockquotes** across every authoring surface (request a prayer, edit a prayer, add / edit an update, admin approval workflows, and the admin **Prayer Editor**). Rich text is stored as **Markdown** in the existing `prayers.description` and `prayer_updates.content` TEXT columns — no schema change — so older native-app builds render raw Markdown gracefully (e.g. `**bold**`, `- item`) until they update. Admin denial reasons and email-template bodies remain plain text.
 - **New components**: [`RichTextEditorComponent`](src/app/components/rich-text-editor/rich-text-editor.component.ts) (Tiptap v2 + `StarterKit` + `tiptap-markdown`, implements `ControlValueAccessor` for `ngModel`, toolbar with bold / italic / underline / bullet list / ordered list / blockquote) and [`RichTextViewComponent`](src/app/components/rich-text-view/rich-text-view.component.ts) (marked + DOMPurify, prose-like styling, `target="_blank"` + `rel="noopener noreferrer"` on links, `javascript:` hrefs stripped).

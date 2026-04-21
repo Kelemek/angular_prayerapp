@@ -876,6 +876,71 @@ describe('printablePrayerList', () => {
       expect(htmlContent).toContain('Church Prayer List');
     });
 
+    it('should escape HTML in prayer_for, requester, and update author', async () => {
+      vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
+
+      const mockPrayers: Prayer[] = [
+        {
+          id: '1',
+          title: 'T',
+          prayer_for: '<img src=x onerror="alert(1)">',
+          description: 'Plain description',
+          requester: '<b>Name</b>',
+          status: 'current',
+          approval_status: 'approved',
+          created_at: '2026-01-05T00:00:00Z',
+        },
+      ];
+
+      const mockUpdates = [
+        {
+          id: 'u1',
+          prayer_id: '1',
+          content: 'Update body',
+          author: '<script>x</script>',
+          approval_status: 'approved',
+          created_at: '2026-01-10T00:00:00Z',
+          is_anonymous: false,
+        },
+      ];
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'prayers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: mockPrayers, error: null }),
+          };
+        } else if (table === 'prayer_updates') {
+          return {
+            select: vi.fn().mockResolvedValue({ data: mockUpdates, error: null }),
+          };
+        }
+      });
+
+      const newWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+
+      window.open = vi.fn().mockReturnValue(newWindow);
+
+      await downloadPrintablePrayerList('month', newWindow as any);
+
+      const htmlContent = (newWindow.document.write as any).mock.calls[0][0];
+      expect(htmlContent).not.toContain('<img src=x');
+      expect(htmlContent).toContain('&lt;img');
+      expect(htmlContent).not.toContain('<b>Name</b>');
+      expect(htmlContent).toContain('&lt;b&gt;');
+      expect(htmlContent).not.toContain('<script>x</script>');
+      expect(htmlContent).toMatch(/Updated by:.*&lt;script&gt;/);
+    });
+
     it('should generate correct date range header for twoweeks', async () => {
       vi.setSystemTime(new Date('2026-01-15T00:00:00Z'));
       

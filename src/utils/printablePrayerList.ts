@@ -7,6 +7,8 @@ export interface Prayer {
   prayer_for: string;
   description: string;
   requester: string;
+  /** When true, the printable list must not reveal the submitter's name */
+  is_anonymous?: boolean;
   status: string;
   approval_status: string;
   created_at: string;
@@ -595,6 +597,15 @@ function generatePrintableHTML(prayers: Prayer[], timeRange: TimeRange = 'month'
 }
 
 /**
+ * Escape HTML special characters to prevent XSS (parity with PrintService)
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
  * Generate HTML for a single prayer
  */
 function generatePrayerHTML(prayer: Prayer): string {
@@ -629,19 +640,20 @@ function generatePrayerHTML(prayer: Prayer): string {
           day: 'numeric'
         });
         const authorName = update.is_anonymous ? 'Anonymous' : (update.author || 'Anonymous');
-        return `<div class="update-item"><span class="update-meta">Updated by: ${authorName} • ${updateDate}:</span> ${markdownToSafeHtml(update.content)}</div>`;
+        return `<div class="update-item"><span class="update-meta">Updated by: ${escapeHtml(authorName)} • ${updateDate}:</span> ${markdownToSafeHtml(update.content)}</div>`;
       }).join('')}
     </div>
   ` : '';
 
   // Place requester and date on a single line; right-side show answered date if present
-  const requesterText = `Requested by ${prayer.requester || 'Anonymous'}`;
+  const requesterDisplay = prayer.is_anonymous ? 'Anonymous' : (prayer.requester || 'Anonymous');
+  const requesterText = `Requested by ${escapeHtml(requesterDisplay)}`;
   const rightMeta = answeredDate ? `Answered on ${answeredDate}` : '';
 
   return `
     <div class="prayer-item ${prayer.status}">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <div class="prayer-for"><strong>Prayer For:</strong> ${prayer.prayer_for}</div>
+        <div class="prayer-for"><strong>Prayer For:</strong> ${escapeHtml(prayer.prayer_for)}</div>
       </div>
       <div class="prayer-meta">
         <span>${requesterText} • ${createdDate}</span>
