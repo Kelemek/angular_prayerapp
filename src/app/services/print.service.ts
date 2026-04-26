@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { PrayerService } from './prayer.service';
+import { EmailNotificationService } from './email-notification.service';
 import { Printer } from '@capgo/capacitor-printer';
 import { markdownToSafeHtml } from '../../utils/markdown';
 
@@ -32,7 +33,8 @@ export type TimeRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 export class PrintService {
   constructor(
     private supabase: SupabaseService,
-    private prayerService: PrayerService
+    private prayerService: PrayerService,
+    private emailNotificationService: EmailNotificationService
   ) {}
 
   /**
@@ -249,6 +251,64 @@ export class PrintService {
       console.error('Error generating prayer list:', error);
       alert('Failed to generate prayer list. Please try again.');
     }
+  }
+
+  /** CSS for the /info QR footer; embedded in each standalone print document. */
+  private getPrintInfoFooterStyles(): string {
+    return `
+    .print-info-footer {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .print-info-qr {
+      width: 1.1in;
+      height: 1.1in;
+      max-width: 120px;
+      max-height: 120px;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+    .print-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .print-info-lead {
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 600;
+      color: #374151;
+      margin: 0 0 6px 0;
+    }
+    .print-info-copy {
+      font-size: 14px;
+      line-height: 1.45;
+      color: #4b5563;
+      margin: 0;
+    }`;
+  }
+
+  /** Footer with QR to `/info` (website + app store links). */
+  private buildPrintInfoFooterHtml(): string {
+    const base = this.emailNotificationService.getEmailBaseUrl().replace(/\/$/, '');
+    const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
+    const infoUrl = `${base || origin}/info`;
+    const qrSrc =
+      'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(infoUrl);
+    return `
+  <div class="print-info-footer" role="complementary" aria-label="Church info and app links">
+    <img class="print-info-qr" src="${qrSrc}" width="200" height="200" alt="" />
+    <div class="print-info-text">
+      <p class="print-info-lead">Want to get the app?</p>
+      <p class="print-info-copy">Scan to open the prayer app info page in your browser to get the website and app store links.</p>
+    </div>
+  </div>`;
   }
 
   /**
@@ -584,6 +644,7 @@ export class PrintService {
     .prayer-item {
       width: 100%;
     }
+    ${this.getPrintInfoFooterStyles()}
 
     @media screen and (max-width: 768px) {
       body {
@@ -624,6 +685,11 @@ export class PrintService {
         break-after: avoid;
         margin-top: 4px;
       }
+
+      .print-info-footer {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
     }
 
     @page {
@@ -643,6 +709,7 @@ export class PrintService {
     </div>
   </div>
   ${prayerSectionsHTML}
+  ${this.buildPrintInfoFooterHtml()}
 
   <script>
     window.onload = function() {
@@ -1490,6 +1557,7 @@ export class PrintService {
       flex: 1 1 0;
       min-width: 0;
     }
+    ${this.getPrintInfoFooterStyles()}
 
     @media screen and (max-width: 768px) {
       body {
@@ -1524,6 +1592,11 @@ export class PrintService {
         page-break-after: avoid;
         break-after: avoid;
       }
+
+      .print-info-footer {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
     }
 
     @page {
@@ -1541,6 +1614,7 @@ export class PrintService {
     </div>
   </div>
   ${promptSectionsHTML}
+  ${this.buildPrintInfoFooterHtml()}
 
   <script>
     window.onload = function() {

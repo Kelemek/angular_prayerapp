@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PrintService, Prayer, TimeRange } from './print.service';
 import { SupabaseService } from './supabase.service';
 
+const mockEmailNotificationService = {
+  getEmailBaseUrl: vi.fn().mockReturnValue('https://example.com')
+};
+
 describe('PrintService', () => {
   let service: PrintService;
   let mockSupabaseService: any;
@@ -112,7 +116,7 @@ describe('PrintService', () => {
       } as any;
     });
 
-    service = new PrintService(mockSupabaseService, mockPrayerService);
+    service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
   });
 
   afterEach(() => {
@@ -549,7 +553,7 @@ describe('PrintService', () => {
         client: mockSupabaseClient
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
     });
 
     it('should filter by month correctly', () => {
@@ -631,7 +635,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
     });
 
     it('should handle current prayer status', () => {
@@ -701,7 +705,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
     });
 
     it('should generate valid HTML', () => {
@@ -777,7 +781,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
     });
 
     it('should create valid filename', () => {
@@ -849,7 +853,7 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService);
+      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
     });
 
     it('should handle database query errors', { timeout: 10000 }, async () => {
@@ -1462,7 +1466,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
       mockSupabaseService = { client: mockSupabaseClient } as any;
       mockPrayerService = { getPersonalPrayers: vi.fn() };
-      service = new PrintService(mockSupabaseService, mockPrayerService);
+      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
 
       global.window.open = vi.fn(() => ({
         document: {
@@ -1498,6 +1502,31 @@ describe('PrintService - Advanced Coverage Tests', () => {
         expect(html).toContain('<!DOCTYPE html>');
         expect(html).toContain('<html>');
         expect(html).toContain('</html>');
+      });
+
+      it('should include /info QR footer in printable prayer HTML', () => {
+        const prayers = [{
+          id: '1',
+          title: 'Test Prayer',
+          prayer_for: 'John',
+          description: 'Description',
+          requester: 'Jane',
+          status: 'current',
+          created_at: new Date().toISOString(),
+          prayer_updates: []
+        }];
+        const html = (service as any).generatePrintableHTML(prayers);
+        expect(html).toContain('print-info-footer');
+        expect(html).toContain('api.qrserver.com/v1/create-qr-code');
+        expect(html).toContain(encodeURIComponent('https://example.com/info'));
+      });
+
+      it('should include /info QR footer in printable prayer prompts HTML', () => {
+        const prompts = [{ type: 'Praise', title: 'A sample prompt' }];
+        const html = (service as any).generatePromptsPrintableHTML(prompts);
+        expect(html).toContain('print-info-footer');
+        expect(html).toContain('api.qrserver.com/v1/create-qr-code');
+        expect(html).toContain(encodeURIComponent('https://example.com/info'));
       });
 
       it('should include prayer title in HTML', () => {
@@ -2077,7 +2106,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
       mockSupabaseService = { client: mockSupabaseClient } as any;
       mockPrayerService = { getPersonalPrayers: vi.fn() };
-      service = new PrintService(mockSupabaseService, mockPrayerService);
+      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
 
       global.window.open = vi.fn(() => ({
         document: {
@@ -2328,7 +2357,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           from: vi.fn()
         }
       } as any;
-      service = new PrintService(mockSupabaseService, mockPrayerService);
+      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
       
       global.window.open = vi.fn(() => ({
         document: {
@@ -2561,7 +2590,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService = {
         client: { from: vi.fn() }
       } as any;
-      service = new PrintService(mockSupabaseService, mockPrayerService);
+      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
     });
 
     it('should escape HTML in prompt titles during generation', () => {
@@ -2724,7 +2753,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
         getPersonalPrayers: vi.fn()
       };
 
-      service = new PrintService(mockSupabaseService, mockPrayerService);
+      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
 
       global.window.open = vi.fn(() => ({
         document: {

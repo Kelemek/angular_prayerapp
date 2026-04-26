@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Print — /info QR footer on prayer and prompt lists ✅
+- **Behavior**: **Print Prayers** and **Print Prompts** (Settings) append a small footer with a **QR code** to the public **`/info`** page and a line of copy (larger text) so people scanning from paper can open the **website and app store** details: *“Want to get the app?”* plus *“Scan to open the prayer app info page in your browser to get the website and app store links.”* The link target uses the same public base URL as email links ([`getEmailBaseUrl()`](src/app/services/email-notification.service.ts)); the QR image is generated like the [Info](src/app/pages/info/info.component.ts) page (external `api.qrserver.com` image URL). Implementation: [`print.service.ts`](src/app/services/print.service.ts) (`buildPrintInfoFooterHtml`, `getPrintInfoFooterStyles`).
+
 ### Print Prayers — anonymous requesters ✅
 - **Behavior**: **Print Prayers** (Settings) now shows **Requested by Anonymous** when the community prayer has **`prayers.is_anonymous`**, matching prayer cards and reminder emails. Implementation: [`print.service.ts`](src/app/services/print.service.ts), [`printablePrayerList.ts`](src/utils/printablePrayerList.ts).
 - **Security**: [`printablePrayerList.ts`](src/utils/printablePrayerList.ts) now **HTML-escapes** **`prayer_for`**, **requester**, and **update author** when building printable HTML (same pattern as [`print.service.ts`](src/app/services/print.service.ts)), so malicious strings cannot break out of text context into raw markup.
