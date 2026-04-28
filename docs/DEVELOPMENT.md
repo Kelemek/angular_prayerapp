@@ -194,12 +194,17 @@ interface BrandingData {
 ```typescript
 // Generate and download printable prayer lists
 - downloadPrintablePrayerList()      // Download public prayers in time range
+- downloadPrintableBookletPrayerList() // Admin: saddle-stitch booklet (BookletTimeRange: week, twoweeks, month, twomonths)
 - downloadPrintablePromptList()      // Download prayer prompts by type
 - downloadPrintablePersonalPrayerList() // Download user's personal prayers
+- loadPublicPrayersForTimeRange()    // (private) shared fetch + filter for public list / booklet
 - generatePrintableHTML()            // Generate HTML for public prayers
+- generateSaddleStitchBookletHTML()  // Booklet: padToMultipleOfFourWithBackCoverLast + impose + landscape 2-up
 - generatePromptsPrintableHTML()     // Generate HTML for prompts
 - generatePersonalPrayersPrintableHTML() // Generate HTML for personal prayers
 ```
+
+**Saddle-stitch booklet (admin)**: **Settings** → **Tools** → **Saddle-stitch prayer booklet** opens HTML with [`padToMultipleOfFourWithBackCoverLast`](src/app/lib/print-booklet-imposition.ts) (padding blanks **before** the back cover when needed so the folded **outside back cover** stays last) and [`saddleStitchImpose`](src/app/lib/print-booklet-imposition.ts). **Front cover**: rounded [**/icons/icon-512.png**](public/icons/icon-512.png), **Prayer List** title, dates; **`/info` QR** sits **bottom-right** beside static copy (**Download the app** and body text with emphasized **Join us in prayer**, Sundays **6–6:25 PM**, overflow room). **Back cover**: [**BrandingService**](src/app/services/branding.service.ts) **light** logo when **Use logo** is on (**bottom**, centered). **Inner panels**: prayer rows use the same **`.prayer-item`** / **`.updates-section`** styling as **`generatePrintableHTML()`** (Print Prayers), so booklet cards match the standard printed list. Standard **Print Prayers** still uses **`buildPrintInfoFooterHtml`**; the booklet embeds **`buildBookletFrontQrFooterHtml`** for front-only copy plus shared **`getInfoQrImageSrc`**. Print **duplex**, **flip on short edge**, fold, staple.
 
 **Personal Prayers Functionality**:
 

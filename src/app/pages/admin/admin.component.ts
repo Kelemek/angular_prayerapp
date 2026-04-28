@@ -28,6 +28,7 @@ import { PrayerTypesManagerComponent } from '../../components/prayer-types-manag
 import { EmailSettingsComponent } from '../../components/email-settings/email-settings.component';
 import { AdminUserManagementComponent } from '../../components/admin-user-management/admin-user-management.component';
 import { PrayerSearchComponent } from '../../components/prayer-search/prayer-search.component';
+import { PrayerListBookletPrintComponent } from '../../components/prayer-list-booklet-print/prayer-list-booklet-print.component';
 import { PrayerArchiveTimelineComponent } from '../../components/prayer-archive-timeline/prayer-archive-timeline.component';
 import { BackupStatusComponent } from '../../components/backup-status/backup-status.component';
 import { SecurityPolicySettingsComponent } from '../../components/security-policy-settings/security-policy-settings.component';
@@ -62,6 +63,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
     EmailSettingsComponent,
     AdminUserManagementComponent,
     PrayerSearchComponent,
+    PrayerListBookletPrintComponent,
     PrayerArchiveTimelineComponent,
     BackupStatusComponent,
     SecurityPolicySettingsComponent,
@@ -677,6 +679,9 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
               <div class="space-y-6">
                 <div class="mb-4">
                   <app-prayer-search #prayerSearch></app-prayer-search>
+                </div>
+                <div class="mb-4">
+                  <app-prayer-list-booklet-print></app-prayer-list-booklet-print>
                 </div>
                 <div class="mb-4">
                   <app-prayer-archive-timeline></app-prayer-archive-timeline>

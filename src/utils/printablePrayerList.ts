@@ -22,7 +22,7 @@ export interface Prayer {
   }>;
 }
 
-export type TimeRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
+export type TimeRange = 'week' | 'twoweeks' | 'month' | 'twomonths' | 'year' | 'all';
 
 /**
  * Generate and download a printable prayer list for the specified time range
@@ -42,6 +42,9 @@ export const downloadPrintablePrayerList = async (timeRange: TimeRange = 'month'
         break;
       case 'month':
         startDate.setMonth(endDate.getMonth() - 1);
+        break;
+      case 'twomonths':
+        startDate.setMonth(endDate.getMonth() - 2);
         break;
       case 'year':
         startDate.setFullYear(endDate.getFullYear() - 1);
@@ -131,7 +134,18 @@ export const downloadPrintablePrayerList = async (timeRange: TimeRange = 'month'
     });
 
     if (!prayers || prayers.length === 0) {
-      const rangeText = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2 weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'database';
+      const rangeText =
+        timeRange === 'week'
+          ? 'week'
+          : timeRange === 'twoweeks'
+            ? '2 weeks'
+            : timeRange === 'month'
+              ? 'month'
+              : timeRange === 'twomonths'
+                ? '2 months'
+                : timeRange === 'year'
+                  ? 'year'
+                  : 'database';
       alert(`No prayers found in the last ${rangeText}.`);
       if (newWindow) newWindow.close();
       return;
@@ -150,7 +164,18 @@ export const downloadPrintablePrayerList = async (timeRange: TimeRange = 'month'
       link.href = blobUrl;
       
       const today = new Date().toISOString().split('T')[0];
-      const rangeLabel = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'all';
+      const rangeLabel =
+        timeRange === 'week'
+          ? 'week'
+          : timeRange === 'twoweeks'
+            ? '2weeks'
+            : timeRange === 'month'
+              ? 'month'
+              : timeRange === 'twomonths'
+                ? '2months'
+                : timeRange === 'year'
+                  ? 'year'
+                  : 'all';
       link.download = `prayer-list-${rangeLabel}-${today}.html`;
       
       document.body.appendChild(link);
@@ -202,6 +227,9 @@ function generatePrintableHTML(prayers: Prayer[], timeRange: TimeRange = 'month'
       break;
     case 'month':
       startDate.setMonth(startDate.getMonth() - 1);
+      break;
+    case 'twomonths':
+      startDate.setMonth(startDate.getMonth() - 2);
       break;
     case 'year':
       startDate.setFullYear(startDate.getFullYear() - 1);

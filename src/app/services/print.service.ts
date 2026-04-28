@@ -4,6 +4,8 @@ import { PrayerService } from './prayer.service';
 import { EmailNotificationService } from './email-notification.service';
 import { Printer } from '@capgo/capacitor-printer';
 import { markdownToSafeHtml } from '../../utils/markdown';
+import { padToMultipleOfFourWithBackCoverLast, saddleStitchImpose } from '../lib/print-booklet-imposition';
+import { BrandingService } from './branding.service';
 
 export interface Prayer {
   id: string;
@@ -25,7 +27,10 @@ export interface Prayer {
   }>;
 }
 
-export type TimeRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
+export type TimeRange = 'week' | 'twoweeks' | 'month' | 'twomonths' | 'year' | 'all';
+
+/** Time ranges for the admin saddle-stitch booklet print only. */
+export type BookletTimeRange = 'week' | 'twoweeks' | 'month' | 'twomonths';
 
 @Injectable({
   providedIn: 'root'
@@ -34,8 +39,147 @@ export class PrintService {
   constructor(
     private supabase: SupabaseService,
     private prayerService: PrayerService,
-    private emailNotificationService: EmailNotificationService
+    private emailNotificationService: EmailNotificationService,
+    private brandingService: BrandingService
   ) {}
+
+  /**
+   * Target prayer cards per half-letter panel. Kept moderate so larger type + wide margins still fit in print.
+   */
+  static readonly BOOKLET_PRAYERS_PER_PAGE = 4;
+
+  private setStartDateForTimeRange(startDate: Date, endDate: Date, timeRange: TimeRange): void {
+    switch (timeRange) {
+      case 'week':
+        startDate.setTime(endDate.getTime());
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case 'twoweeks':
+        startDate.setTime(endDate.getTime());
+        startDate.setDate(endDate.getDate() - 14);
+        break;
+      case 'month':
+        startDate.setTime(endDate.getTime());
+        startDate.setMonth(endDate.getMonth() - 1);
+        break;
+      case 'twomonths':
+        startDate.setTime(endDate.getTime());
+        startDate.setMonth(endDate.getMonth() - 2);
+        break;
+      case 'year':
+        startDate.setTime(endDate.getTime());
+        startDate.setFullYear(endDate.getFullYear() - 1);
+        break;
+      case 'all':
+        startDate.setFullYear(2000, 0, 1);
+        break;
+    }
+  }
+
+  private getRangeFileLabel(timeRange: TimeRange): string {
+    switch (timeRange) {
+      case 'week':
+        return 'week';
+      case 'twoweeks':
+        return '2weeks';
+      case 'month':
+        return 'month';
+      case 'twomonths':
+        return '2months';
+      case 'year':
+        return 'year';
+      case 'all':
+        return 'all';
+    }
+  }
+
+  private getEmptyRangeUserMessage(timeRange: TimeRange): string {
+    switch (timeRange) {
+      case 'week':
+        return 'No prayers found in the last week.';
+      case 'twoweeks':
+        return 'No prayers found in the last 2 weeks.';
+      case 'month':
+        return 'No prayers found in the last month.';
+      case 'twomonths':
+        return 'No prayers found in the last 2 months.';
+      case 'year':
+        return 'No prayers found in the last year.';
+      case 'all':
+        return 'No prayers found in the database.';
+    }
+  }
+
+  /**
+   * Loads approved, non-closed public prayers in the time range (created or update in range).
+   * @returns `null` on fetch error (after alert), `[]` if none match.
+   */
+  private async loadPublicPrayersForTimeRange(
+    timeRange: TimeRange,
+    newWindow: Window | null
+  ): Promise<Prayer[] | null> {
+    const endDate = new Date();
+    const startDate = new Date();
+    this.setStartDateForTimeRange(startDate, endDate, timeRange);
+
+    const { data: allPrayers, error: prayersError } = await this.supabase.client
+      .from('prayers')
+      .select('*')
+      .eq('approval_status', 'approved')
+      .neq('status', 'closed')
+      .order('created_at', { ascending: false });
+
+    if (prayersError) {
+      console.error('[PrintService] Error fetching prayers:', prayersError);
+      alert('Failed to fetch prayers. Please try again.');
+      if (newWindow) {
+        newWindow.close();
+      }
+      return null;
+    }
+
+    const { data: allUpdates, error: updatesError } = await this.supabase.client
+      .from('prayer_updates')
+      .select('*');
+
+    if (updatesError) {
+      console.error('[PrintService] Error fetching updates:', updatesError);
+      alert('Failed to fetch prayer updates. Please try again.');
+      if (newWindow) {
+        newWindow.close();
+      }
+      return null;
+    }
+
+    const updatesByPrayerId = new Map<string, any[]>();
+    allUpdates?.forEach(update => {
+      if (update.approval_status === 'approved') {
+        if (!updatesByPrayerId.has(update.prayer_id)) {
+          updatesByPrayerId.set(update.prayer_id, []);
+        }
+        updatesByPrayerId.get(update.prayer_id)!.push(update);
+      }
+    });
+
+    const prayersWithUpdates = (allPrayers || []).map(prayer => ({
+      ...prayer,
+      prayer_updates: updatesByPrayerId.get(prayer.id) || []
+    }));
+
+    return prayersWithUpdates.filter(prayer => {
+      const prayerCreatedDate = new Date(prayer.created_at);
+      if (prayerCreatedDate >= startDate && prayerCreatedDate <= endDate) {
+        return true;
+      }
+      if (prayer.prayer_updates && Array.isArray(prayer.prayer_updates) && prayer.prayer_updates.length > 0) {
+        return prayer.prayer_updates.some((update: any) => {
+          const updateDate = new Date(update.created_at);
+          return updateDate >= startDate && updateDate <= endDate;
+        });
+      }
+      return false;
+    });
+  }
 
   /**
    * Detect if running in native app (Capacitor)
@@ -103,100 +247,15 @@ export class PrintService {
    */
   async downloadPrintablePrayerList(timeRange: TimeRange = 'month', newWindow: Window | null = null): Promise<void> {
     try {
-      // Calculate date range
-      const endDate = new Date();
-      const startDate = new Date();
-      
-      switch (timeRange) {
-        case 'week':
-          startDate.setDate(endDate.getDate() - 7);
-          break;
-        case 'twoweeks':
-          startDate.setDate(endDate.getDate() - 14);
-          break;
-        case 'month':
-          startDate.setMonth(endDate.getMonth() - 1);
-          break;
-        case 'year':
-          startDate.setFullYear(endDate.getFullYear() - 1);
-          break;
-        case 'all':
-          startDate.setFullYear(2000, 0, 1);
-          break;
-      }
-
-      // Fetch ALL prayers (no date filter in query - we'll filter after combining with updates)
-      const { data: allPrayers, error: prayersError } = await this.supabase.client
-        .from('prayers')
-        .select('*')
-        .eq('approval_status', 'approved')
-        .neq('status', 'closed')
-        .order('created_at', { ascending: false });
-
-      if (prayersError) {
-        console.error('[PrintService] Error fetching prayers:', prayersError);
-        alert('Failed to fetch prayers. Please try again.');
-        if (newWindow) newWindow.close();
+      const prayers = await this.loadPublicPrayersForTimeRange(timeRange, newWindow);
+      if (prayers === null) {
         return;
       }
-
-      // Fetch ALL updates
-      const { data: allUpdates, error: updatesError } = await this.supabase.client
-        .from('prayer_updates')
-        .select('*');
-
-      if (updatesError) {
-        console.error('[PrintService] Error fetching updates:', updatesError);
-        alert('Failed to fetch prayer updates. Please try again.');
-        if (newWindow) newWindow.close();
-        return;
-      }
-
-      // Filter to only approved updates and map to prayers by prayer_id
-      const updatesByPrayerId = new Map<string, any[]>();
-      allUpdates?.forEach(update => {
-        // Only include approved updates
-        if (update.approval_status === 'approved') {
-          if (!updatesByPrayerId.has(update.prayer_id)) {
-            updatesByPrayerId.set(update.prayer_id, []);
-          }
-          updatesByPrayerId.get(update.prayer_id)!.push(update);
+      if (prayers.length === 0) {
+        alert(this.getEmptyRangeUserMessage(timeRange));
+        if (newWindow) {
+          newWindow.close();
         }
-      });
-
-      // Attach updates to prayers
-      const prayersWithUpdates = (allPrayers || []).map(prayer => ({
-        ...prayer,
-        prayer_updates: updatesByPrayerId.get(prayer.id) || []
-      }));
-
-      // Filter: include prayers created in range OR with updates in range
-      const prayers = prayersWithUpdates.filter(prayer => {
-        const prayerCreatedDate = new Date(prayer.created_at);
-        
-        // Include if prayer was created in time range
-        if (prayerCreatedDate >= startDate && prayerCreatedDate <= endDate) {
-          return true;
-        }
-        
-        // Include if any update is in time range
-        if (prayer.prayer_updates && Array.isArray(prayer.prayer_updates) && prayer.prayer_updates.length > 0) {
-          const hasRecentUpdate = prayer.prayer_updates.some((update: any) => {
-            const updateDate = new Date(update.created_at);
-            return updateDate >= startDate && updateDate <= endDate;
-          });
-          if (hasRecentUpdate) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
-
-      if (!prayers || prayers.length === 0) {
-        const rangeText = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2 weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'database';
-        alert(`No prayers found in the last ${rangeText}.`);
-        if (newWindow) newWindow.close();
         return;
       }
 
@@ -206,7 +265,7 @@ export class PrintService {
       if (this.isNativeApp()) {
         console.log('[PrintService] Native app detected in downloadPrintablePrayerList, using shareOnNativeApp');
         const today = new Date().toISOString().split('T')[0];
-        const rangeLabel = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'all';
+        const rangeLabel = this.getRangeFileLabel(timeRange);
         const filename = `prayer-list-${rangeLabel}-${today}.html`;
         
         await this.shareOnNativeApp(html, filename, 'Prayer List');
@@ -231,7 +290,7 @@ export class PrintService {
         link.href = blobUrl;
         
         const today = new Date().toISOString().split('T')[0];
-        const rangeLabel = timeRange === 'week' ? 'week' : timeRange === 'twoweeks' ? '2weeks' : timeRange === 'month' ? 'month' : timeRange === 'year' ? 'year' : 'all';
+        const rangeLabel = this.getRangeFileLabel(timeRange);
         link.download = `prayer-list-${rangeLabel}-${today}.html`;
         
         document.body.appendChild(link);
@@ -250,6 +309,67 @@ export class PrintService {
     } catch (error) {
       console.error('Error generating prayer list:', error);
       alert('Failed to generate prayer list. Please try again.');
+    }
+  }
+
+  /**
+   * Admin: saddle-stitch imposed half-letter prayer booklet (letter landscape, 2 panels per print side).
+   */
+  async downloadPrintableBookletPrayerList(
+    timeRange: BookletTimeRange = 'month',
+    newWindow: Window | null = null
+  ): Promise<void> {
+    try {
+      const prayers = await this.loadPublicPrayersForTimeRange(timeRange, newWindow);
+      if (prayers === null) {
+        return;
+      }
+      if (prayers.length === 0) {
+        alert(this.getEmptyRangeUserMessage(timeRange));
+        if (newWindow) {
+          newWindow.close();
+        }
+        return;
+      }
+
+      await this.brandingService.initialize();
+      const coverLogoUrl = this.getBookletFrontCoverLogoUrl();
+      const html = this.generateSaddleStitchBookletHTML(prayers, timeRange, coverLogoUrl);
+
+      if (this.isNativeApp()) {
+        const today = new Date().toISOString().split('T')[0];
+        const rangeLabel = this.getRangeFileLabel(timeRange);
+        const filename = `prayer-list-booklet-${rangeLabel}-${today}.html`;
+        await this.shareOnNativeApp(html, filename, 'Prayer list booklet');
+        return;
+      }
+
+      const targetWindow = newWindow || window.open('', '_blank');
+      if (!targetWindow) {
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const today = new Date().toISOString().split('T')[0];
+        const rangeLabel = this.getRangeFileLabel(timeRange);
+        link.download = `prayer-list-booklet-${rangeLabel}-${today}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        alert('Booklet download started. Open the file to print; use double-sided, flip on short edge, then fold and staple.');
+      } else {
+        targetWindow.document.open();
+        targetWindow.document.write(html);
+        targetWindow.document.close();
+        targetWindow.focus();
+      }
+    } catch (error) {
+      console.error('Error generating prayer booklet:', error);
+      alert('Failed to generate prayer booklet. Please try again.');
+      if (newWindow) {
+        newWindow.close();
+      }
     }
   }
 
@@ -274,6 +394,7 @@ export class PrintService {
       max-height: 120px;
       flex-shrink: 0;
       object-fit: contain;
+      border-radius: 10px;
     }
     .print-info-text {
       flex: 1;
@@ -294,16 +415,38 @@ export class PrintService {
     }`;
   }
 
-  /** Footer with QR to `/info` (website + app store links). */
-  private buildPrintInfoFooterHtml(): string {
+  /** QR image URL for the public `/info` page (same target as the Info page and other print footers). */
+  private getInfoQrImageSrc(): string {
     const base = this.emailNotificationService.getEmailBaseUrl().replace(/\/$/, '');
     const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
     const infoUrl = `${base || origin}/info`;
-    const qrSrc =
-      'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(infoUrl);
+    return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(infoUrl);
+  }
+
+  /** Booklet front cover: bold CTA + copy left, `/info` QR right (bottom of panel), below `<hr />`. */
+  private buildBookletFrontQrFooterHtml(): string {
+    const qrSrc = this.getInfoQrImageSrc();
+    return `<section class="booklet-cover-front-bottom-section" aria-label="Download the app">
+  <hr class="booklet-cover-front-hr" />
+  <div class="booklet-cover-front-footer">
+    <div class="booklet-cover-front-footer-text">
+      <p class="booklet-front-cta"><strong>Download the app</strong></p>
+      <p class="booklet-front-copy">Scan for information about our prayer app.</p>
+      <p class="booklet-front-copy"><strong>Join us in prayer</strong> at our weekly prayer meetings on Sundays from 6 - 6:25 PM in the overflow room.</p>
+    </div>
+    <div class="booklet-cover-front-footer-qr">
+      <img class="booklet-front-qr" src="${this.escapeHtml(qrSrc)}" width="180" height="180" alt="" />
+    </div>
+  </div>
+</section>`;
+  }
+
+  /** Footer with QR to `/info` (website + app store links). */
+  private buildPrintInfoFooterHtml(): string {
+    const qrSrc = this.getInfoQrImageSrc();
     return `
   <div class="print-info-footer" role="complementary" aria-label="Church info and app links">
-    <img class="print-info-qr" src="${qrSrc}" width="200" height="200" alt="" />
+    <img class="print-info-qr" src="${this.escapeHtml(qrSrc)}" width="200" height="200" alt="" />
     <div class="print-info-text">
       <p class="print-info-lead">Want to get the app?</p>
       <p class="print-info-copy">Scan to open the prayer app info page in your browser to get the website and app store links.</p>
@@ -331,23 +474,7 @@ export class PrintService {
     // Calculate start date based on time range
     const startDate = new Date();
     
-    switch (timeRange) {
-      case 'week':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case 'twoweeks':
-        startDate.setDate(startDate.getDate() - 14);
-        break;
-      case 'month':
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'year':
-        startDate.setFullYear(startDate.getFullYear() - 1);
-        break;
-      case 'all':
-        startDate.setFullYear(2000, 0, 1);
-        break;
-    }
+    this.setStartDateForTimeRange(startDate, now, timeRange);
     
     const dateRange = timeRange === 'all' 
       ? `All Prayers (as of ${today})`
@@ -722,62 +849,548 @@ export class PrintService {
   }
 
   /**
-   * Generate HTML for a single prayer
+   * Public branding logo for booklet cover (light logo preferred for white paper; same source as home header when **Use logo** is on).
    */
-  private generatePrayerHTML(prayer: Prayer): string {
-    const createdDate = new Date(prayer.created_at).toLocaleDateString('en-US', {
+  private getBookletFrontCoverLogoUrl(): string {
+    const b = this.brandingService.getBranding();
+    if (!b.useLogo) {
+      return '';
+    }
+    const url = (b.lightLogo || b.darkLogo || '').trim();
+    if (!url) {
+      return '';
+    }
+    return this.resolvePrintAssetUrl(url);
+  }
+
+  /**
+   * Ensure print HTML can load images (absolute http(s) or same-origin path).
+   */
+  /** PWA app icon (same asset as manifest / home screen); used large on booklet cover. */
+  private getBookletAppIconUrl(): string {
+    return this.resolvePrintAssetUrl('/icons/icon-512.png');
+  }
+
+  private resolvePrintAssetUrl(url: string): string {
+    const t = url.trim();
+    if (!t) {
+      return '';
+    }
+    if (/^https?:\/\//i.test(t) || t.startsWith('data:')) {
+      return t;
+    }
+    if (typeof window !== 'undefined' && window.location?.origin && t.startsWith('/')) {
+      return `${window.location.origin}${t}`;
+    }
+    return t;
+  }
+
+  /**
+   * Build saddle-stitch booklet: letter landscape, two 5.5"×8.5" panels per print side.
+   */
+  private generateSaddleStitchBookletHTML(
+    prayers: Prayer[],
+    timeRange: BookletTimeRange,
+    coverLogoUrl: string
+  ): string {
+    const now = new Date();
+    const today = now.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+    const startDate = new Date();
+    this.setStartDateForTimeRange(startDate, now, timeRange);
+    const dateRange = `${startDate.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    })} - ${today}`;
 
-    const answeredDate = prayer.date_answered 
-      ? new Date(prayer.date_answered).toLocaleDateString('en-US', {
+    const prayersByStatus = {
+      current: prayers.filter(p => p.status === 'current'),
+      answered: prayers.filter(p => p.status === 'answered')
+    };
+    const sortByRecentActivity = (a: Prayer, b: Prayer) => {
+      const aLatestUpdate =
+        a.prayer_updates && a.prayer_updates.length > 0
+          ? Math.max(...a.prayer_updates.map(u => new Date(u.created_at).getTime()))
+          : 0;
+      const bLatestUpdate =
+        b.prayer_updates && b.prayer_updates.length > 0
+          ? Math.max(...b.prayer_updates.map(u => new Date(u.created_at).getTime()))
+          : 0;
+      return (
+        Math.max(new Date(b.created_at).getTime(), bLatestUpdate) -
+        Math.max(new Date(a.created_at).getTime(), aLatestUpdate)
+      );
+    };
+    prayersByStatus.current.sort(sortByRecentActivity);
+    prayersByStatus.answered.sort(sortByRecentActivity);
+
+    const statusLabels = { current: 'Current Prayer Requests', answered: 'Answered Prayers' } as const;
+    const perPage = PrintService.BOOKLET_PRAYERS_PER_PAGE;
+    const contentPageInners: string[] = [];
+
+    (['current', 'answered'] as const).forEach(status => {
+      const list = prayersByStatus[status];
+      if (list.length === 0) {
+        return;
+      }
+      const items = list.map(p => this.generateBookletPrayerHTML(p));
+      const title = `${statusLabels[status]} (${list.length})`;
+      const h2 = `<h2 class="booklet-h2">${this.escapeHtml(title)}</h2>`;
+      const firstBatch = items.slice(0, perPage);
+      contentPageInners.push(`<div class="booklet-chunk">${h2}${firstBatch.join('')}</div>`);
+      for (let i = perPage; i < items.length; i += perPage) {
+        const slice = items.slice(i, i + perPage);
+        contentPageInners.push(`<div class="booklet-chunk">${slice.join('')}</div>`);
+      }
+    });
+
+    const backLogoBlock =
+      coverLogoUrl.trim().length > 0
+        ? `<div class="booklet-back-cover-logo-bottom"><img class="booklet-logo" src="${this.escapeHtml(
+            coverLogoUrl
+          )}" alt="" width="160" height="60" loading="eager" /></div>`
+        : '';
+    const bookletFrontQrFooter = this.buildBookletFrontQrFooterHtml();
+    const appIconUrl = this.getBookletAppIconUrl();
+    const appIconBlock = `<div class="booklet-cover-app-icon-wrap"><img class="booklet-app-icon" src="${this.escapeHtml(
+      appIconUrl
+    )}" alt="" width="512" height="512" loading="eager" /></div>`;
+    const coverFrontInner = `
+      <div class="booklet-cover">
+        <div class="booklet-cover-main">
+          ${appIconBlock}
+          <h1 class="booklet-title">Prayer List</h1>
+          <p class="booklet-subtitle">${this.escapeHtml(dateRange)}</p>
+        </div>
+        ${bookletFrontQrFooter}
+      </div>`;
+    const coverBackInner = `<div class="booklet-back-cover">${backLogoBlock}</div>`;
+
+    const blankInner = '<div class="booklet-blank"></div>';
+    const pagesBeforeBack = [coverFrontInner, ...contentPageInners];
+    const padded = padToMultipleOfFourWithBackCoverLast(pagesBeforeBack, () => blankInner, coverBackInner);
+    const panels = saddleStitchImpose(padded);
+
+    const pageSurfaces = panels
+      .map(
+        side => `
+  <div class="booklet-print-surface">
+    <div class="booklet-panel">${side.left}</div>
+    <div class="booklet-panel">${side.right}</div>
+  </div>`
+      )
+      .join('\n');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Prayer list booklet — ${today}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #111; background: #e5e7eb; }
+    .no-print { font-size: 13px; padding: 12px 16px; background: #eff6ff; border-bottom: 1px solid #93c5fd; }
+    @media print { .no-print { display: none !important; } body { background: #fff; } }
+    @page { size: letter landscape; margin: 0; }
+    .booklet-print-surface { display: flex; flex-direction: row; width: 11in; height: 8.5in; page-break-after: always; }
+    .booklet-panel {
+      width: 5.5in; height: 8.5in; padding: 0.4in; overflow: hidden;
+      font-size: 12.5px; line-height: 1.4; border-left: 1px solid #d1d5db;
+    }
+    .booklet-panel:first-child { border-left: none; }
+    .booklet-h2 { color: #1d4ed8; font-size: 16px; font-weight: 700; border-bottom: 1px solid #93c5fd; margin: 0 0 5px; padding: 0 0 3px; line-height: 1.2; }
+    .booklet-chunk { display: flex; flex-direction: column; gap: 4px; }
+    /* Prayer cards: match generatePrintableHTML() list cards (borders, status accent, type scale) */
+    .prayer-item {
+      background: transparent;
+      border: 1px solid #e6e6e6;
+      padding: 4px 6px;
+      margin-bottom: 4px;
+      border-radius: 2px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      width: 100%;
+    }
+    .prayer-item.current {
+      border-left: 3px solid #3b82f6;
+    }
+    .prayer-item.answered {
+      border-left: 3px solid #10b981;
+    }
+    .prayer-item.archived {
+      border-left: 3px solid #6b7280;
+    }
+    .booklet-prayer-top {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4b5563;
+      margin-bottom: 3px;
+      line-height: 1.3;
+    }
+    .booklet-prayer-top-meta {
+      font-size: 11px;
+      font-weight: 500;
+      color: #6b7280;
+      font-style: italic;
+    }
+    .prayer-for {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 3px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .prayer-meta {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 3px;
+      font-style: italic;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      align-items: center;
+      line-height: 1.35;
+    }
+    .prayer-description {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.4;
+      margin-bottom: 3px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    .prayer-description p,
+    .update-item p {
+      margin: 0 0 0.35em 0;
+    }
+    .prayer-description p:last-child,
+    .update-item p:last-child {
+      margin-bottom: 0;
+    }
+    .prayer-description ul,
+    .prayer-description ol,
+    .update-item ul,
+    .update-item ol {
+      margin: 0.35em 0;
+      padding-left: 1.5em;
+    }
+    .prayer-description ul,
+    .update-item ul {
+      list-style-type: disc;
+      list-style-position: outside;
+    }
+    .prayer-description ol,
+    .update-item ol {
+      list-style-type: decimal;
+      list-style-position: outside;
+    }
+    .prayer-description li,
+    .update-item li {
+      display: list-item;
+      margin: 0.15em 0;
+    }
+    .prayer-description ul ul,
+    .update-item ul ul {
+      list-style-type: circle;
+      margin-top: 0.15em;
+    }
+    .prayer-description blockquote,
+    .update-item blockquote {
+      margin: 0.35em 0;
+      padding: 0.2em 0 0.2em 0.75em;
+      border-left: 3px solid #cbd5e1;
+    }
+    .prayer-description strong,
+    .update-item strong {
+      font-weight: 600;
+    }
+    .prayer-description em,
+    .update-item em {
+      font-style: italic;
+    }
+    .prayer-description u,
+    .update-item u {
+      text-decoration: underline;
+    }
+    .prayer-description s,
+    .update-item s {
+      text-decoration: line-through;
+    }
+    .updates-section {
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 4px;
+      border-left: 3px solid #0ea5e9;
+    }
+    .updates-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .update-item {
+      font-size: 11px;
+      color: #1e3a5f;
+      line-height: 1.4;
+      margin-bottom: 3px;
+      padding-left: 8px;
+      border-left: 2px solid #7dd3fc;
+    }
+    .update-item:last-child {
+      margin-bottom: 0;
+    }
+    .update-meta {
+      font-weight: 700;
+      color: #0369a1;
+    }
+    .booklet-cover {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      min-height: calc(8.5in - 0.8in);
+      padding: 0.2in;
+    }
+    .booklet-cover-main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+      min-height: 0;
+    }
+    .booklet-cover-front-bottom-section {
+      flex: 0 0 auto;
+      width: 100%;
+      margin-top: auto;
+      padding-top: 10px;
+    }
+    .booklet-cover-front-hr {
+      width: 100%;
+      margin: 0 0 10px;
+      padding: 0;
+      border: none;
+      border-top: 1px solid #d1d5db;
+      height: 0;
+      box-sizing: border-box;
+    }
+    .booklet-cover-front-footer {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 10px;
+      width: 100%;
+    }
+    .booklet-cover-front-footer-text {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+      align-self: flex-end;
+      padding-right: 4px;
+    }
+    .booklet-front-cta {
+      font-size: 17px;
+      line-height: 1.35;
+      margin: 0 0 6px;
+      color: #111827;
+    }
+    .booklet-front-copy {
+      font-size: 14px;
+      line-height: 1.45;
+      color: #374151;
+      margin: 0;
+    }
+    .booklet-cover-front-footer-text .booklet-front-copy + .booklet-front-copy {
+      margin-top: 5px;
+    }
+    .booklet-cover-front-footer-qr {
+      flex-shrink: 0;
+      line-height: 0;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .booklet-front-qr {
+      width: 1.2in;
+      height: 1.2in;
+      max-width: 135px;
+      max-height: 135px;
+      display: block;
+      border: none;
+      outline: none;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+    .booklet-title { font-size: 32px; line-height: 1.2; color: #111827; margin-bottom: 10px; }
+    .booklet-subtitle { font-size: 15px; color: #4b5563; margin-bottom: 8px; }
+    .booklet-cover-app-icon-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 0 0 16px;
+      flex-shrink: 0;
+      line-height: 0;
+      background: transparent;
+    }
+    .booklet-app-icon {
+      width: 2.35in;
+      height: 2.35in;
+      max-width: min(100%, 2.75in);
+      max-height: 2.75in;
+      object-fit: contain;
+      display: block;
+      border: none;
+      outline: none;
+      box-shadow: none;
+      border-radius: 22%;
+    }
+    @media print {
+      .booklet-cover-app-icon-wrap {
+        border: none;
+        outline: none;
+        box-shadow: none;
+      }
+      .booklet-app-icon {
+        border: none;
+        outline: none;
+        box-shadow: none;
+      }
+    }
+    .booklet-blank { min-height: 6in; }
+    ${this.getPrintInfoFooterStyles()}
+    .booklet-back-cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      min-height: calc(8.5in - 0.8in);
+      box-sizing: border-box;
+    }
+    .booklet-back-cover-logo-bottom {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    .booklet-back-cover-logo-bottom .booklet-logo {
+      display: block;
+      max-height: 0.52in;
+      width: auto;
+      max-width: min(100%, 2.25in);
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <strong>Print tips:</strong> Use <strong>double-sided</strong> printing, <strong>flip on short edge</strong>, on US Letter. Then fold each sheet in half and staple at the fold.
+  </div>
+  ${pageSurfaces}
+  <script>window.onload=function(){window.print();};</script>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generate HTML for a single prayer
+   * @param compactBooklet - tighter copy and one update only (saddle-stitch booklet panels)
+   */
+  private generatePrayerHTML(prayer: Prayer, compactBooklet = false): string {
+    const shortDate = (iso: string) =>
+      new Date(iso).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+    const createdDate = compactBooklet
+      ? shortDate(prayer.created_at)
+      : new Date(prayer.created_at).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
           day: 'numeric'
-        })
+        });
+
+    const answeredDate = prayer.date_answered
+      ? compactBooklet
+        ? shortDate(prayer.date_answered)
+        : new Date(prayer.date_answered).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
       : null;
 
     // Sort updates by date (newest first)
-    const sortedUpdates = Array.isArray(prayer.prayer_updates) 
-      ? [...prayer.prayer_updates].sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
+    const sortedUpdates = Array.isArray(prayer.prayer_updates)
+      ? [...prayer.prayer_updates].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       : [];
-    
-    // Get updates from the last week
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const recentUpdates = sortedUpdates.filter(update => 
-      new Date(update.created_at).getTime() > oneWeekAgo.getTime()
-    );
-    
-    // If there are updates less than 1 week old, show all of them
-    // Otherwise, show only the most recent update
-    const updates = recentUpdates.length > 0 ? recentUpdates : sortedUpdates.slice(0, 1);
-    
-    // Show updates in condensed format with minimal spacing
-    const updatesHTML = updates.length > 0 ? `
+
+    let updates: typeof sortedUpdates;
+    if (compactBooklet) {
+      updates = sortedUpdates.slice(0, 1);
+    } else {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const recentUpdates = sortedUpdates.filter(
+        update => new Date(update.created_at).getTime() > oneWeekAgo.getTime()
+      );
+      updates = recentUpdates.length > 0 ? recentUpdates : sortedUpdates.slice(0, 1);
+    }
+
+    const updatesHTML =
+      updates.length > 0
+        ? compactBooklet
+          ? (() => {
+              const u = updates[0]!;
+              const uDate = shortDate(u.created_at);
+              const authorName = (u as { is_anonymous?: boolean }).is_anonymous
+                ? 'Anonymous'
+                : u.author || 'Anonymous';
+              return `
       <div class="updates-section">
         <div class="updates-header">Updates (${updates.length}):</div>
-        ${updates.map(update => {
-          const updateDate = new Date(update.created_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric'
-          });
-          const authorName = (update as any).is_anonymous ? 'Anonymous' : (update.author || 'Anonymous');
-          return `<div class="update-item"><span class="update-meta">Updated by: ${this.escapeHtml(authorName)} • ${updateDate}:</span> ${this.renderMarkdown(update.content)}</div>`;
-        }).join('')}
+        <div class="update-item">
+          <span class="update-meta">${this.escapeHtml(authorName)} · ${uDate}</span>
+          ${this.renderMarkdown(u.content)}
+        </div>
+      </div>`;
+            })()
+          : `
+      <div class="updates-section">
+        <div class="updates-header">Updates (${updates.length}):</div>
+        ${updates
+          .map(update => {
+            const updateDate = new Date(update.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric'
+            });
+            const authorName = (update as { is_anonymous?: boolean }).is_anonymous
+              ? 'Anonymous'
+              : update.author || 'Anonymous';
+            return `<div class="update-item"><span class="update-meta">Updated by: ${this.escapeHtml(authorName)} • ${updateDate}:</span> ${this.renderMarkdown(update.content)}</div>`;
+          })
+          .join('')}
       </div>
-    ` : '';
+    `
+        : '';
 
-    // Place requester and date on a single line; right-side show answered date if present
-    const requesterDisplay = prayer.is_anonymous ? 'Anonymous' : (prayer.requester || 'Anonymous');
+    const requesterDisplay = prayer.is_anonymous ? 'Anonymous' : prayer.requester || 'Anonymous';
     const requesterText = `Requested by ${this.escapeHtml(requesterDisplay)}`;
-    const rightMeta = answeredDate ? `Answered on ${answeredDate}` : '';
+    const rightMeta = answeredDate ? (compactBooklet ? `Ans. ${answeredDate}` : `Answered on ${answeredDate}`) : '';
 
-    return `
+    if (!compactBooklet) {
+      return `
       <div class="prayer-item ${prayer.status}">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <div class="prayer-for"><strong>Prayer For:</strong> ${this.escapeHtml(prayer.prayer_for)}</div>
@@ -790,6 +1403,24 @@ export class PrintService {
         ${updatesHTML}
       </div>
     `;
+    }
+
+    const topMeta = `${this.escapeHtml(requesterDisplay)} · ${createdDate}${rightMeta ? ` · ${rightMeta}` : ''}`;
+    return `
+      <div class="prayer-item ${prayer.status}">
+        <div class="booklet-prayer-top">
+          <strong>For:</strong> ${this.escapeHtml(prayer.prayer_for)}
+          <span class="booklet-prayer-top-meta"> · ${topMeta}</span>
+        </div>
+        <div class="prayer-description">${this.renderMarkdown(prayer.description)}</div>
+        ${updatesHTML}
+      </div>
+    `;
+  }
+
+  /** Booklet: compact card HTML (shorter labels, one update; styles match {@link generatePrintableHTML} prayer cards). */
+  private generateBookletPrayerHTML(prayer: Prayer): string {
+    return this.generatePrayerHTML(prayer, true);
   }
 
   /**
@@ -1643,7 +2274,16 @@ export class PrintService {
   private escapeHtml(text: string): string {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    const html = div.innerHTML;
+    if (html != null) {
+      return html;
+    }
+    return String(text ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   /**

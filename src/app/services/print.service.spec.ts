@@ -6,6 +6,19 @@ const mockEmailNotificationService = {
   getEmailBaseUrl: vi.fn().mockReturnValue('https://example.com')
 };
 
+const mockBrandingService = {
+  initialize: vi.fn().mockResolvedValue(undefined),
+  getBranding: vi.fn().mockReturnValue({
+    useLogo: false,
+    lightLogo: null,
+    darkLogo: null,
+    appTitle: 'Church Prayer Manager',
+    appSubtitle: 'Keeping our community connected in prayer',
+    churchWebsiteUrl: null,
+    lastModified: null
+  })
+};
+
 describe('PrintService', () => {
   let service: PrintService;
   let mockSupabaseService: any;
@@ -87,17 +100,14 @@ describe('PrintService', () => {
       getPersonalPrayers: vi.fn()
     };
 
-    // Mock document.createElement for escapeHtml
-    const mockDiv = {
-      textContent: '',
-      innerHTML: ''
-    };
+    // Mock document.createElement for escapeHtml (each div must keep its own buffer — shared state breaks long HTML)
     vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
       if (tag === 'div') {
+        let escaped = '';
         return {
           set textContent(value: string) {
-            // Simple HTML escape implementation
-            mockDiv.innerHTML = value
+            const s = value == null ? '' : String(value);
+            escaped = s
               .replace(/&/g, '&amp;')
               .replace(/</g, '&lt;')
               .replace(/>/g, '&gt;')
@@ -105,7 +115,7 @@ describe('PrintService', () => {
               .replace(/'/g, '&#039;');
           },
           get innerHTML() {
-            return mockDiv.innerHTML;
+            return escaped;
           }
         } as any;
       }
@@ -116,7 +126,12 @@ describe('PrintService', () => {
       } as any;
     });
 
-    service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
+    service = new PrintService(
+      mockSupabaseService,
+      mockPrayerService,
+      mockEmailNotificationService,
+      mockBrandingService as any
+    );
   });
 
   afterEach(() => {
@@ -168,6 +183,12 @@ describe('PrintService', () => {
 
     it('should fetch prayers with correct date range for month', { timeout: 10000 }, async () => {
       await service.downloadPrintablePrayerList('month', null);
+
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
+    });
+
+    it('should fetch prayers with correct date range for twomonths', { timeout: 10000 }, async () => {
+      await service.downloadPrintablePrayerList('twomonths', null);
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('prayers');
     });
@@ -257,7 +278,7 @@ describe('PrintService', () => {
 
       await service.downloadPrintablePrayerList('all', null);
 
-      expect(global.alert).toHaveBeenCalledWith('No prayers found in the last database.');
+      expect(global.alert).toHaveBeenCalledWith('No prayers found in the database.');
     });
 
     it('should open new window with HTML content when window.open succeeds', { timeout: 10000 }, async () => {
@@ -294,6 +315,70 @@ describe('PrintService', () => {
       expect(mockWindow.document.open).toHaveBeenCalled();
       expect(mockWindow.document.write).toHaveBeenCalled();
       expect(mockWindow.document.close).toHaveBeenCalled();
+    });
+
+    it('should write saddle-stitch booklet HTML when downloadPrintableBookletPrayerList succeeds', { timeout: 10000 }, async () => {
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      await service.downloadPrintableBookletPrayerList('month', mockWindow as any);
+      expect(mockBrandingService.initialize).toHaveBeenCalled();
+      expect(mockWindow.document.write).toHaveBeenCalled();
+      const html = (mockWindow.document.write as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(html).toContain('size: letter landscape');
+      expect(html).toContain('booklet-print-surface');
+      expect(html).not.toContain('Saddle-stitch booklet');
+      expect(html).toContain('booklet-cover-app-icon-wrap');
+      expect(html).toContain('/icons/icon-512.png');
+      expect(html).toContain('booklet-cover-front-hr');
+      expect(html).toContain('booklet-cover-front-footer');
+      expect(html).toContain('Download the app');
+      expect(html).toContain('Join us in prayer');
+      expect(html).toContain('6 - 6:25 PM');
+      expect(html).toContain('overflow room');
+    });
+
+    it('should embed branding logo on booklet cover when useLogo and logo URL are set', { timeout: 10000 }, async () => {
+      const defaultBr = {
+        useLogo: false,
+        lightLogo: null,
+        darkLogo: null,
+        appTitle: 'Church Prayer Manager',
+        appSubtitle: 'Keeping our community connected in prayer',
+        churchWebsiteUrl: null,
+        lastModified: null
+      };
+      const brandingWithLogo = {
+        useLogo: true,
+        lightLogo: 'https://cdn.example.com/logo.png',
+        darkLogo: null,
+        appTitle: 'T',
+        appSubtitle: 'S',
+        churchWebsiteUrl: null,
+        lastModified: null
+      };
+      vi.mocked(mockBrandingService.getBranding).mockReturnValue(brandingWithLogo);
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn()
+        },
+        focus: vi.fn()
+      };
+      try {
+        await service.downloadPrintableBookletPrayerList('month', mockWindow as any);
+        const html = (mockWindow.document.write as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+        expect(html).toContain('booklet-back-cover-logo-bottom');
+        expect(html).toContain('https://cdn.example.com/logo.png');
+      } finally {
+        vi.mocked(mockBrandingService.getBranding).mockReturnValue(defaultBr);
+      }
     });
 
     it('should download file when window.open is blocked', { timeout: 10000 }, async () => {
@@ -553,7 +638,12 @@ describe('PrintService', () => {
         client: mockSupabaseClient
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+        mockSupabaseService as any,
+        mockPrayerService,
+        mockEmailNotificationService,
+        mockBrandingService as any
+      );
     });
 
     it('should filter by month correctly', () => {
@@ -635,7 +725,12 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+        mockSupabaseService as any,
+        mockPrayerService,
+        mockEmailNotificationService,
+        mockBrandingService as any
+      );
     });
 
     it('should handle current prayer status', () => {
@@ -705,7 +800,12 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+        mockSupabaseService as any,
+        mockPrayerService,
+        mockEmailNotificationService,
+        mockBrandingService as any
+      );
     });
 
     it('should generate valid HTML', () => {
@@ -781,7 +881,12 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+        mockSupabaseService as any,
+        mockPrayerService,
+        mockEmailNotificationService,
+        mockBrandingService as any
+      );
     });
 
     it('should create valid filename', () => {
@@ -853,7 +958,12 @@ describe('PrintService', () => {
         }
       };
 
-      service = new PrintService(mockSupabaseService as any, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+        mockSupabaseService as any,
+        mockPrayerService,
+        mockEmailNotificationService,
+        mockBrandingService as any
+      );
     });
 
     it('should handle database query errors', { timeout: 10000 }, async () => {
@@ -1326,7 +1436,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
     });
 
     it('should handle all download range types', { timeout: 10000 }, async () => {
-      const ranges = ['week', 'month', 'year', 'twoweeks', 'all'];
+      const ranges = ['week', 'month', 'year', 'twoweeks', 'twomonths', 'all'];
       
       for (const range of ranges) {
         const result = await service.downloadPrintablePrayerList(range);
@@ -1466,7 +1576,12 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
       mockSupabaseService = { client: mockSupabaseClient } as any;
       mockPrayerService = { getPersonalPrayers: vi.fn() };
-      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+      mockSupabaseService,
+      mockPrayerService,
+      mockEmailNotificationService,
+      mockBrandingService as any
+    );
 
       global.window.open = vi.fn(() => ({
         document: {
@@ -2106,7 +2221,12 @@ describe('PrintService - Advanced Coverage Tests', () => {
 
       mockSupabaseService = { client: mockSupabaseClient } as any;
       mockPrayerService = { getPersonalPrayers: vi.fn() };
-      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+      mockSupabaseService,
+      mockPrayerService,
+      mockEmailNotificationService,
+      mockBrandingService as any
+    );
 
       global.window.open = vi.fn(() => ({
         document: {
@@ -2357,7 +2477,12 @@ describe('PrintService - Advanced Coverage Tests', () => {
           from: vi.fn()
         }
       } as any;
-      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+      mockSupabaseService,
+      mockPrayerService,
+      mockEmailNotificationService,
+      mockBrandingService as any
+    );
       
       global.window.open = vi.fn(() => ({
         document: {
@@ -2590,7 +2715,12 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService = {
         client: { from: vi.fn() }
       } as any;
-      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+      mockSupabaseService,
+      mockPrayerService,
+      mockEmailNotificationService,
+      mockBrandingService as any
+    );
     });
 
     it('should escape HTML in prompt titles during generation', () => {
@@ -2733,7 +2863,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       ];
 
       const html = (service as any).generatePrintableHTML(prayers);
-      expect(html).not.toContain('onerror');
+      expect(html).toMatch(/Requested by &lt;img/);
     });
   });
 
@@ -2753,7 +2883,12 @@ describe('PrintService - Advanced Coverage Tests', () => {
         getPersonalPrayers: vi.fn()
       };
 
-      service = new PrintService(mockSupabaseService, mockPrayerService, mockEmailNotificationService);
+      service = new PrintService(
+      mockSupabaseService,
+      mockPrayerService,
+      mockEmailNotificationService,
+      mockBrandingService as any
+    );
 
       global.window.open = vi.fn(() => ({
         document: {
