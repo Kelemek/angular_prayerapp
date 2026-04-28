@@ -7,6 +7,7 @@ import { markdownToSafeHtml } from '../../utils/markdown';
 import { padToMultipleOfFourWithBackCoverLast, saddleStitchImpose } from '../lib/print-booklet-imposition';
 import { buildBookletMeasurePackScript } from '../lib/booklet-measure-inline';
 import { BrandingService } from './branding.service';
+import { ToastService } from './toast.service';
 
 export interface Prayer {
   id: string;
@@ -41,7 +42,8 @@ export class PrintService {
     private supabase: SupabaseService,
     private prayerService: PrayerService,
     private emailNotificationService: EmailNotificationService,
-    private brandingService: BrandingService
+    private brandingService: BrandingService,
+    private toast: ToastService
   ) {}
 
   /**
@@ -65,9 +67,9 @@ export class PrintService {
   private static readonly BOOKLET_MARKDOWN_TO_HTML_WEIGHT = 1.25;
   /**
    * Subtract from cap each chunk so totals stay below `.booklet-panel { overflow:hidden }`.
-   * Tuned with panel padding (see `generateSaddleStitchBookletHTML`); half the bottom inset → ~half this slack.
+   * Tuned with panel padding and with {@link buildBookletMeasurePackScript} fit tolerance (~rounding + bottom-inset dip).
    */
-  private static readonly BOOKLET_PANEL_BOTTOM_SLACK = 310;
+  private static readonly BOOKLET_PANEL_BOTTOM_SLACK = 220;
   /**
    * Box chrome for compact booklet Updates (header “Updates (n):”, meta row, margins, bordered panel).
    * Does **not** include update body — that is weighed separately via {@link estimateBookletCompactUpdatesBlockWeight}.
@@ -363,7 +365,8 @@ export class PrintService {
         return;
       }
       if (prayers.length === 0) {
-        alert(this.getEmptyRangeUserMessage(timeRange));
+        /* Booklet Tools flow only: avoid blocking browser dialogs for empty range / download / errors. */
+        this.toast.warning(this.getEmptyRangeUserMessage(timeRange));
         if (newWindow) {
           newWindow.close();
         }
@@ -395,7 +398,10 @@ export class PrintService {
         link.click();
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-        alert('Booklet download started. Open the file to print; use double-sided, flip on short edge, then fold and staple.');
+        /* Booklet Tools flow only (popup blocked fallback). */
+        this.toast.info(
+          'Booklet download started. Open the file to print; use double-sided, flip on short edge, then fold and staple.'
+        );
       } else {
         targetWindow.document.open();
         targetWindow.document.write(html);
@@ -404,7 +410,8 @@ export class PrintService {
       }
     } catch (error) {
       console.error('Error generating prayer booklet:', error);
-      alert('Failed to generate prayer booklet. Please try again.');
+      /* Booklet Tools flow only. */
+      this.toast.error('Failed to generate prayer booklet. Please try again.');
       if (newWindow) {
         newWindow.close();
       }
@@ -923,6 +930,19 @@ export class PrintService {
     return t;
   }
 
+  /** Shared heading for Notes ruled padding pages and the outer back cover (icon + bold **Notes:**). */
+  private getBookletNotesHeadingHtml(): string {
+    return `<h2 class="booklet-notes-heading">
+      <span class="booklet-notes-title-row">
+        <svg class="booklet-notes-pencil" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20h9" />
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+        <strong>Notes:</strong>
+      </span>
+    </h2>`;
+  }
+
   /**
    * Build saddle-stitch booklet: letter landscape, two 5.5"×8.5" panels per print side.
    */
@@ -1041,9 +1061,18 @@ export class PrintService {
         </div>
         ${bookletFrontQrFooter}
       </div>`;
-    const coverBackInner = `<div class="booklet-back-cover">${backLogoBlock}</div>`;
+    const coverBackInner = `
+<div class="booklet-back-cover">
+  ${this.getBookletNotesHeadingHtml()}
+  <div class="booklet-back-cover-ruled" aria-hidden="true"></div>
+  ${backLogoBlock}
+</div>`.trim();
 
-    const blankInner = '<div class="booklet-blank"></div>';
+    const blankInner = `
+<div class="booklet-notes-page">
+  ${this.getBookletNotesHeadingHtml()}
+  <div class="booklet-notes-ruled" aria-hidden="true"></div>
+</div>`.trim();
     const pagesBeforeBack = [coverFrontInner, ...contentPageInners];
     const padded = padToMultipleOfFourWithBackCoverLast(pagesBeforeBack, () => blankInner, coverBackInner);
     const panels = saddleStitchImpose(padded);
@@ -1379,22 +1408,81 @@ export class PrintService {
         box-shadow: none;
       }
     }
-    .booklet-blank { min-height: 6in; }
-    ${this.getPrintInfoFooterStyles()}
-    .booklet-back-cover {
+    .booklet-panel:has(.booklet-notes-page),
+    .booklet-panel:has(.booklet-back-cover) {
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
+    }
+    .booklet-notes-page {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      width: 100%;
+    }
+    .booklet-notes-heading {
+      flex: 0 0 auto;
+      color: #1d4ed8;
+      font-size: 16.5px;
+      font-weight: 400;
+      border-bottom: 1px solid #93c5fd;
+      margin: 0 0 12px;
+      padding: 0 0 6px;
+      line-height: 1.25;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+    .booklet-notes-title-row {
+      display: inline-flex;
       align-items: center;
-      min-height: calc(8.5in - 0.4in);
+      gap: 8px;
+    }
+    .booklet-notes-pencil {
+      flex-shrink: 0;
+      display: block;
+      color: inherit;
+    }
+    /* Ruled lines shared by padding Notes pages and outer back cover above logo */
+    .booklet-notes-ruled,
+    .booklet-back-cover-ruled {
+      background-image: repeating-linear-gradient(
+        to bottom,
+        #d1d5db 0,
+        #d1d5db 1px,
+        transparent 1px,
+        transparent 0.42in
+      );
+      background-color: transparent;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .booklet-notes-ruled {
+      flex: 1 1 auto;
+      min-height: 3in;
+      width: 100%;
+    }
+    .booklet-back-cover-ruled {
+      flex: 1 1 auto;
+      min-height: 2in;
+      width: 100%;
+    }
+    ${this.getPrintInfoFooterStyles()}
+    .booklet-back-cover {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 0;
+      width: 100%;
       box-sizing: border-box;
     }
     .booklet-back-cover-logo-bottom {
+      flex: 0 0 auto;
       display: flex;
       justify-content: center;
       align-items: center;
       width: 100%;
-      margin-top: auto;
       padding-top: 8px;
     }
     .booklet-back-cover-logo-bottom .booklet-logo {
@@ -1408,7 +1496,7 @@ export class PrintService {
 </head>
 <body>
   <div class="no-print">
-    <strong>Print tips:</strong> Use <strong>double-sided</strong> printing, <strong>flip on short edge</strong>, on US Letter. Then fold each sheet in half and staple at the fold. Prayer cards are packed top-to-bottom on each half-letter page until the next card would overflow — then the sheet reflows before printing. Long descriptions still split with <strong>(continued)</strong>.
+    <strong>Print tips:</strong> Use <strong>double-sided</strong> printing, <strong>flip on short edge</strong>, on US Letter. Then fold each sheet in half and staple at the fold. Prayer cards are packed top-to-bottom until the next card would pass the bottom of the printable panel (with a small tolerance into the bottom inset); layout reflows before printing. Long descriptions still split with <strong>(continued)</strong>.
   </div>
   <div id="__book_meas_host" aria-hidden="true" style="position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;width:5.5in;z-index:-1;">
     <div id="__book_meas_panel" class="booklet-panel"></div>
@@ -1756,7 +1844,7 @@ export class PrintService {
     return `
       <div class="prayer-item ${prayer.status}">
         <div class="booklet-prayer-top">
-          <strong>For:</strong> ${this.escapeHtml(prayer.prayer_for)}
+          <strong>Prayer For:</strong> ${this.escapeHtml(prayer.prayer_for)}
           ${showContinued ? '<span class="booklet-prayer-top-continued">(continued)</span>' : ''}
           <span class="booklet-prayer-top-meta"> · ${topMeta}</span>
         </div>

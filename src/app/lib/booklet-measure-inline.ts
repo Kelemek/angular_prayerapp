@@ -1,8 +1,10 @@
 /**
  * Injected once into saddle-stitch booklet HTML. After fonts load, greedily assigns prayer
- * fragments to reader pages using an off-screen `.booklet-panel`: add cards until the chunk
- * would exceed the panel height, then start the next page. If measurement is unavailable
- * (e.g. zero-height fixture), the pre-rendered fallback markup in `#booklet-dynamic-root` stays.
+ * fragments to reader pages using an off-screen `.booklet-panel`: add cards until the chunk would
+ * exceed usable height (`scrollHeight`), then start the next page. The fit tolerance allows a modest
+ * dip into bottom inset plus rounding (~subpixel/fonts); overflow is still bounded by `.booklet-panel`
+ * (`overflow:hidden` on paper). If measurement is unavailable (e.g. zero-height fixture),
+ * the pre-rendered fallback markup in `#booklet-dynamic-root` stays.
  */
 
 export function buildBookletMeasurePackScript(): string {
@@ -47,6 +49,20 @@ export function buildBookletMeasurePackScript(): string {
     }
     return decodeURIComponent(escape(raw));
   }
+  /** px tolerance: font/rounding (~12) + up to ~45% of bottom inset (dip before hard clip at panel box). */
+  function measureFitEpsPx(panel) {
+    var pbStr = String(window.getComputedStyle(panel).paddingBottom || '');
+    var pb = parseFloat(pbStr);
+    if (isNaN(pb)) {
+      pb = 0;
+    } else if (pbStr.indexOf('in') !== -1) {
+      pb = Math.round(pb * 96);
+    } else {
+      pb = Math.round(pb);
+    }
+    var dip = pb > 0 ? Math.min(20, Math.round(pb * 0.45)) : 8;
+    return 12 + dip;
+  }
   function packSectionFragments(measurePanel, h2, fragments, epsPx) {
     var chunksHtml = [];
     var cur = [];
@@ -90,7 +106,7 @@ export function buildBookletMeasurePackScript(): string {
       return;
     }
     if (!data || !data.sections) return;
-    var eps = 3;
+    var eps = measureFitEpsPx(meas);
     var allChunks = [];
     for (var si = 0; si < data.sections.length; si++) {
       var sec = data.sections[si];

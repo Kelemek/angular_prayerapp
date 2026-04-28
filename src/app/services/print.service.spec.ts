@@ -19,6 +19,13 @@ const mockBrandingService = {
   })
 };
 
+const mockToastService = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+};
+
 /** Booklet HTML embeds a measuring script whose source repeats `booklet-chunk`; count only markup before the base64 payload. */
 function bookletHtmlBeforePackScript(html: string): string {
   const marker = '<script type="application/x-booklet-b64"';
@@ -137,7 +144,8 @@ describe('PrintService', () => {
       mockSupabaseService,
       mockPrayerService,
       mockEmailNotificationService,
-      mockBrandingService as any
+      mockBrandingService as any,
+      mockToastService as any
     );
   });
 
@@ -859,7 +867,8 @@ describe('PrintService', () => {
         mockSupabaseService as any,
         mockPrayerService,
         mockEmailNotificationService,
-        mockBrandingService as any
+        mockBrandingService as any,
+        mockToastService as any
       );
     });
 
@@ -946,7 +955,8 @@ describe('PrintService', () => {
         mockSupabaseService as any,
         mockPrayerService,
         mockEmailNotificationService,
-        mockBrandingService as any
+        mockBrandingService as any,
+        mockToastService as any
       );
     });
 
@@ -1021,7 +1031,8 @@ describe('PrintService', () => {
         mockSupabaseService as any,
         mockPrayerService,
         mockEmailNotificationService,
-        mockBrandingService as any
+        mockBrandingService as any,
+        mockToastService as any
       );
     });
 
@@ -1109,7 +1120,8 @@ describe('PrintService', () => {
         mockSupabaseService as any,
         mockPrayerService,
         mockEmailNotificationService,
-        mockBrandingService as any
+        mockBrandingService as any,
+        mockToastService as any
       );
     });
 
@@ -1186,7 +1198,8 @@ describe('PrintService', () => {
         mockSupabaseService as any,
         mockPrayerService,
         mockEmailNotificationService,
-        mockBrandingService as any
+        mockBrandingService as any,
+        mockToastService as any
       );
     });
 
@@ -1804,7 +1817,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService,
       mockPrayerService,
       mockEmailNotificationService,
-      mockBrandingService as any
+      mockBrandingService as any,
+      mockToastService as any
     );
 
       global.window.open = vi.fn(() => ({
@@ -2449,7 +2463,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService,
       mockPrayerService,
       mockEmailNotificationService,
-      mockBrandingService as any
+      mockBrandingService as any,
+      mockToastService as any
     );
 
       global.window.open = vi.fn(() => ({
@@ -2705,7 +2720,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService,
       mockPrayerService,
       mockEmailNotificationService,
-      mockBrandingService as any
+      mockBrandingService as any,
+      mockToastService as any
     );
       
       global.window.open = vi.fn(() => ({
@@ -2943,7 +2959,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService,
       mockPrayerService,
       mockEmailNotificationService,
-      mockBrandingService as any
+      mockBrandingService as any,
+      mockToastService as any
     );
     });
 
@@ -3111,7 +3128,8 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService,
       mockPrayerService,
       mockEmailNotificationService,
-      mockBrandingService as any
+      mockBrandingService as any,
+      mockToastService as any
     );
 
       global.window.open = vi.fn(() => ({
