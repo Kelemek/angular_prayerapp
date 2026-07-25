@@ -85,6 +85,7 @@ Major features and milestones for the Prayer App.
 - **Edge**: [`send-user-hourly-memorization-reminders`](supabase/functions/send-user-hourly-memorization-reminders/index.ts) — hourly via Vault + `pg_net` (same secrets as prayer reminders). Deploy after applying migration.
 - **Admin**: **Admin → Settings → Email → Hourly user memorization reminder email** template picker. [`email-settings.component.ts`](src/app/components/email-settings/email-settings.component.ts).
 - **Help**: Standalone section **`help_memorization_reminders`** and **App Settings** item in [`help-content.service.ts`](src/app/services/help-content.service.ts).
+- **Fix**: Memorization spotlight reminder emails no longer show awkward line breaks — Bible book names (e.g. `1 Kings`, `2 Timothy`) stay on one line via nowrap spans in HTML and non-breaking spaces in plain text; verse text from `scripture_cache` is normalized before render (stray single newlines collapsed; paragraph breaks preserved). Formatting helpers in [`memorization-email-format.ts`](src/app/lib/memorization/memorization-email-format.ts), duplicated in [`send-user-hourly-memorization-reminders`](supabase/functions/send-user-hourly-memorization-reminders/index.ts).
 
 ### Settings — sticky modal header ✅
 - **UI**: The Settings modal header (title + close) stays fixed while the body scrolls. [`user-settings.component.ts`](src/app/components/user-settings/user-settings.component.ts).

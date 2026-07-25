@@ -8,6 +8,8 @@
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
  * Spotlight selection logic is duplicated from src/app/lib/memorization/memorization-reminder-spotlight.ts
  * (single-file bundle required for Supabase Edge deploy; keep both in sync).
+ * Email formatting helpers are duplicated from src/app/lib/memorization/memorization-email-format.ts
+ * (keep both in sync).
  */
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 
@@ -48,6 +50,7 @@ interface MemorizedItemRow {
 interface SpotlightResult {
   id: string;
   reference: string;
+  kind: 'verse' | 'bibleBooks';
   kindLabel: string;
   masteryLevel: string;
   verseText: string;
@@ -178,6 +181,144 @@ function truncateText(s: string, maxLen: number): string {
   return `${s.slice(0, maxLen - 1)}...`;
 }
 
+/** Mirror src/app/lib/memorization/memorization-email-format.ts — keep in sync. */
+const BIBLE_BOOK_NAMES_LONGEST_FIRST = [
+  'Song of Solomon',
+  '1 Thessalonians',
+  '2 Thessalonians',
+  '1 Corinthians',
+  '2 Corinthians',
+  '1 Chronicles',
+  '2 Chronicles',
+  'Lamentations',
+  'Ecclesiastes',
+  'Deuteronomy',
+  'Philippians',
+  'Habakkuk',
+  'Zephaniah',
+  'Zechariah',
+  'Revelation',
+  'Genesis',
+  'Exodus',
+  'Leviticus',
+  'Numbers',
+  'Joshua',
+  'Judges',
+  'Ezra',
+  'Nehemiah',
+  'Esther',
+  'Psalms',
+  'Proverbs',
+  'Isaiah',
+  'Jeremiah',
+  'Ezekiel',
+  'Daniel',
+  'Hosea',
+  'Joel',
+  'Amos',
+  'Obadiah',
+  'Jonah',
+  'Micah',
+  'Nahum',
+  'Haggai',
+  'Malachi',
+  'Matthew',
+  'Galatians',
+  'Ephesians',
+  'Colossians',
+  'Philemon',
+  'Hebrews',
+  'Ruth',
+  'Job',
+  'Acts',
+  'Romans',
+  'Titus',
+  'James',
+  'Jude',
+  'Mark',
+  'Luke',
+  'John',
+  '1 Samuel',
+  '2 Samuel',
+  '1 Kings',
+  '2 Kings',
+  '1 Timothy',
+  '2 Timothy',
+  '1 Peter',
+  '2 Peter',
+  '1 John',
+  '2 John',
+  '3 John',
+].sort((a, b) => b.length - a.length);
+
+function normalizeScriptureTextForEmail(text: string): string {
+  return text
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+function parseBibleBooksPlainText(plain: string): string[] {
+  const books: string[] = [];
+  let remaining = plain.trim();
+  while (remaining.length > 0) {
+    const name = BIBLE_BOOK_NAMES_LONGEST_FIRST.find(
+      (n) => remaining === n || remaining.startsWith(`${n} `)
+    );
+    if (!name) break;
+    books.push(name);
+    remaining = remaining.slice(name.length).trimStart();
+  }
+  return books;
+}
+
+function formatBibleBooksForEmailPlain(plain: string): string {
+  return parseBibleBooksPlainText(plain)
+    .map((name) => name.replace(/ /g, '\u00A0'))
+    .join(' ');
+}
+
+function formatBibleBooksForEmailHtml(plain: string): string {
+  return parseBibleBooksPlainText(plain)
+    .map(
+      (name) =>
+        `<span style="white-space:nowrap;">${escapeHtml(name)}</span>`
+    )
+    .join(' ');
+}
+
+function formatVerseTextForEmailHtml(text: string): string {
+  const normalized = normalizeScriptureTextForEmail(text);
+  return normalized
+    .split('\n\n')
+    .map((paragraph) => escapeHtml(paragraph))
+    .join('<br><br>');
+}
+
+function formatSpotlightBodyForEmailHtml(
+  kind: 'verse' | 'bibleBooks',
+  text: string
+): string {
+  if (!text.trim()) return '';
+  if (kind === 'bibleBooks') {
+    return formatBibleBooksForEmailHtml(text);
+  }
+  return formatVerseTextForEmailHtml(text);
+}
+
+function formatSpotlightBodyForEmailPlain(
+  kind: 'verse' | 'bibleBooks',
+  text: string
+): string {
+  if (!text.trim()) return '';
+  if (kind === 'bibleBooks') {
+    return formatBibleBooksForEmailPlain(text);
+  }
+  return normalizeScriptureTextForEmail(text);
+}
+
 function countCompletedSessions(
   sessions: Array<{ completed?: boolean }> | null | undefined
 ): number {
@@ -186,10 +327,14 @@ function countCompletedSessions(
 
 function buildSpotlightBlockHtml(spotlight: SpotlightResult | null): string {
   if (!spotlight) return '';
-  const textHtml = spotlight.verseText
-    ? `<div style="background-color:#ecfdf5;padding:15px;border-radius:6px;border-left:4px solid #10b981;margin:15px 0 0;"><p style="margin:0;white-space:pre-wrap;">${escapeHtml(
+  const bodyHtml = spotlight.verseText
+    ? formatSpotlightBodyForEmailHtml(
+        spotlight.kind,
         truncateText(spotlight.verseText, 1200)
-      )}</p></div>`
+      )
+    : '';
+  const textHtml = bodyHtml
+    ? `<div style="background-color:#ecfdf5;padding:15px;border-radius:6px;border-left:4px solid #10b981;margin:15px 0 0;"><p style="margin:0;">${bodyHtml}</p></div>`
     : '';
   return `<h2 style="color:#1f2937;margin-top:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${escapeHtml(
     spotlight.reference
@@ -395,7 +540,10 @@ Deno.serve(async (req: Request) => {
             spotlightItemReference: spotlight.reference,
             spotlightItemKind: spotlight.kindLabel,
             spotlightMasteryLevel: spotlight.masteryLevel,
-            spotlightVerseText: truncateText(spotlight.verseText, 1200),
+            spotlightVerseText: truncateText(
+              formatSpotlightBodyForEmailPlain(spotlight.kind, spotlight.verseText),
+              1200
+            ),
           }
         : {
             spotlightItemReference: '',
@@ -409,7 +557,12 @@ Deno.serve(async (req: Request) => {
             spotlightItemReference: escapeHtml(spotlight.reference),
             spotlightItemKind: escapeHtml(spotlight.kindLabel),
             spotlightMasteryLevel: escapeHtml(spotlight.masteryLevel),
-            spotlightVerseText: escapeHtml(truncateText(spotlight.verseText, 1200)),
+            spotlightVerseText: escapeHtml(
+              truncateText(
+                formatSpotlightBodyForEmailPlain(spotlight.kind, spotlight.verseText),
+                1200
+              )
+            ),
           }
         : {
             spotlightItemReference: '',
@@ -577,7 +730,9 @@ async function loadSpotlightForRecipient(
     if (cacheErr) {
       console.error('scripture_cache lookup failed', cacheErr);
     }
-    verseText = (cached as { text?: string } | null)?.text?.trim() ?? '';
+    verseText = normalizeScriptureTextForEmail(
+      (cached as { text?: string } | null)?.text?.trim() ?? ''
+    );
   }
 
   const tier = masteryTierFromCompletedCount(picked.completedSessions);
@@ -585,6 +740,7 @@ async function loadSpotlightForRecipient(
   return {
     id: picked.id,
     reference: picked.reference,
+    kind: row.kind,
     kindLabel: kindLabelForMemorizedItem(picked.kind),
     masteryLevel: masteryLevelLabel(tier),
     verseText,
