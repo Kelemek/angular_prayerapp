@@ -271,6 +271,13 @@ function consumeExpectedDigit(
   return { status: 'wrong', fragment: candidate, remainder: null };
 }
 
+/** Psalm/Psalms are interchangeable when reciting the scripture reference. */
+function reciteScriptureBookAliasesMatch(expected: string, spoken: string): boolean {
+  if (expected === spoken) return true;
+  const pair = new Set([expected, spoken]);
+  return pair.has('psalm') && pair.has('psalms');
+}
+
 /** Bible book names ending in "s" are not morphological plurals (Numbers ≠ number). */
 const RECITE_NON_MORPHOLOGICAL_S_WORDS = new Set([
   'numbers',
@@ -399,8 +406,20 @@ function isSkippableSpokenWord(word: string, referenceMode = false): boolean {
   return false;
 }
 
-function tokenMatchStatus(expected: string, spoken: string): ReciteTokenStatus | null {
+type TokenMatchOptions = {
+  /** When true, Psalm/Psalms count as correct for scripture reference tokens. */
+  referenceBookAliases?: boolean;
+};
+
+function tokenMatchStatus(
+  expected: string,
+  spoken: string,
+  options: TokenMatchOptions = {}
+): ReciteTokenStatus | null {
   if (expected === spoken) return 'correct';
+  if (options.referenceBookAliases && reciteScriptureBookAliasesMatch(expected, spoken)) {
+    return 'correct';
+  }
   if (isReciteDigitToken(expected)) {
     const spokenDigit = spokenAsDigit(expected, spoken);
     if (isReciteDigitToken(spokenDigit)) {
@@ -434,22 +453,24 @@ function matchesUpcomingMissing(
   tokens: MemorizationToken[],
   typableIndices: number[],
   currentSlot: number,
-  spokenWord: string
+  spokenWord: string,
+  options: TokenMatchOptions = {}
 ): boolean {
   const idx = currentSlot + 1;
   if (idx >= typableIndices.length) return false;
   const expected = normalizeReciteWord(tokens[typableIndices[idx]!]!.text);
-  return tokenMatchStatus(expected, spokenWord) === 'correct';
+  return tokenMatchStatus(expected, spokenWord, options) === 'correct';
 }
 
 function matchesAnyExpectedToken(
   tokens: MemorizationToken[],
   typableIndices: number[],
-  spokenWord: string
+  spokenWord: string,
+  options: TokenMatchOptions = {}
 ): boolean {
   for (const tokenIndex of typableIndices) {
     const expected = normalizeReciteWord(tokens[tokenIndex]!.text);
-    if (tokenMatchStatus(expected, spokenWord) === 'correct') {
+    if (tokenMatchStatus(expected, spokenWord, options) === 'correct') {
       return true;
     }
   }
@@ -561,15 +582,20 @@ function alignTypableSubsequence(
         break;
       }
 
+      const matchOptions: TokenMatchOptions = { referenceBookAliases: referenceMode };
+
       // Skip stray digit tokens only when they do not match the expected word (e.g. verse
       // "twelve" normalizes to "12" and must not be discarded as reference noise).
-      if (isReciteDigitToken(candidate) && tokenMatchStatus(expectedWord, candidate) === null) {
+      if (
+        isReciteDigitToken(candidate) &&
+        tokenMatchStatus(expectedWord, candidate, matchOptions) === null
+      ) {
         spokenIdx += 1;
         digitRemainder = null;
         continue;
       }
 
-      const status = tokenMatchStatus(expectedWord, candidate);
+      const status = tokenMatchStatus(expectedWord, candidate, matchOptions);
       if (status === 'correct' || status === 'wrong') {
         const spokenDisplay = alignmentSpokenDisplay(tokens, tokenIndex, status, candidate);
         results.push({
@@ -584,7 +610,7 @@ function alignTypableSubsequence(
         break;
       }
 
-      if (matchesUpcomingMissing(tokens, typableIndices, slot, candidate)) {
+      if (matchesUpcomingMissing(tokens, typableIndices, slot, candidate, matchOptions)) {
         results.push({ tokenIndex, status: 'missing' });
         matched = true;
         break;
@@ -592,7 +618,7 @@ function alignTypableSubsequence(
 
       if (
         crossSectionTypableIndices.length > 0 &&
-        matchesAnyExpectedToken(tokens, crossSectionTypableIndices, candidate)
+        matchesAnyExpectedToken(tokens, crossSectionTypableIndices, candidate, matchOptions)
       ) {
         advanceSpokenIndex();
         continue;
@@ -643,7 +669,10 @@ function detectSpokenRefFirst(
     if (verseIdx < 0 && tokenMatchStatus(firstVerse, word) === 'correct') {
       verseIdx = i;
     }
-    if (refIdx < 0 && tokenMatchStatus(firstRef, word) === 'correct') {
+    if (
+      refIdx < 0 &&
+      tokenMatchStatus(firstRef, word, { referenceBookAliases: true }) === 'correct'
+    ) {
       refIdx = i;
     }
     if (verseIdx >= 0 && refIdx >= 0) {

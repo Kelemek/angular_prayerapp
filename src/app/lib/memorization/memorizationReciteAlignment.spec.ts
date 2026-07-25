@@ -712,5 +712,37 @@ describe('memorizationReciteAlignment', () => {
       );
       expect(numbers?.status).toBe('correct');
     });
+
+    it('accepts psalm when reference stores Psalms (canon book name)', () => {
+      const tokens = buildMemorizationTokens('The Lord is my shepherd', 'Psalms 23:1');
+      const typable = getTypableTokenIndices(tokens);
+      const summary = alignRecitation(
+        tokens,
+        typable,
+        'the lord is my shepherd psalm 23 1',
+        'Psalms 23:1'
+      );
+      const book = summary.results.find(
+        (r) => normalizeReciteWord(tokens[r.tokenIndex]?.text ?? '') === 'psalms'
+      );
+      expect(book?.status).toBe('correct');
+      expect(book?.spokenText).toBe('Psalms');
+    });
+
+    it('accepts psalms when reference stores Psalm', () => {
+      const tokens = buildMemorizationTokens('I will always remember', 'Psalm 119:1');
+      const typable = getTypableTokenIndices(tokens);
+      const summary = alignRecitation(
+        tokens,
+        typable,
+        'i will always remember psalms 119 1',
+        'Psalm 119:1'
+      );
+      const book = summary.results.find(
+        (r) => normalizeReciteWord(tokens[r.tokenIndex]?.text ?? '') === 'psalm'
+      );
+      expect(book?.status).toBe('correct');
+      expect(book?.spokenText).toBe('Psalm');
+    });
   });
 });
