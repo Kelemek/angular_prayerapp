@@ -17,6 +17,10 @@ Major features and milestones for the Prayer App.
 - **Fix**: Unchecking every content-type option no longer widens the session to all types; the prior selection is kept instead.
 - **Fix**: Content-type and prayer-status dropdowns only reload presentation content when the pending selection actually changed.
 - **Fix**: Choosing **All Content Types** in presentation settings checks every available type in the dropdown (and still persists as “all” when applied).
+- **Presentation — Pray For**: [`PrayerDisplayCardComponent`](src/app/components/prayer-display-card/prayer-display-card.component.ts) shows **Pray For** / **Prayed For** and **{n} Praying** on congregation prayer slides using the same visibility rules as home [`PrayerCardComponent`](src/app/components/prayer-card/prayer-card.component.ts) (user encouragement toggles, admin feature flag, update-policy gate, and card-type exclusions).
+- **Fix**: Presentation Pray For modal closes when advancing to another slide so encouragement cannot be recorded against the wrong prayer.
+- **Fix**: Presentation Pray For count updates the slide that was prayed for even if auto-advance or navigation changes the current slide before the increment RPC finishes.
+- **Fix**: Admin **Prayer Encouragement** enable checkbox could not be unchecked while the cooldown field was visible — the cooldown control is now hidden with CSS instead of removed from the form so `NgForm` no longer reverts the toggle ([`prayer-encouragement-settings`](src/app/components/prayer-encouragement-settings/prayer-encouragement-settings.component.ts)).
 - **Fix**: **All Statuses** checks every status option; at least one content type and one status must stay selected.
 - **Fix**: Presentation settings modal scrolls normally while a filter dropdown is open (removed full-screen dropdown backdrops that blocked wheel/touch scrolling).
 ### Memorize — Recite mode (Whisper) ✅

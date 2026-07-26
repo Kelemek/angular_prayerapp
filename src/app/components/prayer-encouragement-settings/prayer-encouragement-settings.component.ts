@@ -2,6 +2,7 @@ import {
   Component,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
+  inject,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -70,6 +71,7 @@ import { PrayerEncouragementService } from "../../services/prayer-encouragement.
         role="region"
         aria-labelledby="prayer-encouragement-settings-trigger"
         class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+        (click)="$event.stopPropagation()"
       >
         @if (isLoading) {
         <app-admin-section-loading
@@ -109,9 +111,10 @@ import { PrayerEncouragementService } from "../../services/prayer-encouragement.
             </div>
           </div>
 
-          @if (prayerEncouragementEnabled) {
           <div
             class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-600 rounded-lg"
+            [class.hidden]="!prayerEncouragementEnabled"
+            [attr.aria-hidden]="!prayerEncouragementEnabled"
           >
             <div class="flex-1">
               <label
@@ -136,7 +139,6 @@ import { PrayerEncouragementService } from "../../services/prayer-encouragement.
               />
             </div>
           </div>
-          }
 
           <div
             class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 justify-end"
@@ -256,6 +258,10 @@ import { PrayerEncouragementService } from "../../services/prayer-encouragement.
   styles: [],
 })
 export class PrayerEncouragementSettingsComponent {
+  private readonly supabase = inject(SupabaseService);
+  private readonly prayerEncouragementService = inject(PrayerEncouragementService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   sectionExpanded = false;
   private sectionInitialLoadDone = false;
   prayerEncouragementEnabled = false;
@@ -264,12 +270,6 @@ export class PrayerEncouragementSettingsComponent {
   isLoading = false;
   successMessage = "";
   errorMessage = "";
-
-  constructor(
-    private supabase: SupabaseService,
-    private prayerEncouragementService: PrayerEncouragementService,
-    private cdr: ChangeDetectorRef
-  ) {}
 
   onSectionToggle(): void {
     this.sectionExpanded = !this.sectionExpanded;

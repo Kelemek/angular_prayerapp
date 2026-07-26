@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { screen } from '@testing-library/angular';
+import { userEvent } from '@testing-library/user-event';
 import { PrayerEncouragementSettingsComponent } from './prayer-encouragement-settings.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
@@ -8,7 +11,7 @@ describe('PrayerEncouragementSettingsComponent', () => {
   let mockSupabase: any;
   let mockPrayerEncouragementService: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     const mockMaybeSingle = vi.fn().mockResolvedValue({
@@ -30,11 +33,16 @@ describe('PrayerEncouragementSettingsComponent', () => {
       invalidateFlagCache: vi.fn()
     };
 
-    component = new PrayerEncouragementSettingsComponent(
-      mockSupabase,
-      mockPrayerEncouragementService,
-      { markForCheck: vi.fn() } as any
-    );
+    await TestBed.configureTestingModule({
+      imports: [PrayerEncouragementSettingsComponent],
+      providers: [
+        { provide: SupabaseService, useValue: mockSupabase },
+        { provide: PrayerEncouragementService, useValue: mockPrayerEncouragementService }
+      ]
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(PrayerEncouragementSettingsComponent);
+    component = fixture.componentInstance;
   });
 
   it('should create', () => {
@@ -136,6 +144,30 @@ describe('PrayerEncouragementSettingsComponent', () => {
       await component.submitSettings();
       expect(component.errorMessage).toBe('Failed to save settings. Please try again.');
       expect(component.isSaving).toBe(false);
+    });
+  });
+
+  describe('template interactions', () => {
+    async function renderExpandedSettings() {
+      const fixture = TestBed.createComponent(PrayerEncouragementSettingsComponent);
+      fixture.componentInstance.onSectionToggle();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      return { fixture };
+    }
+
+    it('allows unchecking Enable Prayer Encouragement when cooldown field is visible', async () => {
+      const { fixture } = await renderExpandedSettings();
+      const checkbox = screen.getByRole('checkbox', {
+        name: /Enable Prayer Encouragement/i
+      }) as HTMLInputElement;
+      expect(checkbox.checked).toBe(true);
+
+      await userEvent.click(checkbox);
+      fixture.detectChanges();
+
+      expect(checkbox.checked).toBe(false);
+      expect(fixture.componentInstance.prayerEncouragementEnabled).toBe(false);
     });
   });
 });
