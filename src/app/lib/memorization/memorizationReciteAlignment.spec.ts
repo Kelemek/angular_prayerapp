@@ -744,5 +744,43 @@ describe('memorizationReciteAlignment', () => {
       expect(book?.status).toBe('correct');
       expect(book?.spokenText).toBe('Psalm');
     });
+
+    it('marks thee wrong when verse expects you', () => {
+      const tokens = buildMemorizationTokens(
+        'If you love me you will keep my commandments',
+        'John 14:15'
+      );
+      const typable = getTypableTokenIndices(tokens);
+      const summary = alignRecitation(
+        tokens,
+        typable,
+        'if thee love me thee will keep my commandments john 14 15',
+        'John 14:15'
+      );
+      const youTokens = summary.results.filter(
+        (r) => normalizeReciteWord(tokens[r.tokenIndex]?.text ?? '') === 'you'
+      );
+      expect(youTokens.length).toBe(2);
+      expect(youTokens.every((r) => r.status === 'wrong')).toBe(true);
+    });
+
+    it('marks ye wrong when verse expects you', () => {
+      const tokens = buildMemorizationTokens(
+        'If you love me you will keep my commandments',
+        'John 14:15'
+      );
+      const typable = getTypableTokenIndices(tokens);
+      const summary = alignRecitation(
+        tokens,
+        typable,
+        'if ye love me ye will keep my commandments john 14 15',
+        'John 14:15'
+      );
+      const youTokens = summary.results.filter(
+        (r) => normalizeReciteWord(tokens[r.tokenIndex]?.text ?? '') === 'you'
+      );
+      expect(youTokens.length).toBe(2);
+      expect(youTokens.every((r) => r.status === 'wrong')).toBe(true);
+    });
   });
 });

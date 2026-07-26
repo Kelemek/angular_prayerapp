@@ -27,6 +27,7 @@ import {
   hiddenFractionForRound,
   type MemorizationToken,
 } from '../lib/memorization/memorizationPracticeUtils';
+import type { BibleTranslation } from '../types/memorization';
 import { computeReciteModeAvailable } from './integration';
 
 export type RecitePhase = 'ready' | 'recording' | 'stopping' | 'transcribing' | 'results';
@@ -59,6 +60,7 @@ export class MemorizationRecitePracticeComponent {
   @Input({ required: true }) tokens!: MemorizationToken[];
   @Input({ required: true }) typableIndices!: number[];
   @Input({ required: true }) reference!: string;
+  @Input({ required: true }) translation!: BibleTranslation;
   @Input({ required: true }) itemId!: string;
   @Input({ required: true }) roundIndex!: number;
   @Input() awaitingRoundAdvance = false;
@@ -373,7 +375,11 @@ export class MemorizationRecitePracticeComponent {
     this.cdr.markForCheck();
     try {
       const alignmentReference = this.isBibleBooks ? '' : this.reference;
-      const prompt = formatMemorizationReciteWhisperPrompt(this.tokens, alignmentReference);
+      const prompt = formatMemorizationReciteWhisperPrompt(
+        this.tokens,
+        alignmentReference,
+        this.translation
+      );
       const captured = await this.reciteService.stopRecordingCapture();
       if (!this.isStopCurrent(stopGeneration)) return;
 

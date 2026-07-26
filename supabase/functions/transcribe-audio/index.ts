@@ -174,6 +174,7 @@ Deno.serve(async (req: Request) => {
     openaiForm.append('file', audio, audio.name || 'recording.webm');
     openaiForm.append('model', WHISPER_MODEL);
     openaiForm.append('language', 'en');
+    openaiForm.append('temperature', '0');
     if (prompt) {
       openaiForm.append('prompt', prompt.slice(0, 800));
     }

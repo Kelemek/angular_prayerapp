@@ -73,6 +73,7 @@ describe('MemorizationRecitePracticeComponent', () => {
     component.tokens = [{ kind: 'word', text: 'In', index: 0 }];
     component.typableIndices = [0];
     component.reference = 'John 3:16';
+    component.translation = 'esv';
     component.itemId = 'item-1';
     component.roundIndex = 0;
     component.hiddenIndices = new Set();

@@ -1,4 +1,5 @@
 import { formatSpokenScriptureReference, parseReference } from './parse-scripture-reference'
+import type { BibleTranslation } from '../../types/memorization'
 
 /** Seeded PRNG (mulberry32). */
 export function seedRandom(seed: number): () => number {
@@ -102,15 +103,29 @@ export function formatMemorizationTokensPlain(tokens: MemorizationToken[]): stri
 }
 
 /**
- * Whisper prompt: spoken-style reference only (not the verse body).
+ * Whisper prompt style prefix — nudges STT toward the memorized translation’s English
+ * without sending verse text (which biases Whisper to insert omitted words).
+ */
+export function reciteWhisperTranslationStylePrefix(translation: BibleTranslation): string {
+  if (translation === 'kjv') {
+    return 'King James Bible recitation.';
+  }
+  return 'Contemporary English Bible recitation.';
+}
+
+/**
+ * Whisper prompt: translation style + spoken-style reference only (not the verse body).
  * Feeding the full verse biases Whisper to insert omitted words that appear in the prompt.
  */
 export function formatMemorizationReciteWhisperPrompt(
   _tokens: MemorizationToken[],
-  reference: string
+  reference: string,
+  translation: BibleTranslation = 'esv'
 ): string {
   const spokenRef = formatSpokenScriptureReference(reference.trim());
-  return spokenRef || reference.trim();
+  const refPart = spokenRef || reference.trim();
+  if (!refPart) return '';
+  return `${reciteWhisperTranslationStylePrefix(translation)} ${refPart}`;
 }
 
 /** Round 1 = 20% hidden, … round 5 = 100%. Round 0 = 0%. */

@@ -150,12 +150,23 @@ describe('formatMemorizationTokensPlain', () => {
 });
 
 describe('formatMemorizationReciteWhisperPrompt', () => {
-  it('uses spoken reference only (not verse body) for Whisper', () => {
+  it('uses translation style and spoken reference only (not verse body) for Whisper', () => {
     const tokens = buildMemorizationTokens('All Scripture is God-breathed', '2 Timothy 3:16');
-    const prompt = formatMemorizationReciteWhisperPrompt(tokens, '2 Timothy 3:16');
-    expect(prompt).toBe('2 Timothy 3 16');
+    const prompt = formatMemorizationReciteWhisperPrompt(tokens, '2 Timothy 3:16', 'esv');
+    expect(prompt).toBe('Contemporary English Bible recitation. 2 Timothy 3 16');
     expect(prompt).not.toContain('3:16');
     expect(prompt).not.toContain('Scripture');
+  });
+
+  it('uses King James style prefix for KJV items', () => {
+    const tokens = buildMemorizationTokens('Blessed are the poor in spirit', 'Matthew 5:3');
+    const prompt = formatMemorizationReciteWhisperPrompt(tokens, 'Matthew 5:3', 'kjv');
+    expect(prompt).toBe('King James Bible recitation. Matthew 5 3');
+  });
+
+  it('returns empty prompt when reference is empty (bible books)', () => {
+    const tokens = buildMemorizationTokens('Genesis Exodus', '');
+    expect(formatMemorizationReciteWhisperPrompt(tokens, '', 'esv')).toBe('');
   });
 });
 
