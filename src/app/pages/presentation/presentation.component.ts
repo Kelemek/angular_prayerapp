@@ -162,6 +162,7 @@ type ThemeOption = "light" | "dark" | "system";
         [displayDuration]="displayDuration"
         [contentTypes]="contentTypes"
         [randomize]="randomize"
+        [loop]="loop"
         [timeFilter]="timeFilter"
         [statusFiltersCurrent]="statusFilters.current"
         [statusFiltersAnswered]="statusFilters.answered"
@@ -177,6 +178,7 @@ type ThemeOption = "light" | "dark" | "system";
         (displayDurationChange)="handleDisplayDurationChange($event)"
         (contentTypesChange)="contentTypes = $event; handleContentTypeChange()"
         (randomizeChange)="randomize = $event; handleRandomizeChange()"
+        (loopChange)="handleLoopChange($event)"
         (timeFilterChange)="timeFilter = $event; handleTimeFilterChange()"
         (statusFiltersChange)="
           statusFilters = $event; handleStatusFilterChange()
@@ -234,6 +236,41 @@ type ThemeOption = "light" | "dark" | "system";
         </div>
       </div>
       }
+
+      <!-- Presentation Complete Notification -->
+      @if (showPresentationCompleteNotification) {
+      <div
+        class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 safe-area-overlay"
+      >
+        <div
+          class="bg-gradient-to-br from-green-600 to-green-700 rounded-3xl p-12 shadow-2xl border-4 border-green-400 text-center max-w-2xl mx-4 animate-pulse relative"
+        >
+          <button
+            (click)="dismissPresentationComplete()"
+            class="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="text-white"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <h2 class="text-6xl font-bold mb-4 text-white">
+            Prayers Complete! 🙏
+          </h2>
+          <p class="text-2xl opacity-90 text-white">
+            You've viewed all prayers
+          </p>
+        </div>
+      </div>
+      }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -286,6 +323,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   timeFilter: PresentationTimeFilter = "all";
   theme: ThemeOption = "system";
   randomize = false;
+  loop = true;
   countdownRemaining = 0;
   currentDuration = 10;
   selectedPersonalCategories: string[] = [];
@@ -297,6 +335,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   prayerTimerActive = false;
   prayerTimerRemaining = 0;
   showTimerNotification = false;
+  showPresentationCompleteNotification = false;
   showSmartModeDetails = false;
 
   private autoAdvanceInterval: any;
@@ -304,6 +343,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
   private prayerTimerSubscription: Subscription | null = null;
   private initialTimerHandle: any;
   private initialPeriodElapsed = false;
+  /** True while a loop-off single-pass play session is in progress (including paused). */
+  private loopOffPlaySessionActive = false;
 
   // Touch/swipe handling
   private touchStart: number | null = null;
@@ -472,6 +513,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
     this.randomize = settings.randomize;
     this.smartMode = settings.smartMode;
     this.displayDuration = settings.displayDuration;
+    this.loop = settings.loop;
     this.timeFilter = settings.timeFilter;
     this.statusFilters = { ...settings.statusFilters };
     this.prayerTimerMinutes = settings.prayerTimerMinutes;
@@ -483,6 +525,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
       randomize: this.randomize,
       smartMode: this.smartMode,
       displayDuration: this.displayDuration,
+      loop: this.loop,
       timeFilter: this.timeFilter,
       statusFilters: { ...this.statusFilters },
       prayerTimerMinutes: this.prayerTimerMinutes,
@@ -501,6 +544,11 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   handlePrayerTimerMinutesChange(minutes: number): void {
     this.prayerTimerMinutes = minutes;
+    this.persistSettings();
+  }
+
+  handleLoopChange(enabled: boolean): void {
+    this.loop = enabled;
     this.persistSettings();
   }
 
@@ -1061,9 +1109,22 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   togglePlay(): void {
+    if (this.showPresentationCompleteNotification) {
+      this.dismissPresentationComplete();
+      return;
+    }
+
     this.isPlaying = !this.isPlaying;
 
     if (this.isPlaying) {
+      if (this.items.length === 0) {
+        this.isPlaying = false;
+        return;
+      }
+      if (!this.loop && !this.loopOffPlaySessionActive) {
+        this.currentIndex = 0;
+        this.loopOffPlaySessionActive = true;
+      }
       this.startAutoAdvance();
     } else {
       this.clearIntervals();
@@ -1071,6 +1132,10 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   startAutoAdvance(): void {
+    if (this.items.length === 0) {
+      return;
+    }
+
     this.clearIntervals();
 
     const duration = this.calculateCurrentDuration();
@@ -1078,7 +1143,11 @@ export class PresentationComponent implements OnInit, OnDestroy {
     this.countdownRemaining = duration;
 
     this.autoAdvanceInterval = setTimeout(() => {
-      this.nextSlide();
+      const advanced = this.tryAdvanceSlide();
+      if (!advanced && !this.loop && this.items.length > 0) {
+        this.completePresentationCycle();
+        return;
+      }
       if (this.isPlaying) {
         this.startAutoAdvance();
       }
@@ -1135,20 +1204,84 @@ export class PresentationComponent implements OnInit, OnDestroy {
     }
   }
 
-  nextSlide(): void {
-    if (this.items.length === 0) return;
-    this.currentIndex = (this.currentIndex + 1) % this.items.length;
-    this.cdr.markForCheck();
+  private tryAdvanceSlide(): boolean {
+    if (this.items.length === 0) return false;
 
-    if (this.isPlaying) {
+    if (this.loop) {
+      this.currentIndex = (this.currentIndex + 1) % this.items.length;
+      this.cdr.markForCheck();
+      return true;
+    }
+
+    if (this.currentIndex < this.items.length - 1) {
+      this.currentIndex++;
+      this.cdr.markForCheck();
+      return true;
+    }
+
+    return false;
+  }
+
+  completePresentationCycle(): void {
+    if (this.items.length === 0) {
+      return;
+    }
+
+    this.isPlaying = false;
+    this.loopOffPlaySessionActive = false;
+    this.clearIntervals();
+    this.showPresentationCompleteNotification = true;
+    this.cdr.markForCheck();
+  }
+
+  dismissPresentationComplete(): void {
+    this.showPresentationCompleteNotification = false;
+    this.showSettings = false;
+    this.showTimerNotification = false;
+    if (this.items.length === 0) {
+      this.loopOffPlaySessionActive = false;
+      this.isPlaying = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.currentIndex = 0;
+    this.loopOffPlaySessionActive = true;
+    this.isPlaying = true;
+    this.startAutoAdvance();
+    this.cdr.markForCheck();
+  }
+
+  nextSlide(): void {
+    if (this.showPresentationCompleteNotification || this.items.length === 0) {
+      return;
+    }
+
+    const advanced = this.tryAdvanceSlide();
+    if (!advanced && !this.loop && this.items.length > 0) {
+      this.completePresentationCycle();
+      return;
+    }
+
+    if (this.isPlaying && advanced) {
       this.startAutoAdvance();
     }
   }
 
   previousSlide(): void {
-    if (this.items.length === 0) return;
-    this.currentIndex =
-      this.currentIndex === 0 ? this.items.length - 1 : this.currentIndex - 1;
+    if (this.showPresentationCompleteNotification || this.items.length === 0) {
+      return;
+    }
+
+    if (!this.loop && this.currentIndex === 0) {
+      return;
+    }
+
+    this.currentIndex = this.loop
+      ? this.currentIndex === 0
+        ? this.items.length - 1
+        : this.currentIndex - 1
+      : this.currentIndex - 1;
     this.cdr.markForCheck();
 
     if (this.isPlaying) {

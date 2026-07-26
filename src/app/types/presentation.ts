@@ -76,6 +76,7 @@ export interface PresentationSettings {
   randomize: boolean;
   smartMode: boolean;
   displayDuration: number;
+  loop: boolean;
   timeFilter: PresentationTimeFilter;
   statusFilters: { current: boolean; answered: boolean };
   prayerTimerMinutes: number;

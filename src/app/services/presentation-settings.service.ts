@@ -129,6 +129,13 @@ function parseStoredSettings(
     return null;
   }
 
+  if (
+    settings.loop !== undefined &&
+    typeof settings.loop !== 'boolean'
+  ) {
+    return null;
+  }
+
   return {
     contentTypes,
     randomize: settings.randomize,
@@ -140,6 +147,8 @@ function parseStoredSettings(
       typeof settings.displayDuration === 'number'
         ? settings.displayDuration
         : defaults.displayDuration,
+    loop:
+      typeof settings.loop === 'boolean' ? settings.loop : defaults.loop,
     timeFilter: settings.timeFilter,
     statusFilters: {
       current: settings.statusFilters.current,
@@ -159,6 +168,7 @@ export class PresentationSettingsService {
       randomize: false,
       smartMode: true,
       displayDuration: 10,
+      loop: true,
       timeFilter: 'all',
       statusFilters: { current: true, answered: true },
       prayerTimerMinutes: 10,

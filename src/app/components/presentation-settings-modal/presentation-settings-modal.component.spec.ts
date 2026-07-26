@@ -37,6 +37,10 @@ describe('PresentationSettingsModalComponent', () => {
       expect(component.randomize).toBe(false);
     });
 
+    it('should have loop default to true', () => {
+      expect(component.loop).toBe(true);
+    });
+
     it('should have timeFilter default to all', () => {
       expect(component.timeFilter).toBe('all');
     });
@@ -67,6 +71,10 @@ describe('PresentationSettingsModalComponent', () => {
 
     it('should have localRandomize default to false', () => {
       expect(component.localRandomize).toBe(false);
+    });
+
+    it('should have localLoop default to true', () => {
+      expect(component.localLoop).toBe(true);
     });
 
     it('should have localTimeFilter default to all', () => {
@@ -174,6 +182,7 @@ describe('PresentationSettingsModalComponent', () => {
       component.displayDuration = 20;
       component.contentTypes = ['prompts'];
       component.randomize = true;
+      component.loop = false;
       component.timeFilter = 'week';
       component.prayerTimerMinutes = 15;
 
@@ -183,6 +192,7 @@ describe('PresentationSettingsModalComponent', () => {
       expect(component.localDisplayDuration).toBe(20);
       expect(component.localContentTypes).toEqual(['prompts']);
       expect(component.localRandomize).toBe(true);
+      expect(component.localLoop).toBe(false);
       expect(component.localTimeFilter).toBe('week');
       expect(component.localPrayerTimerMinutes).toBe(15);
     });
@@ -769,6 +779,10 @@ describe('PresentationSettingsModalComponent', () => {
 
     it('should have randomizeChange event emitter', () => {
       expect(component.randomizeChange).toBeTruthy();
+    });
+
+    it('should have loopChange event emitter', () => {
+      expect(component.loopChange).toBeTruthy();
     });
 
     it('should have timeFilterChange event emitter', () => {

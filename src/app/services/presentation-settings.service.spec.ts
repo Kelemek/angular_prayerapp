@@ -37,6 +37,7 @@ describe('PresentationSettingsService', () => {
       randomize: false,
       smartMode: true,
       displayDuration: 10,
+      loop: true,
       timeFilter: 'all',
       statusFilters: { current: true, answered: true },
       prayerTimerMinutes: 10,
@@ -53,6 +54,7 @@ describe('PresentationSettingsService', () => {
       randomize: true,
       smartMode: false,
       displayDuration: 20,
+      loop: false,
       timeFilter: 'week' as const,
       statusFilters: { current: true, answered: false },
       prayerTimerMinutes: 25,
@@ -84,10 +86,28 @@ describe('PresentationSettingsService', () => {
       randomize: true,
       smartMode: true,
       displayDuration: 10,
+      loop: true,
       timeFilter: 'week',
       statusFilters: { current: true, answered: false },
       prayerTimerMinutes: 25,
     });
+  });
+
+  it('load defaults loop when missing from older saved settings', () => {
+    localStorage.setItem(
+      'prayer_app_presentation_settings',
+      JSON.stringify({
+        contentTypes: ['prayers'],
+        randomize: false,
+        smartMode: true,
+        displayDuration: 10,
+        timeFilter: 'all',
+        statusFilters: { current: true, answered: true },
+        prayerTimerMinutes: 10,
+      })
+    );
+
+    expect(service.load().loop).toBe(true);
   });
 
   it('migrates legacy contentType all to empty contentTypes', () => {

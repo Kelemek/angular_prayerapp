@@ -52,6 +52,7 @@ describe('PresentationComponent', () => {
         randomize: false,
         smartMode: true,
         displayDuration: 10,
+        loop: true,
         timeFilter: 'all',
         statusFilters: { current: true, answered: true },
         prayerTimerMinutes: 10,
@@ -124,6 +125,209 @@ describe('PresentationComponent', () => {
     expect(component.currentIndex).toBe(2);
     component.previousSlide();
     expect(component.currentIndex).toBe(1);
+  });
+
+  describe('loop setting', () => {
+    beforeEach(() => {
+      component.smartMode = false;
+      component.displayDuration = 1;
+      component.prayers = [{ id: 'a' }, { id: 'b' }, { id: 'c' }] as any;
+      component.contentTypes = ['prayers'];
+    });
+
+    it('nextSlide wraps when loop is on', () => {
+      component.loop = true;
+      component.currentIndex = 2;
+      component.nextSlide();
+      expect(component.currentIndex).toBe(0);
+    });
+
+    it('nextSlide shows completion when loop is off on last slide', () => {
+      component.loop = false;
+      component.currentIndex = 2;
+      component.isPlaying = false;
+      component.nextSlide();
+      expect(component.currentIndex).toBe(2);
+      expect(component.showPresentationCompleteNotification).toBe(true);
+      expect(component.isPlaying).toBe(false);
+    });
+
+    it('nextSlide shows completion when loop is off on last slide while playing', () => {
+      vi.useFakeTimers();
+      component.loop = false;
+      component.currentIndex = 2;
+      component.isPlaying = true;
+      component.nextSlide();
+      expect(component.currentIndex).toBe(2);
+      expect(component.showPresentationCompleteNotification).toBe(true);
+      expect(component.isPlaying).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it('previousSlide does not wrap when loop is off at first slide', () => {
+      component.loop = false;
+      component.currentIndex = 0;
+      component.previousSlide();
+      expect(component.currentIndex).toBe(0);
+    });
+
+    it('togglePlay resets to first slide when loop is off', () => {
+      component.loop = false;
+      component.currentIndex = 2;
+      component.togglePlay();
+      expect(component.currentIndex).toBe(0);
+      expect(component.isPlaying).toBe(true);
+      component.togglePlay();
+    });
+
+    it('togglePlay resumes from current slide when loop is off after pause', () => {
+      vi.useFakeTimers();
+      component.loop = false;
+      component.currentIndex = 2;
+      component.togglePlay();
+      expect(component.currentIndex).toBe(0);
+
+      component.currentIndex = 2;
+      component.togglePlay();
+      expect(component.isPlaying).toBe(false);
+
+      component.togglePlay();
+      expect(component.currentIndex).toBe(2);
+      expect(component.isPlaying).toBe(true);
+
+      component.togglePlay();
+      vi.useRealTimers();
+    });
+
+    it('auto-play with loop off completes after one full pass', () => {
+      vi.useFakeTimers();
+      component.loop = false;
+      component.currentIndex = 0;
+      component.isPlaying = true;
+      component.startAutoAdvance();
+
+      vi.advanceTimersByTime(1100);
+      expect(component.currentIndex).toBe(1);
+      expect(component.isPlaying).toBe(true);
+
+      vi.advanceTimersByTime(1100);
+      expect(component.currentIndex).toBe(2);
+      expect(component.isPlaying).toBe(true);
+
+      vi.advanceTimersByTime(1100);
+      expect(component.currentIndex).toBe(2);
+      expect(component.isPlaying).toBe(false);
+      expect(component.showPresentationCompleteNotification).toBe(true);
+
+      vi.useRealTimers();
+    });
+
+    it('dismissPresentationComplete restarts playback from first slide', () => {
+      vi.useFakeTimers();
+      component.loop = false;
+      component.showPresentationCompleteNotification = true;
+      component.currentIndex = 2;
+      component.isPlaying = false;
+
+      component.dismissPresentationComplete();
+
+      expect(component.showPresentationCompleteNotification).toBe(false);
+      expect(component.currentIndex).toBe(0);
+      expect(component.isPlaying).toBe(true);
+      expect((component as any).autoAdvanceInterval).toBeTruthy();
+
+      component.togglePlay();
+      vi.useRealTimers();
+    });
+
+    it('dismissPresentationComplete closes settings modal before restarting', () => {
+      component.showPresentationCompleteNotification = true;
+      component.showSettings = true;
+
+      component.dismissPresentationComplete();
+
+      expect(component.showSettings).toBe(false);
+      expect(component.isPlaying).toBe(true);
+    });
+
+    it('dismissPresentationComplete closes timer notification before restarting', () => {
+      component.showPresentationCompleteNotification = true;
+      component.showTimerNotification = true;
+      component.prayers = [{ id: 'a' }] as any;
+      component.contentTypes = ['prayers'];
+
+      component.dismissPresentationComplete();
+
+      expect(component.showTimerNotification).toBe(false);
+      expect(component.isPlaying).toBe(true);
+    });
+
+    it('togglePlay while completion overlay is open dismisses overlay instead of playing behind it', () => {
+      vi.useFakeTimers();
+      component.loop = false;
+      component.showPresentationCompleteNotification = true;
+      component.currentIndex = 2;
+      component.isPlaying = false;
+
+      component.togglePlay();
+
+      expect(component.showPresentationCompleteNotification).toBe(false);
+      expect(component.currentIndex).toBe(0);
+      expect(component.isPlaying).toBe(true);
+
+      component.togglePlay();
+      vi.useRealTimers();
+    });
+
+    it('nextSlide and previousSlide are blocked while completion overlay is open', () => {
+      component.prayers = [{ id: 'a' }, { id: 'b' }, { id: 'c' }] as any;
+      component.contentTypes = ['prayers'];
+      component.showPresentationCompleteNotification = true;
+      component.currentIndex = 1;
+
+      component.nextSlide();
+      expect(component.currentIndex).toBe(1);
+
+      component.previousSlide();
+      expect(component.currentIndex).toBe(1);
+    });
+
+    it('handleLoopChange persists loop setting', () => {
+      component.handleLoopChange(false);
+      expect(component.loop).toBe(false);
+      expect(mockPresentationSettingsService.save).toHaveBeenCalledWith(
+        expect.objectContaining({ loop: false })
+      );
+    });
+
+    it('togglePlay with loop off and no items does not show completion overlay', () => {
+      vi.useFakeTimers();
+      component.loop = false;
+      component.prayers = [];
+      component.contentTypes = ['prayers'];
+
+      component.togglePlay();
+
+      expect(component.isPlaying).toBe(false);
+      expect(component.showPresentationCompleteNotification).toBe(false);
+
+      vi.advanceTimersByTime(5000);
+      expect(component.showPresentationCompleteNotification).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it('dismissPresentationComplete with no items does not restart playback', () => {
+      component.prayers = [];
+      component.contentTypes = ['prayers'];
+      component.showPresentationCompleteNotification = true;
+      component.showSettings = true;
+
+      component.dismissPresentationComplete();
+
+      expect(component.showPresentationCompleteNotification).toBe(false);
+      expect(component.showSettings).toBe(false);
+      expect(component.isPlaying).toBe(false);
+    });
   });
 
   it('togglePlay starts and stops auto advance (uses timers)', async () => {
@@ -213,6 +417,7 @@ describe('PresentationComponent', () => {
       randomize: false,
       smartMode: true,
       displayDuration: 10,
+      loop: true,
       timeFilter: 'all',
       statusFilters: { current: true, answered: true },
       prayerTimerMinutes: 10,
@@ -493,6 +698,7 @@ describe('PresentationComponent', () => {
         randomize: false,
         smartMode: true,
         displayDuration: 10,
+        loop: true,
         timeFilter: 'all',
         statusFilters: { current: true, answered: true },
         prayerTimerMinutes: 10,
@@ -551,6 +757,7 @@ describe('PresentationComponent', () => {
         randomize: true,
         smartMode: false,
         displayDuration: 30,
+        loop: false,
         timeFilter: 'week',
         statusFilters: { current: false, answered: true },
         prayerTimerMinutes: 30,
@@ -570,6 +777,7 @@ describe('PresentationComponent', () => {
       expect(component.timeFilter).toBe('week');
       expect(component.statusFilters).toEqual({ current: false, answered: true });
       expect(component.prayerTimerMinutes).toBe(30);
+      expect(component.loop).toBe(false);
     });
 
     it('ngOnInit applies home navigation handoff over persisted settings without saving', async () => {
@@ -578,6 +786,7 @@ describe('PresentationComponent', () => {
         randomize: false,
         smartMode: true,
         displayDuration: 10,
+        loop: true,
         timeFilter: 'all',
         statusFilters: { current: true, answered: true },
         prayerTimerMinutes: 10,
@@ -607,6 +816,7 @@ describe('PresentationComponent', () => {
         randomize: false,
         smartMode: true,
         displayDuration: 10,
+        loop: true,
         timeFilter: 'all',
         statusFilters: { current: true, answered: true },
         prayerTimerMinutes: 10,
@@ -641,6 +851,7 @@ describe('PresentationComponent', () => {
         randomize: false,
         smartMode: true,
         displayDuration: 10,
+        loop: true,
         timeFilter: 'all',
         statusFilters: { current: true, answered: true },
         prayerTimerMinutes: 10,
@@ -681,6 +892,7 @@ describe('PresentationComponent', () => {
         randomize: false,
         smartMode: true,
         displayDuration: 10,
+        loop: true,
         timeFilter: 'all',
         statusFilters: { current: true, answered: true },
         prayerTimerMinutes: 10,
@@ -825,6 +1037,8 @@ describe('PresentationComponent', () => {
     it('togglePlay toggles and calls start or clear', () => {
       const startSpy = vi.spyOn(component, 'startAutoAdvance').mockImplementation(() => {});
       const clearSpy = vi.spyOn(component, 'clearIntervals').mockImplementation(() => {});
+      component.prayers = [{ id: 'a' }] as any;
+      component.contentTypes = ['prayers'];
       component.isPlaying = false;
       component.togglePlay();
       expect(component.isPlaying).toBe(true);

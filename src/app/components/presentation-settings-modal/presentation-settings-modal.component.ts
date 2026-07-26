@@ -671,9 +671,29 @@ type ThemeOption = "light" | "dark" | "system";
             </div>
             }
 
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3">
-              Control how long each slide stays on screen before advancing
-            </p>
+            <div id="tour-presentation-setting-loop" class="mt-4">
+              <label class="flex items-center justify-between cursor-pointer">
+                <span
+                  class="text-sm sm:text-base text-gray-900 dark:text-gray-100"
+                >
+                  Loop
+                </span>
+                <div class="relative">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="localLoop"
+                    (ngModelChange)="loopChange.emit($event)"
+                    class="sr-only peer"
+                  />
+                  <div
+                    class="w-14 h-8 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"
+                  ></div>
+                </div>
+              </label>
+              <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
+                When off, playback runs through the list once and stops
+              </p>
+            </div>
           </div>
 
           <!-- Prayer Timer -->
@@ -809,6 +829,7 @@ export class PresentationSettingsModalComponent implements OnInit, OnChanges {
   @Input() displayDuration = 10;
   @Input() contentTypes: SelectablePresentationContentType[] = ["prayers"];
   @Input() randomize = false;
+  @Input() loop = true;
   @Input() timeFilter: PresentationTimeFilter = "all";
   @Input() statusFiltersCurrent = true;
   @Input() statusFiltersAnswered = true;
@@ -827,6 +848,7 @@ export class PresentationSettingsModalComponent implements OnInit, OnChanges {
     SelectablePresentationContentType[]
   >();
   @Output() randomizeChange = new EventEmitter<boolean>();
+  @Output() loopChange = new EventEmitter<boolean>();
   @Output() timeFilterChange = new EventEmitter<PresentationTimeFilter>();
   @Output() statusFiltersChange = new EventEmitter<{
     current: boolean;
@@ -842,6 +864,7 @@ export class PresentationSettingsModalComponent implements OnInit, OnChanges {
   localDisplayDuration = 10;
   localContentTypes: SelectablePresentationContentType[] = ["prayers"];
   localRandomize = false;
+  localLoop = true;
   localTimeFilter: PresentationTimeFilter = "all";
   localPrayerTimerMinutes = 10;
   localSelectedCategories: string[] = [];
@@ -908,6 +931,7 @@ export class PresentationSettingsModalComponent implements OnInit, OnChanges {
     this.localDisplayDuration = this.displayDuration;
     this.localContentTypes = [...this.contentTypes];
     this.localRandomize = this.randomize;
+    this.localLoop = this.loop;
     this.localTimeFilter = this.timeFilter;
     this.localPrayerTimerMinutes = this.prayerTimerMinutes;
     this.localSelectedCategories = [...this.selectedCategories];
