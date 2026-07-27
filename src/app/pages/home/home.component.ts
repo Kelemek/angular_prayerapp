@@ -2325,8 +2325,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       // Batch fetch updates for all members at once (much faster than individual requests)
       const personIds = this.planningCenterListMembers.map((m) => m.id);
-      const memberUpdatesMap =
-        await this.prayerService.getMemberPrayerUpdatesBatch(personIds);
+      const [memberUpdatesMap, memberCountsMap] = await Promise.all([
+        this.prayerService.getMemberPrayerUpdatesBatch(personIds),
+        this.prayerService.getMemberPrayedForCountsBatch(personIds),
+      ]);
 
       // Generate virtual prayer cards for each Planning Center member with their updates
       this.filteredPlanningCenterPrayers = this.planningCenterListMembers.map(
@@ -2349,6 +2351,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             is_anonymous: false,
             type: "prayer" as const,
             prayer_image: member.avatar || null,
+            prayed_for_count: memberCountsMap[member.id] ?? 0,
           };
         }
       );

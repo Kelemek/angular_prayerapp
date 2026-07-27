@@ -752,6 +752,69 @@ export class PrayerService {
   }
 
   /**
+   * Increment prayed_for_count for a Planning Center member via RPC.
+   * Updates the in-memory counts cache only (member cards live on Home/Presentation).
+   * @returns The new count, or null on error.
+   */
+  async incrementMemberPrayedFor(personId: string): Promise<number | null> {
+    try {
+      const trimmedId = personId?.trim();
+      if (!trimmedId) {
+        return null;
+      }
+
+      const { data: newCount, error } = await this.supabase.client.rpc(
+        'increment_member_prayed_for_count',
+        { p_person_id: trimmedId }
+      );
+
+      if (error) throw error;
+      const count = typeof newCount === 'number' && newCount > 0 ? newCount : null;
+      if (count === null) return null;
+
+      const cachedMap =
+        (this.cache.get('memberPrayedForCounts') as Record<string, number> | null) || {};
+      cachedMap[trimmedId] = count;
+      this.cache.set('memberPrayedForCounts', cachedMap);
+
+      return count;
+    } catch (err) {
+      console.error('[PrayerService] incrementMemberPrayedFor failed', err);
+      return null;
+    }
+  }
+
+  /**
+   * Batch-load Pray For counts for Planning Center members.
+   * Returns a map keyed by person_id (missing ids imply 0).
+   */
+  async getMemberPrayedForCountsBatch(personIds: string[]): Promise<Record<string, number>> {
+    try {
+      if (personIds.length === 0) {
+        return {};
+      }
+
+      const { data, error } = await this.supabase.client
+        .from('member_prayed_for_counts')
+        .select('person_id, prayed_for_count')
+        .in('person_id', personIds);
+
+      if (error) throw error;
+
+      const countsMap: Record<string, number> = {};
+      (data || []).forEach((row: { person_id: string; prayed_for_count: number }) => {
+        countsMap[row.person_id] = row.prayed_for_count ?? 0;
+      });
+
+      this.cache.set('memberPrayedForCounts', countsMap);
+      return countsMap;
+    } catch (error) {
+      console.error('Error fetching batch member prayed-for counts:', error);
+      return {};
+    }
+  }
+
+  /**
    * Add an update to a prayer
    */
   async addPrayerUpdate(prayerId: string, content: string, author: string): Promise<boolean> {

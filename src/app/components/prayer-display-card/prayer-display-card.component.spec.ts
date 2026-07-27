@@ -35,6 +35,7 @@ function createDisplayCardProviders(overrides?: {
   const mockPrayerService = {
     incrementPrayedFor: vi.fn().mockResolvedValue(null),
     incrementPersonalPrayedFor: vi.fn().mockResolvedValue(null),
+    incrementMemberPrayedFor: vi.fn().mockResolvedValue(null),
     ...overrides?.prayerService
   };
   const mockAdminAuthService = {
@@ -818,6 +819,7 @@ describe('PrayerDisplayCardComponent', () => {
     let mockPrayerService: {
       incrementPrayedFor: ReturnType<typeof vi.fn>;
       incrementPersonalPrayedFor: ReturnType<typeof vi.fn>;
+      incrementMemberPrayedFor: ReturnType<typeof vi.fn>;
     };
     let mockAdminAuthService: { getIsAdmin: ReturnType<typeof vi.fn> };
 
@@ -839,7 +841,8 @@ describe('PrayerDisplayCardComponent', () => {
       };
       mockPrayerService = {
         incrementPrayedFor: vi.fn().mockResolvedValue(5),
-        incrementPersonalPrayedFor: vi.fn().mockResolvedValue(5)
+        incrementPersonalPrayedFor: vi.fn().mockResolvedValue(5),
+        incrementMemberPrayedFor: vi.fn().mockResolvedValue(5)
       };
       mockAdminAuthService = {
         getIsAdmin: vi.fn().mockReturnValue(false)
@@ -896,11 +899,42 @@ describe('PrayerDisplayCardComponent', () => {
       expect(prayer.prayed_for_count).toBe(5);
     });
 
-    it('hides Pray For for Planning Center member prayers', async () => {
+    it('shows Pray For for Planning Center member prayers', async () => {
       await renderWithEncouragementMocks({
         prayer: { ...communityPrayer, id: 'pc-member-99' }
       });
-      expect(screen.queryByRole('button', { name: 'Pray For' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Pray For' })).toBeTruthy();
+    });
+
+    it('shows Pray For for member prayers even when updates_allowed is admin-only', async () => {
+      const { fixture } = await renderWithEncouragementMocks({
+        prayer: { ...communityPrayer, id: 'pc-member-99', email: '' }
+      });
+      fixture.componentInstance.updatesAllowed = 'admin-only';
+      fixture.detectChanges();
+      expect(screen.getByRole('button', { name: 'Pray For' })).toBeTruthy();
+    });
+
+    it('confirmPrayFor for member prayer calls incrementMemberPrayedFor', async () => {
+      const prayer = { ...communityPrayer, id: 'pc-member-person-7', prayed_for_count: 0 };
+      const { fixture } = await renderWithEncouragementMocks({ prayer });
+      await fixture.componentInstance.confirmPrayFor();
+      expect(mockPrayerEncouragementService.recordPrayedFor).toHaveBeenCalledWith(
+        'pc-member-person-7',
+        true
+      );
+      expect(mockPrayerService.incrementMemberPrayedFor).toHaveBeenCalledWith('person-7');
+      expect(mockPrayerService.incrementPrayedFor).not.toHaveBeenCalled();
+      expect(mockPrayerService.incrementPersonalPrayedFor).not.toHaveBeenCalled();
+      expect(prayer.prayed_for_count).toBe(5);
+    });
+
+    it('shows praying count badge for member prayer when count is greater than zero', async () => {
+      mockUserSessionService.getCurrentSession.mockReturnValue({ email: 'other@example.com' });
+      await renderWithEncouragementMocks({
+        prayer: { ...communityPrayer, id: 'pc-member-99', prayed_for_count: 3, email: '' }
+      });
+      expect(screen.getByText('3 Prayers')).toBeTruthy();
     });
 
     it('hides encouragement controls when updates_allowed is admin-only and viewer is not admin', async () => {

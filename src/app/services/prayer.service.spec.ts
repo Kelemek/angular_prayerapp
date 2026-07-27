@@ -190,6 +190,89 @@ describe('PrayerService', () => {
     });
   });
 
+  describe('incrementMemberPrayedFor', () => {
+    it('calls rpc and updates counts cache with returned count', async () => {
+      cache.get.mockReturnValue({ p1: 2 });
+      supabase.client.rpc.mockResolvedValue({ data: 3, error: null });
+
+      const result = await service.incrementMemberPrayedFor('p1');
+
+      expect(result).toBe(3);
+      expect(supabase.client.rpc).toHaveBeenCalledWith('increment_member_prayed_for_count', {
+        p_person_id: 'p1',
+      });
+      expect(cache.set).toHaveBeenCalledWith('memberPrayedForCounts', { p1: 3 });
+    });
+
+    it('returns null when person id is empty', async () => {
+      supabase.client.rpc.mockClear();
+
+      const result = await service.incrementMemberPrayedFor('  ');
+
+      expect(result).toBeNull();
+      expect(supabase.client.rpc).not.toHaveBeenCalled();
+    });
+
+    it('returns null and does not update cache when rpc errors', async () => {
+      cache.set.mockClear();
+      supabase.client.rpc.mockResolvedValue({ data: null, error: new Error('db error') });
+
+      const result = await service.incrementMemberPrayedFor('p1');
+
+      expect(result).toBeNull();
+      expect(cache.set).not.toHaveBeenCalledWith('memberPrayedForCounts', expect.anything());
+    });
+
+    it('returns null when rpc returns zero', async () => {
+      cache.set.mockClear();
+      supabase.client.rpc.mockResolvedValue({ data: 0, error: null });
+
+      const result = await service.incrementMemberPrayedFor('p1');
+
+      expect(result).toBeNull();
+      expect(cache.set).not.toHaveBeenCalledWith('memberPrayedForCounts', expect.anything());
+    });
+  });
+
+  describe('getMemberPrayedForCountsBatch', () => {
+    it('returns empty object for no ids', async () => {
+      const result = await service.getMemberPrayedForCountsBatch([]);
+      expect(result).toEqual({});
+    });
+
+    it('maps counts by person_id', async () => {
+      supabase.client.from.mockImplementation(() => ({
+        select: () => ({
+          in: () =>
+            Promise.resolve({
+              data: [
+                { person_id: 'p1', prayed_for_count: 4 },
+                { person_id: 'p2', prayed_for_count: 1 },
+              ],
+              error: null,
+            }),
+        }),
+      }));
+
+      const result = await service.getMemberPrayedForCountsBatch(['p1', 'p2']);
+
+      expect(result).toEqual({ p1: 4, p2: 1 });
+      expect(cache.set).toHaveBeenCalledWith('memberPrayedForCounts', result);
+    });
+
+    it('returns empty object on error', async () => {
+      supabase.client.from.mockImplementation(() => ({
+        select: () => ({
+          in: () => Promise.resolve({ data: null, error: new Error('db error') }),
+        }),
+      }));
+
+      const result = await service.getMemberPrayedForCountsBatch(['p1']);
+
+      expect(result).toEqual({});
+    });
+  });
+
   it('applyFilters filters by status, type, and search', () => {
     const p1 = makePrayer({ id: 'a', title: 'Hello World', description: 'desc', requester: 'Bob', type: 'prayer', status: 'current' });
     const p2 = makePrayer({ id: 'b', title: 'Prompt One', description: 'other', requester: 'Alice', type: 'prompt', status: 'answered' });

@@ -507,6 +507,7 @@ describe('PresentationComponent', () => {
     it('fetchMemberPrayers populates prayers correctly', async () => {
       component.planningCenterListMembers = [{ id: 'm1', name: 'Member 1', avatar: 'url' }];
       mockPrayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([{ id: 'u1', content: 'update' }]);
+      mockPrayerService.getMemberPrayedForCountsBatch = vi.fn().mockResolvedValue({ m1: 2 });
       
       await component.fetchMemberPrayers();
       
@@ -514,6 +515,8 @@ describe('PresentationComponent', () => {
       expect(component.memberPrayers[0].prayer_for).toBe('Member 1');
       expect(component.memberPrayers[0].prayer_image).toBe('url');
       expect((component.memberPrayers[0] as any).prayer_updates.length).toBe(1);
+      expect(component.memberPrayers[0].prayed_for_count).toBe(2);
+      expect(mockPrayerService.getMemberPrayedForCountsBatch).toHaveBeenCalledWith(['m1']);
     });
 
     it('items getter returns member prayers when specified', () => {

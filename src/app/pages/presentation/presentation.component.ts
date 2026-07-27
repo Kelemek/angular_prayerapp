@@ -976,6 +976,10 @@ export class PresentationComponent implements OnInit, OnDestroy {
       }
 
       // Fetch prayers for all Planning Center members
+      const personIds = this.planningCenterListMembers.map((m) => m.id);
+      const memberCountsMap =
+        await this.prayerService.getMemberPrayedForCountsBatch(personIds);
+
       this.memberPrayers = await Promise.all(
         this.planningCenterListMembers.map(async (member) => {
           const updates = await this.prayerService.getMemberPrayerUpdates(
@@ -995,6 +999,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
             prayer_updates: updates || [],
             prayer_image: member.avatar,
             added_by: "Planning Center Member",
+            prayed_for_count: memberCountsMap[member.id] ?? 0,
           };
         })
       );

@@ -308,39 +308,43 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'What is Pray For?',
-            text: 'When your community has Prayer Encouragement enabled, you\'ll see a "Pray For" button on community prayer cards, on your personal prayer cards, and on prayer slides in presentation mode. On community requests, tapping it anonymously lets the person who submitted the prayer know others are praying. On your personal prayers, it tracks how often you have prayed for each request yourself.',
+            text: 'When your community has Prayer Encouragement enabled, you\'ll see a "Pray For" button on community prayer cards, on your personal prayer cards, on Planning Center **member** cards (if you have a list applied), and on prayer slides in presentation mode. On community and member cards, tapping it anonymously increases a shared praying count. On your personal prayers, it tracks how often you have prayed for each request yourself.',
           },
           {
             subtitle: 'How it works',
-            text: 'On **community** prayers, tap or click "Pray For" to record that you prayed. Your action is anonymous—only the total count is shown to the requester and to administrators. On **personal** prayers, Pray For increases your own count (shown as **{n} Prayers**) so you can see how often you have lifted up each request; only you see this count. The same controls work on the home page and in **presentation mode**.',
+            text: 'On **community** and **member** prayers, tap or click "Pray For" to record that you prayed. Your action is anonymous—only the total count is shown. On **personal** prayers, Pray For increases your own count (shown as **{n} Prayers**) so you can see how often you have lifted up each request; only you see this count. The same controls work on the home page and in **presentation mode**.',
           },
           {
             subtitle: 'When can I use Pray For?',
-            text: 'Pray For appears on community prayer cards (Current and related views), on your **Personal** tab cards, and on congregation and personal prayer slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. It does **not** appear on Planning Center member-list cards. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
+            text: 'Pray For appears on community prayer cards (Current and related views), on your **Personal** tab cards, on **Members** tab cards when you have a Planning Center list applied, and on congregation, personal, and member prayer slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
           },
           {
             subtitle: 'Personal prayers',
-            text: 'Personal Pray For is for your own prayer list. Each tap adds to the count on that card so you can track ongoing prayer for a request. You can set a **personal prayer cooldown** (1–168 hours, default **4**) in Settings under Prayer encouragement on cards. Community prayers still use the church-wide cooldown set by admins.',
+            text: 'Personal Pray For is for your own prayer list. Each tap adds to the count on that card so you can track ongoing prayer for a request. You can set a **personal / member cooldown** (1–168 hours, default **4**) in Settings under Prayer encouragement on cards—this applies to personal and member Pray For. Community prayers still use the church-wide cooldown set by admins.',
+          },
+          {
+            subtitle: 'Member list cards',
+            text: 'If admins have mapped a Planning Center list to your account, the **Members** tab shows those people as prayer cards. Pray For on a member card increases a **shared** anonymous **{n} Prayers** count for that person (visible to everyone who can see the Members list). Your **personal / member cooldown** from Settings controls how soon you can tap Pray For again on the same member. Member lists still appear only for users who have a list applied—Pray For does not change who can see Members.',
           },
           {
             subtitle: 'Presentation mode',
-            text: 'Tap **Pray** in the header to open presentation mode. While viewing congregation or personal prayer slides, you can use **Pray For** / **Prayed For** the same way as on the home page—the same visibility rules, cooldowns, and Settings preferences apply.',
+            text: 'Tap **Pray** in the header to open presentation mode. While viewing congregation, personal, or member prayer slides, you can use **Pray For** / **Prayed For** the same way as on the home page—the same visibility rules, cooldowns, and Settings preferences apply.',
           },
           {
             subtitle: 'Show "Pray For" button',
-            text: 'In Settings, under Prayer encouragement on cards, you can turn the Pray For button off for your own account if you prefer not to see or use it on community or personal cards (including in presentation mode). Prayer Encouragement can still be on for everyone else; this only hides the control for you. You can turn it back on anytime—your choice is saved to your account.',
+            text: 'In Settings, under Prayer encouragement on cards, you can turn the Pray For button off for your own account if you prefer not to see or use it on community, personal, or member cards (including in presentation mode). Prayer Encouragement can still be on for everyone else; this only hides the control for you. You can turn it back on anytime—your choice is saved to your account.',
           },
           {
             subtitle: 'Show "Praying #" button',
-            text: 'In the same Settings section, you can hide the praying count (how many people have tapped Pray For) on cards when the app shows it—for example on community requests you submitted. On personal cards the count label is **{n} Prayers** and is always visible to you when there is a count. Your preference is saved to your account.',
+            text: 'In the same Settings section, you can hide the praying count (how many people have tapped Pray For) on cards when the app shows it—for example on community requests you submitted. On **member** cards the shared **{n} Prayers** count is visible to everyone on the list when there is a count. On personal cards the count label is **{n} Prayers** and is always visible to you when there is a count. Your preference is saved to your account.',
           },
           {
             subtitle: 'Praying for the same request again',
-            text: 'You can pray for the same request more than once. After you click "Pray For", a cooldown applies before you can tap again on that same prayer. **Community** prayers use the church-wide cooldown set by admins; **personal** prayers use your personal cooldown from Settings (default 4 hours). Once the cooldown ends, you can tap "Pray For" again to record another time you prayed for that request.',
+            text: 'You can pray for the same request more than once. After you click "Pray For", a cooldown applies before you can tap again on that same prayer. **Community** prayers use the church-wide cooldown set by admins; **personal** and **member** prayers use your personal / member cooldown from Settings (default 4 hours). Once the cooldown ends, you can tap "Pray For" again to record another time you prayed for that request.',
           },
           {
             subtitle: 'Privacy and anonymity',
-            text: 'On **community** prayers, your "Pray For" clicks are never linked to your identity in what the requester sees—they only see a total number (for example, "Prayed for by 5 people"). Admins may see the count for moderation purposes, but individual clickers stay anonymous. On **personal** prayers, the count is your own private tally on your prayer list.',
+            text: 'On **community** prayers, your "Pray For" clicks are never linked to your identity—viewers only see a total number (for example, "3 Praying"). On **member** cards the shared count uses the **{n} Prayers** label. Admins may see community counts for moderation purposes, but individual clickers stay anonymous. On **personal** prayers, the count is your own private tally on your prayer list.',
           },
         ],
         order: 3,
@@ -748,8 +752,8 @@ export class HelpContentService {
             text: 'In the same section, you can show or hide the praying count (the number of people praying) on prayer cards when the app would display it—for example on your own requests. Your preference is saved to your account.',
           },
           {
-            subtitle: 'Personal prayer cooldown',
-            text: 'In **Prayer encouragement on cards** (when Prayer Encouragement is enabled for your church), set how many hours—between **1 and 168** (default **4**)—before you can tap **Pray For** again on the same **personal** prayer. Community prayer cards still use the church-wide cooldown set by admins. Your personal cooldown is saved to your account.',
+            subtitle: 'Personal / member cooldown',
+            text: 'In **Prayer encouragement on cards** (when Prayer Encouragement is enabled for your church), set how many hours—between **1 and 168** (default **4**)—before you can tap **Pray For** again on the same **personal** or **member** prayer. Community prayer cards still use the church-wide cooldown set by admins. Your cooldown is saved to your account.',
           },
           {
             subtitle: 'Default Prayer View',

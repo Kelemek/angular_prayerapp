@@ -144,7 +144,7 @@ interface PrayerPrompt {
       <!-- Prayer encouragement actions -->
       @if (showAddUpdateButton()) {
       <div class="flex flex-wrap gap-3 items-center mb-6">
-        @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && !isMemberPrayer()) {
+        @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
           @if (canPrayFor$ | async) {
             <button
               type="button"
@@ -158,7 +158,7 @@ interface PrayerPrompt {
             <button
               type="button"
               disabled
-              [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(isPersonalPrayer()) | async) ?? 4) + ' hours'"
+              [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(usesPersonalCooldown()) | async) ?? 4) + ' hours'"
               class="px-4 py-2 text-base md:text-lg font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl border border-gray-300 dark:border-gray-600 cursor-not-allowed whitespace-nowrap"
             >
               Prayed For
@@ -170,7 +170,7 @@ interface PrayerPrompt {
             class="px-3 py-2 text-base md:text-lg font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-600 dark:border-blue-500 whitespace-nowrap"
             title="Number praying for this request"
           >
-            {{ (prayer.prayed_for_count ?? 0) }} {{ isPersonalPrayer() ? 'Prayers' : 'Praying' }}
+            {{ (prayer.prayed_for_count ?? 0) }} {{ isPersonalPrayer() || isMemberPrayer() ? 'Prayers' : 'Praying' }}
           </span>
         }
       </div>
@@ -258,6 +258,8 @@ interface PrayerPrompt {
           <p class="text-gray-600 dark:text-gray-300 mb-4">
             @if (isPersonalPrayer()) {
             When you click Pray For, your personal prayer count increases so you can track how often you have prayed for this request.
+            } @else if (isMemberPrayer()) {
+            When you click Pray For, the shared praying count for this Planning Center member increases. Only the total count is shown—your click is anonymous.
             } @else {
             When you click Pray For, the person who submitted this prayer request will see that others have prayed for them. Only the total count is shown—your click is anonymous.
             }
@@ -266,6 +268,8 @@ interface PrayerPrompt {
             <p class="text-sm text-blue-700 dark:text-blue-300">
               @if (isPersonalPrayer()) {
               You can pray for the same personal request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
+              } @else if (isMemberPrayer()) {
+              This encourages others by showing how many times this member has been prayed for. You can pray for the same member again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
               } @else {
               This encourages the requester by showing how many times their prayer has been lifted up. You can pray for the same request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(false) | async) ?? 4 }} hours.
               }
@@ -393,7 +397,7 @@ export class PrayerDisplayCardComponent implements OnInit {
     }
     this.canPrayFor$ = this.prayerEncouragementService.getCanPrayFor$(
       this._prayer.id,
-      this.isPersonalPrayer()
+      this.usesPersonalCooldown()
     );
   }
 
@@ -426,6 +430,8 @@ export class PrayerDisplayCardComponent implements OnInit {
 
   showAddUpdateButton(): boolean {
     if (this.isPersonalPrayer()) return true;
+    // Member cards have no requester; list viewers can use Pray For (and updates)
+    if (this.isMemberPrayer()) return true;
     if (this.adminAuthService.getIsAdmin()) return true;
     if (this.updatesAllowed === "admin-only") return false;
     if (this.updatesAllowed === "original-requestor") {
@@ -440,6 +446,8 @@ export class PrayerDisplayCardComponent implements OnInit {
     if (count <= 0) return false;
     // Personal prayers are private to the owner; they always see their count.
     if (this.isPersonalPrayer()) return true;
+    // Member cards have no requester email — shared count is visible to everyone on the list.
+    if (this.isMemberPrayer()) return true;
     if (this.adminAuthService.getIsAdmin()) return true;
     return this.isCurrentUserTheRequester();
   }
@@ -472,16 +480,23 @@ export class PrayerDisplayCardComponent implements OnInit {
     if (!prayedForPrayer) return;
     this.showPrayForModal = false;
     const prayerId = prayedForPrayer.id;
-    const isPersonal = this.isPersonalPrayer();
-    if (!this.prayerEncouragementService.canPrayFor(prayerId, isPersonal)) return;
-    this.prayerEncouragementService.recordPrayedFor(prayerId, isPersonal);
-    const newCount = isPersonal
-      ? await this.prayerService.incrementPersonalPrayedFor(prayerId)
-      : await this.prayerService.incrementPrayedFor(prayerId);
+    const isMember = this.isMemberPrayer();
+    const usePersonalCooldown = this.usesPersonalCooldown();
+    if (!this.prayerEncouragementService.canPrayFor(prayerId, usePersonalCooldown)) return;
+    this.prayerEncouragementService.recordPrayedFor(prayerId, usePersonalCooldown);
+    let newCount: number | null;
+    if (isMember) {
+      const personId = prayerId.substring("pc-member-".length);
+      newCount = await this.prayerService.incrementMemberPrayedFor(personId);
+    } else if (this.isPersonalPrayer()) {
+      newCount = await this.prayerService.incrementPersonalPrayedFor(prayerId);
+    } else {
+      newCount = await this.prayerService.incrementPrayedFor(prayerId);
+    }
     if (newCount !== null) {
       prayedForPrayer.prayed_for_count = newCount;
     } else {
-      this.prayerEncouragementService.clearPrayedForCooldown(prayerId, isPersonal);
+      this.prayerEncouragementService.clearPrayedForCooldown(prayerId, usePersonalCooldown);
     }
     this.cdr.markForCheck();
   }
@@ -569,6 +584,11 @@ export class PrayerDisplayCardComponent implements OnInit {
 
   isMemberPrayer(): boolean {
     return !!this.prayer?.id?.startsWith("pc-member-");
+  }
+
+  /** Personal and member cards use the user's personal cooldown setting. */
+  usesPersonalCooldown(): boolean {
+    return this.isPersonalPrayer() || this.isMemberPrayer();
   }
 
   isPersonalPrayer(): boolean {

@@ -1241,7 +1241,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                 <div
                   class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
                 >
-                  @if (prayerEncouragementUiLoaded) { Personal prayer cooldown
+                  @if (prayerEncouragementUiLoaded) { Personal / member cooldown
                   (hours) } @else {
                   <span
                     class="inline-block h-4 w-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
@@ -1300,7 +1300,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                 {{
                   savingPersonalPrayerCooldown
                     ? "Saving..."
-                    : "How long before you can tap Pray For again on the same personal prayer (1–168 hours). Community prayers still use the church cooldown set by admins."
+                    : "How long before you can tap Pray For again on the same personal or member prayer (1–168 hours). Community prayers still use the church cooldown set by admins."
                 }}
                 } @else {
                 <span
@@ -2964,7 +2964,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
         personalPrayerCooldownHours: next,
       });
       this.personalPrayerCooldownEdited = false;
-      this.successPrayerEncouragementUi = `Personal prayer cooldown set to ${next} ${
+      this.successPrayerEncouragementUi = `Personal / member cooldown set to ${next} ${
         next === 1 ? "hour" : "hours"
       }`;
       setTimeout(() => {
