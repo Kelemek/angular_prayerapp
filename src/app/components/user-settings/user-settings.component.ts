@@ -103,7 +103,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
         </div>
 
         <!-- Content -->
-        <div class="settings-modal-body flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div class="settings-modal-body flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 flex flex-col gap-4">
           <!-- Print -->
           <div
             class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4"

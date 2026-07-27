@@ -27,6 +27,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
   standalone: true,
   imports: [NgClass],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   template: `
     <div
       [id]="tourSectionId"
