@@ -133,6 +133,9 @@ describe('HelpContentService', () => {
         settingsSection!.content?.some((item) => item.subtitle === 'Show "Praying #" button')
       ).toBe(true);
       expect(
+        settingsSection!.content?.some((item) => item.subtitle === 'Personal prayer cooldown')
+      ).toBe(true);
+      expect(
         settingsSection!.content?.some((item) => item.subtitle === 'Memorization practice')
       ).toBe(true);
     });
@@ -147,6 +150,24 @@ describe('HelpContentService', () => {
       expect(memorizeSection).toBeDefined();
       expect(
         memorizeSection!.content?.some((item) => item.subtitle === 'Standard and Strict practice')
+      ).toBe(true);
+    });
+
+    it('should include Recite mode help in Memorize Scripture section', () => {
+      let sections: HelpSection[] = [];
+      service.getSections().subscribe((data) => {
+        sections = data;
+      });
+
+      const memorizeSection = sections.find((s) => s.id === 'help_memorize');
+      expect(memorizeSection).toBeDefined();
+      expect(
+        memorizeSection!.content?.some((item) => item.subtitle === 'Recite mode (beta)')
+      ).toBe(true);
+      expect(
+        memorizeSection!.content?.some((item) =>
+          item.text.includes('ESV, KJV, NASB, LSB, NIV, NLT, or CSB')
+        )
       ).toBe(true);
     });
 
@@ -165,6 +186,17 @@ describe('HelpContentService', () => {
       expect(
         encouragementSection!.content?.some((item) => item.subtitle === 'Show "Praying #" button')
       ).toBe(true);
+      expect(
+        encouragementSection!.content?.some((item) => item.subtitle === 'Personal prayers')
+      ).toBe(true);
+      expect(
+        encouragementSection!.content?.some((item) => item.subtitle === 'Presentation mode')
+      ).toBe(true);
+      const whenCanUse = encouragementSection!.content?.find(
+        (item) => item.subtitle === 'When can I use Pray For?'
+      );
+      expect(whenCanUse?.text).toContain('presentation mode');
+      expect(whenCanUse?.text).not.toContain('not on your personal prayers');
     });
 
     it('should handle empty data from database', async () => {

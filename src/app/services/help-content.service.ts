@@ -308,31 +308,39 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'What is Pray For?',
-            text: 'When your community has Prayer Encouragement enabled, you\'ll see a "Pray For" button on community prayer cards. Clicking it lets the person who submitted the prayer know that someone has prayed for their request. It\'s a simple way to encourage others and show that their prayer is being lifted up.',
+            text: 'When your community has Prayer Encouragement enabled, you\'ll see a "Pray For" button on community prayer cards, on your personal prayer cards, and on prayer slides in presentation mode. On community requests, tapping it anonymously lets the person who submitted the prayer know others are praying. On your personal prayers, it tracks how often you have prayed for each request yourself.',
           },
           {
             subtitle: 'How it works',
-            text: 'Tap or click "Pray For" on any community prayer request. Your action is anonymous—only the total count of how many people have prayed is shown to the requester and to administrators. The person who submitted the prayer will see that others are praying for them, which can be a real encouragement.',
+            text: 'On **community** prayers, tap or click "Pray For" to record that you prayed. Your action is anonymous—only the total count is shown to the requester and to administrators. On **personal** prayers, Pray For increases your own count (shown as **{n} Prayers**) so you can see how often you have lifted up each request; only you see this count. The same controls work on the home page and in **presentation mode**.',
           },
           {
             subtitle: 'When can I use Pray For?',
-            text: 'The "Pray For" button appears only on community prayers (not on your personal prayers or on member-list prayers). If you don\'t see the button, your church or community may have the feature turned off, or you may be viewing a personal prayer.',
+            text: 'Pray For appears on community prayer cards (Current and related views), on your **Personal** tab cards, and on congregation and personal prayer slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. It does **not** appear on Planning Center member-list cards. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
+          },
+          {
+            subtitle: 'Personal prayers',
+            text: 'Personal Pray For is for your own prayer list. Each tap adds to the count on that card so you can track ongoing prayer for a request. You can set a **personal prayer cooldown** (1–168 hours, default **4**) in Settings under Prayer encouragement on cards. Community prayers still use the church-wide cooldown set by admins.',
+          },
+          {
+            subtitle: 'Presentation mode',
+            text: 'Tap **Pray** in the header to open presentation mode. While viewing congregation or personal prayer slides, you can use **Pray For** / **Prayed For** the same way as on the home page—the same visibility rules, cooldowns, and Settings preferences apply.',
           },
           {
             subtitle: 'Show "Pray For" button',
-            text: 'In Settings, under Prayer encouragement on cards, you can turn the Pray For button off for your own account if you prefer not to see or use it on community cards. Prayer Encouragement can still be on for everyone else; this only hides the control for you. You can turn it back on anytime—your choice is saved to your account.',
+            text: 'In Settings, under Prayer encouragement on cards, you can turn the Pray For button off for your own account if you prefer not to see or use it on community or personal cards (including in presentation mode). Prayer Encouragement can still be on for everyone else; this only hides the control for you. You can turn it back on anytime—your choice is saved to your account.',
           },
           {
             subtitle: 'Show "Praying #" button',
-            text: 'In the same Settings section, you can hide the praying count (how many people have tapped Pray For) on cards when the app shows it—for example on requests you submitted. Your preference is saved to your account.',
+            text: 'In the same Settings section, you can hide the praying count (how many people have tapped Pray For) on cards when the app shows it—for example on community requests you submitted. On personal cards the count label is **{n} Prayers** and is always visible to you when there is a count. Your preference is saved to your account.',
           },
           {
             subtitle: 'Praying for the same request again',
-            text: 'You can pray for the same request more than once. After you click "Pray For", a short cooldown applies so you can\'t click again immediately. Once the cooldown ends (after a few hours), you can click "Pray For" again to record another time you prayed for that request. This helps reflect ongoing prayer support over time.',
+            text: 'You can pray for the same request more than once. After you click "Pray For", a cooldown applies before you can tap again on that same prayer. **Community** prayers use the church-wide cooldown set by admins; **personal** prayers use your personal cooldown from Settings (default 4 hours). Once the cooldown ends, you can tap "Pray For" again to record another time you prayed for that request.',
           },
           {
             subtitle: 'Privacy and anonymity',
-            text: 'Your "Pray For" clicks are never linked to your identity in what the requester sees. They only see a total number (for example, "Prayed for by 5 people"). Admins may see the count for moderation purposes, but individual clickers stay anonymous.',
+            text: 'On **community** prayers, your "Pray For" clicks are never linked to your identity in what the requester sees—they only see a total number (for example, "Prayed for by 5 people"). Admins may see the count for moderation purposes, but individual clickers stay anonymous. On **personal** prayers, the count is your own private tally on your prayer list.',
           },
         ],
         order: 3,
@@ -461,7 +469,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Adding verses',
-            text: 'Tap **Verses** to open the passage picker. Choose a book, chapter, and verse range (ESV text loads when you practice). You can add single verses or short passages. Tap a selected verse again to deselect before choosing another.',
+            text: 'Tap **Verses** to open the passage picker. Choose a Bible translation (ESV, KJV, NASB, LSB, NIV, NLT, or CSB), then pick a book, chapter, and verse range. You can add single verses or short passages. Tap a selected verse again to deselect before choosing another. Your translation choice is remembered for future adds.',
           },
           {
             subtitle: 'Adding Bible books',
@@ -477,7 +485,11 @@ export class HelpContentService {
           },
           {
             subtitle: 'Practice modes',
-            text: 'Each session includes modes such as **Type** (fill in blanks), **Word** (tap words in order), **Reorder** (arrange shuffled words), and **First letters** (type from initials). Complete rounds to finish a session; stats update on the card when you are done.',
+            text: 'Each session includes modes such as **Type** (fill in blanks), **Word** (tap words in order), **Reorder** (arrange shuffled words), and **First letters** (type from initials). When your church enables it, **Recite mode (beta)** lets you record yourself saying the passage and see word-by-word accuracy. Complete rounds to finish a session; stats update on the card when you are done.',
+          },
+          {
+            subtitle: 'Recite mode (beta)',
+            text: 'When admins turn on **Memorization Recite Mode**, tap a passage and choose **Recite mode** in the practice picker. Allow microphone access, tap **Record**, recite the verse aloud, then tap **Stop** to see word-by-word results (green = matched, red = missed or different). Results include **What we heard** so you can compare against the passage. **Repeat this round** to try again, or continue with **Next round** / **Finish** like other modes. Recite works for passages up to **5 verses** and for **Bible Books** lists; longer references show a message in the picker. Recording stops automatically after five minutes. Use **Help** on the results screen to send feedback from **Settings → Send Feedback**.',
           },
           {
             subtitle: 'Standard and Strict practice',
@@ -485,7 +497,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Listen while you practice',
-            text: 'During practice you can open **Listen** for ESV audio of the passage (when available). Playback controls let you adjust speed and jump within the passage. Scripture text and audio are provided under ESV license terms shown in the practice UI.',
+            text: 'During practice you can open **Listen** for ESV audio of the passage (when available and your passage uses the ESV translation). Playback controls let you adjust speed and jump within the passage. Scripture text and audio are provided under ESV license terms shown in the practice UI.',
           },
           {
             subtitle: 'Removing passages',
@@ -734,6 +746,10 @@ export class HelpContentService {
           {
             subtitle: 'Show "Praying #" button',
             text: 'In the same section, you can show or hide the praying count (the number of people praying) on prayer cards when the app would display it—for example on your own requests. Your preference is saved to your account.',
+          },
+          {
+            subtitle: 'Personal prayer cooldown',
+            text: 'In **Prayer encouragement on cards** (when Prayer Encouragement is enabled for your church), set how many hours—between **1 and 168** (default **4**)—before you can tap **Pray For** again on the same **personal** prayer. Community prayer cards still use the church-wide cooldown set by admins. Your personal cooldown is saved to your account.',
           },
           {
             subtitle: 'Default Prayer View',

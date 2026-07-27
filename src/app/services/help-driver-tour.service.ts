@@ -1695,7 +1695,7 @@ export class HelpDriverTourService {
       popover: {
         title: 'Practice modes',
         description:
-          'Each session offers modes such as <strong>Type</strong>, <strong>Word</strong>, <strong>Reorder</strong>, and <strong>First letters</strong>. You can also <strong>Listen</strong> to ESV audio while you practice. In <strong>Settings → Memorization practice</strong>, choose <strong>Standard</strong> (auto-reveal after three wrong attempts) or <strong>Strict</strong> (no auto-reveal; finish each round with zero errors before <strong>Next round</strong>). Progress saves automatically.',
+          'Each session offers modes such as <strong>Type</strong>, <strong>Word</strong>, <strong>Reorder</strong>, and <strong>First letters</strong>. When your church enables it, <strong>Recite mode (beta)</strong> records your voice and shows word-by-word accuracy. You can also <strong>Listen</strong> to ESV audio while you practice. In <strong>Settings → Memorization practice</strong>, choose <strong>Standard</strong> (auto-reveal after three wrong attempts) or <strong>Strict</strong> (no auto-reveal; finish each round with zero errors before <strong>Next round</strong>). Progress saves automatically.',
         side: 'bottom',
         align: 'center',
         onNextClick: this.popoverNextKillsTour(),
@@ -1767,7 +1767,7 @@ export class HelpDriverTourService {
       popover: {
         title: 'What is Pray For?',
         description:
-          'When Prayer Encouragement is enabled, <strong>Pray For</strong> lets you record that you prayed for a community request. The requester only sees a <strong>total count</strong>—your tap is anonymous. It does not appear on personal prayers or Planning Center member cards.<br><br>You can turn the button or the praying count off for yourself in <strong>Settings</strong> under prayer encouragement on cards. After you tap Pray For, a <strong>cooldown</strong> applies before you can tap again for the same request.',
+          'When Prayer Encouragement is enabled, <strong>Pray For</strong> lets you record that you prayed for a community or personal request (and on presentation slides). On community cards the requester only sees a <strong>total count</strong>—your tap is anonymous. On personal cards you track your own <strong>{n} Prayers</strong> count. It does not appear on Planning Center member cards.<br><br>You can turn the button or the praying count off for yourself in <strong>Settings</strong> under prayer encouragement on cards. After you tap Pray For, a <strong>cooldown</strong> applies before you can tap again for the same request (personal cooldown in Settings; community uses the church-wide setting).',
         side: 'bottom',
         align: 'center',
         onNextClick: this.popoverNextKillsTour(),
