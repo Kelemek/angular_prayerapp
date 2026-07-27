@@ -8,8 +8,10 @@ import { PrayerService } from '../../services/prayer.service';
 import { EmailNotificationService } from '../../services/email-notification.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { CapacitorService } from '../../services/capacitor.service';
 import { ChangeDetectorRef, SimpleChanges } from '@angular/core';
+import { of, firstValueFrom } from 'rxjs';
 
 describe('UserSettingsComponent', () => {
   let component: UserSettingsComponent;
@@ -21,6 +23,7 @@ describe('UserSettingsComponent', () => {
   let mockEmailNotificationService: any;
   let mockAdminAuthService: any;
   let mockUserSessionService: any;
+  let mockPrayerEncouragementService: any;
   let mockCapacitorService: any;
   let mockChangeDetectorRef: any;
 
@@ -93,6 +96,12 @@ describe('UserSettingsComponent', () => {
       })),
       updateUserSession: vi.fn(async () => ({})),
       loadUserSession: vi.fn(async () => ({})),
+      getPersonalPrayerCooldownHours$: vi.fn(() => of(4)),
+      getPersonalPrayerCooldownHours: vi.fn(() => 4),
+    };
+
+    mockPrayerEncouragementService = {
+      getPrayerEncouragementEnabled$: vi.fn(() => of(true)),
     };
 
     mockCapacitorService = {
@@ -131,6 +140,7 @@ describe('UserSettingsComponent', () => {
       mockBadgeService as any,
       mockUserSessionService,
       mockCapacitorService as CapacitorService,
+      mockPrayerEncouragementService as PrayerEncouragementService,
       mockChangeDetectorRef as ChangeDetectorRef
     );
   });
@@ -2850,6 +2860,11 @@ describe('UserSettingsComponent', () => {
       component.showPrayingCount = true;
     });
 
+    it('exposes prayerEncouragementEnabled$ from PrayerEncouragementService', async () => {
+      await expect(firstValueFrom(component.prayerEncouragementEnabled$)).resolves.toBe(true);
+      expect(mockPrayerEncouragementService.getPrayerEncouragementEnabled$).toHaveBeenCalled();
+    });
+
     it('should persist show_pray_for_button and update session', async () => {
       mockSupabaseService.client.from = vi.fn(() => ({
         select: vi.fn(() => ({
@@ -2892,6 +2907,45 @@ describe('UserSettingsComponent', () => {
 
       expect(mockUserSessionService.updateUserSession).toHaveBeenCalledWith({ showPrayingCount: false });
       expect(component.successPrayerEncouragementUi).toContain('hidden');
+    });
+
+    it('should persist personal_prayer_cooldown_hours and update session', async () => {
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({
+              data: { id: 'subscriber-id' },
+              error: null
+            }))
+          }))
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }));
+      mockUserSessionService.getCurrentSession.mockReturnValue({
+        personalPrayerCooldownHours: 4
+      });
+
+      component.personalPrayerCooldownHours = 6;
+      component.personalPrayerCooldownEdited = true;
+      await component.savePersonalPrayerCooldownHours();
+
+      expect(mockUserSessionService.updateUserSession).toHaveBeenCalledWith({
+        personalPrayerCooldownHours: 6
+      });
+      expect(component.successPrayerEncouragementUi).toContain('6 hours');
+    });
+
+    it('should not overwrite personal cooldown on blur when the user did not edit the field', async () => {
+      mockUserSessionService.getPersonalPrayerCooldownHours.mockReturnValue(24);
+      component.personalPrayerCooldownHours = 4;
+      component.personalPrayerCooldownEdited = false;
+
+      await component.savePersonalPrayerCooldownHours();
+
+      expect(mockUserSessionService.updateUserSession).not.toHaveBeenCalled();
+      expect(component.personalPrayerCooldownHours).toBe(24);
     });
 
     it('should revert showPrayForButton on insert error', async () => {

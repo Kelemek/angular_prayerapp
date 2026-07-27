@@ -196,11 +196,11 @@ type ThemeOption = "light" | "dark" | "system";
         class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 safe-area-overlay"
       >
         <div
-          class="bg-gradient-to-br from-green-600 to-green-700 rounded-3xl p-12 shadow-2xl border-4 border-green-400 text-center max-w-2xl mx-4 animate-pulse relative"
+          class="bg-white dark:bg-gray-800 rounded-3xl p-12 shadow-2xl border border-gray-200 dark:border-gray-700 text-center max-w-2xl mx-4 relative"
         >
           <button
             (click)="showTimerNotification = false"
-            class="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
+            class="absolute top-4 right-4 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           >
             <svg
               width="32"
@@ -209,7 +209,6 @@ type ThemeOption = "light" | "dark" | "system";
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-              class="text-white"
             >
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -222,15 +221,15 @@ type ThemeOption = "light" | "dark" | "system";
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            class="mx-auto mb-6 text-white"
+            class="mx-auto mb-6 text-[#39704D] dark:text-[#5FB876]"
           >
             <circle cx="12" cy="12" r="10"></circle>
             <path d="M12 6v6l4 2"></path>
           </svg>
-          <h2 class="text-6xl font-bold mb-4 text-white">
+          <h2 class="text-6xl font-bold mb-4 text-gray-900 dark:text-gray-100">
             Prayer Timer Complete! 🙏
           </h2>
-          <p class="text-2xl opacity-90 text-white">
+          <p class="text-2xl text-gray-600 dark:text-gray-300">
             Your prayer time has ended
           </p>
         </div>
@@ -243,11 +242,11 @@ type ThemeOption = "light" | "dark" | "system";
         class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 safe-area-overlay"
       >
         <div
-          class="bg-gradient-to-br from-green-600 to-green-700 rounded-3xl p-12 shadow-2xl border-4 border-green-400 text-center max-w-2xl mx-4 animate-pulse relative"
+          class="bg-white dark:bg-gray-800 rounded-3xl p-12 shadow-2xl border border-gray-200 dark:border-gray-700 text-center max-w-2xl mx-4 relative"
         >
           <button
             (click)="dismissPresentationComplete()"
-            class="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
+            class="absolute top-4 right-4 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           >
             <svg
               width="32"
@@ -256,16 +255,15 @@ type ThemeOption = "light" | "dark" | "system";
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-              class="text-white"
             >
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
-          <h2 class="text-6xl font-bold mb-4 text-white">
+          <h2 class="text-6xl font-bold mb-4 text-gray-900 dark:text-gray-100">
             Prayers Complete! 🙏
           </h2>
-          <p class="text-2xl opacity-90 text-white">
+          <p class="text-2xl text-gray-600 dark:text-gray-300">
             You've viewed all prayers
           </p>
         </div>
@@ -1110,7 +1108,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   togglePlay(): void {
     if (this.showPresentationCompleteNotification) {
-      this.dismissPresentationComplete();
+      this.dismissPresentationComplete(true);
       return;
     }
 
@@ -1234,7 +1232,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  dismissPresentationComplete(): void {
+  dismissPresentationComplete(startPlayback = false): void {
     this.showPresentationCompleteNotification = false;
     this.showSettings = false;
     this.showTimerNotification = false;
@@ -1247,8 +1245,14 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
     this.currentIndex = 0;
     this.loopOffPlaySessionActive = true;
-    this.isPlaying = true;
-    this.startAutoAdvance();
+    this.clearIntervals();
+
+    if (startPlayback) {
+      this.isPlaying = true;
+      this.startAutoAdvance();
+    } else {
+      this.isPlaying = false;
+    }
     this.cdr.markForCheck();
   }
 

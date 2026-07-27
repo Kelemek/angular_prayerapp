@@ -8,6 +8,7 @@ import {
 } from "@angular/core";
 import { AsyncPipe, NgClass } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { Observable, of } from "rxjs";
 import { RichTextViewComponent } from "../rich-text-view/rich-text-view.component";
 import { UserSessionService } from "../../services/user-session.service";
 import { PrayerEncouragementService } from "../../services/prayer-encouragement.service";
@@ -143,8 +144,8 @@ interface PrayerPrompt {
       <!-- Prayer encouragement actions -->
       @if (showAddUpdateButton()) {
       <div class="flex flex-wrap gap-3 items-center mb-6">
-        @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && !isPersonalPrayer() && !isMemberPrayer()) {
-          @if (prayerEncouragementService.canPrayFor(prayer.id)) {
+        @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && !isMemberPrayer()) {
+          @if (canPrayFor$ | async) {
             <button
               type="button"
               (click)="onPrayForClick()"
@@ -157,7 +158,7 @@ interface PrayerPrompt {
             <button
               type="button"
               disabled
-              [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHours$() | async) ?? 4) + ' hours'"
+              [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(isPersonalPrayer()) | async) ?? 4) + ' hours'"
               class="px-4 py-2 text-base md:text-lg font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl border border-gray-300 dark:border-gray-600 cursor-not-allowed whitespace-nowrap"
             >
               Prayed For
@@ -169,7 +170,7 @@ interface PrayerPrompt {
             class="px-3 py-2 text-base md:text-lg font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-600 dark:border-blue-500 whitespace-nowrap"
             title="Number praying for this request"
           >
-            {{ (prayer.prayed_for_count ?? 0) }} Praying
+            {{ (prayer.prayed_for_count ?? 0) }} {{ isPersonalPrayer() ? 'Prayers' : 'Praying' }}
           </span>
         }
       </div>
@@ -255,11 +256,19 @@ interface PrayerPrompt {
         </div>
         <div class="px-6 py-4">
           <p class="text-gray-600 dark:text-gray-300 mb-4">
+            @if (isPersonalPrayer()) {
+            When you click Pray For, your personal prayer count increases so you can track how often you have prayed for this request.
+            } @else {
             When you click Pray For, the person who submitted this prayer request will see that others have prayed for them. Only the total count is shown—your click is anonymous.
+            }
           </p>
           <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
             <p class="text-sm text-blue-700 dark:text-blue-300">
-              This encourages the requester by showing how many times their prayer has been lifted up. You can pray for the same request again in {{ (prayerEncouragementService.getCooldownHours$() | async) ?? 4 }} hours.
+              @if (isPersonalPrayer()) {
+              You can pray for the same personal request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
+              } @else {
+              This encourages the requester by showing how many times their prayer has been lifted up. You can pray for the same request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(false) | async) ?? 4 }} hours.
+              }
             </p>
           </div>
           <label class="flex items-center gap-2 cursor-pointer">
@@ -350,6 +359,7 @@ export class PrayerDisplayCardComponent implements OnInit {
     if (previousId !== undefined && previousId !== value?.id) {
       this.dismissPrayForModal();
     }
+    this.refreshCanPrayFor$();
   }
   get prayer(): Prayer | undefined {
     return this._prayer;
@@ -369,9 +379,22 @@ export class PrayerDisplayCardComponent implements OnInit {
   showPrayForModal = false;
   prayForDoNotShowAgain = false;
   updatesAllowed: UpdatesAllowed = "everyone";
+  canPrayFor$ = of(true);
 
   ngOnInit(): void {
     void this.loadUpdatesAllowed();
+    this.refreshCanPrayFor$();
+  }
+
+  private refreshCanPrayFor$(): void {
+    if (!this._prayer?.id) {
+      this.canPrayFor$ = of(true);
+      return;
+    }
+    this.canPrayFor$ = this.prayerEncouragementService.getCanPrayFor$(
+      this._prayer.id,
+      this.isPersonalPrayer()
+    );
   }
 
   private dismissPrayForModal(): void {
@@ -415,6 +438,8 @@ export class PrayerDisplayCardComponent implements OnInit {
     if (!this.prayer) return false;
     const count = this.prayer.prayed_for_count ?? 0;
     if (count <= 0) return false;
+    // Personal prayers are private to the owner; they always see their count.
+    if (this.isPersonalPrayer()) return true;
     if (this.adminAuthService.getIsAdmin()) return true;
     return this.isCurrentUserTheRequester();
   }
@@ -447,11 +472,16 @@ export class PrayerDisplayCardComponent implements OnInit {
     if (!prayedForPrayer) return;
     this.showPrayForModal = false;
     const prayerId = prayedForPrayer.id;
-    if (!this.prayerEncouragementService.canPrayFor(prayerId)) return;
-    this.prayerEncouragementService.recordPrayedFor(prayerId);
-    const newCount = await this.prayerService.incrementPrayedFor(prayerId);
+    const isPersonal = this.isPersonalPrayer();
+    if (!this.prayerEncouragementService.canPrayFor(prayerId, isPersonal)) return;
+    this.prayerEncouragementService.recordPrayedFor(prayerId, isPersonal);
+    const newCount = isPersonal
+      ? await this.prayerService.incrementPersonalPrayedFor(prayerId)
+      : await this.prayerService.incrementPrayedFor(prayerId);
     if (newCount !== null) {
       prayedForPrayer.prayed_for_count = newCount;
+    } else {
+      this.prayerEncouragementService.clearPrayedForCooldown(prayerId, isPersonal);
     }
     this.cdr.markForCheck();
   }

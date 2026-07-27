@@ -10,7 +10,7 @@ import {
   ChangeDetectorRef,
   ChangeDetectionStrategy,
 } from "@angular/core";
-import { NgClass } from "@angular/common";
+import { NgClass, AsyncPipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ThemeService } from "../../services/theme.service";
 import { TextSizeService, TextSize } from "../../services/text-size.service";
@@ -20,8 +20,9 @@ import { PrayerService } from "../../services/prayer.service";
 import { EmailNotificationService } from "../../services/email-notification.service";
 import { AdminAuthService } from "../../services/admin-auth.service";
 import { GitHubFeedbackService } from "../../services/github-feedback.service";
-import { UserSessionService } from "../../services/user-session.service";
+import { UserSessionService, clampPrayerCooldownHours } from "../../services/user-session.service";
 import { BadgeService } from "../../services/badge.service";
+import { PrayerEncouragementService } from "../../services/prayer-encouragement.service";
 import { CapacitorService } from "../../services/capacitor.service";
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from "rxjs";
 import { getUserInfo } from "../../../utils/userInfoStorage";
@@ -37,6 +38,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
   standalone: true,
   imports: [
     NgClass,
+    AsyncPipe,
     FormsModule,
     GitHubFeedbackFormComponent,
     HourReminderSettingsSectionComponent,
@@ -1006,7 +1008,8 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
             }
           </div>
 
-          <!-- Prayer encouragement on cards (viewer-only) -->
+          <!-- Prayer encouragement on cards (viewer-only; hidden when admin disables feature) -->
+          @if (prayerEncouragementEnabled$ | async) {
           <div
             id="tour-settings-prayer-encouragement"
             class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-3"
@@ -1232,6 +1235,80 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                 }
               </p>
             </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <div
+                  class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >
+                  @if (prayerEncouragementUiLoaded) { Personal prayer cooldown
+                  (hours) } @else {
+                  <span
+                    class="inline-block h-4 w-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+                  ></span>
+                  }
+                </div>
+                @if (savingPersonalPrayerCooldown) {
+                <svg
+                  class="animate-spin h-4 w-4 text-blue-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                }
+              </div>
+              @if (prayerEncouragementUiLoaded) {
+              <input
+                type="number"
+                id="personalPrayerCooldownHours"
+                [(ngModel)]="personalPrayerCooldownHours"
+                name="personalPrayerCooldownHours"
+                min="1"
+                max="168"
+                step="1"
+                [disabled]="
+                  savingPersonalPrayerCooldown ||
+                  savingShowPrayForButton ||
+                  savingShowPrayingCount
+                "
+                (blur)="savePersonalPrayerCooldownHours()"
+                (input)="personalPrayerCooldownEdited = true"
+                (keydown.enter)="$any($event.target).blur()"
+                class="h-12 w-24 px-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              } @else {
+              <div
+                class="h-12 w-24 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+              ></div>
+              }
+              <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                @if (prayerEncouragementUiLoaded) {
+                {{
+                  savingPersonalPrayerCooldown
+                    ? "Saving..."
+                    : "How long before you can tap Pray For again on the same personal prayer (1–168 hours). Community prayers still use the church cooldown set by admins."
+                }}
+                } @else {
+                <span
+                  class="inline-block h-4 w-64 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+                ></span>
+                }
+              </p>
+            </div>
             @if (successPrayerEncouragementUi) {
             <div
               class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2"
@@ -1262,6 +1339,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
             </div>
             }
           </div>
+          }
 
           <!-- Default View Preference Control -->
           <div
@@ -1774,6 +1852,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
   badgeFunctionalityEnabled: boolean | null = null;
   showPrayForButton: boolean | null = null;
   showPrayingCount: boolean | null = null;
+  personalPrayerCooldownHours = 4;
+  personalPrayerCooldownEdited = false;
   theme: ThemeOption = "system";
   textSize: TextSize = "normal";
   saving = false;
@@ -1782,6 +1862,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
   savingBadge = false;
   savingShowPrayForButton = false;
   savingShowPrayingCount = false;
+  savingPersonalPrayerCooldown = false;
   successPushNotification: string | null = null;
   savingDefaultView = false;
   error: string | null = null;
@@ -1794,6 +1875,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
   preferencesLoaded = false;
   badgePreferencesLoaded = false;
   prayerEncouragementUiLoaded = false;
+  readonly prayerEncouragementEnabled$ =
+    this.prayerEncouragementService.getPrayerEncouragementEnabled$();
   defaultViewPreferencesLoaded = false;
   memorizationStrictModeLoaded = false;
   defaultPrayerView: "current" | "personal" | null = null;
@@ -1858,6 +1941,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
     private badgeService: BadgeService,
     public userSessionService: UserSessionService,
     public capacitorService: CapacitorService,
+    private prayerEncouragementService: PrayerEncouragementService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -1884,6 +1968,16 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
           this.loadPreferencesAutomatically(email);
         }
       });
+
+    this.userSessionService
+      .getPersonalPrayerCooldownHours$()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((hours) => {
+        if (!this.personalPrayerCooldownEdited) {
+          this.personalPrayerCooldownHours = hours;
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -1895,6 +1989,7 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
 
       // Mark that we're doing initial load
       this.isInitialLoad = true;
+      this.personalPrayerCooldownEdited = false;
       this.preferencesLoaded = false;
       this.badgePreferencesLoaded = false;
       this.prayerEncouragementUiLoaded = false;
@@ -1919,6 +2014,8 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
 
         this.showPrayForButton = userSession.showPrayForButton ?? true;
         this.showPrayingCount = userSession.showPrayingCount ?? true;
+        this.personalPrayerCooldownHours =
+          userSession.personalPrayerCooldownHours ?? 4;
         this.prayerEncouragementUiLoaded = true;
 
         // Get default prayer view preference from cached session
@@ -2798,6 +2895,89 @@ export class UserSettingsComponent implements OnInit, OnDestroy, OnChanges {
       this.showPrayingCount = !next;
     } finally {
       this.savingShowPrayingCount = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async savePersonalPrayerCooldownHours(): Promise<void> {
+    const email = this.email.toLowerCase().trim();
+    if (!email) {
+      this.error = "Email not found. Please log in again.";
+      return;
+    }
+
+    if (!this.personalPrayerCooldownEdited) {
+      this.personalPrayerCooldownHours =
+        this.userSessionService.getPersonalPrayerCooldownHours();
+      return;
+    }
+
+    const next = clampPrayerCooldownHours(this.personalPrayerCooldownHours);
+    const current = this.userSessionService.getPersonalPrayerCooldownHours();
+    if (next === current) {
+      this.personalPrayerCooldownHours = next;
+      this.personalPrayerCooldownEdited = false;
+      return;
+    }
+
+    this.personalPrayerCooldownHours = next;
+    this.savingPersonalPrayerCooldown = true;
+    this.error = null;
+    this.successPrayerEncouragementUi = null;
+
+    try {
+      const { data: existingRecord, error: fetchError } =
+        await this.supabase.client
+          .from("email_subscribers")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (existingRecord) {
+        const { error: updateError } = await this.supabase.client
+          .from("email_subscribers")
+          .update({ personal_prayer_cooldown_hours: next })
+          .eq("email", email);
+
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        const { error: insertError } = await this.supabase.client
+          .from("email_subscribers")
+          .insert({
+            email,
+            name: this.name || "",
+            personal_prayer_cooldown_hours: next,
+          });
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
+      await this.userSessionService.updateUserSession({
+        personalPrayerCooldownHours: next,
+      });
+      this.personalPrayerCooldownEdited = false;
+      this.successPrayerEncouragementUi = `Personal prayer cooldown set to ${next} ${
+        next === 1 ? "hour" : "hours"
+      }`;
+      setTimeout(() => {
+        this.successPrayerEncouragementUi = null;
+        this.cdr.markForCheck();
+      }, 3000);
+    } catch (err) {
+      console.error("Error updating personal prayer cooldown:", err);
+      this.error =
+        err instanceof Error ? err.message : "Failed to update preference";
+      this.personalPrayerCooldownHours = current;
+    } finally {
+      this.savingPersonalPrayerCooldown = false;
       this.cdr.markForCheck();
     }
   }

@@ -12,7 +12,9 @@ function defaultPrayerCardCtorDeps() {
   return {
     badge: {} as any,
     prayerService: {} as any,
-    encouragement: {} as any,
+    encouragement: {
+      getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
+    } as any,
     cdr: { markForCheck: vi.fn() } as any,
   };
 }
@@ -458,6 +460,7 @@ describe('PrayerCardComponent', () => {
     const localPrayerEncouragementService = {
       getPrayerEncouragementEnabled$: vi.fn().mockReturnValue(of(true)),
       canPrayFor: vi.fn().mockReturnValue(false),
+      getCanPrayFor$: vi.fn().mockReturnValue(of(false)),
       recordPrayedFor: vi.fn()
     };
     const localCdr = { markForCheck: vi.fn() };
@@ -525,12 +528,15 @@ describe('PrayerCardComponent', () => {
 
     beforeEach(() => {
       mockPrayerService = {
-        incrementPrayedFor: vi.fn().mockResolvedValue(5)
+        incrementPrayedFor: vi.fn().mockResolvedValue(5),
+        incrementPersonalPrayedFor: vi.fn().mockResolvedValue(5)
       };
       mockPrayerEncouragementService = {
         getPrayerEncouragementEnabled$: vi.fn().mockReturnValue(of(true)),
         canPrayFor: vi.fn().mockReturnValue(true),
-        recordPrayedFor: vi.fn()
+        getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
+        recordPrayedFor: vi.fn(),
+        clearPrayedForCooldown: vi.fn()
       };
       mockCdr = { markForCheck: vi.fn() };
 
@@ -561,6 +567,13 @@ describe('PrayerCardComponent', () => {
       expect(prayForComponent.showPrayedForBadge()).toBe(false);
     });
 
+    it('showPrayedForBadge returns true when count > 0 and isPersonal', () => {
+      prayForComponent.isPersonal = true;
+      prayForComponent.prayer.prayed_for_count = 3;
+      mockUserSessionService.getCurrentSession.mockReturnValue({ email: 'other@example.com' });
+      expect(prayForComponent.showPrayedForBadge()).toBe(true);
+    });
+
     it('showPrayedForBadge returns true when count > 0 and current user is requester', () => {
       prayForComponent.prayer.prayed_for_count = 3;
       mockUserSessionService.getCurrentSession.mockReturnValue({ email: 'test@example.com' });
@@ -579,10 +592,22 @@ describe('PrayerCardComponent', () => {
       prayForComponent.showPrayForModal = true;
       await prayForComponent.confirmPrayFor();
       expect(prayForComponent.showPrayForModal).toBe(false);
-      expect(mockPrayerEncouragementService.recordPrayedFor).toHaveBeenCalledWith('prayer-1');
+      expect(mockPrayerEncouragementService.recordPrayedFor).toHaveBeenCalledWith('prayer-1', false);
       expect(mockPrayerService.incrementPrayedFor).toHaveBeenCalledWith('prayer-1');
+      expect(mockPrayerService.incrementPersonalPrayedFor).not.toHaveBeenCalled();
       expect(prayForComponent.prayer.prayed_for_count).toBe(5);
       expect(mockCdr.markForCheck).toHaveBeenCalled();
+    });
+
+    it('confirmPrayFor for personal prayer calls incrementPersonalPrayedFor', async () => {
+      mockPrayerEncouragementService.canPrayFor.mockReturnValue(true);
+      prayForComponent.isPersonal = true;
+      prayForComponent.showPrayForModal = true;
+      await prayForComponent.confirmPrayFor();
+      expect(mockPrayerEncouragementService.recordPrayedFor).toHaveBeenCalledWith('prayer-1', true);
+      expect(mockPrayerService.incrementPersonalPrayedFor).toHaveBeenCalledWith('prayer-1');
+      expect(mockPrayerService.incrementPrayedFor).not.toHaveBeenCalled();
+      expect(prayForComponent.prayer.prayed_for_count).toBe(5);
     });
 
     it('confirmPrayFor does nothing when canPrayFor is false', async () => {
@@ -590,6 +615,49 @@ describe('PrayerCardComponent', () => {
       await prayForComponent.confirmPrayFor();
       expect(mockPrayerEncouragementService.recordPrayedFor).not.toHaveBeenCalled();
       expect(mockPrayerService.incrementPrayedFor).not.toHaveBeenCalled();
+    });
+
+    it('confirmPrayFor clears cooldown when increment fails', async () => {
+      mockPrayerEncouragementService.canPrayFor.mockReturnValue(true);
+      mockPrayerService.incrementPrayedFor.mockResolvedValue(null);
+      await prayForComponent.confirmPrayFor();
+      expect(mockPrayerEncouragementService.recordPrayedFor).toHaveBeenCalledWith('prayer-1', false);
+      expect(mockPrayerEncouragementService.clearPrayedForCooldown).toHaveBeenCalledWith('prayer-1', false);
+      expect(prayForComponent.prayer.prayed_for_count).toBe(0);
+    });
+
+    it('confirmPrayFor records cooldown before increment to block double submit', async () => {
+      const callOrder: string[] = [];
+      mockPrayerEncouragementService.recordPrayedFor.mockImplementation(() => {
+        callOrder.push('record');
+      });
+      mockPrayerService.incrementPrayedFor.mockImplementation(async () => {
+        callOrder.push('increment');
+        return 5;
+      });
+      await prayForComponent.confirmPrayFor();
+      expect(callOrder).toEqual(['record', 'increment']);
+    });
+
+    it('confirmPrayFor records cooldown for the prayed card when prayer input changes before RPC completes', async () => {
+      const prayerA = { ...prayForComponent.prayer, id: 'prayer-a', prayed_for_count: 0 };
+      const prayerB = { ...prayForComponent.prayer, id: 'prayer-b', prayed_for_count: 0 };
+      prayForComponent.prayer = prayerA;
+      let resolveIncrement: (value: number) => void = () => {};
+      mockPrayerService.incrementPrayedFor.mockReturnValue(
+        new Promise<number>((resolve) => {
+          resolveIncrement = resolve;
+        })
+      );
+
+      const confirmPromise = prayForComponent.confirmPrayFor();
+      prayForComponent.prayer = prayerB;
+      resolveIncrement(5);
+      await confirmPromise;
+
+      expect(mockPrayerEncouragementService.recordPrayedFor).toHaveBeenCalledWith('prayer-a', false);
+      expect(prayerA.prayed_for_count).toBe(5);
+      expect(prayerB.prayed_for_count).toBe(0);
     });
 
     it('showPrayForModal defaults to false', () => {

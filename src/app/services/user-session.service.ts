@@ -5,6 +5,28 @@ import { AdminAuthService } from './admin-auth.service';
 import { distinctUntilChanged, first, map } from 'rxjs/operators';
 import type { UserHourReminderSlot } from '../types/user-hour-reminder';
 
+export const PRAYER_COOLDOWN_MIN_HOURS = 1;
+export const PRAYER_COOLDOWN_MAX_HOURS = 168;
+export const DEFAULT_PERSONAL_PRAYER_COOLDOWN_HOURS = 4;
+
+export function clampPrayerCooldownHours(
+  hours: number | string | null | undefined
+): number {
+  const numeric =
+    typeof hours === 'number'
+      ? hours
+      : typeof hours === 'string' && hours.trim() !== ''
+        ? Number(hours)
+        : Number.NaN;
+  if (!Number.isFinite(numeric)) {
+    return DEFAULT_PERSONAL_PRAYER_COOLDOWN_HOURS;
+  }
+  return Math.min(
+    PRAYER_COOLDOWN_MAX_HOURS,
+    Math.max(PRAYER_COOLDOWN_MIN_HOURS, Math.round(numeric))
+  );
+}
+
 export interface UserSessionData {
   email: string;
   fullName: string;
@@ -17,6 +39,8 @@ export interface UserSessionData {
   showPrayForButton?: boolean;
   /** When false, hide the N Praying chip; undefined defaults to true. */
   showPrayingCount?: boolean;
+  /** Hours before Pray For is available again on the same personal prayer (1–168). */
+  personalPrayerCooldownHours?: number;
   defaultPrayerView?: 'current' | 'personal';
   /** When true, memorization practice does not auto-reveal blanks after 3 wrong attempts. */
   memorizationStrictMode?: boolean;
@@ -117,13 +141,19 @@ export class UserSessionService {
 
     this.isLoadingSubject.next(true);
 
+    const preservedPersonalCooldownHours = (): number =>
+      clampPrayerCooldownHours(
+        this.userSessionSubject.value?.personalPrayerCooldownHours ??
+          this.loadFromCache(email)?.personalPrayerCooldownHours
+      );
+
     try {
       // Use directQuery with timeout to prevent hanging
       const { data, error } = await Promise.race([
         this.supabase.client
           .from('email_subscribers')
           .select(
-            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, memorization_strict_mode'
+            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode'
           )
           .eq('email', email.toLowerCase().trim())
           .maybeSingle(),
@@ -148,6 +178,9 @@ export class UserSessionService {
           badgeFunctionalityEnabled: data.badge_functionality_enabled ?? false,
           showPrayForButton: data.show_pray_for_button ?? true,
           showPrayingCount: data.show_praying_count ?? true,
+          personalPrayerCooldownHours: clampPrayerCooldownHours(
+            data.personal_prayer_cooldown_hours
+          ),
           defaultPrayerView: data.default_prayer_view || 'current',
           memorizationStrictMode: data.memorization_strict_mode ?? false
         };
@@ -165,6 +198,7 @@ export class UserSessionService {
           badgeFunctionalityEnabled: false,
           showPrayForButton: true,
           showPrayingCount: true,
+          personalPrayerCooldownHours: preservedPersonalCooldownHours(),
           defaultPrayerView: 'current',
           memorizationStrictMode: false
         };
@@ -184,6 +218,7 @@ export class UserSessionService {
         badgeFunctionalityEnabled: false,
         showPrayForButton: true,
         showPrayingCount: true,
+        personalPrayerCooldownHours: preservedPersonalCooldownHours(),
         defaultPrayerView: 'current',
         memorizationStrictMode: false
       };
@@ -294,6 +329,20 @@ export class UserSessionService {
     return this.userSession$.pipe(
       map((s) => s?.showPrayingCount ?? true),
       distinctUntilChanged()
+    );
+  }
+
+  /** Personal-prayer Pray For cooldown in hours (default 4). */
+  getPersonalPrayerCooldownHours$(): Observable<number> {
+    return this.userSession$.pipe(
+      map((s) => clampPrayerCooldownHours(s?.personalPrayerCooldownHours)),
+      distinctUntilChanged()
+    );
+  }
+
+  getPersonalPrayerCooldownHours(): number {
+    return clampPrayerCooldownHours(
+      this.userSessionSubject.value?.personalPrayerCooldownHours
     );
   }
 

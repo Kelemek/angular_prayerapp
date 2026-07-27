@@ -102,6 +102,92 @@ describe('PrayerService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('returns null when rpc returns zero (no row updated)', async () => {
+      const p1 = makePrayer({ id: 'pid-1', prayed_for_count: 1 });
+      (service as any).allPrayersSubject.next([p1]);
+      (service as any).prayersSubject.next([p1]);
+      supabase.client.rpc.mockResolvedValue({ data: 0, error: null });
+
+      const result = await service.incrementPrayedFor('pid-1');
+
+      expect(result).toBeNull();
+      expect((service as any).allPrayersSubject.value[0].prayed_for_count).toBe(1);
+    });
+  });
+
+  describe('incrementPersonalPrayedFor', () => {
+    beforeEach(() => {
+      vi.spyOn(service, 'getUserEmail').mockResolvedValue('me@test.com');
+    });
+
+    it('calls rpc and updates in-memory personal list and cache with returned count', async () => {
+      const p1 = makePrayer({ id: 'personal-1', prayed_for_count: 2 });
+      const p2 = makePrayer({ id: 'personal-2' });
+      (service as any).allPersonalPrayersSubject.next([p1, p2]);
+
+      supabase.client.rpc.mockResolvedValue({ data: 3, error: null });
+
+      const result = await service.incrementPersonalPrayedFor('personal-1');
+
+      expect(result).toBe(3);
+      expect(supabase.client.rpc).toHaveBeenCalledWith('increment_personal_prayed_for_count', {
+        personal_prayer_id: 'personal-1',
+        p_user_email: 'me@test.com',
+      });
+      expect((service as any).allPersonalPrayersSubject.value[0].prayed_for_count).toBe(3);
+      expect((service as any).allPersonalPrayersSubject.value[1].prayed_for_count).toBeUndefined();
+      expect(cache.set).toHaveBeenCalledWith(
+        'personalPrayers',
+        (service as any).allPersonalPrayersSubject.value
+      );
+    });
+
+    it('returns null and does not update personal list when rpc errors', async () => {
+      const p1 = makePrayer({ id: 'personal-1', prayed_for_count: 1 });
+      (service as any).allPersonalPrayersSubject.next([p1]);
+      cache.set.mockClear();
+      supabase.client.rpc.mockResolvedValue({ data: null, error: new Error('db error') });
+
+      const result = await service.incrementPersonalPrayedFor('personal-1');
+
+      expect(result).toBeNull();
+      expect((service as any).allPersonalPrayersSubject.value[0].prayed_for_count).toBe(1);
+      expect(cache.set).not.toHaveBeenCalledWith('personalPrayers', expect.anything());
+    });
+
+    it('returns null when rpc returns non-number', async () => {
+      const p1 = makePrayer({ id: 'personal-1' });
+      (service as any).allPersonalPrayersSubject.next([p1]);
+      supabase.client.rpc.mockResolvedValue({ data: 'invalid', error: null });
+
+      const result = await service.incrementPersonalPrayedFor('personal-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when rpc returns zero (no row updated)', async () => {
+      const p1 = makePrayer({ id: 'personal-1', prayed_for_count: 1 });
+      (service as any).allPersonalPrayersSubject.next([p1]);
+      cache.set.mockClear();
+      supabase.client.rpc.mockResolvedValue({ data: 0, error: null });
+
+      const result = await service.incrementPersonalPrayedFor('personal-1');
+
+      expect(result).toBeNull();
+      expect((service as any).allPersonalPrayersSubject.value[0].prayed_for_count).toBe(1);
+      expect(cache.set).not.toHaveBeenCalledWith('personalPrayers', expect.anything());
+    });
+
+    it('returns null when user email is unavailable', async () => {
+      vi.mocked(service.getUserEmail).mockResolvedValue(null);
+      supabase.client.rpc.mockClear();
+
+      const result = await service.incrementPersonalPrayedFor('personal-1');
+
+      expect(result).toBeNull();
+      expect(supabase.client.rpc).not.toHaveBeenCalled();
+    });
   });
 
   it('applyFilters filters by status, type, and search', () => {
@@ -4689,16 +4775,20 @@ describe('PrayerService - Integration Tests', () => {
           id: 'p1',
           title: 'Prayer',
           description: 'Desc',
+          category: undefined,
           status: 'current' as const,
           prayer_for: 'John',
           requester: 'me@test.com',
           email: 'me@test.com',
+          user_email: 'me@test.com',
           is_anonymous: false,
           date_requested: now,
           created_at: now,
           updated_at: now,
           approval_status: 'approved' as const,
           type: 'prayer' as const,
+          display_order: undefined,
+          prayed_for_count: 0,
           updates: []
         }
       ];
@@ -5451,7 +5541,8 @@ describe('PrayerService - Integration Tests', () => {
 
         const cachedPrayers = [
           { 
-            id: '1', 
+            id: '1',
+            email: 'user@example.com',
             title: 'Cached Prayer', 
             display_order: 1000,
             status: 'current',
@@ -5470,7 +5561,7 @@ describe('PrayerService - Integration Tests', () => {
 
         const result = await service.getPersonalPrayers(false);
 
-        expect(result).toEqual(cachedPrayers);
+        expect(result[0].user_email).toBe('user@example.com');
         expect(fromCalled).toBe(false);
       });
 
@@ -6555,6 +6646,10 @@ describe('PrayerService - Integration Tests', () => {
 
         expect(result).toBe(true);
         expect(mockToastService.success).toHaveBeenCalled();
+
+        const optimisticPrayers = (service as any).allPersonalPrayersSubject.value;
+        expect(optimisticPrayers[0].user_email).toBe(mockEmail);
+        expect(optimisticPrayers[0].prayed_for_count).toBe(0);
       });
 
       it('should reject when category limit reached', async () => {

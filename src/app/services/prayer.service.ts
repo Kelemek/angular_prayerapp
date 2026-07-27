@@ -48,6 +48,8 @@ export interface PrayerRequest {
   in_planning_center?: boolean | null;
   is_shared_personal_prayer?: boolean;
   prayed_for_count?: number;
+  /** Set on personal-prayer rows (legacy cache entries may only have email). */
+  user_email?: string;
 }
 
 export interface PrayerFilters {
@@ -278,7 +280,8 @@ export class PrayerService {
       const cachedPersonalPrayers = this.cache.get<PrayerRequest[]>('personalPrayers');
       if (cachedPersonalPrayers && cachedPersonalPrayers.length > 0) {
         console.log(`[PrayerService] Using cached personal prayers (${cachedPersonalPrayers.length} items)`);
-        this.allPersonalPrayersSubject.next(cachedPersonalPrayers);
+        const normalized = this.normalizePersonalPrayerCache(cachedPersonalPrayers);
+        this.allPersonalPrayersSubject.next(normalized);
         
         // ✅ TIER 1: Skip DB for silent refresh - personal prayers only change when user adds them
         if (silentRefresh) {
@@ -299,6 +302,7 @@ export class PrayerService {
           display_order,
           created_at,
           updated_at,
+          prayed_for_count,
           personal_prayer_updates (
             id,
             content,
@@ -314,7 +318,8 @@ export class PrayerService {
 
       if (error) throw error;
 
-      const personalPrayers = (data || []).map(p => ({
+      const personalPrayers = this.normalizePersonalPrayerCache(
+        (data || []).map(p => ({
         id: p.id,
         title: p.title,
         description: p.description,
@@ -331,6 +336,7 @@ export class PrayerService {
         approval_status: 'approved' as const,
         type: 'prayer' as const,
         display_order: p.display_order,
+        prayed_for_count: p.prayed_for_count ?? 0,
         updates: (p.personal_prayer_updates || []).map((u: any) => ({
           id: u.id,
           prayer_id: p.id,
@@ -342,7 +348,8 @@ export class PrayerService {
           created_at: u.created_at,
           approval_status: 'approved' as const
         }))
-      }));
+      }))
+      );
 
       // Use the database ordering (by display_order DESC, then created_at DESC)
       // Don't re-sort by activity as it would override user's manual ordering
@@ -364,7 +371,8 @@ export class PrayerService {
         
         if (allCachedPrayersMatchCurrentUser) {
           console.log(`[PrayerService] Showing ${cachedPersonalPrayers.length} cached personal prayers`);
-          this.allPersonalPrayersSubject.next(cachedPersonalPrayers);
+          const normalized = this.normalizePersonalPrayerCache(cachedPersonalPrayers);
+          this.allPersonalPrayersSubject.next(normalized);
         } else {
           console.warn('[PrayerService] Cached personal prayers do not match current user - discarding cache');
           this.cache.invalidate('personalPrayers');
@@ -692,7 +700,7 @@ export class PrayerService {
         .rpc('increment_prayed_for_count', { prayer_id: prayerId });
 
       if (error) throw error;
-      const count = typeof newCount === 'number' ? newCount : null;
+      const count = typeof newCount === 'number' && newCount > 0 ? newCount : null;
       if (count === null) return null;
 
       const updateOne = (p: PrayerRequest) =>
@@ -704,6 +712,41 @@ export class PrayerService {
       return count;
     } catch (err) {
       console.error('[PrayerService] incrementPrayedFor failed', err);
+      return null;
+    }
+  }
+
+  /**
+   * Increment prayed_for_count for a personal prayer via RPC. Updates in-memory list and cache only (no refetch).
+   * @returns The new count, or null on error.
+   */
+  async incrementPersonalPrayedFor(prayerId: string): Promise<number | null> {
+    try {
+      const userEmail = await this.getUserEmail();
+      if (!userEmail) {
+        return null;
+      }
+
+      const { data: newCount, error } = await this.supabase.client
+        .rpc('increment_personal_prayed_for_count', {
+          personal_prayer_id: prayerId,
+          p_user_email: userEmail,
+        });
+
+      if (error) throw error;
+      const count = typeof newCount === 'number' && newCount > 0 ? newCount : null;
+      if (count === null) return null;
+
+      const updateOne = (p: PrayerRequest) =>
+        p.id === prayerId ? { ...p, prayed_for_count: count } : p;
+
+      const updated = this.allPersonalPrayersSubject.value.map(updateOne);
+      this.allPersonalPrayersSubject.next(updated);
+      this.cache.set('personalPrayers', updated);
+
+      return count;
+    } catch (err) {
+      console.error('[PrayerService] incrementPersonalPrayedFor failed', err);
       return null;
     }
   }
@@ -1427,7 +1470,7 @@ export class PrayerService {
       if (!forceRefresh) {
         const cached = this.cache.get<PrayerRequest[]>('personalPrayers');
         if (cached) {
-          return cached;
+          return this.normalizePersonalPrayerCache(cached);
         }
       }
 
@@ -1443,6 +1486,7 @@ export class PrayerService {
           display_order,
           created_at,
           updated_at,
+          prayed_for_count,
           personal_prayer_updates (
             id,
             content,
@@ -1462,7 +1506,8 @@ export class PrayerService {
       }
 
       // Transform personal prayers to PrayerRequest format for reuse
-      const prayers = (data || []).map(p => ({
+      const prayers = this.normalizePersonalPrayerCache(
+        (data || []).map(p => ({
         id: p.id,
         title: p.title,
         description: p.description,
@@ -1471,6 +1516,7 @@ export class PrayerService {
         prayer_for: p.prayer_for,
         requester: p.user_email,
         email: p.user_email,
+        user_email: p.user_email,
         is_anonymous: false,
         date_requested: p.created_at,
         created_at: p.created_at,
@@ -1478,6 +1524,7 @@ export class PrayerService {
         approval_status: 'approved' as const,
         type: 'prayer' as const,
         display_order: p.display_order,
+        prayed_for_count: p.prayed_for_count ?? 0,
         updates: (p.personal_prayer_updates || []).map((u: any) => ({
           id: u.id,
           prayer_id: p.id,
@@ -1489,7 +1536,8 @@ export class PrayerService {
           created_at: u.created_at,
           approval_status: 'approved' as const
         }))
-      }));
+      }))
+      );
       
       // Cache the prayers for future requests
       this.cache.set('personalPrayers', prayers);
@@ -1569,7 +1617,7 @@ export class PrayerService {
       if (error) throw error;
 
       // Add to observable and cache immediately (no approval needed)
-      const newPrayer: PrayerRequest = {
+      const newPrayer = this.withPersonalPrayerUserEmail({
         id: data.id,
         title: data.title,
         description: data.description,
@@ -1583,9 +1631,11 @@ export class PrayerService {
         created_at: data.created_at,
         updated_at: data.updated_at,
         approval_status: 'approved' as const,
+        type: 'prayer' as const,
         updates: [],
-        display_order: data.display_order || newDisplayOrder
-      };
+        display_order: data.display_order || newDisplayOrder,
+        prayed_for_count: 0,
+      });
 
       // Add to the beginning of the list (most recent first)
       const currentPrayers = this.allPersonalPrayersSubject.value;
@@ -2105,6 +2155,22 @@ export class PrayerService {
   /**
    * Get user email from session
    */
+  private withPersonalPrayerUserEmail(prayer: PrayerRequest): PrayerRequest {
+    const userEmail = prayer.user_email ?? prayer.email;
+    if (!userEmail) {
+      return prayer;
+    }
+    return {
+      ...prayer,
+      email: prayer.email ?? userEmail,
+      user_email: userEmail,
+    };
+  }
+
+  private normalizePersonalPrayerCache(prayers: PrayerRequest[]): PrayerRequest[] {
+    return prayers.map((prayer) => this.withPersonalPrayerUserEmail(prayer));
+  }
+
   private async getUserEmail(): Promise<string | null> {
     // Try to get from Supabase auth session first
     try {

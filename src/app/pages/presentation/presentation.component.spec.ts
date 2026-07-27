@@ -222,7 +222,7 @@ describe('PresentationComponent', () => {
       vi.useRealTimers();
     });
 
-    it('dismissPresentationComplete restarts playback from first slide', () => {
+    it('dismissPresentationComplete resets to first slide without starting playback', () => {
       vi.useFakeTimers();
       component.loop = false;
       component.showPresentationCompleteNotification = true;
@@ -233,6 +233,23 @@ describe('PresentationComponent', () => {
 
       expect(component.showPresentationCompleteNotification).toBe(false);
       expect(component.currentIndex).toBe(0);
+      expect(component.isPlaying).toBe(false);
+      expect((component as any).autoAdvanceInterval).toBeFalsy();
+
+      vi.useRealTimers();
+    });
+
+    it('dismissPresentationComplete with startPlayback restarts auto-advance from first slide', () => {
+      vi.useFakeTimers();
+      component.loop = false;
+      component.showPresentationCompleteNotification = true;
+      component.currentIndex = 2;
+      component.isPlaying = false;
+
+      component.dismissPresentationComplete(true);
+
+      expect(component.showPresentationCompleteNotification).toBe(false);
+      expect(component.currentIndex).toBe(0);
       expect(component.isPlaying).toBe(true);
       expect((component as any).autoAdvanceInterval).toBeTruthy();
 
@@ -240,17 +257,17 @@ describe('PresentationComponent', () => {
       vi.useRealTimers();
     });
 
-    it('dismissPresentationComplete closes settings modal before restarting', () => {
+    it('dismissPresentationComplete closes settings modal before resetting', () => {
       component.showPresentationCompleteNotification = true;
       component.showSettings = true;
 
       component.dismissPresentationComplete();
 
       expect(component.showSettings).toBe(false);
-      expect(component.isPlaying).toBe(true);
+      expect(component.isPlaying).toBe(false);
     });
 
-    it('dismissPresentationComplete closes timer notification before restarting', () => {
+    it('dismissPresentationComplete closes timer notification without starting playback', () => {
       component.showPresentationCompleteNotification = true;
       component.showTimerNotification = true;
       component.prayers = [{ id: 'a' }] as any;
@@ -259,7 +276,7 @@ describe('PresentationComponent', () => {
       component.dismissPresentationComplete();
 
       expect(component.showTimerNotification).toBe(false);
-      expect(component.isPlaying).toBe(true);
+      expect(component.isPlaying).toBe(false);
     });
 
     it('togglePlay while completion overlay is open dismisses overlay instead of playing behind it', () => {

@@ -447,6 +447,28 @@ supabase secrets set OPENAI_ADMIN_KEY=your_openai_admin_api_key
 ./scripts/deploy-functions.sh get-openai-org-usage
 ```
 
+### Personal prayer Pray For
+
+Apply migration [`20260726120000_personal_prayer_prayed_for_count.sql`](../supabase/migrations/20260726120000_personal_prayer_prayed_for_count.sql) for personal **`prayed_for_count`**, per-user **`personal_prayer_cooldown_hours`**, and RPC **`increment_personal_prayed_for_count`**. The SQL is **idempotent** (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP … IF EXISTS`).
+
+**Fresh local DB:** `supabase db reset` (or `supabase db push` on a new project).
+
+**Already applied incremental `20260727120000`–`20260727150000` files?** Those were consolidated into `20260726120000`. Mark them reverted so `db push` does not look for missing files:
+
+```bash
+supabase migration repair --status reverted 20260727120000 20260727130000 20260727140000 20260727150000
+```
+
+**Re-run the final schema** (safe any time):
+
+```bash
+supabase db execute -f supabase/migrations/20260726120000_personal_prayer_prayed_for_count.sql
+```
+
+Or paste the file into the Supabase SQL editor.
+
+---
+
 Enable the feature under **Admin → Settings → Content → Memorization Recite Mode**. **`OPENAI_API_KEY`** powers Whisper transcription (`transcribe-audio`). **`OPENAI_ADMIN_KEY`** (a separate [Admin API key](https://platform.openai.com/settings/organization/admin-keys)) is optional and powers the org spend line in admin; it reflects **all** usage on that OpenAI organization, not just this app. App-tracked usage (attempts, minutes, estimated cost) is stored in `memorization_recite_usage` without either admin secret.
 
 ---

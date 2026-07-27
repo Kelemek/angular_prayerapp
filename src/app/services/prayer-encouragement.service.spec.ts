@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, of, BehaviorSubject } from 'rxjs';
 import { skip, take } from 'rxjs/operators';
 import { PrayerEncouragementService } from './prayer-encouragement.service';
 import { SupabaseService } from './supabase.service';
+import { UserSessionService } from './user-session.service';
 
 describe('PrayerEncouragementService', () => {
   let service: PrayerEncouragementService;
   let mockSupabase: any;
+  let mockUserSessionService: {
+    getPersonalPrayerCooldownHours: ReturnType<typeof vi.fn>;
+    isSessionInitialized: ReturnType<typeof vi.fn>;
+    getCurrentSession: ReturnType<typeof vi.fn>;
+    sessionInitialized$: ReturnType<typeof of>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,7 +34,15 @@ describe('PrayerEncouragementService', () => {
       }
     };
 
-    service = new PrayerEncouragementService(mockSupabase);
+    mockUserSessionService = {
+      getPersonalPrayerCooldownHours: vi.fn().mockReturnValue(2),
+      getPersonalPrayerCooldownHours$: vi.fn().mockReturnValue(of(2)),
+      isSessionInitialized: vi.fn().mockReturnValue(true),
+      getCurrentSession: vi.fn().mockReturnValue({ personalPrayerCooldownHours: 2 }),
+      sessionInitialized$: new BehaviorSubject(true).asObservable()
+    };
+
+    service = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
   });
 
   afterEach(() => {
@@ -37,6 +52,12 @@ describe('PrayerEncouragementService', () => {
   describe('getCooldownKey', () => {
     it('returns key with prefix and prayer id', () => {
       expect(service.getCooldownKey('abc-123')).toBe('prayed_for_abc-123');
+    });
+  });
+
+  describe('getPersonalCooldownKey', () => {
+    it('returns personal prefix and prayer id', () => {
+      expect(service.getPersonalCooldownKey('abc-123')).toBe('prayed_for_personal_abc-123');
     });
   });
 
@@ -70,6 +91,74 @@ describe('PrayerEncouragementService', () => {
       });
       expect(service.canPrayFor('p1')).toBe(true);
       localStorage.getItem = originalGetItem;
+    });
+
+    it('uses separate personal cooldown keys and duration', () => {
+      service.recordPrayedFor('p-personal', true);
+      expect(service.canPrayFor('p-personal', true)).toBe(false);
+      expect(service.canPrayFor('p-personal', false)).toBe(true);
+
+      const over2hAgo = new Date(Date.now() - (3 * 60 * 60 * 1000)).toISOString();
+      localStorage.setItem('prayed_for_personal_p-personal', over2hAgo);
+      expect(service.canPrayFor('p-personal', true)).toBe(true);
+      expect(localStorage.getItem('prayed_for_personal_p-personal')).toBeNull();
+    });
+
+    it('blocks personal cooldown until the user cooldown setting is loaded', () => {
+      mockUserSessionService.isSessionInitialized.mockReturnValue(false);
+      mockUserSessionService.getCurrentSession.mockReturnValue({});
+      const fiveHoursAgo = new Date(Date.now() - (5 * 60 * 60 * 1000)).toISOString();
+      localStorage.setItem('prayed_for_personal_p1', fiveHoursAgo);
+      expect(service.canPrayFor('p1', true)).toBe(false);
+      expect(localStorage.getItem('prayed_for_personal_p1')).toBe(fiveHoursAgo);
+    });
+  });
+
+  describe('getCanPrayFor$', () => {
+    it('emits true after session cleanup removes an expired personal cooldown key', async () => {
+      mockUserSessionService.getPersonalPrayerCooldownHours.mockReturnValue(2);
+      mockUserSessionService.isSessionInitialized.mockReturnValue(true);
+      mockUserSessionService.getCurrentSession.mockReturnValue({ personalPrayerCooldownHours: 2 });
+      mockUserSessionService.getPersonalPrayerCooldownHours$ = vi
+        .fn()
+        .mockReturnValue(of(2));
+      const over2hAgo = new Date(Date.now() - (3 * 60 * 60 * 1000)).toISOString();
+      localStorage.setItem('prayed_for_personal_p1', over2hAgo);
+
+      const s2 = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
+      const canPray = await firstValueFrom(s2.getCanPrayFor$('p1', true));
+
+      expect(canPray).toBe(true);
+      expect(localStorage.getItem('prayed_for_personal_p1')).toBeNull();
+    });
+
+    it('re-emits true when an active cooldown expires', async () => {
+      vi.useFakeTimers();
+      const almostExpired = new Date(
+        Date.now() - (4 * 60 * 60 * 1000 - 50)
+      ).toISOString();
+      localStorage.setItem('prayed_for_p1', almostExpired);
+
+      const values: boolean[] = [];
+      const sub = service.getCanPrayFor$('p1').subscribe((value) => values.push(value));
+
+      expect(values).toEqual([false]);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(values).toEqual([false, true]);
+      expect(localStorage.getItem('prayed_for_p1')).toBeNull();
+
+      sub.unsubscribe();
+      vi.useRealTimers();
+    });
+  });
+
+  describe('clearPrayedForCooldown', () => {
+    it('removes cooldown key and allows praying again', () => {
+      service.recordPrayedFor('p4');
+      expect(service.canPrayFor('p4')).toBe(false);
+      service.clearPrayedForCooldown('p4');
+      expect(service.canPrayFor('p4')).toBe(true);
+      expect(localStorage.getItem('prayed_for_p4')).toBeNull();
     });
   });
 
@@ -141,7 +230,7 @@ describe('PrayerEncouragementService', () => {
           })
         })
       });
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       // Skip initial default (4), take value after fetch completes (8)
       const hours = await firstValueFrom(newService.getCooldownHours$().pipe(skip(1), take(1)));
       expect(hours).toBe(8);
@@ -161,7 +250,7 @@ describe('PrayerEncouragementService', () => {
           })
         })
       });
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       const hours = await firstValueFrom(newService.getCooldownHours$().pipe(skip(1), take(1)));
       expect(hours).toBe(4);
     });
@@ -178,7 +267,7 @@ describe('PrayerEncouragementService', () => {
           })
         })
       });
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       const hours = await firstValueFrom(newService.getCooldownHours$().pipe(skip(1), take(1)));
       expect(hours).toBe(4);
     });
@@ -196,7 +285,7 @@ describe('PrayerEncouragementService', () => {
           })
         })
       });
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       newService.getCooldownHours$().subscribe(() => {});
       await Promise.resolve();
       await Promise.resolve();
@@ -214,7 +303,7 @@ describe('PrayerEncouragementService', () => {
           })
         })
       });
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       await firstValueFrom(newService.getCooldownHours$().pipe(take(1)));
       expect(warn).toHaveBeenCalledWith('[PrayerEncouragement] Error loading flag', expect.any(Error));
       warn.mockRestore();
@@ -235,7 +324,7 @@ describe('PrayerEncouragementService', () => {
           })
         })
       });
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       const hours = await firstValueFrom(newService.getCooldownHours$().pipe(skip(1), take(1)));
       expect(hours).toBe(4);
       setItem.mockRestore();
@@ -248,7 +337,7 @@ describe('PrayerEncouragementService', () => {
         'prayer_encouragement_enabled',
         JSON.stringify({ value: true, cooldownHours: 0, timestamp: Date.now() })
       );
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       const hours = firstValueFrom(newService.getCooldownHours$());
       return hours.then((h) => expect(h).toBe(4));
     });
@@ -259,7 +348,7 @@ describe('PrayerEncouragementService', () => {
         'prayer_encouragement_enabled',
         JSON.stringify({ value: true, cooldownHours: 6, timestamp: oneHourAgo })
       );
-      const newService = new PrayerEncouragementService(mockSupabase);
+      const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       return firstValueFrom(newService.getCooldownHours$().pipe(skip(1), take(1))).then((h) => {
         expect(h).toBe(4);
       });
@@ -288,11 +377,19 @@ describe('PrayerEncouragementService', () => {
   });
 
   describe('cleanExpiredCooldownKeys on init', () => {
-    it('removes expired prayed_for_ keys when service is constructed', () => {
+    it('removes expired prayed_for_ keys after session is initialized', () => {
       const over4hAgo = new Date(Date.now() - (5 * 60 * 60 * 1000)).toISOString();
       localStorage.setItem('prayed_for_old', over4hAgo);
-      const s2 = new PrayerEncouragementService(mockSupabase);
+      const s2 = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
       expect(localStorage.getItem('prayed_for_old')).toBeNull();
+    });
+
+    it('keeps personal cooldown keys that are still within the user setting', () => {
+      mockUserSessionService.getPersonalPrayerCooldownHours.mockReturnValue(24);
+      const fiveHoursAgo = new Date(Date.now() - (5 * 60 * 60 * 1000)).toISOString();
+      localStorage.setItem('prayed_for_personal_p1', fiveHoursAgo);
+      const s2 = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
+      expect(localStorage.getItem('prayed_for_personal_p1')).toBe(fiveHoursAgo);
     });
   });
 });

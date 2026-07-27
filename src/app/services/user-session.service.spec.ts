@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { UserSessionService } from './user-session.service';
+import {
+  UserSessionService,
+  clampPrayerCooldownHours,
+  DEFAULT_PERSONAL_PRAYER_COOLDOWN_HOURS,
+} from './user-session.service';
 import { SupabaseService } from './supabase.service';
 import { AdminAuthService } from './admin-auth.service';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
@@ -2051,6 +2055,55 @@ describe('UserSessionService', () => {
       expect(session?.showPrayingCount).toBe(false);
     });
 
+    it('should map personal_prayer_cooldown_hours from database', async () => {
+      mockSupabaseService.client.from = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                email: 'test@example.com',
+                name: 'John Doe',
+                is_active: true,
+                receive_push: false,
+                badge_functionality_enabled: false,
+                default_prayer_view: 'current',
+                show_pray_for_button: true,
+                show_praying_count: true,
+                personal_prayer_cooldown_hours: 8
+              },
+              error: null
+            })
+          })
+        })
+      });
+
+      await service.loadUserSession('test@example.com');
+
+      expect(service.getCurrentSession()?.personalPrayerCooldownHours).toBe(8);
+    });
+
+    it('should preserve cached personal cooldown when loadUserSession fails', async () => {
+      (service as any).userSessionSubject.next({
+        email: 'test@example.com',
+        fullName: 'John Doe',
+        isActive: true,
+        personalPrayerCooldownHours: 12,
+        memorizationStrictMode: false,
+      });
+
+      mockSupabaseService.client.from = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockRejectedValue(new Error('network error'))
+          })
+        })
+      });
+
+      await service.loadUserSession('test@example.com');
+
+      expect(service.getCurrentSession()?.personalPrayerCooldownHours).toBe(12);
+    });
+
     it('should map memorization_strict_mode from database', async () => {
       mockSupabaseService.client.from = vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -2199,5 +2252,15 @@ describe('UserSessionService', () => {
       const v = await firstValueFrom(service.getShowPrayingCount$());
       expect(v).toBe(true);
     });
+  });
+});
+
+describe('clampPrayerCooldownHours', () => {
+  it('parses numeric strings from ngModel', () => {
+    expect(clampPrayerCooldownHours('6')).toBe(6);
+  });
+
+  it('clamps invalid values to default', () => {
+    expect(clampPrayerCooldownHours('not-a-number')).toBe(DEFAULT_PERSONAL_PRAYER_COOLDOWN_HOURS);
   });
 });
