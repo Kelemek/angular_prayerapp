@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { firstValueFrom } from 'rxjs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { PromptService } from './prompt.service';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
 import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
+import { UserSessionService } from './user-session.service';
 
 describe('PromptService', () => {
   let service: PromptService;
@@ -12,6 +13,8 @@ describe('PromptService', () => {
   let mockToastService: any;
   let mockCacheService: any;
   let mockBadgeService: any;
+  let mockUserSessionService: any;
+  let userSessionSubject: BehaviorSubject<{ email: string } | null>;
   let consoleErrorSpy: any;
 
   beforeEach(() => {
@@ -40,9 +43,20 @@ describe('PromptService', () => {
       getBadgeFunctionalityEnabled$: vi.fn(() => ({ subscribe: vi.fn() }))
     };
 
+    userSessionSubject = new BehaviorSubject<{ email: string } | null>(null);
+    mockUserSessionService = {
+      userSession$: userSessionSubject.asObservable(),
+      getUserEmail: vi.fn(() => userSessionSubject.value?.email ?? null),
+      getCurrentSession: vi.fn(() => userSessionSubject.value),
+    };
+
     // Mock SupabaseService with default responses
     mockSupabaseService = {
       client: {
+        auth: {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+        },
+        rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         from: vi.fn((table: string) => {
           if (table === 'prayer_types') {
             return {
@@ -63,8 +77,8 @@ describe('PromptService', () => {
               select: vi.fn(() => ({
                 order: vi.fn(() => Promise.resolve({
                   data: [
-                    { id: '1', type: 'Healing', title: 'Test Prompt', created_at: '2024-01-01' },
-                    { id: '2', type: 'Guidance', title: 'Test Prompt 2', created_at: '2024-01-02' },
+                    { id: '1', type: 'Healing', title: 'Test Prompt', description: 'd1', created_at: '2024-01-01', updated_at: '2024-01-01' },
+                    { id: '2', type: 'Guidance', title: 'Test Prompt 2', description: 'd2', created_at: '2024-01-02', updated_at: '2024-01-02' },
                   ],
                   error: null
                 }))
@@ -88,7 +102,13 @@ describe('PromptService', () => {
       }
     };
 
-    service = new PromptService(mockSupabaseService, mockToastService, mockCacheService, mockBadgeService);
+    service = new PromptService(
+      mockSupabaseService,
+      mockToastService,
+      mockCacheService,
+      mockBadgeService,
+      mockUserSessionService
+    );
   });
 
   afterEach(() => {
@@ -699,6 +719,394 @@ describe('PromptService', () => {
       const filtered = service.filterByType('Guidance');
       expect(filtered).toHaveLength(1);
       expect(filtered[0].type).toBe('Guidance');
+    });
+  });
+
+  describe('prompt Pray For counts', () => {
+    it('attachPrayedForCounts maps counts for the current user via RPC', async () => {
+      userSessionSubject.next({ email: 'me@test.com' });
+      mockSupabaseService.client.rpc.mockResolvedValue({
+        data: [{ prompt_id: '1', prayed_for_count: 3 }],
+        error: null,
+      });
+
+      const result = await service.attachPrayedForCounts([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+        },
+        {
+          id: '2',
+          title: 'B',
+          type: 'Guidance',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+        },
+      ]);
+
+      expect(mockSupabaseService.client.rpc).toHaveBeenCalledWith(
+        'get_prompt_prayed_for_counts',
+        { p_prompt_ids: ['1', '2'], p_user_email: 'me@test.com' }
+      );
+      expect(result[0].prayed_for_count).toBe(3);
+      expect(result[1].prayed_for_count).toBe(0);
+    });
+
+    it('attachPrayedForCounts ignores lingering Supabase session when UserSession is null', async () => {
+      userSessionSubject.next(null);
+      mockUserSessionService.getUserEmail.mockReturnValue(null);
+      mockSupabaseService.client.auth.getSession.mockResolvedValue({
+        data: { session: { user: { email: 'old@test.com' } } },
+        error: null,
+      });
+      mockSupabaseService.client.rpc.mockClear();
+
+      const result = await service.attachPrayedForCounts([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 9,
+        },
+      ]);
+
+      expect(result[0].prayed_for_count).toBe(0);
+      expect(mockSupabaseService.client.rpc).not.toHaveBeenCalled();
+    });
+
+    it('clears prayed_for_count on logout session null', async () => {
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 7,
+        },
+      ]);
+      userSessionSubject.next({ email: 'me@test.com' });
+      await Promise.resolve();
+
+      userSessionSubject.next(null);
+      await Promise.resolve();
+
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(0);
+    });
+
+    it('rehydrates counts when session email changes', async () => {
+      mockSupabaseService.client.auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+      mockSupabaseService.client.rpc.mockResolvedValue({
+        data: [{ prompt_id: '1', prayed_for_count: 2 }],
+        error: null,
+      });
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 9,
+        },
+      ]);
+
+      userSessionSubject.next({ email: 'other@test.com' });
+      await vi.waitFor(() => {
+        expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(2);
+      });
+      expect(mockSupabaseService.client.rpc).toHaveBeenCalledWith(
+        'get_prompt_prayed_for_counts',
+        {
+          p_prompt_ids: ['1'],
+          p_user_email: 'other@test.com',
+        }
+      );
+    });
+
+    it('hydrates from session email even when Supabase auth has no session', async () => {
+      mockSupabaseService.client.auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+      vi.stubGlobal('localStorage', {
+        getItem: vi.fn().mockReturnValue(null),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+      });
+      mockSupabaseService.client.rpc.mockResolvedValue({
+        data: [{ prompt_id: '1', prayed_for_count: 5 }],
+        error: null,
+      });
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 0,
+        },
+      ]);
+
+      userSessionSubject.next({ email: 'cached@test.com' });
+      await vi.waitFor(() => {
+        expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(5);
+      });
+    });
+
+    it('late loadPrompts after logout publishes zeros even if Supabase session lingers', async () => {
+      mockCacheService.get.mockReturnValue([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+        },
+      ]);
+      mockSupabaseService.client.auth.getSession.mockResolvedValue({
+        data: { session: { user: { email: 'old@test.com' } } },
+        error: null,
+      });
+      mockSupabaseService.client.rpc.mockResolvedValue({
+        data: [{ prompt_id: '1', prayed_for_count: 99 }],
+        error: null,
+      });
+
+      userSessionSubject.next(null);
+      mockUserSessionService.getUserEmail.mockReturnValue(null);
+
+      await service.loadPrompts();
+
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(0);
+      expect(mockSupabaseService.client.rpc).not.toHaveBeenCalledWith(
+        'get_prompt_prayed_for_counts',
+        expect.anything()
+      );
+    });
+
+    it('late loadPrompts does not restore previous user counts after logout', async () => {
+      mockCacheService.get.mockReturnValue([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+        },
+      ]);
+
+      let resolveCounts: (value: unknown) => void;
+      const countsPending = new Promise((resolve) => {
+        resolveCounts = resolve;
+      });
+
+      mockSupabaseService.client.auth.getSession.mockResolvedValue({
+        data: { session: { user: { email: 'old@test.com' } } },
+        error: null,
+      });
+      mockSupabaseService.client.rpc.mockImplementation((fn: string) => {
+        if (fn === 'get_prompt_prayed_for_counts') {
+          return countsPending.then(() => ({
+            data: [{ prompt_id: '1', prayed_for_count: 99 }],
+            error: null,
+          }));
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      const loadPromise = service.loadPrompts();
+
+      // Simulate logout while count hydrate is in flight
+      (service as any).countsHydrateGeneration += 1;
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 0,
+        },
+      ]);
+      mockSupabaseService.client.auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+      vi.stubGlobal('localStorage', {
+        getItem: vi.fn().mockReturnValue(null),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+      });
+
+      resolveCounts!({ data: [{ prompt_id: '1', prayed_for_count: 99 }], error: null });
+      await loadPromise;
+
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(0);
+    });
+
+    it('late session hydrate does not overwrite a newer increment', async () => {
+      userSessionSubject.next({ email: 'me@test.com' });
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 3,
+        },
+      ]);
+
+      let resolveCounts: (value: unknown) => void;
+      const countsPending = new Promise((resolve) => {
+        resolveCounts = resolve;
+      });
+      mockSupabaseService.client.rpc.mockImplementation((fn: string) => {
+        if (fn === 'get_prompt_prayed_for_counts') {
+          return countsPending.then(() => ({
+            data: [{ prompt_id: '1', prayed_for_count: 2 }],
+            error: null,
+          }));
+        }
+        if (fn === 'increment_prompt_prayed_for_count') {
+          return Promise.resolve({ data: 5, error: null });
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      const hydratePromise = (service as any).onUserSessionEmailChange('me@test.com');
+      const incremented = await service.incrementPromptPrayedFor('1');
+      expect(incremented).toBe(5);
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(5);
+
+      resolveCounts!({ data: [{ prompt_id: '1', prayed_for_count: 2 }], error: null });
+      await hydratePromise;
+
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(5);
+    });
+
+    it('increment completing after logout does not republish counts', async () => {
+      userSessionSubject.next({ email: 'me@test.com' });
+      mockUserSessionService.getUserEmail.mockReturnValue('me@test.com');
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 3,
+        },
+      ]);
+
+      let resolveIncrement: (value: unknown) => void;
+      const incrementPending = new Promise((resolve) => {
+        resolveIncrement = resolve;
+      });
+      mockSupabaseService.client.rpc.mockImplementation((fn: string) => {
+        if (fn === 'increment_prompt_prayed_for_count') {
+          return incrementPending.then(() => ({ data: 4, error: null }));
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      const incrementPromise = service.incrementPromptPrayedFor('1');
+
+      mockUserSessionService.getUserEmail.mockReturnValue(null);
+      userSessionSubject.next(null);
+      await (service as any).onUserSessionEmailChange(null);
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(0);
+
+      resolveIncrement!({ data: 4, error: null });
+      const result = await incrementPromise;
+
+      expect(result).toBeNull();
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(0);
+    });
+
+    it('incrementPromptPrayedFor calls rpc and updates in-memory list', async () => {
+      userSessionSubject.next({ email: 'me@test.com' });
+      mockSupabaseService.client.rpc.mockResolvedValue({ data: 4, error: null });
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 3,
+        },
+      ]);
+
+      const result = await service.incrementPromptPrayedFor('1');
+
+      expect(result).toBe(4);
+      expect(mockSupabaseService.client.rpc).toHaveBeenCalledWith(
+        'increment_prompt_prayed_for_count',
+        { p_prompt_id: '1', p_user_email: 'me@test.com' }
+      );
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(4);
+    });
+
+    it('incrementPromptPrayedFor returns null when email unavailable', async () => {
+      userSessionSubject.next(null);
+      mockUserSessionService.getUserEmail.mockReturnValue(null);
+      mockSupabaseService.client.auth.getSession.mockResolvedValue({
+        data: { session: { user: { email: 'old@test.com' } } },
+        error: null,
+      });
+      mockSupabaseService.client.rpc.mockClear();
+
+      const result = await service.incrementPromptPrayedFor('1');
+
+      expect(result).toBeNull();
+      expect(mockSupabaseService.client.rpc).not.toHaveBeenCalled();
+    });
+
+    it('incrementPromptPrayedFor returns null on rpc error', async () => {
+      userSessionSubject.next({ email: 'me@test.com' });
+      mockSupabaseService.client.rpc.mockResolvedValue({
+        data: null,
+        error: new Error('db error'),
+      });
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 1,
+        },
+      ]);
+
+      const result = await service.incrementPromptPrayedFor('1');
+
+      expect(result).toBeNull();
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(1);
     });
   });
 });

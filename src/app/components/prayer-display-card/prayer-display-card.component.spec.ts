@@ -6,6 +6,7 @@ import { PrayerDisplayCardComponent } from './prayer-display-card.component';
 import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { PrayerService } from '../../services/prayer.service';
+import { PromptService } from '../../services/prompt.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { SupabaseService } from '../../services/supabase.service';
 
@@ -13,6 +14,7 @@ function createDisplayCardProviders(overrides?: {
   userSessionService?: Record<string, unknown>;
   prayerEncouragementService?: Record<string, unknown>;
   prayerService?: Record<string, unknown>;
+  promptService?: Record<string, unknown>;
   adminAuthService?: Record<string, unknown>;
   supabaseService?: Record<string, unknown>;
 }) {
@@ -30,6 +32,7 @@ function createDisplayCardProviders(overrides?: {
     canPrayFor: vi.fn().mockReturnValue(false),
     getCanPrayFor$: vi.fn().mockReturnValue(of(false)),
     recordPrayedFor: vi.fn(),
+    clearPrayedForCooldown: vi.fn(),
     ...overrides?.prayerEncouragementService
   };
   const mockPrayerService = {
@@ -37,6 +40,10 @@ function createDisplayCardProviders(overrides?: {
     incrementPersonalPrayedFor: vi.fn().mockResolvedValue(null),
     incrementMemberPrayedFor: vi.fn().mockResolvedValue(null),
     ...overrides?.prayerService
+  };
+  const mockPromptService = {
+    incrementPromptPrayedFor: vi.fn().mockResolvedValue(null),
+    ...overrides?.promptService
   };
   const mockAdminAuthService = {
     getIsAdmin: vi.fn().mockReturnValue(false),
@@ -63,6 +70,7 @@ function createDisplayCardProviders(overrides?: {
       { provide: UserSessionService, useValue: mockUserSessionService },
       { provide: PrayerEncouragementService, useValue: mockPrayerEncouragementService },
       { provide: PrayerService, useValue: mockPrayerService },
+      { provide: PromptService, useValue: mockPromptService },
       { provide: AdminAuthService, useValue: mockAdminAuthService },
       { provide: SupabaseService, useValue: mockSupabaseService }
     ],
@@ -70,6 +78,7 @@ function createDisplayCardProviders(overrides?: {
       mockUserSessionService,
       mockPrayerEncouragementService,
       mockPrayerService,
+      mockPromptService,
       mockAdminAuthService,
       mockSupabaseService
     }
@@ -821,6 +830,9 @@ describe('PrayerDisplayCardComponent', () => {
       incrementPersonalPrayedFor: ReturnType<typeof vi.fn>;
       incrementMemberPrayedFor: ReturnType<typeof vi.fn>;
     };
+    let mockPromptService: {
+      incrementPromptPrayedFor: ReturnType<typeof vi.fn>;
+    };
     let mockAdminAuthService: { getIsAdmin: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
@@ -844,6 +856,9 @@ describe('PrayerDisplayCardComponent', () => {
         incrementPersonalPrayedFor: vi.fn().mockResolvedValue(5),
         incrementMemberPrayedFor: vi.fn().mockResolvedValue(5)
       };
+      mockPromptService = {
+        incrementPromptPrayedFor: vi.fn().mockResolvedValue(5)
+      };
       mockAdminAuthService = {
         getIsAdmin: vi.fn().mockReturnValue(false)
       };
@@ -856,6 +871,7 @@ describe('PrayerDisplayCardComponent', () => {
         userSessionService: mockUserSessionService,
         prayerEncouragementService: mockPrayerEncouragementService,
         prayerService: mockPrayerService,
+        promptService: mockPromptService,
         adminAuthService: mockAdminAuthService
       });
       return render(PrayerDisplayCardComponent, {
@@ -935,6 +951,51 @@ describe('PrayerDisplayCardComponent', () => {
         prayer: { ...communityPrayer, id: 'pc-member-99', prayed_for_count: 3, email: '' }
       });
       expect(screen.getByText('3 Prayers')).toBeTruthy();
+    });
+
+    it('shows Pray For for prayer prompts', async () => {
+      await renderWithEncouragementMocks({
+        prompt: {
+          id: 'prompt-1',
+          title: 'Prompt Title',
+          type: 'Church',
+          description: 'Pray for leaders',
+          created_at: '2024-01-01',
+          prayed_for_count: 0
+        }
+      });
+      expect(screen.getByRole('button', { name: 'Pray For' })).toBeTruthy();
+    });
+
+    it('confirmPrayFor for prompt calls incrementPromptPrayedFor with personal cooldown', async () => {
+      const prompt = {
+        id: 'prompt-1',
+        title: 'Prompt Title',
+        type: 'Church',
+        description: 'Pray for leaders',
+        created_at: '2024-01-01',
+        prayed_for_count: 0
+      };
+      const { fixture } = await renderWithEncouragementMocks({ prompt });
+      await fixture.componentInstance.confirmPrayFor();
+      expect(mockPrayerEncouragementService.recordPrayedFor).toHaveBeenCalledWith('prompt-1', true);
+      expect(mockPromptService.incrementPromptPrayedFor).toHaveBeenCalledWith('prompt-1');
+      expect(mockPrayerService.incrementPrayedFor).not.toHaveBeenCalled();
+      expect(prompt.prayed_for_count).toBe(5);
+    });
+
+    it('shows prompt Prayers badge when count is greater than zero', async () => {
+      await renderWithEncouragementMocks({
+        prompt: {
+          id: 'prompt-1',
+          title: 'Prompt Title',
+          type: 'Church',
+          description: 'Pray for leaders',
+          created_at: '2024-01-01',
+          prayed_for_count: 2
+        }
+      });
+      expect(screen.getByText('2 Prayers')).toBeTruthy();
     });
 
     it('hides encouragement controls when updates_allowed is admin-only and viewer is not admin', async () => {

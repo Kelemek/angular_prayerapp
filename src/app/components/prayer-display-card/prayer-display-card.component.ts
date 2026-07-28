@@ -13,6 +13,7 @@ import { RichTextViewComponent } from "../rich-text-view/rich-text-view.componen
 import { UserSessionService } from "../../services/user-session.service";
 import { PrayerEncouragementService } from "../../services/prayer-encouragement.service";
 import { PrayerService } from "../../services/prayer.service";
+import { PromptService } from "../../services/prompt.service";
 import { AdminAuthService } from "../../services/admin-auth.service";
 import { SupabaseService } from "../../services/supabase.service";
 
@@ -57,6 +58,7 @@ interface PrayerPrompt {
   type: string;
   description: string;
   created_at: string;
+  prayed_for_count?: number;
 }
 
 @Component({
@@ -337,7 +339,86 @@ interface PrayerPrompt {
           {{ prompt.description }}
         </div>
       </div>
+
+      <!-- Pray For actions -->
+      <div class="flex flex-wrap gap-3 items-center mb-6">
+        @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
+          @if (canPrayFor$ | async) {
+            <button
+              type="button"
+              (click)="onPrayForClick()"
+              title="Record that you prayed using this prompt"
+              class="px-4 py-2 text-base md:text-lg font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-600 dark:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer whitespace-nowrap"
+            >
+              Pray For
+            </button>
+          } @else {
+            <button
+              type="button"
+              disabled
+              [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4) + ' hours'"
+              class="px-4 py-2 text-base md:text-lg font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl border border-gray-300 dark:border-gray-600 cursor-not-allowed whitespace-nowrap"
+            >
+              Prayed For
+            </button>
+          }
+        }
+        @if ((userSessionService.getShowPrayingCount$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && showPromptPrayedForBadge()) {
+          <span
+            class="px-3 py-2 text-base md:text-lg font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-600 dark:border-blue-500 whitespace-nowrap"
+            title="How many times you have prayed with this prompt"
+          >
+            {{ (prompt.prayed_for_count ?? 0) }} Prayers
+          </span>
+        }
+      </div>
     </div>
+
+    <!-- Pray For explanation modal (prompt) -->
+    @if (showPrayForModal && prompt && !prayer) {
+    <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Pray For This Prompt</h2>
+        </div>
+        <div class="px-6 py-4">
+          <p class="text-gray-600 dark:text-gray-300 mb-4">
+            When you click Pray For, your private count for this prompt increases so you can track how often you have prayed with it. Only you see this count.
+          </p>
+          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+            <p class="text-sm text-blue-700 dark:text-blue-300">
+              You can pray with the same prompt again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
+            </p>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              [(ngModel)]="prayForDoNotShowAgain"
+              name="prayForDoNotShowAgainPrompt"
+              class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-300">Do not show this again</span>
+          </label>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+          <button
+            type="button"
+            (click)="showPrayForModal = false; prayForDoNotShowAgain = false"
+            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="onConfirmPrayForFromModal()"
+            class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+          >
+            Pray For
+          </button>
+        </div>
+      </div>
+    </div>
+    }
     }
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -370,11 +451,23 @@ export class PrayerDisplayCardComponent implements OnInit {
   }
   private _prayer?: Prayer;
 
-  @Input() prompt?: PrayerPrompt;
+  @Input() set prompt(value: PrayerPrompt | undefined) {
+    const previousId = this._prompt?.id;
+    this._prompt = value;
+    if (previousId !== undefined && previousId !== value?.id) {
+      this.dismissPrayForModal();
+    }
+    this.refreshCanPrayFor$();
+  }
+  get prompt(): PrayerPrompt | undefined {
+    return this._prompt;
+  }
+  private _prompt?: PrayerPrompt;
 
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);
   private readonly prayerService = inject(PrayerService);
+  private readonly promptService = inject(PromptService);
   private readonly adminAuthService = inject(AdminAuthService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -391,13 +484,17 @@ export class PrayerDisplayCardComponent implements OnInit {
   }
 
   private refreshCanPrayFor$(): void {
-    if (!this._prayer?.id) {
+    const id = this._prayer?.id ?? this._prompt?.id;
+    if (!id) {
       this.canPrayFor$ = of(true);
       return;
     }
+    const usePersonalCooldown = this._prompt
+      ? true
+      : this.usesPersonalCooldown();
     this.canPrayFor$ = this.prayerEncouragementService.getCanPrayFor$(
-      this._prayer.id,
-      this.usesPersonalCooldown()
+      id,
+      usePersonalCooldown
     );
   }
 
@@ -475,7 +572,28 @@ export class PrayerDisplayCardComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  showPromptPrayedForBadge(): boolean {
+    return (this.prompt?.prayed_for_count ?? 0) > 0;
+  }
+
   async confirmPrayFor(): Promise<void> {
+    if (this.prompt && !this.prayer) {
+      const prayedForPrompt = this.prompt;
+      this.showPrayForModal = false;
+      const promptId = prayedForPrompt.id;
+      if (!this.prayerEncouragementService.canPrayFor(promptId, true)) return;
+      this.prayerEncouragementService.recordPrayedFor(promptId, true);
+      const newCount = await this.promptService.incrementPromptPrayedFor(promptId);
+      if (newCount !== null) {
+        prayedForPrompt.prayed_for_count = newCount;
+      } else {
+        this.prayerEncouragementService.clearPrayedForCooldown(promptId, true);
+      }
+      this.refreshCanPrayFor$();
+      this.cdr.markForCheck();
+      return;
+    }
+
     const prayedForPrayer = this.prayer;
     if (!prayedForPrayer) return;
     this.showPrayForModal = false;

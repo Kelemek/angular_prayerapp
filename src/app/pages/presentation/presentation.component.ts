@@ -8,9 +8,12 @@ import {
   ChangeDetectionStrategy,
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
-import { interval, Subscription } from "rxjs";
+import { interval, Subscription, Subject } from "rxjs";
+import { distinctUntilChanged, takeUntil } from "rxjs/operators";
 import { SupabaseService } from "../../services/supabase.service";
 import { PrayerService } from "../../services/prayer.service";
+import { PromptService } from "../../services/prompt.service";
+import { UserSessionService } from "../../services/user-session.service";
 import { CacheService } from "../../services/cache.service";
 import { ThemeService } from "../../services/theme.service";
 import { PlanningCenterListService } from "../../services/planning-center-list.service";
@@ -40,6 +43,7 @@ import {
   PRESENTATION_HELP_TOUR_SESSION_KEY,
   type PresentationHelpTourSessionPayload,
 } from "../../services/help-driver-tour.service";
+import { PrayerPrompt } from "../../components/prompt-card/prompt-card.component";
 
 interface Prayer {
   id: string;
@@ -58,14 +62,6 @@ interface Prayer {
     created_at: string;
     is_answered?: boolean;
   }>;
-}
-
-interface PrayerPrompt {
-  id: string;
-  title: string;
-  type: string;
-  description: string;
-  created_at: string;
 }
 
 type ThemeOption = "light" | "dark" | "system";
@@ -364,11 +360,16 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   private homeReturnContext: HomeReturnContext | null = null;
 
+  /** Completes on destroy so prompt count sync unsubscribes. */
+  private readonly destroy$ = new Subject<void>();
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private supabase: SupabaseService,
     private prayerService: PrayerService,
+    private promptService: PromptService,
+    private userSessionService: UserSessionService,
     private cacheService: CacheService,
     private themeService: ThemeService,
     private cdr: ChangeDetectorRef,
@@ -385,6 +386,22 @@ export class PresentationComponent implements OnInit, OnDestroy {
     if (homeHandoff) {
       this.applyHomeHandoff(homeHandoff);
     }
+    // Keep presentation prompt Pray For tallies in sync with PromptService (session hydrate / logout).
+    this.promptService.prompts$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((servicePrompts) => {
+        this.applyPromptPrayedForCountsFromService(servicePrompts);
+      });
+    // Presentation loads its own prompts; clear/rehydrate counts on session change even when
+    // PromptService has not populated prompts$ yet.
+    this.userSessionService.userSession$
+      .pipe(
+        distinctUntilChanged((prev, curr) => prev?.email === curr?.email),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((session) => {
+        void this.onPresentationPromptCountsSessionChange(session?.email ?? null);
+      });
     // Load Planning Center members before setting up content
     this.loadPlanningCenterMembers().then(() => {
       this.sanitizeContentTypesForAvailableContent();
@@ -394,6 +411,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.helpDriverTourService.destroy();
     this.clearIntervals();
     if (this.initialTimerHandle) {
@@ -849,6 +868,12 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   async fetchPrompts(): Promise<void> {
+    const emailAtStart =
+      this.userSessionService.getUserEmail()?.trim().toLowerCase() ?? null;
+    const sessionUnchanged = (): boolean =>
+      (this.userSessionService.getUserEmail()?.trim().toLowerCase() ?? null) ===
+      emailAtStart;
+
     try {
       // Execute both queries in parallel for better performance
       const [typesResult, promptsResult] = await Promise.all([
@@ -878,18 +903,162 @@ export class PresentationComponent implements OnInit, OnDestroy {
         (t: any) => t.name
       );
 
-      this.prompts = (promptsResult.data || [])
+      const sortedPrompts = (promptsResult.data || [])
         .filter((p: any) => activeTypeNames.has(p.type))
         .sort((a: any, b: any) => {
           const orderA = typeOrderMap.get(a.type) ?? 999;
           const orderB = typeOrderMap.get(b.type) ?? 999;
           return orderA - orderB;
         });
+
+      if (!sessionUnchanged()) {
+        this.prompts = sortedPrompts.map((p) => ({
+          ...p,
+          prayed_for_count: 0,
+        }));
+        this.cdr.markForCheck();
+        return;
+      }
+
+      if (!emailAtStart) {
+        this.prompts = sortedPrompts.map((p) => ({
+          ...p,
+          prayed_for_count: 0,
+        }));
+      } else {
+        const withCounts = await this.promptService.attachPrayedForCounts(
+          sortedPrompts,
+          emailAtStart
+        );
+        this.prompts = sessionUnchanged()
+          ? withCounts
+          : sortedPrompts.map((p) => ({ ...p, prayed_for_count: 0 }));
+      }
+      // Counts come from UserSession via attachPrayedForCounts; later PromptService
+      // prompts$ emissions (session hydrate / logout) sync via applyPromptPrayedForCountsFromService.
       this.cdr.markForCheck();
     } catch (error) {
       console.error("Error fetching prompts:", error);
       this.prompts = [];
       this.uniquePromptCategories = [];
+      this.cdr.markForCheck();
+    }
+  }
+
+  /**
+   * Merge per-user Pray For counts from PromptService into presentation prompt lists.
+   * Updates both `prompts` and `combinedShuffledItems` so randomized slides stay current.
+   */
+  private applyPromptPrayedForCountsFromService(
+    servicePrompts: PrayerPrompt[]
+  ): void {
+    if (!servicePrompts.length) {
+      return;
+    }
+    const countById = new Map(
+      servicePrompts.map((p) => [p.id, p.prayed_for_count ?? 0] as const)
+    );
+    this.setLocalPromptPrayedForCounts((id) =>
+      countById.has(id) ? (countById.get(id) ?? 0) : null
+    );
+  }
+
+  /**
+   * Clear or re-hydrate presentation prompt counts when the logged-in email changes.
+   * Needed because presentation fetches prompts independently of PromptService.loadPrompts.
+   */
+  private async onPresentationPromptCountsSessionChange(
+    email: string | null
+  ): Promise<void> {
+    if (!this.hasLocalPresentationPrompts()) {
+      return;
+    }
+
+    const normalizedEmail = email?.trim().toLowerCase() ?? null;
+    if (!normalizedEmail) {
+      this.setLocalPromptPrayedForCounts(() => 0);
+      return;
+    }
+
+    const promptSource = this.prompts.length
+      ? this.prompts
+      : (this.combinedShuffledItems.filter((item) =>
+          this.isPrompt(item)
+        ) as PrayerPrompt[]);
+    if (!promptSource.length) {
+      return;
+    }
+
+    const withCounts = await this.promptService.attachPrayedForCounts(
+      promptSource,
+      normalizedEmail
+    );
+    const stillSameUser =
+      this.userSessionService.getUserEmail()?.trim().toLowerCase() ===
+      normalizedEmail;
+    if (!stillSameUser) {
+      return;
+    }
+
+    const countById = new Map(
+      withCounts.map((p) => [p.id, p.prayed_for_count ?? 0] as const)
+    );
+    this.setLocalPromptPrayedForCounts((id) => countById.get(id) ?? 0);
+  }
+
+  private hasLocalPresentationPrompts(): boolean {
+    return (
+      this.prompts.length > 0 ||
+      this.combinedShuffledItems.some((item) => this.isPrompt(item))
+    );
+  }
+
+  /** Apply counts to local prompt lists; return null from resolver to leave an id unchanged. */
+  private setLocalPromptPrayedForCounts(
+    countForId: (id: string) => number | null
+  ): void {
+    let changed = false;
+
+    if (this.prompts.length) {
+      const nextPrompts = this.prompts.map((p) => {
+        const count = countForId(p.id);
+        if (count === null) {
+          return p;
+        }
+        if ((p.prayed_for_count ?? 0) === count) {
+          return p;
+        }
+        changed = true;
+        return { ...p, prayed_for_count: count };
+      });
+      if (changed) {
+        this.prompts = nextPrompts;
+      }
+    }
+
+    if (this.combinedShuffledItems.length) {
+      let shuffledChanged = false;
+      const nextShuffled = this.combinedShuffledItems.map((item) => {
+        if (!this.isPrompt(item)) {
+          return item;
+        }
+        const count = countForId(item.id);
+        if (count === null) {
+          return item;
+        }
+        if ((item.prayed_for_count ?? 0) === count) {
+          return item;
+        }
+        shuffledChanged = true;
+        return { ...item, prayed_for_count: count };
+      });
+      if (shuffledChanged) {
+        this.combinedShuffledItems = nextShuffled;
+        changed = true;
+      }
+    }
+
+    if (changed) {
       this.cdr.markForCheck();
     }
   }

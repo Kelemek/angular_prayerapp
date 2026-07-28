@@ -133,7 +133,7 @@ describe('HelpContentService', () => {
         settingsSection!.content?.some((item) => item.subtitle === 'Show "Praying #" button')
       ).toBe(true);
       expect(
-        settingsSection!.content?.some((item) => item.subtitle === 'Personal / member cooldown')
+        settingsSection!.content?.some((item) => item.subtitle === 'Personal / member / prompt cooldown')
       ).toBe(true);
       expect(
         settingsSection!.content?.some((item) => item.subtitle === 'Memorization practice')
@@ -193,6 +193,9 @@ describe('HelpContentService', () => {
         encouragementSection!.content?.some((item) => item.subtitle === 'Member list cards')
       ).toBe(true);
       expect(
+        encouragementSection!.content?.some((item) => item.subtitle === 'Prayer prompts')
+      ).toBe(true);
+      expect(
         encouragementSection!.content?.some((item) => item.subtitle === 'Presentation mode')
       ).toBe(true);
       const whenCanUse = encouragementSection!.content?.find(
@@ -200,6 +203,7 @@ describe('HelpContentService', () => {
       );
       expect(whenCanUse?.text).toContain('presentation mode');
       expect(whenCanUse?.text).toContain('Members');
+      expect(whenCanUse?.text).toContain('Prompts');
       expect(whenCanUse?.text).not.toContain('not on your personal prayers');
       expect(whenCanUse?.text).not.toContain('does **not** appear on Planning Center');
     });

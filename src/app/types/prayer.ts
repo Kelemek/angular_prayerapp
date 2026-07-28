@@ -138,6 +138,8 @@ export interface PrayerPrompt {
   description: string;
   created_at: string;
   updated_at: string;
+  /** Per-user Pray For tally for the current viewer (not shared). */
+  prayed_for_count?: number;
 }
 
 export interface PrayerFilters {

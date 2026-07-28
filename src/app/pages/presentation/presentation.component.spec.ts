@@ -1,4 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { BehaviorSubject } from 'rxjs';
 import { PresentationComponent } from './presentation.component';
 
 function createQuery(result: any) {
@@ -18,6 +19,27 @@ function createQuery(result: any) {
   return q;
 }
 
+function createMockUserSessionService() {
+  const userSessionSubject = new BehaviorSubject<{ email: string } | null>(null);
+  return {
+    userSessionSubject,
+    userSession$: userSessionSubject.asObservable(),
+    getUserEmail: vi.fn(() => userSessionSubject.value?.email ?? null),
+  };
+}
+
+function createMockPromptService(extras?: Record<string, unknown>) {
+  const promptsSubject = new BehaviorSubject<any[]>([]);
+  return {
+    promptsSubject,
+    prompts$: promptsSubject.asObservable(),
+    attachPrayedForCounts: vi.fn(async (prompts: any[]) =>
+      prompts.map((p) => ({ ...p, prayed_for_count: p.prayed_for_count ?? 0 }))
+    ),
+    ...extras,
+  };
+}
+
 describe('PresentationComponent', () => {
   let component: PresentationComponent;
   let mockRouter: any;
@@ -25,9 +47,11 @@ describe('PresentationComponent', () => {
   let mockSupabase: any;
   let mockThemeService: any;
   let mockPrayerService: any;
+  let mockPromptService: any;
   let mockCacheService: any;
   let mockPlanningCenterListService: any;
   let mockPresentationSettingsService: any;
+  let mockUserSessionService: ReturnType<typeof createMockUserSessionService>;
   let cdr: any;
   let ngZone: any;
 
@@ -39,6 +63,8 @@ describe('PresentationComponent', () => {
     mockSupabase = { client: { from: vi.fn() } };
     mockThemeService = { getTheme: vi.fn() };
     mockPrayerService = { prayers$: { subscribe: vi.fn(), value: [] } };
+    mockPromptService = createMockPromptService();
+    mockUserSessionService = createMockUserSessionService();
     mockCacheService = { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() };
     mockPlanningCenterListService = {
       loadForCurrentUser: vi.fn().mockResolvedValue(undefined),
@@ -67,6 +93,8 @@ describe('PresentationComponent', () => {
       mockRoute,
       mockSupabase,
       mockPrayerService,
+      mockPromptService,
+      mockUserSessionService,
       mockCacheService,
       mockThemeService,
       cdr,
@@ -675,6 +703,119 @@ describe('PresentationComponent', () => {
     await component.fetchPrompts();
     expect(component.prompts).toEqual([]);
   });
+
+  it('fetchPrompts does not apply stale counts after logout during attach', async () => {
+    const types = [{ name: 't1', display_order: 1 }];
+    const prompts = [
+      {
+        id: 'p1',
+        type: 't1',
+        title: 'A',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+      },
+    ];
+    const q1 = createQuery({ data: types, error: null });
+    const q2 = createQuery({ data: prompts, error: null });
+    let calls = 0;
+    mockSupabase.client.from = vi.fn().mockImplementation(() => {
+      calls++;
+      return calls === 1 ? q1 : q2;
+    });
+
+    mockUserSessionService.getUserEmail.mockReturnValue('me@test.com');
+    let resolveAttach: (value: unknown) => void;
+    const attachPending = new Promise<any[]>((resolve) => {
+      resolveAttach = resolve;
+    });
+    mockPromptService.attachPrayedForCounts.mockReturnValue(attachPending);
+
+    const fetchPromise = component.fetchPrompts();
+    mockUserSessionService.getUserEmail.mockReturnValue(null);
+    resolveAttach!([{ ...prompts[0], prayed_for_count: 9 }]);
+    await fetchPromise;
+
+    expect(component.prompts[0].prayed_for_count).toBe(0);
+  });
+
+  it('syncs prompt prayed_for_count from PromptService on session updates', () => {
+    const prompt = {
+      id: 'p1',
+      title: 'A',
+      type: 't1',
+      description: 'd',
+      created_at: 't',
+      updated_at: 't',
+      prayed_for_count: 7,
+    };
+    component.prompts = [prompt];
+    component.combinedShuffledItems = [
+      { id: 'prayer-1', prayer_for: 'x' },
+      { ...prompt },
+    ];
+    const sub = mockPromptService.prompts$.subscribe((servicePrompts: any[]) => {
+      (component as any).applyPromptPrayedForCountsFromService(servicePrompts);
+    });
+
+    mockPromptService.promptsSubject.next([
+      {
+        id: 'p1',
+        title: 'A',
+        type: 't1',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+        prayed_for_count: 0,
+      },
+    ]);
+    expect(component.prompts[0].prayed_for_count).toBe(0);
+    expect(component.combinedShuffledItems[1].prayed_for_count).toBe(0);
+    expect(component.combinedShuffledItems[0].prayer_for).toBe('x');
+
+    mockPromptService.promptsSubject.next([
+      {
+        id: 'p1',
+        title: 'A',
+        type: 't1',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+        prayed_for_count: 3,
+      },
+    ]);
+    expect(component.prompts[0].prayed_for_count).toBe(3);
+    expect(component.combinedShuffledItems[1].prayed_for_count).toBe(3);
+    sub.unsubscribe();
+  });
+
+  it('clears prompt counts on logout when PromptService list is empty', async () => {
+    const prompt = {
+      id: 'p1',
+      title: 'A',
+      type: 't1',
+      description: 'd',
+      created_at: 't',
+      prayed_for_count: 7,
+    };
+    component.prompts = [prompt];
+    component.combinedShuffledItems = [{ ...prompt }];
+    mockUserSessionService.userSessionSubject.next({ email: 'me@test.com' });
+    mockUserSessionService.getUserEmail.mockReturnValue('me@test.com');
+
+    const sessionSub = mockUserSessionService.userSession$.subscribe((session) => {
+      void (component as any).onPresentationPromptCountsSessionChange(
+        session?.email ?? null
+      );
+    });
+
+    mockUserSessionService.getUserEmail.mockReturnValue(null);
+    mockUserSessionService.userSessionSubject.next(null);
+
+    expect(component.prompts[0].prayed_for_count).toBe(0);
+    expect(component.combinedShuffledItems[0].prayed_for_count).toBe(0);
+    sessionSub.unsubscribe();
+  });
 });
 
 import { Router } from '@angular/router';
@@ -692,6 +833,7 @@ describe('PresentationComponent', () => {
   let mockCacheService: any;
   let mockPlanningCenterListService: any;
   let mockPresentationSettingsService: any;
+  let mockUserSessionService: ReturnType<typeof createMockUserSessionService>;
   let mockCdr: any;
   let mockNgZone: any;
 
@@ -705,6 +847,8 @@ describe('PresentationComponent', () => {
     mockSupabase = { client: {} };
     mockThemeService = {};
     mockPrayerService = { prayers$: { subscribe: vi.fn(), value: [] } };
+    const mockPromptService = createMockPromptService();
+    mockUserSessionService = createMockUserSessionService();
     mockCacheService = { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() };
     mockPlanningCenterListService = {
       loadForCurrentUser: vi.fn().mockResolvedValue(undefined),
@@ -734,6 +878,8 @@ describe('PresentationComponent', () => {
       mockRoute,
       mockSupabase as unknown as SupabaseService,
       mockPrayerService as any,
+      mockPromptService as any,
+      mockUserSessionService,
       mockCacheService as any,
       mockThemeService as unknown as ThemeService,
       mockCdr as unknown as ChangeDetectorRef,
