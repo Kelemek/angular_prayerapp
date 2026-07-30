@@ -4,6 +4,15 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Admin — prayer approval timestamps
+- **Consolidated approval cards**: Prayer and update timestamps include time (e.g. `Jul 30, 2026, 11:52 AM`), matching home prayer cards ([`consolidated-prayer-approval.component.ts`](src/app/components/consolidated-prayer-approval/consolidated-prayer-approval.component.ts)).
+- **Pending Deletions and Accounts cards**: Request timestamps use the same date+time format ([`pending-deletion-card.component.ts`](src/app/components/pending-deletion-card/pending-deletion-card.component.ts), [`pending-update-deletion-card.component.ts`](src/app/components/pending-update-deletion-card/pending-update-deletion-card.component.ts), [`pending-account-approval-card.component.ts`](src/app/components/pending-account-approval-card/pending-account-approval-card.component.ts)).
+
+### UI — personal tab colors (Kelemek parity)
+- **Personal category filters**: Active category chips use the outlined church-green ring style (`personalCategoryActiveClass`) instead of a solid green fill, matching [Kelemek/Prayer_App](https://github.com/Kelemek/Prayer_App) ([`home.component.ts`](src/app/pages/home/home.component.ts), [`info.component.ts`](src/app/pages/info/info.component.ts)).
+- **Personal prayer cards**: Card borders use neutral gray instead of status-colored blue/green/gold borders, matching congregation card treatment in Kelemek ([`prayer-card.component.ts`](src/app/components/prayer-card/prayer-card.component.ts)).
+- **Memorize verse cards**: Learning / Practicing / Mastered sections render in a responsive grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3`) matching Kelemek ([`home.component.ts`](src/app/pages/home/home.component.ts), [`memorized-verse-card.component.ts`](src/app/components/memorized-verse-card/memorized-verse-card.component.ts)).
+
 ### Presentation — settings handoff and persistence ✅
 - **Home → Pray**: Clicking **Pray** from the home page opens presentation mode with filters matching the active Home tab: content type (Current/Answered/Total → Prayers; Prompts → Prompts; Personal → Personal; Members → Members; Memorize uses the user’s default prayer view), prayer status (Current/Answered/Total tabs), and selected Prompt or Personal category chips when set. Handoff is **session-only** — nothing from Pray is written to `localStorage` until the user changes presentation settings. Closing presentation returns to the same Home tab and category selection.
 - **Presentation**: Content type, randomize order, smart mode, auto-advance interval, **loop** (default on), time period (default **All Time**), prayer status, and prayer timer duration persist in `localStorage` via [`PresentationSettingsService`](src/app/services/presentation-settings.service.ts).

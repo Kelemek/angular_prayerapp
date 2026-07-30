@@ -111,6 +111,14 @@ describe('PrayerCardComponent', () => {
     expect(component.getBorderClass()).toContain('C9A961');
   });
 
+  it('getBorderClass uses neutral border for personal prayers regardless of status', () => {
+    component.isPersonal = true;
+    (component.prayer as any).status = 'current';
+
+    expect(component.getBorderClass()).toContain('border-gray-300');
+    expect(component.getBorderClass()).not.toContain('0047AB');
+  });
+
   it('getStatusBadgeClasses varies by status', () => {
     (component.prayer as any).status = 'current';
     expect(component.getStatusBadgeClasses()).toContain('0047AB');

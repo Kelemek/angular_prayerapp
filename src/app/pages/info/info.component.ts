@@ -1000,7 +1000,7 @@ import { Subject, takeUntil } from "rxjs";
                     <button
                       type="button"
                       (click)="openPersonalCategoriesModal()"
-                      class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer bg-[#2F5F54] text-white shadow-md"
+                      class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
                     >
                       All Categories (13)
                     </button>
@@ -1028,7 +1028,7 @@ import { Subject, takeUntil } from "rxjs";
                   </div>
                   <!-- Mock personal prayer card (like main site) -->
                   <div
-                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-[#2F5F54] dark:!border-[#2F5F54] rounded-lg p-4 sm:p-5 shadow-md space-y-3"
+                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-gray-300 dark:!border-gray-600 rounded-lg p-4 sm:p-5 shadow-md space-y-3"
                   >
                     <span
                       class="absolute left-1/2 top-4 transform -translate-x-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400"

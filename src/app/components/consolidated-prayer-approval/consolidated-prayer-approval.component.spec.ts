@@ -148,6 +148,7 @@ describe('ConsolidatedPrayerApprovalComponent', () => {
       const result = component.formatDate(date);
       expect(result).toContain('Jan');
       expect(result).toContain('15');
+      expect(result).toMatch(/\d{1,2}:\d{2}/);
     });
 
     it('formatDate should handle invalid dates', () => {
@@ -294,6 +295,7 @@ describe('ConsolidatedPrayerApprovalComponent', () => {
       const result = component.formatUpdateDate(date);
       expect(result).toContain('Jan');
       expect(result).toContain('15');
+      expect(result).toMatch(/\d{1,2}:\d{2}/);
     });
 
     it('formatUpdateDate should handle undefined dates', () => {

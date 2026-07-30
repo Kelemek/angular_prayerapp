@@ -12,13 +12,13 @@ import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scrip
   selector: 'app-memorized-verse-card',
   standalone: true,
   imports: [CommonModule, ScriptureHoverPreviewComponent],
+  host: { class: 'block h-full', role: 'listitem' },
   template: `
     <div
       [id]="tourMemorizeAnchors ? 'tour-memorize-sample-card' : null"
-      class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-3 overflow-hidden"
-      role="listitem"
+      class="h-full bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden"
     >
-      <div class="flex">
+      <div class="flex h-full">
         <app-scripture-hover-preview
           class="min-w-0 flex-1"
           [reference]="item.reference"

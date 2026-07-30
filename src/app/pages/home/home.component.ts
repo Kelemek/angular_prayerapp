@@ -901,7 +901,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [class]="
                 'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
                 (selectedPersonalCategories.length === 0
-                  ? 'bg-[#2F5F54] text-white shadow-md'
+                  ? personalCategoryActiveClass
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
                 (isSwappingCategories
                   ? ' opacity-50 cursor-not-allowed'
@@ -928,7 +928,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                 [class]="
                   'w-full whitespace-nowrap pl-7 pr-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 relative ' +
                   (isPersonalCategorySelected(category)
-                    ? 'bg-[#2F5F54] text-white shadow-md'
+                    ? personalCategoryActiveClass
                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
                   (isSwappingCategories
                     ? ' opacity-50 cursor-not-allowed'
@@ -1195,46 +1195,21 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                 Add a verse or Bible books list to start practicing.
               </p>
             </div>
-            } @if (memorizedLearning.length > 0) {
-            <p
-              class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2"
-            >
-              Learning
+            } @for (section of memorizedVerseSections; track section.title) {
+            <p [class]="section.headingClass">
+              {{ section.title }}
             </p>
-            @for (item of memorizedLearning; track item.id) {
+            <div [class]="memorizedVerseGridClass" role="list">
+            @for (item of section.items; track item.id) {
             <app-memorized-verse-card
               [item]="item"
               [tourMemorizeAnchors]="item.id === memorizedItems[0]?.id"
               (practice)="openMemorizationPractice($event)"
               (remove)="confirmRemoveMemorizedItem($event)"
             />
-            } } @if (memorizedPracticing.length > 0) {
-            <p
-              class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2 mt-4"
-            >
-              Practicing
-            </p>
-            @for (item of memorizedPracticing; track item.id) {
-            <app-memorized-verse-card
-              [item]="item"
-              [tourMemorizeAnchors]="item.id === memorizedItems[0]?.id"
-              (practice)="openMemorizationPractice($event)"
-              (remove)="confirmRemoveMemorizedItem($event)"
-            />
-            } } @if (memorizedMastered.length > 0) {
-            <p
-              class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2 mt-4"
-            >
-              Mastered
-            </p>
-            @for (item of memorizedMastered; track item.id) {
-            <app-memorized-verse-card
-              [item]="item"
-              [tourMemorizeAnchors]="item.id === memorizedItems[0]?.id"
-              (practice)="openMemorizationPractice($event)"
-              (remove)="confirmRemoveMemorizedItem($event)"
-            />
-            } } }
+            }
+            </div>
+            } }
 
             <!-- Personal Prayer Cards (show when personal filter is active) -->
             @if (activeFilter === 'personal') {
@@ -1421,6 +1396,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   isCategoryDragging = false;
   uniquePersonalCategories: string[] = [];
   isSwappingCategories = false;
+  readonly personalCategoryActiveClass =
+    'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md';
+  readonly memorizedVerseGridClass =
+    'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
 
   // Planning Center list filtering
   planningCenterListId: string | null = null;
@@ -2955,6 +2934,42 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   isPersonalCategorySelected(category: string): boolean {
     return this.selectedPersonalCategories.includes(category);
+  }
+
+  get memorizedVerseSections(): Array<{
+    title: string;
+    items: MemorizedItem[];
+    headingClass: string;
+  }> {
+    const heading =
+      'text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2';
+    const sections: Array<{
+      title: string;
+      items: MemorizedItem[];
+      headingClass: string;
+    }> = [];
+    if (this.memorizedLearning.length > 0) {
+      sections.push({
+        title: 'Learning',
+        items: this.memorizedLearning,
+        headingClass: heading,
+      });
+    }
+    if (this.memorizedPracticing.length > 0) {
+      sections.push({
+        title: 'Practicing',
+        items: this.memorizedPracticing,
+        headingClass: `${heading} mt-4`,
+      });
+    }
+    if (this.memorizedMastered.length > 0) {
+      sections.push({
+        title: 'Mastered',
+        items: this.memorizedMastered,
+        headingClass: `${heading} mt-4`,
+      });
+    }
+    return sections;
   }
 
   private async extractUniqueCategories(

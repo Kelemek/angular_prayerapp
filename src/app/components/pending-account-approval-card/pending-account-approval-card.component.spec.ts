@@ -492,6 +492,7 @@ describe('PendingAccountApprovalCardComponent', () => {
 
       const formatted = fixture.componentInstance.formatDate('2024-01-15T14:30:00Z');
       expect(formatted).toMatch(/Jan 15, 2024/);
+      expect(formatted).toMatch(/\d{1,2}:\d{2}/);
     });
 
     it('should handle different date formats', async () => {

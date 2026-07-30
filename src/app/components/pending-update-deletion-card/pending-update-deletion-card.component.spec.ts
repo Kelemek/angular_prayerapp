@@ -203,6 +203,7 @@ describe('PendingUpdateDeletionCardComponent', () => {
       expect(formatted).toContain('Jan');
       expect(formatted).toContain('15');
       expect(formatted).toContain('2024');
+      expect(formatted).toMatch(/\d{1,2}:\d{2}/);
     });
 
     it('should handle different date formats', async () => {

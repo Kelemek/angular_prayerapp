@@ -386,20 +386,20 @@ export class ConsolidatedPrayerApprovalComponent {
     if (!date) return '';
     try {
       const d = new Date(date);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     } catch {
       return '';
     }
   }
 
   formatUpdateDate(date: string | Date | undefined): string {
-    if (!date) return '';
-    try {
-      const d = new Date(date);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } catch {
-      return '';
-    }
+    return this.formatDate(date);
   }
 
   handleApprovePrayer(): void {

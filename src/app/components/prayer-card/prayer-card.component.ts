@@ -815,6 +815,9 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   getBorderClass(): string {
+    if (this.isPersonal) {
+      return '!border-gray-300 dark:!border-gray-600';
+    }
     if (this.prayer.status === 'current') {
       return '!border-[#0047AB] dark:!border-[#0047AB]';
     } else if (this.prayer.status === 'answered') {
