@@ -34,6 +34,10 @@ import {
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
+/** Matches active **Members** stat tab — church blue `#0047AB`, not Tailwind blue-600. */
+const PLANNING_CENTER_MEMBER_BORDER_CLASS =
+  '!border-[#0047AB] dark:!border-[#0047AB] ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0';
+
 @Component({
   selector: 'app-prayer-card',
   standalone: true,
@@ -660,6 +664,12 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   getBorderClass(): string {
     if (this.isPersonal) {
       return '!border-gray-300 dark:!border-gray-600';
+    }
+    if (
+      this.activeFilter === 'planning_center_list' ||
+      this.prayer.id.startsWith('pc-member-')
+    ) {
+      return PLANNING_CENTER_MEMBER_BORDER_CLASS;
     }
     if (this.prayer.status === 'current') {
       return '!border-[#0047AB] dark:!border-[#0047AB]';

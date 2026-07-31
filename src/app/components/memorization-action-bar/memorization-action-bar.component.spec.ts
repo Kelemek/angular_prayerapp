@@ -53,11 +53,14 @@ describe('MemorizationActionBarComponent', () => {
     const recommended = screen.getByRole('button', { name: /Recommended/i });
 
     expect(bibleBooks.className).toContain('bg-blue-100');
-    expect(bibleBooks.className).toContain('dark:bg-blue-900/40');
+    expect(bibleBooks.className).toContain('dark:bg-blue-950');
+    expect(bibleBooks.className).toContain('#0047AB');
     expect(bibleBooks.getAttribute('aria-pressed')).toBe('true');
 
     expect(recommended.className).toContain('bg-white');
     expect(recommended.className).toContain('dark:bg-gray-800');
+    expect(recommended.className).toContain('hover:ring-[#0047AB]');
+    expect(recommended.className).toContain('dark:hover:!bg-blue-950');
     expect(recommended.getAttribute('aria-pressed')).toBe('false');
   });
 });

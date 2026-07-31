@@ -752,7 +752,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               >
                 {{ promptsCount }}
               </div>
-              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 Prompts
               </div>
             </button>
@@ -774,7 +774,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               >
                 {{ personalPrayersCount }}
               </div>
-              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 Personal
               </div>
             </button>
@@ -795,7 +795,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               >
                 {{ memorizedItemsCount }}
               </div>
-              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 Memorize
               </div>
             </button>
@@ -812,8 +812,8 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [class]="
                 'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'planning_center_list'
-                  ? 'border !border-blue-600 dark:!border-blue-400 bg-slate-100 dark:bg-blue-900/40 ring ring-blue-600 dark:ring-blue-400 ring-offset-0'
-                  : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-blue-600 dark:hover:!border-blue-400 hover:shadow-lg')
+                  ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-slate-100 dark:bg-blue-900/40 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0'
+                  : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')
               "
             >
               <div
@@ -821,7 +821,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               >
                 {{ planningCenterMembersDisplayCount }}
               </div>
-              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 Members
               </div>
             </button>

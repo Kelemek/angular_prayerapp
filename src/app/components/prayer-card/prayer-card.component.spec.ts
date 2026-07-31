@@ -119,6 +119,16 @@ describe('PrayerCardComponent', () => {
     expect(component.getBorderClass()).not.toContain('0047AB');
   });
 
+  it('getBorderClass matches Members tab for Planning Center list prayers', () => {
+    component.activeFilter = 'planning_center_list';
+    (component.prayer as any).id = 'pc-member-123';
+    (component.prayer as any).status = 'current';
+
+    expect(component.getBorderClass()).toContain('0047AB');
+    expect(component.getBorderClass()).toContain('ring-[#0047AB]');
+    expect(component.getBorderClass()).not.toContain('blue-600');
+  });
+
   it('getStatusBadgeClasses varies by status', () => {
     (component.prayer as any).status = 'current';
     expect(component.getStatusBadgeClasses()).toContain('0047AB');

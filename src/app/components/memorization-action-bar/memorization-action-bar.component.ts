@@ -4,16 +4,25 @@ import { CommonModule } from '@angular/common';
 const ACTION_BTN_BASE =
   'flex flex-1 items-center justify-center whitespace-nowrap rounded-lg border px-2 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer sm:flex-none sm:px-4';
 
-/** Soft blue — matches verse picker primary actions (Verses default / picker tab selected). */
-const SOFT_BLUE_BTN =
-  'border-blue-200 bg-blue-100 text-blue-800 hover:border-blue-300 hover:bg-blue-200 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-200 dark:hover:border-blue-600 dark:hover:bg-blue-900/60';
+/** Outlined blue — matches active **Memorize** stat tab (`#tour-filter-memorize`). */
+const MEMORIZE_TAB_CHIP =
+  '!border-[#0047AB] bg-blue-100 text-gray-700 ring ring-[#0047AB] ring-offset-0 dark:!border-[#0047AB] dark:bg-blue-950 dark:text-gray-300 dark:ring-[#0047AB]';
+
+const SOFT_BLUE_BTN = `border ${MEMORIZE_TAB_CHIP}`;
+
+/** Hover/active on inactive buttons — same outlined blue as Verses / active Memorize tab. */
+const MEMORIZE_TAB_CHIP_HOVER =
+  'hover:border hover:!border-[#0047AB] hover:!bg-blue-100 hover:!text-gray-700 hover:ring hover:ring-[#0047AB] hover:ring-offset-0 dark:hover:!border-[#0047AB] dark:hover:!bg-blue-950 dark:hover:!text-gray-300 dark:hover:ring-[#0047AB]';
+
+const MEMORIZE_TAB_CHIP_ACTIVE =
+  'active:border active:!border-[#0047AB] active:!bg-blue-100 active:!text-gray-700 active:ring active:ring-[#0047AB] active:ring-offset-0 dark:active:!border-[#0047AB] dark:active:!bg-blue-950 dark:active:!text-gray-300 dark:active:ring-[#0047AB]';
 
 /**
- * Neutral at rest; hover/active snap to soft blue.
+ * Neutral at rest; hover/active match Verses / active Memorize tab.
  * Dark hover uses `!` because theme `@utility` classes (e.g. bg-gray-800) set `!important`.
  */
 const SECONDARY_BTN =
-  'border-gray-300 bg-white text-gray-600 hover:!border-blue-200 hover:!bg-blue-100 hover:!text-blue-800 active:!border-blue-200 active:!bg-blue-100 active:!text-blue-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:!border-blue-700 dark:hover:!bg-blue-900/40 dark:hover:!text-blue-200 dark:active:!border-blue-700 dark:active:!bg-blue-900/40 dark:active:!text-blue-200';
+  `border-gray-300 bg-white text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 ${MEMORIZE_TAB_CHIP_HOVER} ${MEMORIZE_TAB_CHIP_ACTIVE}`;
 
 @Component({
   selector: 'app-memorization-action-bar',

@@ -656,7 +656,7 @@ import { Subject, takeUntil } from "rxjs";
                           22
                         </div>
                         <div
-                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide"
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide"
                         >
                           Current
                         </div>
@@ -681,7 +681,7 @@ import { Subject, takeUntil } from "rxjs";
                           4
                         </div>
                         <div
-                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide"
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide"
                         >
                           Answered
                         </div>
@@ -706,7 +706,7 @@ import { Subject, takeUntil } from "rxjs";
                           47
                         </div>
                         <div
-                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide"
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide"
                         >
                           Total
                         </div>
@@ -731,7 +731,7 @@ import { Subject, takeUntil } from "rxjs";
                           76
                         </div>
                         <div
-                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide"
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide"
                         >
                           Prompts
                         </div>
@@ -756,7 +756,7 @@ import { Subject, takeUntil } from "rxjs";
                           13
                         </div>
                         <div
-                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide"
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide"
                         >
                           Personal
                         </div>
