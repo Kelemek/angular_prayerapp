@@ -263,6 +263,15 @@ describe('PrayerDisplayCardComponent', () => {
       expect(classes).toContain('border-[#39704D]');
     });
 
+    it('should return archived status classes matching home prayer cards', async () => {
+      const { fixture } = await renderDisplayCard();
+
+      const classes = fixture.componentInstance.getStatusBadgeClasses('archived');
+      expect(classes).toContain('bg-amber-50');
+      expect(classes).toContain('text-[#C9A961]');
+      expect(classes).toContain('border-[#C9A961]');
+    });
+
     it('should return default classes for unknown status', async () => {
       const { fixture } = await renderDisplayCard();
       

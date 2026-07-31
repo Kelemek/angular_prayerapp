@@ -48,6 +48,10 @@ import { AddMemorizedVerseModalComponent } from "../../components/add-memorized-
 import { AddMemorizedBibleBooksModalComponent } from "../../components/add-memorized-bible-books-modal/add-memorized-bible-books-modal.component";
 import { MemorizationPracticeSessionComponent } from "../../components/memorization-practice-session/memorization-practice-session.component";
 import { groupItemsByMasterLevel } from "../../lib/memorization/memorization-mastery";
+import {
+  PROMPT_TYPE_CHIP_ACTIVE_CLASS,
+  PROMPT_TYPE_CHIP_INACTIVE_CLASS,
+} from "../../lib/prompt-type-chip-classes";
 import { memorizationNeedsKeyboardOnOpen } from "../../lib/memorization/memorizationKeyboardPractice";
 import type {
   MemorizedItem,
@@ -850,8 +854,8 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [class]="
                 'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ' +
                 (selectedPromptTypes.length === 0
-                  ? 'bg-[#988F83] text-white shadow-md'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]')
+                  ? promptTypeActiveClass
+                  : promptTypeInactiveClass)
               "
             >
               All Types ({{ promptsCount }})
@@ -864,8 +868,8 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [class]="
                 'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all relative cursor-pointer ' +
                 (isPromptTypeSelected(type)
-                  ? 'bg-[#988F83] text-white shadow-md'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]')
+                  ? promptTypeActiveClass
+                  : promptTypeInactiveClass)
               "
             >
               {{ type }} ({{ getPromptCountByType(type) }}) @if
@@ -1398,6 +1402,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   isSwappingCategories = false;
   readonly personalCategoryActiveClass =
     'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md';
+  readonly promptTypeActiveClass = PROMPT_TYPE_CHIP_ACTIVE_CLASS;
+  readonly promptTypeInactiveClass = PROMPT_TYPE_CHIP_INACTIVE_CLASS;
   readonly memorizedVerseGridClass =
     'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
 

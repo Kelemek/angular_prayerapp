@@ -197,16 +197,21 @@ describe('PromptCardComponent - Core Logic', () => {
 
     it('should apply selected state to type badge', () => {
       const isTypeSelected = true;
-      const selectedClass = isTypeSelected ? 'bg-[#988F83] text-white' : 'bg-gray-100';
+      const selectedClass = isTypeSelected
+        ? 'border !border-[#988F83] bg-stone-100 ring ring-[#988F83]'
+        : 'bg-white border border-gray-300';
 
       expect(selectedClass).toContain('#988F83');
+      expect(selectedClass).toContain('ring');
     });
 
     it('should apply unselected state to type badge', () => {
       const isTypeSelected = false;
-      const unselectedClass = isTypeSelected ? 'bg-[#988F83]' : 'bg-gray-100';
+      const unselectedClass = isTypeSelected
+        ? 'border !border-[#988F83]'
+        : 'bg-white border border-gray-300 hover:border-[#988F83]';
 
-      expect(unselectedClass).toBe('bg-gray-100');
+      expect(unselectedClass).toContain('border-gray-300');
     });
 
     it('should emit type click event', () => {

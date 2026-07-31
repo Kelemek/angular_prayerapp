@@ -926,7 +926,7 @@ import { Subject, takeUntil } from "rxjs";
                     <button
                       type="button"
                       (click)="openPromptCategoriesModal()"
-                      class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer bg-[#988F83] text-white shadow-md"
+                      class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer border !border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
                     >
                       All Types (76)
                     </button>
@@ -982,7 +982,7 @@ import { Subject, takeUntil } from "rxjs";
                       </div>
                       <button
                         type="button"
-                        class="bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 font-medium gap-1 hover:bg-gray-200 inline-flex items-center px-3 py-1 rounded-full text-gray-700 dark:text-gray-300 text-sm transition-colors cursor-pointer whitespace-nowrap"
+                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer border !border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
                       >
                         Church
                       </button>

@@ -16,6 +16,7 @@ import { PrayerService } from "../../services/prayer.service";
 import { PromptService } from "../../services/prompt.service";
 import { AdminAuthService } from "../../services/admin-auth.service";
 import { SupabaseService } from "../../services/supabase.service";
+import { PROMPT_TYPE_CHIP_ACTIVE_CLASS } from "../../lib/prompt-type-chip-classes";
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = "prayer_encouragement_modal_do_not_show";
 
@@ -319,7 +320,7 @@ interface PrayerPrompt {
       <!-- Type Badge -->
       <div class="mb-6">
         <span
-          class="inline-block px-3 md:px-4 lg:px-5 py-1 md:py-1.5 lg:py-2 bg-[#988F83] text-white rounded-full text-sm md:text-base lg:text-xl font-semibold"
+          [class]="'inline-block px-3 md:px-4 lg:px-5 py-1 md:py-1.5 lg:py-2 rounded-full text-sm md:text-base lg:text-xl font-semibold ' + promptTypePillClass"
         >
           {{ prompt.type }}
         </span>
@@ -467,6 +468,8 @@ export class PrayerDisplayCardComponent implements OnInit {
     return this._prompt;
   }
   private _prompt?: PrayerPrompt;
+
+  readonly promptTypePillClass = PROMPT_TYPE_CHIP_ACTIVE_CLASS;
 
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);
@@ -642,6 +645,11 @@ export class PrayerDisplayCardComponent implements OnInit {
         return (
           baseClasses +
           "bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] border-[#39704D] dark:border-[#39704D]"
+        );
+      case "archived":
+        return (
+          baseClasses +
+          "bg-amber-50 dark:bg-amber-900/20 text-[#C9A961] dark:text-[#D4AF85] border-[#C9A961] dark:border-[#C9A961]"
         );
       default:
         return (
