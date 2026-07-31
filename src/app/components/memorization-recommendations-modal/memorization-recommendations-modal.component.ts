@@ -87,7 +87,7 @@ import type {
                   <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <button
                       type="button"
-                      class="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                      class="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left bg-gray-50 dark:bg-gray-900/40 hover:bg-inset-surface transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                       [attr.aria-expanded]="isCategoryExpanded(group.category.id)"
                       [attr.aria-controls]="
                         isCategoryExpanded(group.category.id)

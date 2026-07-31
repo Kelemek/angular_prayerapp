@@ -69,6 +69,21 @@ describe('MemorizedVerseCardComponent', () => {
     expect(container.querySelector('app-scripture-hover-preview')).toBeTruthy();
   });
 
+  it('uses independent Memorize outlined blue hover on practice and remove controls', async () => {
+    const { getByTestId } = await renderCard(bibleBooksItem);
+    const practice = getByTestId('memorize-card-practice');
+    const remove = getByTestId('memorize-card-remove');
+
+    expect(practice.className).toContain('hover:!border-[#0047AB]');
+    expect(practice.className).toContain('hover:!bg-blue-100');
+    expect(practice.className).toContain('dark:hover:!bg-blue-950');
+
+    expect(remove.className).toContain('hover:!border-[#0047AB]');
+    expect(remove.className).toContain('hover:!bg-blue-100');
+    expect(remove.className).toContain('dark:hover:!bg-blue-950');
+    expect(remove.className).toContain('hover:text-red-600');
+  });
+
   it('emits practice when main button is clicked', async () => {
     const user = userEvent.setup();
     const practice = vi.fn();

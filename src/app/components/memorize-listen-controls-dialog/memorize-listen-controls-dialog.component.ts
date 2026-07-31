@@ -64,7 +64,7 @@ import type { MemorizeListenSpeed } from '../../lib/memorization/memorizeListenS
               type="button"
               data-testid="memorize-listen-passage"
               (click)="primaryClick.emit()"
-              class="box-border mb-3 block w-full min-h-[50px] px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100"
+              class="box-border mb-3 block w-full min-h-[50px] px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-inset-surface text-gray-800 dark:text-gray-100"
               [attr.aria-pressed]="primaryAriaPressed"
               [attr.aria-label]="primaryAriaLabel"
             >
@@ -78,7 +78,7 @@ import type { MemorizeListenSpeed } from '../../lib/memorization/memorizeListenS
                 type="button"
                 data-testid="memorize-listen-repeat"
                 (click)="repeatToggle.emit()"
-                class="box-border min-h-[50px] min-w-0 rounded-lg px-4 py-3 text-center font-medium transition-colors cursor-pointer border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100"
+                class="box-border min-h-[50px] min-w-0 rounded-lg px-4 py-3 text-center font-medium transition-colors cursor-pointer border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-inset-surface text-gray-800 dark:text-gray-100"
                 style="flex: 1 1 0%; width: 0"
                 [class.bg-amber-50]="repeatListenOn"
                 [class.dark:bg-amber-900/20]="repeatListenOn"

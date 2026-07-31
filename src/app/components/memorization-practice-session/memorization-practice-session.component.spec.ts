@@ -751,6 +751,19 @@ describe('MemorizationPracticeSessionComponent', () => {
       component.closeModePicker();
       expect(component.modePickerOpen).toBe(false);
     });
+
+    it('shows a close X instead of a Cancel button', async () => {
+      const { component, getByTestId, queryByTestId, cdr } = await renderSession();
+
+      await component.openModePicker();
+      cdr.detectChanges();
+      expect(getByTestId('memorize-practice-mode-close')).toBeTruthy();
+      expect(queryByTestId('memorize-practice-mode-cancel')).toBeNull();
+
+      getByTestId('memorize-practice-mode-close').click();
+      cdr.detectChanges();
+      expect(component.modePickerOpen).toBe(false);
+    });
   });
 
   describe('hint pointer handlers', () => {

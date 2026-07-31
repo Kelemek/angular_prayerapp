@@ -50,7 +50,7 @@ import {
         [attr.aria-controls]="canOpen && menuOpen ? listboxId : null"
         [attr.aria-label]="ariaLabel"
         [title]="canOpen ? ariaLabel + ' Tap to open.' : ariaLabel"
-        class="rounded-lg border font-medium transition-colors cursor-pointer justify-between touch-manipulation items-center gap-1.5 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="rounded-lg border font-medium transition-colors cursor-pointer justify-between touch-manipulation items-center gap-1.5 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-inset-surface disabled:opacity-50 disabled:cursor-not-allowed"
         [class.speed-trigger--inline]="inline"
         [class.box-border]="inline"
         [class.px-3]="inline"
@@ -110,8 +110,7 @@ import {
             [class.dark:text-blue-200]="rate === value"
             [class.text-gray-700]="rate !== value"
             [class.dark:text-gray-200]="rate !== value"
-            [class.hover:bg-gray-50]="rate !== value"
-            [class.dark:hover:bg-gray-700]="rate !== value"
+            [class.hover:bg-inset-surface]="rate !== value"
             (click)="choose(rate)"
           >
             {{ formatLabel(rate) }}
