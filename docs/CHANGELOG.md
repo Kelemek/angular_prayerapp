@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### UI — prayer request form
+- **New Prayer Request modal**: Removed the footer **Close** button; **Submit Prayer Request** is a larger, right-aligned primary button. Dismiss via the header **X** or backdrop click ([`prayer-form.component.ts`](src/app/components/prayer-form/prayer-form.component.ts)).
+
 ### Admin — OpenAI API key spend (Recite)
 - **Memorization Recite Mode**: OpenAI spend in admin is filtered to the Whisper API key (`OPENAI_API_KEY_ID`) instead of org-wide totals ([`get-openai-org-usage`](../supabase/functions/get-openai-org-usage/index.ts), [`memorization-recite-settings`](src/app/components/memorization-recite-settings/memorization-recite-settings.component.ts)). Requires **`OPENAI_ADMIN_KEY`** plus **`OPENAI_API_KEY_ID`** (tracking id from the OpenAI dashboard, not the `sk-…` secret). Admin panel shows only OpenAI-reported spend (app-tracked estimate removed from UI).
 

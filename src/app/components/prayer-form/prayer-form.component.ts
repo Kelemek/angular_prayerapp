@@ -326,7 +326,7 @@ import {
           }
 
           <!-- Buttons -->
-          <div class="flex gap-3 pt-4">
+          <div class="flex justify-end pt-4">
             <button
               type="submit"
               id="tour-prayer-submit-request"
@@ -336,7 +336,7 @@ import {
                 isSubmitting ||
                 showSuccessMessage
               "
-              class="flex-1 bg-blue-600 dark:bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              class="min-h-12 px-8 py-3 text-base font-medium bg-blue-600 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               aria-label="Submit prayer request"
             >
               {{
@@ -346,15 +346,6 @@ import {
                   ? "Submitted"
                   : "Submit Prayer Request"
               }}
-            </button>
-            <button
-              type="button"
-              (click)="cancel()"
-              [disabled]="showSuccessMessage"
-              class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              aria-label="Cancel and close form"
-            >
-              {{ showSuccessMessage ? "Closing..." : "Close" }}
             </button>
           </div>
         </form>
