@@ -121,18 +121,16 @@ import type {
 
             @if (reciteEnabled) {
             <div class="mt-6 p-4 border border-gray-200 dark:border-gray-600 rounded-lg space-y-2">
-              <div class="flex items-center justify-between gap-2">
+              <div>
                 <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
                   OpenAI API key spend (whisper-1)
                 </h3>
-                <div class="flex items-center gap-3 shrink-0">
-                  @if (openAiUsage?.configured && !openAiUsage?.error && !openAiUsageLoading) {
-                    <span class="text-sm text-gray-700 dark:text-gray-300">
-                      {{ formatCost(openAiUsage.totalUsd ?? 0) }}
-                      <span class="text-gray-500 dark:text-gray-400">· last {{ openAiUsage.periodDays }} days</span>
-                    </span>
-                  }
-                </div>
+                @if (openAiUsage?.configured && !openAiUsage?.error && !openAiUsageLoading) {
+                  <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                    {{ formatCost(openAiUsage.totalUsd ?? 0) }}
+                    <span class="text-gray-500 dark:text-gray-400">· last {{ openAiUsage.periodDays }} days</span>
+                  </p>
+                }
               </div>
 
               @if (openAiUsageLoading) {
