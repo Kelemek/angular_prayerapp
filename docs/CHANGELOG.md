@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Admin — OpenAI API key spend (Recite)
+- **Memorization Recite Mode**: OpenAI spend in admin is filtered to the Whisper API key (`OPENAI_API_KEY_ID`) instead of org-wide totals ([`get-openai-org-usage`](../supabase/functions/get-openai-org-usage/index.ts), [`memorization-recite-settings`](src/app/components/memorization-recite-settings/memorization-recite-settings.component.ts)). Requires **`OPENAI_ADMIN_KEY`** plus **`OPENAI_API_KEY_ID`** (tracking id from the OpenAI dashboard, not the `sk-…` secret). Admin panel shows only OpenAI-reported spend (app-tracked estimate removed from UI).
+
 ### Admin — prayer approval timestamps
 - **Consolidated approval cards**: Prayer and update timestamps include time (e.g. `Jul 30, 2026, 11:52 AM`), matching home prayer cards ([`consolidated-prayer-approval.component.ts`](src/app/components/consolidated-prayer-approval/consolidated-prayer-approval.component.ts)).
 - **Pending Deletions and Accounts cards**: Request timestamps use the same date+time format ([`pending-deletion-card.component.ts`](src/app/components/pending-deletion-card/pending-deletion-card.component.ts), [`pending-update-deletion-card.component.ts`](src/app/components/pending-update-deletion-card/pending-update-deletion-card.component.ts), [`pending-account-approval-card.component.ts`](src/app/components/pending-account-approval-card/pending-account-approval-card.component.ts)).

@@ -212,12 +212,27 @@ describe('MemorizationReciteSettingsService', () => {
     vi.unstubAllGlobals();
   });
 
+  it('fetchOpenAiOrgUsage maps api_key_id_required to apiKeyIdRequired', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ configured: false, api_key_id_required: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const usage = await service.fetchOpenAiOrgUsage();
+
+    expect(usage.configured).toBe(false);
+    expect(usage.apiKeyIdRequired).toBe(true);
+
+    vi.unstubAllGlobals();
+  });
+
   it('fetchOpenAiOrgUsage surfaces error from body even when HTTP status is not ok', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
       json: async () => ({
         configured: true,
-        error: 'Could not load OpenAI org usage',
+        error: 'Could not load OpenAI API key usage',
       }),
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -225,7 +240,7 @@ describe('MemorizationReciteSettingsService', () => {
     const usage = await service.fetchOpenAiOrgUsage();
 
     expect(usage.configured).toBe(true);
-    expect(usage.error).toBe('Could not load OpenAI org usage');
+    expect(usage.error).toBe('Could not load OpenAI API key usage');
 
     vi.unstubAllGlobals();
   });

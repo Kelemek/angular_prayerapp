@@ -57,4 +57,4 @@ rg -i recite src/ supabase/   # should return nothing (or only unrelated matches
 
 ## 6. Supabase secrets (optional)
 
-Unset `OPENAI_ADMIN_KEY` if it was only used for the admin usage panel. Keep `OPENAI_API_KEY` if other features use it.
+Unset `OPENAI_ADMIN_KEY` and `OPENAI_API_KEY_ID` if they were only used for the admin usage panel. Keep `OPENAI_API_KEY` if other features use it.

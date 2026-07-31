@@ -117,11 +117,16 @@ export class MemorizationReciteSettingsService {
       total_usd?: number;
       error?: string;
       admin_key_required?: boolean;
+      api_key_id_required?: boolean;
       costs_api_failed?: boolean;
     };
 
     if (payload.admin_key_required) {
       return { configured: false, adminKeyRequired: true };
+    }
+
+    if (payload.api_key_id_required) {
+      return { configured: false, apiKeyIdRequired: true };
     }
 
     if (payload.error) {

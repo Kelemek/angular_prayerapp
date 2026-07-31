@@ -10,7 +10,6 @@ import { SupabaseService } from '../../services/supabase.service';
 import { MemorizationReciteSettingsService } from '../../services/memorization-recite-settings.service';
 import type {
   MemorizationReciteOpenAiUsage,
-  MemorizationReciteUsageSummary,
 } from '../../types/memorization';
 
 @Component({
@@ -124,42 +123,21 @@ import type {
             <div class="mt-6 p-4 border border-gray-200 dark:border-gray-600 rounded-lg space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  This month (app-tracked)
+                  OpenAI API key spend (whisper-1)
                 </h3>
-                <button
-                  type="button"
-                  (click)="refreshUsage()"
-                  [disabled]="usageLoading || openAiUsageLoading"
-                  class="text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer disabled:opacity-50"
-                >
-                  Refresh
-                </button>
-              </div>
-              @if (usageLoading) {
-                <div class="flex items-center gap-2 text-sm text-gray-500" role="status" aria-live="polite">
-                  <span
-                    class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-600 border-t-transparent dark:border-blue-400 dark:border-t-transparent"
-                    aria-hidden="true"
-                  ></span>
-                  Loading app usage…
+                <div class="flex items-center gap-3 shrink-0">
+                  @if (openAiUsage?.configured && !openAiUsage?.error && !openAiUsageLoading) {
+                    <span class="text-sm text-gray-700 dark:text-gray-300">
+                      {{ formatCost(openAiUsage.totalUsd ?? 0) }}
+                      <span class="text-gray-500 dark:text-gray-400">· last {{ openAiUsage.periodDays }} days</span>
+                    </span>
+                  }
                 </div>
-              } @else if (usageError) {
-                <p class="text-sm text-amber-700 dark:text-amber-300">{{ usageError }}</p>
-              } @else if (usageSummary) {
-                <p class="text-sm text-gray-700 dark:text-gray-300">
-                  {{ usageSummary.attemptCount }} attempts ·
-                  {{ formatMinutes(usageSummary.billableAudioSeconds) }} audio ·
-                  {{ formatCost(usageSummary.estimatedCostUsd) }} estimated (whisper-1)
-                </p>
-              } @else {
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                  No app-tracked Recite usage this month yet.
-                </p>
-              }
+              </div>
 
               @if (openAiUsageLoading) {
                 <div
-                  class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600"
+                  class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
                   role="status"
                   aria-live="polite"
                 >
@@ -167,28 +145,23 @@ import type {
                     class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-600 border-t-transparent dark:border-blue-400 dark:border-t-transparent"
                     aria-hidden="true"
                   ></span>
-                  Loading OpenAI org spend…
+                  Loading whisper-1 spend…
                 </div>
-              } @else if (openAiUsage?.configured && !openAiUsage?.error) {
-                <p class="text-sm text-gray-700 dark:text-gray-300 pt-2 border-t border-gray-200 dark:border-gray-600">
-                  OpenAI account (last {{ openAiUsage.periodDays }} days):
-                  {{ formatCost(openAiUsage.totalUsd ?? 0) }}
-                </p>
               } @else if (openAiUsage?.error) {
-                <p class="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
-                  Could not load OpenAI org usage (app-tracked totals above are still available).
-                  Org spend requires an
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Could not load OpenAI API key spend. Requires an
                   <a
                     href="https://platform.openai.com/settings/organization/admin-keys"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-blue-600 dark:text-blue-400 hover:underline"
                   >Admin API key</a>
-                  in Supabase as <code class="text-xs">OPENAI_ADMIN_KEY</code>.
+                  in Supabase as <code class="text-xs">OPENAI_ADMIN_KEY</code> and the Whisper key id as
+                  <code class="text-xs">OPENAI_API_KEY_ID</code>.
                 </p>
               } @else if (openAiUsage?.adminKeyRequired) {
-                <p class="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
-                  OpenAI org spend (last 30 days, all usage on that account) needs a separate
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  OpenAI API key spend (last 30 days) needs a separate
                   <a
                     href="https://platform.openai.com/settings/organization/admin-keys"
                     target="_blank"
@@ -198,16 +171,24 @@ import type {
                   — set <code class="text-xs">OPENAI_ADMIN_KEY</code> on Supabase (Whisper still uses
                   <code class="text-xs">OPENAI_API_KEY</code>).
                 </p>
+              } @else if (openAiUsage?.apiKeyIdRequired) {
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Set <code class="text-xs">OPENAI_API_KEY_ID</code> on Supabase to match the Whisper
+                  <code class="text-xs">OPENAI_API_KEY</code> (copy the tracking id from
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-blue-600 dark:text-blue-400 hover:underline"
+                  >OpenAI API keys</a>
+                  — not the secret). Also requires <code class="text-xs">OPENAI_ADMIN_KEY</code>.
+                </p>
               } @else if (openAiUsage && !openAiUsage.configured) {
-                <p class="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
-                  Set <code class="text-xs">OPENAI_ADMIN_KEY</code> on the server for org-wide OpenAI spend, or
-                  <code class="text-xs">OPENAI_API_KEY</code> for transcription only.
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Set <code class="text-xs">OPENAI_ADMIN_KEY</code> and <code class="text-xs">OPENAI_API_KEY_ID</code>
+                  on the server for API-key spend, or <code class="text-xs">OPENAI_API_KEY</code> for transcription only.
                 </p>
               }
-
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                Pricing reference: whisper-1 $0.006/min
-              </p>
 
               <a
                 href="https://platform.openai.com/usage"
@@ -238,13 +219,10 @@ export class MemorizationReciteSettingsComponent {
   reciteEnabled = false;
   isSaving = false;
   isLoading = false;
-  usageLoading = false;
   openAiUsageLoading = false;
   successMessage = '';
   errorMessage = '';
-  usageSummary: MemorizationReciteUsageSummary | null = null;
   openAiUsage: MemorizationReciteOpenAiUsage | null = null;
-  usageError = '';
 
   constructor(
     private supabase: SupabaseService,
@@ -283,7 +261,7 @@ export class MemorizationReciteSettingsComponent {
     }
 
     if (this.reciteEnabled) {
-      void this.refreshUsage();
+      void this.refreshOpenAiUsage();
     }
   }
 
@@ -304,7 +282,7 @@ export class MemorizationReciteSettingsComponent {
       this.reciteSettingsService.invalidateCache();
       this.successMessage = 'Recite mode settings saved.';
       if (this.reciteEnabled) {
-        void this.refreshUsage();
+        void this.refreshOpenAiUsage();
       }
       setTimeout(() => {
         this.successMessage = '';
@@ -319,54 +297,22 @@ export class MemorizationReciteSettingsComponent {
     }
   }
 
-  async refreshUsage(): Promise<void> {
+  async refreshOpenAiUsage(): Promise<void> {
     if (!this.reciteEnabled) {
       return;
     }
-    this.usageLoading = true;
     this.openAiUsageLoading = true;
-    this.usageError = '';
     this.cdr.markForCheck();
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const usagePromise = this.reciteSettingsService
-      .loadUsageSummary(start, now)
-      .then((summary) => {
-        this.usageSummary = summary;
-      })
-      .catch((err) => {
-        console.error('[MemorizationReciteSettings] App usage load failed:', err);
-        this.usageSummary = null;
-        this.usageError = 'Could not load app-tracked usage.';
-      })
-      .finally(() => {
-        this.usageLoading = false;
-        this.cdr.markForCheck();
-      });
-
-    const openAiPromise = this.reciteSettingsService
-      .fetchOpenAiOrgUsage()
-      .then((usage) => {
-        this.openAiUsage = usage;
-      })
-      .catch((err) => {
-        console.error('[MemorizationReciteSettings] OpenAI usage load failed:', err);
-        this.openAiUsage = { configured: false, error: 'Could not load OpenAI usage' };
-      })
-      .finally(() => {
-        this.openAiUsageLoading = false;
-        this.cdr.markForCheck();
-      });
-
-    await Promise.all([usagePromise, openAiPromise]);
-  }
-
-  formatMinutes(seconds: number): string {
-    const mins = seconds / 60;
-    if (mins < 0.1) return '0 min';
-    if (mins < 10) return `${mins.toFixed(1)} min`;
-    return `${Math.round(mins)} min`;
+    try {
+      this.openAiUsage = await this.reciteSettingsService.fetchOpenAiOrgUsage();
+    } catch (err) {
+      console.error('[MemorizationReciteSettings] OpenAI usage load failed:', err);
+      this.openAiUsage = { configured: false, error: 'Could not load OpenAI usage' };
+    } finally {
+      this.openAiUsageLoading = false;
+      this.cdr.markForCheck();
+    }
   }
 
   formatCost(usd: number): string {

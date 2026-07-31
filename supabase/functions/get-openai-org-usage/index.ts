@@ -57,6 +57,7 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const openaiAdminKey = Deno.env.get('OPENAI_ADMIN_KEY');
+  const openaiApiKeyId = Deno.env.get('OPENAI_API_KEY_ID')?.trim();
 
   if (!supabaseUrl || !serviceKey) {
     return new Response(JSON.stringify({ error: 'Server configuration error' }), {
@@ -116,6 +117,13 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  if (!openaiApiKeyId) {
+    return new Response(
+      JSON.stringify({ configured: false, api_key_id_required: true }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const periodDays = 30;
   const end = Math.floor(Date.now() / 1000);
   const start = end - periodDays * 24 * 60 * 60;
@@ -125,6 +133,7 @@ Deno.serve(async (req: Request) => {
   costsUrl.searchParams.set('end_time', String(end));
   costsUrl.searchParams.set('bucket_width', '1d');
   costsUrl.searchParams.set('limit', '31');
+  costsUrl.searchParams.append('api_key_ids', openaiApiKeyId);
 
   const costsRes = await fetch(costsUrl.toString(), {
     headers: { Authorization: `Bearer ${openaiAdminKey}` },
@@ -136,7 +145,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         configured: true,
-        error: 'Could not load OpenAI org usage',
+        error: 'Could not load OpenAI API key usage',
         costs_api_failed: true,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -157,6 +166,7 @@ Deno.serve(async (req: Request) => {
       configured: true,
       period_days: periodDays,
       total_usd: totalUsd,
+      scoped_to_api_key: true,
     }),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );

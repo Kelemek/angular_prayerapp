@@ -76,7 +76,7 @@ case $FUNCTION_NAME in
         ;;
     "get-openai-org-usage")
         deploy_function "get-openai-org-usage" ""
-        echo "💡 Requires OPENAI_ADMIN_KEY secret (optional). Admin-only OpenAI org usage for Recite settings."
+        echo "💡 Requires OPENAI_ADMIN_KEY and OPENAI_API_KEY_ID secrets (optional). Admin-only OpenAI API key usage for Recite settings."
         ;;
     "all")
         echo "Deploying all functions..."
@@ -102,7 +102,7 @@ case $FUNCTION_NAME in
         echo "  send-user-hourly-prayer-reminders - User hourly self-reminders (cron)"
         echo "  cleanup-device-tokens    - Stale device tokens + push log cleanup (cron)"
         echo "  transcribe-audio         - Whisper STT for Memorize Recite mode"
-        echo "  get-openai-org-usage     - Admin OpenAI org usage (Recite settings)"
+        echo "  get-openai-org-usage     - Admin OpenAI API key usage (Recite settings)"
         echo "  all                      - Deploy all functions (default)"
         echo ""
         exit 1
