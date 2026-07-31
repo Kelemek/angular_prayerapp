@@ -247,7 +247,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             <div class="sm:hidden flex items-center gap-2 flex-nowrap">
               <button
                 (click)="showHelp = true"
-                class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer"
+                class="flex items-center gap-1 px-2 py-2 text-sm font-medium btn-chip btn-chip-gray"
                 title="Help"
               >
                 <svg
@@ -279,7 +279,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               <button
                 id="tour-btn-settings-mobile"
                 (click)="openUserSettings()"
-                class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer"
+                class="flex items-center gap-1 px-2 py-2 text-sm font-medium btn-chip btn-chip-gray"
                 title="Settings"
               >
                 <svg
@@ -303,7 +303,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                 routerLink="/presentation"
                 [queryParams]="presentationHandoffQueryParams"
                 (click)="onPresentationLinkClick($event)"
-                class="flex items-center gap-1 bg-[#2F5F54] dark:bg-[#2F5F54] text-white px-3 py-2 rounded-lg hover:bg-[#1a3a2e] dark:hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-[#2F5F54] transition-colors text-sm cursor-pointer"
+                class="flex items-center gap-1 px-3 py-2 text-sm font-medium btn-chip btn-chip-green"
                 title="Prayer Mode"
               >
                 <span>Pray</span>
@@ -311,7 +311,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               <button
                 id="tour-btn-new-prayer-request-mobile"
                 (click)="showPrayerForm = true"
-                class="flex items-center gap-1 bg-blue-600 dark:bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm cursor-pointer"
+                class="flex items-center gap-1 px-3 py-2 text-sm font-medium btn-chip btn-chip-blue"
               >
                 <span>Request</span>
               </button>
@@ -371,7 +371,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                 <div class="flex items-center gap-2">
                   <button
                     (click)="showHelp = true"
-                    class="flex items-center justify-center h-12 gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer"
+                    class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-gray"
                     title="Help & Guidance"
                   >
                     <svg
@@ -403,7 +403,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   <button
                     id="tour-btn-settings-desktop"
                     (click)="openUserSettings()"
-                    class="flex items-center justify-center h-12 gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer"
+                    class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-gray"
                     title="Settings"
                   >
                     <svg
@@ -427,7 +427,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                     routerLink="/presentation"
                     [queryParams]="presentationHandoffQueryParams"
                     (click)="onPresentationLinkClick($event)"
-                    class="flex items-center justify-center h-12 gap-1 bg-[#2F5F54] dark:bg-[#2F5F54] text-white px-3 rounded-lg hover:bg-[#1a3a2e] dark:hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-[#2F5F54] transition-colors text-sm cursor-pointer"
+                    class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-green"
                     title="Prayer Mode"
                   >
                     <span>Pray</span>
@@ -435,7 +435,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   <button
                     id="tour-btn-new-prayer-request-desktop"
                     (click)="showPrayerForm = true"
-                    class="flex items-center justify-center h-12 gap-1 bg-blue-600 dark:bg-blue-600 text-white px-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm cursor-pointer"
+                    class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-blue"
                   >
                     <span>Request</span>
                   </button>

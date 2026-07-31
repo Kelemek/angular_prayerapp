@@ -58,7 +58,7 @@ type FeedbackType = "suggestion" | "feature" | "bug";
                 [disabled]="isLoading"
                 (click)="selectFeedbackType(option.value)"
                 [ngClass]="feedbackTypeTileClasses(feedbackType === option.value)"
-                class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                class="flex items-center justify-center p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               >
                 <span
                   class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100 text-center"
@@ -127,7 +127,7 @@ type FeedbackType = "suggestion" | "feature" | "bug";
                 !feedbackTitle.trim() ||
                 !feedbackDescription.trim()
               "
-              class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm cursor-pointer"
+              class="flex items-center justify-center gap-2 px-4 py-2 btn-chip btn-chip-blue disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               @if (isLoading) {
               <svg
@@ -250,9 +250,9 @@ export class GitHubFeedbackFormComponent implements OnDestroy {
     value: FeedbackType;
     label: string;
   }> = [
-    { value: "suggestion", label: "💡 Suggestion" },
-    { value: "feature", label: "✨ Feature Request" },
-    { value: "bug", label: "🐛 Bug Report" },
+    { value: "suggestion", label: "Suggestion" },
+    { value: "feature", label: "Feature Request" },
+    { value: "bug", label: "Bug Report" },
   ];
 
   feedbackType: FeedbackType = "suggestion";

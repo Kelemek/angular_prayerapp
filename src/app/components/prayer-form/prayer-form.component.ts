@@ -15,6 +15,7 @@ import {
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { NgClass } from "@angular/common";
+import { ModalShellComponent } from "../modal-shell/modal-shell.component";
 import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";
 import { Observable } from "rxjs";
 import type { User } from "@supabase/supabase-js";
@@ -33,52 +34,15 @@ import {
 @Component({
   selector: "app-prayer-form",
   standalone: true,
-  imports: [FormsModule, NgClass, RichTextEditorComponent],
+  imports: [FormsModule, NgClass, RichTextEditorComponent, ModalShellComponent],
   template: `
     @if (isOpen) {
-    <div
-      class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4"
-      (click)="onBackdropClick($event)"
+    <app-modal-shell
+      title="New Prayer Request"
+      titleId="prayer-form-title"
+      closeAriaLabel="Close prayer form dialog"
+      (close)="cancel()"
     >
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        (click)="$event.stopPropagation()"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="prayer-form-title"
-      >
-        <!-- Header -->
-        <div
-          class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700"
-        >
-          <h2
-            id="prayer-form-title"
-            class="text-xl font-semibold text-gray-800 dark:text-gray-200"
-          >
-            New Prayer Request
-          </h2>
-          <button
-            (click)="cancel()"
-            aria-label="Close prayer form dialog"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1 cursor-pointer"
-          >
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Form -->
         <form
           #prayerForm="ngForm"
           (ngSubmit)="prayerForm.valid && handleSubmit()"
@@ -129,7 +93,7 @@ import {
               required
               aria-required="true"
               aria-label="Prayer For"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100"
               placeholder="Who or what this prayer is for"
             />
           </div>
@@ -162,7 +126,7 @@ import {
               rows="8"
               aria-label="Prayer Request Details"
               placeholder="Describe the prayer request in detail"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[6rem] whitespace-pre-wrap"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100 min-h-[6rem] whitespace-pre-wrap"
             ></textarea>
             }
           </div>
@@ -300,13 +264,13 @@ import {
               (focus)="showCategoryDropdown = true"
               (input)="onCategoryInput($event)"
               (keydown)="onCategoryKeyDown($event)"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100"
               placeholder="e.g., Health, Family, Work (or create a new category)"
             />
             <!-- Category Dropdown -->
             @if (showCategoryDropdown && filteredCategories.length > 0) {
             <div
-              class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
+              class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
             >
               @for (category of filteredCategories; track category; let i =
               $index) {
@@ -336,7 +300,7 @@ import {
                 isSubmitting ||
                 showSuccessMessage
               "
-              class="min-h-12 px-8 py-3 text-base font-medium bg-blue-600 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              class="min-h-11 px-6 py-2.5 text-base font-medium btn-chip btn-chip-blue disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               aria-label="Submit prayer request"
             >
               {{
@@ -349,8 +313,7 @@ import {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </app-modal-shell>
     }
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -656,12 +619,6 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     this.isSubmitting = false;
     this.showCategoryDropdown = false;
     this.close.emit();
-  }
-
-  onBackdropClick(event: MouseEvent): void {
-    if ((event.target as HTMLElement).classList.contains("fixed")) {
-      this.cancel();
-    }
   }
 
   @HostListener("document:click", ["$event"])

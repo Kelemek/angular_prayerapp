@@ -40,7 +40,7 @@ export const TOUR_SETTINGS_BADGES_ID = 'tour-settings-badges';
 export const TOUR_SETTINGS_PRAYER_ENCOURAGEMENT_ID = 'tour-settings-prayer-encouragement';
 export const TOUR_SETTINGS_DEFAULT_VIEW_ID = 'tour-settings-default-view';
 export const TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID = 'tour-settings-memorization-strict-mode';
-/** First prayer card in the list: “Add Update” opens the inline update form (see `PrayerCardComponent.tourUpdateAnchors`). */
+/** First prayer card in the list: “Add Update” opens the add-update modal (see `PrayerCardComponent.tourUpdateAnchors`). */
 export const TOUR_ADD_UPDATE_BTN_ID = 'tour-prayer-add-update';
 /** **Pray For** / **Prayed For** on the first community card (see `PrayerCardComponent.tourPrayForEncouragementAnchors`). */
 export const TOUR_PRAYER_PRAY_FOR_ID = 'tour-prayer-pray-for';
@@ -55,7 +55,7 @@ export const PERSONAL_PRAYER_WALKTHROUGH_CATEGORY = 'Test Category';
 
 export const TOUR_PRAYER_CHOOSE_PERSONAL_ID = 'tour-prayer-choose-personal';
 export const TOUR_PRAYER_SUBMIT_REQUEST_ID = 'tour-prayer-submit-request';
-/** Community inline update form — green **Add Update** submit (admin review applies when you send). */
+/** Community add-update modal — green **Add Update** submit (admin review applies when you send). */
 export const TOUR_PRAYER_UPDATE_SUBMIT_ID = 'tour-prayer-update-submit';
 /** Wrapper around anonymous checkbox + label (driver.js highlights the whole row). */
 export const TOUR_PRAYER_UPDATE_ANONYMOUS_WRAP_ID = 'tour-prayer-update-anonymous-wrap';
@@ -1006,7 +1006,7 @@ export class HelpDriverTourService {
   }
 
   /**
-   * Inline **Add Update** on the first visible prayer card → update text, optional anonymous (community), mark answered.
+   * Modal **Add Update** on the first visible prayer card → update text, optional anonymous (community), mark answered.
    * Requires at least one prayer in the current list with updates allowed (tour anchor on the first card).
    */
   startUpdatingPrayerTour(helpContent: HelpContent, options: UpdatingPrayerTourOptions = {}): void {
@@ -1037,7 +1037,7 @@ export class HelpDriverTourService {
         element: () => getTourAddUpdateButtonEl()!,
         popover: {
           title: title0,
-          description: `${body0}<br><br>The button is labeled <strong>Add Update</strong> on each prayer card. Tap <strong>Open form</strong> to expand the inline form (or tap <strong>Add Update</strong> yourself).`,
+          description: `${body0}<br><br>The button is labeled <strong>Add Update</strong> on each prayer card. Tap <strong>Open form</strong> to open the add-update modal (or tap <strong>Add Update</strong> yourself).`,
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Open form &rarr;',
@@ -1312,7 +1312,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Add Update',
           description:
-            'On each prayer card, use <strong>Add Update</strong> for progress or thanksgiving. Tap <strong>Open form &rarr;</strong> to expand the inline form.',
+            'On each prayer card, use <strong>Add Update</strong> for progress or thanksgiving. Tap <strong>Open form &rarr;</strong> to open the add-update modal.',
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Open form &rarr;',

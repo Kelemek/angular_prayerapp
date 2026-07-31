@@ -739,7 +739,7 @@ type ThemeOption = "light" | "dark" | "system";
 
             <button
               (click)="startPrayerTimer.emit()"
-              class="w-full mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 bg-[#2F5F54] hover:bg-[#1a3a2e] text-white rounded-lg text-base sm:text-lg font-semibold transition-colors cursor-pointer"
+              class="w-full mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 btn-chip btn-chip-green text-base sm:text-lg font-semibold"
             >
               Start Prayer Timer
             </button>

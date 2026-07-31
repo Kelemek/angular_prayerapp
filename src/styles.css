@@ -106,6 +106,67 @@
     @apply bg-[#2B2B2B]!;
   }
 }
+/* Inset field/panel fills: light gray on white cards; dark semi-transparent gray-700.
+   Do not use bg-gray-50/100 with dark:bg-gray-700/* — those utilities force solid dark fills. */
+@utility bg-inset-surface {
+  background-color: #f8f7f5 !important;
+  .dark & {
+    background-color: rgb(55 65 81 / 0.6) !important;
+  }
+}
+@utility bg-inset-surface-muted {
+  background-color: #e8e5e1 !important;
+  .dark & {
+    background-color: rgb(55 65 81 / 0.6) !important;
+  }
+}
+/* Help topic rows: inset fill + hover lift (inputs use bg-inset-surface only). */
+@utility bg-inset-surface-interactive {
+  background-color: #f8f7f5 !important;
+  .dark & {
+    background-color: rgb(55 65 81 / 0.6) !important;
+  }
+  &:hover {
+    background-color: #e8e5e1 !important;
+  }
+  .dark &:hover {
+    background-color: rgb(55 65 81 / 0.8) !important;
+  }
+}
+/* Outlined chip action buttons (shared hover/focus fills). Pair .btn-chip with a color variant. */
+.btn-chip {
+  @apply rounded-lg transition-colors cursor-pointer font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+}
+.btn-chip-blue {
+  @apply bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-600 dark:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:ring-blue-500;
+}
+.btn-chip-green {
+  @apply bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] border border-[#39704D] dark:border-[#39704D] hover:bg-green-100 dark:hover:bg-green-900/30 focus:ring-[#39704D];
+}
+.btn-chip-gray {
+  @apply bg-white/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 border border-gray-500 dark:border-gray-500 hover:bg-white/70 dark:hover:bg-gray-800/70 focus:ring-gray-500;
+}
+.btn-chip-red {
+  @apply bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-600 dark:border-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 focus:ring-red-500;
+}
+.btn-chip-green-elevated {
+  @apply bg-white dark:bg-gray-800 text-[#39704D] dark:text-[#5FB876] border border-[#39704D] dark:border-[#39704D] shadow-sm hover:bg-green-50 dark:hover:bg-green-900/30 focus:ring-[#39704D];
+}
+/* Presentation slide card: larger symmetric shadow (replaces bottom-heavy shadow-2xl). */
+.presentation-card-elevation {
+  box-shadow:
+    -6px 0 24px -6px rgb(0 0 0 / 0.14),
+    6px 0 24px -6px rgb(0 0 0 / 0.14),
+    0 8px 24px -6px rgb(0 0 0 / 0.14),
+    0 2px 8px rgb(0 0 0 / 0.06);
+}
+html.dark .presentation-card-elevation {
+  box-shadow:
+    -6px 0 24px -6px rgb(0 0 0 / 0.4),
+    6px 0 24px -6px rgb(0 0 0 / 0.4),
+    0 8px 24px -6px rgb(0 0 0 / 0.4),
+    0 2px 8px rgb(0 0 0 / 0.28);
+}
 @utility dark {
   /* Background colors - dark theme */
   & .bg-gray-50 {
@@ -418,6 +479,12 @@ html, body {
 .cdk-drag-handle {
   touch-action: none; /* Important for iOS to prevent scroll while dragging */
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Room for card box-shadows inside scroll containers (overflow-y clips horizontal bleed). */
+.card-stack-shadow {
+  padding-inline: 20px;
+  margin-inline: -20px;
 }
 
 /* Viewport scroll container: fallback when safe-area not supported (e.g. desktop) */

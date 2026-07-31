@@ -68,8 +68,9 @@ interface PrayerPrompt {
   template: `
     <!-- Prayer Card -->
     @if (prayer) {
+    <div class="presentation-card-elevation w-full max-h-full rounded-3xl">
     <div
-      class="presentation-card-scroll bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto"
+      class="presentation-card-scroll bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto"
     >
       <!-- Category Badge (Personal Prayers) -->
       @if (prayer.category && isPersonalPrayer()) {
@@ -152,7 +153,7 @@ interface PrayerPrompt {
               type="button"
               (click)="onPrayForClick()"
               title="Record that you prayed for this request"
-              class="px-4 py-2 text-base md:text-lg font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-600 dark:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer whitespace-nowrap"
+              class="px-4 py-2 text-base md:text-lg font-medium btn-chip btn-chip-blue whitespace-nowrap"
             >
               Pray For
             </button>
@@ -217,7 +218,7 @@ interface PrayerPrompt {
         </div>
         <div class="space-y-4">
           @for (update of getRecentUpdates(); track update.id) {
-          <div class="bg-gray-100 dark:bg-gray-700 rounded-xl p-5 relative">
+          <div class="bg-inset-surface-muted rounded-xl p-5 relative border border-gray-300 dark:border-gray-600">
             <div class="flex items-start justify-between mb-2">
               <div
                 class="text-sm md:text-base lg:text-lg text-gray-700 dark:text-gray-300"
@@ -247,6 +248,7 @@ interface PrayerPrompt {
         </div>
       </div>
       }
+    </div>
     </div>
 
     <!-- Pray For explanation modal -->
@@ -298,7 +300,7 @@ interface PrayerPrompt {
           <button
             type="button"
             (click)="onConfirmPrayForFromModal()"
-            class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+              class="px-4 py-2 btn-chip btn-chip-blue"
           >
             Pray For
           </button>
@@ -310,8 +312,9 @@ interface PrayerPrompt {
 
     <!-- Prompt Card -->
     @if (prompt) {
+    <div class="presentation-card-elevation w-full max-h-full rounded-3xl">
     <div
-      class="presentation-card-scroll bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto"
+      class="presentation-card-scroll bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto"
     >
       <!-- Type Badge -->
       <div class="mb-6">
@@ -348,7 +351,7 @@ interface PrayerPrompt {
               type="button"
               (click)="onPrayForClick()"
               title="Record that you prayed using this prompt"
-              class="px-4 py-2 text-base md:text-lg font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-600 dark:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer whitespace-nowrap"
+              class="px-4 py-2 text-base md:text-lg font-medium btn-chip btn-chip-blue whitespace-nowrap"
             >
               Pray For
             </button>
@@ -372,6 +375,7 @@ interface PrayerPrompt {
           </span>
         }
       </div>
+    </div>
     </div>
 
     <!-- Pray For explanation modal (prompt) -->
@@ -411,7 +415,7 @@ interface PrayerPrompt {
           <button
             type="button"
             (click)="onConfirmPrayForFromModal()"
-            class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+              class="px-4 py-2 btn-chip btn-chip-blue"
           >
             Pray For
           </button>

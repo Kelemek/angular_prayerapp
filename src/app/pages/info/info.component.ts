@@ -526,7 +526,7 @@ import { Subject, takeUntil } from "rxjs";
                     <button
                       type="button"
                       (click)="openHeaderModal('help')"
-                      class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 text-xs sm:text-sm cursor-pointer"
+                      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-gray"
                     >
                       <svg
                         width="18"
@@ -558,7 +558,7 @@ import { Subject, takeUntil } from "rxjs";
                     <button
                       type="button"
                       (click)="openHeaderModal('settings')"
-                      class="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 text-xs sm:text-sm cursor-pointer"
+                      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-gray"
                     >
                       <svg
                         width="18"
@@ -580,7 +580,7 @@ import { Subject, takeUntil } from "rxjs";
                     <button
                       type="button"
                       (click)="openHeaderModal('pray')"
-                      class="flex items-center gap-1 bg-[#2F5F54] text-white px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[#1a3a2e] focus:outline-none focus:ring-2 focus:ring-[#2F5F54] cursor-pointer"
+                      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-green"
                     >
                       <span>Pray</span>
                     </button>
@@ -588,7 +588,7 @@ import { Subject, takeUntil } from "rxjs";
                     <button
                       type="button"
                       (click)="openHeaderModal('request')"
-                      class="flex items-center gap-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-blue"
                     >
                       <span>Request</span>
                     </button>
@@ -598,7 +598,7 @@ import { Subject, takeUntil } from "rxjs";
                 <div class="mt-2 relative">
                   <div
                     (click)="openHeaderModal('search')"
-                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 pl-10 pr-3 py-1.5 sm:py-2 flex items-center cursor-pointer"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-inset-surface pl-10 pr-3 py-1.5 sm:py-2 flex items-center cursor-pointer"
                   >
                     <svg
                       class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 pointer-events-none"
@@ -795,7 +795,7 @@ import { Subject, takeUntil } from "rxjs";
                         type="button"
                         (click)="openHeaderModal('card-update')"
                         title="Add an update to this prayer"
-                        class="px-3 py-1 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] rounded-md border border-[#39704D] dark:border-[#39704D] hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-green"
                       >
                         Add Update
                       </button>
@@ -803,7 +803,7 @@ import { Subject, takeUntil } from "rxjs";
                         type="button"
                         (click)="openHeaderModal('card-pray-for')"
                         title="Record that you prayed for this request"
-                        class="px-3 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-blue"
                       >
                         Pray For
                       </button>
@@ -814,7 +814,7 @@ import { Subject, takeUntil } from "rxjs";
                       Recent Updates
                     </h4>
                     <div
-                      class="relative bg-gray-100 dark:bg-gray-700 rounded-lg p-4 pt-3 border-[2px] !border-[#0047AB] dark:!border-[#0047AB]"
+                      class="relative bg-inset-surface-muted rounded-lg p-4 pt-3 border border-gray-300 dark:border-gray-600"
                     >
                       <button
                         type="button"
@@ -880,7 +880,7 @@ import { Subject, takeUntil } from "rxjs";
                     <div class="flex flex-wrap gap-1 items-center">
                       <button
                         type="button"
-                        class="px-3 py-1 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] rounded-md border border-[#39704D] dark:border-[#39704D] hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-green"
                       >
                         Add Update
                       </button>
@@ -914,7 +914,7 @@ import { Subject, takeUntil } from "rxjs";
                     <div class="flex flex-wrap gap-1 items-center">
                       <button
                         type="button"
-                        class="px-3 py-1 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] rounded-md border border-[#39704D] dark:border-[#39704D] hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-green"
                       >
                         Add Update
                       </button>

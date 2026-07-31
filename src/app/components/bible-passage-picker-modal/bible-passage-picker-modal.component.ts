@@ -148,7 +148,7 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
                       (click)="onChapterClick(book, ch.id, +ch.number)"
                       class="w-full min-h-[44px] px-2 py-2 text-sm rounded-lg border cursor-pointer transition-colors inline-flex items-center justify-center touch-manipulation"
                       [class]="selectedChapterId === ch.id && selectedBookId === book.id
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-600 dark:border-blue-500'
                         : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'"
                     >
                       {{ ch.number }}
@@ -167,7 +167,7 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
                         (click)="onVerseClick(n)"
                         class="w-full min-h-[44px] px-2 py-2 text-sm rounded-lg border cursor-pointer transition-colors inline-flex items-center justify-center touch-manipulation"
                         [class]="inRange(n)
-                          ? 'bg-blue-600 text-white border-blue-600'
+                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-600 dark:border-blue-500'
                           : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'"
                       >
                         {{ n }}

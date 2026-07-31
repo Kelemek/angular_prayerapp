@@ -613,7 +613,7 @@ describe('PrayerDisplayCardComponent', () => {
         componentProperties: { prayer: mockPrayer }
       });
       
-      const card = container.querySelector('.shadow-2xl.border');
+      const card = container.querySelector('.presentation-card-elevation .border');
       expect(card).toBeTruthy();
     });
   });

@@ -105,7 +105,7 @@ export type AdminBroadcastBodyFormat = 'html' | 'markdown';
               [(ngModel)]="subject"
               [disabled]="sending"
               maxlength="998"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-inset-surface text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autocomplete="off"
             />
           </div>
@@ -125,7 +125,7 @@ export type AdminBroadcastBodyFormat = 'html' | 'markdown';
                 [class.bg-blue-600]="bodyFormat === 'html'"
                 [class.text-white]="bodyFormat === 'html'"
                 [class.bg-white]="bodyFormat !== 'html'"
-                [class.dark:bg-gray-700]="bodyFormat !== 'html'"
+                [class.dark:bg-gray-700/60]="bodyFormat !== 'html'"
                 [class.text-gray-800]="bodyFormat !== 'html'"
                 [class.dark:text-gray-100]="bodyFormat !== 'html'"
                 [disabled]="sending"
@@ -139,7 +139,7 @@ export type AdminBroadcastBodyFormat = 'html' | 'markdown';
                 [class.bg-blue-600]="bodyFormat === 'markdown'"
                 [class.text-white]="bodyFormat === 'markdown'"
                 [class.bg-white]="bodyFormat !== 'markdown'"
-                [class.dark:bg-gray-700]="bodyFormat !== 'markdown'"
+                [class.dark:bg-gray-700/60]="bodyFormat !== 'markdown'"
                 [class.text-gray-800]="bodyFormat !== 'markdown'"
                 [class.dark:text-gray-100]="bodyFormat !== 'markdown'"
                 [disabled]="sending"
@@ -172,7 +172,7 @@ export type AdminBroadcastBodyFormat = 'html' | 'markdown';
                 rows="16"
                 spellcheck="false"
                 placeholder="Paste HTML here…"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-inset-surface text-gray-900 dark:text-gray-100 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Broadcast message HTML"
               ></textarea>
             } @else {

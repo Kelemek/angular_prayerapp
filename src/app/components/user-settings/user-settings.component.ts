@@ -1716,7 +1716,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
             <button
               (click)="logout()"
               title="Sign out of your account"
-              class="flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors text-sm sm:text-base font-medium cursor-pointer"
+              class="flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 btn-chip btn-chip-gray text-sm sm:text-base"
               aria-label="Logout"
             >
               <svg
@@ -1734,14 +1734,6 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                 <line x1="21" y1="12" x2="9" y2="12"></line>
               </svg>
               <span>Logout</span>
-            </button>
-            <button
-              (click)="onClose.emit()"
-              title="Close the settings modal"
-              class="px-4 py-2 sm:py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors text-sm sm:text-base font-medium sm:min-w-[100px] cursor-pointer"
-              aria-label="Close settings"
-            >
-              Close
             </button>
           </div>
         </div>
@@ -1791,7 +1783,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
               type="button"
               (click)="deleteAccountKeepPrayers()"
               [disabled]="deletingAccount"
-              class="order-1 sm:order-2 px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700 transition-colors font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              class="order-1 sm:order-2 px-4 py-2 rounded-lg btn-chip btn-chip-green disabled:opacity-50 disabled:cursor-not-allowed"
             >
               @if (deletingAccount) { Deleting… } @else { Delete account but
               keep my prayers }
@@ -1800,7 +1792,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
               type="button"
               (click)="deleteAccountAndPrayers()"
               [disabled]="deletingAccount"
-              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 rounded-lg btn-chip btn-chip-red disabled:opacity-50 disabled:cursor-not-allowed"
             >
               @if (deletingAccount) { Deleting… } @else { Delete my account and
               all my prayers }

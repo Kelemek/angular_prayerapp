@@ -109,7 +109,7 @@ export interface PrayerPrompt {
               type="button"
               (click)="onPrayForClick()"
               title="Record that you prayed using this prompt"
-              class="flex-shrink-0 px-2 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer whitespace-nowrap"
+              class="flex-shrink-0 px-2 py-1 text-xs font-medium btn-chip btn-chip-blue whitespace-nowrap"
             >
               Pray For
             </button>
@@ -183,7 +183,7 @@ export interface PrayerPrompt {
             <button
               type="button"
               (click)="onConfirmPrayForFromModal()"
-              class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+              class="px-4 py-2 btn-chip btn-chip-blue"
             >
               Pray For
             </button>

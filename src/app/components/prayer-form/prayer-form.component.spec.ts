@@ -447,36 +447,6 @@ describe('PrayerFormComponent', () => {
     });
   });
 
-  describe('backdrop click', () => {
-    it('should call cancel when backdrop is clicked', () => {
-      const cancelSpy = vi.spyOn(component, 'cancel');
-      const mockEvent = {
-        target: {
-          classList: {
-            contains: (className: string) => className === 'fixed'
-          }
-        }
-      } as any;
-
-      component.onBackdropClick(mockEvent);
-      expect(cancelSpy).toHaveBeenCalled();
-    });
-
-    it('should not call cancel when content area is clicked', () => {
-      const cancelSpy = vi.spyOn(component, 'cancel');
-      const mockEvent = {
-        target: {
-          classList: {
-            contains: (className: string) => false
-          }
-        }
-      } as any;
-
-      component.onBackdropClick(mockEvent);
-      expect(cancelSpy).not.toHaveBeenCalled();
-    });
-  });
-
   describe('user name handling', () => {
     it('should get user name from localStorage', async () => {
       localStorage.setItem('prayerapp_user_first_name', 'Jane');
@@ -915,33 +885,6 @@ describe('PrayerFormComponent', () => {
 
     it('should initialize selectedCategoryIndex as -1', () => {
       expect(component.selectedCategoryIndex).toBe(-1);
-    });
-  });
-
-  describe('onBackdropClick', () => {
-    it('should call cancel when clicking on backdrop', () => {
-      vi.spyOn(component, 'cancel');
-      const mockElement = document.createElement('div');
-      mockElement.classList.add('fixed');
-      
-      const event = new MouseEvent('click', { bubbles: true });
-      Object.defineProperty(event, 'target', { value: mockElement });
-
-      component.onBackdropClick(event);
-
-      expect(component.cancel).toHaveBeenCalled();
-    });
-
-    it('should not call cancel when clicking on modal content', () => {
-      vi.spyOn(component, 'cancel');
-      const mockElement = document.createElement('div');
-      
-      const event = new MouseEvent('click', { bubbles: true });
-      Object.defineProperty(event, 'target', { value: mockElement });
-
-      component.onBackdropClick(event);
-
-      expect(component.cancel).not.toHaveBeenCalled();
     });
   });
 

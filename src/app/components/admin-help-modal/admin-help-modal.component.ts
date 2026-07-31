@@ -86,7 +86,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                 [(ngModel)]="searchQuery"
                 (input)="onSearchChange()"
                 placeholder="Search help topics..."
-                class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-inset-surface text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
               />
             </div>
           </div>
@@ -119,7 +119,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                             <button
                               type="button"
                               (click)="onStartEmailSubscribersOverviewTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                               [attr.aria-label]="'Start guided tour: ' + section.title"
                             >
                               <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -150,7 +150,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                             <button
                               type="button"
                               (click)="onStartEmailSubscribersTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                               [attr.aria-label]="'Start guided tour: ' + section.title"
                             >
                               <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -181,7 +181,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                             <button
                               type="button"
                               (click)="onStartPrayerEditorTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                               [attr.aria-label]="'Start guided tour: ' + section.title"
                             >
                               <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -212,7 +212,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                             <button
                               type="button"
                               (click)="onStartPrayerEditorManageTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                               [attr.aria-label]="'Start guided tour: ' + section.title"
                             >
                               <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -243,7 +243,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                             <button
                               type="button"
                               (click)="onStartPrayerPromptsTypesTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                               [attr.aria-label]="'Start guided tour: ' + section.title"
                             >
                               <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -274,7 +274,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                             <button
                               type="button"
                               (click)="onStartMemorizeRecommendationsTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                               [attr.aria-label]="'Start guided tour: ' + section.title"
                             >
                               <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -305,7 +305,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                           <button
                             type="button"
                             (click)="toggleSection(section.id)"
-                            class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                            class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                             [attr.aria-expanded]="isSectionExpanded(section.id)"
                             [attr.aria-controls]="'admin-section-content-' + section.id"
                           >

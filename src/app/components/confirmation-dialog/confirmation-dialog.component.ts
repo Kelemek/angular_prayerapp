@@ -45,9 +45,9 @@ import { CommonModule } from '@angular/common';
           </button>
           <button
             (click)="onConfirm()"
-            [class]="isDangerous ? 
-              'px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium cursor-pointer' :
-              'px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium cursor-pointer'"
+            [class]="isDangerous ?
+              'px-4 py-2 rounded-lg btn-chip btn-chip-red cursor-pointer' :
+              'px-4 py-2 rounded-lg btn-chip btn-chip-blue cursor-pointer'"
           >
             {{ confirmText }}
           </button>

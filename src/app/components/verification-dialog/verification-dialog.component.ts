@@ -121,7 +121,7 @@ import { VerificationService } from "../../services/verification.service";
             placeholder="code"
             autofocus
             class="w-full px-4 py-3 text-center text-2xl font-semibold letter-spacing tracking-widest border-2 rounded-lg
-                     bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                     bg-inset-surface text-gray-900 dark:text-gray-100
                      border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200
                      disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60
                      transition-opacity duration-200"
@@ -142,13 +142,12 @@ import { VerificationService } from "../../services/verification.service";
           <button
             type="submit"
             [disabled]="!isCodeComplete() || isVerifying || timeRemaining === 0"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium
-                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="w-full py-3 btn-chip btn-chip-blue disabled:opacity-50 disabled:cursor-not-allowed"
           >
             @if (isVerifying) {
             <div class="flex items-center justify-center gap-2">
               <div
-                class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+                class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"
               ></div>
               Verifying...
             </div>

@@ -128,7 +128,7 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
               [(ngModel)]="searchQuery"
               (input)="onSearchChange()"
               placeholder="Search help topics..."
-              class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+              class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-inset-surface text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
             />
           </div>
         </div>
@@ -143,7 +143,7 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
             <button
               type="button"
               (click)="onFullGuidedTour($event)"
-              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
             >
               <div class="flex items-start gap-3 flex-1 min-w-0">
                 <div
@@ -212,7 +212,7 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
               <!-- Section Header (Clickable) -->
               <button
                 (click)="toggleSection(section.id)"
-                class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-start justify-between focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                 [attr.aria-expanded]="isSectionExpanded(section.id)"
                 [attr.aria-controls]="'section-content-' + section.id"
               >
@@ -481,18 +481,6 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
             </div>
           </div>
           } } }
-        </div>
-
-        <!-- Footer (Sticky) -->
-        <div
-          class="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-b-lg"
-        >
-          <button
-            (click)="onClose()"
-            class="w-full px-4 py-2 bg-blue-600 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium cursor-pointer"
-          >
-            Close Help
-          </button>
         </div>
       </div>
     </div>

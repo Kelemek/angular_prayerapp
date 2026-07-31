@@ -120,23 +120,23 @@ describe('ConfirmationDialogComponent - Core Logic', () => {
   describe('Button Styling', () => {
     it('should apply danger styling when isDangerous is true', () => {
       const isDangerous = true;
-      const buttonClass = isDangerous ? 'bg-red-600' : 'bg-blue-600';
-      expect(buttonClass).toBe('bg-red-600');
+      const buttonClass = isDangerous ? 'border-red-600' : 'border-blue-600';
+      expect(buttonClass).toBe('border-red-600');
     });
 
     it('should apply normal styling when isDangerous is false', () => {
       const isDangerous = false;
-      const buttonClass = isDangerous ? 'bg-red-600' : 'bg-blue-600';
-      expect(buttonClass).toBe('bg-blue-600');
+      const buttonClass = isDangerous ? 'border-red-600' : 'border-blue-600';
+      expect(buttonClass).toBe('border-blue-600');
     });
 
     it('should have hover state for danger button', () => {
-      const dangerHover = 'hover:bg-red-700';
+      const dangerHover = 'hover:bg-red-100';
       expect(dangerHover).toContain('hover');
     });
 
     it('should have hover state for normal button', () => {
-      const normalHover = 'hover:bg-blue-700';
+      const normalHover = 'hover:bg-blue-100';
       expect(normalHover).toContain('hover');
     });
 
@@ -227,7 +227,7 @@ describe('ConfirmationDialogComponent - Core Logic', () => {
     });
 
     it('should distinguish actions with styling', () => {
-      const confirmClass = 'bg-blue-600';
+      const confirmClass = 'border-blue-600';
       const cancelClass = 'border border-gray-300';
       expect(confirmClass).not.toBe(cancelClass);
     });
@@ -801,25 +801,25 @@ describe('ConfirmationDialogComponent - Angular Component Tests', () => {
 
   describe('Component Styling and States', () => {
     it('should determine button style based on isDangerous', () => {
-      let buttonClass = component.isDangerous 
-        ? 'px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium'
-        : 'px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium';
+      let buttonClass = component.isDangerous
+        ? 'px-4 py-2 rounded-lg btn-chip btn-chip-red'
+        : 'px-4 py-2 rounded-lg btn-chip btn-chip-blue';
 
-      expect(buttonClass).toContain('bg-blue-600');
+      expect(buttonClass).toContain('btn-chip-blue');
 
       component.isDangerous = true;
-      buttonClass = component.isDangerous 
-        ? 'px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium'
-        : 'px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium';
+      buttonClass = component.isDangerous
+        ? 'px-4 py-2 rounded-lg btn-chip btn-chip-red'
+        : 'px-4 py-2 rounded-lg btn-chip btn-chip-blue';
 
-      expect(buttonClass).toContain('bg-red-600');
+      expect(buttonClass).toContain('btn-chip-red');
     });
 
     it('should maintain styling consistency', () => {
-      const baseClasses = 'px-4 py-2 rounded-lg text-white transition-colors font-medium';
-      
+      const baseClasses = 'px-4 py-2 rounded-lg border transition-colors font-medium';
+
       expect(baseClasses).toContain('rounded-lg');
-      expect(baseClasses).toContain('text-white');
+      expect(baseClasses).toContain('border');
       expect(baseClasses).toContain('transition-colors');
     });
   });

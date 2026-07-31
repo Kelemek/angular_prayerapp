@@ -481,7 +481,7 @@ interface BackupLog {
             type="file"
             accept=".json"
             (change)="handleManualRestore($event)"
-            class="block w-full text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer focus:outline-none"
+            class="block w-full text-sm text-gray-900 dark:text-gray-100 bg-inset-surface border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer focus:outline-none"
           />
           <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
             Use a backup file downloaded from the "Manual Backup" button or from

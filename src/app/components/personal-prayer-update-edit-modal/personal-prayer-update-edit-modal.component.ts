@@ -17,54 +17,20 @@ import { PrayerService, PrayerUpdate } from "../../services/prayer.service";
 import { ToastService } from "../../services/toast.service";
 import { RichTextEditorsSettingsService } from "../../services/rich-text-editors-settings.service";
 import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";
+import { ModalShellComponent } from "../modal-shell/modal-shell.component";
 
 @Component({
   selector: "app-personal-prayer-update-edit-modal",
   standalone: true,
-  imports: [CommonModule, FormsModule, RichTextEditorComponent],
+  imports: [CommonModule, FormsModule, RichTextEditorComponent, ModalShellComponent],
   template: `
     @if (isOpen && update) {
-    <div
-      class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4"
+    <app-modal-shell
+      title="Edit Prayer Update"
+      titleId="edit-update-title"
+      closeAriaLabel="Close edit dialog"
+      (close)="onModalClose()"
     >
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="edit-update-title"
-      >
-        <!-- Header -->
-        <div
-          class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700"
-        >
-          <h2
-            id="edit-update-title"
-            class="text-xl font-semibold text-gray-800 dark:text-gray-200"
-          >
-            Edit Prayer Update
-          </h2>
-          <button
-            (click)="cancel()"
-            aria-label="Close edit dialog"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1"
-          >
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Form -->
         <form
           #editForm="ngForm"
           (ngSubmit)="editForm.valid && handleSubmit()"
@@ -98,34 +64,23 @@ import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.co
               rows="10"
               aria-label="Prayer update content"
               placeholder="Update details…"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[8rem] whitespace-pre-wrap"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100 min-h-[8rem] whitespace-pre-wrap"
             ></textarea>
             }
           </div>
 
-          <!-- Buttons -->
-          <div class="flex gap-3 pt-4">
+          <div class="flex justify-end pt-4">
             <button
               type="submit"
               [disabled]="!editForm.valid || isSubmitting"
-              class="flex-1 bg-blue-600 dark:bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="min-h-12 px-8 py-3 text-base font-medium btn-chip btn-chip-green disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Save changes"
             >
               {{ isSubmitting ? "Saving..." : "Save Changes" }}
             </button>
-            <button
-              type="button"
-              (click)="cancel()"
-              [disabled]="isSubmitting"
-              class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label="Cancel and close dialog"
-            >
-              Cancel
-            </button>
           </div>
         </form>
-      </div>
-    </div>
+    </app-modal-shell>
     }
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -227,5 +182,10 @@ export class PersonalPrayerUpdateEditModalComponent
       content: "",
     };
     this.close.emit();
+  }
+
+  onModalClose(): void {
+    if (this.isSubmitting) return;
+    this.cancel();
   }
 }

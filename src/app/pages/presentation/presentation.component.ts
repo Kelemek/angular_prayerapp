@@ -101,7 +101,7 @@ type ThemeOption = "light" | "dark" | "system";
         "
       >
         <div class="w-full max-w-6xl mx-auto h-full">
-          <div class="presentation-scroll h-full overflow-y-auto flex items-center px-2">
+          <div class="presentation-scroll card-stack-shadow h-full overflow-y-auto flex items-center">
             <app-prayer-display-card
               [prayer]="isPrayer(currentItem) ? currentItem : undefined"
               [prompt]="isPrompt(currentItem) ? currentItem : undefined"
@@ -127,7 +127,7 @@ type ThemeOption = "light" | "dark" | "system";
           </p>
           <button
             (click)="exitPresentation()"
-            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            class="px-6 py-3 btn-chip btn-chip-blue rounded-lg"
           >
             Return to Home
           </button>

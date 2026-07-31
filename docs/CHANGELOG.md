@@ -4,8 +4,66 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### UI — card shadows
+- **Presentation** slide cards use **`presentation-card-elevation`** ([`styles.css`](src/styles.css)): symmetric `box-shadow` on left, right, and bottom (replacing bottom-heavy `shadow-2xl`). Shadow sits on an outer wrapper; scrollable content stays on the inner card so `overflow-y` does not clip it. The presentation scroll area uses **`card-stack-shadow`** for horizontal bleed inside `overflow-y-auto`.
+
 ### UI — prayer request form
-- **New Prayer Request modal**: Removed the footer **Close** button; **Submit Prayer Request** is a larger, right-aligned primary button. Dismiss via the header **X** or backdrop click ([`prayer-form.component.ts`](src/app/components/prayer-form/prayer-form.component.ts)).
+- **New Prayer Request modal**: Removed the footer **Close** button; **Submit Prayer Request** is a compact outlined blue button (matching **Pray For** on prayer cards), right-aligned. Dismiss via the header **X** or backdrop click ([`prayer-form.component.ts`](src/app/components/prayer-form/prayer-form.component.ts)).
+
+### UI — home header
+- **Pray** and **Request** use the same outlined green/blue chip style as prayer card actions (desktop `h-12` size unchanged) ([`home.component.ts`](src/app/pages/home/home.component.ts)).
+- **Help** and **Settings** use the same outlined chip pattern in neutral gray (utility actions, same `h-12` desktop size).
+
+### UI — info page mock header
+- Feature-overview mock header **Help**, **Settings**, **Pray**, and **Request** use the same outlined chip styles as Home ([`info.component.ts`](src/app/pages/info/info.component.ts)).
+
+### UI — settings feedback
+- **Send Feedback** submit uses the same outlined blue chip style as **Request** / **Submit Prayer Request** ([`github-feedback-form.component.ts`](src/app/components/github-feedback-form/github-feedback-form.component.ts)).
+
+### UI — settings modal footer
+- Removed footer **Close**; dismiss via header **X** or backdrop. **Logout** uses the outlined gray chip style ([`user-settings.component.ts`](src/app/components/user-settings/user-settings.component.ts)).
+- Delete-account confirmation: **Delete account but keep my prayers** uses outlined green; **Delete my account and all my prayers** uses outlined red ([`user-settings.component.ts`](src/app/components/user-settings/user-settings.component.ts)).
+
+### UI — help modal
+- Removed footer **Close Help**; dismiss via header **X** or backdrop ([`help-modal.component.ts`](src/app/components/help-modal/help-modal.component.ts)).
+
+### UI — prompt card
+- **Pray For** confirmation modal submit uses the outlined blue chip style (matches the card **Pray For** button) ([`prompt-card.component.ts`](src/app/components/prompt-card/prompt-card.component.ts)).
+
+### UI — prayer card
+- **Pray For** confirmation modal submit uses the same outlined blue chip style ([`prayer-card.component.ts`](src/app/components/prayer-card/prayer-card.component.ts)).
+
+### UI — presentation display card
+- **Pray For** explanation modals (prayer and prompt) use the same outlined blue chip style ([`prayer-display-card.component.ts`](src/app/components/prayer-display-card/prayer-display-card.component.ts)).
+
+### UI — presentation settings
+- **Start Prayer Timer** uses the outlined green chip style (matches **Pray** / prayer actions) ([`presentation-settings-modal.component.ts`](src/app/components/presentation-settings-modal/presentation-settings-modal.component.ts)).
+- **Return to Home** on the empty-content overlay uses the outlined blue chip style ([`presentation.component.ts`](src/app/pages/presentation/presentation.component.ts)).
+
+### UI — email verification
+- **Verify Code** submit uses the outlined blue chip style (full-width unchanged) ([`verification-dialog.component.ts`](src/app/components/verification-dialog/verification-dialog.component.ts)).
+- **Send Verification Code** and **Complete Registration** on login use the outlined green chip style (elevated white fill on the gradient for verification; standard green chip for registration) ([`login.component.ts`](src/app/pages/login/login.component.ts)).
+
+### UI — dark mode form fields
+- Toned-down inset surfaces use **`bg-inset-surface`** (form inputs), **`bg-inset-surface-muted`** (prayer search, prayer update rows), and **`bg-inset-surface-interactive`** (help topic rows with hover) in [`styles.css`](src/styles.css): light gray fills on white cards; **`rgb(55 65 81 / 0.6)`** in dark mode (**`/0.8` on help row hover**). Custom `bg-gray-50` / `bg-gray-100` utilities force solid dark fills with `!important`, so they must not be paired with `dark:bg-gray-700/*`. Neutral borders on update rows. Applied across prayer filters/search, prayer form, edit modals, login, verification, rich text editor, [`prayer-card`](src/app/components/prayer-card/prayer-card.component.ts), [`prayer-display-card`](src/app/components/prayer-display-card/prayer-display-card.component.ts), [`help-modal`](src/app/components/help-modal/help-modal.component.ts), [`admin-help-modal`](src/app/components/admin-help-modal/admin-help-modal.component.ts), and related surfaces.
+
+### UI — personal prayer edit
+- **Edit Prayer** modal **Save Changes** uses outlined blue (prayer); **Edit Prayer Update** uses outlined green (update) ([`personal-prayer-edit-modal.component.ts`](src/app/components/personal-prayer-edit-modal/personal-prayer-edit-modal.component.ts), [`personal-prayer-update-edit-modal.component.ts`](src/app/components/personal-prayer-update-edit-modal/personal-prayer-update-edit-modal.component.ts)).
+
+### UI — bible passage picker
+- Selected chapter and verse tiles use outlined blue chip style instead of solid fill ([`bible-passage-picker-modal.component.ts`](src/app/components/bible-passage-picker-modal/bible-passage-picker-modal.component.ts)).
+
+### UI — confirmation dialog
+- Shared **Confirm** buttons use outlined blue (normal) or outlined red (`isDangerous`) chip style ([`confirmation-dialog.component.ts`](src/app/components/confirmation-dialog/confirmation-dialog.component.ts)).
+
+### UI — add prayer update
+- Home prayer cards (community, personal, and member) open **Add Prayer Update** in a modal instead of an inline form. Dismiss via header **X** or backdrop; no footer **Cancel** ([`prayer-add-update-modal.component.ts`](src/app/components/prayer-add-update-modal/prayer-add-update-modal.component.ts), [`prayer-card.component.ts`](src/app/components/prayer-card/prayer-card.component.ts)).
+- **Deletion request modal**: Non-admin community prayer deletion requests open in a modal with the same dismiss pattern (header **X**, backdrop, no footer **Cancel**) ([`prayer-delete-request-modal.component.ts`](src/app/components/prayer-delete-request-modal/prayer-delete-request-modal.component.ts)). The same modal is reused for **update deletion** requests on prayer cards. **Submit Request** uses the outlined red chip style (matches settings delete actions). Draft reason clears when switching between prayer vs update deletion (or between updates) without closing the modal.
+- **Modal form reset**: Add-update and deletion-request modals clear draft fields when `isOpen` becomes false (e.g. parent toggles the modal without emitting `close`), so reopening does not show stale content.
+- **Shared modal shell**: [`modal-shell.component.ts`](src/app/components/modal-shell/modal-shell.component.ts) centralizes overlay, header, close button, and backdrop dismiss (`target === currentTarget`) for prayer request, add-update, delete-request, and personal edit modals.
+- **Deletion request modal**: Single instance on prayer cards with `requestType` (`prayer` | `update`) instead of two duplicate components.
+- **Outlined chip utilities**: Shared **`btn-chip`** / **`btn-chip-blue`** / **`btn-chip-green`** / **`btn-chip-gray`** / **`btn-chip-red`** / **`btn-chip-green-elevated`** in [`styles.css`](src/styles.css) replace duplicated Tailwind strings on Home, prayer cards, settings, login, presentation empty state, and modal submit buttons.
+- **Personal edit modals**: **Edit Prayer** and **Edit Prayer Update** modals match the same pattern—footer **Cancel** removed; **Save Changes** is right-aligned; dismiss via header **X** or backdrop ([`personal-prayer-edit-modal.component.ts`](src/app/components/personal-prayer-edit-modal/personal-prayer-edit-modal.component.ts), [`personal-prayer-update-edit-modal.component.ts`](src/app/components/personal-prayer-update-edit-modal/personal-prayer-update-edit-modal.component.ts)).
 
 ### Admin — OpenAI API key spend (Recite)
 - **Memorization Recite Mode**: OpenAI spend in admin is filtered to the Whisper API key (`OPENAI_API_KEY_ID`) instead of org-wide totals ([`get-openai-org-usage`](../supabase/functions/get-openai-org-usage/index.ts), [`memorization-recite-settings`](src/app/components/memorization-recite-settings/memorization-recite-settings.component.ts)). Requires **`OPENAI_ADMIN_KEY`** plus **`OPENAI_API_KEY_ID`** (tracking id from the OpenAI dashboard, not the `sk-…` secret). Admin panel shows only OpenAI-reported spend (app-tracked estimate removed from UI).

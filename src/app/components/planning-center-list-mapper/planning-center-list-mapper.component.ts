@@ -75,13 +75,13 @@ interface EmailSubscriber {
               [(ngModel)]="subscriberSearch"
               (input)="filterSubscribers()"
               placeholder="Search by name or email..."
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-inset-surface text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
           <!-- Subscriber dropdown -->
           @if (filteredSubscribers.length > 0) {
-            <div class="mt-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 max-h-48 overflow-y-auto z-10">
+            <div class="mt-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 max-h-48 overflow-y-auto z-10">
               @for (subscriber of filteredSubscribers; track subscriber.id) {
                 <button
                   (click)="selectSubscriber(subscriber)"
@@ -116,7 +116,7 @@ interface EmailSubscriber {
                 (input)="filterLists()"
                 [disabled]="loadingLists"
                 placeholder="Search Planning Center lists..."
-                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-inset-surface text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               />
               @if (loadingLists) {
                 <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -127,7 +127,7 @@ interface EmailSubscriber {
 
             <!-- Lists dropdown -->
             @if (filteredLists.length > 0) {
-              <div class="mt-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 max-h-48 overflow-y-auto z-10">
+              <div class="mt-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 max-h-48 overflow-y-auto z-10">
                 @for (list of filteredLists; track list.id) {
                   <button
                     (click)="selectList(list)"
@@ -187,7 +187,7 @@ interface EmailSubscriber {
           @if (mappings.length > 0) {
             <div class="space-y-2">
               @for (mapping of mappings; track mapping.id) {
-                <div class="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div class="flex items-center justify-between gap-4 p-4 bg-inset-surface rounded-lg border border-gray-200 dark:border-gray-600">
                   <div class="min-w-0 flex-1">
                     <div class="font-medium text-gray-900 dark:text-gray-100">{{ mapping.name }}</div>
                     <div class="text-sm text-gray-600 dark:text-gray-400 truncate">{{ mapping.email }}</div>
