@@ -4,8 +4,6 @@ import {
   Input,
   Output,
   ChangeDetectionStrategy,
-  ViewChild,
-  ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -48,22 +46,19 @@ import {
           </span>
         </button>
       }
-      <button
-        type="button"
-        class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline text-center px-0.5 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+      <label
+        class="relative inline-flex items-center text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline text-center px-0.5 py-1 cursor-pointer rounded focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500"
         [class.mt-1]="layout === 'stack'"
         aria-label="Choose custom color"
-        (click)="openNativePicker()"
       >
         Custom
-      </button>
-      <input
-        #nativeColorInput
-        type="color"
-        class="sr-only"
-        [value]="nativeInputValue"
-        (input)="onNativeInput($event)"
-      />
+        <input
+          type="color"
+          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          [value]="nativeInputValue"
+          (input)="onNativeInput($event)"
+        />
+      </label>
     </div>
   `,
 })
@@ -75,8 +70,6 @@ export class PersonalCategoryColorPickerComponent {
   /** `stack` — vertical list (card popover). `inline` — horizontal row with wrap (forms). */
   @Input() layout: 'stack' | 'inline' = 'stack';
   @Output() colorChange = new EventEmitter<string>();
-
-  @ViewChild('nativeColorInput') nativeColorInputRef?: ElementRef<HTMLInputElement>;
 
   get normalizedColor(): string {
     return normalizePersonalCategoryHexColor(this.color) ?? '#2563EB';
@@ -102,10 +95,6 @@ export class PersonalCategoryColorPickerComponent {
     if (normalized) {
       this.colorChange.emit(normalized);
     }
-  }
-
-  openNativePicker(): void {
-    this.nativeColorInputRef?.nativeElement.click();
   }
 
   onNativeInput(event: Event): void {
