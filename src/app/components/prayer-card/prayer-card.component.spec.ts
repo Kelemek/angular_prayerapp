@@ -245,6 +245,16 @@ describe('PrayerCardComponent', () => {
     expect(updateSpy).toHaveBeenCalledWith({ reason: 'Update reason' });
   });
 
+  it('onAddUpdateSubmit ignores invalid payloads (e.g. native submit events)', () => {
+    const spy = vi.spyOn(component.addUpdate, 'emit');
+    component.showAddUpdateForm = true;
+
+    component.onAddUpdateSubmit({} as any);
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(component.showAddUpdateForm).toBe(true);
+  });
+
   it('onAddUpdateSubmit emits and closes modal', () => {
     const spy = vi.spyOn(component.addUpdate, 'emit');
 

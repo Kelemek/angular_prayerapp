@@ -345,14 +345,22 @@ export class RichTextEditorComponent
    * Call this immediately before reading the model on form submit so lists and the last
    * keystroke are not lost (ProseMirror may not have fired onUpdate yet).
    */
-  flushMarkdownToForm(): void {
-    if (!this.editor || this.disabled) return;
-    const storage = this.editor.storage as unknown as Record<string, { getMarkdown?: () => string } | undefined>;
-    const md = storage['markdown']?.getMarkdown?.() ?? '';
+  flushMarkdownToForm(): string {
+    if (!this.editor || this.disabled) return this.value ?? '';
+    const md = this.peekMarkdown();
     this.lastEmitted = md;
+    this.value = md;
     this.onChange(md);
     this.valueChange.emit(md);
     this.cdr.markForCheck();
+    return md;
+  }
+
+  /** Read current editor markdown without syncing ngModel (safe for validation). */
+  peekMarkdown(): string {
+    if (!this.editor || this.disabled) return this.value ?? '';
+    const storage = this.editor.storage as unknown as Record<string, { getMarkdown?: () => string } | undefined>;
+    return storage['markdown']?.getMarkdown?.() ?? this.value ?? '';
   }
 
   /** Exposes plain text length (useful for required-validation callers). */

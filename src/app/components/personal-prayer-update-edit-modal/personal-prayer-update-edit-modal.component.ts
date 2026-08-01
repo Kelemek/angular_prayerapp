@@ -18,6 +18,7 @@ import { ToastService } from "../../services/toast.service";
 import { RichTextEditorsSettingsService } from "../../services/rich-text-editors-settings.service";
 import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";
 import { ModalShellComponent } from "../modal-shell/modal-shell.component";
+import { resolvePrayerUpdateContent } from "../../lib/prayer-update-content";
 
 @Component({
   selector: "app-personal-prayer-update-edit-modal",
@@ -33,7 +34,7 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
     >
         <form
           #editForm="ngForm"
-          (ngSubmit)="editForm.valid && handleSubmit()"
+          (ngSubmit)="canSave() && handleSubmit()"
           class="p-6 space-y-4"
         >
           <!-- Content -->
@@ -72,7 +73,7 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
           <div class="flex justify-end pt-4">
             <button
               type="submit"
-              [disabled]="!editForm.valid || isSubmitting"
+              [disabled]="!canSave()"
               class="min-h-12 px-8 py-3 text-base font-medium btn-chip btn-chip-green disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Save changes"
             >
@@ -132,6 +133,27 @@ export class PersonalPrayerUpdateEditModalComponent
     }
   }
 
+  canSave(): boolean {
+    if (this.isSubmitting) {
+      return false;
+    }
+    return !!resolvePrayerUpdateContent(this.readContentForValidation(), false);
+  }
+
+  private readContentForValidation(): string {
+    if (this.contentEditor) {
+      const plain = this.contentEditor.getPlainText().trim();
+      if (plain) {
+        return plain;
+      }
+      const markdown = this.contentEditor.peekMarkdown().trim();
+      if (markdown) {
+        return markdown;
+      }
+    }
+    return this.formData.content;
+  }
+
   async handleSubmit(): Promise<void> {
     if (this.isSubmitting || !this.update) return;
 
@@ -139,10 +161,17 @@ export class PersonalPrayerUpdateEditModalComponent
       this.isSubmitting = true;
       this.cdr.markForCheck();
 
-      this.contentEditor?.flushMarkdownToForm();
+      const flushed = this.contentEditor?.flushMarkdownToForm();
+      const rawContent =
+        flushed !== undefined ? flushed : this.formData.content;
+      const content = resolvePrayerUpdateContent(rawContent, false);
+      if (!content) {
+        this.toast.error("Please enter update content");
+        return;
+      }
 
       const updates: Partial<PrayerUpdate> = {
-        content: this.formData.content,
+        content,
       };
 
       let success: boolean;

@@ -7,6 +7,7 @@ import { VerificationService } from './verification.service';
 import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
+import { resolvePrayerUpdateContent } from '../lib/prayer-update-content';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type PrayerStatus = 'current' | 'answered' | 'archived';
@@ -2090,9 +2091,15 @@ export class PrayerService {
     markAsAnswered: boolean = false
   ): Promise<boolean> {
     try {
+      const resolvedContent = resolvePrayerUpdateContent(content, markAsAnswered);
+      if (!resolvedContent) {
+        this.toast.error("Please enter update content");
+        return false;
+      }
+
       const updateData = {
         personal_prayer_id: personalPrayerId,
-        content,
+        content: resolvedContent,
         author,
         author_email: authorEmail,
         mark_as_answered: markAsAnswered

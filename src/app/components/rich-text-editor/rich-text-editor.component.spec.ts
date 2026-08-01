@@ -111,10 +111,11 @@ describe('RichTextEditorComponent', () => {
     component.valueChange.subscribe((v) => (emitted = v));
 
     component.editor?.commands.setContent('<p>flush me</p>');
-    component.flushMarkdownToForm();
+    const result = component.flushMarkdownToForm();
 
     expect(onChange).toHaveBeenCalled();
     expect(typeof emitted).toBe('string');
+    expect(result).toContain('flush me');
   });
 
   it('round-trips ++underline++ markdown when loading existing content', () => {
@@ -137,6 +138,20 @@ describe('RichTextEditorComponent', () => {
   it('getPlainText returns editor text content', () => {
     component.editor?.commands.setContent('<p>plain text</p>');
     expect(component.getPlainText()).toContain('plain text');
+  });
+
+  it('peekMarkdown returns current markdown without syncing ngModel', () => {
+    const onChange = vi.fn();
+    component.registerOnChange(onChange);
+    const md =
+      '![screenshot](https://cpprayer.cp-church.org/marketing/memorize/01-find-memorize.png)';
+    component.writeValue(md);
+    onChange.mockClear();
+
+    const peeked = component.peekMarkdown();
+
+    expect(peeked).toContain('![screenshot]');
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('runToolbarAction is ignored when disabled', () => {

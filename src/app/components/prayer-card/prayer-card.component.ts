@@ -26,6 +26,7 @@ import { RichTextViewComponent } from '../rich-text-view/rich-text-view.componen
 import {
   PrayerAddUpdateModalComponent,
   PrayerAddUpdatePayload,
+  isPrayerAddUpdatePayload,
 } from '../prayer-add-update-modal/prayer-add-update-modal.component';
 import {
   PrayerDeleteRequestModalComponent,
@@ -219,7 +220,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         [richTextEditorsEnabled]="richTextEditorsEnabled"
         [tourElementIds]="addUpdateTourElementIds"
         (close)="closeAddUpdateForm()"
-        (submit)="onAddUpdateSubmit($event)"
+        (updateSubmit)="onAddUpdateSubmit($event)"
       />
 
       <app-prayer-delete-request-modal
@@ -895,6 +896,10 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onAddUpdateSubmit(payload: PrayerAddUpdatePayload): void {
+    if (!isPrayerAddUpdatePayload(payload)) {
+      return;
+    }
+
     const userEmail = this.getCurrentUserEmail();
 
     const userSession = this.userSessionService.getCurrentSession();

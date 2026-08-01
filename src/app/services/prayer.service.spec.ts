@@ -4469,6 +4469,45 @@ describe('PrayerService - Integration Tests', () => {
       expect(updated[0].updates[0].mark_as_answered).toBe(true);
     });
 
+    it('addPersonalPrayerUpdate uses default content when marking answered with empty body', async () => {
+      let insertedContent: string | undefined;
+      mockSupabaseService.client.from.mockImplementation((table: string) => {
+        if (table === 'personal_prayer_updates') {
+          return {
+            insert: (data: { content: string }) => {
+              insertedContent = data.content;
+              return {
+                select: () => Promise.resolve({
+                  data: [{
+                    id: 'u1',
+                    content: data.content,
+                    author: 'Me',
+                    author_email: 'me@test.com',
+                    mark_as_answered: true,
+                    created_at: new Date().toISOString()
+                  }],
+                  error: null
+                })
+              };
+            }
+          };
+        }
+        return { insert: () => Promise.resolve({ data: null, error: null }) };
+      });
+
+      const result = await service.addPersonalPrayerUpdate('p1', '', 'Me', 'me@test.com', true);
+
+      expect(result).toBe(true);
+      expect(insertedContent).toBe('Marked as answered');
+    });
+
+    it('addPersonalPrayerUpdate rejects empty content when not marking answered', async () => {
+      const result = await service.addPersonalPrayerUpdate('p1', '', 'Me', 'me@test.com', false);
+
+      expect(result).toBe(false);
+      expect(mockToastService.error).toHaveBeenCalledWith('Please enter update content');
+    });
+
     it('addPersonalPrayerUpdate handles database error', async () => {
       mockSupabaseService.client.from.mockImplementation((table: string) => {
         if (table === 'personal_prayer_updates') {

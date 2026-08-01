@@ -11,11 +11,31 @@ import {
 import { FormsModule } from "@angular/forms";
 import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";
 import { ModalShellComponent } from "../modal-shell/modal-shell.component";
+import { ToastService } from "../../services/toast.service";
+import {
+  MARK_AS_ANSWERED_DEFAULT_UPDATE_CONTENT,
+  resolvePrayerUpdateContent,
+} from "../../lib/prayer-update-content";
+
+export { MARK_AS_ANSWERED_DEFAULT_UPDATE_CONTENT };
 
 export interface PrayerAddUpdatePayload {
   content: string;
   is_anonymous: boolean;
   mark_as_answered: boolean;
+}
+
+/** Rejects native DOM `SubmitEvent` objects that collide with the old `submit` output name. */
+export function isPrayerAddUpdatePayload(
+  value: unknown
+): value is PrayerAddUpdatePayload {
+  if (typeof value !== "object" || value === null) return false;
+  const p = value as PrayerAddUpdatePayload;
+  return (
+    typeof p.content === "string" &&
+    typeof p.is_anonymous === "boolean" &&
+    typeof p.mark_as_answered === "boolean"
+  );
 }
 
 @Component({
@@ -33,7 +53,7 @@ export interface PrayerAddUpdatePayload {
     >
       <form
         #updateForm="ngForm"
-        (ngSubmit)="updateForm.valid && handleSubmit()"
+        (ngSubmit)="canSubmit() && handleSubmit()"
         class="p-6 space-y-4"
       >
         <div [attr.id]="updateContentElementId">
@@ -43,7 +63,6 @@ export interface PrayerAddUpdatePayload {
             [(ngModel)]="updateContent"
             name="updateContent"
             ngDefaultControl
-            required
             ariaLabel="Prayer update details"
             placeholder="Prayer update..."
             minHeight="5rem"
@@ -52,7 +71,6 @@ export interface PrayerAddUpdatePayload {
           <textarea
             [(ngModel)]="updateContent"
             name="updateContent"
-            required
             rows="6"
             aria-label="Prayer update details"
             placeholder="Prayer update..."
@@ -105,7 +123,7 @@ export interface PrayerAddUpdatePayload {
           <button
             type="submit"
             [attr.id]="submitButtonId"
-            [disabled]="!updateForm.valid"
+            [disabled]="!canSubmit()"
             class="btn-chip btn-chip-green min-h-11 px-6 py-2.5 text-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Submit prayer update"
           >
@@ -136,11 +154,15 @@ export class PrayerAddUpdateModalComponent implements OnChanges {
   } | null = null;
 
   @Output() close = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<PrayerAddUpdatePayload>();
+  /** Named `updateSubmit` to avoid collision with the native form `submit` event. */
+  @Output() updateSubmit = new EventEmitter<PrayerAddUpdatePayload>();
 
   updateContent = "";
   updateIsAnonymous = false;
   updateMarkAsAnswered = false;
+  private isSubmitting = false;
+
+  constructor(private toast: ToastService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes["isOpen"]?.currentValue === false) {
@@ -181,14 +203,58 @@ export class PrayerAddUpdateModalComponent implements OnChanges {
     return !this.isPersonal && !this.prayerId.startsWith("pc-member-");
   }
 
+  canSubmit(): boolean {
+    if (this.isSubmitting) {
+      return false;
+    }
+    if (this.updateMarkAsAnswered) {
+      return true;
+    }
+    return !!resolvePrayerUpdateContent(this.readContentForValidation(), false);
+  }
+
   handleSubmit(): void {
-    this.addUpdateRichText?.flushMarkdownToForm();
-    this.submit.emit({
-      content: this.updateContent,
+    if (this.isSubmitting) {
+      return;
+    }
+
+    const rawContent = this.readRawContent();
+    const content = resolvePrayerUpdateContent(
+      rawContent,
+      this.updateMarkAsAnswered
+    );
+    if (!content) {
+      this.toast.error("Please enter update content");
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.updateSubmit.emit({
+      content,
       is_anonymous: this.updateIsAnonymous,
       mark_as_answered: this.updateMarkAsAnswered,
     });
-    this.resetForm();
+  }
+
+  private readRawContent(): string {
+    if (this.addUpdateRichText) {
+      return this.addUpdateRichText.flushMarkdownToForm();
+    }
+    return this.updateContent;
+  }
+
+  private readContentForValidation(): string {
+    if (this.addUpdateRichText) {
+      const plain = this.addUpdateRichText.getPlainText().trim();
+      if (plain) {
+        return plain;
+      }
+      const markdown = this.addUpdateRichText.peekMarkdown().trim();
+      if (markdown) {
+        return markdown;
+      }
+    }
+    return this.updateContent;
   }
 
   closeModal(): void {
@@ -197,6 +263,7 @@ export class PrayerAddUpdateModalComponent implements OnChanges {
   }
 
   private resetForm(): void {
+    this.isSubmitting = false;
     this.updateContent = "";
     this.updateIsAnonymous = false;
     this.updateMarkAsAnswered = false;

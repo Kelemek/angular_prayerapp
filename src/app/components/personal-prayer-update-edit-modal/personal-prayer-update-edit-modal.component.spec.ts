@@ -344,7 +344,7 @@ describe('PersonalPrayerUpdateEditModalComponent', () => {
   });
 
   describe('Form Submission Integration', () => {
-    it('should allow empty content to be submitted', async () => {
+    it('should reject empty content on submit', async () => {
       prayerService.updatePersonalPrayerUpdate.mockResolvedValue(true);
 
       component.isOpen = true;
@@ -354,13 +354,8 @@ describe('PersonalPrayerUpdateEditModalComponent', () => {
 
       await component.handleSubmit();
 
-      expect(prayerService.updatePersonalPrayerUpdate).toHaveBeenCalledWith(
-        'update-123',
-        'prayer-123',
-        {
-          content: ''
-        }
-      );
+      expect(prayerService.updatePersonalPrayerUpdate).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalledWith('Please enter update content');
     });
 
     it('should submit content with special characters', async () => {
@@ -409,6 +404,7 @@ describe('PersonalPrayerUpdateEditModalComponent', () => {
       component.isOpen = true;
       component.update = mockUpdate;
       component.prayerId = 'prayer-123';
+      component.formData.content = 'Valid update content';
 
       const firstSubmit = component.handleSubmit();
       const secondSubmit = component.handleSubmit();
@@ -466,7 +462,7 @@ describe('PersonalPrayerUpdateEditModalComponent', () => {
       );
     });
 
-    it('should properly handle whitespace-only content', async () => {
+    it('should reject whitespace-only content', async () => {
       prayerService.updatePersonalPrayerUpdate.mockResolvedValue(true);
 
       component.isOpen = true;
@@ -476,13 +472,19 @@ describe('PersonalPrayerUpdateEditModalComponent', () => {
 
       await component.handleSubmit();
 
-      expect(prayerService.updatePersonalPrayerUpdate).toHaveBeenCalledWith(
-        'update-123',
-        'prayer-123',
-        {
-          content: '   \n  \t  '
-        }
-      );
+      expect(prayerService.updatePersonalPrayerUpdate).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalledWith('Please enter update content');
+    });
+
+    it('canSave returns false for whitespace-only content', () => {
+      component.formData.content = '   \n  \t  ';
+      expect(component.canSave()).toBe(false);
+    });
+
+    it('canSave returns false while submitting', () => {
+      component.formData.content = 'Valid content';
+      component.isSubmitting = true;
+      expect(component.canSave()).toBe(false);
     });
   });
 
