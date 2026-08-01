@@ -6,6 +6,7 @@ Major features and milestones for the Prayer App.
 
 ### UI — prayer request modal (mobile)
 - **New Prayer Request** and other **`ModalShell`** dialogs lock background scroll (body, document root, and `.safe-area-viewport`), scroll only inside the modal body, and resize to the visual viewport when the keyboard is open so fields like **Category** stay reachable ([`modal-shell.component.ts`](src/app/components/modal-shell/modal-shell.component.ts)).
+- On mobile, modals align to the **top** of the visible viewport (not vertically centered) so more of the form is visible above the keyboard; desktop keeps centered placement.
 
 ### UI — prayer card actions
 - **Add Update**, **Pray For**, praying-count badge, and disabled **Prayed For** use the same **`rounded-md`** corner radius on home cards, presentation cards, and shared **`btn-chip`** buttons ([`styles.css`](src/styles.css), [`prayer-display-card.component.ts`](src/app/components/prayer-display-card/prayer-display-card.component.ts)).

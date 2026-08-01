@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
   OnInit,
   OnDestroy,
+  AfterViewInit,
   ElementRef,
   ViewChild,
   ChangeDetectorRef,
@@ -18,6 +19,16 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
+      .modal-shell-overlay {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+
+      @media (min-width: 640px) {
+        .modal-shell-overlay {
+          padding-top: max(16px, env(safe-area-inset-top, 0px));
+        }
+      }
+
       .modal-shell-body {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
@@ -26,8 +37,12 @@ import {
   ],
   template: `
     <div
-      class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4 overflow-hidden overscroll-none touch-none safe-area-overlay"
-      style="padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom));"
+      #overlay
+      class="modal-shell-overlay fixed inset-0 bg-gray-900/50 z-50 flex items-start sm:items-center justify-center px-2 pb-2 sm:px-4 sm:pb-4 overflow-hidden overscroll-none touch-none safe-area-overlay"
+      [style.top]="overlayTop"
+      [style.left]="overlayLeft"
+      [style.width]="overlayWidth"
+      [style.height]="overlayHeight"
       (click)="onBackdropClick($event)"
       (touchmove)="onOverlayTouchMove($event)"
     >
@@ -41,7 +56,7 @@ import {
         [attr.aria-labelledby]="titleId"
       >
         <div
-          class="flex shrink-0 items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 touch-none"
+          class="flex shrink-0 items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 touch-none"
         >
           <h2
             [id]="titleId"
@@ -82,7 +97,7 @@ import {
     </div>
   `,
 })
-export class ModalShellComponent implements OnInit, OnDestroy {
+export class ModalShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly TOUCH_GUARD_OPTIONS: AddEventListenerOptions = {
     passive: false,
     capture: true,
@@ -96,9 +111,15 @@ export class ModalShellComponent implements OnInit, OnDestroy {
   @Output() close = new EventEmitter<void>();
 
   @ViewChild("bodyScroller") private bodyScroller?: ElementRef<HTMLElement>;
+  @ViewChild("overlay") private overlayRef?: ElementRef<HTMLElement>;
 
   /** Fits panel inside visual viewport when mobile keyboard is open. */
   panelMaxHeight = "min(90dvh, 100%)";
+
+  overlayTop = "0";
+  overlayLeft = "0";
+  overlayWidth = "100%";
+  overlayHeight = "100%";
 
   private scrollLockEl: HTMLElement | null = null;
   private scrollLockPreviousOverflow = "";
@@ -115,11 +136,33 @@ export class ModalShellComponent implements OnInit, OnDestroy {
   private readonly onVisualViewportChange = (): void => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const pad = 32;
-    const max = Math.max(120, Math.floor(vv.height - pad));
+
+    this.overlayTop = `${vv.offsetTop}px`;
+    this.overlayLeft = `${vv.offsetLeft}px`;
+    this.overlayWidth = `${vv.width}px`;
+    this.overlayHeight = `${vv.height}px`;
+
+    const overlayPadTop = this.readOverlayPaddingTop();
+    const overlayPadBottom = this.readOverlayPaddingBottom();
+    const max = Math.max(
+      120,
+      Math.floor(vv.height - overlayPadTop - overlayPadBottom)
+    );
     this.panelMaxHeight = `${max}px`;
     this.cdr.markForCheck();
   };
+
+  private readOverlayPaddingTop(): number {
+    const overlay = this.overlayRef?.nativeElement;
+    if (!overlay) return 0;
+    return parseFloat(window.getComputedStyle(overlay).paddingTop) || 0;
+  }
+
+  private readOverlayPaddingBottom(): number {
+    const overlay = this.overlayRef?.nativeElement;
+    if (!overlay) return 8;
+    return parseFloat(window.getComputedStyle(overlay).paddingBottom) || 8;
+  }
 
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -130,6 +173,9 @@ export class ModalShellComponent implements OnInit, OnDestroy {
       this.blockBackgroundTouchMove,
       ModalShellComponent.TOUCH_GUARD_OPTIONS
     );
+  }
+
+  ngAfterViewInit(): void {
     this.bindVisualViewport();
   }
 
@@ -174,7 +220,7 @@ export class ModalShellComponent implements OnInit, OnDestroy {
     if (!vv) return;
     vv.addEventListener("resize", this.onVisualViewportChange);
     vv.addEventListener("scroll", this.onVisualViewportChange);
-    this.onVisualViewportChange();
+    requestAnimationFrame(() => this.onVisualViewportChange());
   }
 
   private unbindVisualViewport(): void {
