@@ -4,27 +4,44 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  OnInit,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  ChangeDetectorRef,
+  inject,
 } from "@angular/core";
 
 @Component({
   selector: "app-modal-shell",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      .modal-shell-body {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+    `,
+  ],
   template: `
     <div
-      class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4"
+      class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4 overflow-hidden overscroll-none touch-none safe-area-overlay"
+      style="padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom));"
       (click)="onBackdropClick($event)"
+      (touchmove)="onOverlayTouchMove($event)"
     >
       <div
         [id]="panelId || null"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        class="modal-shell-panel flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full overflow-hidden touch-none"
+        [style.max-height]="panelMaxHeight"
         (click)="$event.stopPropagation()"
         role="dialog"
         aria-modal="true"
         [attr.aria-labelledby]="titleId"
       >
         <div
-          class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700"
+          class="flex shrink-0 items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 touch-none"
         >
           <h2
             [id]="titleId"
@@ -54,12 +71,23 @@ import {
             </svg>
           </button>
         </div>
-        <ng-content />
+        <div
+          #bodyScroller
+          class="modal-shell-body flex-1 min-h-0 overflow-y-auto touch-pan-y"
+          (focusin)="onBodyFocusIn($event)"
+        >
+          <ng-content />
+        </div>
       </div>
     </div>
   `,
 })
-export class ModalShellComponent {
+export class ModalShellComponent implements OnInit, OnDestroy {
+  private static readonly TOUCH_GUARD_OPTIONS: AddEventListenerOptions = {
+    passive: false,
+    capture: true,
+  };
+
   @Input() title = "";
   @Input() titleId = "modal-title";
   @Input() panelId = "";
@@ -67,9 +95,129 @@ export class ModalShellComponent {
 
   @Output() close = new EventEmitter<void>();
 
+  @ViewChild("bodyScroller") private bodyScroller?: ElementRef<HTMLElement>;
+
+  /** Fits panel inside visual viewport when mobile keyboard is open. */
+  panelMaxHeight = "min(90dvh, 100%)";
+
+  private scrollLockEl: HTMLElement | null = null;
+  private scrollLockPreviousOverflow = "";
+  private scrollLockPreviousTouchAction = "";
+  private bodyPreviousOverflow = "";
+  private htmlPreviousOverflow = "";
+
+  private readonly blockBackgroundTouchMove = (event: TouchEvent): void => {
+    if (!this.isAllowedScrollTouch(event)) {
+      event.preventDefault();
+    }
+  };
+
+  private readonly onVisualViewportChange = (): void => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const pad = 32;
+    const max = Math.max(120, Math.floor(vv.height - pad));
+    this.panelMaxHeight = `${max}px`;
+    this.cdr.markForCheck();
+  };
+
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  ngOnInit(): void {
+    this.lockBackgroundScroll();
+    document.addEventListener(
+      "touchmove",
+      this.blockBackgroundTouchMove,
+      ModalShellComponent.TOUCH_GUARD_OPTIONS
+    );
+    this.bindVisualViewport();
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener(
+      "touchmove",
+      this.blockBackgroundTouchMove,
+      ModalShellComponent.TOUCH_GUARD_OPTIONS
+    );
+    this.unlockBackgroundScroll();
+    this.unbindVisualViewport();
+  }
+
   onBackdropClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
       this.close.emit();
     }
+  }
+
+  onOverlayTouchMove(event: TouchEvent): void {
+    if (!this.isAllowedScrollTouch(event)) {
+      event.preventDefault();
+    }
+  }
+
+  onBodyFocusIn(event: FocusEvent): void {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
+
+  private isAllowedScrollTouch(event: TouchEvent): boolean {
+    if (!(event.target instanceof Node)) return false;
+    const scroller = this.bodyScroller?.nativeElement;
+    return !!(scroller && scroller.contains(event.target));
+  }
+
+  private bindVisualViewport(): void {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    vv.addEventListener("resize", this.onVisualViewportChange);
+    vv.addEventListener("scroll", this.onVisualViewportChange);
+    this.onVisualViewportChange();
+  }
+
+  private unbindVisualViewport(): void {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    vv.removeEventListener("resize", this.onVisualViewportChange);
+    vv.removeEventListener("scroll", this.onVisualViewportChange);
+  }
+
+  private lockBackgroundScroll(): void {
+    this.bodyPreviousOverflow = document.body.style.overflow;
+    this.htmlPreviousOverflow = document.documentElement.style.overflow;
+
+    const scroller = this.findPageScrollContainer();
+    if (scroller !== document.documentElement && scroller !== document.body) {
+      this.scrollLockEl = scroller;
+      this.scrollLockPreviousOverflow = scroller.style.overflow;
+      this.scrollLockPreviousTouchAction = scroller.style.touchAction;
+      scroller.style.overflow = "hidden";
+      scroller.style.touchAction = "none";
+    } else {
+      this.scrollLockEl = null;
+      this.scrollLockPreviousOverflow = "";
+      this.scrollLockPreviousTouchAction = "";
+    }
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+  }
+
+  private unlockBackgroundScroll(): void {
+    if (this.scrollLockEl) {
+      this.scrollLockEl.style.overflow = this.scrollLockPreviousOverflow;
+      this.scrollLockEl.style.touchAction = this.scrollLockPreviousTouchAction;
+      this.scrollLockEl = null;
+    }
+    document.body.style.overflow = this.bodyPreviousOverflow;
+    document.documentElement.style.overflow = this.htmlPreviousOverflow;
+  }
+
+  private findPageScrollContainer(): HTMLElement {
+    const viewport = document.querySelector(".safe-area-viewport");
+    if (viewport instanceof HTMLElement) return viewport;
+    return document.documentElement;
   }
 }
