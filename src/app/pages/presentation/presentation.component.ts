@@ -6,6 +6,8 @@ import {
   ChangeDetectorRef,
   NgZone,
   ChangeDetectionStrategy,
+  ViewChild,
+  ElementRef,
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { interval, Subscription, Subject } from "rxjs";
@@ -35,6 +37,11 @@ import {
 import { PresentationToolbarComponent } from "../../components/presentation-toolbar/presentation-toolbar.component";
 import { PrayerDisplayCardComponent } from "../../components/prayer-display-card/prayer-display-card.component";
 import { markdownToPlainText } from "../../../utils/markdown";
+import {
+  computePlayModeScrollTop,
+  findPresentationSlideScrollElement,
+  PRESENTATION_PLAY_SLIDE_FADE_MS,
+} from "../../../utils/presentationUtils";
 import { PresentationSettingsModalComponent } from "../../components/presentation-settings-modal/presentation-settings-modal.component";
 import {
   FULL_GUIDED_TOUR_CLOSING_SENTINEL,
@@ -76,11 +83,11 @@ type ThemeOption = "light" | "dark" | "system";
   ],
   template: `
     <div
-      class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white relative"
+      class="presentation-page-shell bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white relative"
     >
       <!-- Loading State -->
       @if (loading) {
-      <div class="w-full min-h-screen flex items-center justify-center">
+      <div class="presentation-main flex items-center justify-center px-3 md:px-6">
         <div class="flex flex-col items-center gap-4">
           <div
             class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
@@ -96,17 +103,25 @@ type ThemeOption = "light" | "dark" | "system";
       @if (!loading && items.length > 0) {
       <div
         [class]="
-          'h-screen flex flex-col justify-center px-3 md:px-6 py-6 transition-all duration-300 relative z-0 ' +
-          (showControls ? 'presentation-content-with-toolbar' : 'pb-6')
+          'presentation-main px-3 md:px-6 pt-3 md:pt-4 transition-all duration-300 relative z-0 ' +
+          (showControls ? 'presentation-content-with-toolbar' : 'pb-3 md:pb-4')
         "
       >
-        <div class="w-full max-w-6xl mx-auto h-full">
-          <div class="presentation-scroll card-stack-shadow h-full overflow-y-auto flex items-center">
-            <app-prayer-display-card
-              [prayer]="isPrayer(currentItem) ? currentItem : undefined"
-              [prompt]="isPrompt(currentItem) ? currentItem : undefined"
+        <div class="flex-1 min-h-0 w-full min-w-0 max-w-6xl mx-auto">
+          <div
+            #presentationScroll
+            class="presentation-scroll card-stack-shadow h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-x-none flex items-center"
+          >
+            <div
+              class="presentation-card-slot presentation-slide-fade w-full min-w-0 max-h-full min-h-0"
+              [class.presentation-slide-faded]="slideCardFaded"
             >
-            </app-prayer-display-card>
+              <app-prayer-display-card
+                [prayer]="isPrayer(currentItem) ? currentItem : undefined"
+                [prompt]="isPrompt(currentItem) ? currentItem : undefined"
+              >
+              </app-prayer-display-card>
+            </div>
           </div>
         </div>
       </div>
@@ -114,7 +129,7 @@ type ThemeOption = "light" | "dark" | "system";
 
       <!-- No Content Message -->
       @if (!loading && items.length === 0) {
-      <div class="w-full min-h-screen flex items-center justify-center">
+      <div class="presentation-main flex items-center justify-center px-3 md:px-6">
         <div class="text-center p-8">
           <div class="text-6xl mb-4">🙏</div>
           <h2
@@ -273,15 +288,19 @@ type ThemeOption = "light" | "dark" | "system";
       :host {
         display: block;
       }
-      .presentation-content-with-toolbar {
-        padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
-      }
       .presentation-scroll {
         scrollbar-width: none;
         -ms-overflow-style: none;
       }
       .presentation-scroll::-webkit-scrollbar {
         display: none;
+      }
+      .presentation-slide-fade {
+        transition: opacity 400ms ease-in-out;
+        opacity: 1;
+      }
+      .presentation-slide-faded {
+        opacity: 0;
       }
     `,
   ],
@@ -312,6 +331,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   showSettings = false;
   loading = true;
   showControls = true;
+  slideCardFaded = false;
   contentTypes: SelectablePresentationContentType[] = ["prayers"];
   statusFilters = { current: true, answered: true };
   timeFilter: PresentationTimeFilter = "all";
@@ -339,6 +359,18 @@ export class PresentationComponent implements OnInit, OnDestroy {
   private initialPeriodElapsed = false;
   /** True while a loop-off single-pass play session is in progress (including paused). */
   private loopOffPlaySessionActive = false;
+
+  @ViewChild("presentationScroll")
+  presentationScrollRef?: ElementRef<HTMLElement>;
+
+  private playScrollRafId: number | null = null;
+  private playScrollLayoutTimeout: ReturnType<typeof setTimeout> | null = null;
+  private playScrollStartTime: number | null = null;
+  private playScrollDurationMs = 0;
+  private playScrollMax = 0;
+  private playScrollElement: HTMLElement | null = null;
+
+  private slideFadeTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Touch/swipe handling
   private touchStart: number | null = null;
@@ -1315,14 +1347,10 @@ export class PresentationComponent implements OnInit, OnDestroy {
     this.countdownRemaining = duration;
 
     this.autoAdvanceInterval = setTimeout(() => {
-      const advanced = this.tryAdvanceSlide();
-      if (!advanced && !this.loop && this.items.length > 0) {
-        this.completePresentationCycle();
+      if (!this.isPlaying) {
         return;
       }
-      if (this.isPlaying) {
-        this.startAutoAdvance();
-      }
+      this.advanceWithPlayFade(() => this.tryAdvanceSlide());
     }, duration * 1000);
 
     this.countdownSubscription = interval(1000).subscribe(() => {
@@ -1333,6 +1361,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
         }
       });
     });
+
+    this.startPlayModeScroll(duration);
   }
 
   calculateCurrentDuration(): number {
@@ -1373,6 +1403,115 @@ export class PresentationComponent implements OnInit, OnDestroy {
     if (this.countdownSubscription) {
       this.countdownSubscription.unsubscribe();
       this.countdownSubscription = null;
+    }
+    this.clearPlayModeScroll();
+    this.clearSlideFadeTimeout();
+    this.slideCardFaded = false;
+  }
+
+  private clearSlideFadeTimeout(): void {
+    if (this.slideFadeTimeout !== null) {
+      clearTimeout(this.slideFadeTimeout);
+      this.slideFadeTimeout = null;
+    }
+  }
+
+  private advanceWithPlayFade(advance: () => boolean): void {
+    this.clearSlideFadeTimeout();
+    this.slideCardFaded = true;
+    this.cdr.markForCheck();
+
+    this.slideFadeTimeout = setTimeout(() => {
+      this.slideFadeTimeout = null;
+      const advanced = advance();
+      if (!advanced && !this.loop && this.items.length > 0) {
+        this.slideCardFaded = false;
+        this.completePresentationCycle();
+        return;
+      }
+      this.slideCardFaded = false;
+      this.cdr.markForCheck();
+      if (this.isPlaying) {
+        this.startAutoAdvance();
+      }
+    }, PRESENTATION_PLAY_SLIDE_FADE_MS);
+  }
+
+  private clearPlayModeScroll(): void {
+    if (this.playScrollLayoutTimeout !== null) {
+      clearTimeout(this.playScrollLayoutTimeout);
+      this.playScrollLayoutTimeout = null;
+    }
+    if (this.playScrollRafId !== null) {
+      cancelAnimationFrame(this.playScrollRafId);
+      this.playScrollRafId = null;
+    }
+    this.playScrollStartTime = null;
+    this.playScrollElement = null;
+    this.playScrollMax = 0;
+    this.playScrollDurationMs = 0;
+  }
+
+  private startPlayModeScroll(durationSeconds: number): void {
+    this.clearPlayModeScroll();
+    if (!this.isPlaying || durationSeconds <= 0) {
+      return;
+    }
+
+    this.playScrollLayoutTimeout = setTimeout(() => {
+      this.playScrollLayoutTimeout = null;
+      if (!this.isPlaying) {
+        return;
+      }
+
+      const root = this.presentationScrollRef?.nativeElement ?? null;
+      if (root) {
+        root.scrollTop = 0;
+      }
+
+      const scrollEl = findPresentationSlideScrollElement(root);
+      if (!scrollEl) {
+        return;
+      }
+
+      scrollEl.scrollTop = 0;
+      const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+      if (maxScroll <= 1) {
+        return;
+      }
+
+      this.playScrollElement = scrollEl;
+      this.playScrollMax = maxScroll;
+      this.playScrollDurationMs = durationSeconds * 1000;
+      this.playScrollStartTime = performance.now();
+      this.runPlayModeScrollFrame();
+    }, 50);
+  }
+
+  private runPlayModeScrollFrame(): void {
+    if (
+      !this.isPlaying ||
+      !this.playScrollElement ||
+      this.playScrollStartTime === null
+    ) {
+      this.clearPlayModeScroll();
+      return;
+    }
+
+    const elapsed = performance.now() - this.playScrollStartTime;
+    this.playScrollElement.scrollTop = computePlayModeScrollTop(
+      this.playScrollMax,
+      elapsed,
+      this.playScrollDurationMs
+    );
+
+    if (elapsed < this.playScrollDurationMs) {
+      this.playScrollRafId = requestAnimationFrame(() =>
+        this.runPlayModeScrollFrame()
+      );
+    } else {
+      this.playScrollElement.scrollTop = this.playScrollMax;
+      this.clearPlayModeScroll();
     }
   }
 
@@ -1432,6 +1571,12 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   nextSlide(): void {
     if (this.showPresentationCompleteNotification || this.items.length === 0) {
+      return;
+    }
+
+    if (this.isPlaying) {
+      this.clearIntervals();
+      this.advanceWithPlayFade(() => this.tryAdvanceSlide());
       return;
     }
 

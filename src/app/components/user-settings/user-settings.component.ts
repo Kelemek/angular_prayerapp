@@ -682,7 +682,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
                   >
                     <span
-                      class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                      class="text-[14px] font-medium text-gray-800 dark:text-gray-100"
                       >Default</span
                     >
                   </button>
@@ -698,7 +698,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
                   >
                     <span
-                      class="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-100"
+                      class="text-[15px] font-medium text-gray-800 dark:text-gray-100"
                       >Larger</span
                     >
                   </button>
@@ -714,7 +714,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
                   >
                     <span
-                      class="text-base font-medium text-gray-800 dark:text-gray-100"
+                      class="text-[16px] font-medium text-gray-800 dark:text-gray-100"
                       >Largest</span
                     >
                   </button>

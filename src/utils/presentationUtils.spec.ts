@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   calculateSmartDurationPrayer,
   calculateSmartDurationPrompt,
+  computePlayModeScrollTop,
+  findPresentationSlideScrollElement,
   formatTime,
   applyTheme,
   handleThemeChange,
@@ -298,6 +300,60 @@ describe('presentationUtils', () => {
       const result = calculateSmartDurationPrompt(prompt, true, 25);
       
       expect(result).toBe(10);
+    });
+  });
+
+  describe('computePlayModeScrollTop', () => {
+    it('returns 0 when maxScroll or duration is non-positive', () => {
+      expect(computePlayModeScrollTop(100, 500, 0)).toBe(0);
+      expect(computePlayModeScrollTop(0, 500, 1000)).toBe(0);
+    });
+
+    it('scrolls linearly with elapsed time', () => {
+      expect(computePlayModeScrollTop(200, 0, 10_000)).toBe(0);
+      expect(computePlayModeScrollTop(200, 5_000, 10_000)).toBe(100);
+      expect(computePlayModeScrollTop(200, 10_000, 10_000)).toBe(200);
+      expect(computePlayModeScrollTop(200, 20_000, 10_000)).toBe(200);
+    });
+  });
+
+  describe('findPresentationSlideScrollElement', () => {
+    it('prefers inner card scroll when it overflows', () => {
+      const root = document.createElement('div');
+      const outer = document.createElement('div');
+      outer.style.height = '100px';
+      Object.defineProperty(outer, 'scrollHeight', { value: 100 });
+      Object.defineProperty(outer, 'clientHeight', { value: 100 });
+
+      const inner = document.createElement('div');
+      inner.className = 'presentation-card-scroll';
+      Object.defineProperty(inner, 'scrollHeight', { value: 300 });
+      Object.defineProperty(inner, 'clientHeight', { value: 100 });
+
+      root.appendChild(inner);
+      expect(findPresentationSlideScrollElement(root)).toBe(inner);
+    });
+
+    it('falls back to root when only root overflows', () => {
+      const root = document.createElement('div');
+      Object.defineProperty(root, 'scrollHeight', { value: 300 });
+      Object.defineProperty(root, 'clientHeight', { value: 100 });
+
+      const inner = document.createElement('div');
+      inner.className = 'presentation-card-scroll';
+      Object.defineProperty(inner, 'scrollHeight', { value: 80 });
+      Object.defineProperty(inner, 'clientHeight', { value: 80 });
+      root.appendChild(inner);
+
+      expect(findPresentationSlideScrollElement(root)).toBe(root);
+    });
+
+    it('returns null when nothing overflows', () => {
+      const root = document.createElement('div');
+      Object.defineProperty(root, 'scrollHeight', { value: 100 });
+      Object.defineProperty(root, 'clientHeight', { value: 100 });
+      expect(findPresentationSlideScrollElement(root)).toBeNull();
+      expect(findPresentationSlideScrollElement(null)).toBeNull();
     });
   });
 

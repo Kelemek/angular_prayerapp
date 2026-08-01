@@ -487,6 +487,41 @@ html, body {
   margin-inline: -20px;
 }
 
+/* Presentation mode: full viewport below web safe-top (body already has top inset). */
+.presentation-page-shell {
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  min-height: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.presentation-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.presentation-content-with-toolbar {
+  /* Toolbar: pt-4 + ~3rem controls + pb + home indicator */
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@supports (padding: env(safe-area-inset-top)) {
+  html:not(.native-app) .presentation-page-shell {
+    height: calc(100vh - env(safe-area-inset-top));
+    min-height: 0;
+  }
+  .native-app .presentation-page-shell {
+    height: 100vh;
+    min-height: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
 /* Viewport scroll container: fallback when safe-area not supported (e.g. desktop) */
 .safe-area-viewport {
   height: 100vh;

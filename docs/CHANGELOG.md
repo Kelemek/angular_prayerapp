@@ -6,6 +6,10 @@ Major features and milestones for the Prayer App.
 
 ### UI — card shadows
 - **Presentation** slide cards use **`presentation-card-elevation`** ([`styles.css`](src/styles.css)): symmetric `box-shadow` on left, right, and bottom (replacing bottom-heavy `shadow-2xl`). Shadow sits on an outer wrapper; scrollable content stays on the inner card so `overflow-y` does not clip it. The presentation scroll area uses **`card-stack-shadow`** for horizontal bleed inside `overflow-y-auto`.
+- **Presentation** mobile: **`overflow-x-hidden`** on the page and scroll containers so **`card-stack-shadow`** negative margins do not cause side-to-side page scrolling ([`presentation.component.ts`](src/app/pages/presentation/presentation.component.ts)).
+- **Presentation** iPhone layout: **`presentation-page-shell`** matches Home’s safe-top viewport height; short slides are **vertically centered**; long slides cap at **`max-h-full`** and scroll inside the card ([`styles.css`](src/styles.css), [`presentation.component.ts`](src/app/pages/presentation/presentation.component.ts)).
+- **Presentation play mode**: When a slide is taller than the viewport, **auto-scroll** runs from the top at a speed matched to the slide timer so the bottom is visible before the next card ([`presentation.component.ts`](src/app/pages/presentation/presentation.component.ts), [`presentationUtils.ts`](src/utils/presentationUtils.ts)).
+- **Presentation play mode**: Slides **fade** (400ms) when advancing automatically or via next while playing; manual navigation when paused stays instant ([`presentation.component.ts`](src/app/pages/presentation/presentation.component.ts)).
 
 ### UI — prayer request form
 - **New Prayer Request modal**: Removed the footer **Close** button; **Submit Prayer Request** is a compact outlined blue button (matching **Pray For** on prayer cards), right-aligned. Dismiss via the header **X** or backdrop click ([`prayer-form.component.ts`](src/app/components/prayer-form/prayer-form.component.ts)).
@@ -22,6 +26,7 @@ Major features and milestones for the Prayer App.
 
 ### UI — settings modal footer
 - Removed footer **Close**; dismiss via header **X** or backdrop. **Logout** uses the outlined gray chip style ([`user-settings.component.ts`](src/app/components/user-settings/user-settings.component.ts)).
+- **Text size** preview buttons use distinct label sizes (14px / 15px / 16px) for Default, Larger, and Largest ([`user-settings.component.ts`](src/app/components/user-settings/user-settings.component.ts)).
 - Delete-account confirmation: **Delete account but keep my prayers** uses outlined green; **Delete my account and all my prayers** uses outlined red ([`user-settings.component.ts`](src/app/components/user-settings/user-settings.component.ts)).
 
 ### UI — help modal

@@ -58,6 +58,20 @@ test.describe('Responsive Design - Mobile', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
+  test('presentation mode should not scroll horizontally on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/presentation');
+    await page.waitForTimeout(2000);
+
+    const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+
+    // Allow 1px tolerance for subpixel rounding
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+  });
+
   test('navigation should be accessible on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 }); // iPhone 12 size
     await page.goto('/');

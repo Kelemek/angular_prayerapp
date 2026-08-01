@@ -187,6 +187,8 @@ describe('PresentationComponent', () => {
       component.isPlaying = true;
       component.nextSlide();
       expect(component.currentIndex).toBe(2);
+      expect(component.slideCardFaded).toBe(true);
+      vi.advanceTimersByTime(400);
       expect(component.showPresentationCompleteNotification).toBe(true);
       expect(component.isPlaying).toBe(false);
       vi.useRealTimers();
@@ -234,15 +236,17 @@ describe('PresentationComponent', () => {
       component.isPlaying = true;
       component.startAutoAdvance();
 
-      vi.advanceTimersByTime(1100);
+      const slideStepMs = 1000 + 400;
+
+      vi.advanceTimersByTime(slideStepMs);
       expect(component.currentIndex).toBe(1);
       expect(component.isPlaying).toBe(true);
 
-      vi.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(slideStepMs);
       expect(component.currentIndex).toBe(2);
       expect(component.isPlaying).toBe(true);
 
-      vi.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(slideStepMs);
       expect(component.currentIndex).toBe(2);
       expect(component.isPlaying).toBe(false);
       expect(component.showPresentationCompleteNotification).toBe(true);
@@ -1186,18 +1190,23 @@ describe('PresentationComponent', () => {
     });
 
     it('nextSlide and previousSlide update index', () => {
+      vi.useFakeTimers();
       component.prayers = [{ id: '1' } as any, { id: '2' } as any, { id: '3' } as any];
       component.contentTypes = ['prayers'];
+      component.smartMode = false;
+      component.displayDuration = 1;
       component.currentIndex = 0;
       component.isPlaying = true;
-      // Don't mock startAutoAdvance so the branch is covered
-      component.displayDuration = 1;
       component.nextSlide();
+      expect(component.slideCardFaded).toBe(true);
+      vi.advanceTimersByTime(400);
       expect(component.currentIndex).toBe(1);
-      expect((component as any).autoAdvanceInterval).toBeTruthy(); // startAutoAdvance should have been called
+      expect((component as any).autoAdvanceInterval).toBeTruthy();
 
+      component.isPlaying = false;
       component.previousSlide();
       expect(component.currentIndex).toBe(0);
+      vi.useRealTimers();
     });
 
     it('togglePlay toggles and calls start or clear', () => {
@@ -1519,17 +1528,15 @@ describe('PresentationComponent', () => {
     it('startAutoAdvance calls nextSlide and restarts when isPlaying is true', () => {
       vi.useFakeTimers();
       component.prayers = [{ id: 'a' }, { id: 'b' }] as any;
+      component.smartMode = false;
       component.displayDuration = 0.001; // very short for test
       component.isPlaying = true;
       component.currentIndex = 0;
       
       component.startAutoAdvance();
       
-      // The setTimeout should call nextSlide
-      vi.advanceTimersByTime(2); // advance past the timeout
+      vi.advanceTimersByTime(2 + 400);
       
-      // Now isPlaying is still true, so startAutoAdvance should be called again
-      // We can't easily test this without a spy, so we just verify currentIndex changed
       expect(component.currentIndex).toBeGreaterThanOrEqual(0);
       
       vi.useRealTimers();
@@ -2088,6 +2095,14 @@ describe('PresentationComponent', () => {
       component.clearIntervals();
       
       expect((component as any).autoAdvanceInterval).toBeNull();
+    });
+
+    it('clearIntervals cancels play mode scroll animation', () => {
+      (component as any).playScrollRafId = 42;
+      const cancelSpy = vi.spyOn(window, 'cancelAnimationFrame');
+      component.clearIntervals();
+      expect(cancelSpy).toHaveBeenCalledWith(42);
+      expect((component as any).playScrollRafId).toBeNull();
     });
 
     it('handleKeyboard ignores unknown keys', () => {
