@@ -93,6 +93,7 @@ import {
   serializePresentationHomeHandoffQueryParams,
 } from "../../types/presentation";
 import { ToastService } from "../../services/toast.service";
+import { PersonalCategoryColorService } from "../../services/personal-category-color.service";
 import { AnalyticsService } from "../../services/analytics.service";
 import { PullToRefreshDirective } from "../../directives/pull-to-refresh.directive";
 import { HelpContentService } from "../../services/help-content.service";
@@ -1482,7 +1483,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private supabaseService: SupabaseService,
     private helpDriverTourService: HelpDriverTourService,
-    private helpContentService: HelpContentService
+    private helpContentService: HelpContentService,
+    private personalCategoryColorService: PersonalCategoryColorService
   ) {
     // Load logo state from cache immediately to prevent flash
     const windowCache = (window as any).__cachedLogos;
@@ -1616,6 +1618,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       )
       .subscribe((session) => {
         void this.planningCenterListService.loadForUser(session.email);
+        void this.personalCategoryColorService.loadColors();
       });
 
     // Subscribe to prayers for filtering
@@ -2378,6 +2381,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       const session = this.userSessionService.getCurrentSession();
       if (session && session.email) {
         tasks.push(this.prayerService.loadPersonalPrayers(false));
+        tasks.push(this.personalCategoryColorService.loadColors(true));
       }
 
       // If Planning Center list tab is active, reload member prayers (uses its own caching)

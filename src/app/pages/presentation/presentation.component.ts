@@ -142,7 +142,7 @@ type ThemeOption = "light" | "dark" | "system";
           </p>
           <button
             (click)="exitPresentation()"
-            class="px-6 py-3 btn-chip btn-chip-blue rounded-lg"
+            class="px-6 py-3 btn-chip btn-chip-blue"
           >
             Return to Home
           </button>

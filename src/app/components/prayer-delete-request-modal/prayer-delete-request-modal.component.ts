@@ -57,7 +57,7 @@ export interface PrayerDeleteRequestPayload {
           <button
             type="submit"
             [disabled]="!deleteForm.valid"
-            class="btn-chip btn-chip-red min-h-12 px-8 py-3 text-base rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-chip btn-chip-red min-h-12 px-8 py-3 text-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Submit deletion request"
           >
             Submit Request

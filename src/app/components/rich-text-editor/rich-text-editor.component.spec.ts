@@ -117,6 +117,14 @@ describe('RichTextEditorComponent', () => {
     expect(typeof emitted).toBe('string');
   });
 
+  it('round-trips ++underline++ markdown when loading existing content', () => {
+    component.writeValue('Line one\n\n++underlined++');
+    component.flushMarkdownToForm();
+    expect(component.editor?.getHTML()).toContain('<u>');
+    expect(component.editor?.getHTML()).not.toContain('++underlined++');
+    expect(component.value).toContain('++underlined++');
+  });
+
   it('round-trips HTTPS Markdown images through TipTap getMarkdown', () => {
     const md =
       'Hello\n\n![Home with Memorize](https://cpprayer.cp-church.org/marketing/memorize/01-find-memorize.png)\n';

@@ -249,6 +249,35 @@ export class UserSessionService {
   }
 
   /**
+   * Resolve email for API writes when session cache may be empty (MFA / anon).
+   */
+  async resolveUserEmail(): Promise<string | null> {
+    const cached = this.getUserEmail();
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const {
+        data: { session },
+      } = await this.supabase.client.auth.getSession();
+      if (session?.user?.email) {
+        return session.user.email;
+      }
+    } catch (error) {
+      console.error('[UserSessionService] Error getting auth session:', error);
+    }
+
+    const mfaEmail = localStorage.getItem('mfa_authenticated_email');
+    if (mfaEmail) {
+      return mfaEmail;
+    }
+
+    const approvalEmail = localStorage.getItem('approvalAdminEmail');
+    return approvalEmail ?? null;
+  }
+
+  /**
    * Get user full name - returns null if not loaded
    */
   getUserFullName(): string | null {

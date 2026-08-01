@@ -120,7 +120,6 @@ describe('PrayerCardComponent', () => {
   });
 
   it('getBorderClass matches Members tab for Planning Center list prayers', () => {
-    component.activeFilter = 'planning_center_list';
     (component.prayer as any).id = 'pc-member-123';
     (component.prayer as any).status = 'current';
 

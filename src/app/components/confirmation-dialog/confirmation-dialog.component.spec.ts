@@ -802,15 +802,15 @@ describe('ConfirmationDialogComponent - Angular Component Tests', () => {
   describe('Component Styling and States', () => {
     it('should determine button style based on isDangerous', () => {
       let buttonClass = component.isDangerous
-        ? 'px-4 py-2 rounded-lg btn-chip btn-chip-red'
-        : 'px-4 py-2 rounded-lg btn-chip btn-chip-blue';
+        ? 'px-4 py-2 rounded-md btn-chip btn-chip-red'
+        : 'px-4 py-2 rounded-md btn-chip btn-chip-blue';
 
       expect(buttonClass).toContain('btn-chip-blue');
 
       component.isDangerous = true;
       buttonClass = component.isDangerous
-        ? 'px-4 py-2 rounded-lg btn-chip btn-chip-red'
-        : 'px-4 py-2 rounded-lg btn-chip btn-chip-blue';
+        ? 'px-4 py-2 rounded-md btn-chip btn-chip-red'
+        : 'px-4 py-2 rounded-md btn-chip btn-chip-blue';
 
       expect(buttonClass).toContain('btn-chip-red');
     });

@@ -31,6 +31,7 @@ import {
   PrayerDeleteRequestModalComponent,
   PrayerDeleteRequestPayload,
 } from '../prayer-delete-request-modal/prayer-delete-request-modal.component';
+import { PersonalCategoryPillComponent } from '../personal-category-color-picker/personal-category-pill.component';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
@@ -41,7 +42,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
 @Component({
   selector: 'app-prayer-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PersonalCategoryPillComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -79,9 +80,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
             </span>
             }
             @if (isPersonal && prayer.category) {
-            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
-              {{ prayer.category }}
-            </span>
+            <app-personal-category-pill [category]="prayer.category" />
             }
             @if (!isPersonal && !prayer.id.startsWith('pc-member-')) {
             <span class="text-sm text-gray-600 dark:text-gray-400">

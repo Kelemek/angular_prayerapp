@@ -9,6 +9,12 @@ describe('PersonalPrayerEditModalComponent', () => {
   let component: PersonalPrayerEditModalComponent;
   let prayerService: any;
   let toastService: any;
+  let personalCategoryColorService: {
+    colors$: ReturnType<typeof of>;
+    loadColors: ReturnType<typeof vi.fn>;
+    getColor: ReturnType<typeof vi.fn>;
+    setColor: ReturnType<typeof vi.fn>;
+  };
   let changeDetectorRef: any;
   const mockDestroyRef = { onDestroy: vi.fn() } as unknown as DestroyRef;
   const mockRichTextEditorsSettings = {
@@ -34,6 +40,13 @@ describe('PersonalPrayerEditModalComponent', () => {
       error: vi.fn()
     };
 
+    personalCategoryColorService = {
+      colors$: of({}),
+      loadColors: vi.fn().mockResolvedValue({}),
+      getColor: vi.fn().mockReturnValue('#2563EB'),
+      setColor: vi.fn().mockResolvedValue(true),
+    };
+
     changeDetectorRef = {
       markForCheck: vi.fn()
     };
@@ -41,6 +54,7 @@ describe('PersonalPrayerEditModalComponent', () => {
     component = new PersonalPrayerEditModalComponent(
       prayerService,
       toastService,
+      personalCategoryColorService as any,
       changeDetectorRef,
       mockDestroyRef,
       mockRichTextEditorsSettings as any
@@ -240,6 +254,49 @@ describe('PersonalPrayerEditModalComponent', () => {
       await component.handleSubmit();
 
       expect(component.close.emit).toHaveBeenCalled();
+    });
+
+    it('should not save category color unless the user changed it', async () => {
+      prayerService.updatePersonalPrayer.mockResolvedValue(true);
+
+      await component.handleSubmit();
+
+      expect(personalCategoryColorService.setColor).not.toHaveBeenCalled();
+    });
+
+    it('should save category color when the user changes it in the picker', async () => {
+      prayerService.updatePersonalPrayer.mockResolvedValue(true);
+
+      component.onCategoryColorChange('#111111');
+      await component.handleSubmit();
+
+      expect(personalCategoryColorService.setColor).toHaveBeenCalledWith(
+        'Health',
+        '#111111'
+      );
+    });
+
+    it('should not close when category color save fails after prayer update', async () => {
+      prayerService.updatePersonalPrayer.mockResolvedValue(true);
+      personalCategoryColorService.setColor.mockResolvedValue(false);
+      vi.spyOn(component.close, 'emit');
+      vi.spyOn(component.save, 'emit');
+
+      component.onCategoryColorChange('#111111');
+      await component.handleSubmit();
+
+      expect(component.save.emit).toHaveBeenCalled();
+      expect(component.close.emit).not.toHaveBeenCalled();
+    });
+
+    it('should clear dirty flag when selecting a category from the dropdown', async () => {
+      prayerService.updatePersonalPrayer.mockResolvedValue(true);
+
+      component.onCategoryColorChange('#111111');
+      component.selectCategory('Family');
+      await component.handleSubmit();
+
+      expect(personalCategoryColorService.setColor).not.toHaveBeenCalled();
     });
 
     it('should set isSubmitting to false on error', async () => {

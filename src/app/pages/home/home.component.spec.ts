@@ -194,7 +194,12 @@ const makeMocks = () => {
     getSections: vi.fn().mockReturnValue(of([])),
   };
 
-  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, badgeService, memorizationService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
+  const personalCategoryColorService: any = {
+    colors$: of({}),
+    loadColors: vi.fn().mockResolvedValue({}),
+  };
+
+  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, badgeService, memorizationService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, personalCategoryColorService, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
 };
 
 interface SupabaseEmailOptions {
@@ -245,6 +250,37 @@ const makeSupabaseForEmail = (options: SupabaseEmailOptions = {}) => {
   };
 };
 
+
+type HomeMocks = ReturnType<typeof makeMocks>;
+
+function createHomeComponent(
+  mocks: HomeMocks,
+  overrides: Partial<HomeMocks> = {}
+): HomeComponent {
+  const m = { ...mocks, ...overrides };
+  return new HomeComponent(
+    m.prayerService,
+    m.promptService,
+    m.adminAuthService,
+    m.userSessionService,
+    m.planningCenterListService,
+    m.badgeService,
+    m.memorizationService,
+    m.memorizationRecommendationsService,
+    m.scriptureService,
+    m.cacheService,
+    m.toastService,
+    m.analyticsService,
+    m.cdr,
+    m.router,
+    m.activatedRoute,
+    m.supabaseService,
+    m.helpDriverTourService,
+    m.helpContentService,
+    m.personalCategoryColorService
+  );
+}
+
 describe('HomeComponent', () => {
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
@@ -259,201 +295,49 @@ describe('HomeComponent', () => {
   it('constructor uses window cache to set hasLogo', () => {
     // @ts-ignore
     (window as any).__cachedLogos = { useLogo: true };
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     expect(comp.hasLogo).toBe(true);
   });
 
   it('getUserEmail returns cached email from UserSessionService if available', () => {
     const mockServiceWithEmail = { getUserEmail: () => 'cached@example.com' };
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mockServiceWithEmail as any,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, { userSessionService: mockServiceWithEmail as any })
     expect(comp.getUserEmail()).toBe('cached@example.com');
   });
 
   it('getUserEmail falls back to localStorage when service returns null', () => {
     localStorage.setItem('approvalAdminEmail', 'a@b.com');
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     expect(comp.getUserEmail()).toBe('a@b.com');
   });
 
   it('getUserEmail falls back to userEmail localStorage key', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     localStorage.setItem('userEmail', 'user@example.com');
     expect(comp.getUserEmail()).toBe('user@example.com');
   });
 
   it('getUserEmail falls back to prayerapp_user_email localStorage key', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     localStorage.setItem('prayerapp_user_email', 'prayerapp@example.com');
     expect(comp.getUserEmail()).toBe('prayerapp@example.com');
   });
 
   it('getUserEmail returns Not logged in when no email sources are available', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     localStorage.clear();
     expect(comp.getUserEmail()).toBe('Not logged in');
   });
 
 
   it('getUserEmail returns Not logged in when service and localStorage are empty', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     expect(comp.getUserEmail()).toBe('Not logged in');
   });
 
   it('ngOnInit wires observables and updates counts and promptsCount', async () => {
     const { prayersSubject, promptsSubject, prayerService } = mocks;
-    const comp = new HomeComponent(
-      prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks);
 
     // seed data
     prayersSubject.next([
@@ -488,26 +372,7 @@ describe('HomeComponent', () => {
     mocks.userSessionSubject.next(null);
     mocks.planningCenterListService.loadForUser.mockClear();
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
 
     comp.ngOnInit();
 
@@ -530,26 +395,7 @@ describe('HomeComponent', () => {
   });
 
   it('onFiltersChange preserves status and calls applyFilters', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.filters = { status: 'answered', searchTerm: '', type: undefined };
     comp.onFiltersChange({ searchTerm: 'needle' } as any);
     expect(comp.filters.searchTerm).toBe('needle');
@@ -557,52 +403,14 @@ describe('HomeComponent', () => {
   });
 
   it('ngOnDestroy completes subscriptions without throwing', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     // initialize subscriptions
     comp.ngOnInit();
     expect(() => comp.ngOnDestroy()).not.toThrow();
   });
 
   it('setFilter sets prompts branch correctly', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.filters.searchTerm = 'search';
     comp.selectedPromptTypes = ['X'];
     comp.setFilter('prompts');
@@ -612,26 +420,7 @@ describe('HomeComponent', () => {
   });
 
   it('setFilter total branch', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.filters.searchTerm = 's';
     comp.setFilter('total');
     expect(comp.activeFilter).toBe('total');
@@ -639,26 +428,7 @@ describe('HomeComponent', () => {
   });
 
   it('setFilter other branch (current)', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.filters.searchTerm = 's2';
     comp.setFilter('current');
     expect(comp.activeFilter).toBe('current');
@@ -666,26 +436,7 @@ describe('HomeComponent', () => {
   });
 
   it('markAsAnswered and deletePrayer call service', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.markAsAnswered('id1');
     expect(mocks.prayerService.updatePrayerStatus).toHaveBeenCalledWith('id1', 'answered');
     comp.deletePrayer('id2');
@@ -693,26 +444,7 @@ describe('HomeComponent', () => {
   });
 
   it('addUpdate success and failure paths', async () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     // success
     mocks.prayerService.addUpdate.mockResolvedValue(undefined);
     await comp.addUpdate({});
@@ -725,26 +457,7 @@ describe('HomeComponent', () => {
   });
 
   it('deleteUpdate success and failure paths', async () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     mocks.prayerService.deleteUpdate.mockResolvedValue(undefined);
     await comp.deleteUpdate({updateId: 'u1', prayerId: 'p1'});
     // Toast is handled by the service, not the component
@@ -755,26 +468,7 @@ describe('HomeComponent', () => {
   });
 
   it('requestDeletion and requestUpdateDeletion success/failure', async () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     mocks.prayerService.requestDeletion.mockResolvedValue(undefined);
     await comp.requestDeletion({});
     // no toast on success
@@ -791,51 +485,13 @@ describe('HomeComponent', () => {
   });
 
   it('deletePrompt calls promptService.deletePrompt', async () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     await comp.deletePrompt('p1');
     expect(mocks.promptService.deletePrompt).toHaveBeenCalledWith('p1');
   });
 
   it('togglePromptType and isPromptTypeSelected behave correctly', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.selectedPromptTypes = ['A'];
     comp.togglePromptType('A');
     expect(comp.selectedPromptTypes.includes('A')).toBe(false);
@@ -846,26 +502,7 @@ describe('HomeComponent', () => {
 
   it('getDisplayedPrompts respects activeFilter and search/type filters', () => {
     const { promptsSubject } = mocks;
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     const items = [
       { id: '1', title: 'Hello', description: 'World', type: 'T1' },
       { id: '2', title: 'Other', description: 'stuff', type: 'T2' }
@@ -897,26 +534,7 @@ describe('HomeComponent', () => {
 
   it('getUniquePromptTypes and getPromptCountByType', () => {
     const { promptsSubject } = mocks;
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     const items = [
       { id: '1', title: 'A', description: '', type: 'X' },
       { id: '2', title: 'B', description: '', type: 'Y' },
@@ -929,26 +547,7 @@ describe('HomeComponent', () => {
   });
 
   it('formatDate returns localized short format', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     const s = comp.formatDate('2025-12-27T00:00:00Z');
     // Avoid asserting exact day because toLocaleDateString is timezone-dependent in CI/local.
     expect(s).toContain('Dec');
@@ -958,26 +557,7 @@ describe('HomeComponent', () => {
   });
 
   it('logout calls adminAuthService.logout and shows toast', async () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     await comp.logout();
     expect(mocks.adminAuthService.logout).toHaveBeenCalled();
   });
@@ -985,51 +565,13 @@ describe('HomeComponent', () => {
   it('navigateToAdmin navigates when isAdmin true, otherwise shows MFA modal', () => {
     // admin true
     const adminServiceTrue: any = { isAdmin$: new BehaviorSubject(true).asObservable() };
-    const compTrue = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      adminServiceTrue,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const compTrue = createHomeComponent(mocks, { adminAuthService: adminServiceTrue });
     compTrue.navigateToAdmin();
     expect(mocks.router.navigate).toHaveBeenCalledWith(['/admin']);
 
     // admin false -> showAdminMfaModal -> no email set -> error toast
     const adminServiceFalse: any = { isAdmin$: new BehaviorSubject(false).asObservable() };
-    const compFalse = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      adminServiceFalse,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const compFalse = createHomeComponent(mocks, { adminAuthService: adminServiceFalse });
     localStorage.clear();
     compFalse.navigateToAdmin();
     expect(mocks.toastService.error).toHaveBeenCalledWith('Email not found. Please log in again.');
@@ -1041,26 +583,7 @@ describe('HomeComponent', () => {
   });
 
   it('onPresentationLinkClick navigates with router state on primary click', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.activeFilter = 'prompts';
     const preventDefault = vi.fn();
     comp.onPresentationLinkClick({
@@ -1085,26 +608,7 @@ describe('HomeComponent', () => {
   });
 
   it('onPresentationLinkClick allows modifier clicks to use native link navigation', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.activeFilter = 'prompts';
     const preventDefault = vi.fn();
     comp.onPresentationLinkClick({
@@ -1124,26 +628,7 @@ describe('HomeComponent', () => {
   });
 
   it('presentationHandoffQueryParams includes answered status from answered tab', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.activeFilter = 'answered';
     expect(comp.presentationHandoffQueryParams).toEqual({
       homeTypes: 'prayers',
@@ -1153,26 +638,7 @@ describe('HomeComponent', () => {
   });
 
   it('presentationHandoffQueryParams includes selected prompt type', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.activeFilter = 'prompts';
     comp.selectedPromptTypes = ['Church'];
     expect(comp.presentationHandoffQueryParams).toEqual({
@@ -1183,26 +649,7 @@ describe('HomeComponent', () => {
   });
 
   it('onPresentationLinkClick passes answered status in router state', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     comp.activeFilter = 'answered';
     const preventDefault = vi.fn();
     comp.onPresentationLinkClick({
@@ -1227,26 +674,7 @@ describe('HomeComponent', () => {
   });
 
   it('applyHomeReturnContext restores personal tab and category', () => {
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks)
     const setFilterSpy = vi.spyOn(comp, 'setFilter');
 
     comp['applyHomeReturnContext']({
@@ -1277,26 +705,7 @@ describe('HomeComponent', () => {
       }
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mockSupabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
 
     await comp['loadAdminSettings']();
 
@@ -1321,26 +730,7 @@ describe('HomeComponent', () => {
       }
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mockSupabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
 
     await comp['loadAdminSettings']();
 
@@ -1362,26 +752,7 @@ describe('HomeComponent', () => {
       }
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mockSupabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
 
     await comp['loadAdminSettings']();
 
@@ -1406,26 +777,7 @@ describe('HomeComponent', () => {
       }
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mockSupabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
 
     await comp['loadAdminSettings']();
 
@@ -1453,26 +805,7 @@ describe('HomeComponent', () => {
       }
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      mocks.userSessionService,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mockSupabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
 
     await comp['loadAdminSettings']();
 
@@ -1487,26 +820,7 @@ describe('HomeComponent', () => {
       getUserEmail: () => null
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      userSessionService as any,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      mocks.supabaseService,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, { userSessionService: userSessionService as any });
 
     await expect(comp.updateDefaultViewPreference('personal')).resolves.toBe(false);
   });
@@ -1522,26 +836,10 @@ describe('HomeComponent', () => {
       updateUserSession: vi.fn().mockResolvedValue(undefined)
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      userSessionService as any,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      supabase.supabaseService as any,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, {
+      userSessionService: userSessionService as any,
+      supabaseService: supabase.supabaseService,
+    });
 
     const result = await comp.updateDefaultViewPreference('personal');
 
@@ -1562,26 +860,10 @@ describe('HomeComponent', () => {
       updateUserSession: vi.fn().mockResolvedValue(undefined)
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      userSessionService as any,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      supabase.supabaseService as any,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, {
+      userSessionService: userSessionService as any,
+      supabaseService: supabase.supabaseService,
+    });
 
     const result = await comp.updateDefaultViewPreference('current');
 
@@ -1604,26 +886,10 @@ describe('HomeComponent', () => {
       updateUserSession: vi.fn().mockResolvedValue(undefined)
     };
 
-    const comp = new HomeComponent(
-      mocks.prayerService,
-      mocks.promptService,
-      mocks.adminAuthService,
-      userSessionService as any,
-      mocks.planningCenterListService,
-      mocks.badgeService,
-      mocks.memorizationService,
-      mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-      mocks.cacheService,
-      mocks.toastService,
-      mocks.analyticsService,
-      mocks.cdr,
-      mocks.router,
-      mocks.activatedRoute,
-      supabase.supabaseService as any,
-      mocks.helpDriverTourService,
-      mocks.helpContentService
-    );
+    const comp = createHomeComponent(mocks, {
+      userSessionService: userSessionService as any,
+      supabaseService: supabase.supabaseService,
+    });
 
     await expect(comp.updateDefaultViewPreference('current')).resolves.toBe(false);
     expect(userSessionService.updateUserSession).not.toHaveBeenCalled();
@@ -1632,26 +898,7 @@ describe('HomeComponent', () => {
 
   describe('Badge count functionality', () => {
     it('should have getUnreadPromptCountByType method', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       expect(typeof comp['getUnreadPromptCountByType']).toBe('function');
     });
@@ -1665,26 +912,7 @@ describe('HomeComponent', () => {
 
       mocks.promptService.prompts$ = of(prompts);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       // Component should have badge count functionality
       expect(comp).toBeDefined();
@@ -1702,26 +930,7 @@ describe('HomeComponent', () => {
         prompts$: promptsSubject.asObservable()
       };
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        customPromptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks, { promptService: customPromptService });
 
       expect(comp).toBeDefined();
     });
@@ -1739,26 +948,7 @@ describe('HomeComponent', () => {
         prompts$: promptsSubject.asObservable()
       };
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        customPromptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks, { promptService: customPromptService });
 
       expect(comp).toBeDefined();
     });
@@ -1771,26 +961,7 @@ describe('HomeComponent', () => {
         prompts$: promptsSubject.asObservable()
       };
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        customPromptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks, { promptService: customPromptService });
 
       // Add prompts after initialization
       promptsSubject.next([
@@ -1815,26 +986,7 @@ describe('HomeComponent', () => {
       };
       mocks.badgeService.isPromptUnread.mockImplementation((id: string) => id === '2');
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        customPromptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks, { promptService: customPromptService });
 
       expect(comp.getUnreadPromptCountByType('Morning')).toBe(1);
       expect(comp.getUnreadPromptCountByType('Evening')).toBe(0);
@@ -1843,26 +995,7 @@ describe('HomeComponent', () => {
 
   describe('Category selection helpers', () => {
     it('togglePersonalCategory clears selection when already chosen', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.selectedPersonalCategories = ['Members'];
       comp.togglePersonalCategory('Members');
@@ -1871,26 +1004,7 @@ describe('HomeComponent', () => {
     });
 
     it('togglePersonalCategory selects a new category and isPersonalCategorySelected reports true', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.togglePersonalCategory('NewCat');
       expect(comp.isPersonalCategorySelected('NewCat')).toBe(true);
@@ -1900,26 +1014,7 @@ describe('HomeComponent', () => {
 
   describe('Personal Prayers functionality', () => {
     it('onPrayerFormClose with isPersonal=true just closes form', async () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       await comp.onPrayerFormClose({ isPersonal: true });
 
@@ -1928,26 +1023,7 @@ describe('HomeComponent', () => {
     });
 
     it('onPrayerFormClose without isPersonal just closes form', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.onPrayerFormClose({});
 
@@ -1963,26 +1039,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.deletePersonalPrayer.mockResolvedValue(true);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue(prayers);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       await comp.deletePersonalPrayer('p1');
 
@@ -1993,26 +1050,7 @@ describe('HomeComponent', () => {
     it('deletePersonalPrayer failure does not refresh', async () => {
       mocks.prayerService.deletePersonalPrayer.mockResolvedValue(false);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       await comp.deletePersonalPrayer('p1');
 
@@ -2026,26 +1064,7 @@ describe('HomeComponent', () => {
       mocks.cacheService.get.mockReturnValue(null);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks, { userSessionService: { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any })
 
       await comp.addPersonalUpdate({
         prayer_id: 'p1',
@@ -2062,26 +1081,7 @@ describe('HomeComponent', () => {
       mocks.cacheService.get.mockReturnValue(null);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks, { userSessionService: { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any })
 
       await comp.addPersonalUpdate({
         prayer_id: 'p1',
@@ -2096,26 +1096,7 @@ describe('HomeComponent', () => {
     it('addPersonalUpdate error handling', async () => {
       mocks.prayerService.addPersonalPrayerUpdate.mockRejectedValue(new Error('Add failed'));
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks, { userSessionService: { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any })
 
       await comp.addPersonalUpdate({
         prayer_id: 'p1',
@@ -2130,26 +1111,7 @@ describe('HomeComponent', () => {
       mocks.cacheService.get.mockReturnValue(null);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       await comp.deletePersonalUpdate({updateId: 'u1', prayerId: 'p1'});
 
@@ -2160,26 +1122,7 @@ describe('HomeComponent', () => {
     it('deletePersonalUpdate error handling', async () => {
       mocks.prayerService.deletePersonalPrayerUpdate.mockRejectedValue(new Error('Delete failed'));
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       await comp.deletePersonalUpdate({updateId: 'u1', prayerId: 'p1'});
 
@@ -2192,26 +1135,7 @@ describe('HomeComponent', () => {
         { id: 'p2', title: 'Prayer 2', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
       ];
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
       comp.personalPrayers = prayers;
       comp.filters = { searchTerm: '' };
 
@@ -2226,26 +1150,7 @@ describe('HomeComponent', () => {
         { id: 'p2', title: 'Other', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] }
       ];
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
       comp.personalPrayers = prayers;
       comp.filters = { searchTerm: 'find' };
 
@@ -2283,26 +1188,7 @@ describe('HomeComponent', () => {
         }
       ];
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
       comp.personalPrayers = prayers as any;
       comp.filters = { searchTerm: 'searchable' };
 
@@ -2318,26 +1204,7 @@ describe('HomeComponent', () => {
         { id: 'p2', title: 'Beta', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Evening' }
       ];
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
       comp.personalPrayers = prayers;
       comp.selectedPersonalCategories = ['Evening'];
 
@@ -2348,26 +1215,7 @@ describe('HomeComponent', () => {
     });
 
     it('markAllCurrentAsRead calls badgeService', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.markAllCurrentAsRead();
 
@@ -2375,26 +1223,7 @@ describe('HomeComponent', () => {
     });
 
     it('markAllAnsweredAsRead calls badgeService', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.markAllAnsweredAsRead();
 
@@ -2402,26 +1231,7 @@ describe('HomeComponent', () => {
     });
 
     it('markAllPromptsAsRead calls badgeService', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.markAllPromptsAsRead();
 
@@ -2431,26 +1241,7 @@ describe('HomeComponent', () => {
 
   describe('Filter functionality for personal prayers', () => {
     it('setFilter personal sets activeFilter and calls applyFilters', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filters.searchTerm = 'search';
       comp.setFilter('personal');
@@ -2462,26 +1253,7 @@ describe('HomeComponent', () => {
 
   describe('Personal Prayer Drag and Drop', () => {
     it('onPersonalPrayerDrop should return early if index does not change', async () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const prayers: PrayerRequest[] = [
         { id: '1', title: 'Prayer 1' } as PrayerRequest,
@@ -2501,26 +1273,7 @@ describe('HomeComponent', () => {
     });
 
     it('onPersonalPrayerDrop shows error when multiple categories are selected', async () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = [
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest,
@@ -2552,26 +1305,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.updatePersonalPrayerOrder.mockResolvedValue(true);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue(reorderedPrayers);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = prayers;
       comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
@@ -2604,26 +1338,7 @@ describe('HomeComponent', () => {
       // Mock cache to return null on get so it forces a reload
       mocks.cacheService.get.mockReturnValue(null);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = [...prayers]; // Make a copy to avoid reference issues
       comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
@@ -2644,26 +1359,7 @@ describe('HomeComponent', () => {
 
   describe('Category Drag and Drop', () => {
     it('onCategoryDragStarted should set dragging flag and cursor', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.onCategoryDragStarted();
 
@@ -2672,26 +1368,7 @@ describe('HomeComponent', () => {
     });
 
     it('onCategoryDragEnded should clear dragging flag and cursor', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.isCategoryDragging = true;
       document.body.style.cursor = 'grabbing';
@@ -2703,26 +1380,7 @@ describe('HomeComponent', () => {
     });
 
     it('onCategoryDrop should return early if index does not change', async () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.uniquePersonalCategories = ['Members', 'Leaders'];
 
@@ -2738,26 +1396,7 @@ describe('HomeComponent', () => {
     });
 
     it('onCategoryDrop should return early if already swapping', async () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.uniquePersonalCategories = ['Members', 'Leaders'];
       comp.isSwappingCategories = true;
@@ -2779,26 +1418,7 @@ describe('HomeComponent', () => {
         { id: '2', title: 'Prayer 2', category: 'Members', display_order: 2 } as PrayerRequest
       ]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.uniquePersonalCategories = ['Members', 'Leaders'];
       comp.personalPrayers = [
@@ -2824,26 +1444,7 @@ describe('HomeComponent', () => {
         { id: '1', title: 'Prayer 1', category: 'C', display_order: 1 } as PrayerRequest
       ]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.uniquePersonalCategories = ['A', 'B', 'C', 'D', 'E'];
 
@@ -2860,26 +1461,7 @@ describe('HomeComponent', () => {
     it('onCategoryDrop should show error and rollback on swap failure', async () => {
       mocks.prayerService.swapCategoryRanges.mockResolvedValue(false);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.uniquePersonalCategories = ['Members', 'Leaders'];
 
@@ -2899,26 +1481,7 @@ describe('HomeComponent', () => {
     it('onCategoryDrop should show error and rollback on swap exception', async () => {
       mocks.prayerService.swapCategoryRanges.mockRejectedValue(new Error('Swap error'));
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.uniquePersonalCategories = ['Members', 'Leaders'];
 
@@ -2947,26 +1510,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.getPersonalPrayers.mockResolvedValue(reloadedPrayers);
       mocks.cacheService.get.mockReturnValue(null);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.uniquePersonalCategories = ['Members', 'Leaders'];
       comp.personalPrayers = [];
@@ -2990,26 +1534,7 @@ describe('HomeComponent', () => {
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest
       ]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const prayers: PrayerRequest[] = [
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest
@@ -3030,26 +1555,7 @@ describe('HomeComponent', () => {
     it('onPersonalPrayerDrop should handle error and show error toast on exception', async () => {
       mocks.prayerService.updatePersonalPrayerOrder.mockRejectedValue(new Error('Update error'));
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const prayers: PrayerRequest[] = [
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest,
@@ -3077,26 +1583,7 @@ describe('HomeComponent', () => {
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest
       ]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const prayers: PrayerRequest[] = [
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest,
@@ -3120,26 +1607,7 @@ describe('HomeComponent', () => {
 
   describe('Utility methods', () => {
     it('formatDate should return formatted date string', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const result = comp.formatDate('2024-01-15T10:30:00Z');
       expect(result).toContain('Jan');
@@ -3150,26 +1618,7 @@ describe('HomeComponent', () => {
     it('getUserEmail should return cached email from userSessionService', () => {
       mocks.userSessionService.getUserEmail.mockReturnValue('test@example.com');
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const result = comp.getUserEmail();
       expect(result).toBe('test@example.com');
@@ -3179,26 +1628,7 @@ describe('HomeComponent', () => {
       mocks.userSessionService.getUserEmail.mockReturnValue(null);
       localStorage.setItem('approvalAdminEmail', 'admin@example.com');
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const result = comp.getUserEmail();
       expect(result).toBe('admin@example.com');
@@ -3206,78 +1636,21 @@ describe('HomeComponent', () => {
     });
 
     it('markAllCurrentAsRead should call badgeService', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.markAllCurrentAsRead();
       expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'current');
     });
 
     it('markAllAnsweredAsRead should call badgeService', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.markAllAnsweredAsRead();
       expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'answered');
     });
 
     it('markAllPromptsAsRead should call badgeService', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.markAllPromptsAsRead();
       expect(mocks.badgeService.markAllAsRead).toHaveBeenCalledWith('prompts');
@@ -3286,26 +1659,7 @@ describe('HomeComponent', () => {
 
   describe('Modal and editing methods', () => {
     it('openMemorizationPractice sync-detects so keyboard focus stays in the tap gesture', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const item = {
         id: 'v1',
@@ -3327,26 +1681,7 @@ describe('HomeComponent', () => {
     });
 
     it('openMemorizationPractice primes the keyboard bridge before mounting an in-progress type session', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const bridge = document.createElement('input');
       const focusSpy = vi.spyOn(bridge, 'focus');
@@ -3381,26 +1716,7 @@ describe('HomeComponent', () => {
     });
 
     it('openMemorizationPractice does not prime the keyboard bridge for a fresh verse', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const bridge = document.createElement('input');
       const focusSpy = vi.spyOn(bridge, 'focus');
@@ -3423,26 +1739,7 @@ describe('HomeComponent', () => {
     });
 
     it('openEditModal should set state and mark for check', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const prayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
       comp.openEditModal(prayer);
@@ -3453,26 +1750,7 @@ describe('HomeComponent', () => {
     });
 
     it('onPersonalPrayerSaved should clear state and reload', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.editingPrayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
       comp.showEditPersonalPrayer = true;
@@ -3486,26 +1764,7 @@ describe('HomeComponent', () => {
     });
 
     it('openEditUpdateModal should set state', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const update = { id: 'u1', text: 'Update text' } as any;
       comp.openEditUpdateModal({ update, prayerId: 'p1' });
@@ -3516,26 +1775,7 @@ describe('HomeComponent', () => {
     });
 
     it('onPersonalUpdateSaved should clear state and reload', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.editingUpdate = { id: 'u1', text: 'Update' } as any;
       comp.editingUpdatePrayerId = 'p1';
@@ -3550,26 +1790,7 @@ describe('HomeComponent', () => {
     });
 
     it('openEditMemberUpdateModal should set state', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const update = { id: 'u1', text: 'Update' } as any;
       comp.openEditMemberUpdateModal({ update, prayerId: 'pc-member-123' });
@@ -3581,26 +1802,7 @@ describe('HomeComponent', () => {
 
     it('onMemberUpdateSaved should clear state and reload member updates', async () => {
       vi.useFakeTimers();
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
       comp.editingMemberUpdatePrayerId = 'pc-member-123';
@@ -3632,26 +1834,7 @@ describe('HomeComponent', () => {
     it('navigateToAdmin should navigate when admin is active', () => {
       mocks.adminAuthService.isAdmin$ = new BehaviorSubject(true).asObservable();
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.navigateToAdmin();
 
@@ -3662,26 +1845,7 @@ describe('HomeComponent', () => {
       mocks.adminAuthService.isAdmin$ = new BehaviorSubject(false).asObservable();
       localStorage.setItem('userEmail', 'user@example.com');
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.navigateToAdmin();
 
@@ -3695,26 +1859,7 @@ describe('HomeComponent', () => {
     });
 
     it('logout should call adminAuthService and show success toast', async () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       await comp.logout();
 
@@ -3725,26 +1870,7 @@ describe('HomeComponent', () => {
   describe('Private member update reloading', () => {
     it('onMemberUpdateSaved should handle missing member', async () => {
       vi.useFakeTimers();
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
       comp.editingMemberUpdatePrayerId = 'pc-member-999';
@@ -3761,26 +1887,7 @@ describe('HomeComponent', () => {
 
     it('onMemberUpdateSaved should handle missing prayer card', async () => {
       vi.useFakeTimers();
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
       comp.editingMemberUpdatePrayerId = 'pc-member-123';
@@ -3804,26 +1911,7 @@ describe('HomeComponent', () => {
 
     it('onMemberUpdateSaved should handle getMemberPrayerUpdates error', async () => {
       vi.useFakeTimers();
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -3853,26 +1941,7 @@ describe('HomeComponent', () => {
     it('showAdminMfaModal should navigate with userEmail from localStorage', () => {
       localStorage.setItem('userEmail', 'admin@example.com');
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp['showAdminMfaModal']();
 
@@ -3889,26 +1958,7 @@ describe('HomeComponent', () => {
     it('showAdminMfaModal should show error when no email found', () => {
       localStorage.clear();
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp['showAdminMfaModal']();
 
@@ -3920,26 +1970,7 @@ describe('HomeComponent', () => {
       localStorage.clear();
       localStorage.setItem('prayerapp_user_email', 'user@prayer.app');
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp['showAdminMfaModal']();
 
@@ -3956,26 +1987,7 @@ describe('HomeComponent', () => {
 
   describe('Filter search with search term', () => {
     it('should return all prayers when no search term', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: 'Healing', description: '' } as any,
@@ -3990,26 +2002,7 @@ describe('HomeComponent', () => {
     });
 
     it('should search in prayer_for field', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John Doe', title: 'Healing', description: 'Needs prayer' } as any,
@@ -4025,26 +2018,7 @@ describe('HomeComponent', () => {
     });
 
     it('should search case-insensitively in prayer_for', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John Doe', title: '', description: '' } as any
@@ -4058,26 +2032,7 @@ describe('HomeComponent', () => {
     });
 
     it('should search in update content', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { 
@@ -4105,26 +2060,7 @@ describe('HomeComponent', () => {
     });
 
     it('should search in title field', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: 'Healing Surgery', description: '' } as any
@@ -4138,26 +2074,7 @@ describe('HomeComponent', () => {
     });
 
     it('should search in description field', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'Jane', title: 'Work Issues', description: 'Difficult project deadline' } as any
@@ -4171,26 +2088,7 @@ describe('HomeComponent', () => {
     });
 
     it('should return empty array when no matches found', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: 'Healing', description: '' } as any
@@ -4204,26 +2102,7 @@ describe('HomeComponent', () => {
     });
 
     it('should trim whitespace from search term', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: '', description: '' } as any
@@ -4239,26 +2118,7 @@ describe('HomeComponent', () => {
 
   describe('Personal category count', () => {
     it('getPersonalCategoryCount should count prayers by category', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = [
         { id: '1', category: 'Healing' } as any,
@@ -4271,26 +2131,7 @@ describe('HomeComponent', () => {
     });
 
     it('getPersonalCategoryCount should return 0 for non-existent category', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = [
         { id: '1', category: 'Healing' } as any
@@ -4300,26 +2141,7 @@ describe('HomeComponent', () => {
     });
 
     it('getPersonalCategoryCount should work with empty prayers array', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = [];
 
@@ -4331,26 +2153,7 @@ describe('HomeComponent', () => {
     it('submitUpdate should call prayerService.addUpdate', async () => {
       mocks.prayerService.addUpdate.mockResolvedValue(undefined);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const updateData = { id: 'u1', text: 'Update' };
       await (comp as any).submitUpdate(updateData);
@@ -4361,26 +2164,7 @@ describe('HomeComponent', () => {
     it('submitDeletion should call prayerService.requestDeletion', async () => {
       mocks.prayerService.requestDeletion.mockResolvedValue(undefined);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const requestData = { id: 'p1', reason: 'Done' };
       await (comp as any).submitDeletion(requestData);
@@ -4391,26 +2175,7 @@ describe('HomeComponent', () => {
     it('submitUpdateDeletion should call prayerService.requestUpdateDeletion', async () => {
       mocks.prayerService.requestUpdateDeletion.mockResolvedValue(undefined);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const requestData = { id: 'u1', reason: 'Spam' };
       await (comp as any).submitUpdateDeletion(requestData);
@@ -4422,26 +2187,7 @@ describe('HomeComponent', () => {
   describe('Error handling in member update reload', () => {
     it('should handle detectChanges errors gracefully', async () => {
       vi.useFakeTimers();
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
@@ -4475,26 +2221,7 @@ describe('HomeComponent', () => {
 
   describe('getDisplayedPrompts', () => {
     it('should return empty array when activeFilter is not prompts', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.activeFilter = 'current';
 
@@ -4504,26 +2231,7 @@ describe('HomeComponent', () => {
     });
 
     it('should return prompts when activeFilter is prompts', () => {
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.activeFilter = 'prompts';
       const prompts = [
@@ -4545,26 +2253,7 @@ describe('HomeComponent', () => {
       const mockPersonalPrayers = [{ id: 'p1', title: 'Prayer 1' }];
       const { allPersonalPrayersSubject } = mocks;
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
 
@@ -4584,26 +2273,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
       mocks.prayerService.getUniqueCategoriesForUser.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
 
@@ -4629,26 +2299,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
       mocks.prayerService.getUniqueCategoriesForUser.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
       mocks.userSessionSubject.next({ defaultPrayerView: 'personal' });
@@ -4678,26 +2329,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
       mocks.prayerService.getUniqueCategoriesForUser.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
       mocks.userSessionSubject.next({ defaultPrayerView: 'current' });
@@ -4733,26 +2365,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
       mocks.prayerService.getUniqueCategoriesForUser.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
       routerEvents$.next(
@@ -4771,26 +2384,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
       mocks.prayerService.getUniqueCategoriesForUser.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
 
@@ -4812,26 +2406,7 @@ describe('HomeComponent', () => {
       const error = new Error('Failed to load personal prayers');
       mocks.prayerService.getPersonalPrayers.mockRejectedValue(error);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
 
@@ -4852,26 +2427,7 @@ describe('HomeComponent', () => {
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
       mocks.prayerService.getUniqueCategoriesForUser.mockResolvedValue([]);
 
-      const comp = new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      const comp = createHomeComponent(mocks)
 
       comp.ngOnInit();
 
@@ -4887,26 +2443,7 @@ describe('HomeComponent', () => {
 
   describe('Planning Center members filter button', () => {
     const newHome = (mocks: ReturnType<typeof makeMocks>) =>
-      new HomeComponent(
-        mocks.prayerService,
-        mocks.promptService,
-        mocks.adminAuthService,
-        mocks.userSessionService,
-        mocks.planningCenterListService,
-        mocks.badgeService,
-        mocks.memorizationService,
-        mocks.memorizationRecommendationsService,
-      mocks.scriptureService,
-        mocks.cacheService,
-        mocks.toastService,
-        mocks.analyticsService,
-        mocks.cdr,
-        mocks.router,
-        mocks.activatedRoute,
-        mocks.supabaseService,
-        mocks.helpDriverTourService,
-        mocks.helpContentService,
-      );
+      createHomeComponent(mocks)
 
     it('shows filter when list id is set before members finish loading', () => {
       const mocks = makeMocks();
@@ -4955,27 +2492,7 @@ describe('HomeComponent', () => {
   });
 
   describe('pull-to-refresh, logout, and memorization handlers', () => {
-    const newHome = (m: ReturnType<typeof makeMocks>) =>
-      new HomeComponent(
-        m.prayerService,
-        m.promptService,
-        m.adminAuthService,
-        m.userSessionService,
-        m.planningCenterListService,
-        m.badgeService,
-        m.memorizationService,
-        m.memorizationRecommendationsService,
-        m.scriptureService,
-        m.cacheService,
-        m.toastService,
-        m.analyticsService,
-        m.cdr,
-        m.router,
-        m.activatedRoute,
-        m.supabaseService,
-        m.helpDriverTourService,
-        m.helpContentService
-      );
+    const newHome = (m: ReturnType<typeof makeMocks>) => createHomeComponent(m);
 
     it('handleLogout hides confirmation and calls logout', async () => {
       const m = makeMocks();

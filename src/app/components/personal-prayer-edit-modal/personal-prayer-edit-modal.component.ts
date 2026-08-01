@@ -4,6 +4,7 @@ import {
   Output,
   EventEmitter,
   OnInit,
+  OnChanges,
   ChangeDetectorRef,
   HostListener,
   ViewChild,
@@ -17,13 +18,15 @@ import { PrayerRequest } from "../../services/prayer.service";
 import { PrayerService } from "../../services/prayer.service";
 import { ToastService } from "../../services/toast.service";
 import { RichTextEditorsSettingsService } from "../../services/rich-text-editors-settings.service";
+import { PersonalCategoryColorService } from "../../services/personal-category-color.service";
+import { PersonalCategoryColorPickerComponent } from "../personal-category-color-picker/personal-category-color-picker.component";
 import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";
 import { ModalShellComponent } from "../modal-shell/modal-shell.component";
 
 @Component({
   selector: "app-personal-prayer-edit-modal",
   standalone: true,
-  imports: [CommonModule, FormsModule, RichTextEditorComponent, ModalShellComponent],
+  imports: [CommonModule, FormsModule, RichTextEditorComponent, ModalShellComponent, PersonalCategoryColorPickerComponent],
   template: `
     @if (isOpen && prayer) {
     <app-modal-shell
@@ -102,6 +105,8 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
                 max)</span
               >
             </label>
+            <div class="space-y-2">
+              <div class="relative min-w-0">
             <input
               type="text"
               id="category"
@@ -135,6 +140,16 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
               }
             </div>
             }
+              </div>
+              @if (formData.category.trim()) {
+              <app-personal-category-color-picker
+                layout="inline"
+                [color]="categoryColor"
+                [categoryLabel]="formData.category"
+                (colorChange)="onCategoryColorChange($event)"
+              />
+              }
+            </div>
           </div>
 
           <div class="flex justify-end pt-4">
@@ -154,7 +169,7 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [],
 })
-export class PersonalPrayerEditModalComponent implements OnInit {
+export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
   @ViewChild("descriptionEditor") descriptionEditor?: RichTextEditorComponent;
 
   @Input() isOpen = false;
@@ -172,12 +187,15 @@ export class PersonalPrayerEditModalComponent implements OnInit {
   filteredCategories: string[] = [];
   showCategoryDropdown = false;
   selectedCategoryIndex = -1;
+  categoryColor = '#2563EB';
+  private categoryColorDirty = false;
   isSubmitting = false;
   richTextEditorsEnabled = true;
 
   constructor(
     private prayerService: PrayerService,
     private toast: ToastService,
+    private personalCategoryColorService: PersonalCategoryColorService,
     private cdr: ChangeDetectorRef,
     private destroyRef: DestroyRef,
     richTextEditorsSettings: RichTextEditorsSettingsService
@@ -189,10 +207,20 @@ export class PersonalPrayerEditModalComponent implements OnInit {
         this.richTextEditorsEnabled = v;
         this.cdr.markForCheck();
       });
+
+    this.personalCategoryColorService.colors$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.isOpen && this.prayer && !this.categoryColorDirty) {
+          this.refreshCategoryColorFromService();
+        }
+        this.cdr.markForCheck();
+      });
   }
 
   ngOnInit(): void {
     this.loadAvailableCategories();
+    void this.personalCategoryColorService.loadColors();
   }
 
   ngOnChanges(): void {
@@ -202,8 +230,19 @@ export class PersonalPrayerEditModalComponent implements OnInit {
         description: this.prayer.description,
         category: this.prayer.category || "",
       };
+      this.categoryColorDirty = false;
+      this.refreshCategoryColorFromService();
+      void this.personalCategoryColorService.loadColors();
       this.loadAvailableCategories();
     }
+  }
+
+  private refreshCategoryColorFromService(): void {
+    const category = this.formData.category.trim();
+    if (!category) {
+      return;
+    }
+    this.categoryColor = this.personalCategoryColorService.getColor(category);
   }
 
   private loadAvailableCategories(): void {
@@ -216,6 +255,7 @@ export class PersonalPrayerEditModalComponent implements OnInit {
   onCategoryInput(event: Event): void {
     const input = (event.target as HTMLInputElement).value;
     this.formData.category = input;
+    this.syncCategoryColorForInput(input);
     this.updateFilteredCategories();
     // Show dropdown if there are filtered results
     if (this.filteredCategories.length > 0) {
@@ -237,6 +277,8 @@ export class PersonalPrayerEditModalComponent implements OnInit {
 
   selectCategory(category: string): void {
     this.formData.category = category;
+    this.categoryColor = this.personalCategoryColorService.getColor(category);
+    this.categoryColorDirty = false;
     this.showCategoryDropdown = false;
     this.filteredCategories = [];
     this.selectedCategoryIndex = -1;
@@ -305,7 +347,18 @@ export class PersonalPrayerEditModalComponent implements OnInit {
       );
 
       if (success) {
-        this.save.emit(updates);
+        if (this.formData.category.trim() && this.categoryColorDirty) {
+          const colorSaved = await this.personalCategoryColorService.setColor(
+            this.formData.category,
+            this.categoryColor
+          );
+          this.save.emit(updates);
+          if (!colorSaved) {
+            return;
+          }
+        } else {
+          this.save.emit(updates);
+        }
         this.close.emit();
       }
     } catch (error) {
@@ -317,6 +370,22 @@ export class PersonalPrayerEditModalComponent implements OnInit {
     }
   }
 
+  onCategoryColorChange(color: string): void {
+    this.categoryColor = color;
+    this.categoryColorDirty = true;
+    this.cdr.markForCheck();
+  }
+
+  private syncCategoryColorForInput(category: string): void {
+    const trimmed = category.trim();
+    if (!trimmed) {
+      return;
+    }
+    this.categoryColor = this.personalCategoryColorService.getColor(trimmed);
+    this.categoryColorDirty = false;
+    this.cdr.markForCheck();
+  }
+
   cancel(): void {
     this.formData = {
       prayer_for: "",
@@ -324,6 +393,8 @@ export class PersonalPrayerEditModalComponent implements OnInit {
       category: "",
     };
     this.showCategoryDropdown = false;
+    this.categoryColor = '#2563EB';
+    this.categoryColorDirty = false;
     this.close.emit();
   }
 

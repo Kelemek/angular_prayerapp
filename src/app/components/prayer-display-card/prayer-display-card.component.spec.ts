@@ -9,6 +9,7 @@ import { PrayerService } from '../../services/prayer.service';
 import { PromptService } from '../../services/prompt.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { SupabaseService } from '../../services/supabase.service';
+import { PersonalCategoryColorService } from '../../services/personal-category-color.service';
 
 function createDisplayCardProviders(overrides?: {
   userSessionService?: Record<string, unknown>;
@@ -17,6 +18,7 @@ function createDisplayCardProviders(overrides?: {
   promptService?: Record<string, unknown>;
   adminAuthService?: Record<string, unknown>;
   supabaseService?: Record<string, unknown>;
+  personalCategoryColorService?: Record<string, unknown>;
 }) {
   const mockUserSessionService = {
     getShowPrayForButton$: vi.fn().mockReturnValue(of(false)),
@@ -65,6 +67,13 @@ function createDisplayCardProviders(overrides?: {
     ...overrides?.supabaseService
   };
 
+  const mockPersonalCategoryColorService = {
+    loadColors: vi.fn().mockResolvedValue({}),
+    colors$: of({ 'Test Category': '#2CC8DD' }),
+    getColorsSnapshot: vi.fn().mockReturnValue({}),
+    ...overrides?.personalCategoryColorService
+  };
+
   return {
     providers: [
       { provide: UserSessionService, useValue: mockUserSessionService },
@@ -72,7 +81,11 @@ function createDisplayCardProviders(overrides?: {
       { provide: PrayerService, useValue: mockPrayerService },
       { provide: PromptService, useValue: mockPromptService },
       { provide: AdminAuthService, useValue: mockAdminAuthService },
-      { provide: SupabaseService, useValue: mockSupabaseService }
+      { provide: SupabaseService, useValue: mockSupabaseService },
+      {
+        provide: PersonalCategoryColorService,
+        useValue: mockPersonalCategoryColorService,
+      },
     ],
     mocks: {
       mockUserSessionService,
@@ -80,8 +93,9 @@ function createDisplayCardProviders(overrides?: {
       mockPrayerService,
       mockPromptService,
       mockAdminAuthService,
-      mockSupabaseService
-    }
+      mockSupabaseService,
+      mockPersonalCategoryColorService,
+    },
   };
 }
 

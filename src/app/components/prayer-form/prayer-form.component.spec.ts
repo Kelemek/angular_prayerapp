@@ -107,6 +107,12 @@ describe('PrayerFormComponent', () => {
       success: vi.fn()
     };
 
+    const mockPersonalCategoryColorService = {
+      loadColors: vi.fn().mockResolvedValue({}),
+      getColor: vi.fn().mockReturnValue('#2563EB'),
+      setColor: vi.fn().mockResolvedValue(true),
+    };
+
     mockDestroyRef = { onDestroy: vi.fn() } as unknown as DestroyRef;
     mockRichTextEditorsSettings = {
       getRichTextEditorsEnabled$: () => of(true),
@@ -118,6 +124,7 @@ describe('PrayerFormComponent', () => {
       mockUserSessionService,
       mockSupabaseService,
       mockToastService as any as ToastService,
+      mockPersonalCategoryColorService as any,
       mockChangeDetectorRef as ChangeDetectorRef,
       mockDestroyRef,
       mockRichTextEditorsSettings
