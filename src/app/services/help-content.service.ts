@@ -415,7 +415,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Filtering Personal Prayers by Category',
-            text: 'Once you have personal prayers with categories, you can filter them by category. In the Personal filter view, category filter buttons appear showing each category and the number of prayers in that category. Click a category button to show only prayers in that category. Click "All Categories" to show all your personal prayers again. This makes it easy to focus on prayers in specific areas of your life.',
+            text: 'Once you have personal prayers with categories, you can filter them by category. In the Personal filter view, category filter buttons appear showing each category and the number of prayers in that category. Click a category button to show only prayers in that category. Long-press a category chip (or right-click on desktop) to rename it. Click "All Categories" to show all your personal prayers again. This makes it easy to focus on prayers in specific areas of your life.',
           },
           {
             subtitle: 'Editing Personal Prayers',

@@ -2081,6 +2081,95 @@ export class PrayerService {
   }
 
   /**
+   * Rename a personal prayer category for the current user (updates all prayers in that category).
+   */
+  async renamePersonalCategory(
+    oldCategory: string,
+    newCategory: string,
+    options?: { reservedCategoryNames?: string[] }
+  ): Promise<boolean> {
+    const oldName = this.sanitizeCategory(oldCategory);
+    const newName = this.sanitizeCategory(newCategory);
+
+    if (!oldName) {
+      this.toast.error('Category not found');
+      return false;
+    }
+
+    if (!newName) {
+      this.toast.error('Enter a category name');
+      return false;
+    }
+
+    if (oldName === newName) {
+      return true;
+    }
+
+    const existing = await this.getUniqueCategoriesForUser();
+    const reserved = options?.reservedCategoryNames ?? [];
+    const duplicateNames = new Set([...existing, ...reserved]);
+    if (duplicateNames.has(newName)) {
+      this.toast.error(`Category "${newName}" already exists`);
+      return false;
+    }
+
+    try {
+      const userEmail = await this.getUserEmail();
+      if (!userEmail) {
+        this.toast.error('User email not available');
+        return false;
+      }
+
+      // Match chip semantics (trim): rename every row whose trimmed category equals oldName,
+      // including legacy values with leading/trailing whitespace.
+      const { data: categoryRows, error: selectError } = await this.supabase.client
+        .from('personal_prayers')
+        .select('id, category')
+        .eq('user_email', userEmail);
+
+      if (selectError) {
+        throw selectError;
+      }
+
+      const matchingIds = (categoryRows ?? [])
+        .filter((row) => this.sanitizeCategory(row.category) === oldName)
+        .map((row) => row.id as string);
+
+      if (matchingIds.length > 0) {
+        const { error } = await this.supabase.client
+          .from('personal_prayers')
+          .update({
+            category: newName,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_email', userEmail)
+          .in('id', matchingIds);
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      this.applyCategoryRenameLocally(oldName, newName);
+      return true;
+    } catch (error) {
+      console.error('[PrayerService] Error renaming personal category:', error);
+      this.toast.error('Failed to rename category');
+      return false;
+    }
+  }
+
+  private applyCategoryRenameLocally(oldName: string, newName: string): void {
+    const updated = this.allPersonalPrayersSubject.value.map((p) =>
+      this.sanitizeCategory(p.category) === oldName
+        ? { ...p, category: newName }
+        : p
+    );
+    this.allPersonalPrayersSubject.next(updated);
+    this.cache.set('personalPrayers', updated);
+  }
+
+  /**
    * Add update to personal prayer
    */
   async addPersonalPrayerUpdate(

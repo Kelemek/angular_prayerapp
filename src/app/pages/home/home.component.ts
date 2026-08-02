@@ -37,6 +37,7 @@ import { VerificationDialogComponent } from "../../components/verification-dialo
 import { HelpModalComponent } from "../../components/help-modal/help-modal.component";
 import { PersonalPrayerEditModalComponent } from "../../components/personal-prayer-edit-modal/personal-prayer-edit-modal.component";
 import { PersonalPrayerUpdateEditModalComponent } from "../../components/personal-prayer-update-edit-modal/personal-prayer-update-edit-modal.component";
+import { PersonalCategoryRenameModalComponent } from "../../components/personal-category-rename-modal/personal-category-rename-modal.component";
 import { ConfirmationDialogComponent } from "../../components/confirmation-dialog/confirmation-dialog.component";
 import { MemorizationService } from "../../services/memorization.service";
 import { MemorizationRecommendationsService } from "../../services/memorization-recommendations.service";
@@ -109,6 +110,16 @@ import {
   type PresentationHelpTourSessionPayload,
 } from "../../services/help-driver-tour.service";
 import type { HelpSection } from "../../types/help-content";
+import {
+  isPersonalCategoryDragHandleTarget,
+  PERSONAL_CATEGORY_LONG_PRESS_MS,
+  PERSONAL_CATEGORY_LONG_PRESS_MOVE_PX,
+  PERSONAL_CATEGORY_CLICK_SUPPRESS_MS,
+} from "../../lib/personal-category-long-press";
+import {
+  renamePersonalCategoryWithColors,
+  type RenamePersonalCategoryWithColorsResult,
+} from "../../lib/personal-category-rename";
 
 const HELP_SECTION_ID_PRESENTATION = "help_presentation";
 
@@ -129,6 +140,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
     HelpModalComponent,
     PersonalPrayerEditModalComponent,
     PersonalPrayerUpdateEditModalComponent,
+    PersonalCategoryRenameModalComponent,
     ConfirmationDialogComponent,
     MemorizationActionBarComponent,
     MemorizedVerseCardComponent,
@@ -559,6 +571,14 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             (save)="onPersonalPrayerSaved()"
           ></app-personal-prayer-edit-modal>
 
+          <app-personal-category-rename-modal
+            [isOpen]="showRenamePersonalCategory"
+            [categoryName]="renamingPersonalCategory ?? ''"
+            [saving]="isRenamingPersonalCategory"
+            (close)="closeRenamePersonalCategoryModal()"
+            (save)="saveRenamedPersonalCategory($event)"
+          ></app-personal-category-rename-modal>
+
           <!-- Personal Prayer Update Edit Modal -->
           <app-personal-prayer-update-edit-modal
             [isOpen]="showEditPersonalUpdate"
@@ -934,6 +954,12 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             >
               <button
                 (click)="togglePersonalCategory(category)"
+                (pointerdown)="onPersonalCategoryPointerDown($event, category)"
+                (pointermove)="onPersonalCategoryPointerMove($event)"
+                (pointerup)="onPersonalCategoryPointerUp()"
+                (pointerleave)="onPersonalCategoryPointerUp()"
+                (pointercancel)="onPersonalCategoryPointerUp()"
+                (contextmenu)="onPersonalCategoryContextMenu($event, category)"
                 [disabled]="isSwappingCategories"
                 [class]="
                   'w-full whitespace-nowrap pl-7 pr-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 relative ' +
@@ -947,6 +973,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               >
                 <svg
                   cdkDragHandle
+                  data-personal-category-drag-handle
                   width="16"
                   height="16"
                   viewBox="0 0 24 24"
@@ -1388,6 +1415,19 @@ export class HomeComponent implements OnInit, OnDestroy {
   isCategoryDragging = false;
   uniquePersonalCategories: string[] = [];
   isSwappingCategories = false;
+  showRenamePersonalCategory = false;
+  renamingPersonalCategory: string | null = null;
+  isRenamingPersonalCategory = false;
+  private personalCategoryRenameGeneration = 0;
+  /** Category whose next click should be ignored after long-press / context-menu. */
+  private suppressPersonalCategoryClickFor: string | null = null;
+  private personalCategoryClickSuppressTimer: ReturnType<
+    typeof setTimeout
+  > | null = null;
+  private personalCategoryLongPressTimer: ReturnType<typeof setTimeout> | null =
+    null;
+  private personalCategoryPressStartX = 0;
+  private personalCategoryPressStartY = 0;
   readonly personalCategoryActiveClass =
     'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md';
   readonly promptTypeActiveClass = PROMPT_TYPE_CHIP_ACTIVE_CLASS;
@@ -2349,6 +2389,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearPersonalCategoryLongPress();
+    this.clearPersonalCategoryClickSuppress();
     // Complete the subject to unsubscribe from all observables
     this.destroy$.next();
     this.destroy$.complete();
@@ -2924,6 +2966,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   togglePersonalCategory(category: string): void {
+    if (this.suppressPersonalCategoryClickFor === category) {
+      this.clearPersonalCategoryClickSuppress();
+      return;
+    }
+
     // If clicking the currently selected category, deselect it (show all)
     if (
       this.selectedPersonalCategories.length === 1 &&
@@ -2938,6 +2985,203 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   isPersonalCategorySelected(category: string): boolean {
     return this.selectedPersonalCategories.includes(category);
+  }
+
+  onPersonalCategoryPointerDown(event: PointerEvent, category: string): void {
+    if (
+      this.isSwappingCategories ||
+      this.isCategoryDragging ||
+      event.button !== 0
+    ) {
+      return;
+    }
+    if (isPersonalCategoryDragHandleTarget(event.target)) {
+      return;
+    }
+
+    this.clearPersonalCategoryLongPress();
+    this.personalCategoryPressStartX = event.clientX;
+    this.personalCategoryPressStartY = event.clientY;
+    this.personalCategoryLongPressTimer = setTimeout(() => {
+      this.personalCategoryLongPressTimer = null;
+      this.openRenamePersonalCategoryModal(category);
+    }, PERSONAL_CATEGORY_LONG_PRESS_MS);
+  }
+
+  onPersonalCategoryPointerMove(event: PointerEvent): void {
+    if (!this.personalCategoryLongPressTimer) {
+      return;
+    }
+    const dx = event.clientX - this.personalCategoryPressStartX;
+    const dy = event.clientY - this.personalCategoryPressStartY;
+    if (
+      Math.hypot(dx, dy) > PERSONAL_CATEGORY_LONG_PRESS_MOVE_PX
+    ) {
+      this.clearPersonalCategoryLongPress();
+    }
+  }
+
+  onPersonalCategoryPointerUp(): void {
+    this.clearPersonalCategoryLongPress();
+  }
+
+  onPersonalCategoryContextMenu(
+    event: MouseEvent,
+    category: string
+  ): void {
+    if (this.isSwappingCategories || this.isCategoryDragging) {
+      return;
+    }
+    if (isPersonalCategoryDragHandleTarget(event.target)) {
+      return;
+    }
+    event.preventDefault();
+    this.clearPersonalCategoryLongPress();
+    this.openRenamePersonalCategoryModal(category);
+  }
+
+  openRenamePersonalCategoryModal(category: string): void {
+    this.clearPersonalCategoryLongPress();
+    this.suppressPersonalCategoryClickFor = category;
+    this.schedulePersonalCategoryClickSuppressClear();
+    this.renamingPersonalCategory = category;
+    this.showRenamePersonalCategory = true;
+    this.cdr.markForCheck();
+  }
+
+  closeRenamePersonalCategoryModal(cancelInFlightSave = true): void {
+    if (cancelInFlightSave && this.isRenamingPersonalCategory) {
+      this.personalCategoryRenameGeneration++;
+      this.isRenamingPersonalCategory = false;
+    }
+    this.showRenamePersonalCategory = false;
+    this.renamingPersonalCategory = null;
+    this.cdr.markForCheck();
+  }
+
+  async saveRenamedPersonalCategory(newName: string): Promise<void> {
+    const oldName = this.renamingPersonalCategory;
+    if (!oldName) {
+      return;
+    }
+
+    const trimmedNewName = newName.trim();
+    if (!trimmedNewName || trimmedNewName === oldName) {
+      this.closeRenamePersonalCategoryModal(false);
+      return;
+    }
+
+    const generation = this.personalCategoryRenameGeneration;
+    const previousSelection = [...this.selectedPersonalCategories];
+
+    this.isRenamingPersonalCategory = true;
+    this.cdr.markForCheck();
+    try {
+      const result = await renamePersonalCategoryWithColors(
+        this.prayerService,
+        this.personalCategoryColorService,
+        this.toastService,
+        oldName,
+        trimmedNewName,
+        {
+          onPrayersRenamed: (appliedCategory) => {
+            if (generation !== this.personalCategoryRenameGeneration) {
+              return;
+            }
+            this.selectedPersonalCategories =
+              this.selectedPersonalCategories.map((category) =>
+                category === oldName ? appliedCategory : category
+              );
+            this.cdr.markForCheck();
+          },
+          isCancelled: () =>
+            generation !== this.personalCategoryRenameGeneration,
+        }
+      );
+      if (generation !== this.personalCategoryRenameGeneration) {
+        this.applyDismissedPersonalCategoryRenameResult(
+          result,
+          oldName,
+          trimmedNewName,
+          previousSelection
+        );
+        return;
+      }
+      if (result.status === 'failed' || result.status === 'cancelled') {
+        this.selectedPersonalCategories = previousSelection;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      if (result.status === 'success') {
+        this.toastService.success('Category renamed.');
+      }
+      this.closeRenamePersonalCategoryModal(false);
+    } finally {
+      if (generation === this.personalCategoryRenameGeneration) {
+        this.isRenamingPersonalCategory = false;
+      }
+      this.cdr.markForCheck();
+    }
+  }
+
+  private applyDismissedPersonalCategoryRenameResult(
+    result: RenamePersonalCategoryWithColorsResult,
+    oldName: string,
+    newName: string,
+    previousSelection: string[]
+  ): void {
+    switch (result.status) {
+      case 'cancelled':
+      case 'failed':
+        this.selectedPersonalCategories = previousSelection;
+        this.cdr.markForCheck();
+        return;
+      case 'success':
+        this.selectedPersonalCategories = previousSelection.map((category) =>
+          category === oldName ? newName : category
+        );
+        this.cdr.markForCheck();
+        return;
+      case 'partial':
+        this.selectedPersonalCategories = previousSelection.map((category) =>
+          category === oldName ? result.appliedCategory : category
+        );
+        this.cdr.markForCheck();
+        return;
+      default: {
+        const _exhaustive: never = result;
+        void _exhaustive;
+        return;
+      }
+    }
+  }
+
+  private clearPersonalCategoryLongPress(): void {
+    if (this.personalCategoryLongPressTimer) {
+      clearTimeout(this.personalCategoryLongPressTimer);
+      this.personalCategoryLongPressTimer = null;
+    }
+  }
+
+  private schedulePersonalCategoryClickSuppressClear(): void {
+    this.clearPersonalCategoryClickSuppressTimer();
+    this.personalCategoryClickSuppressTimer = setTimeout(() => {
+      this.personalCategoryClickSuppressTimer = null;
+      this.suppressPersonalCategoryClickFor = null;
+    }, PERSONAL_CATEGORY_CLICK_SUPPRESS_MS);
+  }
+
+  private clearPersonalCategoryClickSuppressTimer(): void {
+    if (this.personalCategoryClickSuppressTimer) {
+      clearTimeout(this.personalCategoryClickSuppressTimer);
+      this.personalCategoryClickSuppressTimer = null;
+    }
+  }
+
+  private clearPersonalCategoryClickSuppress(): void {
+    this.suppressPersonalCategoryClickFor = null;
+    this.clearPersonalCategoryClickSuppressTimer();
   }
 
   get memorizedVerseSections(): Array<{

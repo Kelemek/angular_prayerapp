@@ -167,6 +167,61 @@ export class PersonalCategoryColorService {
     }
   }
 
+  async renameCategory(oldCategory: string, newCategory: string): Promise<boolean> {
+    const oldName = sanitizePersonalCategoryName(oldCategory);
+    const newName = sanitizePersonalCategoryName(newCategory);
+    if (!oldName || !newName || oldName === newName) {
+      return true;
+    }
+
+    const userEmail = await this.userSessionService.resolveUserEmail();
+    if (!userEmail) {
+      return false;
+    }
+
+    const renameForEmail = userEmail.toLowerCase().trim();
+    const currentMap = this.colorsSubject.value;
+    const color = currentMap[oldName];
+
+    try {
+      const { error } = await this.supabase.client
+        .from('personal_prayer_category_colors')
+        .update({
+          category: newName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_email', userEmail)
+        .eq('category', oldName);
+
+      if (error) {
+        throw error;
+      }
+
+      const currentEmail = await this.userSessionService.resolveUserEmail();
+      if (
+        !currentEmail ||
+        currentEmail.toLowerCase().trim() !== renameForEmail
+      ) {
+        return true;
+      }
+
+      if (!color) {
+        void this.loadColors(true);
+        return true;
+      }
+
+      const updated = { ...currentMap };
+      delete updated[oldName];
+      updated[newName] = color;
+      this.colorsSubject.next(updated);
+      this.cache.set('personalCategoryColors', updated);
+      return true;
+    } catch (err) {
+      console.error('[PersonalCategoryColorService] Failed to rename color:', err);
+      return false;
+    }
+  }
+
   invalidate(): void {
     this.colorsSubject.next({});
     this.cache.invalidate('personalCategoryColors');

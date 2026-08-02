@@ -6138,6 +6138,194 @@ describe('PrayerService - Integration Tests', () => {
       });
     });
 
+    describe('renamePersonalCategory', () => {
+      it('renames category on prayers and updates local cache', async () => {
+        const mockEmail = 'user@example.com';
+        const initSpy = vi
+          .spyOn(PrayerService.prototype as any, 'initializePrayers')
+          .mockResolvedValue(undefined);
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } },
+          }),
+        };
+
+        const updateIn = vi.fn().mockResolvedValue({ error: null });
+        const updateEqEmail = vi.fn().mockReturnValue({ in: updateIn });
+        const updateMock = vi.fn().mockReturnValue({ eq: updateEqEmail });
+        const selectEq = vi.fn().mockResolvedValue({
+          data: [
+            { id: '1', category: 'Evening' },
+            { id: '2', category: 'Morning' },
+          ],
+          error: null,
+        });
+        const selectMock = vi.fn().mockReturnValue({ eq: selectEq });
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: updateMock,
+          select: selectMock,
+        });
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService,
+          userSessionService
+        );
+
+        const prayers = [
+          { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
+          { id: '2', category: 'Morning', display_order: 1000 } as PrayerRequest,
+        ];
+        (service as any).allPersonalPrayersSubject.next(prayers);
+
+        const result = await service.renamePersonalCategory('Evening', 'Night');
+
+        initSpy.mockRestore();
+
+        expect(result).toBe(true);
+        expect(updateMock).toHaveBeenCalled();
+        expect(updateIn).toHaveBeenCalledWith('id', ['1']);
+        const updated = (service as any).allPersonalPrayersSubject.value;
+        expect(updated.find((p: PrayerRequest) => p.id === '1')?.category).toBe(
+          'Night'
+        );
+      });
+
+      it('renames whitespace variants that match after trim', async () => {
+        const mockEmail = 'user@example.com';
+        const initSpy = vi
+          .spyOn(PrayerService.prototype as any, 'initializePrayers')
+          .mockResolvedValue(undefined);
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } },
+          }),
+        };
+
+        const updateIn = vi.fn().mockResolvedValue({ error: null });
+        const updateEqEmail = vi.fn().mockReturnValue({ in: updateIn });
+        const updateMock = vi.fn().mockReturnValue({ eq: updateEqEmail });
+        const selectEq = vi.fn().mockResolvedValue({
+          data: [
+            { id: '1', category: 'Evening' },
+            { id: '2', category: ' Evening ' },
+            { id: '3', category: 'Morning' },
+          ],
+          error: null,
+        });
+
+        mockSupabaseService.client.from.mockReturnValue({
+          update: updateMock,
+          select: vi.fn().mockReturnValue({ eq: selectEq }),
+        });
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService,
+          userSessionService
+        );
+
+        (service as any).allPersonalPrayersSubject.next([
+          { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
+          { id: '2', category: ' Evening ', display_order: 2001 } as PrayerRequest,
+          { id: '3', category: 'Morning', display_order: 1000 } as PrayerRequest,
+        ]);
+
+        const result = await service.renamePersonalCategory('Evening', 'Night');
+
+        initSpy.mockRestore();
+
+        expect(result).toBe(true);
+        expect(updateIn).toHaveBeenCalledWith('id', ['1', '2']);
+        const updated = (service as any).allPersonalPrayersSubject.value;
+        expect(updated.find((p: PrayerRequest) => p.id === '1')?.category).toBe(
+          'Night'
+        );
+        expect(updated.find((p: PrayerRequest) => p.id === '2')?.category).toBe(
+          'Night'
+        );
+        expect(updated.find((p: PrayerRequest) => p.id === '3')?.category).toBe(
+          'Morning'
+        );
+      });
+
+      it('rejects duplicate category names', async () => {
+        const mockEmail = 'user@example.com';
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } },
+          }),
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService,
+          userSessionService
+        );
+
+        (service as any).allPersonalPrayersSubject.next([
+          { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
+          { id: '2', category: 'Morning', display_order: 1000 } as PrayerRequest,
+        ]);
+
+        const result = await service.renamePersonalCategory('Evening', 'Morning');
+
+        expect(result).toBe(false);
+        expect(mockToastService.error).toHaveBeenCalledWith(
+          'Category "Morning" already exists'
+        );
+      });
+
+      it('rejects names reserved in saved category colors', async () => {
+        const mockEmail = 'user@example.com';
+
+        mockSupabaseService.client.auth = {
+          getSession: vi.fn().mockResolvedValue({
+            data: { session: { user: { email: mockEmail } } },
+          }),
+        };
+
+        service = new PrayerService(
+          mockSupabaseService,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          mockBadgeService,
+          userSessionService
+        );
+
+        (service as any).allPersonalPrayersSubject.next([
+          { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
+        ]);
+
+        const result = await service.renamePersonalCategory('Evening', 'Legacy', {
+          reservedCategoryNames: ['Legacy'],
+        });
+
+        expect(result).toBe(false);
+        expect(mockToastService.error).toHaveBeenCalledWith(
+          'Category "Legacy" already exists'
+        );
+      });
+    });
+
     describe('swapCategoryRanges', () => {
       it('should attempt RPC call first', async () => {
         const mockEmail = 'user@example.com';

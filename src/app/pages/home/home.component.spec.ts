@@ -1004,6 +1004,210 @@ describe('HomeComponent', () => {
       expect(comp.selectedPersonalCategories).toEqual([]);
     });
 
+    it('togglePersonalCategory ignores click only on the long-pressed category', () => {
+      const comp = createHomeComponent(mocks);
+
+      comp.selectedPersonalCategories = [];
+      (comp as any).suppressPersonalCategoryClickFor = 'Members';
+
+      comp.togglePersonalCategory('Other');
+      expect(comp.selectedPersonalCategories).toEqual(['Other']);
+      expect((comp as any).suppressPersonalCategoryClickFor).toBe('Members');
+
+      comp.togglePersonalCategory('Members');
+      expect(comp.selectedPersonalCategories).toEqual(['Other']);
+      expect((comp as any).suppressPersonalCategoryClickFor).toBeNull();
+    });
+
+    it('clears suppressPersonalCategoryClickFor after the click-suppress window', () => {
+      vi.useFakeTimers();
+      const comp = createHomeComponent(mocks);
+
+      comp.openRenamePersonalCategoryModal('Members');
+      expect((comp as any).suppressPersonalCategoryClickFor).toBe('Members');
+
+      vi.advanceTimersByTime(400);
+      expect((comp as any).suppressPersonalCategoryClickFor).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    it('keeps suppressPersonalCategoryClickFor when modal closes before timer', () => {
+      vi.useFakeTimers();
+      const comp = createHomeComponent(mocks);
+
+      comp.openRenamePersonalCategoryModal('Members');
+      comp.closeRenamePersonalCategoryModal();
+
+      expect((comp as any).suppressPersonalCategoryClickFor).toBe('Members');
+      vi.advanceTimersByTime(400);
+      expect((comp as any).suppressPersonalCategoryClickFor).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    it('closes rename modal without toast when name is unchanged', async () => {
+      const prayerService = {
+        ...mocks.prayerService,
+        renamePersonalCategory: vi.fn(),
+      };
+      const comp = createHomeComponent(mocks, { prayerService });
+
+      comp.renamingPersonalCategory = 'Evening';
+      comp.showRenamePersonalCategory = true;
+      await comp.saveRenamedPersonalCategory('Evening');
+
+      expect(prayerService.renamePersonalCategory).not.toHaveBeenCalled();
+      expect(mocks.toastService.success).not.toHaveBeenCalled();
+      expect(comp.showRenamePersonalCategory).toBe(false);
+    });
+
+    it('context menu clears pending long-press before opening rename', () => {
+      vi.useFakeTimers();
+      const comp = createHomeComponent(mocks);
+      const openSpy = vi.spyOn(comp, 'openRenamePersonalCategoryModal');
+
+      comp.onPersonalCategoryPointerDown(
+        {
+          button: 0,
+          clientX: 10,
+          clientY: 10,
+          target: document.createElement('button'),
+        } as unknown as PointerEvent,
+        'Members'
+      );
+      expect((comp as any).personalCategoryLongPressTimer).not.toBeNull();
+
+      comp.onPersonalCategoryContextMenu(
+        {
+          preventDefault: vi.fn(),
+          target: document.createElement('button'),
+        } as unknown as MouseEvent,
+        'Members'
+      );
+
+      expect((comp as any).personalCategoryLongPressTimer).toBeNull();
+      expect(openSpy).toHaveBeenCalledWith('Members');
+
+      vi.advanceTimersByTime(500);
+      expect(openSpy).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it('ignores save completion when rename modal is closed during save', async () => {
+      let resolvePrayerRename: (value: boolean) => void = () => undefined;
+      const prayerRename = new Promise<boolean>((resolve) => {
+        resolvePrayerRename = resolve;
+      });
+      const prayerService = {
+        ...mocks.prayerService,
+        renamePersonalCategory: vi
+          .fn()
+          .mockReturnValueOnce(prayerRename)
+          .mockResolvedValueOnce(true),
+      };
+      const personalCategoryColorService = {
+        ...mocks.personalCategoryColorService,
+        getColorsSnapshot: vi.fn().mockReturnValue({}),
+        renameCategory: vi.fn().mockResolvedValue(true),
+      };
+      const comp = createHomeComponent(mocks, {
+        prayerService,
+        personalCategoryColorService,
+      });
+
+      comp.renamingPersonalCategory = 'Evening';
+      comp.showRenamePersonalCategory = true;
+      comp.selectedPersonalCategories = ['Evening'];
+      const savePromise = comp.saveRenamedPersonalCategory('Night');
+
+      comp.closeRenamePersonalCategoryModal();
+      expect(comp.isRenamingPersonalCategory).toBe(false);
+      resolvePrayerRename(true);
+      await savePromise;
+
+      expect(mocks.toastService.success).not.toHaveBeenCalled();
+      expect(comp.showRenamePersonalCategory).toBe(false);
+      expect(comp.selectedPersonalCategories).toEqual(['Evening']);
+      expect(prayerService.renamePersonalCategory).toHaveBeenNthCalledWith(
+        2,
+        'Night',
+        'Evening'
+      );
+    });
+
+    it('syncs active filter when rename finishes after modal dismiss', async () => {
+      let resolveColorRename: (value: boolean) => void = () => undefined;
+      const colorRename = new Promise<boolean>((resolve) => {
+        resolveColorRename = resolve;
+      });
+      const prayerService = {
+        ...mocks.prayerService,
+        renamePersonalCategory: vi.fn().mockResolvedValue(true),
+      };
+      const personalCategoryColorService = {
+        ...mocks.personalCategoryColorService,
+        getColorsSnapshot: vi.fn().mockReturnValue({}),
+        renameCategory: vi.fn().mockReturnValue(colorRename),
+      };
+      const comp = createHomeComponent(mocks, {
+        prayerService,
+        personalCategoryColorService,
+      });
+
+      comp.renamingPersonalCategory = 'Evening';
+      comp.showRenamePersonalCategory = true;
+      comp.selectedPersonalCategories = ['Evening'];
+      const savePromise = comp.saveRenamedPersonalCategory('Night');
+
+      await Promise.resolve();
+      comp.closeRenamePersonalCategoryModal();
+      resolveColorRename(true);
+      await savePromise;
+
+      expect(mocks.toastService.success).not.toHaveBeenCalled();
+      expect(comp.selectedPersonalCategories).toEqual(['Night']);
+      expect(comp.isRenamingPersonalCategory).toBe(false);
+    });
+
+    it('restores active filter when color rename fails after modal dismiss', async () => {
+      let resolveColorRename: (value: boolean) => void = () => undefined;
+      const colorRename = new Promise<boolean>((resolve) => {
+        resolveColorRename = resolve;
+      });
+      const prayerService = {
+        ...mocks.prayerService,
+        renamePersonalCategory: vi
+          .fn()
+          .mockResolvedValueOnce(true)
+          .mockResolvedValueOnce(true),
+      };
+      const personalCategoryColorService = {
+        ...mocks.personalCategoryColorService,
+        getColorsSnapshot: vi.fn().mockReturnValue({}),
+        renameCategory: vi.fn().mockReturnValue(colorRename),
+      };
+      const comp = createHomeComponent(mocks, {
+        prayerService,
+        personalCategoryColorService,
+      });
+
+      comp.renamingPersonalCategory = 'Evening';
+      comp.showRenamePersonalCategory = true;
+      comp.selectedPersonalCategories = ['Evening'];
+      const savePromise = comp.saveRenamedPersonalCategory('Night');
+
+      await Promise.resolve();
+      expect(comp.selectedPersonalCategories).toEqual(['Night']);
+      comp.closeRenamePersonalCategoryModal();
+      resolveColorRename(false);
+      await savePromise;
+
+      expect(comp.selectedPersonalCategories).toEqual(['Evening']);
+      expect(comp.isRenamingPersonalCategory).toBe(false);
+    });
+
     it('togglePersonalCategory selects a new category and isPersonalCategorySelected reports true', () => {
       const comp = createHomeComponent(mocks)
 
