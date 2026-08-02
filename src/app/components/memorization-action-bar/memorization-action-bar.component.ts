@@ -2,8 +2,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { MemorizeListView } from '../../lib/memorization/memorization-list-prefs';
 
+/** Fixed `14px` (not `text-sm` rem) so labels stay the same under Settings text size. */
 const ACTION_BTN_BASE =
-  'flex flex-1 items-center justify-center whitespace-nowrap rounded-lg border px-2 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer sm:flex-none sm:px-4';
+  'flex flex-1 items-center justify-center whitespace-nowrap rounded-lg border px-2 py-2 text-[14px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer sm:flex-none sm:px-4';
 
 /** Outlined blue — matches active **Memorize** stat tab (`#tour-filter-memorize`). */
 const MEMORIZE_TAB_CHIP =
