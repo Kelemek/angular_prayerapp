@@ -42,19 +42,17 @@ import { ConfirmationDialogComponent } from "../../components/confirmation-dialo
 import { MemorizationService } from "../../services/memorization.service";
 import { MemorizationRecommendationsService } from "../../services/memorization-recommendations.service";
 import { ScriptureService } from "../../services/scripture.service";
-import { MemorizationActionBarComponent } from "../../components/memorization-action-bar/memorization-action-bar.component";
-import { MemorizedVerseCardComponent } from "../../components/memorized-verse-card/memorized-verse-card.component";
+import { MemorizePassagesPanelComponent } from "../../components/memorize-passages-panel/memorize-passages-panel.component";
 import { MemorizationRecommendationsModalComponent } from "../../components/memorization-recommendations-modal/memorization-recommendations-modal.component";
 import { AddMemorizedVerseModalComponent } from "../../components/add-memorized-verse-modal/add-memorized-verse-modal.component";
 import { AddMemorizedBibleBooksModalComponent } from "../../components/add-memorized-bible-books-modal/add-memorized-bible-books-modal.component";
 import { MemorizationPracticeSessionComponent } from "../../components/memorization-practice-session/memorization-practice-session.component";
-import { groupItemsByMasterLevel } from "../../lib/memorization/memorization-mastery";
-import { filterMemorizedItemsBySearch } from "../../lib/memorization/memorization-search";
 import {
   PROMPT_TYPE_CHIP_ACTIVE_CLASS,
   PROMPT_TYPE_CHIP_INACTIVE_CLASS,
 } from "../../lib/prompt-type-chip-classes";
 import { memorizationNeedsKeyboardOnOpen } from "../../lib/memorization/memorizationKeyboardPractice";
+import { loadMemorizeListView } from "../../lib/memorization/memorization-list-prefs";
 import type {
   MemorizedItem,
   MemorizationInProgressSavePayload,
@@ -143,8 +141,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
     PersonalPrayerUpdateEditModalComponent,
     PersonalCategoryRenameModalComponent,
     ConfirmationDialogComponent,
-    MemorizationActionBarComponent,
-    MemorizedVerseCardComponent,
+    MemorizePassagesPanelComponent,
     MemorizationRecommendationsModalComponent,
     AddMemorizedVerseModalComponent,
     AddMemorizedBibleBooksModalComponent,
@@ -1217,77 +1214,20 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             } } }
 
             @if (activeFilter === 'memorize') {
-            <app-memorization-action-bar
+            <app-memorize-passages-panel
+              [items]="memorizedItems"
+              [searchTerm]="filters.searchTerm ?? ''"
+              [loading]="!!(memorizationService.loading$ | async)"
               [addVersesActive]="showAddMemorizedVerse"
               [bibleBooksActive]="showAddMemorizedBibleBooks"
               [recommendedActive]="showMemorizationRecommendations"
               (addVerses)="showAddMemorizedVerse = true"
               (addBibleBooks)="showAddMemorizedBibleBooks = true"
               (openRecommended)="openMemorizationRecommendations()"
-            />
-            @if (!(memorizationService.loading$ | async) && memorizedItems.length
-            === 0) {
-            <div
-              id="tour-memorize-empty-state"
-              class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700"
-            >
-              <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                No memorized passages yet
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400 max-w-lg mx-auto">
-                Use <span class="font-medium text-gray-600 dark:text-gray-300">Add Verses</span> to pick passages to memorize,
-                <span class="font-medium text-gray-600 dark:text-gray-300">Bible Books</span> to memorize the names of the books of the Bible,
-                or <span class="font-medium text-gray-600 dark:text-gray-300">Recommended</span> for curated passages by biblical counseling topics.
-                Your passages will appear here—tap one to practice.
-              </p>
-            </div>
-            } @else if (
-              !(memorizationService.loading$ | async) &&
-              memorizedItems.length > 0 &&
-              memorizedVerseSections.length === 0 &&
-              filters.searchTerm &&
-              filters.searchTerm.trim()
-            ) {
-            <div
-              class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700"
-            >
-              <svg
-                class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                ></path>
-              </svg>
-              <h3
-                class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2"
-              >
-                No passages found
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400">
-                Try adjusting your search terms
-              </p>
-            </div>
-            } @for (section of memorizedVerseSections; track section.title) {
-            <p [class]="section.headingClass">
-              {{ section.title }}
-            </p>
-            <div [class]="memorizedVerseGridClass" role="list">
-            @for (item of section.items; track item.id) {
-            <app-memorized-verse-card
-              [item]="item"
-              [tourMemorizeAnchors]="item.id === memorizedItems[0]?.id"
               (practice)="openMemorizationPractice($event)"
               (remove)="confirmRemoveMemorizedItem($event)"
             />
             }
-            </div>
-            } }
 
             <!-- Personal Prayer Cards (show when personal filter is active) -->
             @if (activeFilter === 'personal') {
@@ -1410,9 +1350,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   personalPrayersCount = 0;
   memorizedItems: MemorizedItem[] = [];
   memorizedItemsCount = 0;
-  memorizedLearning: MemorizedItem[] = [];
-  memorizedPracticing: MemorizedItem[] = [];
-  memorizedMastered: MemorizedItem[] = [];
   memorizationRecommendationGroups: MemorizationRecommendationCategoryGroup[] = [];
   memorizationRecommendationOwnedKeys = new Set<string>();
   addingRecommendationId: string | null = null;
@@ -1470,8 +1407,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md';
   readonly promptTypeActiveClass = PROMPT_TYPE_CHIP_ACTIVE_CLASS;
   readonly promptTypeInactiveClass = PROMPT_TYPE_CHIP_INACTIVE_CLASS;
-  readonly memorizedVerseGridClass =
-    'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
 
   // Planning Center list filtering
   planningCenterListId: string | null = null;
@@ -1753,10 +1688,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       .subscribe((items) => {
         this.memorizedItems = items;
         this.memorizedItemsCount = items.length;
-        const grouped = groupItemsByMasterLevel(items);
-        this.memorizedLearning = grouped.learning;
-        this.memorizedPracticing = grouped.practicing;
-        this.memorizedMastered = grouped.mastered;
         this.memorizationRecommendationOwnedKeys = new Set(
           items
             .filter((item) => item.kind === "verse" || item.kind == null)
@@ -1908,7 +1839,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     window.setTimeout(() => {
       this.helpDriverTourService.startMemorizeHelpSectionTour(
         { title: section.title, description: section.description },
-        { hasMemorizedItems: this.memorizedItemsCount > 0 },
+        {
+          hasMemorizedItems: this.memorizedItemsCount > 0,
+          listView: loadMemorizeListView(),
+        },
         {
           switchToMemorize: () => {
             this.setFilter("memorize");
@@ -3220,56 +3154,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   private clearPersonalCategoryClickSuppress(): void {
     this.suppressPersonalCategoryClickFor = null;
     this.clearPersonalCategoryClickSuppressTimer();
-  }
-
-  get memorizedVerseSections(): Array<{
-    title: string;
-    items: MemorizedItem[];
-    headingClass: string;
-  }> {
-    const query = this.filters.searchTerm;
-    const learning = filterMemorizedItemsBySearch(
-      this.memorizedLearning,
-      query
-    );
-    const practicing = filterMemorizedItemsBySearch(
-      this.memorizedPracticing,
-      query
-    );
-    const mastered = filterMemorizedItemsBySearch(
-      this.memorizedMastered,
-      query
-    );
-
-    const heading =
-      'text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2';
-    const sections: Array<{
-      title: string;
-      items: MemorizedItem[];
-      headingClass: string;
-    }> = [];
-    if (learning.length > 0) {
-      sections.push({
-        title: 'Learning',
-        items: learning,
-        headingClass: heading,
-      });
-    }
-    if (practicing.length > 0) {
-      sections.push({
-        title: 'Practicing',
-        items: practicing,
-        headingClass: `${heading} mt-4`,
-      });
-    }
-    if (mastered.length > 0) {
-      sections.push({
-        title: 'Mastered',
-        items: mastered,
-        headingClass: `${heading} mt-4`,
-      });
-    }
-    return sections;
   }
 
   private async extractUniqueCategories(

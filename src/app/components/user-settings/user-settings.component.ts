@@ -117,7 +117,10 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                 </div>
                 <div
                   id="tour-settings-print-buttons"
-                  class="grid grid-cols-3 gap-1.5 sm:gap-2"
+                  data-testid="settings-print-buttons"
+                  class="grid gap-1.5 sm:grid-cols-3 sm:gap-2"
+                  [class.grid-cols-3]="textSize === 'normal'"
+                  [class.grid-cols-1]="textSize !== 'normal'"
                 >
             <!-- Print Prayer List -->
             <div class="relative flex-1 min-w-0">
@@ -135,13 +138,15 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="handlePrint()"
                   title="Print prayers for the selected time period"
                   [disabled]="isPrinting"
-                  class="flex-1 flex flex-col items-center justify-center gap-2 p-2 sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="flex-1 flex items-center justify-center gap-2 p-2 sm:flex-col sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  [class.flex-col]="textSize === 'normal'"
+                  [class.flex-row]="textSize !== 'normal'"
                 >
                   @if (!isPrinting) {
                   <svg
                     width="18"
                     height="18"
-                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5"
+                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -159,7 +164,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <svg
                     width="18"
                     height="18"
-                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 animate-spin"
+                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0 animate-spin"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -223,19 +228,19 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="showPrintDropdown = false"
                 ></div>
                 <div
-                  class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
+                  class="absolute left-0 z-20 mt-1 max-h-60 min-w-[14rem] w-max max-w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
                 >
                   @for (option of printRangeOptions; track option.value) {
                   <button
                     (click)="
                       setPrintRange(option.value); showPrintDropdown = false
                     "
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer"
+                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     [title]="'Print prayers from the last ' + option.label"
                   >
-                    <span>{{ option.label }}</span>
+                    <span class="whitespace-nowrap">{{ option.label }}</span>
                     @if (printRange === option.value) {
-                    <span class="text-blue-600 dark:text-blue-400">✓</span>
+                    <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
                     }
                   </button>
                   }
@@ -260,13 +265,15 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="handlePrintPrompts()"
                   [disabled]="isPrintingPrompts"
                   title="Print prayer prompts for the selected time period"
-                  class="flex-1 flex flex-col items-center justify-center gap-2 p-2 sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="flex-1 flex items-center justify-center gap-2 p-2 sm:flex-col sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  [class.flex-col]="textSize === 'normal'"
+                  [class.flex-row]="textSize !== 'normal'"
                 >
                   @if (!isPrintingPrompts) {
                   <svg
                     width="18"
                     height="18"
-                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5"
+                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -284,7 +291,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <svg
                     width="18"
                     height="18"
-                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 animate-spin"
+                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0 animate-spin"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -348,29 +355,29 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="showPromptTypesDropdown = false"
                 ></div>
                 <div
-                  class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 max-h-60 overflow-y-auto"
+                  class="absolute left-1/2 z-20 mt-1 max-h-60 min-w-[14rem] w-max max-w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
                 >
                   <button
                     (click)="
                       selectedPromptTypes = []; showPromptTypesDropdown = false
                     "
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer"
+                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     title="Print all prompt types"
                   >
-                    <span>All Types</span>
+                    <span class="whitespace-nowrap">All Types</span>
                     @if (selectedPromptTypes.length === 0) {
-                    <span class="text-blue-600 dark:text-blue-400">✓</span>
+                    <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
                     }
                   </button>
                   @for (type of promptTypes; track type) {
                   <button
                     (click)="togglePromptType(type)"
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer"
+                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     [title]="'Toggle ' + type + ' prompts for printing'"
                   >
-                    <span>{{ type }}</span>
+                    <span class="whitespace-nowrap">{{ type }}</span>
                     @if (selectedPromptTypes.includes(type)) {
-                    <span class="text-blue-600 dark:text-blue-400">✓</span>
+                    <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
                     }
                   </button>
                   }
@@ -397,13 +404,15 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="handlePrintPersonalPrayers()"
                   title="Print personal prayers for the selected categories"
                   [disabled]="isPrintingPersonal"
-                  class="flex-1 flex flex-col items-center justify-center gap-2 p-2 sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="flex-1 flex items-center justify-center gap-2 p-2 sm:flex-col sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  [class.flex-col]="textSize === 'normal'"
+                  [class.flex-row]="textSize !== 'normal'"
                 >
                   @if (!isPrintingPersonal) {
                   <svg
                     width="18"
                     height="18"
-                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5"
+                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -421,7 +430,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <svg
                     width="18"
                     height="18"
-                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 animate-spin"
+                    class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0 animate-spin"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -487,30 +496,30 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="showPrintPersonalDropdown = false"
                 ></div>
                 <div
-                  class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 max-h-60 overflow-y-auto"
+                  class="absolute right-0 z-20 mt-1 max-h-60 min-w-[14rem] w-max max-w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
                 >
                   <button
                     (click)="
                       selectedPersonalCategories = [];
                       showPrintPersonalDropdown = false
                     "
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer"
+                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     title="Print all personal prayer categories"
                   >
-                    <span>All Categories</span>
+                    <span class="whitespace-nowrap">All Categories</span>
                     @if (selectedPersonalCategories.length === 0) {
-                    <span class="text-blue-600 dark:text-blue-400">✓</span>
+                    <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
                     }
                   </button>
                   @for (category of personalCategories; track category) {
                   <button
                     (click)="togglePersonalCategory(category)"
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer"
+                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     [title]="'Toggle ' + category + ' category for printing'"
                   >
-                    <span>{{ category }}</span>
+                    <span class="whitespace-nowrap">{{ category }}</span>
                     @if (selectedPersonalCategories.includes(category)) {
-                    <span class="text-blue-600 dark:text-blue-400">✓</span>
+                    <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
                     }
                   </button>
                   }

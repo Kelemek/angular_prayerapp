@@ -30,6 +30,26 @@ export function parseReference(
   }
 }
 
+/**
+ * Split a display reference so the book name can ellipsize while chapter/verse
+ * stays fully visible (e.g. "1 Thessalonians" truncates, "5:16-18" does not).
+ * Non-verse labels (Bible Books, free text) return the whole string as `book`.
+ */
+export function splitScriptureReferenceDisplay(reference: string): {
+  book: string;
+  citation: string | null;
+} {
+  const trimmed = reference.trim()
+  const match = trimmed.match(/^(.+?)\s+(\d+(?::\s*\d+(?:\s*[-–]\s*\d+)?)?)$/)
+  if (!match) {
+    return { book: trimmed, citation: null }
+  }
+  return {
+    book: match[1]!.trim(),
+    citation: match[2]!.replace(/\s+/g, ''),
+  }
+}
+
 /** True for references like "Genesis 1" or "Psalm 23" (no `:verse`). */
 export function isChapterOnlyScriptureReference(reference: string): boolean {
   const parsed = parseReference(reference.trim())

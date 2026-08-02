@@ -477,7 +477,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Opening Memorize',
-            text: 'Tap the **Memorize** filter on Home to see your passages. The count on the tile shows how many items you have saved. On small screens, Memorize appears on the second filter row after Prompts and Personal. Use the Home search field to filter your list by book, reference, or translation (for example **John**, **3:16**, or **kjv**).',
+            text: 'Tap the **Memorize** filter on Home to see your passages. The count on the tile shows how many items you have saved. On small screens, Memorize appears on the second filter row after Prompts and Personal. Use the Home search field to filter your list by book, reference, or translation (for example **John**, **3:16**, or **kjv**). Switch between **Cards** and **Table** layouts on the action bar; the layout defaults to **Cards** until you change it, then your choice and the table’s column sort are remembered on this device. Table columns are Reference (Bible order), Sessions, and Mastery (Learning first by default).',
           },
           {
             subtitle: 'Adding verses',

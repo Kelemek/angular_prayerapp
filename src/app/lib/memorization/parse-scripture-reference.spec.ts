@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseReference,
+  splitScriptureReferenceDisplay,
   isChapterOnlyScriptureReference,
   isSingleVerseScriptureReference,
   scriptureReferenceVerseCount,
@@ -62,6 +63,36 @@ describe('parseReference', () => {
   it('returns null for invalid reference', () => {
     expect(parseReference('not a reference')).toBeNull();
     expect(parseReference('')).toBeNull();
+  });
+});
+
+describe('splitScriptureReferenceDisplay', () => {
+  it('splits book from verse citation', () => {
+    expect(splitScriptureReferenceDisplay('John 3:16')).toEqual({
+      book: 'John',
+      citation: '3:16',
+    });
+  });
+
+  it('splits numbered books and ranges', () => {
+    expect(splitScriptureReferenceDisplay('1 Thessalonians 5:16-18')).toEqual({
+      book: '1 Thessalonians',
+      citation: '5:16-18',
+    });
+  });
+
+  it('splits chapter-only references', () => {
+    expect(splitScriptureReferenceDisplay('Psalm 23')).toEqual({
+      book: 'Psalm',
+      citation: '23',
+    });
+  });
+
+  it('returns whole label when there is no citation', () => {
+    expect(splitScriptureReferenceDisplay('Bible Books (OT)')).toEqual({
+      book: 'Bible Books (OT)',
+      citation: null,
+    });
   });
 });
 

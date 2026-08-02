@@ -15,6 +15,7 @@ export const TOUR_MEMORIZE_ACTION_BAR_ID = 'tour-memorize-action-bar';
 export const TOUR_MEMORIZE_ADD_VERSES_ID = 'tour-memorize-add-verses';
 export const TOUR_MEMORIZE_RECOMMENDED_ID = 'tour-memorize-recommended';
 export const TOUR_MEMORIZE_SAMPLE_CARD_ID = 'tour-memorize-sample-card';
+export const TOUR_MEMORIZE_SAMPLE_TABLE_ID = 'tour-memorize-sample-table';
 export const TOUR_MEMORIZE_EMPTY_STATE_ID = 'tour-memorize-empty-state';
 export const TOUR_PROMPT_TYPE_FILTERS_ID = 'tour-prompt-type-filters';
 export const TOUR_PROMPT_EMPTY_ID = 'tour-prompt-empty-state';
@@ -281,6 +282,47 @@ function getMemorizeSampleCardEl(): HTMLElement | null {
   return document.getElementById(TOUR_MEMORIZE_SAMPLE_CARD_ID);
 }
 
+function getMemorizeSampleTableEl(): HTMLElement | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  return document.getElementById(TOUR_MEMORIZE_SAMPLE_TABLE_ID);
+}
+
+/** Live Cards or Table list anchor — prefers the active layout, falls back if the user switched mid-tour. */
+function getMemorizePassageListEl(
+  prefer: 'cards' | 'table' = 'cards'
+): HTMLElement | null {
+  const card = getMemorizeSampleCardEl();
+  const table = getMemorizeSampleTableEl();
+  if (prefer === 'table') {
+    return table ?? card;
+  }
+  return card ?? table;
+}
+
+const MEMORIZE_PASSAGE_CARDS_TITLE = 'Passage cards';
+const MEMORIZE_PASSAGE_CARDS_DESCRIPTION =
+  'Tap a card to practice. Cards are grouped as <strong>Learning</strong>, <strong>Practicing</strong>, or <strong>Mastered</strong> based on completed sessions. On desktop, hover a verse (or long-press on mobile) to preview the passage text.';
+const MEMORIZE_PASSAGE_TABLE_TITLE = 'Passage list';
+const MEMORIZE_PASSAGE_TABLE_DESCRIPTION =
+  'Tap a row to practice. Sort by <strong>Reference</strong>, <strong>Sessions</strong>, or <strong>Mastery</strong>. Switch to <strong>Cards</strong> for Learning / Practicing / Mastered groups and hover previews.';
+
+function applyMemorizePassageListPopover(popover: {
+  title: HTMLElement;
+  description: HTMLElement;
+}): void {
+  if (getMemorizeSampleCardEl()) {
+    popover.title.innerHTML = MEMORIZE_PASSAGE_CARDS_TITLE;
+    popover.description.innerHTML = MEMORIZE_PASSAGE_CARDS_DESCRIPTION;
+    return;
+  }
+  if (getMemorizeSampleTableEl()) {
+    popover.title.innerHTML = MEMORIZE_PASSAGE_TABLE_TITLE;
+    popover.description.innerHTML = MEMORIZE_PASSAGE_TABLE_DESCRIPTION;
+  }
+}
+
 function getPromptTypeFiltersEl(): HTMLElement | null {
   if (typeof document === 'undefined') {
     return null;
@@ -440,6 +482,12 @@ export interface MemorizeHelpSectionTourHooks {
 export interface MemorizeHelpSectionTourOptions {
   /** When false, the tour highlights the empty state instead of a passage card. */
   hasMemorizedItems: boolean;
+  /**
+   * Preferred Cards vs Table layout when passages exist. The passage step
+   * resolves `#tour-memorize-sample-card` / `#tour-memorize-sample-table` from
+   * the live DOM (so a mid-tour layout toggle still works). Defaults to cards.
+   */
+  listView?: 'cards' | 'table';
 }
 
 export interface PrayerEncouragementTourHooks {
@@ -1668,14 +1716,22 @@ export class HelpDriverTourService {
     ];
 
     if (options.hasMemorizedItems) {
+      const preferTable = options.listView === 'table';
       steps.push({
-        element: () => getMemorizeSampleCardEl()!,
+        element: () =>
+          getMemorizePassageListEl(preferTable ? 'table' : 'cards')!,
         popover: {
-          title: 'Passage cards',
-          description:
-            'Tap a card to practice. Cards are grouped as <strong>Learning</strong>, <strong>Practicing</strong>, or <strong>Mastered</strong> based on completed sessions. On desktop, hover a verse (or long-press on mobile) to preview the passage text.',
+          title: preferTable
+            ? MEMORIZE_PASSAGE_TABLE_TITLE
+            : MEMORIZE_PASSAGE_CARDS_TITLE,
+          description: preferTable
+            ? MEMORIZE_PASSAGE_TABLE_DESCRIPTION
+            : MEMORIZE_PASSAGE_CARDS_DESCRIPTION,
           side: 'top',
           align: 'start',
+          onPopoverRender: (popover) => {
+            applyMemorizePassageListPopover(popover);
+          },
         },
       });
     } else {

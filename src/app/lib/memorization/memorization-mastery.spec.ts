@@ -5,6 +5,7 @@ import {
   groupItemsByMasterLevel,
   countByMasterLevel,
   masterLevelFromCompletedCount,
+  masterLevelLabel,
 } from './memorization-mastery';
 import type { MemorizedItem } from '../../types/memorization';
 
@@ -102,6 +103,14 @@ describe('masterLevelFromCompletedCount', () => {
     expect(masterLevelFromCompletedCount(3)).toBe('practicing');
     expect(masterLevelFromCompletedCount(8)).toBe('practicing');
     expect(masterLevelFromCompletedCount(9)).toBe('mastered');
+  });
+});
+
+describe('masterLevelLabel', () => {
+  it('labels each mastery level', () => {
+    expect(masterLevelLabel('learning')).toBe('Learning');
+    expect(masterLevelLabel('practicing')).toBe('Practicing');
+    expect(masterLevelLabel('mastered')).toBe('Mastered');
   });
 });
 

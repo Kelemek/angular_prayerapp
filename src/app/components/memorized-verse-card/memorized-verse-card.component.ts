@@ -4,7 +4,10 @@ import {
   bibleBooksCountLabel,
   isBibleBooksMemorizationItem,
 } from '../../lib/memorization/bibleBooksMemorization';
-import { getMasterLevel } from '../../lib/memorization/memorization-mastery';
+import {
+  getMasterLevel,
+  masterLevelLabel,
+} from '../../lib/memorization/memorization-mastery';
 import type { MemorizedItem } from '../../types/memorization';
 import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scripture-hover-preview.component';
 
@@ -77,10 +80,7 @@ export class MemorizedVerseCardComponent {
   }
 
   get masterLabel(): string {
-    const level = getMasterLevel(this.item);
-    if (level === 'learning') return 'Learning';
-    if (level === 'practicing') return 'Practicing';
-    return 'Mastered';
+    return masterLevelLabel(getMasterLevel(this.item));
   }
 
   formatDate(ts: number): string {

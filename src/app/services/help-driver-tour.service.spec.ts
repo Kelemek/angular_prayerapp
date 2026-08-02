@@ -15,6 +15,8 @@ import {
   TOUR_FILTER_ANSWERED_ID,
   TOUR_FILTER_PROMPTS_ID,
   TOUR_FILTER_MEMORIZE_ID,
+  TOUR_MEMORIZE_SAMPLE_CARD_ID,
+  TOUR_MEMORIZE_SAMPLE_TABLE_ID,
   TOUR_PRAYER_MODE_DESKTOP_ID,
   TOUR_PRAYER_MODE_MOBILE_ID,
   TOUR_PRAYER_SEARCH_ID,
@@ -684,6 +686,146 @@ describe('HelpDriverTourService', () => {
       expect(driver).toHaveBeenCalledTimes(1);
       const config = vi.mocked(driver).mock.calls[0][0];
       expect(config?.steps?.length).toBe(5);
+    });
+
+    it('targets sample table when listView is table and passages exist', () => {
+      const mf = document.createElement('button');
+      mf.id = TOUR_FILTER_MEMORIZE_ID;
+      document.body.appendChild(mf);
+      const table = document.createElement('div');
+      table.id = TOUR_MEMORIZE_SAMPLE_TABLE_ID;
+      document.body.appendChild(table);
+
+      service.startMemorizeHelpSectionTour(
+        sampleMemorizeSection,
+        { hasMemorizedItems: true, listView: 'table' },
+        { switchToMemorize: vi.fn() }
+      );
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const passageStep = config?.steps?.[3];
+      const el =
+        typeof passageStep?.element === 'function'
+          ? passageStep.element()
+          : null;
+      expect(el).toBe(table);
+      expect(passageStep?.popover?.title).toBe('Passage list');
+    });
+
+    it('targets sample card when listView is cards and passages exist', () => {
+      const mf = document.createElement('button');
+      mf.id = TOUR_FILTER_MEMORIZE_ID;
+      document.body.appendChild(mf);
+      const card = document.createElement('div');
+      card.id = TOUR_MEMORIZE_SAMPLE_CARD_ID;
+      document.body.appendChild(card);
+
+      service.startMemorizeHelpSectionTour(
+        sampleMemorizeSection,
+        { hasMemorizedItems: true, listView: 'cards' },
+        { switchToMemorize: vi.fn() }
+      );
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const passageStep = config?.steps?.[3];
+      const el =
+        typeof passageStep?.element === 'function'
+          ? passageStep.element()
+          : null;
+      expect(el).toBe(card);
+      expect(passageStep?.popover?.title).toBe('Passage cards');
+    });
+
+    it('falls back to table when cards layout was preferred but only table is in the DOM', () => {
+      const mf = document.createElement('button');
+      mf.id = TOUR_FILTER_MEMORIZE_ID;
+      document.body.appendChild(mf);
+      const table = document.createElement('div');
+      table.id = TOUR_MEMORIZE_SAMPLE_TABLE_ID;
+      document.body.appendChild(table);
+
+      service.startMemorizeHelpSectionTour(
+        sampleMemorizeSection,
+        { hasMemorizedItems: true, listView: 'cards' },
+        { switchToMemorize: vi.fn() }
+      );
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const passageStep = config?.steps?.[3];
+      const el =
+        typeof passageStep?.element === 'function'
+          ? passageStep.element()
+          : null;
+      expect(el).toBe(table);
+
+      const title = document.createElement('div');
+      const description = document.createElement('div');
+      passageStep?.popover?.onPopoverRender?.(
+        {
+          wrapper: document.createElement('div'),
+          arrow: document.createElement('div'),
+          title,
+          description,
+          footer: document.createElement('div'),
+          progress: document.createElement('div'),
+          previousButton: document.createElement('button'),
+          nextButton: document.createElement('button'),
+          closeButton: document.createElement('button'),
+        },
+        {
+          config: config!,
+          state: {} as any,
+          driver: {} as any,
+        }
+      );
+      expect(title.innerHTML).toBe('Passage list');
+      expect(description.innerHTML).toContain('Sort by');
+    });
+
+    it('falls back to card when table layout was preferred but only card is in the DOM', () => {
+      const mf = document.createElement('button');
+      mf.id = TOUR_FILTER_MEMORIZE_ID;
+      document.body.appendChild(mf);
+      const card = document.createElement('div');
+      card.id = TOUR_MEMORIZE_SAMPLE_CARD_ID;
+      document.body.appendChild(card);
+
+      service.startMemorizeHelpSectionTour(
+        sampleMemorizeSection,
+        { hasMemorizedItems: true, listView: 'table' },
+        { switchToMemorize: vi.fn() }
+      );
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const passageStep = config?.steps?.[3];
+      const el =
+        typeof passageStep?.element === 'function'
+          ? passageStep.element()
+          : null;
+      expect(el).toBe(card);
+
+      const title = document.createElement('div');
+      const description = document.createElement('div');
+      passageStep?.popover?.onPopoverRender?.(
+        {
+          wrapper: document.createElement('div'),
+          arrow: document.createElement('div'),
+          title,
+          description,
+          footer: document.createElement('div'),
+          progress: document.createElement('div'),
+          previousButton: document.createElement('button'),
+          nextButton: document.createElement('button'),
+          closeButton: document.createElement('button'),
+        },
+        {
+          config: config!,
+          state: {} as any,
+          driver: {} as any,
+        }
+      );
+      expect(title.innerHTML).toBe('Passage cards');
+      expect(description.innerHTML).toContain('Learning');
     });
 
     it('step 0 onNext runs switchToMemorize then refresh and moveNext', () => {
