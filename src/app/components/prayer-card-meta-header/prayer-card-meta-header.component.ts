@@ -6,7 +6,11 @@ import {
   getPrayerStatusHeaderTextClasses,
   getPrayerStatusLabel,
 } from '../../lib/prayer-status-header';
-import { formatPrayerCardShortDate } from '../../lib/prayer-update-header';
+import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
+import {
+  PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
+} from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prayer-card-meta-header',
@@ -14,7 +18,12 @@ import { formatPrayerCardShortDate } from '../../lib/prayer-update-header';
   imports: [CommonModule, CardMetaHeaderBandComponent, PersonalCategoryPillComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-card-meta-header-band [center]="formatDate(prayerCreatedAt)">
+    <app-card-meta-header-band
+      [centerDate]="metaHeaderDate"
+      [centerTime]="metaHeaderTime"
+      [centerDragHandle]="centerDragHandle"
+      [centerDragHandleId]="centerDragHandleId"
+    >
       <div cardMetaLeft class="w-full min-w-0">
         @if (isPersonal) {
           @if (category) {
@@ -26,13 +35,13 @@ import { formatPrayerCardShortDate } from '../../lib/prayer-update-header';
           }
         } @else if (showStatus) {
         <span
-          [class]="'block min-w-0 max-w-full truncate px-6 text-sm font-bold ' + statusTextClasses"
+          [class]="'block min-w-0 max-w-full truncate text-sm font-bold ' + headerInsetClasses + ' ' + statusTextClasses"
         >
           {{ statusLabel }}
         </span>
         }
       </div>
-      <div cardMetaRight class="flex items-center gap-2">
+      <div cardMetaRight [class]="'flex items-center ' + actionsGapClasses">
         @if (isPersonal) {
         <button
           type="button"
@@ -81,6 +90,9 @@ import { formatPrayerCardShortDate } from '../../lib/prayer-update-header';
   `,
 })
 export class PrayerCardMetaHeaderComponent {
+  readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+  readonly actionsGapClasses = PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
+
   @Input({ required: true }) prayerCreatedAt!: string;
   @Input() isPersonal = false;
   @Input() category: string | null = null;
@@ -89,13 +101,21 @@ export class PrayerCardMetaHeaderComponent {
   @Input() showDelete = false;
   @Input() personalEditTourId: string | null = null;
   @Input() personalDeleteTourId: string | null = null;
+  @Input() centerDragHandle = false;
+  @Input() centerDragHandleId: string | null = null;
 
   @Output() share = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();
   @Output() delete = new EventEmitter<void>();
   @Output() pickerOpenChange = new EventEmitter<boolean>();
 
-  readonly formatDate = formatPrayerCardShortDate;
+  get metaHeaderDate(): string {
+    return formatPrayerCardShortDateParts(this.prayerCreatedAt).date;
+  }
+
+  get metaHeaderTime(): string {
+    return formatPrayerCardShortDateParts(this.prayerCreatedAt).time;
+  }
 
   get statusLabel(): string {
     return getPrayerStatusLabel(this.status);

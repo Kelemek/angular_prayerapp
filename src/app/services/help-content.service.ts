@@ -435,7 +435,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Reordering Personal Prayers',
-            text: 'You can reorganize your personal prayers by drag-and-drop. On each personal prayer card and you\'ll see a drag handle (six-dot icon) on the left side. Click and drag the handle to move prayers up or down in your list. Your preferred order is automatically saved and will be remembered when you return to the app.',
+            text: 'You can reorganize your personal prayers by drag-and-drop. When exactly one category is selected, drag the date and time at the top of each personal prayer card to move it up or down in your list. Your preferred order is automatically saved and will be remembered when you return to the app.',
             examples: [
               'Drag the most important prayers to the top for quick access',
               'Organize prayers by priority, urgency, or any preference you prefer',

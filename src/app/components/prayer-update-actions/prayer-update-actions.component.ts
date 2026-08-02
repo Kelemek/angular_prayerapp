@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
+import { PRAYER_CARD_META_ACTIONS_GAP_CLASSES } from '../../lib/prayer-card-layout';
 
 export type PrayerUpdateActionsMode = 'personal' | 'member' | 'readonly';
 
@@ -9,6 +10,9 @@ export type PrayerUpdateActionsMode = 'personal' | 'member' | 'readonly';
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'inline-flex items-center ' + PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
+  },
   template: `
     @if (mode === 'personal') {
     <button

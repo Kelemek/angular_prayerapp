@@ -9,7 +9,6 @@ import {
   OnDestroy,
   OnChanges,
   SimpleChanges,
-  TemplateRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -44,6 +43,7 @@ import {
 } from '../../lib/prayer-card-kind';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
 import { getPrayerStatusBorderClasses } from '../../lib/prayer-status-header';
+import { PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
@@ -59,13 +59,8 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
   template: `
     <div
       [attr.id]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-prayer-card' : null"
-      [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] px-6 pb-4 mb-4 transition-colors relative ' + (usesPrayerMetaHeader() ? 'pt-0 ' : 'pt-6 ') + (dragHandle && isPersonal ? ' pl-10 ' : '') + getBorderClass()"
+      [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] ' + shellPaddingClasses + ' pb-4 mb-4 transition-colors relative ' + (usesPrayerMetaHeader() ? 'pt-0 ' : 'pt-6 ') + getBorderClass()"
     >
-      <!-- Drag Handle: rendered as first child so absolute left-3 top-1/2 is relative to card root (not header) -->
-      @if (dragHandle && isPersonal) {
-        <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
-      }
-
       <!-- Meta header: category or status (left) | date (center) | actions (right) -->
       @if (usesPrayerMetaHeader()) {
       <app-prayer-card-meta-header
@@ -77,6 +72,8 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         [showDelete]="showDeleteButton()"
         [personalEditTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
         [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
+        [centerDragHandle]="personalDragHandle && isPersonal"
+        [centerDragHandleId]="personalDragTourId"
         (share)="showShareModal = true"
         (edit)="editPersonalPrayer.emit(prayer)"
         (delete)="handleDeleteClick()"
@@ -370,8 +367,9 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() prayer!: PrayerRequest;
   @Input() isAdmin = false;
   @Input() isPersonal = false;
-  @Input() isDragging = false;
-  @Input() dragHandle: TemplateRef<any> | null = null;
+  /** When true with a single category filter, date/time in the meta header is the drag handle. */
+  @Input() personalDragHandle = false;
+  @Input() personalDragTourId: string | null = null;
   @Input() deletionsAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
   @Input() updatesAllowed: 'everyone' | 'original-requestor' | 'admin-only' = 'everyone';
   @Input() activeFilter: 'current' | 'answered' | 'archived' | 'total' | 'prompts' | 'personal' | 'planning_center_list' = 'total';
@@ -392,6 +390,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Output() editMemberUpdate = new EventEmitter<any>();
   @Output() toggleUpdateAnswered = new EventEmitter<any>();
   @Output() categoryPickerOpenChange = new EventEmitter<boolean>();
+
+  readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
 
   prayerBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);

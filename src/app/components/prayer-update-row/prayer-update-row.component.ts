@@ -3,30 +3,37 @@ import { CommonModule } from '@angular/common';
 import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-header-band.component';
 import { RichTextViewComponent } from '../rich-text-view/rich-text-view.component';
 import {
-  formatPrayerUpdateDisplayDate,
+  formatPrayerCardShortDateParts,
   getPrayerUpdateAuthorDisplay,
   getPrayerUpdateHeaderLabel,
   getPrayerUpdateHeaderLabelClasses,
   type PrayerUpdateRecord,
 } from '../../lib/prayer-update-header';
+import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prayer-update-row',
   standalone: true,
   imports: [CommonModule, CardMetaHeaderBandComponent, RichTextViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'block',
+  },
   template: `
     <div
       [class]="
-        'bg-inset-surface-muted border border-gray-300 dark:border-gray-600 relative px-6 pb-6 pt-0 ' +
+        'bg-inset-surface-muted border border-gray-300 dark:border-gray-600 relative pb-6 pt-0 ' +
+        shellPaddingClasses +
+        ' ' +
         shellClass
       "
     >
       <app-card-meta-header-band
-        [center]="displayDate"
+        [centerDate]="displayDateParts.date"
+        [centerTime]="displayDateParts.time"
         [centerSize]="size"
       >
-        <div cardMetaLeft class="px-6 min-w-0 w-full">
+        <div cardMetaLeft [class]="'min-w-0 w-full ' + headerInsetClasses">
           <span [class]="headerLabelClasses">{{ headerLabel }}</span>
         </div>
         <div cardMetaRight>
@@ -48,6 +55,9 @@ import {
   `,
 })
 export class PrayerUpdateRowComponent {
+  readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
+  readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+
   @Input({ required: true }) update!: PrayerUpdateRecord;
   @Input() size: 'sm' | 'md' = 'sm';
   @Input() showUpdatedBy = false;
@@ -62,8 +72,10 @@ export class PrayerUpdateRowComponent {
     return getPrayerUpdateHeaderLabelClasses(this.update, this.size);
   }
 
-  get displayDate(): string {
-    return formatPrayerUpdateDisplayDate(this.update);
+  get displayDateParts(): { date: string; time: string } {
+    return formatPrayerCardShortDateParts(
+      this.update.updated_at || this.update.created_at
+    );
   }
 
   get authorDisplay(): string {

@@ -1239,36 +1239,6 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                 [class.relative]="personalCategoryPickerPrayerId === prayer.id"
                 [class.z-30]="personalCategoryPickerPrayerId === prayer.id"
               >
-                <ng-template #dragHandle>
-                  <div
-                    cdkDragHandle
-                    [attr.id]="
-                      prayer.prayer_for === personalWalkthroughPrayerFor
-                        ? 'tour-walkthrough-personal-drag-handle'
-                        : null
-                    "
-                    class="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 flex-shrink-0 absolute left-3 top-1/2 -translate-y-1/2 pr-2"
-                  >
-                    <svg
-                      class="block"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <circle cx="9" cy="5" r="1"></circle>
-                      <circle cx="9" cy="12" r="1"></circle>
-                      <circle cx="9" cy="19" r="1"></circle>
-                      <circle cx="15" cy="5" r="1"></circle>
-                      <circle cx="15" cy="12" r="1"></circle>
-                      <circle cx="15" cy="19" r="1"></circle>
-                    </svg>
-                  </div>
-                </ng-template>
                 <app-prayer-card
                   [prayer]="prayer"
                   [isAdmin]="(isAdmin$ | async) || false"
@@ -1276,7 +1246,12 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   [isPersonal]="true"
                   [deletionsAllowed]="'everyone'"
                   [updatesAllowed]="'everyone'"
-                  [isDragging]="true"
+                  [personalDragHandle]="selectedPersonalCategories.length === 1"
+                  [personalDragTourId]="
+                    prayer.prayer_for === personalWalkthroughPrayerFor
+                      ? 'tour-walkthrough-personal-drag-handle'
+                      : null
+                  "
                   [tourUpdateAnchors]="
                     isFirstPrayer &&
                     prayer.prayer_for !== personalWalkthroughPrayerFor
@@ -1292,9 +1267,6 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   (editPersonalUpdate)="openEditUpdateModal($event)"
                   (categoryPickerOpenChange)="
                     onPersonalCategoryPickerOpenChange(prayer.id, $event)
-                  "
-                  [dragHandle]="
-                    selectedPersonalCategories.length === 1 ? dragHandle : null
                   "
                 ></app-prayer-card>
               </div>

@@ -163,6 +163,12 @@ describe('PrayerCardComponent', () => {
       expect(component.usesPrayerMetaHeader()).toBe(false);
     });
 
+    it('personalDragHandle enables meta header date drag when personal', () => {
+      component.isPersonal = true;
+      component.personalDragHandle = true;
+      expect(component.personalDragHandle).toBe(true);
+    });
+
     it('showStatusPillInHeader is true on current, answered, and total for community cards', () => {
       component.isPersonal = false;
       component.prayer.id = 'p1';

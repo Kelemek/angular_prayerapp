@@ -28,6 +28,7 @@ import {
   shouldDismissPersonalCategoryPickerOnScroll,
   shouldOpenPersonalCategoryColorPickerUp,
 } from './personal-category-picker-placement';
+import { PRAYER_CARD_HEADER_INSET_CLASSES } from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-personal-category-pill',
@@ -50,7 +51,7 @@ import {
         type="button"
         [class]="
           variant === 'header'
-            ? 'personal-category-header-band block h-full min-h-9 w-full min-w-0 max-w-full px-6 text-left text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden'
+            ? 'personal-category-header-band block h-full min-h-9 w-full min-w-0 max-w-full ' + headerInsetClasses + ' text-left text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden'
             : 'personal-category-pill px-2 py-1 text-xs font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500'
         "
         [title]="variant === 'header' ? category : null"
@@ -88,6 +89,8 @@ import {
   `,
 })
 export class PersonalCategoryPillComponent implements OnInit {
+  readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+
   @Input({ required: true }) category!: string;
   @Input() variant: 'pill' | 'header' = 'pill';
   @Output() pickerOpenChange = new EventEmitter<boolean>();

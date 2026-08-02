@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatPrayerUpdateDisplayDate,
   formatPrayerCardShortDate,
+  formatPrayerCardShortDateParts,
   getPrayerUpdateAuthorDisplay,
   getPrayerUpdateHeaderLabel,
   getPrayerUpdateHeaderLabelClasses,
@@ -36,6 +37,15 @@ describe('prayer-update-header', () => {
     expect(typeof out).toBe('string');
     expect(out.length).toBeGreaterThan(0);
     expect(out).toContain('2020');
+  });
+
+  it('formatPrayerCardShortDateParts splits date and time', () => {
+    const parts = formatPrayerCardShortDateParts('2020-01-02T15:04:00Z');
+    expect(parts.date).toContain('2020');
+    expect(parts.time).toMatch(/\d/);
+    expect(formatPrayerCardShortDate('2020-01-02T15:04:00Z')).toBe(
+      `${parts.date}, ${parts.time}`
+    );
   });
 
   it('getPrayerUpdateAuthorDisplay respects anonymity', () => {

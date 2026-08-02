@@ -21,6 +21,7 @@ import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-
 import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { PromptService } from '../../services/prompt.service';
+import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
@@ -42,7 +43,7 @@ export interface PrayerPrompt {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 px-6 pb-4 mb-4 transition-colors relative"
+      [class]="'prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 pb-4 mb-4 transition-colors relative ' + shellPaddingClasses"
       [attr.id]="tourPromptAnchors ? 'tour-prompt-card-sample' : null"
     >
       <!-- Meta header: type (left) | delete (right) -->
@@ -51,7 +52,7 @@ export interface PrayerPrompt {
           <button
             type="button"
             (click)="onTypeClick.emit(prompt.type)"
-            [class]="'block h-full min-h-9 min-w-0 max-w-full truncate px-6 text-left text-sm font-bold transition-colors cursor-pointer ' + getTypeHeaderTextClasses()"
+            [class]="'block h-full min-h-9 min-w-0 max-w-full truncate text-left text-sm font-bold transition-colors cursor-pointer ' + headerInsetClasses + ' ' + getTypeHeaderTextClasses()"
             [title]="isTypeSelected ? 'Remove ' + prompt.type + ' filter' : 'Filter by ' + prompt.type"
           >
             {{ prompt.type }}
@@ -207,6 +208,9 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   
   @Output() delete = new EventEmitter<string>();
   @Output() onTypeClick = new EventEmitter<string>();
+
+  readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
+  readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
 
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);

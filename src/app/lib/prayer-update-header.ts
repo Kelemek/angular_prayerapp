@@ -40,15 +40,28 @@ export function formatPrayerUpdateDisplayDate(
 }
 
 /** Short date/time for prayer card meta headers (matches update row). */
-export function formatPrayerCardShortDate(dateString: string): string {
+export function formatPrayerCardShortDateParts(dateString: string): {
+  date: string;
+  time: string;
+} {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return {
+    date: date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+    time: date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  };
+}
+
+/** Short date/time for prayer card meta headers (matches update row). */
+export function formatPrayerCardShortDate(dateString: string): string {
+  const { date, time } = formatPrayerCardShortDateParts(dateString);
+  return `${date}, ${time}`;
 }
 
 export function getPrayerUpdateAuthorDisplay(

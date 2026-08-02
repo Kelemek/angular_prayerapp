@@ -2691,7 +2691,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Reorder prayers',
           description:
-            'With <strong>one category</strong> selected, use the <strong>handle on the left of the card</strong> to drag prayers up or down. Your order is saved automatically.',
+            'With <strong>one category</strong> selected, drag the <strong>date and time</strong> at the top of the card to reorder prayers. Your order is saved automatically.',
           side: 'right',
           align: 'start',
         },
