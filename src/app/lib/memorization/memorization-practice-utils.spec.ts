@@ -125,6 +125,25 @@ describe('buildMemorizationTokens', () => {
     const tokens = buildMemorizationTokens('Hello', '');
     expect(formatMemorizationTokensPlain(tokens)).toBe('Hello');
   });
+
+  it('strips KJV pilcrow so it is not a stuck typable token', () => {
+    const tokens = buildMemorizationTokens(
+      '¶ For God so loved the world',
+      'John 3:16'
+    );
+    const plain = formatMemorizationTokensPlain(tokens);
+    expect(plain.startsWith('For God')).toBe(true);
+    expect(plain).not.toContain('¶');
+    expect(
+      getTypableTokenIndices(tokens).every((i) => {
+        const t = tokens[i]!;
+        return t.kind === 'word' || t.kind === 'digit';
+      })
+    ).toBe(true);
+    expect(
+      getTypableTokenIndices(tokens).some((i) => tokens[i]!.text === '¶')
+    ).toBe(false);
+  });
 });
 
 describe('getTypableTokenIndices', () => {

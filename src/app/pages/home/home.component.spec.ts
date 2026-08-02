@@ -1217,6 +1217,66 @@ describe('HomeComponent', () => {
     });
   });
 
+  describe('memorizedVerseSections search', () => {
+    const john = {
+      id: '1',
+      reference: 'John 3:16',
+      text: '',
+      translation: 'kjv' as const,
+      dateAdded: 1,
+      lastPracticedAt: null,
+      practiceSessions: [],
+      kind: 'verse' as const,
+    };
+    const romans = {
+      id: '2',
+      reference: 'Romans 8:28',
+      text: '',
+      translation: 'esv' as const,
+      dateAdded: 2,
+      lastPracticedAt: null,
+      practiceSessions: [],
+      kind: 'verse' as const,
+    };
+
+    it('returns all sections when search is empty', () => {
+      const comp = createHomeComponent(mocks);
+      comp.memorizedLearning = [john];
+      comp.memorizedPracticing = [romans];
+      comp.memorizedMastered = [];
+      comp.filters.searchTerm = '';
+
+      const sections = comp.memorizedVerseSections;
+      expect(sections.map((s) => s.title)).toEqual(['Learning', 'Practicing']);
+      expect(sections[0]!.items).toEqual([john]);
+      expect(sections[1]!.items).toEqual([romans]);
+    });
+
+    it('filters cards by book/reference search term', () => {
+      const comp = createHomeComponent(mocks);
+      comp.memorizedLearning = [john, romans];
+      comp.memorizedPracticing = [];
+      comp.memorizedMastered = [];
+      comp.filters.searchTerm = 'rom';
+
+      const sections = comp.memorizedVerseSections;
+      expect(sections).toHaveLength(1);
+      expect(sections[0]!.items).toEqual([romans]);
+    });
+
+    it('restores all cards when search is cleared', () => {
+      const comp = createHomeComponent(mocks);
+      comp.memorizedLearning = [john, romans];
+      comp.memorizedPracticing = [];
+      comp.memorizedMastered = [];
+      comp.filters.searchTerm = 'john';
+      expect(comp.memorizedVerseSections[0]!.items).toEqual([john]);
+
+      comp.filters.searchTerm = '';
+      expect(comp.memorizedVerseSections[0]!.items).toEqual([john, romans]);
+    });
+  });
+
   describe('Personal Prayers functionality', () => {
     it('onPrayerFormClose with isPersonal=true just closes form', async () => {
       const comp = createHomeComponent(mocks)

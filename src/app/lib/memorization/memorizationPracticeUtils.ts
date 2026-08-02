@@ -1,5 +1,6 @@
 import { formatSpokenScriptureReference, parseReference } from './parse-scripture-reference'
 import type { BibleTranslation } from '../../types/memorization'
+import { stripScriptureForMemorization } from './strip-scripture-for-memorization'
 
 /** Seeded PRNG (mulberry32). */
 export function seedRandom(seed: number): () => number {
@@ -75,7 +76,8 @@ export function parseReferenceMemorizationTokens(reference: string): Memorizatio
 
 /** Verse words (with spaces as punct tokens) + space + reference tokens appended for memorization. */
 export function buildMemorizationTokens(versePlainText: string, reference: string): MemorizationToken[] {
-  const verseWords = getWordsForMemorization(versePlainText)
+  // Re-strip so legacy/cached KJV text with ¶ (etc.) cannot become stuck typable tokens.
+  const verseWords = getWordsForMemorization(stripScriptureForMemorization(versePlainText))
   const out: MemorizationToken[] = []
   for (let i = 0; i < verseWords.length; i++) {
     if (out.length > 0) out.push({ kind: 'punct', text: ' ' })
@@ -192,7 +194,7 @@ export function buildMemorizationReorderChunks(
   options?: { includeReferenceChunk?: boolean }
 ): MemorizationReorderChunk[] {
   const includeRef = options?.includeReferenceChunk ?? true
-  const verse = versePlainText.trim()
+  const verse = stripScriptureForMemorization(versePlainText)
   const textParts: string[] = []
   if (verse.length > 0) {
     const raw = verse

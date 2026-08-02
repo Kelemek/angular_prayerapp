@@ -18,6 +18,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Capacitor } from '@capacitor/core';
 import { ScriptureService, type ScripturePassage } from '../../services/scripture.service';
+import { stripNonTypableScriptureMarks } from '../../lib/memorization/strip-scripture-for-memorization';
 import type { BibleTranslation } from '../../types/memorization';
 
 const MODAL_WIDTH_CAP_DEFAULT_PX = 448;
@@ -45,6 +46,14 @@ let dismissExclusivePreview: { token: number; dismiss: () => void } | null = nul
 
 function cacheKey(reference: string, translation: BibleTranslation): string {
   return `${translation}:${reference.trim()}`;
+}
+
+/** Strip KJV pilcrows (etc.) so hover preview matches Memorize practice display. */
+function sanitizePassageForPreview(passage: ScripturePassage): ScripturePassage {
+  return {
+    ...passage,
+    text: stripNonTypableScriptureMarks(passage.text ?? ''),
+  };
 }
 
 function modalWidthCapPx(viewportWidth: number): number {
@@ -404,7 +413,9 @@ export class ScriptureHoverPreviewComponent implements OnChanges, OnDestroy {
 
     const generation = ++this.fetchGeneration;
     try {
-      const passage = await this.scripture.getPassage(reference, translation);
+      const passage = sanitizePassageForPreview(
+        await this.scripture.getPassage(reference, translation)
+      );
       if (generation !== this.fetchGeneration || !this.isVisible) return;
       if (this.reference.trim() !== reference || this.translation !== translation) return;
       passageCache.set(key, passage);

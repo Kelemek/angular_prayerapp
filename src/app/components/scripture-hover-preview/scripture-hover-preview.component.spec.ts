@@ -134,6 +134,35 @@ describe('ScriptureHoverPreviewComponent', () => {
     expect(component.passage?.text).toContain('For God so loved');
   });
 
+  it('strips KJV pilcrow marks from fetched passage text before display', async () => {
+    getPassage.mockResolvedValueOnce({
+      reference: 'John 3:16',
+      text: '¶ For God so loved the world',
+      translation: 'kjv',
+    });
+    component.translation = 'kjv';
+
+    const target = document.createElement('div');
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      top: 100,
+      width: 200,
+      height: 40,
+      right: 300,
+      bottom: 140,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    component.onMouseEnter({ currentTarget: target } as unknown as MouseEvent);
+    await vi.advanceTimersByTimeAsync(500);
+    await vi.runAllTimersAsync();
+
+    expect(component.passage?.text).toBe('For God so loved the world');
+    expect(component.passage?.text).not.toContain('¶');
+  });
+
   it('hides on mouse leave before delay completes', async () => {
     const target = document.createElement('div');
     vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({

@@ -44,7 +44,7 @@ export interface PrayerFilters {
             <input
               id="tour-prayer-search"
               type="text"
-              placeholder="Search prayers..."
+              [placeholder]="searchPlaceholder"
               [(ngModel)]="filters.searchTerm"
               (ngModelChange)="onSearchChange($event)"
               class="pl-10 pr-24 py-2 sm:py-3 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-inset-surface-muted text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
@@ -68,6 +68,7 @@ export interface PrayerFilters {
 })
 export class PrayerFiltersComponent {
   @Input() filters: PrayerFilters = {};
+  @Input() searchPlaceholder = 'Search prayers...';
   @Output() filtersChange = new EventEmitter<PrayerFilters>();
 
   onSearchChange(searchTerm: string) {

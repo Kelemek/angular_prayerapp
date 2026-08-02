@@ -16,6 +16,22 @@ describe('PrayerFiltersComponent', () => {
       
       expect(fixture.componentInstance.filters).toEqual({});
     });
+
+    it('should default searchPlaceholder to Search prayers...', async () => {
+      const { fixture } = await render(PrayerFiltersComponent);
+      expect(fixture.componentInstance.searchPlaceholder).toBe(
+        'Search prayers...'
+      );
+    });
+
+    it('should use custom searchPlaceholder', async () => {
+      await render(PrayerFiltersComponent, {
+        componentProperties: {
+          searchPlaceholder: 'Search verses...',
+        },
+      });
+      expect(screen.getByPlaceholderText('Search verses...')).toBeTruthy();
+    });
   });
 
   describe('search functionality', () => {

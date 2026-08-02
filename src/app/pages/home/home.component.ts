@@ -49,6 +49,7 @@ import { AddMemorizedVerseModalComponent } from "../../components/add-memorized-
 import { AddMemorizedBibleBooksModalComponent } from "../../components/add-memorized-bible-books-modal/add-memorized-bible-books-modal.component";
 import { MemorizationPracticeSessionComponent } from "../../components/memorization-practice-session/memorization-practice-session.component";
 import { groupItemsByMasterLevel } from "../../lib/memorization/memorization-mastery";
+import { filterMemorizedItemsBySearch } from "../../lib/memorization/memorization-search";
 import {
   PROMPT_TYPE_CHIP_ACTIVE_CLASS,
   PROMPT_TYPE_CHIP_INACTIVE_CLASS,
@@ -643,6 +644,11 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
           <!-- Prayer Filters -->
           <app-prayer-filters
             [filters]="filters"
+            [searchPlaceholder]="
+              activeFilter === 'memorize'
+                ? 'Search verses...'
+                : 'Search prayers...'
+            "
             (filtersChange)="onFiltersChange($event)"
           ></app-prayer-filters>
           <!-- Stats Cards: mobile = 3 top row + 4 bottom row when Members shown; sm+ = single row -->
@@ -1233,6 +1239,38 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                 <span class="font-medium text-gray-600 dark:text-gray-300">Bible Books</span> to memorize the names of the books of the Bible,
                 or <span class="font-medium text-gray-600 dark:text-gray-300">Recommended</span> for curated passages by biblical counseling topics.
                 Your passages will appear here—tap one to practice.
+              </p>
+            </div>
+            } @else if (
+              !(memorizationService.loading$ | async) &&
+              memorizedItems.length > 0 &&
+              memorizedVerseSections.length === 0 &&
+              filters.searchTerm &&
+              filters.searchTerm.trim()
+            ) {
+            <div
+              class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700"
+            >
+              <svg
+                class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+              <h3
+                class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2"
+              >
+                No passages found
+              </h3>
+              <p class="text-gray-500 dark:text-gray-400">
+                Try adjusting your search terms
               </p>
             </div>
             } @for (section of memorizedVerseSections; track section.title) {
@@ -3189,6 +3227,20 @@ export class HomeComponent implements OnInit, OnDestroy {
     items: MemorizedItem[];
     headingClass: string;
   }> {
+    const query = this.filters.searchTerm;
+    const learning = filterMemorizedItemsBySearch(
+      this.memorizedLearning,
+      query
+    );
+    const practicing = filterMemorizedItemsBySearch(
+      this.memorizedPracticing,
+      query
+    );
+    const mastered = filterMemorizedItemsBySearch(
+      this.memorizedMastered,
+      query
+    );
+
     const heading =
       'text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2';
     const sections: Array<{
@@ -3196,24 +3248,24 @@ export class HomeComponent implements OnInit, OnDestroy {
       items: MemorizedItem[];
       headingClass: string;
     }> = [];
-    if (this.memorizedLearning.length > 0) {
+    if (learning.length > 0) {
       sections.push({
         title: 'Learning',
-        items: this.memorizedLearning,
+        items: learning,
         headingClass: heading,
       });
     }
-    if (this.memorizedPracticing.length > 0) {
+    if (practicing.length > 0) {
       sections.push({
         title: 'Practicing',
-        items: this.memorizedPracticing,
+        items: practicing,
         headingClass: `${heading} mt-4`,
       });
     }
-    if (this.memorizedMastered.length > 0) {
+    if (mastered.length > 0) {
       sections.push({
         title: 'Mastered',
-        items: this.memorizedMastered,
+        items: mastered,
         headingClass: `${heading} mt-4`,
       });
     }

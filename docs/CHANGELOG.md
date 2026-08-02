@@ -4,6 +4,12 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Memorize — search filter
+- On the **Memorize** tab, the Home search field filters Learning / Practicing / Mastered cards by book, reference, or translation (placeholder **Search verses...**). Empty results show a “No passages found” state instead of the empty-list onboarding copy ([`memorization-search.ts`](src/app/lib/memorization/memorization-search.ts), [`home.component.ts`](src/app/pages/home/home.component.ts)).
+
+### Bug fix — KJV paragraph marks in Memorize practice
+- KJV passages sometimes include a pilcrow (`¶`) paragraph mark that cannot be typed on a normal keyboard. Memorize practice now strips those marks when loading and tokenizing passage text so practice does not get stuck on an untypable token ([`strip-scripture-for-memorization.ts`](src/app/lib/memorization/strip-scripture-for-memorization.ts), [`memorizationPracticeUtils.ts`](src/app/lib/memorization/memorizationPracticeUtils.ts)). The scripture hover preview uses the same mark stripping so KJV cards do not show `¶` in the popover ([`scripture-hover-preview.component.ts`](src/app/components/scripture-hover-preview/scripture-hover-preview.component.ts)).
+
 ### Bug fix — personal prayer updates
 - **Add Update** on personal prayers no longer sends a null/empty `content` to `personal_prayer_updates`. The add-update modal reads flushed rich-text markdown directly (instead of stale `ngModel`), enables submit when **Mark as answered** is checked or the editor has text, blocks duplicate submits, and shows **Please enter update content** when the body is empty. Renamed modal output from `submit` to `updateSubmit` so the native form `submit` event no longer fires a second handler with an invalid payload (success + error toasts). Image-only markdown (e.g. screenshots) is preserved when marking answered instead of being replaced by the default text; **Add Update** enables submit for image-only bodies via the same resolver as submit. Shared resolver [`prayer-update-content.ts`](src/app/lib/prayer-update-content.ts); [`PrayerService.addPersonalPrayerUpdate`](src/app/services/prayer.service.ts) uses the same rules before insert ([`prayer-add-update-modal.component.ts`](src/app/components/prayer-add-update-modal/prayer-add-update-modal.component.ts), [`personal-prayer-update-edit-modal.component.ts`](src/app/components/personal-prayer-update-edit-modal/personal-prayer-update-edit-modal.component.ts)). Edit-update modal disables **Save** for whitespace-only content (not only on submit).
 
