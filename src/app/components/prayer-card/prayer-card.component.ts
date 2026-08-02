@@ -32,7 +32,18 @@ import {
   PrayerDeleteRequestModalComponent,
   PrayerDeleteRequestPayload,
 } from '../prayer-delete-request-modal/prayer-delete-request-modal.component';
-import { PersonalCategoryPillComponent } from '../personal-category-color-picker/personal-category-pill.component';
+import { PrayerCardMetaHeaderComponent } from '../prayer-card-meta-header/prayer-card-meta-header.component';
+import { PrayerUpdateRowComponent } from '../prayer-update-row/prayer-update-row.component';
+import {
+  PrayerUpdateActionsComponent,
+  type PrayerUpdateActionsMode,
+} from '../prayer-update-actions/prayer-update-actions.component';
+import {
+  isCommunityPrayerCard,
+  isMemberPrayerId,
+} from '../../lib/prayer-card-kind';
+import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
+import { getPrayerStatusBorderClasses } from '../../lib/prayer-status-header';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
@@ -43,26 +54,45 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
 @Component({
   selector: 'app-prayer-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PersonalCategoryPillComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
       [attr.id]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-prayer-card' : null"
-      [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] px-6 pt-6 pb-4 mb-4 transition-colors relative ' + (dragHandle && isPersonal ? ' pl-10 ' : '') + getBorderClass()"
+      [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] px-6 pb-4 mb-4 transition-colors relative ' + (usesPrayerMetaHeader() ? 'pt-0 ' : 'pt-6 ') + (dragHandle && isPersonal ? ' pl-10 ' : '') + getBorderClass()"
     >
       <!-- Drag Handle: rendered as first child so absolute left-3 top-1/2 is relative to card root (not header) -->
       @if (dragHandle && isPersonal) {
         <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
       }
+
+      <!-- Meta header: category or status (left) | date (center) | actions (right) -->
+      @if (usesPrayerMetaHeader()) {
+      <app-prayer-card-meta-header
+        [prayerCreatedAt]="prayer.created_at"
+        [isPersonal]="isPersonal"
+        [category]="prayer.category ?? null"
+        [status]="prayer.status"
+        [showStatus]="showStatusPillInHeader()"
+        [showDelete]="showDeleteButton()"
+        [personalEditTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
+        [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
+        (share)="showShareModal = true"
+        (edit)="editPersonalPrayer.emit(prayer)"
+        (delete)="handleDeleteClick()"
+        (pickerOpenChange)="onCategoryPickerOpenChange($event)"
+      />
+      }
+
       <!-- Header -->
       <div class="flex items-start justify-between mb-4 relative">
         <div
-          class="flex gap-3 flex-1 min-w-0 pr-24"
+          class="flex gap-3 flex-1 min-w-0"
           [class.items-center]="activeFilter === 'planning_center_list'"
           [class.items-start]="activeFilter !== 'planning_center_list'"
         >
           <!-- Avatar for Planning Center members -->
-          @if (prayer.prayer_image && prayer.id.startsWith('pc-member-')) {
+          @if (prayer.prayer_image && isMemberPrayer()) {
             <img 
               [src]="prayer.prayer_image" 
               [alt]="'Avatar for ' + prayer.prayer_for"
@@ -75,15 +105,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
               <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline">
                 Prayer for {{ prayer.prayer_for }}
               </h3>
-            @if (activeFilter === 'total') {
-            <span [class]="'px-2 py-1 text-xs font-medium rounded-full ' + getStatusBadgeClasses()">
-              {{ getStatusLabel() }}
-            </span>
-            }
-            @if (isPersonal && prayer.category) {
-            <app-personal-category-pill [category]="prayer.category" />
-            }
-            @if (!isPersonal && !prayer.id.startsWith('pc-member-')) {
+            @if (!isPersonal && !isMemberPrayer()) {
             <span class="text-sm text-gray-600 dark:text-gray-400">
               Requested by: <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester() }}</span>
             </span>
@@ -91,39 +113,11 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
             </div>
           </div>
         </div>
+        @if (!usesPrayerMetaHeader()) {
         <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
-          @if (isPersonal) {
-          <button
-            (click)="showShareModal = true"
-            aria-label="Share personal prayer"
-            title="Share prayer to public"
-            class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-              <polyline points="16 6 12 2 8 6"></polyline>
-              <line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
-          </button>
-          }
-          @if (isPersonal) {
-          <button
-            (click)="editPersonalPrayer.emit(prayer)"
-            [attr.id]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
-            aria-label="Edit personal prayer"
-            title="Edit prayer"
-            class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-          }
           @if (showDeleteButton()) {
           <button
             (click)="handleDeleteClick()"
-            [attr.id]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
             aria-label="Delete prayer request"
             title="Delete prayer request"
             class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
@@ -135,13 +129,14 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
           </button>
           }
         </div>
+        }
       </div>
 
       <!-- Badge in top-right corner -->
-      @if ((prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal && !prayer.id.startsWith('pc-member-')) {
+      @if ((prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal && !isMemberPrayer()) {
         <button
           (click)="markPrayerAsRead()"
-          class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+          class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
           title="Mark prayer as read"
           aria-label="Mark prayer as read"
         >
@@ -149,12 +144,6 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         </button>
       }
 
-      <!-- Centered timestamp (hidden for Planning Center member cards) -->
-      @if (!prayer.id.startsWith('pc-member-')) {
-      <span class="absolute left-1/2 top-4 transform -translate-x-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-        {{ formatDate(prayer.created_at) }}
-      </span>
-      }
       <!-- Prayer Description -->
       <app-rich-text-view
         class="block text-gray-600 dark:text-gray-300 mb-4"
@@ -232,14 +221,11 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         (submit)="onDeleteRequestModalSubmit($event)"
       />
 
-      <!-- Recent Updates -->
+      <!-- Prayer updates -->
       @if (prayer.updates && prayer.updates.length > 0) {
       <div [class.mt-4]="recentUpdatesNeedsTopMargin()">
-        <div class="flex items-center justify-between mb-2">
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Recent Updates @if (!showAllUpdates && getDisplayedUpdates().length < prayer.updates.length) {<span>({{ getDisplayedUpdates().length }} of {{ prayer.updates.length }})</span>}
-          </h4>
-          @if (shouldShowToggleButton()) {
+        @if (shouldShowToggleButton()) {
+        <div class="flex justify-end mb-2">
           <button
             (click)="showAllUpdates = !showAllUpdates"
             class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
@@ -249,103 +235,35 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
-          }
         </div>
+        }
         <div class="space-y-3">
           @for (update of getDisplayedUpdates(); track update.id) {
-          <div
-            [class]="'bg-inset-surface-muted rounded-lg p-6 border border-gray-300 dark:border-gray-600 relative'"
+          <app-prayer-update-row
+            [update]="update"
+            [showUpdatedBy]="isCommunityPrayer()"
           >
-            <div class="relative mb-2">
-              <div class="flex items-start relative min-h-8">
-                <div class="flex-1 min-w-0 pr-20">
-                  <!-- Answered badge for member updates -->
-                  @if (update.is_answered && prayer.id.startsWith('pc-member-')) {
-                  <span class="inline-flex items-center justify-center px-2 py-1 mr-2 bg-green-600 dark:bg-green-700 text-white rounded-full text-xs font-bold whitespace-nowrap">
-                    Answered
-                  </span>
-                  }
-                  @if (!isPersonal && !prayer.id.startsWith('pc-member-')) {
-                  <span class="text-sm text-gray-600 dark:text-gray-400">
-                    Updated by: <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ update.is_anonymous ? 'Anonymous' : update.author }}</span>
-                  </span>
-                  }
-                </div>
-                <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
-                  @if (isPersonal) {
-                  <button
-                    (click)="editPersonalUpdate.emit({update: update, prayerId: prayer.id})"
-                    aria-label="Edit prayer update"
-                    title="Edit update"
-                    class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                  </button>
-                  }
-                  @if (prayer.id.startsWith('pc-member-')) {
-                  <button
-                    (click)="editMemberUpdate.emit({update: update, prayerId: prayer.id})"
-                    aria-label="Edit member update"
-                    title="Edit update"
-                    class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                  </button>
-                  <button
-                    (click)="toggleMemberUpdateAnswered(update)"
-                    [title]="update.is_answered ? 'Mark as unanswered' : 'Mark as answered'"
-                    [attr.aria-label]="update.is_answered ? 'Mark as unanswered' : 'Mark as answered'"
-                    [class]="'p-1 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + (update.is_answered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </button>
-                  }
-                  @if (showUpdateDeleteButton()) {
-                  <button
-                    (click)="handleDeleteUpdate(update.id)"
-                    aria-label="Delete prayer update"
-                    title="Delete this update"
-                    class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                  }
-                </div>
-              </div>
-              <span class="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {{ getUpdateDisplayDate(update) }}
-              </span>
-            </div>
-            
-            <!-- Badge in top-right corner -->
-            @if ((updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal && !prayer.id.startsWith('pc-member-')) {
+            <app-prayer-update-actions
+              updateActions
+              [update]="update"
+              [mode]="getUpdateActionsMode()"
+              [showDelete]="showUpdateDeleteButton()"
+              (edit)="onUpdateEdit(update)"
+              (delete)="handleDeleteUpdate(update.id)"
+              (toggleAnswered)="toggleMemberUpdateAnswered(update)"
+            />
+            @if ((updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && isCommunityPrayer()) {
               <button
+                updateCorner
                 (click)="markUpdateAsRead(update.id)"
-                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 title="Mark update as read"
                 aria-label="Mark update as read"
               >
                 1
               </button>
             }
-
-            <!-- Update content on its own row below meta (Answered / Updated by + buttons) for all types; min-h-8 on row above prevents overlap when left column is empty -->
-            <app-rich-text-view
-              class="block text-sm text-gray-700 dark:text-gray-300"
-              [text]="update.content"
-            ></app-rich-text-view>
-          </div>
+          </app-prayer-update-row>
           }
         </div>
       </div>
@@ -473,6 +391,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Output() editPersonalUpdate = new EventEmitter<any>();
   @Output() editMemberUpdate = new EventEmitter<any>();
   @Output() toggleUpdateAnswered = new EventEmitter<any>();
+  @Output() categoryPickerOpenChange = new EventEmitter<boolean>();
 
   prayerBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);
@@ -495,6 +414,13 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   showPrayForModal = false;
   prayForDoNotShowAgain = false;
   richTextEditorsEnabled = true;
+  categoryPickerOpen = false;
+
+  onCategoryPickerOpenChange(open: boolean): void {
+    this.categoryPickerOpen = open;
+    this.categoryPickerOpenChange.emit(open);
+    this.cdr.markForCheck();
+  }
 
   constructor(
     private supabase: SupabaseService,
@@ -667,31 +593,11 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     }
     if (
       this.activeFilter === 'planning_center_list' ||
-      this.prayer.id.startsWith('pc-member-')
+      isMemberPrayerId(this.prayer.id)
     ) {
       return PLANNING_CENTER_MEMBER_BORDER_CLASS;
     }
-    if (this.prayer.status === 'current') {
-      return '!border-[#0047AB] dark:!border-[#0047AB]';
-    } else if (this.prayer.status === 'answered') {
-      return '!border-[#39704D] dark:!border-[#39704D]';
-    } else {
-      return '!border-[#C9A961] dark:!border-[#C9A961]';
-    }
-  }
-
-  getStatusBadgeClasses(): string {
-    if (this.prayer.status === 'current') {
-      return 'bg-blue-50 dark:bg-blue-900/20 text-[#0047AB] dark:text-[#4A90E2] border border-[#0047AB] dark:border-[#0047AB]';
-    } else if (this.prayer.status === 'answered') {
-      return 'bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] border border-[#39704D] dark:border-[#39704D]';
-    } else {
-      return 'bg-amber-50 dark:bg-amber-900/20 text-[#C9A961] dark:text-[#D4AF85] border border-[#C9A961] dark:border-[#C9A961]';
-    }
-  }
-
-  getStatusLabel(): string {
-    return this.prayer.status.charAt(0).toUpperCase() + this.prayer.status.slice(1);
+    return getPrayerStatusBorderClasses(this.prayer.status);
   }
 
   displayRequester(): string {
@@ -705,7 +611,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   // everyone: all users can request deletion
   showDeleteButton(): boolean {
     // Don't show delete button for synthetic Planning Center member cards
-    if (this.prayer.id?.startsWith('pc-member-')) return false;
+    if (isMemberPrayerId(this.prayer.id)) return false;
     // Personal prayers always allow deletion by owner
     if (this.isPersonal) return true;
     if (this.isAdmin) return true;
@@ -735,7 +641,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     return true; // 'everyone'
   }
 
-  /** Top margin before Recent Updates when action buttons or an open form sit above. */
+  /** Top margin before prayer updates when action buttons or an open form sit above. */
   recentUpdatesNeedsTopMargin(): boolean {
     return this.showAddUpdateButton();
   }
@@ -752,7 +658,24 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   isMemberPrayer(): boolean {
-    return !!this.prayer?.id?.startsWith('pc-member-');
+    return isMemberPrayerId(this.prayer?.id);
+  }
+
+  isCommunityPrayer(): boolean {
+    return isCommunityPrayerCard(this.prayer, this.isPersonal);
+  }
+
+  usesPrayerMetaHeader(): boolean {
+    return this.isPersonal || this.isCommunityPrayer();
+  }
+
+  showStatusPillInHeader(): boolean {
+    return (
+      this.isCommunityPrayer() &&
+      (this.activeFilter === 'total' ||
+        this.activeFilter === 'current' ||
+        this.activeFilter === 'answered')
+    );
   }
 
   /** Personal and member cards use the user's personal cooldown setting. */
@@ -997,23 +920,6 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     return displayed.length < this.prayer.updates.length || this.showAllUpdates;
   }
 
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
-  getUpdateDisplayDate(update: any): string {
-    // Show updated_at if it exists and is different from created_at, otherwise show created_at
-    const dateToShow = update.updated_at || update.created_at;
-    return this.formatDate(dateToShow);
-  }
-
   private getCurrentUserEmail(): string {
     // Get email from UserSessionService (cached from database)
     const session = this.userSessionService.getCurrentSession();
@@ -1076,7 +982,27 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  toggleMemberUpdateAnswered(update: any): void {
+  getUpdateActionsMode(): PrayerUpdateActionsMode {
+    if (this.isPersonal) {
+      return 'personal';
+    }
+    if (this.isMemberPrayer()) {
+      return 'member';
+    }
+    return 'readonly';
+  }
+
+  onUpdateEdit(update: PrayerUpdateRecord): void {
+    if (this.isPersonal) {
+      this.editPersonalUpdate.emit({ update, prayerId: this.prayer.id });
+      return;
+    }
+    if (this.isMemberPrayer()) {
+      this.editMemberUpdate.emit({ update, prayerId: this.prayer.id });
+    }
+  }
+
+  toggleMemberUpdateAnswered(update: PrayerUpdateRecord): void {
     this.toggleUpdateAnswered.emit({
       updateId: update.id,
       prayerId: this.prayer.id,

@@ -1650,7 +1650,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Add passages',
           description:
-            'Use <strong>Verses</strong> to pick a Bible reference, or <strong>Bible Books</strong> to memorize whole books in order. Your list is private to your account.',
+            'Use <strong>Add Verses</strong> to pick a Bible reference, or <strong>Bible Books</strong> to memorize whole books in order. Your list is private to your account.',
           side: 'bottom',
           align: 'start',
         },

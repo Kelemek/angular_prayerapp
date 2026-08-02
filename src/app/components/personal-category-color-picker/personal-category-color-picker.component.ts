@@ -19,7 +19,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex gap-1 items-center"
+      class="flex gap-2 sm:gap-1 items-center"
       [class.flex-col]="layout === 'stack'"
       [class.w-max]="layout === 'stack'"
       [class.flex-row]="layout === 'inline'"
@@ -38,17 +38,30 @@ import {
           [attr.aria-selected]="preset === normalizedColor"
           (click)="selectColor(preset)"
         >
+          @if (colorDisplay === 'text') {
           <span
-            class="inline-block px-2 py-1 text-xs font-medium rounded-full border whitespace-nowrap"
+            class="personal-category-header-band px-2 py-2 sm:py-1 text-sm font-bold whitespace-nowrap"
             [ngStyle]="pillStyles(preset)"
           >
             {{ displayLabel }}
           </span>
+          } @else {
+          <span
+            class="personal-category-pill inline-block px-2 py-1 text-xs font-medium rounded-full border whitespace-nowrap"
+            [ngStyle]="pillStyles(preset)"
+          >
+            {{ displayLabel }}
+          </span>
+          }
         </button>
       }
       <label
-        class="relative inline-flex items-center text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline text-center px-0.5 py-1 cursor-pointer rounded focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500"
-        [class.mt-1]="layout === 'stack'"
+        class="relative inline-flex items-center font-medium text-blue-600 dark:text-blue-400 hover:underline text-center px-0.5 py-2 sm:py-1 cursor-pointer rounded focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500"
+        [ngClass]="{
+          'text-sm font-semibold': layout === 'stack',
+          'text-xs': layout !== 'stack',
+          'mt-2 sm:mt-1': layout === 'stack'
+        }"
         aria-label="Choose custom color"
       >
         Custom
@@ -69,6 +82,8 @@ export class PersonalCategoryColorPickerComponent {
   @Input() categoryLabel = '';
   /** `stack` — vertical list (card popover). `inline` — horizontal row with wrap (forms). */
   @Input() layout: 'stack' | 'inline' = 'stack';
+  /** `pill` — tinted badge previews. `text` — category label in each preset color only. */
+  @Input() colorDisplay: 'pill' | 'text' = 'text';
   @Output() colorChange = new EventEmitter<string>();
 
   get normalizedColor(): string {

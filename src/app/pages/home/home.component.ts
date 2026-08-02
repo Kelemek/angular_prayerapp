@@ -873,14 +873,19 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   : promptTypeInactiveClass)
               "
             >
-              {{ type }} ({{ getPromptCountByType(type) }}) @if
+              {{ type }} ({{ getPromptCountByType(type) }})
+              @if
               ((badgeService.getBadgeFunctionalityEnabled$() | async) &&
               getUnreadPromptCountByType(type) > 0) {
-              <span
-                class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold"
+              <button
+                type="button"
+                (click)="$event.stopPropagation(); markPromptTypeAsRead(type)"
+                class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-5 h-5 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                [title]="'Mark all ' + type + ' prompts as read'"
+                [attr.aria-label]="'Mark all ' + type + ' prompts as read'"
               >
                 {{ getUnreadPromptCountByType(type) }}
-              </span>
+              </button>
               }
             </button>
             }
@@ -1196,8 +1201,11 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
                 No memorized passages yet
               </h3>
-              <p class="text-gray-500 dark:text-gray-400">
-                Add a verse or Bible books list to start practicing.
+              <p class="text-gray-500 dark:text-gray-400 max-w-lg mx-auto">
+                Use <span class="font-medium text-gray-600 dark:text-gray-300">Add Verses</span> to pick passages to memorize,
+                <span class="font-medium text-gray-600 dark:text-gray-300">Bible Books</span> to memorize the names of the books of the Bible,
+                or <span class="font-medium text-gray-600 dark:text-gray-300">Recommended</span> for curated passages by biblical counseling topics.
+                Your passages will appear here—tap one to practice.
               </p>
             </div>
             } @for (section of memorizedVerseSections; track section.title) {
@@ -1226,7 +1234,11 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             >
               @for (prayer of getFilteredPersonalPrayers(); track prayer.id; let
               isFirstPrayer = $first) {
-              <div cdkDrag>
+              <div
+                cdkDrag
+                [class.relative]="personalCategoryPickerPrayerId === prayer.id"
+                [class.z-30]="personalCategoryPickerPrayerId === prayer.id"
+              >
                 <ng-template #dragHandle>
                   <div
                     cdkDragHandle
@@ -1278,6 +1290,9 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   (deleteUpdate)="deletePersonalUpdate($event)"
                   (editPersonalPrayer)="openEditModal($event)"
                   (editPersonalUpdate)="openEditUpdateModal($event)"
+                  (categoryPickerOpenChange)="
+                    onPersonalCategoryPickerOpenChange(prayer.id, $event)
+                  "
                   [dragHandle]="
                     selectedPersonalCategories.length === 1 ? dragHandle : null
                   "
@@ -1464,6 +1479,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     PERSONAL_PRAYER_WALKTHROUGH_PRAYER_FOR;
   readonly personalWalkthroughDescription =
     PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION;
+
+  /** Elevates the drag row while its category color picker is open (above sibling cards). */
+  personalCategoryPickerPrayerId: string | null = null;
+
+  onPersonalCategoryPickerOpenChange(prayerId: string, open: boolean): void {
+    this.personalCategoryPickerPrayerId = open ? prayerId : null;
+  }
 
   constructor(
     public prayerService: PrayerService,
@@ -3462,6 +3484,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   markAllPromptsAsRead(): void {
     this.badgeService.markAllAsRead("prompts");
+  }
+
+  markPromptTypeAsRead(type: string): void {
+    this.badgeService.markAllAsReadByPromptType(type);
   }
 
   openEditModal(prayer: PrayerRequest): void {

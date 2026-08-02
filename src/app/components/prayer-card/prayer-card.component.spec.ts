@@ -128,28 +128,60 @@ describe('PrayerCardComponent', () => {
     expect(component.getBorderClass()).not.toContain('blue-600');
   });
 
-  it('getStatusBadgeClasses varies by status', () => {
-    (component.prayer as any).status = 'current';
-    expect(component.getStatusBadgeClasses()).toContain('0047AB');
-
-    (component.prayer as any).status = 'answered';
-    expect(component.getStatusBadgeClasses()).toContain('39704D');
-
-    (component.prayer as any).status = 'archived';
-    expect(component.getStatusBadgeClasses()).toContain('C9A961');
-  });
-
-  it('getStatusLabel capitalizes', () => {
-    component.prayer.status = 'answered';
-    expect(component.getStatusLabel()).toBe('Answered');
-  });
-
   it('displayRequester respects anonymity', () => {
     component.prayer.is_anonymous = true;
     expect(component.displayRequester()).toBe('Anonymous');
 
     component.prayer.is_anonymous = false;
     expect(component.displayRequester()).toBe('Jane Doe');
+  });
+
+  describe('meta header helpers', () => {
+    it('isCommunityPrayer is true for community cards only', () => {
+      component.isPersonal = false;
+      component.prayer.id = 'p1';
+      expect(component.isCommunityPrayer()).toBe(true);
+
+      component.isPersonal = true;
+      expect(component.isCommunityPrayer()).toBe(false);
+
+      component.isPersonal = false;
+      component.prayer.id = 'pc-member-1';
+      expect(component.isCommunityPrayer()).toBe(false);
+    });
+
+    it('usesPrayerMetaHeader includes personal and community cards', () => {
+      component.isPersonal = true;
+      component.prayer.id = 'personal-1';
+      expect(component.usesPrayerMetaHeader()).toBe(true);
+
+      component.isPersonal = false;
+      component.prayer.id = 'p1';
+      expect(component.usesPrayerMetaHeader()).toBe(true);
+
+      component.prayer.id = 'pc-member-1';
+      expect(component.usesPrayerMetaHeader()).toBe(false);
+    });
+
+    it('showStatusPillInHeader is true on current, answered, and total for community cards', () => {
+      component.isPersonal = false;
+      component.prayer.id = 'p1';
+      component.activeFilter = 'total';
+      expect(component.showStatusPillInHeader()).toBe(true);
+
+      component.activeFilter = 'current';
+      expect(component.showStatusPillInHeader()).toBe(true);
+
+      component.activeFilter = 'answered';
+      expect(component.showStatusPillInHeader()).toBe(true);
+
+      component.activeFilter = 'personal';
+      expect(component.showStatusPillInHeader()).toBe(false);
+
+      component.isPersonal = true;
+      component.activeFilter = 'total';
+      expect(component.showStatusPillInHeader()).toBe(false);
+    });
   });
 
   it('showDeleteButton logic', () => {
@@ -453,11 +485,6 @@ describe('PrayerCardComponent', () => {
     expect(component.shouldShowToggleButton()).toBe(false);
   });
 
-  it('formatDate returns readable string', () => {
-    const out = component.formatDate('2020-01-02T03:04:00Z');
-    expect(typeof out).toBe('string');
-    expect(out.length).toBeGreaterThan(0);
-  });
 
   it('onUpdateDeleteRequestSubmit emits and resets', () => {
     localStorage.setItem('userFirstName', 'X');
@@ -1654,15 +1681,6 @@ describe('PrayerCardComponent', () => {
 
       component.prayer.status = 'archived';
       expect(component.getBorderClass()).toContain('border-[#C9A961]');
-    });
-
-    it('should format date with locale-specific formatting', () => {
-      const dateString = '2026-01-15T14:30:00Z';
-
-      const formatted = component.formatDate(dateString);
-
-      expect(formatted).toContain('2026');
-      expect(formatted).toMatch(/\d{1,2}:\d{2}/); // Should include time
     });
 
     it('should preserve multi-part names in user name handling', () => {

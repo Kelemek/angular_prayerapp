@@ -56,7 +56,7 @@ const SCOPE_OPTIONS: {
         </div>
 
         <div class="flex-1 min-h-0 flex flex-col px-4 sm:px-6 py-4 overflow-hidden">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          <p class="shrink-0 text-sm text-gray-600 dark:text-gray-400 mb-3">
             Choose which books to memorize in order. Practice uses the same games as verse memorization.
           </p>
 
@@ -82,16 +82,16 @@ const SCOPE_OPTIONS: {
             }
           </div>
 
-          <div class="flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 p-2 mb-4">
+          <div class="flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y rounded-lg border border-gray-200 dark:border-gray-700 p-2 mb-4">
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ bibleBooksCountLabel(scope) }} preview</p>
-            <app-bible-books-memorization-list [scope]="scope" />
+            <app-bible-books-memorization-list [scope]="scope" [innerScroll]="false" />
           </div>
 
           <button
             type="button"
             [disabled]="submitting"
             (click)="handleAdd()"
-            class="w-full py-2.5 rounded-lg font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 hover:border-blue-300 dark:hover:border-blue-600 disabled:hover:bg-blue-100 dark:disabled:hover:bg-blue-900/40 disabled:hover:border-blue-200 dark:disabled:hover:border-blue-700"
+            class="shrink-0 w-full py-2.5 rounded-lg font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 hover:border-blue-300 dark:hover:border-blue-600 disabled:hover:bg-blue-100 dark:disabled:hover:bg-blue-900/40 disabled:hover:border-blue-200 dark:disabled:hover:border-blue-700"
           >
             {{ submitting ? 'Adding…' : 'Add to list' }}
           </button>

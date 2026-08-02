@@ -53,4 +53,14 @@ describe('BibleBooksMemorizationListComponent', () => {
     expect(fixture.componentInstance.testament).toBe('nt');
     expect(screen.getByText('Matthew')).toBeTruthy();
   });
+
+  it('disables inner scroll when innerScroll is false (parent scrolls)', async () => {
+    const { fixture } = await render(BibleBooksMemorizationListComponent, {
+      componentInputs: { scope: 'all', innerScroll: false },
+    });
+    const list = screen.getByTestId('bible-books-memorization-list');
+    expect(list.className).not.toContain('overflow-y-auto');
+    expect(list.className).not.toContain('max-h-');
+    expect(fixture.componentInstance.rootClass).not.toContain('flex-1');
+  });
 });

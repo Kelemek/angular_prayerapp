@@ -60,3 +60,18 @@ export const getPersonalCategoryColorPickerViewportBounds = (
 
   return { top, bottom };
 };
+
+/** True when the category pill has scrolled fully out of the visible viewport. */
+export const shouldDismissPersonalCategoryPickerOnScroll = (
+  pillRect: Pick<DOMRect, 'top' | 'bottom'>,
+  viewport: { top: number; bottom: number }
+): boolean => {
+  return pillRect.bottom <= viewport.top || pillRect.top >= viewport.bottom;
+};
+
+export const isNodeInsidePersonalCategoryPickerDropdown = (
+  target: EventTarget | null,
+  dropdown: HTMLElement | null
+): boolean => {
+  return target instanceof Node && !!dropdown?.contains(target);
+};

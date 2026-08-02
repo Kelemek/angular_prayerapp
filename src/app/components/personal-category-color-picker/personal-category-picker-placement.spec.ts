@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   getPersonalCategoryColorPickerViewportBounds,
+  isNodeInsidePersonalCategoryPickerDropdown,
+  shouldDismissPersonalCategoryPickerOnScroll,
   shouldOpenPersonalCategoryColorPickerUp,
 } from './personal-category-picker-placement';
 
@@ -56,6 +58,54 @@ describe('personalCategoryPickerPlacement', () => {
       expect(bounds).toEqual({ top: 48, bottom: 900 });
 
       viewport.remove();
+    });
+  });
+
+  describe('shouldDismissPersonalCategoryPickerOnScroll', () => {
+    it('dismisses when the pill is fully above the viewport', () => {
+      expect(
+        shouldDismissPersonalCategoryPickerOnScroll(
+          { top: 10, bottom: 40 },
+          { top: 100, bottom: 800 }
+        )
+      ).toBe(true);
+    });
+
+    it('dismisses when the pill is fully below the viewport', () => {
+      expect(
+        shouldDismissPersonalCategoryPickerOnScroll(
+          { top: 900, bottom: 930 },
+          { top: 0, bottom: 800 }
+        )
+      ).toBe(true);
+    });
+
+    it('keeps open when the pill still intersects the viewport', () => {
+      expect(
+        shouldDismissPersonalCategoryPickerOnScroll(
+          { top: 200, bottom: 230 },
+          { top: 0, bottom: 800 }
+        )
+      ).toBe(false);
+    });
+  });
+
+  describe('isNodeInsidePersonalCategoryPickerDropdown', () => {
+    it('returns true for nodes inside the dropdown', () => {
+      const dropdown = document.createElement('div');
+      const child = document.createElement('button');
+      dropdown.appendChild(child);
+      expect(isNodeInsidePersonalCategoryPickerDropdown(child, dropdown)).toBe(
+        true
+      );
+    });
+
+    it('returns false for outside nodes', () => {
+      const dropdown = document.createElement('div');
+      const outside = document.createElement('button');
+      expect(
+        isNodeInsidePersonalCategoryPickerDropdown(outside, dropdown)
+      ).toBe(false);
     });
   });
 });

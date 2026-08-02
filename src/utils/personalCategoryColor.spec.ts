@@ -4,6 +4,7 @@ import {
   hashPersonalCategoryColor,
   normalizePersonalCategoryHexColor,
   personalCategoryPillStyles,
+  personalCategoryHeaderBandStyles,
   sanitizePersonalCategoryName,
 } from './personalCategoryColor';
 
@@ -54,11 +55,27 @@ describe('personalCategoryColor', () => {
   });
 
   describe('personalCategoryPillStyles', () => {
-    it('returns color-mix styles for hex colors', () => {
+    it('returns CSS variables for light and dark pill themes', () => {
       const styles = personalCategoryPillStyles('#2563EB');
-      expect(styles.backgroundColor).toContain('color-mix');
-      expect(styles.borderColor).toContain('color-mix');
-      expect(styles.color).toBe('#2563EB');
+      expect(styles['--category-pill-bg']).toContain('color-mix');
+      expect(styles['--category-pill-bg']).not.toContain('transparent');
+      expect(styles['--category-pill-border']).toContain('color-mix');
+      expect(styles['--category-pill-text']).toBe('#2563EB');
+      expect(styles['--category-pill-bg-dark']).toContain('#1f2937');
+      expect(styles['--category-pill-border-dark']).toContain('color-mix');
+      expect(styles['--category-pill-text-dark']).toBe(
+        styles['--category-pill-border-dark']
+      );
+    });
+  });
+
+  describe('personalCategoryHeaderBandStyles', () => {
+    it('returns subtle tint CSS variables matching pill themes', () => {
+      const styles = personalCategoryHeaderBandStyles('#2563EB');
+      expect(styles['--category-pill-bg']).toContain('color-mix');
+      expect(styles['--category-pill-text']).toBe('#2563EB');
+      expect(styles['--category-pill-bg-dark']).toContain('#1f2937');
+      expect(styles['--category-pill-text-dark']).toContain('color-mix');
     });
   });
 });

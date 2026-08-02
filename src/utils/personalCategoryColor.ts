@@ -84,22 +84,26 @@ export const getPersonalCategoryColor = (
   return hashPersonalCategoryColor(sanitized);
 };
 
-/** Inline styles for a category pill (light/dark friendly tints). */
-export const personalCategoryPillStyles = (
+const DARK_PILL_SURFACE = '#1f2937';
+
+/** CSS variables for `.personal-category-pill` (see styles.css). */
+export const personalCategoryPillCssVariables = (
   color: string
 ): Record<string, string> => {
-  const hex = normalizePersonalCategoryHexColor(color);
-  if (hex) {
-    return {
-      backgroundColor: `color-mix(in srgb, ${hex} 18%, transparent)`,
-      borderColor: `color-mix(in srgb, ${hex} 45%, transparent)`,
-      color: hex,
-    };
-  }
-
+  const base = normalizePersonalCategoryHexColor(color) ?? color;
+  const lightAccent = `color-mix(in srgb, ${base} 70%, white)`;
   return {
-    backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`,
-    borderColor: `color-mix(in srgb, ${color} 45%, transparent)`,
-    color: color,
+    '--category-pill-bg': `color-mix(in srgb, ${base} 22%, white)`,
+    '--category-pill-border': `color-mix(in srgb, ${base} 50%, white)`,
+    '--category-pill-text': base,
+    '--category-pill-bg-dark': `color-mix(in srgb, ${base} 28%, ${DARK_PILL_SURFACE})`,
+    '--category-pill-border-dark': lightAccent,
+    '--category-pill-text-dark': lightAccent,
   };
 };
+
+/** @deprecated Use personalCategoryPillCssVariables with class `personal-category-pill`. */
+export const personalCategoryPillStyles = personalCategoryPillCssVariables;
+
+/** CSS variables for `.personal-category-header-band` (subtle tint + category-colored text). */
+export const personalCategoryHeaderBandStyles = personalCategoryPillCssVariables;

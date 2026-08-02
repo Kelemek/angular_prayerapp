@@ -14,6 +14,7 @@ import {
   booksForScope,
   type BibleBooksMemorizationScope,
 } from '../../lib/memorization/bibleBooksMemorization';
+import { resetBibleBooksListScroll } from './bible-books-memorization-list-scroll';
 
 type TestamentTab = 'ot' | 'nt';
 
@@ -23,10 +24,10 @@ type TestamentTab = 'ot' | 'nt';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div [class]="className">
+    <div [class]="rootClass">
       @if (showTabs) {
         <div
-          class="flex gap-2 mb-3"
+          class="flex shrink-0 gap-2 mb-3"
           role="tablist"
           aria-label="Testament"
         >
@@ -59,7 +60,7 @@ type TestamentTab = 'ot' | 'nt';
 
       <div
         #bookListScroll
-        class="max-h-[min(50vh,360px)] overflow-y-auto overscroll-y-contain"
+        [class]="bookListScrollClass"
         data-testid="bible-books-memorization-list"
       >
         <div class="space-y-0 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -79,12 +80,25 @@ type TestamentTab = 'ot' | 'nt';
 export class BibleBooksMemorizationListComponent implements OnInit, OnChanges {
   @Input({ required: true }) scope!: BibleBooksMemorizationScope;
   @Input() className = '';
+  /** When false, list grows with content and a parent panel scrolls (add modal). */
+  @Input() innerScroll = true;
 
   @ViewChild('bookListScroll') bookListScrollRef?: ElementRef<HTMLDivElement>;
 
   testament: TestamentTab = 'ot';
   showTabs = false;
   filteredBooks = booksForScope('all');
+
+  get rootClass(): string {
+    return this.className;
+  }
+
+  get bookListScrollClass(): string {
+    if (!this.innerScroll) {
+      return '';
+    }
+    return 'overflow-y-auto overscroll-y-contain touch-pan-y max-h-[min(50vh,360px)]';
+  }
 
   ngOnInit(): void {
     this.initForScope();
@@ -93,14 +107,21 @@ export class BibleBooksMemorizationListComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['scope']) {
       this.initForScope();
+      this.resetListScroll();
     }
   }
 
   setTestament(tab: TestamentTab): void {
     this.testament = tab;
     this.updateFilteredBooks();
-    const el = this.bookListScrollRef?.nativeElement;
-    if (el) el.scrollTop = 0;
+    this.resetListScroll();
+  }
+
+  private resetListScroll(): void {
+    resetBibleBooksListScroll(
+      this.bookListScrollRef?.nativeElement ?? null,
+      this.innerScroll
+    );
   }
 
   private initForScope(): void {

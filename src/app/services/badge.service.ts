@@ -10,6 +10,7 @@ import { UserSessionService } from './user-session.service';
 interface CachedItem {
   id: string;
   status?: 'current' | 'answered' | 'archived';
+  type?: string;
   updated_at: string;
   updates?: Array<{ id: string; created_at: string; updated_at?: string }>;
 }
@@ -301,6 +302,46 @@ export class BadgeService {
       }
     } catch (error) {
       console.warn(`Failed to mark all ${type} with status ${status} as read:`, error);
+    }
+  }
+
+  /**
+   * Mark all prompts with a specific type/category as read
+   */
+  markAllAsReadByPromptType(promptType: string): void {
+    const cacheKey = 'prompts_cache';
+
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        const items = parsedCache?.data || parsedCache || [];
+
+        if (Array.isArray(items)) {
+          const itemsWithType = items.filter(
+            (item: CachedItem) => item.type === promptType
+          );
+          const ids = itemsWithType.map((item: CachedItem) => item.id);
+
+          const data = this.getReadPromptsData();
+          data.prompts = Array.from(new Set([...data.prompts, ...ids]));
+          this.setReadPromptsData(data);
+
+          this.markAllUpdatesAsRead(itemsWithType, 'prompts');
+
+          itemsWithType.forEach((item: CachedItem) => {
+            const key = `prompts_${item.id}`;
+            if (this.individualBadgeSubject$.has(key)) {
+              (this.individualBadgeSubject$.get(key) as BehaviorSubject<boolean>).next(false);
+            }
+          });
+
+          this.refreshBadgeCounts();
+          this.updateBadgesChanged$.next();
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to mark all prompts with type ${promptType} as read:`, error);
     }
   }
 

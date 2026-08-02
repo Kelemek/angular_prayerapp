@@ -6,18 +6,18 @@ import { MemorizationActionBarComponent } from './memorization-action-bar.compon
 describe('MemorizationActionBarComponent', () => {
   it('renders add buttons', async () => {
     await render(MemorizationActionBarComponent);
-    expect(screen.getByRole('button', { name: /^Verses$/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Add Verses$/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Bible Books/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Recommended/i })).toBeTruthy();
   });
 
-  it('emits addVerses when Verses is clicked', async () => {
+  it('emits addVerses when Add Verses is clicked', async () => {
     const user = userEvent.setup();
     const addVerses = vi.fn();
     const { fixture } = await render(MemorizationActionBarComponent);
     fixture.componentInstance.addVerses.subscribe(addVerses);
 
-    await user.click(screen.getByRole('button', { name: /^Verses$/i }));
+    await user.click(screen.getByRole('button', { name: /^Add Verses$/i }));
     expect(addVerses).toHaveBeenCalledOnce();
   });
 

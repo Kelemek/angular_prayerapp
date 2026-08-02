@@ -167,6 +167,26 @@ html.dark .presentation-card-elevation {
     0 8px 24px -6px rgb(0 0 0 / 0.4),
     0 2px 8px rgb(0 0 0 / 0.28);
 }
+
+/* Personal category pill: light tint in light mode; dark surface + light accent in dark mode. */
+.personal-category-pill {
+  background-color: var(--category-pill-bg);
+  border-color: var(--category-pill-border);
+  color: var(--category-pill-text);
+}
+html.dark .personal-category-pill {
+  background-color: var(--category-pill-bg-dark);
+  border-color: var(--category-pill-border-dark);
+  color: var(--category-pill-text-dark);
+}
+.personal-category-header-band {
+  background-color: transparent;
+  color: var(--category-pill-text);
+}
+html.dark .personal-category-header-band {
+  background-color: transparent;
+  color: var(--category-pill-text-dark);
+}
 @utility dark {
   /* Background colors - dark theme */
   & .bg-gray-50 {

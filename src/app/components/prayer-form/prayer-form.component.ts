@@ -294,6 +294,7 @@ import {
               @if (formData.category.trim()) {
               <app-personal-category-color-picker
                 layout="inline"
+                colorDisplay="text"
                 [color]="categoryColor"
                 [categoryLabel]="formData.category"
                 (colorChange)="onCategoryColorChange($event)"

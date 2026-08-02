@@ -16,11 +16,8 @@ import { FormsModule } from '@angular/forms';
 import { Observable, BehaviorSubject, Subject, of } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { BadgeService } from '../../services/badge.service';
-import {
-  PROMPT_TYPE_CHIP_ACTIVE_CLASS,
-  PROMPT_TYPE_CHIP_INACTIVE_CLASS,
-} from '../../lib/prompt-type-chip-classes';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
+import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-header-band.component';
 import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { PromptService } from '../../services/prompt.service';
@@ -41,58 +38,60 @@ export interface PrayerPrompt {
 @Component({
   selector: 'app-prompt-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, CardMetaHeaderBandComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] p-6 mb-4 hover:shadow-lg transition-shadow relative"
+      class="prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 px-6 pb-4 mb-4 transition-colors relative"
       [attr.id]="tourPromptAnchors ? 'tour-prompt-card-sample' : null"
     >
-      <!-- Header -->
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex items-center gap-2 flex-1">
-          <svg class="text-[#988F83] dark:text-[#988F83] w-[24px] h-[24px] flex-shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 18h6"></path>
-            <path d="M10 22h4"></path>
-            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
-          </svg>
-          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            {{ prompt.title }}
-          </h3>
-        </div>
-        <div class="flex items-center gap-2 ml-4">
-          <!-- Type Badge -->
+      <!-- Meta header: type (left) | delete (right) -->
+      <app-card-meta-header-band layout="two-column">
+        <div cardMetaLeft>
           <button
+            type="button"
             (click)="onTypeClick.emit(prompt.type)"
-            [class]="'inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ' + (isTypeSelected ? promptTypeChipActiveClass : promptTypeChipInactiveClass)"
+            [class]="'block h-full min-h-9 min-w-0 max-w-full truncate px-6 text-left text-sm font-bold transition-colors cursor-pointer ' + getTypeHeaderTextClasses()"
             [title]="isTypeSelected ? 'Remove ' + prompt.type + ' filter' : 'Filter by ' + prompt.type"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-              <line x1="7" y1="7" x2="7.01" y2="7"></line>
-            </svg>
             {{ prompt.type }}
           </button>
+        </div>
+        <div cardMetaRight>
           @if (isAdmin) {
           <button
+            type="button"
             (click)="handleDelete()"
-            class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors cursor-pointer"
+            aria-label="Delete prayer prompt"
             title="Delete prompt"
+            class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1.5 sm:p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
           </button>
           }
         </div>
+      </app-card-meta-header-band>
+
+      <!-- Title -->
+      <div class="flex items-start gap-2 mb-4">
+        <svg class="text-[#988F83] dark:text-[#988F83] w-[24px] h-[24px] flex-shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18h6"></path>
+          <path d="M10 22h4"></path>
+          <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
+        </svg>
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
+          {{ prompt.title }}
+        </h3>
       </div>
 
       <!-- Badge in top-right corner -->
       @if ((promptBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
         <button
           (click)="markPromptAsRead()"
-          class="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+          class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
           title="Mark as read"
           aria-label="Mark prompt as read"
         >
@@ -209,9 +208,6 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   @Output() delete = new EventEmitter<string>();
   @Output() onTypeClick = new EventEmitter<string>();
 
-  readonly promptTypeChipActiveClass = PROMPT_TYPE_CHIP_ACTIVE_CLASS;
-  readonly promptTypeChipInactiveClass = PROMPT_TYPE_CHIP_INACTIVE_CLASS;
-
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);
   private readonly promptService = inject(PromptService);
@@ -285,6 +281,13 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
 
   showPrayedForBadge(): boolean {
     return (this.prompt.prayed_for_count ?? 0) > 0;
+  }
+
+  getTypeHeaderTextClasses(): string {
+    if (this.isTypeSelected) {
+      return 'text-[#988F83] dark:text-[#988F83]';
+    }
+    return 'text-gray-700 dark:text-gray-300 hover:text-[#988F83] dark:hover:text-[#988F83]';
   }
 
   onPrayForClick(): void {

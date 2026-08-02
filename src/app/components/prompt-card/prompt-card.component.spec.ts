@@ -1265,6 +1265,16 @@ describe('PromptCardComponent - Core Logic', () => {
       component.prompt = { ...component.prompt, prayed_for_count: 2 };
       expect(component.showPrayedForBadge()).toBe(true);
     });
+
+    it('getTypeHeaderTextClasses uses stone color when type filter is active', () => {
+      component.isTypeSelected = true;
+      expect(component.getTypeHeaderTextClasses()).toContain('#988F83');
+    });
+
+    it('getTypeHeaderTextClasses uses neutral text when type filter is inactive', () => {
+      component.isTypeSelected = false;
+      expect(component.getTypeHeaderTextClasses()).toContain('text-gray-700');
+    });
   });
 });
 

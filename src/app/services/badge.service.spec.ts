@@ -328,6 +328,26 @@ describe('BadgeService', () => {
       expect(readData.prompts).not.toContain('prompt-1');
     });
 
+    it('should mark only prompts with the requested type as read', () => {
+      localStorage.setItem('prompts_cache', JSON.stringify({
+        data: [
+          { id: 'prompt-1', type: 'Church', updated_at: '2024-01-01', updates: [] },
+          { id: 'prompt-2', type: 'Family', updated_at: '2024-01-01', updates: [] },
+          { id: 'prompt-3', type: 'Church', updated_at: '2024-01-01', updates: [] },
+        ]
+      }));
+      localStorage.setItem('read_prompts_data', JSON.stringify({ prompts: [], updates: [] }));
+
+      service.markAllAsReadByPromptType('Church');
+
+      const readData = JSON.parse(localStorage.getItem('read_prompts_data') || '{}');
+      expect(readData.prompts).toContain('prompt-1');
+      expect(readData.prompts).toContain('prompt-3');
+      expect(readData.prompts).not.toContain('prompt-2');
+      expect(service.isPromptUnread('prompt-1')).toBe(false);
+      expect(service.isPromptUnread('prompt-2')).toBe(true);
+    });
+
     it('should return unread ids for prayers and prompts', () => {
       expect(service.getUnreadIds('prayers')).toEqual(['prayer-1', 'prayer-2']);
       expect(service.getUnreadIds('prompts')).toEqual(['prompt-1', 'prompt-2']);

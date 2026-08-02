@@ -90,7 +90,8 @@ const makeMocks = () => {
     refreshBadgeCounts: vi.fn(),
     getBadgeCount$: vi.fn().mockReturnValue(of(0)),
     markAllAsReadByStatus: vi.fn(),
-    markAllAsRead: vi.fn()
+    markAllAsRead: vi.fn(),
+    markAllAsReadByPromptType: vi.fn()
   };
 
   const memorizationService: any = {
@@ -1236,6 +1237,14 @@ describe('HomeComponent', () => {
       comp.markAllPromptsAsRead();
 
       expect(mocks.badgeService.markAllAsRead).toHaveBeenCalledWith('prompts');
+    });
+
+    it('markPromptTypeAsRead calls badgeService with prompt type', () => {
+      const comp = createHomeComponent(mocks)
+
+      comp.markPromptTypeAsRead('Church');
+
+      expect(mocks.badgeService.markAllAsReadByPromptType).toHaveBeenCalledWith('Church');
     });
   });
 

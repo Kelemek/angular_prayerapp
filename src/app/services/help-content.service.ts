@@ -481,7 +481,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Adding verses',
-            text: 'Tap **Verses** to open the passage picker. Choose a Bible translation (ESV, KJV, NASB, LSB, NIV, NLT, or CSB), then pick a book, chapter, and verse range. You can add single verses or short passages. Tap a selected verse again to deselect before choosing another. Your translation choice is remembered for future adds.',
+            text: 'Tap **Add Verses** to open the passage picker. Choose a Bible translation (ESV, KJV, NASB, LSB, NIV, NLT, or CSB), then pick a book, chapter, and verse range. You can add single verses or short passages. Tap a selected verse again to deselect before choosing another. Your translation choice is remembered for future adds.',
           },
           {
             subtitle: 'Adding Bible books',

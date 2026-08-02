@@ -10,6 +10,7 @@ import { PromptService } from '../../services/prompt.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { PersonalCategoryColorService } from '../../services/personal-category-color.service';
+import { getPrayerStatusPillClasses } from '../../lib/prayer-status-header';
 
 function createDisplayCardProviders(overrides?: {
   userSessionService?: Record<string, unknown>;
@@ -258,38 +259,30 @@ describe('PrayerDisplayCardComponent', () => {
     });
   });
 
-  describe('getStatusBadgeClasses', () => {
-    it('should return current status classes', async () => {
-      const { fixture } = await renderDisplayCard();
-      
-      const classes = fixture.componentInstance.getStatusBadgeClasses('current');
+  describe('getPrayerStatusPillClasses', () => {
+    it('should return current status classes', () => {
+      const classes = getPrayerStatusPillClasses('current');
       expect(classes).toContain('bg-blue-50');
       expect(classes).toContain('text-[#0047AB]');
       expect(classes).toContain('border-[#0047AB]');
     });
 
-    it('should return answered status classes', async () => {
-      const { fixture } = await renderDisplayCard();
-      
-      const classes = fixture.componentInstance.getStatusBadgeClasses('answered');
+    it('should return answered status classes', () => {
+      const classes = getPrayerStatusPillClasses('answered');
       expect(classes).toContain('bg-green-50');
       expect(classes).toContain('text-[#39704D]');
       expect(classes).toContain('border-[#39704D]');
     });
 
-    it('should return archived status classes matching home prayer cards', async () => {
-      const { fixture } = await renderDisplayCard();
-
-      const classes = fixture.componentInstance.getStatusBadgeClasses('archived');
+    it('should return archived status classes matching home prayer cards', () => {
+      const classes = getPrayerStatusPillClasses('archived');
       expect(classes).toContain('bg-amber-50');
       expect(classes).toContain('text-[#C9A961]');
       expect(classes).toContain('border-[#C9A961]');
     });
 
-    it('should return default classes for unknown status', async () => {
-      const { fixture } = await renderDisplayCard();
-      
-      const classes = fixture.componentInstance.getStatusBadgeClasses('unknown');
+    it('should return default classes for unknown status', () => {
+      const classes = getPrayerStatusPillClasses('unknown');
       expect(classes).toContain('bg-gray-100');
       expect(classes).toContain('text-gray-800');
     });
@@ -319,7 +312,8 @@ describe('PrayerDisplayCardComponent', () => {
         componentProperties: { prayer: mockPrayer }
       });
       
-      expect(container.textContent).toContain('Recent Updates');
+      expect(container.textContent).toContain('Update');
+      expect(container.textContent).not.toContain('Recent Updates');
     });
 
     it('should not display updates section when no updates', async () => {
@@ -745,7 +739,8 @@ describe('PrayerDisplayCardComponent', () => {
         componentProperties: { prayer: personalPrayer }
       });
       
-      expect(container.textContent).toContain('Recent Updates');
+      expect(container.textContent).toContain('Update');
+      expect(container.textContent).not.toContain('Recent Updates');
       expect(container.textContent).toContain('Update 1');
     });
 
@@ -754,7 +749,8 @@ describe('PrayerDisplayCardComponent', () => {
         componentProperties: { prayer: mockPrayer }
       });
       
-      expect(container.textContent).toContain('Recent Updates');
+      expect(container.textContent).toContain('Update');
+      expect(container.textContent).not.toContain('Recent Updates');
       expect(container.textContent).toContain('Update 1');
     });
   });
@@ -803,14 +799,14 @@ describe('PrayerDisplayCardComponent', () => {
       expect(container.textContent).not.toContain('Prayer For:');
     });
 
-    it('should display "Answered" badge for answered member updates', async () => {
+    it('should display "Answered" header label for answered member updates', async () => {
       const { container } = await renderDisplayCard({
         componentProperties: { prayer: memberPrayer }
       });
-      
-      const badge = container.querySelector('.bg-green-600');
-      expect(badge).toBeTruthy();
-      expect(badge?.textContent).toContain('Answered');
+
+      expect(container.textContent).toContain('Answered');
+      const headerLabel = container.querySelector('.text-\\[\\#39704D\\]');
+      expect(headerLabel?.textContent?.trim()).toBe('Answered');
     });
 
     it('should hide requester and date for member prayers', async () => {

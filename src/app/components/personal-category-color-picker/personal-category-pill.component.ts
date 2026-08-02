@@ -1,6 +1,8 @@
 import {
   Component,
   Input,
+  Output,
+  EventEmitter,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   HostListener,
@@ -16,11 +18,14 @@ import { PersonalCategoryColorPickerComponent } from './personal-category-color-
 import { PersonalCategoryColorService } from '../../services/personal-category-color.service';
 import {
   getPersonalCategoryColor,
+  personalCategoryHeaderBandStyles,
   personalCategoryPillStyles,
 } from '../../../utils/personalCategoryColor';
 import {
   getPersonalCategoryColorPickerViewportBounds,
+  isNodeInsidePersonalCategoryPickerDropdown,
   PERSONAL_CATEGORY_COLOR_PICKER_ESTIMATED_HEIGHT,
+  shouldDismissPersonalCategoryPickerOnScroll,
   shouldOpenPersonalCategoryColorPickerUp,
 } from './personal-category-picker-placement';
 
@@ -29,30 +34,52 @@ import {
   standalone: true,
   imports: [CommonModule, PersonalCategoryColorPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.block]': 'variant === "header"',
+    '[class.min-w-0]': 'variant === "header"',
+    '[class.max-w-full]': 'variant === "header"',
+    '[class.h-full]': 'variant === "header"',
+    '[class.overflow-hidden]': 'variant === "header"',
+  },
   template: `
-    <div class="relative inline-block" data-personal-category-pill>
+    <div
+      [class]="variant === 'header' ? 'relative h-full min-h-9 min-w-0 max-w-full w-full overflow-hidden' : 'relative inline-block'"
+      data-personal-category-pill
+    >
       <button
         type="button"
-        class="px-2 py-1 text-xs font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+        [class]="
+          variant === 'header'
+            ? 'personal-category-header-band block h-full min-h-9 w-full min-w-0 max-w-full px-6 text-left text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden'
+            : 'personal-category-pill px-2 py-1 text-xs font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500'
+        "
+        [title]="variant === 'header' ? category : null"
         [ngStyle]="pillStyles"
         aria-label="Change category color"
         (click)="onPillClick($event)"
       >
+        @if (variant === 'header') {
+        <span class="block truncate">{{ category }}</span>
+        } @else {
         {{ category }}
+        }
       </button>
       @if (showPicker) {
         <div
           #pickerDropdown
-          class="absolute left-1/2 z-20 -translate-x-1/2 p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg"
-          [class.top-full]="!pickerOpenUp"
-          [class.mt-1]="!pickerOpenUp"
-          [class.bottom-full]="pickerOpenUp"
-          [class.mb-1]="pickerOpenUp"
+          [class]="
+            variant === 'header'
+              ? 'fixed z-50 -translate-x-1/2 p-3 sm:p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg isolate'
+              : 'absolute left-1/2 z-20 -translate-x-1/2 p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg ' +
+                (pickerOpenUp ? 'bottom-full mb-1' : 'top-full mt-1')
+          "
+          [ngStyle]="pickerDropdownStyle"
           (click)="$event.stopPropagation()"
         >
           <app-personal-category-color-picker
             [color]="pickerColor"
             [categoryLabel]="category"
+            [colorDisplay]="variant === 'header' ? 'text' : 'pill'"
             (colorChange)="onColorPick($event)"
           />
         </div>
@@ -62,6 +89,8 @@ import {
 })
 export class PersonalCategoryPillComponent implements OnInit {
   @Input({ required: true }) category!: string;
+  @Input() variant: 'pill' | 'header' = 'pill';
+  @Output() pickerOpenChange = new EventEmitter<boolean>();
 
   @ViewChild('pickerDropdown') pickerDropdownRef?: ElementRef<HTMLElement>;
 
@@ -72,6 +101,38 @@ export class PersonalCategoryPillComponent implements OnInit {
   showPicker = false;
   pickerOpenUp = false;
   pickerColor = '#2563EB';
+  pickerDropdownPosition: { top: string; left: string } | null = null;
+  private pickerAnchorButton: HTMLElement | null = null;
+  private scrollDismissRoot: HTMLElement | null = null;
+  private readonly onScrollDismiss = (event: Event): void => {
+    if (!this.showPicker || this.variant !== 'header') {
+      return;
+    }
+    const dropdown = this.pickerDropdownRef?.nativeElement ?? null;
+    if (isNodeInsidePersonalCategoryPickerDropdown(event.target, dropdown)) {
+      return;
+    }
+    this.repositionPickerOrDismiss();
+  };
+  private readonly onVisualViewportChange = (): void => {
+    if (!this.showPicker || this.variant !== 'header') {
+      return;
+    }
+    const anchor = this.pickerAnchorButton;
+    if (anchor) {
+      this.updateDropdownPosition(anchor);
+    }
+  };
+
+  get pickerDropdownStyle(): Record<string, string> | null {
+    if (this.variant !== 'header' || !this.pickerDropdownPosition) {
+      return null;
+    }
+    return {
+      top: this.pickerDropdownPosition.top,
+      left: this.pickerDropdownPosition.left,
+    };
+  }
 
   ngOnInit(): void {
     void this.colorService.loadColors();
@@ -82,11 +143,14 @@ export class PersonalCategoryPillComponent implements OnInit {
         this.cdr.markForCheck();
       });
     this.syncPickerColor();
+    this.destroyRef.onDestroy(() => this.unbindScrollDismiss());
   }
 
   get pillStyles(): Record<string, string> {
     const hex = this.colorService.getColor(this.category);
-    return personalCategoryPillStyles(hex);
+    return this.variant === 'header'
+      ? personalCategoryHeaderBandStyles(hex)
+      : personalCategoryPillStyles(hex);
   }
 
   onPillClick(event: Event): void {
@@ -94,6 +158,8 @@ export class PersonalCategoryPillComponent implements OnInit {
     this.syncPickerColor();
 
     const pillButton = event.currentTarget;
+    this.pickerAnchorButton =
+      pillButton instanceof HTMLElement ? pillButton : null;
     if (pillButton instanceof HTMLElement) {
       const pillRect = pillButton.getBoundingClientRect();
       const viewport = getPersonalCategoryColorPickerViewportBounds(pillButton);
@@ -108,14 +174,110 @@ export class PersonalCategoryPillComponent implements OnInit {
       this.pickerOpenUp = false;
     }
 
-    this.showPicker = true;
+    this.setPickerOpen(true);
     this.cdr.markForCheck();
 
-    setTimeout(() => this.refinePickerPlacement(pillButton), 0);
+    setTimeout(() => {
+      if (!(pillButton instanceof HTMLElement)) {
+        return;
+      }
+      if (this.variant === 'header') {
+        this.updateDropdownPosition(pillButton);
+      } else {
+        this.refinePickerPlacement(pillButton);
+      }
+    }, 0);
+  }
+
+  @HostListener('window:resize')
+  onViewportResize(): void {
+    this.onVisualViewportChange();
+  }
+
+  private repositionPickerOrDismiss(): void {
+    const anchor = this.pickerAnchorButton;
+    if (!anchor) {
+      this.closePicker();
+      return;
+    }
+    const pillRect = anchor.getBoundingClientRect();
+    const viewport = getPersonalCategoryColorPickerViewportBounds(anchor);
+    if (shouldDismissPersonalCategoryPickerOnScroll(pillRect, viewport)) {
+      this.closePicker();
+      return;
+    }
+    this.updateDropdownPosition(anchor);
+  }
+
+  private bindScrollDismiss(): void {
+    this.unbindScrollDismiss();
+    const root = document.querySelector('.safe-area-viewport');
+    if (root instanceof HTMLElement) {
+      this.scrollDismissRoot = root;
+      root.addEventListener('scroll', this.onScrollDismiss, { passive: true });
+    }
+    window.addEventListener('scroll', this.onScrollDismiss, {
+      passive: true,
+      capture: true,
+    });
+    window.visualViewport?.addEventListener(
+      'resize',
+      this.onVisualViewportChange
+    );
+    window.visualViewport?.addEventListener(
+      'scroll',
+      this.onVisualViewportChange
+    );
+  }
+
+  private unbindScrollDismiss(): void {
+    if (this.scrollDismissRoot) {
+      this.scrollDismissRoot.removeEventListener('scroll', this.onScrollDismiss);
+      this.scrollDismissRoot = null;
+    }
+    window.removeEventListener('scroll', this.onScrollDismiss, { capture: true });
+    window.visualViewport?.removeEventListener(
+      'resize',
+      this.onVisualViewportChange
+    );
+    window.visualViewport?.removeEventListener(
+      'scroll',
+      this.onVisualViewportChange
+    );
+  }
+
+  private updateDropdownPosition(pillButton: HTMLElement): void {
+    const dropdown = this.pickerDropdownRef?.nativeElement;
+    if (!dropdown) {
+      return;
+    }
+    const pillRect = pillButton.getBoundingClientRect();
+    const dropdownHeight = dropdown.getBoundingClientRect().height;
+    const viewport = getPersonalCategoryColorPickerViewportBounds(pillButton);
+    this.pickerOpenUp = shouldOpenPersonalCategoryColorPickerUp(
+      pillRect.top,
+      pillRect.bottom,
+      dropdownHeight,
+      viewport.bottom,
+      viewport.top
+    );
+    const gap = 4;
+    const topPx = this.pickerOpenUp
+      ? pillRect.top - dropdownHeight - gap
+      : pillRect.bottom + gap;
+    this.pickerDropdownPosition = {
+      top: `${topPx}px`,
+      left: `${pillRect.left + pillRect.width / 2}px`,
+    };
+    this.cdr.markForCheck();
   }
 
   private refinePickerPlacement(pillButton: EventTarget | null): void {
     if (!this.showPicker || !(pillButton instanceof HTMLElement)) {
+      return;
+    }
+    if (this.variant === 'header') {
+      this.updateDropdownPosition(pillButton);
       return;
     }
     const dropdown = this.pickerDropdownRef?.nativeElement;
@@ -157,8 +319,22 @@ export class PersonalCategoryPillComponent implements OnInit {
   }
 
   private closePicker(): void {
-    this.showPicker = false;
-    this.pickerOpenUp = false;
+    this.setPickerOpen(false);
+  }
+
+  private setPickerOpen(open: boolean): void {
+    this.showPicker = open;
+    if (!open) {
+      this.pickerOpenUp = false;
+      this.pickerDropdownPosition = null;
+      this.pickerAnchorButton = null;
+      this.unbindScrollDismiss();
+    } else if (this.variant === 'header') {
+      this.bindScrollDismiss();
+    }
+    if (this.variant === 'header') {
+      this.pickerOpenChange.emit(open);
+    }
     this.cdr.markForCheck();
   }
 

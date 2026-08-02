@@ -37,7 +37,7 @@ const SECONDARY_BTN =
         [attr.aria-pressed]="addVersesActive"
         [class]="actionBtnBase + ' ' + softBlueBtn"
       >
-        Verses
+        Add Verses
       </button>
       <button
         type="button"
