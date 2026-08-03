@@ -10,6 +10,9 @@ Major features and milestones for the Prayer App.
 ### Memorize — search filter
 - On the **Memorize** tab, the Home search field filters Learning / Practicing / Mastered cards by book, reference, or translation (placeholder **Search verses...**). Empty results show a “No passages found” state instead of the empty-list onboarding copy ([`memorization-search.ts`](src/app/lib/memorization/memorization-search.ts), [`home.component.ts`](src/app/pages/home/home.component.ts)).
 
+### Home — filter stat buttons
+- Home filter tiles (Current, Answered, Total, Prompts, Personal, Memorize, Members) use slightly more padding on small screens and tighter gaps so they sit closer together without feeling oversized ([`home.component.ts`](src/app/pages/home/home.component.ts)).
+
 ### Memorize — action bar label size
 - **Add Verses**, **Bible Books**, and **Recommended** use a fixed `14px` font size so they do not grow or shrink with **Settings → Text size** ([`memorization-action-bar.component.ts`](src/app/components/memorization-action-bar/memorization-action-bar.component.ts)).
 

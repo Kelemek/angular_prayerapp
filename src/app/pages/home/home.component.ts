@@ -651,19 +651,19 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
           <!-- Stats Cards: mobile = 3 top row + 4 bottom row when Members shown; sm+ = single row -->
           <div
             [class]="
-              'mb-6 flex flex-col gap-4 ' +
+              'mb-6 flex flex-col gap-2 ' +
               (showPlanningCenterMembersFilter
-                ? 'sm:grid sm:grid-cols-7 sm:gap-4'
-                : 'sm:grid sm:grid-cols-6 sm:gap-4')
+                ? 'sm:grid sm:grid-cols-7 sm:gap-2'
+                : 'sm:grid sm:grid-cols-6 sm:gap-2')
             "
           >
-            <div class="grid grid-cols-3 gap-4 sm:contents">
+            <div class="grid grid-cols-3 gap-2 sm:contents">
             <button
               id="tour-filter-current"
               (click)="setFilter('current')"
               title="Show current prayers"
               [class]="
-                'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+                'rounded-lg shadow-md p-2.5 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'current'
                   ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0'
                   : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')
@@ -695,7 +695,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               (click)="setFilter('answered')"
               title="Show answered prayers"
               [class]="
-                'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+                'rounded-lg shadow-md p-2.5 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'answered'
                   ? 'border !border-[#39704D] dark:!border-[#39704D] bg-green-100 dark:bg-green-950 ring ring-[#39704D] dark:ring-[#39704D] ring-offset-0'
                   : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#39704D] dark:hover:!border-[#39704D] hover:shadow-lg')
@@ -727,7 +727,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               (click)="setFilter('total')"
               title="Show all prayers"
               [class]="
-                'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+                'rounded-lg shadow-md p-2.5 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'total'
                   ? 'border !border-[#C9A961] dark:!border-[#C9A961] bg-amber-100 dark:bg-amber-900/40 ring ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0'
                   : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#C9A961] dark:hover:!border-[#C9A961] hover:shadow-lg')
@@ -745,7 +745,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             </div>
             <div
               [class]="
-                'grid gap-4 sm:contents ' +
+                'grid gap-2 sm:contents ' +
                 (showPlanningCenterMembersFilter ? 'grid-cols-4' : 'grid-cols-3')
               "
             >
@@ -754,7 +754,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               (click)="setFilter('prompts')"
               title="Show prayer prompts"
               [class]="
-                'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+                'rounded-lg shadow-md p-2.5 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'prompts'
                   ? 'border !border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0'
                   : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#988F83] dark:hover:!border-[#988F83] hover:shadow-lg')
@@ -787,7 +787,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               (click)="setFilter('personal')"
               title="Show your personal prayers"
               [class]="
-                'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+                'rounded-lg shadow-md p-2.5 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'personal'
                   ? 'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0'
                   : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#2F5F54] dark:hover:!border-[#2F5F54] hover:shadow-lg')
@@ -808,7 +808,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               (click)="setFilter('memorize')"
               title="Memorize Bible verses"
               [class]="
-                'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+                'rounded-lg shadow-md p-2.5 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'memorize'
                   ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0'
                   : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')
@@ -834,7 +834,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                 planningCenterListMembers.length === 0
               "
               [class]="
-                'rounded-lg shadow-md p-2 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+                'rounded-lg shadow-md p-2.5 sm:p-4 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
                 (activeFilter === 'planning_center_list'
                   ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-slate-100 dark:bg-blue-900/40 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0'
                   : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')
