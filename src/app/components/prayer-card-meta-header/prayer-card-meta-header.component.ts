@@ -20,8 +20,9 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card-meta-header-band
-      [centerDate]="metaHeaderDate"
-      [centerTime]="metaHeaderTime"
+      [layout]="showCenterDateTime ? 'three-column' : 'two-column'"
+      [centerDate]="showCenterDateTime ? metaHeaderDate : null"
+      [centerTime]="showCenterDateTime ? metaHeaderTime : null"
       [centerDragHandle]="centerDragHandle"
       [centerDragHandleId]="centerDragHandleId"
     >
@@ -39,6 +40,12 @@ import {
           [class]="'block min-w-0 max-w-full truncate text-sm font-bold ' + headerInsetClasses + ' ' + statusTextClasses"
         >
           {{ statusLabel }}
+        </span>
+        } @else if (isMember) {
+        <span
+          [class]="'block min-w-0 max-w-full truncate text-sm font-bold ' + headerInsetClasses + ' ' + memberHeaderTextClasses"
+        >
+          Member
         </span>
         }
       </div>
@@ -99,12 +106,17 @@ import {
 export class PrayerCardMetaHeaderComponent {
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
   readonly actionsGapClasses = PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
+  /** Matches Planning Center member card border (`#0047AB`). */
+  readonly memberHeaderTextClasses = 'text-[#0047AB] dark:text-[#4A90E2]';
 
   @Input({ required: true }) prayerCreatedAt!: string;
   @Input() isPersonal = false;
+  @Input() isMember = false;
   @Input() category: string | null = null;
   @Input() status = 'current';
   @Input() showStatus = false;
+  /** When false, header band is two-column (actions only) — e.g. Planning Center member cards. */
+  @Input() showCenterDateTime = true;
   @Input() showDelete = false;
   @Input() showReminder = false;
   @Input() hasReminder = false;

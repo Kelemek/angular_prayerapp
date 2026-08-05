@@ -73,12 +73,14 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
       <app-prayer-card-meta-header
         [prayerCreatedAt]="prayer.created_at"
         [isPersonal]="isPersonal"
+        [isMember]="isMemberPrayer()"
         [category]="prayer.category ?? null"
         [status]="prayer.status"
         [showStatus]="showStatusPillInHeader()"
         [showDelete]="showDeleteButton()"
         [showReminder]="showReminderButton()"
         [hasReminder]="hasReminderForPrayer()"
+        [showCenterDateTime]="!isMemberPrayer()"
         [personalEditTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
         [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
         [centerDragHandle]="personalDragHandle && isPersonal"
@@ -784,7 +786,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   usesPrayerMetaHeader(): boolean {
-    return this.isPersonal || this.isCommunityPrayer();
+    return this.isPersonal || this.isCommunityPrayer() || this.isMemberPrayer();
   }
 
   showStatusPillInHeader(): boolean {

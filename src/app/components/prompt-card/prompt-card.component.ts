@@ -25,7 +25,7 @@ import { PrayerItemReminderService } from '../../services/prayer-item-reminder.s
 import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/prayer-item-reminder-modal.component';
 import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import type { PrayerItemReminder } from '../../types/prayer-item-reminder';
-import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_META_ACTIONS_GAP_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
@@ -62,7 +62,7 @@ export interface PrayerPrompt {
             {{ prompt.type }}
           </button>
         </div>
-        <div cardMetaRight class="flex items-center gap-2">
+        <div cardMetaRight [class]="'flex items-center ' + metaActionsGapClasses">
           @if (showReminderButton()) {
           <app-prayer-item-reminder-bell-button
             [hasReminder]="hasReminderForPrompt()"
@@ -234,6 +234,7 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
 
   readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+  readonly metaActionsGapClasses = PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
 
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);

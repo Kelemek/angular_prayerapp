@@ -193,7 +193,7 @@ describe('PrayerCardComponent', () => {
       expect(component.isCommunityPrayer()).toBe(false);
     });
 
-    it('usesPrayerMetaHeader includes personal and community cards', () => {
+    it('usesPrayerMetaHeader includes personal, community, and member cards', () => {
       component.isPersonal = true;
       component.prayer.id = 'personal-1';
       expect(component.usesPrayerMetaHeader()).toBe(true);
@@ -203,7 +203,7 @@ describe('PrayerCardComponent', () => {
       expect(component.usesPrayerMetaHeader()).toBe(true);
 
       component.prayer.id = 'pc-member-1';
-      expect(component.usesPrayerMetaHeader()).toBe(false);
+      expect(component.usesPrayerMetaHeader()).toBe(true);
     });
 
     it('personalDragHandle enables meta header date drag when personal', () => {
