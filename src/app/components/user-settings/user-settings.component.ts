@@ -1190,7 +1190,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                       showPrayingCount !== true
                   }"
                   title="Show Praying # button on prayer cards"
-                  class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="flex h-9 sm:h-12 flex-col items-center justify-center px-2 sm:px-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span
                     class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
@@ -1210,7 +1210,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                       showPrayingCount !== false
                   }"
                   title="Hide Praying # button on prayer cards"
-                  class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="flex h-9 sm:h-12 flex-col items-center justify-center px-2 sm:px-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span
                     class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
@@ -1221,10 +1221,10 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
               } @else {
               <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
                 <div
-                  class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+                  class="h-9 sm:h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
                 ></div>
                 <div
-                  class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+                  class="h-9 sm:h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
                 ></div>
               </div>
               }
@@ -1297,11 +1297,11 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                 (blur)="savePersonalPrayerCooldownHours()"
                 (input)="personalPrayerCooldownEdited = true"
                 (keydown.enter)="$any($event.target).blur()"
-                class="h-12 w-24 px-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="box-border h-9 sm:h-12 min-h-9 sm:min-h-12 w-24 px-3 py-0 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs sm:text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               } @else {
               <div
-                class="h-12 w-24 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+                class="h-9 sm:h-12 w-24 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
               ></div>
               }
               <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
