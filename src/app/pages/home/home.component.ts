@@ -104,6 +104,7 @@ import {
   FULL_GUIDED_TOUR_QUEUE_KEY,
   HelpDriverTourService,
   PRESENTATION_HELP_TOUR_SESSION_KEY,
+  TOUR_PRAYER_REMINDER_BELL_ID,
   PERSONAL_PRAYER_WALKTHROUGH_CATEGORY,
   PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION,
   PERSONAL_PRAYER_WALKTHROUGH_PRAYER_FOR,
@@ -1209,6 +1210,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [updatesAllowed]="updatesAllowed"
               [tourUpdateAnchors]="isFirstPrayer"
               [tourPrayForEncouragementAnchors]="isFirstPrayer"
+              [tourPrayerReminderBellAnchors]="isFirstPrayer"
               (delete)="deletePrayer($event)"
               (addUpdate)="addUpdate($event)"
               (deleteUpdate)="deleteUpdate($event)"
@@ -2311,23 +2313,51 @@ export class HomeComponent implements OnInit, OnDestroy {
     }, 280);
   }
 
-  /** **Prayer reminders** (`help_prayer_reminders`) — Settings gear, then reminders card and hour / Add reminder. */
+  /** **Prayer reminders** (`help_prayer_reminders`) — bell on a card, then Settings prayer reminders. */
   onPrayerRemindersHelpSectionUiTourFromHelp(section: HelpSection): void {
     this.showHelp = false;
     this.cdr.markForCheck();
     window.setTimeout(() => {
-      this.helpDriverTourService.startPrayerRemindersHelpSectionTour(
-        { title: section.title, description: section.description },
-        {
-          openSettings: () => {
-            this.openUserSettings();
-          },
-          closeSettings: () => {
-            this.closeUserSettings();
-          },
-          markForCheck: () => this.cdr.markForCheck(),
+      void (async () => {
+        this.setFilter("current");
+        this.cdr.markForCheck();
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
+        const session = this.userSessionService.getCurrentSession();
+        const hasEmail = !!session?.email?.trim();
+        let hasReminderBellTarget = false;
+        if (hasEmail) {
+          try {
+            const list = await firstValueFrom(this.prayers$.pipe(take(1)));
+            hasReminderBellTarget = (list?.length ?? 0) > 0;
+          } catch {
+            hasReminderBellTarget = false;
+          }
         }
-      );
+        if (
+          hasReminderBellTarget &&
+          typeof document !== "undefined" &&
+          !document.getElementById(TOUR_PRAYER_REMINDER_BELL_ID)
+        ) {
+          hasReminderBellTarget = false;
+        }
+        this.helpDriverTourService.startPrayerRemindersHelpSectionTour(
+          { title: section.title, description: section.description },
+          { hasReminderBellTarget },
+          {
+            switchToCurrent: () => {
+              this.setFilter("current");
+              this.cdr.markForCheck();
+            },
+            openSettings: () => {
+              this.openUserSettings();
+            },
+            closeSettings: () => {
+              this.closeUserSettings();
+            },
+            markForCheck: () => this.cdr.markForCheck(),
+          }
+        );
+      })();
     }, 280);
   }
 

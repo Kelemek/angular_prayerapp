@@ -80,6 +80,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         [showDelete]="showDeleteButton()"
         [showReminder]="showReminderButton()"
         [hasReminder]="hasReminderForPrayer()"
+        [reminderBellTourId]="tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
         [showCenterDateTime]="!isMemberPrayer()"
         [personalEditTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
         [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
@@ -127,6 +128,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
           @if (showReminderButton()) {
           <app-prayer-item-reminder-bell-button
             [hasReminder]="hasReminderForPrayer()"
+            [tourAnchorId]="tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
             (reminder)="openReminderModal()"
           />
           }
@@ -407,6 +409,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() tourUpdateAnchors = false;
   /** First community card on Home: stable id on **Pray For** / **Prayed For** for the Prayer Encouragement tour (step 2). */
   @Input() tourPrayForEncouragementAnchors = false;
+  /** First visible community card: stable id on the reminder bell for the Prayer reminders help tour. */
+  @Input() tourPrayerReminderBellAnchors = false;
   /** Personal card matching the hands-on help tour sample prayer — stable ids for driver.js. */
   @Input() tourPersonalWalkthroughAnchors = false;
 

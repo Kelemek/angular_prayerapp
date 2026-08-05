@@ -53,6 +53,7 @@ import {
         @if (showReminder) {
         <app-prayer-item-reminder-bell-button
           [hasReminder]="hasReminder"
+          [tourAnchorId]="reminderBellTourId"
           (reminder)="reminder.emit()"
         />
         }
@@ -120,6 +121,7 @@ export class PrayerCardMetaHeaderComponent {
   @Input() showDelete = false;
   @Input() showReminder = false;
   @Input() hasReminder = false;
+  @Input() reminderBellTourId: string | null = null;
   @Input() personalEditTourId: string | null = null;
   @Input() personalDeleteTourId: string | null = null;
   @Input() centerDragHandle = false;

@@ -45,6 +45,8 @@ export const TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID = 'tour-settings-memoriza
 export const TOUR_ADD_UPDATE_BTN_ID = 'tour-prayer-add-update';
 /** **Pray For** / **Prayed For** on the first community card (see `PrayerCardComponent.tourPrayForEncouragementAnchors`). */
 export const TOUR_PRAYER_PRAY_FOR_ID = 'tour-prayer-pray-for';
+/** Reminder bell on the first community prayer card (see `PrayerCardComponent.tourPrayerReminderBellAnchors`). */
+export const TOUR_PRAYER_REMINDER_BELL_ID = 'tour-prayer-reminder-bell';
 /** Home prayer list search field (`PrayerFiltersComponent`). */
 export const TOUR_PRAYER_SEARCH_ID = 'tour-prayer-search';
 
@@ -391,6 +393,13 @@ function getPrayerEncouragementPrayForButtonEl(): HTMLElement | null {
   return document.getElementById(TOUR_PRAYER_PRAY_FOR_ID);
 }
 
+function getPrayerReminderBellEl(): HTMLElement | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  return document.getElementById(TOUR_PRAYER_REMINDER_BELL_ID);
+}
+
 function getPrayerSearchInputEl(): HTMLElement | null {
   if (typeof document === 'undefined') {
     return null;
@@ -535,7 +544,14 @@ export interface PrintingHelpTourHooks {
 export type EmailSubscriptionHelpTourHooks = PrintingHelpTourHooks;
 
 /** Same as printing / email subscription (`help_prayer_reminders`). */
-export type PrayerRemindersHelpTourHooks = PrintingHelpTourHooks;
+export interface PrayerRemindersHelpTourHooks extends PrintingHelpTourHooks {
+  switchToCurrent: () => void;
+}
+
+export interface PrayerRemindersHelpTourOptions {
+  /** When true, a step highlights the reminder bell on the first community prayer card. */
+  hasReminderBellTarget: boolean;
+}
 
 /** Same as printing (`help_feedback`). */
 export type FeedbackHelpTourHooks = PrintingHelpTourHooks;
@@ -2118,17 +2134,18 @@ export class HelpDriverTourService {
   }
 
   /**
-   * **Prayer reminders** (`help_prayer_reminders`): Settings → **Prayer reminders** card → hour + **Add reminder**.
+   * **Prayer reminders** (`help_prayer_reminders`): **Current** → bell on a card (when available) → Settings **Prayer reminders**.
    */
   startPrayerRemindersHelpSectionTour(
     section: { title: string; description: string },
+    options: PrayerRemindersHelpTourOptions,
     hooks: PrayerRemindersHelpTourHooks
   ): void {
     if (typeof document === 'undefined') {
       return;
     }
 
-    if (!getSettingsHeaderButtonEl()) {
+    if (!getCurrentFilterEl() || !getSettingsHeaderButtonEl()) {
       return;
     }
 
@@ -2156,10 +2173,38 @@ export class HelpDriverTourService {
 
     const steps: DriveStep[] = [
       {
-        element: () => gear(),
+        element: () => getCurrentFilterEl()!,
         popover: {
           title: title0,
-          description: `${desc0}<br><br><strong>Prayer reminders</strong> live in <strong>Settings</strong>. Tap <strong>Next</strong> to open them.`,
+          description: `${desc0}<br><br>There are two kinds of reminders: the <strong>bell</strong> on a prayer card (one prayer at a time) and <strong>general nudges</strong> in Settings. Tap <strong>Next</strong> to open <strong>Current</strong> prayers.`,
+          side: 'bottom',
+          align: 'start',
+          nextBtnText: 'Show current &rarr;',
+          onNextClick: this.advanceAfterOrKill(hooks.switchToCurrent),
+        },
+      },
+    ];
+
+    if (options.hasReminderBellTarget && getPrayerReminderBellEl()) {
+      steps.push({
+        element: () => getPrayerReminderBellEl()!,
+        popover: {
+          title: 'Per-prayer reminder (bell)',
+          description:
+            'Tap the <strong>bell</strong> on any community, personal, member, or prompt card to set a <strong>one-time</strong>, <strong>daily</strong>, or <strong>weekly</strong> reminder for that specific prayer. Times use 15-minute steps in your device time zone. A filled bell means you already have a reminder scheduled.',
+          side: 'left',
+          align: 'start',
+        },
+      });
+    }
+
+    steps.push(
+      {
+        element: () => gear(),
+        popover: {
+          title: 'General prayer nudges',
+          description:
+            '<strong>Settings → Prayer reminders</strong> adds optional nudges at times you choose—not tied to one card. Tap <strong>Next</strong> to open Settings.',
           side: 'bottom',
           align: 'center',
           onNextClick: advance(() => hooks.openSettings(), 420),
@@ -2168,9 +2213,9 @@ export class HelpDriverTourService {
       {
         element: () => remindersCard(),
         popover: {
-          title: 'Prayer reminders',
+          title: 'Prayer reminders in Settings',
           description:
-            'Optional nudges at the <strong>start of clock hours</strong> you choose—just for you, separate from community prayer emails. If <strong>email subscription</strong> is on, you can get a reminder email; if <strong>push</strong> is on and this device is registered, you can get a push too. Times use your <strong>device time zone</strong>.',
+            'Optional nudges at clock times you choose in <strong>15-minute</strong> steps (:00, :15, :30, :45)—just for you, separate from community prayer emails. If <strong>email subscription</strong> is on, you can get a reminder email; if <strong>push</strong> is on and this device is registered, you can get a push too. Times use your <strong>device time zone</strong>.',
           side: 'bottom',
           align: 'start',
         },
@@ -2178,9 +2223,9 @@ export class HelpDriverTourService {
       {
         element: () => controls(),
         popover: {
-          title: 'Add a reminder',
+          title: 'Add a general reminder',
           description:
-            'Pick an <strong>hour</strong> from the dropdown, then tap <strong>Add reminder</strong>. You can add several hours. Each saved slot appears in the list above with <strong>Remove</strong> to delete it.',
+            'Pick a <strong>time</strong> from the dropdown, then tap <strong>Add reminder</strong>. You can add several slots. Each saved time appears in the list above with <strong>Remove</strong> to delete it.',
           side: 'top',
           align: 'start',
         },
@@ -2189,7 +2234,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Tips',
           description:
-            'You need a saved <strong>email</strong> on your account to add reminders. Reminders don’t replace community updates—they’re a personal rhythm to pause and pray.',
+            'Per-prayer reminders clear automatically when a prayer is deleted, archived, or answered. Push delivery needs the <strong>installed native app</strong> on your phone (setting a reminder on the web is fine). General and per-prayer reminders don’t replace community update emails—they’re a personal rhythm to pause and pray.',
           side: 'bottom',
           align: 'center',
         },
@@ -2206,8 +2251,8 @@ export class HelpDriverTourService {
             this.killActiveDriver();
           },
         },
-      },
-    ];
+      }
+    );
 
     const d = this.startTourDriver({
       showProgress: true,
@@ -2498,7 +2543,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Prayer reminders',
           description:
-            'Optional hourly nudges (device time zone). Add hours with the dropdown and <strong>Add reminder</strong>; needs a saved email. Works with email and/or push when those are on.',
+            'Optional nudges in <strong>15-minute</strong> steps (device time zone). Add times with the dropdown and <strong>Add reminder</strong>; works with email and/or push when those are on. Use the <strong>bell</strong> on a prayer card for a reminder on a specific prayer.',
           side: 'bottom',
           align: 'start',
         },

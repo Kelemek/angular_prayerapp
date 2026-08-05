@@ -208,6 +208,27 @@ describe('HelpContentService', () => {
       expect(whenCanUse?.text).not.toContain('does **not** appear on Planning Center');
     });
 
+    it('should document per-prayer bell reminders in Prayer reminders section', () => {
+      let sections: HelpSection[] = [];
+      service.getSections().subscribe((data) => {
+        sections = data;
+      });
+
+      const remindersSection = sections.find((s) => s.id === 'help_prayer_reminders');
+      expect(remindersSection).toBeDefined();
+      expect(
+        remindersSection!.content?.some((item) => item.subtitle === 'Per-prayer reminders (bell icon)')
+      ).toBe(true);
+      expect(
+        remindersSection!.content?.some((item) => item.subtitle === 'General prayer nudges (Settings)')
+      ).toBe(true);
+      const bell = remindersSection!.content?.find(
+        (item) => item.subtitle === 'Per-prayer reminders (bell icon)'
+      );
+      expect(bell?.text).toContain('prompt');
+      expect(bell?.text).toContain('one-time');
+    });
+
     it('should handle empty data from database', async () => {
       // Create new service with empty database response
       supabaseService.getClient().from().order.mockResolvedValueOnce({

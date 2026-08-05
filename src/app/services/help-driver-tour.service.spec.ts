@@ -29,6 +29,7 @@ import {
   TOUR_SETTINGS_EMAIL_SUBSCRIPTION_ID,
   TOUR_SETTINGS_PRAYER_REMINDERS_ID,
   TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID,
+  TOUR_PRAYER_REMINDER_BELL_ID,
   TOUR_SETTINGS_FEEDBACK_SECTION_ID,
   TOUR_SETTINGS_FEEDBACK_TYPE_ID,
   TOUR_SETTINGS_FEEDBACK_DETAILS_ID,
@@ -1481,19 +1482,47 @@ describe('HelpDriverTourService', () => {
 
     it('startPrayerRemindersHelpSectionTour', () => {
       mountSettingsGear(true);
+      const cur = document.createElement('div');
+      cur.id = TOUR_FILTER_CURRENT_ID;
+      document.body.appendChild(cur);
+      mountEl(TOUR_PRAYER_REMINDER_BELL_ID, 'button');
       mountEl(TOUR_SETTINGS_PRAYER_REMINDERS_ID, 'div');
       mountEl(TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID, 'div');
-      const h = settingsTourHooks();
+      const h = { ...settingsTourHooks(), switchToCurrent: vi.fn() };
       vi.useFakeTimers();
-      service.startPrayerRemindersHelpSectionTour(section, h);
+      service.startPrayerRemindersHelpSectionTour(
+        section,
+        { hasReminderBellTarget: true },
+        h
+      );
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(5);
-      resolveStepElements(config, [0, 1, 2]);
+      expect(config?.steps?.length).toBe(7);
+      resolveStepElements(config, [0, 1, 2, 3, 4]);
       fireStepNext(config, 0);
+      vi.advanceTimersByTime(200);
+      fireStepNext(config, 2);
       vi.advanceTimersByTime(420);
-      fireStepNext(config, 4);
+      fireStepNext(config, 6);
       expect(h.closeSettings).toHaveBeenCalled();
       vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it('startPrayerRemindersHelpSectionTour omits bell step when anchor is missing', () => {
+      mountSettingsGear(true);
+      const cur = document.createElement('div');
+      cur.id = TOUR_FILTER_CURRENT_ID;
+      document.body.appendChild(cur);
+      mountEl(TOUR_SETTINGS_PRAYER_REMINDERS_ID, 'div');
+      mountEl(TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID, 'div');
+      const h = { ...settingsTourHooks(), switchToCurrent: vi.fn() };
+      service.startPrayerRemindersHelpSectionTour(
+        section,
+        { hasReminderBellTarget: true },
+        h
+      );
+      const config = vi.mocked(driver).mock.calls[0][0];
+      expect(config?.steps?.length).toBe(6);
       vi.unstubAllGlobals();
     });
 

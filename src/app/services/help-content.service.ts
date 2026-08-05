@@ -637,24 +637,28 @@ export class HelpContentService {
       {
         id: 'help_prayer_reminders',
         title: 'Prayer reminders',
-        description: 'Optional nudges to pause and pray',
+        description: 'Bell on a card or general nudges in Settings',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
         content: [
           {
-            subtitle: 'What they are',
-            text: 'Prayer reminders are optional, personal prompts at clock times you choose in 15-minute steps (:00, :15, :30, :45)—a short nudge to pause and pray. They are only for you and are separate from community prayer update emails (those are set up by admins for people who submitted requests). You can also set a reminder on a specific prayer from the bell icon on its card.',
+            subtitle: 'Two ways to get reminders',
+            text: 'You can set a reminder on a specific prayer from the bell icon on its card, or add general “pause and pray” nudges in Settings. Both use 15-minute time steps (:00, :15, :30, :45) in your device time zone. They are only for you and are separate from community prayer update emails (those are set up by admins for people who submitted requests).',
           },
           {
-            subtitle: 'How to set them up',
-            text: 'Open Settings (gear icon). In the Prayer reminders section, pick a time from the dropdown and tap Add reminder. You can add more than one time. Remove any slot you no longer need. Reminder times use your device time zone.',
+            subtitle: 'Per-prayer reminders (bell icon)',
+            text: 'On community, personal, Planning Center member, and prayer prompt cards, tap the bell to schedule a one-time, daily, or weekly reminder for that prayer. A filled bell means you already have at least one reminder. Reminders are removed automatically when the prayer is deleted, archived, or marked answered. Email and push links open the app on that prayer.',
+          },
+          {
+            subtitle: 'General prayer nudges (Settings)',
+            text: 'Open Settings (gear icon). In the Prayer reminders section, pick a time from the dropdown and tap Add reminder. You can add more than one time. Remove any slot you no longer need. These nudges are not tied to a single card—they are a personal rhythm to pause and pray.',
           },
           {
             subtitle: 'Email and push',
-            text: 'If Email subscription is on in Settings, you can receive a reminder email at each chosen time. If push notifications are enabled and this device is registered for push, you can also get a push at those times. If both are on, you may receive both.',
+            text: 'If Email subscription is on in Settings, you can receive a reminder email at each chosen time. If push notifications are enabled and this device is registered for push (installed native app), you can also get a push—you do not need to set the reminder on the phone; delivery goes to your registered device. If both are on, you may receive both.',
           },
           {
             subtitle: 'Tips',
-            text: 'Start with one or two times that fit your routine. You can change or clear reminders anytime in Settings without affecting the rest of your account.',
+            text: 'Start with one or two times that fit your routine, or a single per-prayer reminder for something you want to keep lifting up. You can change or clear reminders anytime without affecting the rest of your account.',
           },
         ],
         order: 11,
@@ -772,12 +776,12 @@ export class HelpContentService {
             text: 'Choose **Standard** or **Strict** for scripture memory sessions. **Standard** auto-reveals blanks after three wrong attempts in Type, Initials, and Word modes. **Strict** disables auto-reveal, shows **Errors: N** during practice when the round has mistakes, and in **Reorder** counts a swap as wrong when no part lands in its correct slot. Strict mode hides **Next round** until the current round finishes with zero errors (use **Repeat this round** until then). Saved to your account and synced across devices.',
           },
           {
-            subtitle: 'Memorization reminders (hourly nudges)',
-            text: 'Below **Memorization practice**, choose one or more clock hours when you would like a short reminder to practice memorization. Times follow your device time zone. If email subscription is on, you will get an email at those hours; if push notifications are on and this device is registered for push, you will also get a push reminder—if both are on, you may receive both. These are separate from **Prayer reminders**.',
+            subtitle: 'Memorization reminders (Settings nudges)',
+            text: 'Below **Memorization practice**, choose one or more times in **15-minute** steps when you would like a short reminder to practice memorization. Times follow your device time zone. If email subscription is on, you will get an email at those times; if push notifications are on and this device is registered for push, you will also get a push reminder—if both are on, you may receive both. These are separate from **Prayer reminders**.',
           },
           {
-            subtitle: 'Prayer reminders (hourly nudges)',
-            text: 'In Settings you can choose one or more clock hours (at the top of each hour) when you would like a short reminder to pray. Times follow your device time zone. If email subscription is on, you will get an email at those hours; if push notifications are on and this device is registered for push, you will also get a push reminder—if both are on, you may receive both. Pick an hour with the dropdown, tap Add reminder, or Remove a slot you no longer want. These are your personal reminders to pause and pray; they are separate from community prayer update reminders (which admins configure for requesters).',
+            subtitle: 'Prayer reminders (Settings nudges and bell)',
+            text: 'In Settings you can choose one or more times in **15-minute** steps for a short reminder to pray. You can also tap the **bell** on any community, personal, member, or prompt card to set a once, daily, or weekly reminder for that specific prayer. Times follow your device time zone. If email subscription is on, you will get an email at those times; if push notifications are on and your phone has the installed app registered for push, you will also get a push—if both are on, you may receive both. Pick a time with the dropdown, tap Add reminder, or Remove a slot you no longer want. These are your personal reminders to pause and pray; they are separate from community prayer update reminders (which admins configure for requesters).',
           },
           {
             subtitle: 'Feedback Form',

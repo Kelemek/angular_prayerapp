@@ -17,6 +17,7 @@ import {
     <button
       type="button"
       (click)="reminder.emit()"
+      [attr.id]="tourAnchorId"
       [attr.aria-label]="ariaLabel"
       [attr.title]="title"
       class="inline-flex items-center justify-center text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1.5 sm:p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
@@ -55,6 +56,8 @@ export class PrayerItemReminderBellButtonComponent {
   @Input() hasReminder = false;
   /** `prayer` uses prayer-card copy; `prompt` uses shorter prompt-card copy. */
   @Input() itemLabel: 'prayer' | 'prompt' = 'prayer';
+  /** Optional stable id for driver.js help tours. */
+  @Input() tourAnchorId: string | null = null;
 
   @Output() reminder = new EventEmitter<void>();
 
