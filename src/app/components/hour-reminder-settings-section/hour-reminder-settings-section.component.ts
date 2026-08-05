@@ -174,52 +174,44 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
           [title]="addButtonTitle"
           class="w-full min-w-0 flex flex-row items-center justify-center gap-2 p-2 sm:p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          @if (!saving) {
+          @if (saving) {
             <svg
-              width="18"
-              height="18"
-              class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
-              viewBox="0 0 24 24"
+              class="animate-spin h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400 shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
               fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          } @else {
-            <svg
-              width="18"
-              height="18"
-              class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 animate-spin shrink-0"
               viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="transform-origin: center"
               aria-hidden="true"
             >
               <circle
+                class="opacity-25"
                 cx="12"
                 cy="12"
                 r="10"
                 stroke="currentColor"
                 stroke-width="4"
-                fill="none"
-                opacity="0.25"
               ></circle>
               <path
+                class="opacity-75"
                 fill="currentColor"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                opacity="0.75"
               ></path>
             </svg>
           }
+          <svg
+            width="18"
+            height="18"
+            class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
           <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100">{{
             saving ? 'Saving…' : 'Add reminder'
           }}</span>
