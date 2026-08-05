@@ -10,6 +10,7 @@
  * when `prayers.is_anonymous`, else `requester`; personal spotlight: **Me**.
  * Community spotlight: **all** approved + **current** `prayers` (app-wide; no date window).
  * Personal spotlight: **all** non-**Answered** `personal_prayers` for the recipient’s `user_email`. Previous pick avoided when possible.
+ * Spotlight template: `{{appLink}}` = `APP_URL/?prayerId=` for the featured prayer when one is picked; push includes `prayerId` for tap-to-open.
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
  * If APP_URL is host-only (no https://), it is prefixed with https:// so mail clients do not rewrite links to x-webdoc://…
  * Auth matches send-prayer-reminders: Supabase Edge JWT verification only.
@@ -131,6 +132,29 @@ function truncateText(s: string, maxLen: number): string {
   return `${s.slice(0, maxLen - 1)}…`;
 }
 
+/** Duplicated from src/app/lib/hourly-prayer-spotlight-deep-link.ts */
+function spotlightKeyToPrayerId(key: string | null | undefined): string | null {
+  if (!key) return null;
+  const colon = key.indexOf(':');
+  if (colon < 1) return null;
+  const kind = key.slice(0, colon);
+  const id = key.slice(colon + 1).trim();
+  if (!id) return null;
+  if (kind === 'c' || kind === 'p') return id;
+  return null;
+}
+
+/** Duplicated from src/app/lib/hourly-prayer-spotlight-deep-link.ts */
+function buildPrayerSpotlightAppLink(
+  appUrl: string,
+  spotlightKey: string | null | undefined
+): string {
+  const base = appUrl.replace(/\/$/, '');
+  const prayerId = spotlightKeyToPrayerId(spotlightKey);
+  if (!prayerId) return `${base}/`;
+  return `${base}/?prayerId=${encodeURIComponent(prayerId)}`;
+}
+
 function pickSpotlightCandidate(
   candidates: SpotlightCandidate[],
   excludeKey: string | null
@@ -171,7 +195,6 @@ Deno.serve(async (req: Request) => {
   });
 
   const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
-  const appLink = `${appUrl}/`;
   const pushTitle = 'Prayer reminder';
 
   try {
@@ -324,6 +347,15 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const spotlightPrayerId =
+        useSpotlightVariables && spotlight?.key
+          ? spotlightKeyToPrayerId(spotlight.key)
+          : null;
+      const appLink = buildPrayerSpotlightAppLink(
+        appUrl,
+        useSpotlightVariables && spotlight?.key ? spotlight.key : null
+      );
+
       let updatePlain = '';
       if (spotlight && useSpotlightVariables) {
         updatePlain = truncateText(await fetchLatestUpdatePlain(supabase, spotlight.key), 2000);
@@ -409,15 +441,19 @@ Deno.serve(async (req: Request) => {
 
       let pushDelivered = false;
       if (wantPush) {
+        const pushData: Record<string, string> = {
+          type: 'prayer_reminder',
+          url: appLink,
+        };
+        if (spotlightPrayerId) {
+          pushData.prayerId = spotlightPrayerId;
+        }
         const { error: pushErr } = await supabase.functions.invoke('send-push-notification', {
           body: {
             emails: [recipient],
             title: pushTitle,
             body: pushBody,
-            data: {
-              type: 'prayer_reminder',
-              url: appLink,
-            },
+            data: pushData,
           },
         });
         if (pushErr) {

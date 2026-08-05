@@ -604,6 +604,39 @@ export class AppComponent implements OnInit {
             }
           });
         });
+
+      // Hourly spotlight prayer reminder — deep link when push includes prayerId
+      capacitorService.notificationEvents$
+        .pipe(
+          filter((event) => event.source === "tap"),
+          filter((event) => event.type === "prayer_reminder")
+        )
+        .subscribe((event) => {
+          const prayerId =
+            typeof event.data?.["prayerId"] === "string"
+              ? event.data["prayerId"]
+              : null;
+          if (!prayerId) {
+            return;
+          }
+          this.ngZone.run(() => {
+            void this.router.navigate(["/"], {
+              queryParams: { prayerId },
+            });
+            prayerService.loadPrayers(false).catch((err) => {
+              console.error(
+                "[AppComponent] Failed to refresh prayers after hourly spotlight tap:",
+                err
+              );
+            });
+            prayerService.loadPersonalPrayers(false).catch((err) => {
+              console.error(
+                "[AppComponent] Failed to refresh personal prayers after hourly spotlight tap:",
+                err
+              );
+            });
+          });
+        });
     } catch (error) {
       // Likely running on web where Capacitor/PrayerService lazy imports may not be needed
       console.debug(

@@ -1509,5 +1509,44 @@ describe('AppComponent', () => {
         queryParams: { filter: 'memorize' },
       });
     });
+
+    it('navigates to prayer when hourly spotlight push is tapped with prayerId', async () => {
+      const notificationEvents$ = new Subject<{
+        source: string;
+        type: string;
+        data?: Record<string, string>;
+      }>();
+      const loadPrayers = vi.fn().mockResolvedValue(undefined);
+      const loadPersonalPrayers = vi.fn().mockResolvedValue(undefined);
+
+      mockInjector.get = vi.fn((token: { name?: string }) => {
+        const name = token?.name ?? '';
+        if (name.includes('CapacitorService')) {
+          return { notificationEvents$: notificationEvents$.asObservable() };
+        }
+        if (name.includes('PrayerService')) {
+          return { loadPrayers, loadPersonalPrayers };
+        }
+        if (name.includes('AdminDataService')) {
+          return { fetchAdminData: vi.fn() };
+        }
+        return {};
+      });
+
+      await (component as any).setupPushRefreshListener();
+
+      notificationEvents$.next({
+        source: 'tap',
+        type: 'prayer_reminder',
+        data: { prayerId: 'p-spotlight-1', url: 'https://app.example/?prayerId=p-spotlight-1' },
+      });
+      await Promise.resolve();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
+        queryParams: { prayerId: 'p-spotlight-1' },
+      });
+      expect(loadPrayers).toHaveBeenCalledWith(false);
+      expect(loadPersonalPrayers).toHaveBeenCalledWith(false);
+    });
   });
 });

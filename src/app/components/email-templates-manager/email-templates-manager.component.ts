@@ -418,9 +418,11 @@ interface EmailTemplate {
                         <code class="text-[10px]">prayer_answered</code>) use
                         <code class="text-[10px]">?filter=current</code> or
                         <code class="text-[10px]">?filter=answered</code> so the
-                        home list opens on the right tab. Prayer reminders +
-                        hourly user reminders use the app root or configured
-                        URL.
+                        home list opens on the right tab. Per-prayer item
+                        reminders use <code class="text-[10px]">?prayerId=</code>.
+                        Hourly spotlight template <code class="text-[10px]">{{'{{appLink}}'}}</code>
+                        opens the featured prayer the same way when a pick exists;
+                        simple hourly nudge uses the app root only.
                       </li>
                       <li>
                         • {{'{{spotlightPrayerKind}}'}},
