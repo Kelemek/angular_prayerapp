@@ -37,7 +37,7 @@ describe('UserHourReminderService', () => {
   beforeEach(() => {
     selectOrderMock = vi.fn(() =>
       Promise.resolve({
-        data: [{ id: '1', iana_timezone: 'UTC', local_hour: 9 }],
+        data: [{ id: '1', iana_timezone: 'UTC', local_hour: 9, local_minute: 0 }],
         error: null,
       })
     );
@@ -46,7 +46,9 @@ describe('UserHourReminderService', () => {
         from: vi.fn(() => ({
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: selectOrderMock,
+              order: vi.fn(() => ({
+                order: selectOrderMock,
+              })),
             })),
           })),
           insert: vi.fn(() => Promise.resolve({ error: null })),
@@ -190,13 +192,15 @@ describe('UserHourReminderService', () => {
     void service.ensureLoaded('memorization', false);
 
     selectOrderMock.mockResolvedValueOnce({
-      data: [{ id: 'new', iana_timezone: 'UTC', local_hour: 9 }],
+      data: [{ id: 'new', iana_timezone: 'UTC', local_hour: 9, local_minute: 0 }],
       error: null,
     });
     await service.addSlot('memorization', 'user@example.com', 'UTC', 9);
     expect(mockUserSession.updateUserSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        memorizationHourReminders: [{ id: 'new', iana_timezone: 'UTC', local_hour: 9 }],
+        memorizationHourReminders: [
+          { id: 'new', iana_timezone: 'UTC', local_hour: 9, local_minute: 0 },
+        ],
       })
     );
     mockUserSession.updateUserSession.mockClear();

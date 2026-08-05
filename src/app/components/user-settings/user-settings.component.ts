@@ -1629,14 +1629,14 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <app-hour-reminder-settings-section
             kind="memorization"
             title="Memorization reminders"
-            description="Choose times to get a short reminder to practice memorization. We email you when email notifications are on, and send a push when push is on and this device is registered—if both are on, you get both. Times use your device time zone (top of each hour)."
+            description="Pick times (15-minute steps) for a short memorization nudge. Delivers by email and/or push when those are on."
             [email]="email"
             [isOpen]="isOpen"
             tourSectionId="tour-settings-memorization-reminders"
             tourControlsId="tour-settings-memorization-reminder-controls"
             hourSelectId="memorization-reminder-hour-select"
-            hourSelectLabel="Memorization reminder hour"
-            addButtonTitle="Add a memorization reminder for the selected hour"
+            hourSelectLabel="Memorization reminder time"
+            addButtonTitle="Add a memorization reminder for the selected time"
           />
 
                     <!-- Error Message -->
@@ -1673,14 +1673,14 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <app-hour-reminder-settings-section
             kind="prayer"
             title="Prayer reminders"
-            description="Choose times to get a short reminder to pray. We email you when email notifications are on, and send a push when push is on and this device is registered—if both are on, you get both. Times use your device time zone (top of each hour)."
+            description="Pick times (15-minute steps) for a short prayer nudge. Delivers by email and/or push when those are on. Use the bell on a prayer card for a reminder on a specific prayer."
             [email]="email"
             [isOpen]="isOpen"
             tourSectionId="tour-settings-prayer-reminders"
             tourControlsId="tour-settings-prayer-reminder-controls"
             hourSelectId="reminder-hour-select"
-            hourSelectLabel="Reminder hour"
-            addButtonTitle="Add a prayer reminder for the selected hour"
+            hourSelectLabel="Reminder time"
+            addButtonTitle="Add a prayer reminder for the selected time"
           />
 
                     <!-- Feedback (stable tour anchor; form when GitHub feedback is enabled) -->

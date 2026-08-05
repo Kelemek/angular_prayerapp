@@ -11,10 +11,13 @@ import { UserHourReminderService } from '../../services/user-hour-reminder.servi
 import { UserSessionService } from '../../services/user-session.service';
 import type { UserHourReminderKind, UserHourReminderSlot } from '../../types/user-hour-reminder';
 import {
-  buildReminderHourOptions,
+  buildReminderTimeOptions,
   deviceIanaTimezone,
-  formatHour12,
+  formatTime12,
   formatHourReminderSlotLabel,
+  nextReminderQuarterSlot,
+  parseReminderTimeOptionValue,
+  reminderTimeOptionValue,
 } from '../../lib/hour-reminders/hour-reminder-format';
 
 const LOAD_ERROR: Record<UserHourReminderKind, string> = {
@@ -68,7 +71,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
         </div>
       } @else if (slots.length === 0) {
         <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-          No reminder hours saved yet.
+          No reminder times saved yet.
         </p>
       } @else {
         <ul class="flex flex-col gap-1.5 sm:gap-2" role="list">
@@ -99,25 +102,25 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
           <div
             [ngClass]="{
               'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
-                showHourDropdown,
+                showTimeDropdown,
               'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
-                !showHourDropdown
+                !showTimeDropdown
             }"
             class="flex w-full min-w-0 rounded-lg border-2 transition-all overflow-hidden"
           >
             <button
               type="button"
               [id]="hourSelectId"
-              (click)="showHourDropdown = !showHourDropdown"
+              (click)="showTimeDropdown = !showTimeDropdown"
               [disabled]="saving"
-              [attr.aria-expanded]="showHourDropdown"
+              [attr.aria-expanded]="showTimeDropdown"
               aria-haspopup="listbox"
               [attr.aria-label]="hourSelectLabel"
               [title]="hourSelectLabel"
               class="w-full flex items-center justify-between gap-2 p-2 sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100">{{
-                formatHour12(selectedHour)
+                formatTime12(selectedHour, selectedMinute)
               }}</span>
               <svg
                 width="18"
@@ -129,7 +132,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 class="text-gray-600 dark:text-gray-400 transition-transform shrink-0"
-                [class.rotate-180]="showHourDropdown"
+                [class.rotate-180]="showTimeDropdown"
                 aria-hidden="true"
               >
                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -137,25 +140,25 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
             </button>
           </div>
 
-          @if (showHourDropdown) {
+          @if (showTimeDropdown) {
             <div>
-              <div class="fixed inset-0 z-10" (click)="showHourDropdown = false"></div>
+              <div class="fixed inset-0 z-10" (click)="showTimeDropdown = false"></div>
               <div
                 role="listbox"
                 [attr.aria-label]="hourSelectLabel"
                 class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 max-h-60 overflow-y-auto"
               >
-                @for (opt of hourOptions; track opt.value) {
+                @for (opt of timeOptions; track opt.value) {
                   <button
                     type="button"
                     role="option"
-                    [attr.aria-selected]="selectedHour === opt.value"
-                    (click)="setSelectedHour(opt.value)"
+                    [attr.aria-selected]="selectedTimeValue === opt.value"
+                    (click)="setSelectedTime(opt.value)"
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer"
-                    [title]="'Set reminder hour to ' + opt.label"
+                    [title]="'Set reminder time to ' + opt.label"
                   >
                     <span>{{ opt.label }}</span>
-                    @if (selectedHour === opt.value) {
+                    @if (selectedTimeValue === opt.value) {
                       <span class="text-blue-600 dark:text-blue-400">✓</span>
                     }
                   </button>
@@ -252,11 +255,11 @@ export class HourReminderSettingsSectionComponent implements OnChanges {
   @Input() tourSectionId = '';
   @Input() tourControlsId = '';
   @Input() hourSelectId = '';
-  @Input() hourSelectLabel = 'Reminder hour';
-  @Input() addButtonTitle = 'Add a reminder for the selected hour';
+  @Input() hourSelectLabel = 'Reminder time';
+  @Input() addButtonTitle = 'Add a reminder for the selected time';
 
-  readonly hourOptions = buildReminderHourOptions();
-  readonly formatHour12 = formatHour12;
+  readonly timeOptions = buildReminderTimeOptions();
+  readonly formatTime12 = formatTime12;
 
   slots: UserHourReminderSlot[] = [];
   loading = false;
@@ -264,13 +267,22 @@ export class HourReminderSettingsSectionComponent implements OnChanges {
   error: string | null = null;
   success: string | null = null;
   selectedHour = 9;
-  showHourDropdown = false;
+  selectedMinute = 0;
+  showTimeDropdown = false;
+
+  get selectedTimeValue(): string {
+    return reminderTimeOptionValue(this.selectedHour, this.selectedMinute);
+  }
 
   constructor(
     private reminders: UserHourReminderService,
     private userSession: UserSessionService,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    const next = nextReminderQuarterSlot();
+    this.selectedHour = next.hour;
+    this.selectedMinute = next.minute;
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue === true || changes['email']) {
@@ -284,9 +296,12 @@ export class HourReminderSettingsSectionComponent implements OnChanges {
     return formatHourReminderSlotLabel(slot);
   }
 
-  setSelectedHour(hour: number): void {
-    this.selectedHour = hour;
-    this.showHourDropdown = false;
+  setSelectedTime(value: string): void {
+    const parsed = parseReminderTimeOptionValue(value);
+    if (!parsed) return;
+    this.selectedHour = parsed.hour;
+    this.selectedMinute = parsed.minute;
+    this.showTimeDropdown = false;
     this.cdr.markForCheck();
   }
 
@@ -360,7 +375,8 @@ export class HourReminderSettingsSectionComponent implements OnChanges {
         this.kind,
         this.email.trim(),
         deviceIanaTimezone(),
-        this.selectedHour
+        this.selectedHour,
+        this.selectedMinute
       );
       this.slots = [...loaded];
       this.success = '✅ Reminder saved.';
@@ -374,7 +390,7 @@ export class HourReminderSettingsSectionComponent implements OnChanges {
           ? String((err as { code: string }).code)
           : '';
       if (code === '23505') {
-        this.error = 'You already have a reminder for that hour and time zone.';
+        this.error = 'You already have a reminder for that time and time zone.';
       } else {
         this.error =
           err && typeof err === 'object' && 'message' in err

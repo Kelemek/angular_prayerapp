@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Optional } from '@angular/core';
 import { BehaviorSubject, Observable, fromEvent, distinctUntilChanged, first } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
@@ -7,6 +7,7 @@ import { VerificationService } from './verification.service';
 import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
+import { PrayerItemReminderService } from './prayer-item-reminder.service';
 import { resolvePrayerUpdateContent } from '../lib/prayer-update-content';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -87,6 +88,12 @@ export class PrayerService {
   /** Avoid multiple "Failed to load prayers" toasts when several loads fail at once (e.g. after long background) */
   private lastLoadErrorToastTime = 0;
   private static readonly LOAD_ERROR_TOAST_COOLDOWN_MS = 10_000;
+  /** True while a community-prayer DB fetch is in flight (cache may already be shown). */
+  private communityPrayersFetchInFlight = false;
+  /** True after community prayers have been loaded from the database at least once. */
+  private communityPrayersDbFetchComplete = false;
+  /** True after personal prayers have finished a load attempt (DB or cache). */
+  private personalPrayersDbFetchComplete = false;
 
   public allPrayers$ = this.allPrayersSubject.asObservable();
   public prayers$ = this.prayersSubject.asObservable();
@@ -95,6 +102,54 @@ export class PrayerService {
   public loading$ = this.loadingSubject.asObservable();
   public error$ = this.errorSubject.asObservable();
 
+  getAllCommunityPrayersSnapshot(): PrayerRequest[] {
+    return this.allPrayersSubject.value;
+  }
+
+  getPersonalPrayersSnapshot(): PrayerRequest[] {
+    return this.allPersonalPrayersSubject.value;
+  }
+
+  /** True when initial community + personal prayer loads have finished (may still be empty). */
+  arePrayerCatalogsReady(): boolean {
+    return (
+      !this.loadingSubject.value &&
+      !this.loadingPersonalPrayersSubject.value &&
+      !this.communityPrayersFetchInFlight &&
+      this.communityPrayersDbFetchComplete &&
+      this.personalPrayersDbFetchComplete
+    );
+  }
+
+  private dropRemindersForAnsweredPersonalPrayers(prayers: PrayerRequest[]): void {
+    for (const prayer of prayers) {
+      if (prayer.category === 'Answered') {
+        this.prayerItemReminderService?.dropRemindersForPrayer(prayer.id, 'personal');
+      }
+    }
+  }
+
+  /** True when a personal_prayers UPDATE only reordered a row (drag-and-drop). */
+  private isPersonalPrayerDisplayOrderOnlyChange(
+    oldRow: Record<string, unknown> | undefined,
+    newRow: Record<string, unknown> | undefined
+  ): boolean {
+    if (!oldRow || !newRow || oldRow['display_order'] === newRow['display_order']) {
+      return false;
+    }
+    const ignoreKeys = new Set(['display_order', 'updated_at']);
+    const keys = new Set([...Object.keys(oldRow), ...Object.keys(newRow)]);
+    for (const key of keys) {
+      if (ignoreKeys.has(key)) {
+        continue;
+      }
+      if (oldRow[key] !== newRow[key]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
@@ -102,7 +157,8 @@ export class PrayerService {
     private verificationService: VerificationService,
     private cache: CacheService,
     private badgeService: BadgeService,
-    private userSessionService: UserSessionService
+    private userSessionService: UserSessionService,
+    @Optional() private prayerItemReminderService?: PrayerItemReminderService
   ) {
     this.initializePrayers();
   }
@@ -120,6 +176,7 @@ export class PrayerService {
       )
       .subscribe((session) => {
         if (session?.email) {
+          this.personalPrayersDbFetchComplete = false;
           // Automatically load personal prayers when user logs in
           this.loadPersonalPrayers().catch(err => 
             console.error('[PrayerService] Error loading personal prayers on session change:', err)
@@ -127,6 +184,7 @@ export class PrayerService {
         } else {
           // Clear personal prayers when user logs out
           this.allPersonalPrayersSubject.next([]);
+          this.personalPrayersDbFetchComplete = true;
           this.cache.invalidate('personalPrayers');
         }
       });
@@ -144,23 +202,29 @@ export class PrayerService {
    * - Fallback to cached data on network failure
    */
   async loadPrayers(silentRefresh = false): Promise<void> {
+    const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
+    const skipDb = Boolean(silentRefresh && cachedPrayers && cachedPrayers.length > 0);
+
     try {
       console.log('[PrayerService] Loading prayers...');
-      // ✅ TIER 1: Check cache first
-      const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
+      if (!skipDb) {
+        this.communityPrayersFetchInFlight = true;
+      }
+
       if (cachedPrayers && cachedPrayers.length > 0) {
         console.log(`[PrayerService] Using cached prayers (${cachedPrayers.length} items)`);
         this.allPrayersSubject.next(cachedPrayers);
         this.applyFilters(this.currentFilters);
-        
-        // ✅ TIER 1: If silent refresh and cache exists, skip DB query entirely
-        // This is the biggest egress saver - window focus, visibility changes won't hit DB
-        if (silentRefresh) {
+
+        if (skipDb) {
           console.log('[PrayerService] Cache hit for silent refresh - skipping database query');
+          if (!this.communityPrayersFetchInFlight) {
+            this.communityPrayersDbFetchComplete = true;
+          }
           return;
         }
       }
-      
+
       // Only show loading if we need to fetch from DB and it's not a silent refresh
       if (!silentRefresh && !cachedPrayers) {
         this.loadingSubject.next(true);
@@ -234,6 +298,7 @@ export class PrayerService {
       
       // Refresh badge counts to ensure badges show up for new updates
       this.badgeService.refreshBadgeCounts();
+      this.communityPrayersDbFetchComplete = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load prayers';
       console.error('[PrayerService] Failed to load prayers:', err);
@@ -254,7 +319,11 @@ export class PrayerService {
           this.toast.error('Failed to load prayers');
         }
       }
+      this.communityPrayersDbFetchComplete = true;
     } finally {
+      if (!skipDb) {
+        this.communityPrayersFetchInFlight = false;
+      }
       this.loadingSubject.next(false);
     }
   }
@@ -273,7 +342,7 @@ export class PrayerService {
       const userEmail = await this.getUserEmail();
       if (!userEmail) {
         console.warn('[PrayerService] User email not available for personal prayers');
-        this.loadingPersonalPrayersSubject.next(false);
+        this.personalPrayersDbFetchComplete = true;
         return;
       }
 
@@ -283,6 +352,7 @@ export class PrayerService {
         console.log(`[PrayerService] Using cached personal prayers (${cachedPersonalPrayers.length} items)`);
         const normalized = this.normalizePersonalPrayerCache(cachedPersonalPrayers);
         this.allPersonalPrayersSubject.next(normalized);
+        this.dropRemindersForAnsweredPersonalPrayers(normalized);
         
         // ✅ TIER 1: Skip DB for silent refresh - personal prayers only change when user adds them
         if (silentRefresh) {
@@ -356,8 +426,8 @@ export class PrayerService {
       // Don't re-sort by activity as it would override user's manual ordering
       console.log(`[PrayerService] Loaded ${personalPrayers.length} personal prayers from database`);
       this.allPersonalPrayersSubject.next(personalPrayers);
+      this.dropRemindersForAnsweredPersonalPrayers(personalPrayers);
       this.cache.set('personalPrayers', personalPrayers);
-      this.loadingPersonalPrayersSubject.next(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load personal prayers';
       console.error('[PrayerService] Failed to load personal prayers:', err);
@@ -374,13 +444,16 @@ export class PrayerService {
           console.log(`[PrayerService] Showing ${cachedPersonalPrayers.length} cached personal prayers`);
           const normalized = this.normalizePersonalPrayerCache(cachedPersonalPrayers);
           this.allPersonalPrayersSubject.next(normalized);
+          this.dropRemindersForAnsweredPersonalPrayers(normalized);
         } else {
           console.warn('[PrayerService] Cached personal prayers do not match current user - discarding cache');
           this.cache.invalidate('personalPrayers');
           this.allPersonalPrayersSubject.next([]);
         }
       }
+    } finally {
       this.loadingPersonalPrayersSubject.next(false);
+      this.personalPrayersDbFetchComplete = true;
     }
   }
   async getPrayersByMonth(year: number, month: number): Promise<PrayerRequest[]> {
@@ -681,6 +754,10 @@ export class PrayerService {
         p.id === id ? { ...p, status, date_answered: status === 'answered' ? new Date().toISOString() : null } : p
       );
       this.prayersSubject.next(updatedPrayers);
+
+      if (status === 'archived' || status === 'answered') {
+        this.prayerItemReminderService?.dropRemindersForPrayer(id, 'community');
+      }
 
       this.toast.success(`Prayer marked as ${status}`);
       return true;
@@ -1075,6 +1152,7 @@ export class PrayerService {
       this.cache.set('prayers', filteredAllPrayers);
       this.applyFilters(this.currentFilters);
       this.badgeService.refreshBadgeCounts();
+      this.prayerItemReminderService?.dropRemindersForPrayer(id, 'community');
 
       this.toast.success('Prayer deleted');
       return true;
@@ -1159,6 +1237,23 @@ export class PrayerService {
           },
           (payload) => {
             console.log('[PrayerService] Prayer changed:', payload);
+            const row = (
+              payload.eventType === 'DELETE' ? payload.old : payload.new
+            ) as { id?: string; status?: string } | undefined;
+            const prayerId = row?.id;
+            if (prayerId) {
+              const status = (payload.new as { status?: string } | undefined)?.status;
+              if (
+                payload.eventType === 'DELETE' ||
+                status === 'archived' ||
+                status === 'answered'
+              ) {
+                this.prayerItemReminderService?.dropRemindersForPrayer(
+                  prayerId,
+                  'community'
+                );
+              }
+            }
             this.loadPrayers(true).catch(err => {
               console.error('[PrayerService] Error reloading after prayer change:', err);
             });
@@ -1175,6 +1270,41 @@ export class PrayerService {
             console.log('[PrayerService] Prayer update changed:', payload);
             this.loadPrayers(true).catch(err => {
               console.error('[PrayerService] Error reloading after update change:', err);
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'personal_prayers'
+          },
+          (payload) => {
+            const row = (
+              payload.eventType === 'DELETE' ? payload.old : payload.new
+            ) as { id?: string; category?: string } | undefined;
+            const prayerId = row?.id;
+            if (prayerId) {
+              const category = (payload.new as { category?: string } | undefined)?.category;
+              if (payload.eventType === 'DELETE' || category === 'Answered') {
+                this.prayerItemReminderService?.dropRemindersForPrayer(
+                  prayerId,
+                  'personal'
+                );
+              }
+            }
+            if (
+              payload.eventType === 'UPDATE' &&
+              this.isPersonalPrayerDisplayOrderOnlyChange(
+                payload.old as Record<string, unknown> | undefined,
+                payload.new as Record<string, unknown> | undefined
+              )
+            ) {
+              return;
+            }
+            this.loadPersonalPrayers(false).catch((err) => {
+              console.error('[PrayerService] Error reloading after personal prayer change:', err);
             });
           }
         )
@@ -1756,6 +1886,7 @@ export class PrayerService {
       const personalPrayers = this.allPersonalPrayersSubject.value;
       this.allPersonalPrayersSubject.next(personalPrayers.filter(p => p.id !== id));
       this.cache.set('personalPrayers', personalPrayers.filter(p => p.id !== id));
+      this.prayerItemReminderService?.dropRemindersForPrayer(id, 'personal');
 
       this.toast.success('Personal prayer deleted');
       return true;
@@ -1852,6 +1983,10 @@ export class PrayerService {
       );
       this.allPersonalPrayersSubject.next(updatedPrayers);
       this.cache.set('personalPrayers', updatedPrayers);
+
+      if (newCategory === 'Answered') {
+        this.prayerItemReminderService?.dropRemindersForPrayer(id, 'personal');
+      }
 
       console.log('[PrayerService] Personal prayer updated successfully');
       this.toast.success('Personal prayer updated');

@@ -21,6 +21,7 @@ export type PushNotificationEventType =
   | 'prayer_update'
   | 'reminder'
   | 'prayer_reminder'
+  | 'prayer_item_reminder'
   | 'memorization_reminder'
   | 'generic';
 

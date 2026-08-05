@@ -23,7 +23,9 @@ describe('HourReminderSettingsSectionComponent', () => {
     mockReminders = {
       ensureLoaded: vi.fn(() => Promise.resolve([])),
       addSlot: vi.fn(() =>
-        Promise.resolve([{ id: 'slot-1', local_hour: 8, iana_timezone: 'America/Chicago' }])
+        Promise.resolve([
+          { id: 'slot-1', local_hour: 8, local_minute: 0, iana_timezone: 'America/Chicago' },
+        ])
       ),
       removeSlot: vi.fn(() => Promise.resolve([])),
       sessionCacheKeys: vi.fn(() => ({
@@ -52,6 +54,7 @@ describe('HourReminderSettingsSectionComponent', () => {
     const label = component.formatSlotLabel({
       id: 's1',
       local_hour: 9,
+      local_minute: 15,
       iana_timezone: deviceIanaTimezone(),
     });
     expect(label).not.toContain('·');
@@ -59,6 +62,8 @@ describe('HourReminderSettingsSectionComponent', () => {
   });
 
   it('addSlot saves slot and shows success', async () => {
+    component.selectedHour = 9;
+    component.selectedMinute = 15;
     await component.addSlot();
     expect(component.slots).toHaveLength(1);
     expect(component.success).toContain('saved');
@@ -67,11 +72,12 @@ describe('HourReminderSettingsSectionComponent', () => {
       'prayer',
       'test@example.com',
       deviceIanaTimezone(),
-      9
+      9,
+      15
     );
   });
 
-  it('addSlot handles duplicate hour error', async () => {
+  it('addSlot handles duplicate time error', async () => {
     mockReminders.addSlot.mockRejectedValue({ code: '23505' });
     await component.addSlot();
     expect(component.error).toContain('already have a reminder');
@@ -83,7 +89,9 @@ describe('HourReminderSettingsSectionComponent', () => {
       fetchedAtKey: 'memorizationHourRemindersFetchedAt',
     });
     component.kind = 'memorization';
-    const otherSlots = [{ id: 'other', local_hour: 3, iana_timezone: 'UTC' }];
+    const otherSlots = [
+      { id: 'other', local_hour: 3, local_minute: 0, iana_timezone: 'UTC' },
+    ];
     mockUserSession.getCurrentSession.mockReturnValue({
       email: 'other@example.com',
       memorizationHourReminders: otherSlots,
@@ -99,7 +107,7 @@ describe('HourReminderSettingsSectionComponent', () => {
   });
 
   it('reload ignores ensureLoaded result when session email changed', async () => {
-    const slots = [{ id: 'cached', local_hour: 6, iana_timezone: 'UTC' }];
+    const slots = [{ id: 'cached', local_hour: 6, local_minute: 30, iana_timezone: 'UTC' }];
     mockUserSession.getCurrentSession.mockReturnValue({
       email: 'test@example.com',
       prayerHourReminders: undefined,

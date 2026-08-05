@@ -7,12 +7,15 @@ import { BadgeService } from '../../services/badge.service';
 import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { PromptService } from '../../services/prompt.service';
+import { PrayerItemReminderService } from '../../services/prayer-item-reminder.service';
 
 function createPromptCard(
   badgeService: any,
   extras?: {
     prayerEncouragementService?: Record<string, unknown>;
     promptService?: Record<string, unknown>;
+    userSessionService?: Record<string, unknown>;
+    prayerItemReminderService?: Record<string, unknown>;
   }
 ): PromptCardComponent {
   TestBed.resetTestingModule();
@@ -23,9 +26,11 @@ function createPromptCard(
       {
         provide: UserSessionService,
         useValue: {
+          userSession$: of({ email: 'me@test.com' }),
           getShowPrayForButton$: vi.fn().mockReturnValue(of(true)),
           getShowPrayingCount$: vi.fn().mockReturnValue(of(true)),
           getCurrentSession: vi.fn().mockReturnValue({ email: 'me@test.com' }),
+          ...extras?.userSessionService,
         },
       },
       {
@@ -45,6 +50,14 @@ function createPromptCard(
         useValue: {
           incrementPromptPrayedFor: vi.fn().mockResolvedValue(5),
           ...extras?.promptService,
+        },
+      },
+      {
+        provide: PrayerItemReminderService,
+        useValue: {
+          ensureLoaded: vi.fn().mockResolvedValue([]),
+          remindersForPrayer: vi.fn().mockReturnValue([]),
+          ...extras?.prayerItemReminderService,
         },
       },
     ],
@@ -1274,6 +1287,80 @@ describe('PromptCardComponent - Core Logic', () => {
     it('getTypeHeaderTextClasses uses neutral text when type filter is inactive', () => {
       component.isTypeSelected = false;
       expect(component.getTypeHeaderTextClasses()).toContain('text-gray-700');
+    });
+  });
+
+  describe('Per-prompt reminders', () => {
+    it('showReminderButton is true when session has email and prompt has id', () => {
+      const component = createPromptCard({ isPromptUnread: vi.fn(), markPromptAsRead: vi.fn(), getUpdateBadgesChanged$: vi.fn().mockReturnValue(of()), getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(true)) });
+      component.prompt = {
+        id: 'prompt-1',
+        title: 'T',
+        type: 'Guidance',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+      };
+      expect(component.showReminderButton()).toBe(true);
+    });
+
+    it('showReminderButton is false without session email', () => {
+      const component = createPromptCard(
+        { isPromptUnread: vi.fn(), markPromptAsRead: vi.fn(), getUpdateBadgesChanged$: vi.fn().mockReturnValue(of()), getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(true)) },
+        {
+          userSessionService: {
+            getShowPrayForButton$: vi.fn().mockReturnValue(of(true)),
+            getShowPrayingCount$: vi.fn().mockReturnValue(of(true)),
+            getCurrentSession: vi.fn().mockReturnValue(null),
+          },
+        }
+      );
+      component.prompt = {
+        id: 'prompt-1',
+        title: 'T',
+        type: 'Guidance',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+      };
+      expect(component.showReminderButton()).toBe(false);
+    });
+
+    it('hasReminderForPrompt reflects remindersForPrayer result', () => {
+      const reminder = {
+        id: 'r1',
+        user_email: 'me@test.com',
+        prayer_kind: 'prompt' as const,
+        prayer_id: 'prompt-1',
+        title_snapshot: 'T',
+        prayer_for_snapshot: 'Guidance',
+        mode: 'daily' as const,
+        iana_timezone: 'America/Chicago',
+        local_hour: 9,
+        local_minute: 0,
+        local_date: null,
+        local_weekday: null,
+        last_sent_at: null,
+        created_at: 't',
+      };
+      const component = createPromptCard(
+        { isPromptUnread: vi.fn(), markPromptAsRead: vi.fn(), getUpdateBadgesChanged$: vi.fn().mockReturnValue(of()), getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(true)) },
+        {
+          prayerItemReminderService: {
+            ensureLoaded: vi.fn().mockResolvedValue([reminder]),
+            remindersForPrayer: vi.fn().mockReturnValue([reminder]),
+          },
+        }
+      );
+      component.prompt = {
+        id: 'prompt-1',
+        title: 'T',
+        type: 'Guidance',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+      };
+      expect(component.hasReminderForPrompt()).toBe(true);
     });
   });
 });

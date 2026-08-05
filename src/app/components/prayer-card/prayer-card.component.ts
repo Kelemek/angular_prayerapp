@@ -32,6 +32,8 @@ import {
   PrayerDeleteRequestPayload,
 } from '../prayer-delete-request-modal/prayer-delete-request-modal.component';
 import { PrayerCardMetaHeaderComponent } from '../prayer-card-meta-header/prayer-card-meta-header.component';
+import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/prayer-item-reminder-modal.component';
+import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import { PrayerUpdateRowComponent } from '../prayer-update-row/prayer-update-row.component';
 import {
   PrayerUpdateActionsComponent,
@@ -44,6 +46,11 @@ import {
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
 import { getPrayerStatusBorderClasses } from '../../lib/prayer-status-header';
 import { PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import { PrayerItemReminderService } from '../../services/prayer-item-reminder.service';
+import {
+  resolvePrayerItemKind,
+  type PrayerItemReminder,
+} from '../../types/prayer-item-reminder';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
@@ -54,7 +61,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
 @Component({
   selector: 'app-prayer-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -70,6 +77,8 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         [status]="prayer.status"
         [showStatus]="showStatusPillInHeader()"
         [showDelete]="showDeleteButton()"
+        [showReminder]="showReminderButton()"
+        [hasReminder]="hasReminderForPrayer()"
         [personalEditTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
         [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
         [centerDragHandle]="personalDragHandle && isPersonal"
@@ -77,6 +86,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         (share)="showShareModal = true"
         (edit)="editPersonalPrayer.emit(prayer)"
         (delete)="handleDeleteClick()"
+        (reminder)="openReminderModal()"
         (pickerOpenChange)="onCategoryPickerOpenChange($event)"
       />
       }
@@ -112,6 +122,12 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         </div>
         @if (!usesPrayerMetaHeader()) {
         <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
+          @if (showReminderButton()) {
+          <app-prayer-item-reminder-bell-button
+            [hasReminder]="hasReminderForPrayer()"
+            (reminder)="openReminderModal()"
+          />
+          }
           @if (showDeleteButton()) {
           <button
             (click)="handleDeleteClick()"
@@ -304,6 +320,18 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
       </app-confirmation-dialog>
       }
 
+      <app-prayer-item-reminder-modal
+        [isOpen]="showReminderModal"
+        [email]="reminderSessionEmail()"
+        [prayerId]="prayer.id"
+        [prayerKind]="prayerItemKind()"
+        [prayerFor]="prayer.prayer_for"
+        [titleSnapshot]="prayer.title || ('Prayer for ' + prayer.prayer_for)"
+        [reminders]="remindersForThisPrayer()"
+        (close)="showReminderModal = false"
+        (remindersChange)="onPrayerRemindersChanged($event)"
+      />
+
       <!-- Pray For explanation modal -->
       @if (showPrayForModal) {
       <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
@@ -415,6 +443,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   prayForDoNotShowAgain = false;
   richTextEditorsEnabled = true;
   categoryPickerOpen = false;
+  showReminderModal = false;
+  private allPrayerItemReminders: PrayerItemReminder[] = [];
 
   onCategoryPickerOpenChange(open: boolean): void {
     this.categoryPickerOpen = open;
@@ -428,6 +458,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     public badgeService: BadgeService,
     private prayerService: PrayerService,
     public prayerEncouragementService: PrayerEncouragementService,
+    private prayerItemReminderService: PrayerItemReminderService,
     private cdr: ChangeDetectorRef,
     richTextEditorsSettings: RichTextEditorsSettingsService
   ) {
@@ -479,6 +510,93 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
 
     window.addEventListener('storage', this.storageListener);
     this.refreshCanPrayFor$();
+    this.loadPrayerItemReminders();
+    this.userSessionService.userSession$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadPrayerItemReminders();
+      });
+  }
+
+  private loadPrayerItemReminders(): void {
+    if (!this.reminderSessionEmail()) {
+      this.allPrayerItemReminders = [];
+      this.cdr.markForCheck();
+      return;
+    }
+    void this.prayerItemReminderService
+      .ensureLoaded()
+      .then((rows) => {
+        this.allPrayerItemReminders = rows;
+        this.cdr.markForCheck();
+      })
+      .catch((err) => {
+        console.error('[PrayerCard] Failed to load prayer item reminders:', err);
+        void this.prayerItemReminderService
+          .ensureLoaded(true)
+          .then((rows) => {
+            this.allPrayerItemReminders = rows;
+            this.cdr.markForCheck();
+          })
+          .catch((retryErr) => {
+            console.error(
+              '[PrayerCard] Retry load prayer item reminders failed:',
+              retryErr
+            );
+            this.cdr.markForCheck();
+          });
+      });
+  }
+
+  reminderSessionEmail(): string {
+    return this.userSessionService.getCurrentSession()?.email?.trim() ?? '';
+  }
+
+  showReminderButton(): boolean {
+    if (!this.reminderSessionEmail() || !this.prayer?.id) {
+      return false;
+    }
+    if (this.isPersonal) {
+      return this.prayer.category !== 'Answered';
+    }
+    if (this.isMemberPrayer()) {
+      return true;
+    }
+    return this.prayer.status === 'current';
+  }
+
+  prayerItemKind() {
+    return resolvePrayerItemKind({
+      prayerId: this.prayer?.id ?? '',
+      isPersonal: this.isPersonal,
+    });
+  }
+
+  remindersForThisPrayer(): PrayerItemReminder[] {
+    if (!this.prayer?.id) return [];
+    const sessionRows =
+      this.userSessionService.getCurrentSession()?.prayerItemReminders;
+    const all = sessionRows ?? this.allPrayerItemReminders;
+    return this.prayerItemReminderService.remindersForPrayer(
+      all,
+      this.prayer.id,
+      this.prayerItemKind()
+    );
+  }
+
+  hasReminderForPrayer(): boolean {
+    return this.remindersForThisPrayer().length > 0;
+  }
+
+  openReminderModal(): void {
+    this.showReminderModal = true;
+    this.loadPrayerItemReminders();
+    this.cdr.markForCheck();
+  }
+
+  onPrayerRemindersChanged(all: PrayerItemReminder[]): void {
+    this.allPrayerItemReminders = all;
+    this.cdr.markForCheck();
   }
 
   private refreshCanPrayFor$(): void {

@@ -672,6 +672,127 @@ describe('PrayerService', () => {
     ensureSpy.mockRestore();
   }, 5000);
 
+  it('arePrayerCatalogsReady is false while either catalog is loading', () => {
+    (service as any).communityPrayersDbFetchComplete = true;
+    (service as any).personalPrayersDbFetchComplete = true;
+    (service as any).loadingSubject.next(true);
+    (service as any).loadingPersonalPrayersSubject.next(false);
+    expect(service.arePrayerCatalogsReady()).toBe(false);
+
+    (service as any).loadingSubject.next(false);
+    (service as any).loadingPersonalPrayersSubject.next(true);
+    expect(service.arePrayerCatalogsReady()).toBe(false);
+
+    (service as any).loadingSubject.next(false);
+    (service as any).loadingPersonalPrayersSubject.next(false);
+    expect(service.arePrayerCatalogsReady()).toBe(true);
+  });
+
+  it('arePrayerCatalogsReady is false while community prayers fetch is in flight', () => {
+    (service as any).loadingSubject.next(false);
+    (service as any).loadingPersonalPrayersSubject.next(false);
+    (service as any).communityPrayersDbFetchComplete = true;
+    (service as any).personalPrayersDbFetchComplete = true;
+    (service as any).communityPrayersFetchInFlight = true;
+    expect(service.arePrayerCatalogsReady()).toBe(false);
+  });
+
+  it('arePrayerCatalogsReady is false before community DB fetch completes', () => {
+    (service as any).loadingSubject.next(false);
+    (service as any).loadingPersonalPrayersSubject.next(false);
+    (service as any).communityPrayersFetchInFlight = false;
+    (service as any).communityPrayersDbFetchComplete = false;
+    (service as any).personalPrayersDbFetchComplete = true;
+    expect(service.arePrayerCatalogsReady()).toBe(false);
+  });
+
+  it('isPersonalPrayerDisplayOrderOnlyChange ignores drag-and-drop reorder updates', () => {
+    const isOrderOnly = (service as any).isPersonalPrayerDisplayOrderOnlyChange.bind(service);
+    expect(
+      isOrderOnly(
+        { id: 'p1', title: 'A', display_order: 2, updated_at: 't1' },
+        { id: 'p1', title: 'A', display_order: 1, updated_at: 't2' }
+      )
+    ).toBe(true);
+    expect(
+      isOrderOnly(
+        { id: 'p1', title: 'A', display_order: 2 },
+        { id: 'p1', title: 'B', display_order: 1 }
+      )
+    ).toBe(false);
+  });
+
+  it('realtime prayer DELETE/archived/answered drops cached item reminders', async () => {
+    let prayersChangeHandler: ((payload: unknown) => void) | undefined;
+    const reminderMock = { dropRemindersForPrayer: vi.fn() };
+    const loadSpy = vi.fn().mockResolvedValue(undefined);
+
+    const realtimeSupabase = {
+      client: {
+        from: vi.fn(() => ({
+          select: () => ({
+            eq: () => ({
+              order: () => Promise.resolve({ data: [], error: null }),
+            }),
+          }),
+        })),
+        channel: vi.fn(() => {
+          const chain = {
+            on: vi.fn((_event: string, filter: { table?: string }, cb: (p: unknown) => void) => {
+              if (filter?.table === 'prayers') {
+                prayersChangeHandler = cb;
+              }
+              return chain;
+            }),
+            subscribe: vi.fn(),
+          };
+          return chain;
+        }),
+        removeChannel: vi.fn(),
+      },
+      ensureConnected: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    const localService = new PrayerService(
+      realtimeSupabase,
+      toast,
+      emailNotification,
+      verificationService as any,
+      cache,
+      badgeService,
+      userSessionService,
+      reminderMock as any
+    );
+    vi.spyOn(localService as any, 'loadPrayers').mockImplementation(loadSpy);
+
+    await new Promise((res) => setTimeout(res, 0));
+    expect(prayersChangeHandler).toBeDefined();
+
+    prayersChangeHandler!({
+      eventType: 'DELETE',
+      old: { id: 'p-del' },
+      new: {},
+    });
+    prayersChangeHandler!({
+      eventType: 'UPDATE',
+      new: { id: 'p-ans', status: 'answered' },
+    });
+    prayersChangeHandler!({
+      eventType: 'UPDATE',
+      new: { id: 'p-arch', status: 'archived' },
+    });
+    prayersChangeHandler!({
+      eventType: 'UPDATE',
+      new: { id: 'p-cur', status: 'current' },
+    });
+
+    expect(reminderMock.dropRemindersForPrayer).toHaveBeenCalledTimes(3);
+    expect(reminderMock.dropRemindersForPrayer).toHaveBeenCalledWith('p-del', 'community');
+    expect(reminderMock.dropRemindersForPrayer).toHaveBeenCalledWith('p-ans', 'community');
+    expect(reminderMock.dropRemindersForPrayer).toHaveBeenCalledWith('p-arch', 'community');
+    expect(loadSpy).toHaveBeenCalled();
+  });
+
   it('realtime subscribe receives CLOSED status and logs warning', async () => {
     // Create a supabase mock that calls subscribe callback with 'CLOSED'
     const closedSupabase = {
@@ -5868,6 +5989,7 @@ describe('PrayerService - Integration Tests', () => {
         await expect((service as any).loadPersonalPrayers(true)).resolves.toBeUndefined();
 
         expect(cacheGetSpy).toHaveBeenCalledWith('personalPrayers');
+        expect((service as any).loadingPersonalPrayersSubject.value).toBe(false);
       });
     });
 

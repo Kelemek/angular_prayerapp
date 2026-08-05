@@ -159,6 +159,11 @@ function expandTiptapUnderlineForMarked(markdown: string): string {
     .join('');
 }
 
+/** marked emits `<del>` for GFM strikethrough; our allowlist uses `<s>`. */
+function normalizeMarkedDelToStrike(html: string): string {
+  return html.replace(/<\/?del\b([^>]*)>/gi, (tag) => tag.replace(/del/gi, 's'));
+}
+
 function applyRichHtmlEnhancements(root: ParentNode | null | undefined): void {
   if (!root || typeof root.querySelectorAll !== 'function') {
     return;
@@ -303,7 +308,9 @@ export function markdownToSafeHtml(markdown: string | null | undefined): string 
   if (!markdown) return '';
   const preprocessed = expandTiptapUnderlineForMarked(markdown);
   const parsed = getMarked().parse(preprocessed, { async: false });
-  const rawHtml = typeof parsed === 'string' ? parsed : String(parsed);
+  const rawHtml = normalizeMarkedDelToStrike(
+    typeof parsed === 'string' ? parsed : String(parsed)
+  );
   return sanitizeEmailHtml(rawHtml);
 }
 

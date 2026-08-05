@@ -58,6 +58,12 @@ describe('markdownToSafeHtml', () => {
     expect(html).toContain('<em>italic</em>');
   });
 
+  it('converts GFM strikethrough to <s>', () => {
+    const html = markdownToSafeHtml('~~struck~~');
+    expect(html).toContain('<s>');
+    expect(html).toContain('struck');
+  });
+
   it('renders TipTap ++underline++ as underline', () => {
     const html = markdownToSafeHtml('++underscored++');
     expect(html).toContain('<u');

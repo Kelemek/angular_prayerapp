@@ -441,6 +441,17 @@ interface EmailTemplate {
                         {{'{{spotlightUpdateTextSection}}'}} = plain-text latest
                         update section.
                       </li>
+                      <li>
+                        • Per-prayer reminder (<code class="text-[10px]"
+                          >user_prayer_item_reminder</code
+                        >): {{'{{prayerFor}}'}}, {{'{{prayerTitle}}'}},
+                        {{'{{prayerDescriptionText}}'}} / {{'{{prayerDescriptionHtml}}'}}
+                        (TipTap markdown rendered like approved_prayer),
+                        {{'{{modeLabel}}'}}, {{'{{scheduledTime}}'}},
+                        {{'{{updateContentText}}'}} / {{'{{updateContentHtml}}'}},
+                        {{'{{updateBlockHtml}}'}} (blue-border Update card; empty when none),
+                        {{'{{updateTextSection}}'}}.
+                      </li>
                     </ul>
                   </div>
                 </div>

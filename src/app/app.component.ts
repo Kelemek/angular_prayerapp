@@ -502,9 +502,11 @@ export class AppComponent implements OnInit {
     try {
       const { CapacitorService } = await import("./services/capacitor.service");
       const { PrayerService } = await import("./services/prayer.service");
+      const { PromptService } = await import("./services/prompt.service");
 
       const capacitorService = this.injector.get(CapacitorService);
       const prayerService = this.injector.get(PrayerService);
+      const promptService = this.injector.get(PromptService);
 
       capacitorService.notificationEvents$
         .pipe(
@@ -561,6 +563,45 @@ export class AppComponent implements OnInit {
             void this.router.navigate(["/"], {
               queryParams: { filter: "memorize" },
             });
+          });
+        });
+
+      // Open home focused on a prayer when a per-prayer reminder push is tapped
+      capacitorService.notificationEvents$
+        .pipe(
+          filter((event) => event.source === "tap"),
+          filter((event) => event.type === "prayer_item_reminder")
+        )
+        .subscribe((event) => {
+          const prayerKind =
+            typeof event.data?.["prayerKind"] === "string"
+              ? event.data["prayerKind"]
+              : null;
+          const promptId =
+            typeof event.data?.["promptId"] === "string"
+              ? event.data["promptId"]
+              : null;
+          const prayerId =
+            typeof event.data?.["prayerId"] === "string"
+              ? event.data["prayerId"]
+              : null;
+          this.ngZone.run(() => {
+            if (prayerKind === "prompt" && promptId) {
+              void this.router.navigate(["/"], {
+                queryParams: { promptId },
+              });
+              promptService.loadPrompts();
+            } else {
+              void this.router.navigate(["/"], {
+                queryParams: prayerId ? { prayerId } : {},
+              });
+              prayerService.loadPrayers(false).catch((err) => {
+                console.error(
+                  "[AppComponent] Failed to refresh prayers after prayer item reminder tap:",
+                  err
+                );
+              });
+            }
           });
         });
     } catch (error) {

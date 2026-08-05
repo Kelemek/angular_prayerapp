@@ -6,6 +6,7 @@ import { ToastService } from './toast.service';
 import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
+import { PrayerItemReminderService } from './prayer-item-reminder.service';
 import { PrayerPrompt } from '../components/prompt-card/prompt-card.component';
 
 @Injectable({
@@ -22,12 +23,17 @@ export class PromptService {
   public loading$ = this.loadingSubject.asObservable();
   public error$ = this.errorSubject.asObservable();
 
+  isPromptsLoading(): boolean {
+    return this.loadingSubject.value;
+  }
+
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
     private cache: CacheService,
     private badgeService: BadgeService,
-    private userSessionService: UserSessionService
+    private userSessionService: UserSessionService,
+    private prayerItemReminderService: PrayerItemReminderService
   ) {
     this.loadPrompts();
     this.userSessionService.userSession$
@@ -42,10 +48,14 @@ export class PromptService {
   /**
    * Load prompts from database with caching, then attach the current user's Pray For counts.
    */
-  async loadPrompts(): Promise<void> {
+  async loadPrompts(forceRefresh = false): Promise<void> {
     try {
       this.loadingSubject.next(true);
       this.errorSubject.next(null);
+
+      if (forceRefresh) {
+        this.cache.invalidate('prompts');
+      }
 
       // Try to get from cache first (base prompts without user-specific counts)
       let sortedPrompts = this.cache.get<PrayerPrompt[]>('prompts');
@@ -343,6 +353,7 @@ export class PromptService {
 
       if (error) throw error;
 
+      this.prayerItemReminderService.dropRemindersForPrayer(id, 'prompt');
       this.toast.success('Prompt deleted successfully');
       await this.loadPrompts();
       return true;

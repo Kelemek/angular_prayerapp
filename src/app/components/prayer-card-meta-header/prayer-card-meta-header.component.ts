@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-header-band.component';
 import { PersonalCategoryPillComponent } from '../personal-category-color-picker/personal-category-pill.component';
+import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import {
   getPrayerStatusHeaderTextClasses,
   getPrayerStatusLabel,
@@ -15,7 +16,7 @@ import {
 @Component({
   selector: 'app-prayer-card-meta-header',
   standalone: true,
-  imports: [CommonModule, CardMetaHeaderBandComponent, PersonalCategoryPillComponent],
+  imports: [CommonModule, CardMetaHeaderBandComponent, PersonalCategoryPillComponent, PrayerItemReminderBellButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card-meta-header-band
@@ -42,6 +43,12 @@ import {
         }
       </div>
       <div cardMetaRight [class]="'flex items-center ' + actionsGapClasses">
+        @if (showReminder) {
+        <app-prayer-item-reminder-bell-button
+          [hasReminder]="hasReminder"
+          (reminder)="reminder.emit()"
+        />
+        }
         @if (isPersonal) {
         <button
           type="button"
@@ -99,6 +106,8 @@ export class PrayerCardMetaHeaderComponent {
   @Input() status = 'current';
   @Input() showStatus = false;
   @Input() showDelete = false;
+  @Input() showReminder = false;
+  @Input() hasReminder = false;
   @Input() personalEditTourId: string | null = null;
   @Input() personalDeleteTourId: string | null = null;
   @Input() centerDragHandle = false;
@@ -107,6 +116,7 @@ export class PrayerCardMetaHeaderComponent {
   @Output() share = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();
   @Output() delete = new EventEmitter<void>();
+  @Output() reminder = new EventEmitter<void>();
   @Output() pickerOpenChange = new EventEmitter<boolean>();
 
   get metaHeaderDate(): string {

@@ -82,6 +82,8 @@ import {
 } from "rxjs";
 import { PlanningCenterListService } from "../../services/planning-center-list.service";
 import { mapHomeFilterToContentType } from "../../services/presentation-settings.service";
+import { resolvePrayerItemDeepLinkTab } from "../../lib/prayer-item-deep-link";
+import { isMemberPrayerId } from "../../lib/prayer-card-kind";
 import {
   HomePresentationFilter,
   HomeReturnContext,
@@ -1181,6 +1183,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             getFilteredPlanningCenterPrayers(); track prayer.id; let
             isFirstPrayer = $first) {
             <app-prayer-card
+              [attr.id]="'prayer-card-' + prayer.id"
               [prayer]="prayer"
               [isAdmin]="(isAdmin$ | async) || false"
               [activeFilter]="activeFilter"
@@ -1198,6 +1201,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             } } @else { @for (prayer of prayers$ | async; track prayer.id; let
             isFirstPrayer = $first) {
             <app-prayer-card
+              [attr.id]="'prayer-card-' + prayer.id"
               [prayer]="prayer"
               [isAdmin]="(isAdmin$ | async) || false"
               [activeFilter]="activeFilter"
@@ -1241,6 +1245,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               isFirstPrayer = $first) {
               <div
                 cdkDrag
+                [attr.id]="'prayer-card-' + prayer.id"
                 [class.relative]="personalCategoryPickerPrayerId === prayer.id"
                 [class.z-30]="personalCategoryPickerPrayerId === prayer.id"
               >
@@ -1417,8 +1422,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }> = [];
   planningCenterListName: string | null = null;
   loadingPlanningCenterList = false;
+  /** True after Planning Center list loading has completed at least once this session. */
+  private planningCenterListResolved = false;
   filteredPlanningCenterPrayers: PrayerRequest[] = [];
   loadingMemberPrayers = false;
+  private memberPrayersLoadAttempted = false;
+  private memberPrayersLoadFailed = false;
 
   /** True once we know the user has a mapped Planning Center list (before members finish loading). */
   get showPlanningCenterMembersFilter(): boolean {
@@ -1451,6 +1460,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   /** From `/?filter=current|answered|memorize` on first load (email/push deep link); applied when session is ready. */
   private initialEmailFilterTab: "current" | "answered" | "memorize" | null =
     null;
+  /** Deep link from per-prayer reminder push (`?prayerId=`). */
+  private pendingPrayerIdScroll: string | null = null;
+  private prayerDeepLinkScrollGeneration = 0;
+  private prayerDeepLinkScrollBurstCount = 0;
+  private prayerDeepLinkFreshCatalogRequested = false;
+  /** Deep link from per-prompt reminder push/email (`?promptId=`). */
+  private pendingPromptIdScroll: string | null = null;
+  private promptDeepLinkScrollGeneration = 0;
+  private promptDeepLinkScrollBurstCount = 0;
+  private promptDeepLinkFreshCatalogRequested = false;
+  private static readonly MAX_DEEP_LINK_SCROLL_BURSTS = 12;
 
   /** Welcome + each help section + thank you (for global full-tour progress). */
   private fullGuidedTourTotalSteps = 0;
@@ -1509,6 +1529,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (qf === "current" || qf === "answered" || qf === "memorize") {
       this.initialEmailFilterTab = qf;
     }
+    const initialPrayerId = initialTree.queryParams["prayerId"];
+    if (typeof initialPrayerId === "string" && initialPrayerId.trim()) {
+      this.pendingPrayerIdScroll = initialPrayerId.trim();
+      this.prayerDeepLinkScrollBurstCount = 0;
+    }
+    const initialPromptId = initialTree.queryParams["promptId"];
+    if (typeof initialPromptId === "string" && initialPromptId.trim()) {
+      this.pendingPromptIdScroll = initialPromptId.trim();
+      this.promptDeepLinkScrollBurstCount = 0;
+    }
 
     // Track page view on home component load
     this.analyticsService.trackPageView();
@@ -1539,14 +1569,43 @@ export class HomeComponent implements OnInit, OnDestroy {
           filterParam === "memorize"
             ? filterParam
             : null;
+        const prayerIdParam = tree.queryParams["prayerId"];
+        const deepLinkPrayerId =
+          typeof prayerIdParam === "string" && prayerIdParam.trim()
+            ? prayerIdParam.trim()
+            : null;
+        const promptIdParam = tree.queryParams["promptId"];
+        const deepLinkPromptId =
+          typeof promptIdParam === "string" && promptIdParam.trim()
+            ? promptIdParam.trim()
+            : null;
         if (this.viewReady) {
           if (deepLinkFilter) {
             this.setFilter(deepLinkFilter);
             this.cdr.markForCheck();
             this.navigateStrippingFilterQueryParam();
           }
+          if (deepLinkPrayerId) {
+            this.pendingPrayerIdScroll = deepLinkPrayerId;
+            this.prayerDeepLinkScrollBurstCount = 0;
+            this.openPrayerDeepLink(deepLinkPrayerId);
+            this.navigateStrippingPrayerIdQueryParam();
+          }
+          if (deepLinkPromptId) {
+            this.pendingPromptIdScroll = deepLinkPromptId;
+            this.promptDeepLinkScrollBurstCount = 0;
+            this.openPromptDeepLink(deepLinkPromptId);
+            this.navigateStrippingPromptIdQueryParam();
+            this.cdr.markForCheck();
+          }
         } else if (deepLinkFilter) {
           this.initialEmailFilterTab = deepLinkFilter;
+        } else if (deepLinkPrayerId) {
+          this.pendingPrayerIdScroll = deepLinkPrayerId;
+          this.prayerDeepLinkScrollBurstCount = 0;
+        } else if (deepLinkPromptId) {
+          this.pendingPromptIdScroll = deepLinkPromptId;
+          this.promptDeepLinkScrollBurstCount = 0;
         }
         window.setTimeout(() => this.tryResumeFullGuidedTourQueue(), 400);
       });
@@ -1597,12 +1656,17 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.filteredPlanningCenterPrayers = [];
         }
         this.cdr.markForCheck();
+        this.retryPendingPrayerDeepLinkIfNeeded();
       });
 
     this.planningCenterListService.loading$
       .pipe(takeUntil(this.destroy$))
       .subscribe((loading) => {
+        const wasLoading = this.loadingPlanningCenterList;
         this.loadingPlanningCenterList = loading;
+        if (wasLoading && !loading) {
+          this.planningCenterListResolved = true;
+        }
         this.cdr.markForCheck();
       });
 
@@ -1652,6 +1716,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         // Refresh badge counts when prayers data loads/changes (ensures badges show on first load)
         this.badgeService.refreshBadgeCounts();
         this.cdr.markForCheck();
+        this.retryPendingPrayerDeepLinkIfNeeded();
       });
 
     // Subscribe to prompts for count - with cleanup
@@ -1662,6 +1727,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       // Refresh badge counts when prompts data loads/changes (ensures badges show on first load)
       this.badgeService.refreshBadgeCounts();
       this.cdr.markForCheck();
+      this.retryPendingPromptDeepLinkIfNeeded();
     });
 
     // Subscribe to admin status - with cleanup
@@ -1681,6 +1747,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           await this.extractUniqueCategories(prayers);
         }
         this.cdr.markForCheck();
+        this.retryPendingPrayerDeepLinkIfNeeded();
       });
 
     this.memorizationService.memorizedItems$
@@ -1726,6 +1793,16 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.navigateStrippingFilterQueryParam();
         }
         this.viewReady = true;
+        if (this.pendingPrayerIdScroll) {
+          const id = this.pendingPrayerIdScroll;
+          this.openPrayerDeepLink(id);
+          this.navigateStrippingPrayerIdQueryParam();
+        }
+        if (this.pendingPromptIdScroll) {
+          const id = this.pendingPromptIdScroll;
+          this.openPromptDeepLink(id);
+          this.navigateStrippingPromptIdQueryParam();
+        }
         this.cdr.markForCheck();
       });
   }
@@ -1743,6 +1820,296 @@ export class HomeComponent implements OnInit, OnDestroy {
       queryParamsHandling: "",
       replaceUrl: true,
     });
+  }
+
+  private navigateStrippingPrayerIdQueryParam(): void {
+    const q: Params = { ...(this.route.snapshot?.queryParams ?? {}) };
+    delete q["prayerId"];
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: q,
+      queryParamsHandling: "",
+      replaceUrl: true,
+    });
+  }
+
+  private navigateStrippingPromptIdQueryParam(): void {
+    const q: Params = { ...(this.route.snapshot?.queryParams ?? {}) };
+    delete q["promptId"];
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: q,
+      queryParamsHandling: "",
+      replaceUrl: true,
+    });
+  }
+
+  private openPrayerDeepLink(prayerId: string): void {
+    this.ensureFreshCatalogForPrayerDeepLink(prayerId);
+    if (isMemberPrayerId(prayerId)) {
+      this.clearDeepLinkFilters();
+      if (this.activeFilter !== "planning_center_list") {
+        this.setFilter("planning_center_list");
+      }
+      this.cdr.markForCheck();
+      this.scheduleScrollToPrayerId(prayerId);
+      return;
+    }
+    this.clearDeepLinkFilters();
+    const tab = resolvePrayerItemDeepLinkTab(
+      prayerId,
+      this.prayerService.getAllCommunityPrayersSnapshot(),
+      this.prayerService.getPersonalPrayersSnapshot()
+    );
+    if (tab !== null && this.activeFilter !== tab) {
+      this.setFilter(tab);
+    }
+    this.cdr.markForCheck();
+    this.scheduleScrollToPrayerId(prayerId);
+  }
+
+  /** Re-resolve tab when prayer lists finish loading after a deep link. */
+  private retryPendingPrayerDeepLinkIfNeeded(): void {
+    const id = this.pendingPrayerIdScroll;
+    if (!id) {
+      return;
+    }
+    this.ensureFreshCatalogForPrayerDeepLink(id);
+    if (this.giveUpPrayerDeepLinkIfUnresolvable(id)) {
+      this.pendingPrayerIdScroll = null;
+      this.prayerDeepLinkFreshCatalogRequested = false;
+      return;
+    }
+    this.clearDeepLinkFilters();
+    const tab = resolvePrayerItemDeepLinkTab(
+      id,
+      this.prayerService.getAllCommunityPrayersSnapshot(),
+      this.prayerService.getPersonalPrayersSnapshot()
+    );
+    if (tab !== null && this.activeFilter !== tab) {
+      this.setFilter(tab);
+    }
+    this.cdr.markForCheck();
+    this.scheduleScrollToPrayerId(id);
+  }
+
+  private giveUpPrayerDeepLinkIfUnresolvable(prayerId: string): boolean {
+    if (isMemberPrayerId(prayerId)) {
+      if (this.loadingPlanningCenterList || this.loadingMemberPrayers) {
+        return false;
+      }
+      if (!this.planningCenterListId) {
+        return this.planningCenterListResolved;
+      }
+      if (this.planningCenterListMembers.length === 0) {
+        return this.planningCenterListResolved;
+      }
+      if (this.filteredPlanningCenterPrayers.length === 0) {
+        if (!this.memberPrayersLoadAttempted || this.loadingMemberPrayers) {
+          return false;
+        }
+        return this.memberPrayersLoadFailed;
+      }
+      return !this.filteredPlanningCenterPrayers.some((p) => p.id === prayerId);
+    }
+
+    const personal = this.prayerService.getPersonalPrayersSnapshot();
+    const community = this.prayerService.getAllCommunityPrayersSnapshot();
+    if (
+      personal.some((p) => p.id === prayerId) ||
+      community.some((p) => p.id === prayerId)
+    ) {
+      return false;
+    }
+    return this.prayerService.arePrayerCatalogsReady();
+  }
+
+  /** Request a non-silent catalog refresh when a deep-linked prayer is missing from cache. */
+  private ensureFreshCatalogForPrayerDeepLink(prayerId: string): void {
+    if (isMemberPrayerId(prayerId) || this.prayerDeepLinkFreshCatalogRequested) {
+      return;
+    }
+    this.prayerDeepLinkFreshCatalogRequested = true;
+    void this.prayerService.loadPrayers(false);
+    void this.prayerService.loadPersonalPrayers(false);
+  }
+
+  private isPrayerInLoadedCatalog(prayerId: string): boolean {
+    if (isMemberPrayerId(prayerId)) {
+      return this.filteredPlanningCenterPrayers.some((p) => p.id === prayerId);
+    }
+    return (
+      this.prayerService.getPersonalPrayersSnapshot().some((p) => p.id === prayerId) ||
+      this.prayerService.getAllCommunityPrayersSnapshot().some((p) => p.id === prayerId)
+    );
+  }
+
+  private scheduleScrollToPrayerId(prayerId: string): void {
+    const generation = ++this.prayerDeepLinkScrollGeneration;
+    const tryScroll = (attempt: number): void => {
+      if (generation !== this.prayerDeepLinkScrollGeneration) {
+        return;
+      }
+      const el = document.getElementById(`prayer-card-${prayerId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        this.pendingPrayerIdScroll = null;
+        this.prayerDeepLinkFreshCatalogRequested = false;
+        this.prayerDeepLinkScrollBurstCount = 0;
+        return;
+      }
+      if (attempt < 5) {
+        window.setTimeout(() => tryScroll(attempt + 1), attempt === 0 ? 350 : 600);
+        return;
+      }
+      if (
+        this.pendingPrayerIdScroll !== prayerId ||
+        !this.isPrayerInLoadedCatalog(prayerId)
+      ) {
+        return;
+      }
+      if (
+        this.prayerDeepLinkScrollBurstCount >=
+        HomeComponent.MAX_DEEP_LINK_SCROLL_BURSTS
+      ) {
+        this.pendingPrayerIdScroll = null;
+        this.prayerDeepLinkFreshCatalogRequested = false;
+        return;
+      }
+      this.prayerDeepLinkScrollBurstCount++;
+      window.setTimeout(() => {
+        if (
+          generation === this.prayerDeepLinkScrollGeneration &&
+          this.pendingPrayerIdScroll === prayerId
+        ) {
+          this.scheduleScrollToPrayerId(prayerId);
+        }
+      }, 1200);
+    };
+    tryScroll(0);
+  }
+
+  /** Clear search/type filters so deep-linked cards are visible in the DOM. */
+  private clearDeepLinkFilters(): void {
+    let changed = false;
+    if (this.filters.searchTerm?.trim()) {
+      this.filters = { ...this.filters, searchTerm: "" };
+      changed = true;
+    }
+    if (this.selectedPromptTypes.length > 0) {
+      this.selectedPromptTypes = [];
+      changed = true;
+    }
+    if (this.selectedPersonalCategories.length > 0) {
+      this.selectedPersonalCategories = [];
+      changed = true;
+    }
+    if (this.filters.type) {
+      this.filters = { ...this.filters, type: undefined };
+      changed = true;
+    }
+    if (!changed) {
+      return;
+    }
+    if (this.activeFilter === "prompts" || this.activeFilter === "memorize") {
+      this.prayerService.applyFilters({ search: "" });
+      return;
+    }
+    this.prayerService.applyFilters({
+      status: this.filters.status,
+      search: "",
+    });
+  }
+
+  private openPromptDeepLink(promptId: string): void {
+    this.ensureFreshCatalogForPromptDeepLink(promptId);
+    this.clearDeepLinkFilters();
+    if (this.activeFilter !== "prompts") {
+      this.setFilter("prompts");
+    }
+    this.cdr.markForCheck();
+    this.scheduleScrollToPromptId(promptId);
+  }
+
+  /** Re-scroll when the prompts list finishes loading after a deep link. */
+  private retryPendingPromptDeepLinkIfNeeded(): void {
+    const id = this.pendingPromptIdScroll;
+    if (!id) {
+      return;
+    }
+    this.ensureFreshCatalogForPromptDeepLink(id);
+    if (this.giveUpPromptDeepLinkIfUnresolvable(id)) {
+      this.pendingPromptIdScroll = null;
+      this.promptDeepLinkFreshCatalogRequested = false;
+      return;
+    }
+    this.clearDeepLinkFilters();
+    if (this.activeFilter !== "prompts") {
+      this.setFilter("prompts");
+    }
+    this.cdr.markForCheck();
+    this.scheduleScrollToPromptId(id);
+  }
+
+  private giveUpPromptDeepLinkIfUnresolvable(promptId: string): boolean {
+    const prompts = this.promptService.promptsSubject.value;
+    if (prompts.some((p) => p.id === promptId)) {
+      return false;
+    }
+    return !this.promptService.isPromptsLoading();
+  }
+
+  private ensureFreshCatalogForPromptDeepLink(promptId: string): void {
+    if (this.promptDeepLinkFreshCatalogRequested) {
+      return;
+    }
+    this.promptDeepLinkFreshCatalogRequested = true;
+    void this.promptService.loadPrompts(true);
+  }
+
+  private scheduleScrollToPromptId(promptId: string): void {
+    const generation = ++this.promptDeepLinkScrollGeneration;
+    const tryScroll = (attempt: number): void => {
+      if (generation !== this.promptDeepLinkScrollGeneration) {
+        return;
+      }
+      const el = document.getElementById(`prompt-card-${promptId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        this.pendingPromptIdScroll = null;
+        this.promptDeepLinkScrollBurstCount = 0;
+        this.promptDeepLinkFreshCatalogRequested = false;
+        return;
+      }
+      if (attempt < 5) {
+        window.setTimeout(() => tryScroll(attempt + 1), attempt === 0 ? 350 : 600);
+        return;
+      }
+      const promptLoaded = this.promptService.promptsSubject.value.some(
+        (p) => p.id === promptId
+      );
+      if (this.pendingPromptIdScroll !== promptId || !promptLoaded) {
+        return;
+      }
+      if (
+        this.promptDeepLinkScrollBurstCount >=
+        HomeComponent.MAX_DEEP_LINK_SCROLL_BURSTS
+      ) {
+        this.pendingPromptIdScroll = null;
+        this.promptDeepLinkFreshCatalogRequested = false;
+        return;
+      }
+      this.promptDeepLinkScrollBurstCount++;
+      window.setTimeout(() => {
+        if (
+          generation === this.promptDeepLinkScrollGeneration &&
+          this.pendingPromptIdScroll === promptId
+        ) {
+          this.scheduleScrollToPromptId(promptId);
+        }
+      }, 1200);
+    };
+    tryScroll(0);
   }
 
   onPrayerFormClose(event: { isPersonal?: boolean }): void {
@@ -2314,6 +2681,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private async loadPlanningCenterMemberPrayers(): Promise<void> {
     try {
+      this.memberPrayersLoadAttempted = true;
+      this.memberPrayersLoadFailed = false;
       this.loadingMemberPrayers = true;
       this.cdr.markForCheck();
 
@@ -2352,11 +2721,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       this.loadingMemberPrayers = false;
       this.cdr.markForCheck();
+      this.retryPendingPrayerDeepLinkIfNeeded();
     } catch (error) {
       console.error("Error loading planning center member prayers:", error);
+      this.memberPrayersLoadFailed = true;
       this.loadingMemberPrayers = false;
       this.filteredPlanningCenterPrayers = [];
       this.cdr.markForCheck();
+      this.retryPendingPrayerDeepLinkIfNeeded();
     }
   }
 

@@ -341,7 +341,10 @@ function getSamplePromptCardEl(): HTMLElement | null {
   if (typeof document === 'undefined') {
     return null;
   }
-  return document.getElementById(TOUR_PROMPT_CARD_SAMPLE_ID);
+  return (
+    document.querySelector<HTMLElement>('.prompt-card[id^="prompt-card-"]') ??
+    document.getElementById(TOUR_PROMPT_CARD_SAMPLE_ID)
+  );
 }
 
 function getPrayerModeButtonEl(): HTMLElement | null {

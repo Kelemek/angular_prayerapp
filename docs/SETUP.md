@@ -145,11 +145,11 @@ supabase db push
 # SQL Editor > Run migrations manually
 ```
 
-### User hourly prayer reminders (Vault + pg_cron)
+### User prayer / memorization / per-prayer reminders (Vault + pg_cron)
 
-Migration `20260316130000_schedule_user_hourly_prayer_reminders_cron.sql` enables **`pg_net`** and **`pg_cron`** and registers an hourly job (`invoke-user-hourly-prayer-reminders`, `0 * * * *` UTC) that POSTs to the Edge Function `send-user-hourly-prayer-reminders` using secrets from **Supabase Vault** (same behavior as the former GitHub Action).
+Migration `20260803160000_reminder_quarter_hour_and_prayer_item_reminders.sql` upgrades Settings prayer and memorization slots to **15-minute** matching, reschedules jobs **`invoke-user-hourly-prayer-reminders`** and **`invoke-user-hourly-memorization-reminders`** to **`*/15 * * * *` UTC**, adds **`invoke-user-prayer-item-reminders`** for per-prayer reminders (Edge Function `send-user-prayer-item-reminders`, including latest-update email HTML), and installs triggers that remove per-prayer reminder rows when a prayer is deleted, archived, or answered. It is **safe to re-run** in the SQL editor. Apply **`20260805120000_reminder_item_followups.sql`** after that (idempotent): prompt reminders, purge RPC lockdown, unique schedule indexes, per-channel delivery columns, and partial-retry due-now RPC. Redeploy `send-user-prayer-item-reminders` after applying.
 
-**1. Create Vault secrets** (Supabase Dashboard → **Project Settings** → **Vault**, or SQL Editor). Required names:
+Vault secrets (unchanged names):
 
 | Secret name | Value |
 |---------------|--------|
@@ -163,46 +163,19 @@ select vault.create_secret('YOUR_SERVICE_ROLE_JWT', 'service_role_key');
 
 If these already exist from another setup, do not duplicate them—only the names must match.
 
-**2. Extensions**: If `supabase db push` fails on `CREATE EXTENSION`, enable **pg_net** and **pg_cron** in the Dashboard (**Database → Extensions**) and re-run the migration or apply the SQL from the migration file manually.
+**Extensions**: If `supabase db push` fails on `CREATE EXTENSION`, enable **pg_net** and **pg_cron** in the Dashboard (**Database → Extensions**) and re-run the migration or apply the SQL from the migration file manually.
 
-**3. Verify manually** (after secrets exist):
-
-```sql
-select net.http_post(
-  url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1)
-    || '/functions/v1/send-user-hourly-prayer-reminders',
-  headers := jsonb_build_object(
-    'Content-Type', 'application/json',
-    'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)
-  ),
-  body := '{}'::jsonb,
-  timeout_milliseconds := 120000
-);
-
--- After a few seconds, inspect the HTTP result (status should be 200 if the function succeeded):
-select id, status_code, content, error_msg
-from net._http_response
-order by created desc
-limit 5;
-```
-
-Confirm the Edge Function logs in **Supabase → Edge Functions → send-user-hourly-prayer-reminders → Logs**. Optionally `select * from cron.job where jobname = 'invoke-user-hourly-prayer-reminders';` to confirm the schedule.
-
-After migration `20260414120000_user_hourly_reminder_spotlight_prayer.sql`, **Admin → Settings → Email** includes an **Hourly user prayer reminder email** control (`admin_settings.user_hourly_prayer_reminder_template_key`) and template **`user_hourly_prayer_reminder_with_spotlight`** (spotlight pool: **community** = **all** approved **current** prayers app-wide; **personal** = that subscriber’s **all** non-**Answered**; default HTML matches **Prayer Update**-style containers; **`{{spotlightUpdateBlockHtml}}`** omits the Update block when there is no update). Deploy the updated `send-user-hourly-prayer-reminders` Edge Function when you ship that migration.
-
-### User hourly memorization reminders (Vault + pg_cron)
-
-Migration `20260714120000_user_memorization_hour_reminders.sql` registers an hourly job (`invoke-user-hourly-memorization-reminders`, `0 * * * *` UTC) that POSTs to **`send-user-hourly-memorization-reminders`** using the same Vault secrets **`project_url`** and **`service_role_key`**.
-
-Deploy the Edge Function after applying the migration:
+Deploy Edge Functions after applying the migration:
 
 ```bash
+supabase functions deploy send-user-hourly-prayer-reminders
 supabase functions deploy send-user-hourly-memorization-reminders
+supabase functions deploy send-user-prayer-item-reminders
 ```
 
-**Admin → Settings → Email → Hourly user memorization reminder email** selects `admin_settings.user_hourly_memorization_reminder_template_key` (`user_hourly_memorization_reminder` or `user_hourly_memorization_reminder_with_spotlight`). Spotlight emails link to **`APP_URL/?filter=memorize`** and highlight the memorized item needing the most practice.
+Verify schedules: `select jobname, schedule from cron.job where jobname like 'invoke-user-%reminder%';` (expect `*/15 * * * *`).
 
-Confirm logs under **Supabase → Edge Functions → send-user-hourly-memorization-reminders**. Optionally: `select * from cron.job where jobname = 'invoke-user-hourly-memorization-reminders';`
+**Admin → Settings → Email** still controls prayer/memorization **email templates** (spotlight vs simple). Per-prayer reminders use template key **`user_prayer_item_reminder`**.
 
 ### Community prayer reminders (`send-prayer-reminders`)
 

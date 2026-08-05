@@ -637,24 +637,24 @@ export class HelpContentService {
       {
         id: 'help_prayer_reminders',
         title: 'Prayer reminders',
-        description: 'Optional hourly nudges to pause and pray',
+        description: 'Optional nudges to pause and pray',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
         content: [
           {
             subtitle: 'What they are',
-            text: 'Prayer reminders are optional, personal prompts at the top of clock hours you choose—a short nudge to pause and pray. They are only for you and are separate from community prayer update emails (those are set up by admins for people who submitted requests).',
+            text: 'Prayer reminders are optional, personal prompts at clock times you choose in 15-minute steps (:00, :15, :30, :45)—a short nudge to pause and pray. They are only for you and are separate from community prayer update emails (those are set up by admins for people who submitted requests). You can also set a reminder on a specific prayer from the bell icon on its card.',
           },
           {
             subtitle: 'How to set them up',
-            text: 'Open Settings (gear icon). In the Prayer reminders section, pick an hour from the dropdown and tap Add reminder. You can add more than one hour. Remove any slot you no longer need. Reminder times use your device time zone.',
+            text: 'Open Settings (gear icon). In the Prayer reminders section, pick a time from the dropdown and tap Add reminder. You can add more than one time. Remove any slot you no longer need. Reminder times use your device time zone.',
           },
           {
             subtitle: 'Email and push',
-            text: 'If Email subscription is on in Settings, you can receive a reminder email at each chosen hour. If push notifications are enabled and this device is registered for push, you can also get a push at those times. If both are on, you may receive both.',
+            text: 'If Email subscription is on in Settings, you can receive a reminder email at each chosen time. If push notifications are enabled and this device is registered for push, you can also get a push at those times. If both are on, you may receive both.',
           },
           {
             subtitle: 'Tips',
-            text: 'Start with one or two hours that fit your routine. You can change or clear reminders anytime in Settings without affecting the rest of your account.',
+            text: 'Start with one or two times that fit your routine. You can change or clear reminders anytime in Settings without affecting the rest of your account.',
           },
         ],
         order: 11,
@@ -666,20 +666,20 @@ export class HelpContentService {
       {
         id: 'help_memorization_reminders',
         title: 'Memorization reminders',
-        description: 'Optional hourly nudges to practice scripture memory',
+        description: 'Optional nudges to practice scripture memory',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
         content: [
           {
             subtitle: 'What they are',
-            text: 'Memorization reminders are optional, personal prompts at the top of clock hours you choose—a short nudge to open the Memorize tab and practice your verses. They are separate from prayer reminders and from admin email broadcasts.',
+            text: 'Memorization reminders are optional, personal prompts at clock times you choose in 15-minute steps (:00, :15, :30, :45)—a short nudge to open the Memorize tab and practice your verses. They are separate from prayer reminders and from admin email broadcasts.',
           },
           {
             subtitle: 'How to set them up',
-            text: 'Open Settings (gear icon). In the Memorization reminders section (below Memorization practice), pick an hour from the dropdown and tap Add reminder. You can add more than one hour. Remove any slot you no longer need. Reminder times use your device time zone.',
+            text: 'Open Settings (gear icon). In the Memorization reminders section (below Memorization practice), pick a time from the dropdown and tap Add reminder. You can add more than one time. Remove any slot you no longer need. Reminder times use your device time zone.',
           },
           {
             subtitle: 'Email and push',
-            text: 'If Email subscription is on in Settings, you can receive a reminder email at each chosen hour. If push notifications are enabled and this device is registered for push, you can also get a push at those times. If both are on, you may receive both. Emails may highlight a verse or list item that needs the most practice when your church uses the spotlight template.',
+            text: 'If Email subscription is on in Settings, you can receive a reminder email at each chosen time. If push notifications are enabled and this device is registered for push, you can also get a push at those times. If both are on, you may receive both. Emails may highlight a verse or list item that needs the most practice when your church uses the spotlight template.',
           },
           {
             subtitle: 'Tips',

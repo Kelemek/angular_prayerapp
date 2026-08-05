@@ -15,6 +15,10 @@ function defaultPrayerCardCtorDeps() {
     encouragement: {
       getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
     } as any,
+    itemReminders: {
+      ensureLoaded: vi.fn().mockResolvedValue([]),
+      remindersForPrayer: vi.fn().mockReturnValue([]),
+    } as any,
     cdr: { markForCheck: vi.fn() } as any,
   };
 }
@@ -58,9 +62,13 @@ describe('PrayerCardComponent', () => {
     };
 
     mockUserSessionService = {
-      userSession$: {
-        subscribe: vi.fn()
-      },
+      userSession$: of({
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        fullName: 'John Doe',
+        isActive: true,
+      }),
       getShowPrayForButton$: vi.fn().mockReturnValue(of(true)),
       getShowPrayingCount$: vi.fn().mockReturnValue(of(true)),
       getCurrentSession: vi.fn().mockReturnValue({
@@ -79,6 +87,7 @@ describe('PrayerCardComponent', () => {
       deps.badge,
       deps.prayerService,
       deps.encouragement,
+      deps.itemReminders,
       deps.cdr,
       mockRichTextEditorsSettings as any
     );
@@ -109,6 +118,40 @@ describe('PrayerCardComponent', () => {
 
     (component.prayer as any).status = 'archived';
     expect(component.getBorderClass()).toContain('C9A961');
+  });
+
+  describe('showReminderButton', () => {
+    it('shows for current community prayers when session email exists', () => {
+      (component.prayer as any).status = 'current';
+      component.isPersonal = false;
+      expect(component.showReminderButton()).toBe(true);
+    });
+
+    it('hides for answered and archived community prayers', () => {
+      component.isPersonal = false;
+      (component.prayer as any).status = 'answered';
+      expect(component.showReminderButton()).toBe(false);
+      (component.prayer as any).status = 'archived';
+      expect(component.showReminderButton()).toBe(false);
+    });
+
+    it('hides for answered personal prayers', () => {
+      component.isPersonal = true;
+      (component.prayer as any).category = 'Answered';
+      expect(component.showReminderButton()).toBe(false);
+    });
+
+    it('shows for active personal prayers that are not answered', () => {
+      component.isPersonal = true;
+      (component.prayer as any).category = 'Family';
+      expect(component.showReminderButton()).toBe(true);
+    });
+
+    it('hides when there is no session email', () => {
+      mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({ email: '' });
+      (component.prayer as any).status = 'current';
+      expect(component.showReminderButton()).toBe(false);
+    });
   });
 
   it('getBorderClass uses neutral border for personal prayers regardless of status', () => {
@@ -559,6 +602,7 @@ describe('PrayerCardComponent', () => {
       { getBadgeFunctionalityEnabled$: () => of(false) } as any,
       localPrayerService as any,
       localPrayerEncouragementService as any,
+      { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
       localCdr as any,
       mockRichTextEditorsSettings as any
     );
@@ -635,6 +679,7 @@ describe('PrayerCardComponent', () => {
         { getBadgeFunctionalityEnabled$: () => of(false) } as any,
         mockPrayerService,
         mockPrayerEncouragementService,
+        { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
         mockCdr as any,
         mockRichTextEditorsSettings as any
       );
@@ -823,6 +868,7 @@ describe('PrayerCardComponent', () => {
         deps.badge,
         deps.prayerService,
         deps.encouragement,
+        { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
         deps.cdr,
         mockRichTextEditorsSettings as any
       );
@@ -963,6 +1009,7 @@ describe('PrayerCardComponent', () => {
         deps.badge,
         deps.prayerService,
         deps.encouragement,
+        { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
         deps.cdr,
         mockRichTextEditorsSettings as any
       );
@@ -1068,6 +1115,7 @@ describe('PrayerCardComponent', () => {
         deps.badge,
         deps.prayerService,
         deps.encouragement,
+        { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
         deps.cdr,
         mockRichTextEditorsSettings as any
       );
@@ -1151,6 +1199,7 @@ describe('PrayerCardComponent', () => {
         deps.badge,
         deps.prayerService,
         deps.encouragement,
+        { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
         deps.cdr,
         mockRichTextEditorsSettings as any
       );
@@ -1227,6 +1276,7 @@ describe('PrayerCardComponent', () => {
         deps.badge,
         deps.prayerService,
         deps.encouragement,
+        { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
         deps.cdr,
         mockRichTextEditorsSettings as any
       );
@@ -1283,6 +1333,7 @@ describe('PrayerCardComponent', () => {
         deps.badge,
         deps.prayerService,
         deps.encouragement,
+        { ensureLoaded: vi.fn().mockResolvedValue([]), remindersForPrayer: vi.fn().mockReturnValue([]) } as any,
         deps.cdr,
         mockRichTextEditorsSettings as any
       );

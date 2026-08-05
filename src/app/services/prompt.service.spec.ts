@@ -6,6 +6,7 @@ import { ToastService } from './toast.service';
 import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
+import { PrayerItemReminderService } from './prayer-item-reminder.service';
 
 describe('PromptService', () => {
   let service: PromptService;
@@ -14,6 +15,7 @@ describe('PromptService', () => {
   let mockCacheService: any;
   let mockBadgeService: any;
   let mockUserSessionService: any;
+  let mockPrayerItemReminderService: { dropRemindersForPrayer: ReturnType<typeof vi.fn> };
   let userSessionSubject: BehaviorSubject<{ email: string } | null>;
   let consoleErrorSpy: any;
 
@@ -41,6 +43,10 @@ describe('PromptService', () => {
       markPrayerAsRead: vi.fn(),
       markPromptAsRead: vi.fn(),
       getBadgeFunctionalityEnabled$: vi.fn(() => ({ subscribe: vi.fn() }))
+    };
+
+    mockPrayerItemReminderService = {
+      dropRemindersForPrayer: vi.fn(),
     };
 
     userSessionSubject = new BehaviorSubject<{ email: string } | null>(null);
@@ -107,7 +113,8 @@ describe('PromptService', () => {
       mockToastService,
       mockCacheService,
       mockBadgeService,
-      mockUserSessionService
+      mockUserSessionService,
+      mockPrayerItemReminderService as unknown as PrayerItemReminderService
     );
   });
 
@@ -585,6 +592,15 @@ describe('PromptService', () => {
 
       expect(result).toBe(true);
       expect(mockToastService.success).toHaveBeenCalledWith('Prompt deleted successfully');
+    });
+
+    it('drops prompt reminders from session cache via PrayerItemReminderService', async () => {
+      await service.deletePrompt('prompt-123');
+
+      expect(mockPrayerItemReminderService.dropRemindersForPrayer).toHaveBeenCalledWith(
+        'prompt-123',
+        'prompt'
+      );
     });
 
     it('should call delete with correct id', async () => {

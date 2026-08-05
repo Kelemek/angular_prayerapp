@@ -87,14 +87,18 @@ export class UserHourReminderService {
     const { table, slotsKey, fetchedAtKey } = CONFIG[kind];
     const { data, error } = await this.supabase.client
       .from(table)
-      .select('id, iana_timezone, local_hour')
+      .select('id, iana_timezone, local_hour, local_minute')
       .eq('user_email', email)
-      .order('local_hour', { ascending: true });
+      .order('local_hour', { ascending: true })
+      .order('local_minute', { ascending: true });
 
     if (error) {
       throw error;
     }
-    const slots = (data ?? []) as UserHourReminderSlot[];
+    const slots = ((data ?? []) as UserHourReminderSlot[]).map((s) => ({
+      ...s,
+      local_minute: s.local_minute ?? 0,
+    }));
     if (
       generation !== this.fetchGeneration[kind] ||
       !this.sessionStillMatches(email)
@@ -118,7 +122,8 @@ export class UserHourReminderService {
     kind: UserHourReminderKind,
     email: string,
     ianaTimezone: string,
-    localHour: number
+    localHour: number,
+    localMinute = 0
   ): Promise<UserHourReminderSlot[]> {
     this.fetchGeneration[kind]++;
     const { table } = CONFIG[kind];
@@ -126,6 +131,7 @@ export class UserHourReminderService {
       user_email: email.trim(),
       iana_timezone: ianaTimezone,
       local_hour: localHour,
+      local_minute: localMinute,
     });
     if (error) {
       throw error;

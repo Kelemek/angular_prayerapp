@@ -21,6 +21,10 @@ import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-
 import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { PromptService } from '../../services/prompt.service';
+import { PrayerItemReminderService } from '../../services/prayer-item-reminder.service';
+import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/prayer-item-reminder-modal.component';
+import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
+import type { PrayerItemReminder } from '../../types/prayer-item-reminder';
 import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
@@ -39,12 +43,12 @@ export interface PrayerPrompt {
 @Component({
   selector: 'app-prompt-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, CardMetaHeaderBandComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, CardMetaHeaderBandComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
       [class]="'prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 pb-4 mb-4 transition-colors relative ' + shellPaddingClasses"
-      [attr.id]="tourPromptAnchors ? 'tour-prompt-card-sample' : null"
+      [attr.id]="'prompt-card-' + prompt.id"
     >
       <!-- Meta header: type (left) | delete (right) -->
       <app-card-meta-header-band layout="two-column">
@@ -58,7 +62,14 @@ export interface PrayerPrompt {
             {{ prompt.type }}
           </button>
         </div>
-        <div cardMetaRight>
+        <div cardMetaRight class="flex items-center gap-2">
+          @if (showReminderButton()) {
+          <app-prayer-item-reminder-bell-button
+            [hasReminder]="hasReminderForPrompt()"
+            itemLabel="prompt"
+            (reminder)="openReminderModal()"
+          />
+          }
           @if (isAdmin) {
           <button
             type="button"
@@ -195,6 +206,18 @@ export interface PrayerPrompt {
         </div>
       </div>
       }
+
+      <app-prayer-item-reminder-modal
+        [isOpen]="showReminderModal"
+        [email]="reminderSessionEmail()"
+        [prayerKind]="'prompt'"
+        [prayerId]="prompt.id"
+        [titleSnapshot]="prompt.title"
+        [prayerFor]="prompt.type"
+        [reminders]="remindersForThisPrompt()"
+        (close)="showReminderModal = false"
+        (remindersChange)="onPromptRemindersChanged($event)"
+      />
     </div>
   `,
   styles: []
@@ -215,13 +238,16 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);
   private readonly promptService = inject(PromptService);
+  private readonly prayerItemReminderService = inject(PrayerItemReminderService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   promptBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);
   showConfirmationDialog = false;
   showPrayForModal = false;
+  showReminderModal = false;
   prayForDoNotShowAgain = false;
+  private allPrayerItemReminders: PrayerItemReminder[] = [];
   private storageListener: ((event: StorageEvent) => void) | null = null;
   private promptBadgeSubject$ = new BehaviorSubject<boolean>(false);
   private destroy$ = new Subject<void>();
@@ -229,6 +255,7 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   constructor(public badgeService: BadgeService) {}
 
   ngOnInit(): void {
+    this.loadPrayerItemReminders();
     // Initialize badge by checking if prompt is unread
     this.initializePromptBadge();
     this.promptBadge$ = this.promptBadgeSubject$.asObservable();
@@ -249,6 +276,11 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
     };
 
     window.addEventListener('storage', this.storageListener);
+    this.userSessionService.userSession$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadPrayerItemReminders();
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -367,5 +399,70 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
 
   markPromptAsRead(): void {
     this.badgeService.markPromptAsRead(this.prompt.id);
+  }
+
+  private loadPrayerItemReminders(): void {
+    if (!this.reminderSessionEmail()) {
+      this.allPrayerItemReminders = [];
+      this.cdr.markForCheck();
+      return;
+    }
+    void this.prayerItemReminderService
+      .ensureLoaded()
+      .then((rows) => {
+        this.allPrayerItemReminders = rows;
+        this.cdr.markForCheck();
+      })
+      .catch((err) => {
+        console.error('[PromptCard] Failed to load prayer item reminders:', err);
+        void this.prayerItemReminderService
+          .ensureLoaded(true)
+          .then((rows) => {
+            this.allPrayerItemReminders = rows;
+            this.cdr.markForCheck();
+          })
+          .catch((retryErr) => {
+            console.error(
+              '[PromptCard] Retry load prayer item reminders failed:',
+              retryErr
+            );
+            this.cdr.markForCheck();
+          });
+      });
+  }
+
+  reminderSessionEmail(): string {
+    return this.userSessionService.getCurrentSession()?.email?.trim() ?? '';
+  }
+
+  showReminderButton(): boolean {
+    return !!this.reminderSessionEmail() && !!this.prompt?.id;
+  }
+
+  remindersForThisPrompt(): PrayerItemReminder[] {
+    if (!this.prompt?.id) return [];
+    const sessionRows =
+      this.userSessionService.getCurrentSession()?.prayerItemReminders;
+    const all = sessionRows ?? this.allPrayerItemReminders;
+    return this.prayerItemReminderService.remindersForPrayer(
+      all,
+      this.prompt.id,
+      'prompt'
+    );
+  }
+
+  hasReminderForPrompt(): boolean {
+    return this.remindersForThisPrompt().length > 0;
+  }
+
+  openReminderModal(): void {
+    this.showReminderModal = true;
+    this.loadPrayerItemReminders();
+    this.cdr.markForCheck();
+  }
+
+  onPromptRemindersChanged(all: PrayerItemReminder[]): void {
+    this.allPrayerItemReminders = all;
+    this.cdr.markForCheck();
   }
 }
