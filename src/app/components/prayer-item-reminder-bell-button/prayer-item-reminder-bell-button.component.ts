@@ -5,6 +5,7 @@ import {
   Input,
   Output,
 } from '@angular/core';
+import { PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prayer-item-reminder-bell-button',
@@ -20,7 +21,10 @@ import {
       [attr.id]="tourAnchorId"
       [attr.aria-label]="ariaLabel"
       [attr.title]="title"
-      class="inline-flex items-center justify-center text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1.5 sm:p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
+      [class]="
+        'inline-flex items-center justify-center text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' +
+        iconButtonPaddingClasses
+      "
     >
       @if (hasReminder) {
       <svg class="block size-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -53,6 +57,9 @@ import {
   `,
 })
 export class PrayerItemReminderBellButtonComponent {
+  readonly iconButtonPaddingClasses =
+    PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
+
   @Input() hasReminder = false;
   /** `prayer` uses prayer-card copy; `prompt` uses shorter prompt-card copy. */
   @Input() itemLabel: 'prayer' | 'prompt' = 'prayer';

@@ -25,7 +25,14 @@ import { PrayerItemReminderService } from '../../services/prayer-item-reminder.s
 import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/prayer-item-reminder-modal.component';
 import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import type { PrayerItemReminder } from '../../types/prayer-item-reminder';
-import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_META_ACTIONS_GAP_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import {
+  PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
+  PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
+  PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES,
+  PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
+  PRAYER_CARD_SHELL_PADDING_CLASSES,
+} from '../../lib/prayer-card-layout';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
@@ -56,7 +63,7 @@ export interface PrayerPrompt {
           <button
             type="button"
             (click)="onTypeClick.emit(prompt.type)"
-            [class]="'block h-full min-h-9 min-w-0 max-w-full truncate text-left text-sm font-bold transition-colors cursor-pointer ' + headerInsetClasses + ' ' + getTypeHeaderTextClasses()"
+            [class]="'block h-full min-w-0 max-w-full truncate text-left font-bold transition-colors cursor-pointer ' + metaHeaderMinHeightClasses + ' ' + headerInsetClasses + ' ' + metaHeaderTextSmClasses + ' ' + getTypeHeaderTextClasses()"
             [title]="isTypeSelected ? 'Remove ' + prompt.type + ' filter' : 'Filter by ' + prompt.type"
           >
             {{ prompt.type }}
@@ -76,7 +83,7 @@ export interface PrayerPrompt {
             (click)="handleDelete()"
             aria-label="Delete prayer prompt"
             title="Delete prompt"
-            class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1.5 sm:p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
+            [class]="'inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
@@ -235,6 +242,10 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
   readonly metaActionsGapClasses = PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
+  readonly metaHeaderMinHeightClasses = PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES;
+  readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
+  readonly iconButtonPaddingClasses =
+    PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
 
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);

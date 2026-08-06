@@ -10,9 +10,9 @@ export interface PrayerUpdateRecord {
 }
 
 const HEADER_LABEL_BASE_SM =
-  'block min-w-0 max-w-full truncate text-sm font-medium ';
+  'block min-w-0 max-w-full truncate text-[14px] font-medium ';
 const HEADER_LABEL_BASE_MD =
-  'block min-w-0 max-w-full truncate text-sm md:text-base font-medium ';
+  'block min-w-0 max-w-full truncate text-[14px] md:text-[16px] font-medium ';
 const ANSWERED_LABEL_CLASSES = 'font-bold text-[#39704D] dark:text-[#5FB876]';
 const DEFAULT_LABEL_CLASSES = 'text-gray-600 dark:text-gray-400';
 

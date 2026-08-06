@@ -11,6 +11,8 @@ import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
 import {
   PRAYER_CARD_HEADER_INSET_CLASSES,
   PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
+  PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
+  PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
 } from '../../lib/prayer-card-layout';
 
 @Component({
@@ -37,13 +39,13 @@ import {
           }
         } @else if (showStatus) {
         <span
-          [class]="'block min-w-0 max-w-full truncate text-sm font-bold ' + headerInsetClasses + ' ' + statusTextClasses"
+          [class]="'block min-w-0 max-w-full truncate font-bold ' + metaHeaderTextSmClasses + ' ' + headerInsetClasses + ' ' + statusTextClasses"
         >
           {{ statusLabel }}
         </span>
         } @else if (isMember) {
         <span
-          [class]="'block min-w-0 max-w-full truncate text-sm font-bold ' + headerInsetClasses + ' ' + memberHeaderTextClasses"
+          [class]="'block min-w-0 max-w-full truncate font-bold ' + metaHeaderTextSmClasses + ' ' + headerInsetClasses + ' ' + memberHeaderTextClasses"
         >
           Member
         </span>
@@ -63,7 +65,7 @@ import {
           (click)="share.emit()"
           aria-label="Share personal prayer"
           title="Share prayer to public"
-          class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1.5 sm:p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
+          [class]="'text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -77,7 +79,7 @@ import {
           [attr.id]="personalEditTourId"
           aria-label="Edit personal prayer"
           title="Edit prayer"
-          class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1.5 sm:p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
+          [class]="'text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -92,7 +94,7 @@ import {
           [attr.id]="personalDeleteTourId"
           aria-label="Delete prayer request"
           title="Delete prayer request"
-          class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1.5 sm:p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
+          [class]="'inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="3 6 5 6 21 6"></polyline>
@@ -107,6 +109,9 @@ import {
 export class PrayerCardMetaHeaderComponent {
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
   readonly actionsGapClasses = PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
+  readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
+  readonly iconButtonPaddingClasses =
+    PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
   /** Matches Planning Center member card border (`#0047AB`). */
   readonly memberHeaderTextClasses = 'text-[#0047AB] dark:text-[#4A90E2]';
 

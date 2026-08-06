@@ -28,7 +28,11 @@ import {
   shouldDismissPersonalCategoryPickerOnScroll,
   shouldOpenPersonalCategoryColorPickerUp,
 } from './personal-category-picker-placement';
-import { PRAYER_CARD_HEADER_INSET_CLASSES } from '../../lib/prayer-card-layout';
+import {
+  PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES,
+  PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
+} from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-personal-category-pill',
@@ -44,14 +48,14 @@ import { PRAYER_CARD_HEADER_INSET_CLASSES } from '../../lib/prayer-card-layout';
   },
   template: `
     <div
-      [class]="variant === 'header' ? 'relative h-full min-h-9 min-w-0 max-w-full w-full overflow-hidden' : 'relative inline-block'"
+      [class]="variant === 'header' ? 'relative h-full min-w-0 max-w-full w-full overflow-hidden ' + metaHeaderMinHeightClasses : 'relative inline-block'"
       data-personal-category-pill
     >
       <button
         type="button"
         [class]="
           variant === 'header'
-            ? 'personal-category-header-band block h-full min-h-9 w-full min-w-0 max-w-full ' + headerInsetClasses + ' text-left text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden'
+            ? 'personal-category-header-band block h-full w-full min-w-0 max-w-full ' + metaHeaderMinHeightClasses + ' ' + headerInsetClasses + ' text-left font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden ' + metaHeaderTextSmClasses
             : 'personal-category-pill px-2 py-1 text-xs font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500'
         "
         [title]="variant === 'header' ? category : null"
@@ -90,6 +94,8 @@ import { PRAYER_CARD_HEADER_INSET_CLASSES } from '../../lib/prayer-card-layout';
 })
 export class PersonalCategoryPillComponent implements OnInit {
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+  readonly metaHeaderMinHeightClasses = PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES;
+  readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
 
   @Input({ required: true }) category!: string;
   @Input() variant: 'pill' | 'header' = 'pill';
