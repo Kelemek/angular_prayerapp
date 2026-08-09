@@ -912,9 +912,9 @@ function escapeForIlikePattern(value: string): string {
             <!-- Expanded Details - Only Visible When Expanded -->
             @if (expandedCards.has(prayer.id)) {
             <div
-              class="px-6 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+              class="px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-w-0"
             >
-              <div class="space-y-2">
+              <div class="space-y-2 min-w-0">
                 <div class="flex items-center justify-between mb-3">
                   <h5
                     class="text-sm font-semibold text-gray-900 dark:text-gray-100"
@@ -1123,11 +1123,11 @@ function escapeForIlikePattern(value: string): string {
 
                 <!-- View Mode -->
                 @if (editingPrayer !== prayer.id) {
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 min-w-0">
                   <!-- Basic Information -->
-                  <div class="space-y-3">
+                  <div class="min-w-0">
                     <div
-                      class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+                      class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 min-w-0 overflow-hidden"
                     >
                       <h6
                         class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-2"
@@ -1135,46 +1135,54 @@ function escapeForIlikePattern(value: string): string {
                         Basic Information
                       </h6>
 
-                      <div class="space-y-2 text-sm">
-                        <div>
+                      <div class="space-y-2 text-sm min-w-0">
+                        <div class="flex min-w-0 items-baseline gap-2">
                           <span
-                            class="font-medium text-gray-700 dark:text-gray-300"
+                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
                             >Title:</span
                           >
-                          <span class="ml-2 text-gray-600 dark:text-gray-400">{{
-                            prayer.title
-                          }}</span>
+                          <span
+                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
+                            [title]="prayer.title"
+                            >{{ prayer.title }}</span
+                          >
                         </div>
 
-                        <div>
+                        <div class="flex min-w-0 items-baseline gap-2">
                           <span
-                            class="font-medium text-gray-700 dark:text-gray-300"
+                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
                             >Requester:</span
                           >
-                          <span class="ml-2 text-gray-600 dark:text-gray-400">{{
-                            prayer.requester
-                          }}</span>
+                          <span
+                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
+                            [title]="prayer.requester"
+                            >{{ prayer.requester }}</span
+                          >
                         </div>
 
                         @if (prayer.email) {
-                        <div>
+                        <div class="flex min-w-0 items-baseline gap-2">
                           <span
-                            class="font-medium text-gray-700 dark:text-gray-300"
+                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
                             >Email:</span
                           >
-                          <span class="ml-2 text-gray-600 dark:text-gray-400">{{
-                            prayer.email
-                          }}</span>
+                          <span
+                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
+                            [title]="prayer.email"
+                            >{{ prayer.email }}</span
+                          >
                         </div>
                         } @if (prayer.prayer_for) {
-                        <div>
+                        <div class="flex min-w-0 items-baseline gap-2">
                           <span
-                            class="font-medium text-gray-700 dark:text-gray-300"
+                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
                             >Praying For:</span
                           >
-                          <span class="ml-2 text-gray-600 dark:text-gray-400">{{
-                            prayer.prayer_for
-                          }}</span>
+                          <span
+                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
+                            [title]="prayer.prayer_for"
+                            >{{ prayer.prayer_for }}</span
+                          >
                         </div>
                         }
                       </div>
@@ -1182,9 +1190,9 @@ function escapeForIlikePattern(value: string): string {
                   </div>
 
                   <!-- Status Information -->
-                  <div class="space-y-3">
+                  <div class="min-w-0">
                     <div
-                      class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+                      class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 min-w-0 overflow-hidden"
                     >
                       <h6
                         class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-2"

@@ -2537,4 +2537,66 @@ describe('PrayerSearchComponent', () => {
       expect(component.sendDialogPrayerTitle).toBeUndefined();
     });
   });
+
+  describe('basic information overflow', () => {
+    it('truncates long Basic Information values instead of overflowing the card', async () => {
+      const { readFileSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const source = readFileSync(
+        join(__dirname, 'prayer-search.component.ts'),
+        'utf8'
+      );
+      const basicInfoBlock = source.slice(
+        source.indexOf('<!-- Basic Information -->'),
+        source.indexOf('<!-- Status Information -->')
+      );
+
+      expect(basicInfoBlock).toContain('min-w-0 truncate');
+      expect(basicInfoBlock).toContain('[title]="prayer.email"');
+      expect(basicInfoBlock).toContain('[title]="prayer.title"');
+      expect(basicInfoBlock).toContain('[title]="prayer.requester"');
+      expect(basicInfoBlock).toContain('[title]="prayer.prayer_for"');
+      expect(basicInfoBlock).toContain('overflow-hidden');
+    });
+
+    it('uses the same vertical gap between Basic/Status as the sections below', async () => {
+      const { readFileSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const source = readFileSync(
+        join(__dirname, 'prayer-search.component.ts'),
+        'utf8'
+      );
+      const viewModeBlock = source.slice(
+        source.indexOf('<!-- View Mode -->'),
+        source.indexOf('<!-- Description -->')
+      );
+
+      expect(viewModeBlock).toContain(
+        'grid grid-cols-1 md:grid-cols-2 gap-2 min-w-0'
+      );
+      expect(viewModeBlock).not.toContain(
+        'grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0'
+      );
+    });
+
+    it('uses compact horizontal padding on expanded prayer details', async () => {
+      const { readFileSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const source = readFileSync(
+        join(__dirname, 'prayer-search.component.ts'),
+        'utf8'
+      );
+      const expandedDetails = source.slice(
+        source.indexOf('<!-- Expanded Details - Only Visible When Expanded -->'),
+        source.indexOf('<!-- View Mode -->')
+      );
+
+      expect(expandedDetails).toContain(
+        'px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-w-0'
+      );
+      expect(expandedDetails).not.toContain(
+        'px-6 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-w-0'
+      );
+    });
+  });
 });
