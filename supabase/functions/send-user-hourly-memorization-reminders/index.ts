@@ -5,6 +5,8 @@
  * Spotlight template fills {{spotlightItemReference}}, {{spotlightItemKind}}, {{spotlightMasteryLevel}},
  * {{spotlightVerseText}}, {{spotlightBlockHtml}} (empty when user has no memorized items).
  * Spotlight picks the item needing the most work (learning tier, least recently practiced, fewest sessions).
+ * Verse body: try scripture_cache by memorized_items.reference (legacy human-readable key), then call the
+ * `scripture` Edge Function (USFM cache key + upstream fetch) so Learning / uncached passages still include text.
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
  * Spotlight selection logic is duplicated from src/app/lib/memorization/memorization-reminder-spotlight.ts
  * (single-file bundle required for Supabase Edge deploy; keep both in sync).
@@ -528,6 +530,8 @@ Deno.serve(async (req: Request) => {
       if (useSpotlightVariables) {
         spotlight = await loadSpotlightForRecipient(
           supabase,
+          supabaseUrl,
+          serviceKey,
           recipient,
           sub.hourly_memorization_reminder_last_spotlight_key ?? null
         );
@@ -684,8 +688,61 @@ Deno.serve(async (req: Request) => {
   }
 });
 
+/**
+ * Resolve passage text for a verse spotlight item.
+ * Fast path: legacy human-readable scripture_cache key (matches memorized_items.reference).
+ * Fallback: `scripture` Edge Function (tries USFM + legacy keys, then upstream API).
+ */
+async function resolveSpotlightVerseText(
+  supabase: SupabaseClient<any>,
+  supabaseUrl: string,
+  serviceKey: string,
+  reference: string,
+  translation: string
+): Promise<string> {
+  const translationCode = (translation || 'esv').toLowerCase();
+
+  const { data: cached, error: cacheErr } = await supabase
+    .from('scripture_cache')
+    .select('text')
+    .eq('reference', reference)
+    .eq('translation', translationCode)
+    .maybeSingle();
+  if (cacheErr) {
+    console.error('scripture_cache lookup failed', cacheErr);
+  }
+  const cachedText = (cached as { text?: string } | null)?.text?.trim() ?? '';
+  if (cachedText) {
+    return normalizeScriptureTextForEmail(cachedText);
+  }
+
+  try {
+    const url = new URL(`${supabaseUrl}/functions/v1/scripture`);
+    url.searchParams.set('reference', reference);
+    url.searchParams.set('translation', translationCode);
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+      },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error('scripture fetch for memorization spotlight failed', res.status, body);
+      return '';
+    }
+    const payload = (await res.json()) as { text?: string };
+    return normalizeScriptureTextForEmail(payload.text?.trim() ?? '');
+  } catch (e) {
+    console.error('scripture fetch for memorization spotlight threw', e);
+    return '';
+  }
+}
+
 async function loadSpotlightForRecipient(
   supabase: SupabaseClient<any>,
+  supabaseUrl: string,
+  serviceKey: string,
   recipientEmail: string,
   lastSpotlightId: string | null
 ): Promise<SpotlightResult | null> {
@@ -721,17 +778,12 @@ async function loadSpotlightForRecipient(
   if (row.kind === 'bibleBooks') {
     verseText = row.text?.trim() ?? '';
   } else {
-    const { data: cached, error: cacheErr } = await supabase
-      .from('scripture_cache')
-      .select('text')
-      .eq('reference', row.reference)
-      .eq('translation', row.translation || 'esv')
-      .maybeSingle();
-    if (cacheErr) {
-      console.error('scripture_cache lookup failed', cacheErr);
-    }
-    verseText = normalizeScriptureTextForEmail(
-      (cached as { text?: string } | null)?.text?.trim() ?? ''
+    verseText = await resolveSpotlightVerseText(
+      supabase,
+      supabaseUrl,
+      serviceKey,
+      row.reference,
+      row.translation || 'esv'
     );
   }
 
