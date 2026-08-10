@@ -36,17 +36,6 @@ import { ToastService } from '../../services/toast.service';
                 (Anonymous)
               </span>
             }
-            @if (prayer.is_shared_personal_prayer) {
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 ml-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                Shared Personal Prayer
-              </span>
-            }
           </p>
           @if (prayer.in_planning_center !== null) {
             <p class="text-xs mb-1">
@@ -91,7 +80,6 @@ import { ToastService } from '../../services/toast.service';
       ></app-rich-text-view>
 
       <!-- Updates Section (within the card) -->
-      <!-- For shared personal prayers, updates are shown but approved as a unit with the prayer -->
       @if (pendingUpdates && pendingUpdates.length > 0) {
         <div class="mb-6 border-t border-gray-200 dark:border-gray-700 pt-4">
           <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-4">
@@ -197,8 +185,7 @@ import { ToastService } from '../../services/toast.service';
                 </div>
 
                 <!-- Denial Form for Update -->
-                <!-- Only shown for regular prayers, not shared personal prayers -->
-                @if (!prayer.is_shared_personal_prayer && denyingUpdateId === update.id) {
+                @if (denyingUpdateId === update.id) {
                   <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700 mb-3">
                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Reason for denial (optional)
@@ -214,45 +201,42 @@ import { ToastService } from '../../services/toast.service';
                 }
 
                 <!-- Update Actions -->
-                <!-- Hidden for shared personal prayers - updates are approved at prayer level -->
-                @if (!prayer.is_shared_personal_prayer) {
-                  <div class="flex justify-end gap-2">
-                    @if (denyingUpdateId !== update.id) {
-                      <button
-                        (click)="startDenyingUpdate(update.id)"
-                        class="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium cursor-pointer"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                        Deny
-                      </button>
-                      <button
-                        (click)="handleApproveUpdate(update.id)"
-                        class="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium cursor-pointer"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Approve
-                      </button>
-                    } @else {
-                      <button
-                        (click)="handleDenyUpdate(update.id)"
-                        class="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium cursor-pointer"
-                      >
-                        Confirm Denial
-                      </button>
-                      <button
-                        (click)="cancelDenyingUpdate()"
-                        class="flex items-center gap-1 px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs font-medium cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    }
-                  </div>
-                }
+                <div class="flex justify-end gap-2">
+                  @if (denyingUpdateId !== update.id) {
+                    <button
+                      (click)="startDenyingUpdate(update.id)"
+                      class="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium cursor-pointer"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                      Deny
+                    </button>
+                    <button
+                      (click)="handleApproveUpdate(update.id)"
+                      class="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium cursor-pointer"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Approve
+                    </button>
+                  } @else {
+                    <button
+                      (click)="handleDenyUpdate(update.id)"
+                      class="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium cursor-pointer"
+                    >
+                      Confirm Denial
+                    </button>
+                    <button
+                      (click)="cancelDenyingUpdate()"
+                      class="flex items-center gap-1 px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs font-medium cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  }
+                </div>
               </div>
             }
           </div>
@@ -274,9 +258,8 @@ import { ToastService } from '../../services/toast.service';
         </div>
       }
 
-      <!-- Single Approve/Deny Buttons (Show when no pending updates OR when this is a shared personal prayer) -->
-      <!-- For shared personal prayers, approval is at prayer level only (updates are auto-approved) -->
-      @if (!pendingUpdates || pendingUpdates.length === 0 || prayer.is_shared_personal_prayer) {
+      <!-- Single Approve/Deny Buttons (shown when there are no pending updates) -->
+      @if (!pendingUpdates || pendingUpdates.length === 0) {
         <div class="flex gap-3 justify-end border-t border-gray-200 dark:border-gray-700 pt-6">
           @if (!isDenyingPrayer) {
           <button

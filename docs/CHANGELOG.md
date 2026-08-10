@@ -4,6 +4,34 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Personal — answered checkmark replaces share
+- Personal prayer cards no longer offer **Share to public**. The upload/share control is replaced by the same answered checkmark used on member updates: tap to set category **Answered**, tap again to clear it ([`prayer-card-meta-header.component.ts`](src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts), [`prayer-card.component.ts`](src/app/components/prayer-card/prayer-card.component.ts)). `PrayerService.sharePrayerForApproval` was removed.
+- Admin approval no longer special-cases shared personal prayers; the `prayers.is_shared_personal_prayer` column is dropped ([`20260809180000_drop_is_shared_personal_prayer.sql`](../supabase/migrations/20260809180000_drop_is_shared_personal_prayer.sql)).
+- Edit / update-edit “Mark as answered” now clears category **Answered** when unchecked, and the update-edit modal stays open if setting/clearing the prayer category fails.
+- Update-edit content is not HTML-`required` when **Mark as answered** is checked, so empty content can submit and use the default “Marked as answered” text (same as add-update).
+- Legacy personal return handoffs without a filter mode restore **Total** (old All Categories), not **Current**.
+- Personal update-edit applies category Answered/clear **before** saving the update row, and rolls the category back if the update save fails.
+- Category sync also runs when the update is already marked answered but the prayer is not yet in **Answered**; category writes from that modal use `silentSuccess` so rollback does not show a success toast.
+- If update save fails and category rollback also fails, the modal shows an error asking the user to refresh.
+- Personal return contexts with mode **named** but no category list fall back to **Total** so a chip stays selected.
+- Update-edit “Mark as answered” reflects prayer category **Answered** on open, and unchecking clears that category even when only the header/edit path had marked the prayer answered.
+- Clearing **Answered** (header checkmark or edit) also clears `mark_as_answered` on that prayer’s updates before the category write, and update-edit no longer pre-checks from a stale update flag—so editing update content cannot silently re-answer the prayer.
+- **Bug fix** — unmarking answered failed when clearing update flags because the bulk update filtered on `prayer_id` instead of `personal_prayer_id` ([`prayer.service.ts`](src/app/services/prayer.service.ts)).
+- **Bug fix** — `?prayerId=` deep links to answered personal prayers now switch the Personal chip to **Answered** so the card is in the DOM for scroll ([`home.component.ts`](src/app/pages/home/home.component.ts), [`prayer-item-deep-link.ts`](src/app/lib/prayer-item-deep-link.ts)).
+
+- **Help — personal answered checkmark**: Personal Prayers guided tour highlights the header **checkmark** ([`help-driver-tour.service.ts`](src/app/services/help-driver-tour.service.ts)); Updating Prayers help copy distinguishes community vs personal updates ([`help-content.service.ts`](src/app/services/help-content.service.ts)).
+
+### Personal — tighter meta header action padding
+- Personal prayer card header actions (reminder, answered checkmark, edit, delete) use tighter horizontal inset (`px-2` / `sm:px-3`) because those cards have no corner unread badge; community cards keep the wider inset for badge clearance ([`prayer-card-layout.ts`](src/app/lib/prayer-card-layout.ts), [`card-meta-header-band.component.ts`](src/app/components/card-meta-header-band/card-meta-header-band.component.ts), [`prayer-card-meta-header.component.ts`](src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts)).
+- The personal **category** header label uses the same compact inset ([`personal-category-pill.component.ts`](src/app/components/personal-category-color-picker/personal-category-pill.component.ts)).
+- Personal and member **update** rows use the same compact left/right meta header inset ([`prayer-update-row.component.ts`](src/app/components/prayer-update-row/prayer-update-row.component.ts)).
+
+### Personal — mark as answered on edit forms
+- **Edit Prayer** and **Edit Prayer Update** modals include the same **Mark this prayer as answered** checkbox as **Add Update**. Checking it on prayer edit sets category to **Answered**; on update edit it saves `mark_as_answered` (or `is_answered` for member updates) and moves the personal prayer to the **Answered** category ([`personal-prayer-edit-modal.component.ts`](src/app/components/personal-prayer-edit-modal/personal-prayer-edit-modal.component.ts), [`personal-prayer-update-edit-modal.component.ts`](src/app/components/personal-prayer-update-edit-modal/personal-prayer-update-edit-modal.component.ts)).
+
+### Personal — Current / Answered / Total category chips
+- On Home → **Personal**, filter chips are always available in order **Current** (excludes answered), **Answered**, **Total** (all personal prayers; formerly **All Categories**), then user-defined categories. **Current** is the default. Answered is pinned as a fixed chip (not drag-reorderable). Pray handoff maps these chips to presentation status filters ([`home.component.ts`](src/app/pages/home/home.component.ts), [`presentation.ts`](src/app/types/presentation.ts)).
+
 ### Bug fix — Admin Prayer Editor basic info overflow
 - In **Admin → Tools → Prayer Editor**, long **Basic Information** values (especially email) truncate with an ellipsis inside the card instead of overflowing the box; full text remains available via hover `title` ([`prayer-search.component.ts`](src/app/components/prayer-search/prayer-search.component.ts)).
 - Expanded prayer details use the same vertical gap between **Basic Information**, **Status Information**, description, and updates (matching the tighter spacing below the first two cards).

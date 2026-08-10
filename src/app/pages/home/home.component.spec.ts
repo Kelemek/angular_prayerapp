@@ -35,6 +35,9 @@ const makeMocks = () => {
     reorderCategories: vi.fn(),
     loadPrayers: vi.fn().mockResolvedValue(undefined),
     loadPersonalPrayers: vi.fn().mockResolvedValue(undefined),
+    getPersonalPrayersSnapshot: vi.fn(() => []),
+    getAllCommunityPrayersSnapshot: vi.fn(() => []),
+    arePrayerCatalogsReady: vi.fn(() => true),
     updateMemberPrayerUpdate: vi.fn().mockResolvedValue(true),
     getMemberPrayerUpdates: vi.fn().mockResolvedValue([])
   };
@@ -681,10 +684,52 @@ describe('HomeComponent', () => {
     comp['applyHomeReturnContext']({
       activeFilter: 'personal',
       selectedPersonalCategories: ['Evening'],
+      personalCategoryFilterMode: 'named',
     });
 
     expect(setFilterSpy).toHaveBeenCalledWith('personal');
     expect(comp.selectedPersonalCategories).toEqual(['Evening']);
+    expect(comp.personalCategoryFilterMode).toBe('named');
+  });
+
+  it('applyHomeReturnContext restores personal Current mode', () => {
+    const comp = createHomeComponent(mocks);
+    comp.personalCategoryFilterMode = 'total';
+    comp.selectedPersonalCategories = ['Evening'];
+
+    comp['applyHomeReturnContext']({
+      activeFilter: 'personal',
+      personalCategoryFilterMode: 'current',
+    });
+
+    expect(comp.personalCategoryFilterMode).toBe('current');
+    expect(comp.selectedPersonalCategories).toEqual([]);
+  });
+
+  it('applyHomeReturnContext defaults legacy personal handoff to Total', () => {
+    const comp = createHomeComponent(mocks);
+    comp.personalCategoryFilterMode = 'current';
+
+    comp['applyHomeReturnContext']({
+      activeFilter: 'personal',
+    });
+
+    expect(comp.personalCategoryFilterMode).toBe('total');
+    expect(comp.selectedPersonalCategories).toEqual([]);
+  });
+
+  it('applyHomeReturnContext falls back to Total when named has no categories', () => {
+    const comp = createHomeComponent(mocks);
+    comp.personalCategoryFilterMode = 'current';
+    comp.selectedPersonalCategories = ['Evening'];
+
+    comp['applyHomeReturnContext']({
+      activeFilter: 'personal',
+      personalCategoryFilterMode: 'named',
+    });
+
+    expect(comp.personalCategoryFilterMode).toBe('total');
+    expect(comp.selectedPersonalCategories).toEqual([]);
   });
 
   it('loadAdminSettings loads deletion and update policies successfully', async () => {
@@ -998,10 +1043,12 @@ describe('HomeComponent', () => {
     it('togglePersonalCategory clears selection when already chosen', () => {
       const comp = createHomeComponent(mocks)
 
+      comp.personalCategoryFilterMode = 'named';
       comp.selectedPersonalCategories = ['Members'];
       comp.togglePersonalCategory('Members');
 
       expect(comp.selectedPersonalCategories).toEqual([]);
+      expect(comp.personalCategoryFilterMode).toBe('current');
     });
 
     it('togglePersonalCategory ignores click only on the long-pressed category', () => {
@@ -1012,6 +1059,7 @@ describe('HomeComponent', () => {
 
       comp.togglePersonalCategory('Other');
       expect(comp.selectedPersonalCategories).toEqual(['Other']);
+      expect(comp.personalCategoryFilterMode).toBe('named');
       expect((comp as any).suppressPersonalCategoryClickFor).toBe('Members');
 
       comp.togglePersonalCategory('Members');
@@ -1214,6 +1262,20 @@ describe('HomeComponent', () => {
       comp.togglePersonalCategory('NewCat');
       expect(comp.isPersonalCategorySelected('NewCat')).toBe(true);
       expect(comp.isPersonalCategorySelected('Other')).toBe(false);
+      expect(comp.personalCategoryFilterMode).toBe('named');
+    });
+
+    it('selectPersonalCategoryFilterMode switches fixed chips and clears named selection', () => {
+      const comp = createHomeComponent(mocks);
+      comp.personalCategoryFilterMode = 'named';
+      comp.selectedPersonalCategories = ['Health'];
+
+      comp.selectPersonalCategoryFilterMode('answered');
+      expect(comp.personalCategoryFilterMode).toBe('answered');
+      expect(comp.selectedPersonalCategories).toEqual([]);
+
+      comp.selectPersonalCategoryFilterMode('total');
+      expect(comp.personalCategoryFilterMode).toBe('total');
     });
   });
 
@@ -1411,12 +1473,61 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
       comp.personalPrayers = prayers;
+      comp.personalCategoryFilterMode = 'named';
       comp.selectedPersonalCategories = ['Evening'];
 
       const filtered = comp.getFilteredPersonalPrayers();
 
       expect(filtered).toHaveLength(1);
       expect(filtered[0].id).toBe('p2');
+    });
+
+    it('getFilteredPersonalPrayers Current mode excludes Answered', () => {
+      const prayers = [
+        { id: 'p1', title: 'Open', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Health' },
+        { id: 'p2', title: 'Done', description: 'Desc', prayer_for: 'Person', status: 'answered' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Answered' },
+        { id: 'p3', title: 'None', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [] },
+      ];
+
+      const comp = createHomeComponent(mocks);
+      comp.personalPrayers = prayers as any;
+      comp.personalCategoryFilterMode = 'current';
+
+      const filtered = comp.getFilteredPersonalPrayers();
+      expect(filtered.map((p) => p.id)).toEqual(['p1', 'p3']);
+      expect(comp.personalCurrentPrayersCount).toBe(2);
+      expect(comp.personalAnsweredPrayersCount).toBe(1);
+    });
+
+    it('getFilteredPersonalPrayers Answered and Total modes', () => {
+      const prayers = [
+        { id: 'p1', title: 'Open', description: 'Desc', prayer_for: 'Person', status: 'current' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Health' },
+        { id: 'p2', title: 'Done', description: 'Desc', prayer_for: 'Person', status: 'answered' as any, requester: 'Me', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), date_requested: new Date().toISOString(), updates: [], category: 'Answered' },
+      ];
+
+      const comp = createHomeComponent(mocks);
+      comp.personalPrayers = prayers as any;
+
+      comp.personalCategoryFilterMode = 'answered';
+      expect(comp.getFilteredPersonalPrayers().map((p) => p.id)).toEqual(['p2']);
+
+      comp.personalCategoryFilterMode = 'total';
+      expect(comp.getFilteredPersonalPrayers().map((p) => p.id)).toEqual([
+        'p1',
+        'p2',
+      ]);
+    });
+
+    it('extractUniqueCategories omits Answered from reorderable chips', async () => {
+      const prayerService = {
+        ...mocks.prayerService,
+        getUniqueCategoriesForUser: vi
+          .fn()
+          .mockResolvedValue(['Health', 'Answered', 'Family']),
+      };
+      const comp = createHomeComponent(mocks, { prayerService });
+      await (comp as any).extractUniqueCategories([]);
+      expect(comp.uniquePersonalCategories).toEqual(['Health', 'Family']);
     });
 
     it('markAllCurrentAsRead calls badgeService', () => {
@@ -1521,6 +1632,7 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = prayers;
+      comp.personalCategoryFilterMode = 'named';
       comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
       const event = {
@@ -1554,6 +1666,7 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = [...prayers]; // Make a copy to avoid reference issues
+      comp.personalCategoryFilterMode = 'named';
       comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
       const event = {
@@ -1753,6 +1866,7 @@ describe('HomeComponent', () => {
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
+      comp.personalCategoryFilterMode = 'named';
       comp.selectedPersonalCategories = ['Members'];
 
       const event = {
@@ -1775,6 +1889,7 @@ describe('HomeComponent', () => {
         { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1000 } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
+      comp.personalCategoryFilterMode = 'named';
       comp.selectedPersonalCategories = ['Members'];
 
       const event = {
@@ -1804,6 +1919,7 @@ describe('HomeComponent', () => {
         { id: '3', title: 'Prayer 3', category: 'Members', display_order: 999 } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
+      comp.personalCategoryFilterMode = 'named';
       comp.selectedPersonalCategories = ['Members'];
 
       const event = {
@@ -2528,6 +2644,33 @@ describe('HomeComponent', () => {
           replaceUrl: true
         })
       );
+    });
+
+    it('sets personal filter to answered when deep linking to answered personal prayer', () => {
+      const answeredPrayer = {
+        id: 'p-answered',
+        title: 'Answered prayer',
+        prayer_for: 'Test',
+        description: 'Desc',
+        category: 'Answered',
+        updates: [],
+      } as PrayerRequest;
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        answeredPrayer,
+      ]);
+      mocks.prayerService.getAllCommunityPrayersSnapshot.mockReturnValue([]);
+
+      const comp = createHomeComponent(mocks);
+      comp.personalPrayers = [answeredPrayer];
+      comp.personalCategoryFilterMode = 'current';
+      comp.activeFilter = 'personal';
+
+      (comp as any).openPrayerDeepLink('p-answered');
+
+      expect(comp.personalCategoryFilterMode).toBe('answered');
+      expect(
+        comp.getFilteredPersonalPrayers().some((p) => p.id === 'p-answered')
+      ).toBe(true);
     });
 
     it('should open Memorize tab from ?filter=memorize deep link and load items', async () => {

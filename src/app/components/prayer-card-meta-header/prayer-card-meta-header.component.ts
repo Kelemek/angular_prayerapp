@@ -27,6 +27,7 @@ import {
       [centerTime]="showCenterDateTime ? metaHeaderTime : null"
       [centerDragHandle]="centerDragHandle"
       [centerDragHandleId]="centerDragHandleId"
+      [compactActionsInset]="isPersonal"
     >
       <div cardMetaLeft class="w-full min-w-0">
         @if (isPersonal) {
@@ -62,15 +63,14 @@ import {
         @if (isPersonal) {
         <button
           type="button"
-          (click)="share.emit()"
-          aria-label="Share personal prayer"
-          title="Share prayer to public"
-          [class]="'text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
+          (click)="toggleAnswered.emit()"
+          [attr.id]="personalAnsweredTourId"
+          [title]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
+          [attr.aria-label]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
+          [class]="'focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses + ' ' + (isAnswered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-            <polyline points="16 6 12 2 8 6"></polyline>
-            <line x1="12" y1="2" x2="12" y2="15"></line>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </button>
         <button
@@ -128,15 +128,20 @@ export class PrayerCardMetaHeaderComponent {
   @Input() hasReminder = false;
   @Input() reminderBellTourId: string | null = null;
   @Input() personalEditTourId: string | null = null;
+  @Input() personalAnsweredTourId: string | null = null;
   @Input() personalDeleteTourId: string | null = null;
   @Input() centerDragHandle = false;
   @Input() centerDragHandleId: string | null = null;
 
-  @Output() share = new EventEmitter<void>();
+  @Output() toggleAnswered = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();
   @Output() delete = new EventEmitter<void>();
   @Output() reminder = new EventEmitter<void>();
   @Output() pickerOpenChange = new EventEmitter<boolean>();
+
+  get isAnswered(): boolean {
+    return this.category === 'Answered';
+  }
 
   get metaHeaderDate(): string {
     return formatPrayerCardShortDateParts(this.prayerCreatedAt).date;

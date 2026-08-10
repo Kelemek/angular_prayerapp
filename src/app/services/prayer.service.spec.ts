@@ -6681,6 +6681,169 @@ describe('PrayerService - Integration Tests', () => {
         expect(mockToastService.success).toHaveBeenCalled();
       });
 
+      it('should skip success toast when silentSuccess is set', async () => {
+        vi.spyOn(service as any, 'getUserEmail').mockResolvedValue('user@example.com');
+
+        const prayers = [
+          { id: '1', title: 'Prayer 1', category: 'Test', display_order: 1000 } as PrayerRequest,
+        ];
+        (service as any).allPersonalPrayersSubject.next(prayers);
+
+        const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
+        const mockEqChain = vi.fn().mockReturnValue({ eq: mockEq });
+        mockSupabaseService.client.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: mockEqChain
+          })
+        });
+
+        const result = await service.updatePersonalPrayer(
+          '1',
+          { title: 'Updated Title' },
+          { silentSuccess: true }
+        );
+
+        expect(result).toBe(true);
+        expect(mockToastService.success).not.toHaveBeenCalled();
+      });
+
+      it('clears mark_as_answered on updates when leaving Answered', async () => {
+        vi.spyOn(service as any, 'getUserEmail').mockResolvedValue('user@example.com');
+        vi.spyOn(service as any, 'getCategoryPrayerCount').mockResolvedValue(0);
+        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({
+          min: 0,
+          max: 999,
+        });
+
+        const prayers = [
+          {
+            id: '1',
+            title: 'Prayer 1',
+            category: 'Answered',
+            display_order: 1000,
+            updates: [
+              { id: 'u1', content: 'Done', mark_as_answered: true },
+              { id: 'u2', content: 'Note', mark_as_answered: false },
+            ],
+          } as PrayerRequest,
+        ];
+        (service as any).allPersonalPrayersSubject.next(prayers);
+
+        const updatesEq = vi.fn().mockResolvedValue({ data: null, error: null });
+        const prayerEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
+        const prayerEq1 = vi.fn().mockReturnValue({ eq: prayerEq2 });
+        const selectSingle = vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+
+        mockSupabaseService.client.from.mockImplementation((table: string) => {
+          if (table === 'personal_prayer_updates') {
+            return {
+              update: vi.fn().mockReturnValue({
+                eq: updatesEq,
+              }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  gte: vi.fn().mockReturnValue({
+                    lte: vi.fn().mockReturnValue({
+                      order: vi.fn().mockReturnValue({
+                        limit: vi.fn().mockReturnValue({
+                          single: selectSingle,
+                        }),
+                      }),
+                    }),
+                  }),
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: prayerEq1,
+            }),
+          };
+        });
+
+        const result = await service.updatePersonalPrayer('1', { category: null });
+
+        expect(result).toBe(true);
+        expect(mockSupabaseService.client.from).toHaveBeenCalledWith(
+          'personal_prayer_updates'
+        );
+        expect(updatesEq).toHaveBeenCalledWith('personal_prayer_id', '1');
+        const updated = (service as any).allPersonalPrayersSubject.value[0];
+        expect(updated.category).toBeNull();
+        expect(updated.updates.every((u: { mark_as_answered: boolean }) => !u.mark_as_answered)).toBe(
+          true
+        );
+      });
+
+      it('does not clear Answered when update answered flags fail to clear', async () => {
+        vi.spyOn(service as any, 'getUserEmail').mockResolvedValue('user@example.com');
+        vi.spyOn(service as any, 'getCategoryPrayerCount').mockResolvedValue(0);
+        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({
+          min: 0,
+          max: 999,
+        });
+
+        const prayers = [
+          {
+            id: '1',
+            title: 'Prayer 1',
+            category: 'Answered',
+            display_order: 1000,
+            updates: [{ id: 'u1', content: 'Done', mark_as_answered: true }],
+          } as PrayerRequest,
+        ];
+        (service as any).allPersonalPrayersSubject.next(prayers);
+
+        mockSupabaseService.client.from.mockImplementation((table: string) => {
+          if (table === 'personal_prayer_updates') {
+            return {
+              update: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: { message: 'clear failed' },
+                }),
+              }),
+            };
+          }
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  gte: vi.fn().mockReturnValue({
+                    lte: vi.fn().mockReturnValue({
+                      order: vi.fn().mockReturnValue({
+                        limit: vi.fn().mockReturnValue({
+                          single: vi.fn().mockResolvedValue({
+                            data: null,
+                            error: { code: 'PGRST116' },
+                          }),
+                        }),
+                      }),
+                    }),
+                  }),
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          };
+        });
+
+        const result = await service.updatePersonalPrayer('1', { category: null });
+
+        expect(result).toBe(false);
+        expect((service as any).allPersonalPrayersSubject.value[0].category).toBe(
+          'Answered'
+        );
+        expect(mockToastService.error).toHaveBeenCalled();
+      });
+
       it('should handle update errors', async () => {
         const mockEmail = 'user@example.com';
         

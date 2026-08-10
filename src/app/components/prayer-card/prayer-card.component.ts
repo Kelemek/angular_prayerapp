@@ -83,10 +83,11 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         [reminderBellTourId]="tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
         [showCenterDateTime]="!isMemberPrayer()"
         [personalEditTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
+        [personalAnsweredTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-answered' : null"
         [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
         [centerDragHandle]="personalDragHandle && isPersonal"
         [centerDragHandleId]="personalDragTourId"
-        (share)="showShareModal = true"
+        (toggleAnswered)="togglePersonalAnswered()"
         (edit)="editPersonalPrayer.emit(prayer)"
         (delete)="handleDeleteClick()"
         (reminder)="openReminderModal()"
@@ -259,6 +260,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
           <app-prayer-update-row
             [update]="update"
             [showUpdatedBy]="isCommunityPrayer()"
+            [compactHeaderInset]="isPersonal || isMemberPrayer()"
           >
             <app-prayer-update-actions
               updateActions
@@ -295,20 +297,6 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         [confirmText]="'Delete'"
         (confirm)="onConfirmDelete()"
         (cancel)="onCancelDelete()">
-      </app-confirmation-dialog>
-      }
-
-      <!-- Share Prayer Modal -->
-      @if (showShareModal) {
-      <app-confirmation-dialog
-        [title]="'Share Prayer?'"
-        [message]="'A copy of your prayer will be submitted for admin approval to share publicly.'"
-        [details]="'Your personal prayer stays in your private list. When approved, it will also appear on the main prayer board for the church to lift up in prayer.'"
-        [isDangerous]="false"
-        [confirmText]="'Share Prayer'"
-        [cancelText]="'Cancel'"
-        (confirm)="handleSharePrayer()"
-        (cancel)="showShareModal = false">
       </app-confirmation-dialog>
       }
 
@@ -439,8 +427,6 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   showUpdateDeleteRequestForm: string | null = null;
   showAllUpdates = false;
   showConfirmationDialog = false;
-  showShareModal = false;
-  isShareLoading = false;
   showUpdateConfirmationDialog = false;
   updateConfirmationTitle = '';
   updateConfirmationMessage = '';
@@ -450,6 +436,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   richTextEditorsEnabled = true;
   categoryPickerOpen = false;
   showReminderModal = false;
+  private isTogglingPersonalAnswered = false;
   private allPrayerItemReminders: PrayerItemReminder[] = [];
 
   onCategoryPickerOpenChange(open: boolean): void {
@@ -1134,24 +1121,21 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  async handleSharePrayer(): Promise<void> {
-    if (!this.isPersonal) return;
-    
+  async togglePersonalAnswered(): Promise<void> {
+    if (!this.isPersonal || this.isTogglingPersonalAnswered) {
+      return;
+    }
+
+    const markAnswered = this.prayer.category !== 'Answered';
+    this.isTogglingPersonalAnswered = true;
+    this.cdr.markForCheck();
     try {
-      this.isShareLoading = true;
-      await this.prayerService.sharePrayerForApproval(this.prayer.id);
-      
-      // Close the modal
-      this.showShareModal = false;
-      
-      // Emit delete event to notify parent component to refresh the prayer list
-      // The personal prayer has been deleted and converted to public
-      this.delete.emit(this.prayer.id);
-    } catch (error) {
-      console.error('Error sharing prayer:', error);
-      // Error handling is managed by the service toast
+      await this.prayerService.updatePersonalPrayer(this.prayer.id, {
+        category: markAnswered ? 'Answered' : null,
+      });
     } finally {
-      this.isShareLoading = false;
+      this.isTogglingPersonalAnswered = false;
+      this.cdr.markForCheck();
     }
   }
 }

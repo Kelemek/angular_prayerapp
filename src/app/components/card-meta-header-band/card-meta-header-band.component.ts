@@ -4,6 +4,7 @@ import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import {
   PRAYER_CARD_HEADER_BLEED_CLASSES,
   PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES,
   PRAYER_CARD_META_HEADER_CENTER_PADDING_CLASSES,
   PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES,
   PRAYER_CARD_META_HEADER_TEXT_XS_CLASSES,
@@ -46,7 +47,7 @@ import {
       <div
         [class]="
           'flex min-w-0 flex-shrink-0 items-center justify-end ' +
-          headerInsetClasses
+          actionsInsetClasses
         "
         [class.col-start-2]="layout === 'two-column'"
         [class.row-start-1]="layout === 'two-column'"
@@ -83,6 +84,17 @@ export class CardMetaHeaderBandComponent {
   /** When true, the center date/time is the CDK drag handle (personal prayer reorder). */
   @Input() centerDragHandle = false;
   @Input() centerDragHandleId: string | null = null;
+  /**
+   * When true, use tighter horizontal padding on the actions column
+   * (cards without corner unread badges, e.g. personal).
+   */
+  @Input() compactActionsInset = false;
+
+  get actionsInsetClasses(): string {
+    return this.compactActionsInset
+      ? PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES
+      : PRAYER_CARD_HEADER_INSET_CLASSES;
+  }
 
   get centerClass(): string {
     const size =

@@ -48,7 +48,7 @@ export type PrayerUpdateActionsMode = 'personal' | 'member' | 'readonly';
       [attr.aria-label]="update.is_answered ? 'Mark as unanswered' : 'Mark as answered'"
       [class]="'focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses + ' ' + (update.is_answered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="20 6 9 17 4 12"></polyline>
       </svg>
     </button>

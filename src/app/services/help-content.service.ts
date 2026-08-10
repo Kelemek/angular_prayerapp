@@ -250,7 +250,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Updating Prayers',
-            text: 'Click the "Update" button to add an update about the prayer request. This allows you to share progress, answered prayers, or new developments with your prayer community. You can update both regular prayers and personal prayers with new information.',
+            text: 'Click the "Update" button to add an update about the prayer request. Community updates are visible to the church; personal updates stay in your private list. Use updates to record progress, thanksgiving, or new developments.',
           },
           {
             subtitle: 'Mark as Anonymous',
@@ -415,11 +415,11 @@ export class HelpContentService {
           },
           {
             subtitle: 'Filtering Personal Prayers by Category',
-            text: 'Once you have personal prayers with categories, you can filter them by category. In the Personal filter view, category filter buttons appear showing each category and the number of prayers in that category. Click a category button to show only prayers in that category. Long-press a category chip (or right-click on desktop) to rename it. Click "All Categories" to show all your personal prayers again. This makes it easy to focus on prayers in specific areas of your life.',
+            text: 'Once you have personal prayers, filter chips always appear: **Current** (everything except answered), **Answered**, and **Total** (all personal prayers), then any categories you created. Click a category chip to show only prayers in that category. Long-press a category chip (or right-click on desktop) to rename it. Re-tap a category chip to return to Current. This makes it easy to focus on prayers in specific areas of your life.',
           },
           {
             subtitle: 'Editing Personal Prayers',
-            text: 'Click the edit button (pencil icon) on any personal prayer card to modify it. You can update the prayer subject (Prayer For field), change the description, or reassign the category. All changes are saved immediately. This is helpful when you need to add more details or track the evolution of your prayer request over time.',
+            text: 'Click the edit button (pencil icon) on any personal prayer card to modify it. You can update the prayer subject (Prayer For field), change the description, reassign the category, or check "Mark this prayer as answered" to move it into the Answered category. All changes are saved immediately. This is helpful when you need to add more details or track the evolution of your prayer request over time.',
           },
           {
             subtitle: 'Adding Prayer Updates',
@@ -427,11 +427,11 @@ export class HelpContentService {
           },
           {
             subtitle: 'Editing Prayer Updates',
-            text: 'Click the edit button (pencil icon) on any prayer update to modify the update content. This allows you to correct typos, add more details, or clarify what you wrote. Your edits are saved instantly. You can also delete updates if needed.',
+            text: 'Click the edit button (pencil icon) on any prayer update to modify the update content. You can also check "Mark this prayer as answered" while editing an update—the same option as when adding an update. This allows you to correct typos, add more details, or clarify what you wrote. Your edits are saved instantly. You can also delete updates if needed.',
           },
           {
             subtitle: 'Managing Prayer Status',
-            text: 'As you pray and see answers, you can mark prayers as "Answered" by adding an update with the "Mark this prayer as answered" option checked. Answered personal prayers get marked with an Answered badge and are put into an Answered category.',
+            text: 'As you pray and see answers, you can mark prayers as "Answered" with the green checkmark on the card header, by checking "Mark this prayer as answered" when adding or editing an update, or when editing the prayer itself. Answered personal prayers are put into an Answered category and show under the Answered filter chip. Tap the checkmark again to move the prayer out of Answered.',
           },
           {
             subtitle: 'Reordering Personal Prayers',
@@ -449,10 +449,6 @@ export class HelpContentService {
           {
             subtitle: 'Searching Personal Prayers',
             text: 'The search feature works with personal prayers too. Use the search bar to find personal prayers by the prayer subject, description, or category. This is helpful when you have many personal prayers and want to quickly find prayers about a specific topic.',
-          },
-          {
-            subtitle: 'Sharing Personal Prayers to the Community',
-            text: 'If you\'d like to share a personal prayer with the prayer community for additional support, you can click the share button (upload icon) on any personal prayer card. This creates a public copy of your prayer that will be submitted for administrator approval. Your original personal prayer remains in your account so you can continue to track it privately. Once approved by an administrator, your shared prayer will appear in the community prayer list along with all its updates. This is a great way to request community prayer support when you\'re ready to share.',
           },
           {
             subtitle: 'Privacy & Personal Data',

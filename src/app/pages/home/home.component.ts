@@ -82,12 +82,13 @@ import {
 } from "rxjs";
 import { PlanningCenterListService } from "../../services/planning-center-list.service";
 import { mapHomeFilterToContentType } from "../../services/presentation-settings.service";
-import { resolvePrayerItemDeepLinkTab } from "../../lib/prayer-item-deep-link";
+import { resolvePrayerItemDeepLinkTab, resolvePersonalDeepLinkCategoryMode } from "../../lib/prayer-item-deep-link";
 import { isMemberPrayerId } from "../../lib/prayer-card-kind";
 import {
   HomePresentationFilter,
   HomeReturnContext,
   HOME_RETURN_CONTEXT_STATE_KEY,
+  PersonalCategoryFilterMode,
   PRESENTATION_HOME_HANDOFF_STATE_KEY,
   SelectablePresentationContentType,
   buildPresentationHomeHandoff,
@@ -919,8 +920,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
           }
 
           <!-- Personal Category Filters -->
-          @if (activeFilter === 'personal' && uniquePersonalCategories.length >
-          0) {
+          @if (activeFilter === 'personal') {
           <div
             id="tour-personal-category-filters"
             cdkDropList
@@ -930,13 +930,14 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             [cdkDropListDisabled]="isSwappingCategories"
             class="flex flex-wrap gap-2 mb-4"
           >
-            <!-- All Categories Button -->
+            <!-- Fixed: Current -->
             <button
-              (click)="selectedPersonalCategories = []"
+              type="button"
+              (click)="selectPersonalCategoryFilterMode('current')"
               [disabled]="isSwappingCategories"
               [class]="
                 'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
-                (selectedPersonalCategories.length === 0
+                (personalCategoryFilterMode === 'current'
                   ? personalCategoryActiveClass
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
                 (isSwappingCategories
@@ -944,10 +945,46 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   : ' cursor-pointer')
               "
             >
-              All Categories ({{ personalPrayersCount }})
+              Current ({{ personalCurrentPrayersCount }})
             </button>
 
-            <!-- Individual Category Buttons -->
+            <!-- Fixed: Answered -->
+            <button
+              type="button"
+              (click)="selectPersonalCategoryFilterMode('answered')"
+              [disabled]="isSwappingCategories"
+              [class]="
+                'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
+                (personalCategoryFilterMode === 'answered'
+                  ? personalCategoryActiveClass
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
+                (isSwappingCategories
+                  ? ' opacity-50 cursor-not-allowed'
+                  : ' cursor-pointer')
+              "
+            >
+              Answered ({{ personalAnsweredPrayersCount }})
+            </button>
+
+            <!-- Fixed: Total -->
+            <button
+              type="button"
+              (click)="selectPersonalCategoryFilterMode('total')"
+              [disabled]="isSwappingCategories"
+              [class]="
+                'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
+                (personalCategoryFilterMode === 'total'
+                  ? personalCategoryActiveClass
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
+                (isSwappingCategories
+                  ? ' opacity-50 cursor-not-allowed'
+                  : ' cursor-pointer')
+              "
+            >
+              Total ({{ personalPrayersCount }})
+            </button>
+
+            <!-- Individual Category Buttons (excludes Answered) -->
             @for (category of uniquePersonalCategories; let i = $index; track
             category) {
             <div
@@ -1240,7 +1277,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
             <div
               cdkDropList
               (cdkDropListDropped)="onPersonalPrayerDrop($event)"
-              [cdkDropListDisabled]="selectedPersonalCategories.length !== 1"
+              [cdkDropListDisabled]="!canReorderPersonalPrayers"
               class="space-y-3"
             >
               @for (prayer of getFilteredPersonalPrayers(); track prayer.id; let
@@ -1258,7 +1295,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                   [isPersonal]="true"
                   [deletionsAllowed]="'everyone'"
                   [updatesAllowed]="'everyone'"
-                  [personalDragHandle]="selectedPersonalCategories.length === 1"
+                  [personalDragHandle]="canReorderPersonalPrayers"
                   [personalDragTourId]="
                     prayer.prayer_for === personalWalkthroughPrayerFor
                       ? 'tour-walkthrough-personal-drag-handle'
@@ -1393,6 +1430,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   viewReady = false;
   selectedPromptTypes: string[] = [];
   selectedPersonalCategories: string[] = [];
+  /** Fixed Personal chips: Current / Answered / Total, or a named user category. */
+  personalCategoryFilterMode: PersonalCategoryFilterMode = "current";
   private pendingHomeReturnContext: HomeReturnContext | null = null;
   isCategoryDragging = false;
   uniquePersonalCategories: string[] = [];
@@ -1857,7 +1896,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.scheduleScrollToPrayerId(prayerId);
       return;
     }
-    this.clearDeepLinkFilters();
+    this.clearDeepLinkFilters({ prayerId });
     const tab = resolvePrayerItemDeepLinkTab(
       prayerId,
       this.prayerService.getAllCommunityPrayersSnapshot(),
@@ -1882,7 +1921,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.prayerDeepLinkFreshCatalogRequested = false;
       return;
     }
-    this.clearDeepLinkFilters();
+    this.clearDeepLinkFilters({ prayerId: id });
     const tab = resolvePrayerItemDeepLinkTab(
       id,
       this.prayerService.getAllCommunityPrayersSnapshot(),
@@ -1992,7 +2031,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /** Clear search/type filters so deep-linked cards are visible in the DOM. */
-  private clearDeepLinkFilters(): void {
+  private clearDeepLinkFilters(options?: { prayerId?: string }): void {
     let changed = false;
     if (this.filters.searchTerm?.trim()) {
       this.filters = { ...this.filters, searchTerm: "" };
@@ -2002,8 +2041,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.selectedPromptTypes = [];
       changed = true;
     }
-    if (this.selectedPersonalCategories.length > 0) {
-      this.selectedPersonalCategories = [];
+    if (this.applyPersonalFilterForDeepLink(options?.prayerId)) {
       changed = true;
     }
     if (this.filters.type) {
@@ -2021,6 +2059,39 @@ export class HomeComponent implements OnInit, OnDestroy {
       status: this.filters.status,
       search: "",
     });
+  }
+
+  /**
+   * Personal Current excludes Answered; deep links to answered personal prayers
+   * must switch to the Answered chip so the card is rendered for scroll.
+   */
+  private applyPersonalFilterForDeepLink(prayerId?: string): boolean {
+    const personalMode = prayerId
+      ? resolvePersonalDeepLinkCategoryMode(
+          prayerId,
+          this.prayerService.getPersonalPrayersSnapshot()
+        )
+      : null;
+
+    if (personalMode !== null) {
+      if (
+        this.personalCategoryFilterMode !== personalMode ||
+        this.selectedPersonalCategories.length > 0
+      ) {
+        this.selectPersonalCategoryFilterMode(personalMode);
+        return true;
+      }
+      return false;
+    }
+
+    if (
+      this.selectedPersonalCategories.length > 0 ||
+      this.personalCategoryFilterMode !== "current"
+    ) {
+      this.selectPersonalCategoryFilterMode("current");
+      return true;
+    }
+    return false;
   }
 
   private openPromptDeepLink(promptId: string): void {
@@ -2277,6 +2348,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             document.getElementById("tour-walkthrough-add-update")?.click();
           },
           narrowToWalkthroughCategoryFilter: () => {
+            this.personalCategoryFilterMode = "named";
             this.selectedPersonalCategories = [
               PERSONAL_PRAYER_WALKTHROUGH_CATEGORY,
             ];
@@ -3134,8 +3206,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Only allow reordering when viewing a single category
-    if (this.selectedPersonalCategories.length !== 1) {
+    // Only allow reordering when viewing a single named category
+    if (!this.canReorderPersonalPrayers) {
       this.toastService.error("Select a single category to reorder prayers");
       return;
     }
@@ -3339,26 +3411,54 @@ export class HomeComponent implements OnInit, OnDestroy {
     return this.selectedPromptTypes.includes(type);
   }
 
+  selectPersonalCategoryFilterMode(
+    mode: Exclude<PersonalCategoryFilterMode, "named">
+  ): void {
+    this.personalCategoryFilterMode = mode;
+    this.selectedPersonalCategories = [];
+  }
+
+  get canReorderPersonalPrayers(): boolean {
+    return (
+      this.personalCategoryFilterMode === "named" &&
+      this.selectedPersonalCategories.length === 1
+    );
+  }
+
+  get personalCurrentPrayersCount(): number {
+    return this.personalPrayers.filter((p) => p.category !== "Answered")
+      .length;
+  }
+
+  get personalAnsweredPrayersCount(): number {
+    return this.personalPrayers.filter((p) => p.category === "Answered")
+      .length;
+  }
+
   togglePersonalCategory(category: string): void {
     if (this.suppressPersonalCategoryClickFor === category) {
       this.clearPersonalCategoryClickSuppress();
       return;
     }
 
-    // If clicking the currently selected category, deselect it (show all)
+    // If clicking the currently selected category, return to Current
     if (
+      this.personalCategoryFilterMode === "named" &&
       this.selectedPersonalCategories.length === 1 &&
       this.selectedPersonalCategories[0] === category
     ) {
-      this.selectedPersonalCategories = [];
+      this.selectPersonalCategoryFilterMode("current");
     } else {
-      // Select only this category (deselect all others)
+      this.personalCategoryFilterMode = "named";
       this.selectedPersonalCategories = [category];
     }
   }
 
   isPersonalCategorySelected(category: string): boolean {
-    return this.selectedPersonalCategories.includes(category);
+    return (
+      this.personalCategoryFilterMode === "named" &&
+      this.selectedPersonalCategories.includes(category)
+    );
   }
 
   onPersonalCategoryPointerDown(event: PointerEvent, category: string): void {
@@ -3562,8 +3662,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     prayers: PrayerRequest[]
   ): Promise<void> {
     // Use prayer service method which sorts by display_order, pass the prayers directly
-    this.uniquePersonalCategories =
+    const categories =
       await this.prayerService.getUniqueCategoriesForUser(prayers);
+    // Answered is a fixed chip; keep it out of the reorderable user-category list
+    this.uniquePersonalCategories = categories.filter(
+      (category) => category !== "Answered"
+    );
     // Force immediate change detection to ensure categories render
     this.cdr.detectChanges();
   }
@@ -3657,12 +3761,29 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Filter by selected categories
-    if (this.selectedPersonalCategories.length > 0) {
-      filtered = filtered.filter(
-        (p) =>
-          p.category && this.selectedPersonalCategories.includes(p.category)
-      );
+    // Filter by Personal category mode (Current / Answered / Total / named)
+    switch (this.personalCategoryFilterMode) {
+      case "current":
+        filtered = filtered.filter((p) => p.category !== "Answered");
+        break;
+      case "answered":
+        filtered = filtered.filter((p) => p.category === "Answered");
+        break;
+      case "total":
+        break;
+      case "named":
+        if (this.selectedPersonalCategories.length > 0) {
+          filtered = filtered.filter(
+            (p) =>
+              p.category &&
+              this.selectedPersonalCategories.includes(p.category)
+          );
+        }
+        break;
+      default: {
+        const _exhaustive: never = this.personalCategoryFilterMode;
+        return _exhaustive;
+      }
     }
 
     return filtered;
@@ -3939,6 +4060,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       activeFilter: this.activeFilter as HomePresentationFilter,
       selectedPromptTypes: this.selectedPromptTypes,
       selectedPersonalCategories: this.selectedPersonalCategories,
+      personalCategoryFilterMode: this.personalCategoryFilterMode,
     });
   }
 
@@ -3964,11 +4086,20 @@ export class HomeComponent implements OnInit, OnDestroy {
     ) {
       this.selectedPromptTypes = [...context.selectedPromptTypes];
     }
-    if (
-      context.activeFilter === "personal" &&
-      context.selectedPersonalCategories?.length
-    ) {
-      this.selectedPersonalCategories = [...context.selectedPersonalCategories];
+    if (context.activeFilter === "personal") {
+      let mode = context.personalCategoryFilterMode ?? "total";
+      // Named without categories would show all prayers with no chip selected — use Total.
+      if (mode === "named" && !context.selectedPersonalCategories?.length) {
+        mode = "total";
+      }
+      this.personalCategoryFilterMode = mode;
+      if (mode === "named" && context.selectedPersonalCategories?.length) {
+        this.selectedPersonalCategories = [
+          ...context.selectedPersonalCategories,
+        ];
+      } else {
+        this.selectedPersonalCategories = [];
+      }
     }
   }
 

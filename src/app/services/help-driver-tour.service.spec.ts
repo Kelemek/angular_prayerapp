@@ -1063,7 +1063,7 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts hands-on walkthrough when Request and Personal filter exist (16 steps)', () => {
+    it('starts hands-on walkthrough when Request and Personal filter exist (17 steps)', () => {
       const req = document.createElement('button');
       req.id = TOUR_REQUEST_BTN_MOBILE_ID;
       document.body.appendChild(req);
@@ -1073,7 +1073,7 @@ describe('HelpDriverTourService', () => {
       service.startPersonalPrayersHelpSectionTour(sampleSection, handsOnHooks);
       expect(driver).toHaveBeenCalledTimes(1);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(16);
+      expect(config?.steps?.length).toBe(17);
       expect(config?.steps?.[0]?.element).toBeUndefined();
     });
   });

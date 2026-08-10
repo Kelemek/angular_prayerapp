@@ -193,15 +193,15 @@ describe('InfoComponent', () => {
 
   describe('personal action modal', () => {
     it('should set personalActionModal when openPersonalActionModal is called', () => {
-      component.openPersonalActionModal('share');
-      expect(component.personalActionModal).toBe('share');
+      component.openPersonalActionModal('answered');
+      expect(component.personalActionModal).toBe('answered');
       component.openPersonalActionModal('edit');
       expect(component.personalActionModal).toBe('edit');
       component.openPersonalActionModal('delete');
       expect(component.personalActionModal).toBe('delete');
     });
     it('should clear personalActionModal when closePersonalActionModal is called', () => {
-      component.openPersonalActionModal('share');
+      component.openPersonalActionModal('answered');
       component.closePersonalActionModal();
       expect(component.personalActionModal).toBeNull();
     });

@@ -427,10 +427,6 @@ export class AdminDataService {
   /**
    * Send notification emails to all subscribers for an approved prayer
    * Called when admin clicks the "Send Emails" button
-   * 
-   * For shared personal prayers:
-   * - If it has updates: send approved update notification with the most recent update
-   * - If no updates: send approved prayer notification
    */
   async sendApprovedPrayerEmails(id: string): Promise<void> {
     const supabaseClient = this.supabase.client;
@@ -444,65 +440,14 @@ export class AdminDataService {
 
     if (fetchError) throw fetchError;
     if (!prayer) throw new Error('Prayer not found');
-    
-    // For shared personal prayers, check if it has updates
-    if (prayer.is_shared_personal_prayer) {
-      // Fetch the most recent update with the prayer data (using same pattern as sendApprovedUpdateEmails)
-      const { data: updates, error: updatesError } = await supabaseClient
-        .from('prayer_updates')
-        .select('*, prayers(title, description, status)')
-        .eq('prayer_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1);
 
-      if (updatesError) {
-        console.error('[AdminDataService] Error fetching updates for shared prayer:', updatesError);
-      }
-
-      const hasUpdates = updates && updates.length > 0;
-      
-      if (hasUpdates) {
-        // Send update notification with the most recent update (using same pattern as sendApprovedUpdateEmails)
-        const latestUpdate = updates[0];
-        const prayerData = latestUpdate.prayers && typeof latestUpdate.prayers === 'object' ? latestUpdate.prayers : null;
-        
-        const prayerTitle = prayerData && 'title' in prayerData
-          ? String(prayerData.title)
-          : prayer.title;
-        const prayerDescription = prayerData && 'description' in prayerData
-          ? String(prayerData.description)
-          : prayer.description;
-        const prayerStatus =
-          prayerData && 'status' in prayerData ? String(prayerData.status) : String(prayer.status);
-
-        this.emailNotification.sendApprovedUpdateNotification({
-          prayerTitle: prayerTitle,
-          prayerDescription: prayerDescription,
-          content: latestUpdate.content,
-          author: latestUpdate.is_anonymous ? 'Anonymous' : (latestUpdate.author || 'Anonymous'),
-          prayerStatus,
-          markedAsAnswered: latestUpdate.mark_as_answered || false
-        }).catch(err => console.error('Failed to send update notification:', err));
-      } else {
-        // Send prayer notification if no updates
-        this.emailNotification.sendApprovedPrayerNotification({
-          title: prayer.title,
-          description: prayer.description,
-          requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
-          prayerFor: prayer.prayer_for,
-          status: prayer.status
-        }).catch(err => console.error('Failed to send prayer notification:', err));
-      }
-    } else {
-      // For regular prayers, always send prayer notification
-      this.emailNotification.sendApprovedPrayerNotification({
-        title: prayer.title,
-        description: prayer.description,
-        requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
-        prayerFor: prayer.prayer_for,
-        status: prayer.status
-      }).catch(err => console.error('Failed to send broadcast notification:', err));
-    }
+    this.emailNotification.sendApprovedPrayerNotification({
+      title: prayer.title,
+      description: prayer.description,
+      requester: prayer.is_anonymous ? 'Anonymous' : prayer.requester,
+      prayerFor: prayer.prayer_for,
+      status: prayer.status
+    }).catch(err => console.error('Failed to send broadcast notification:', err));
 
     // Push notification: title = prayer title, body = description (truncated) or fallback
     const pushTitle = prayer.title.length > 50 ? prayer.title.slice(0, 47) + '...' : prayer.title;

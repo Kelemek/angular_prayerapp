@@ -43,7 +43,10 @@ import { resolvePrayerUpdateContent } from "../../lib/prayer-update-content";
               for="content"
               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
-              Update Content <span aria-label="required">*</span>
+              Update Content
+              @if (!markAsAnswered) {
+              <span aria-label="required">*</span>
+              }
             </label>
             @if (richTextEditorsEnabled) {
             <app-rich-text-editor
@@ -51,7 +54,6 @@ import { resolvePrayerUpdateContent } from "../../lib/prayer-update-content";
               [(ngModel)]="formData.content"
               name="content"
               ngDefaultControl
-              required
               ariaLabel="Prayer update content"
               placeholder="Update details…"
               minHeight="8rem"
@@ -61,13 +63,29 @@ import { resolvePrayerUpdateContent } from "../../lib/prayer-update-content";
               id="content"
               name="content"
               [(ngModel)]="formData.content"
-              required
+              [required]="!markAsAnswered"
               rows="10"
               aria-label="Prayer update content"
               placeholder="Update details…"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100 min-h-[8rem] whitespace-pre-wrap"
             ></textarea>
             }
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="editUpdateMarkAsAnswered"
+              [(ngModel)]="markAsAnswered"
+              name="markAsAnswered"
+              class="rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
+            />
+            <label
+              for="editUpdateMarkAsAnswered"
+              class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+            >
+              Mark this prayer as answered
+            </label>
           </div>
 
           <div class="flex justify-end pt-4">
@@ -104,6 +122,7 @@ export class PersonalPrayerUpdateEditModalComponent
     content: "",
   };
 
+  markAsAnswered = false;
   isSubmitting = false;
   richTextEditorsEnabled = true;
 
@@ -130,12 +149,30 @@ export class PersonalPrayerUpdateEditModalComponent
       this.formData = {
         content: this.update.content,
       };
+      if (this.isMemberUpdate) {
+        this.markAsAnswered = !!this.update.is_answered;
+      } else {
+        // Prayer category is source of truth. Do not pre-check from a stale
+        // update.mark_as_answered after the prayer was unmarked via header/edit.
+        this.markAsAnswered = this.getPersonalPrayerCategory() === "Answered";
+      }
     }
+  }
+
+  private getPersonalPrayerCategory(): string | null {
+    return (
+      this.prayerService
+        .getPersonalPrayersSnapshot()
+        .find((p) => p.id === this.prayerId)?.category ?? null
+    );
   }
 
   canSave(): boolean {
     if (this.isSubmitting) {
       return false;
+    }
+    if (this.markAsAnswered) {
+      return true;
     }
     return !!resolvePrayerUpdateContent(this.readContentForValidation(), false);
   }
@@ -164,36 +201,77 @@ export class PersonalPrayerUpdateEditModalComponent
       const flushed = this.contentEditor?.flushMarkdownToForm();
       const rawContent =
         flushed !== undefined ? flushed : this.formData.content;
-      const content = resolvePrayerUpdateContent(rawContent, false);
+      const content = resolvePrayerUpdateContent(
+        rawContent,
+        this.markAsAnswered
+      );
       if (!content) {
         this.toast.error("Please enter update content");
         return;
       }
 
-      const updates: Partial<PrayerUpdate> = {
-        content,
-      };
-
       let success: boolean;
 
       if (this.isMemberUpdate) {
-        // For member updates, extract person_id from prayerId
         const personId = this.prayerId.substring("pc-member-".length);
+        const updates: Partial<PrayerUpdate> = {
+          content,
+          is_answered: this.markAsAnswered,
+        };
         success = await this.prayerService.updateMemberPrayerUpdate(
           this.update.id,
           personId,
           updates,
-          this.planningCenterListId ?? undefined // Pass listId for cache invalidation
+          this.planningCenterListId ?? undefined
         );
+        if (success) {
+          this.save.emit(updates);
+          this.close.emit();
+        }
       } else {
+        const previousCategory = this.getPersonalPrayerCategory();
+        // Sync category to match the checkbox: set Answered when checked, clear when
+        // unchecked even if only the prayer (not this update) was marked answered.
+        const needsCategoryChange = this.markAsAnswered
+          ? previousCategory !== "Answered"
+          : previousCategory === "Answered";
+        const silentCategory = { silentSuccess: true as const };
+
+        if (needsCategoryChange) {
+          const categoryOk = await this.prayerService.updatePersonalPrayer(
+            this.prayerId,
+            { category: this.markAsAnswered ? "Answered" : null },
+            silentCategory
+          );
+          if (!categoryOk) {
+            return;
+          }
+        }
+
+        const updates: Partial<PrayerUpdate> = {
+          content,
+          mark_as_answered: this.markAsAnswered,
+        };
         success = await this.prayerService.updatePersonalPrayerUpdate(
           this.update.id,
           this.prayerId,
           updates
         );
-      }
-
-      if (success) {
+        if (!success) {
+          if (needsCategoryChange) {
+            const rolledBack = await this.prayerService.updatePersonalPrayer(
+              this.prayerId,
+              { category: previousCategory },
+              silentCategory
+            );
+            if (!rolledBack) {
+              this.toast.error(
+                "Update was not saved, and the prayer category could not be restored. Please refresh and try again."
+              );
+            }
+          }
+          return;
+        }
         this.save.emit(updates);
         this.close.emit();
       }
@@ -210,6 +288,7 @@ export class PersonalPrayerUpdateEditModalComponent
     this.formData = {
       content: "",
     };
+    this.markAsAnswered = false;
     this.close.emit();
   }
 

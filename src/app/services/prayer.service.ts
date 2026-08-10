@@ -1,5 +1,5 @@
 import { Injectable, Optional } from '@angular/core';
-import { BehaviorSubject, Observable, fromEvent, distinctUntilChanged, first } from 'rxjs';
+import { BehaviorSubject, Observable, fromEvent, distinctUntilChanged } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -23,6 +23,8 @@ export interface PrayerUpdate {
   updated_at?: string;
   is_anonymous?: boolean;
   is_answered?: boolean;
+  /** Personal prayer updates use this flag (member updates use is_answered). */
+  mark_as_answered?: boolean;
   approval_status?: string;
   in_planning_center?: boolean | null;
 }
@@ -48,7 +50,6 @@ export interface PrayerRequest {
   prayer_image?: string | null;
   updates: PrayerUpdate[];
   in_planning_center?: boolean | null;
-  is_shared_personal_prayer?: boolean;
   prayed_for_count?: number;
   /** Set on personal-prayer rows (legacy cache entries may only have email). */
   user_email?: string;
@@ -1902,7 +1903,8 @@ export class PrayerService {
    */
   async updatePersonalPrayer(
     id: string,
-    updates: Partial<Pick<PrayerRequest, 'title' | 'prayer_for' | 'description' | 'category'>>
+    updates: Partial<Pick<PrayerRequest, 'title' | 'prayer_for' | 'description' | 'category'>>,
+    options?: { silentSuccess?: boolean }
   ): Promise<boolean> {
     try {
       const userEmail = await this.getUserEmail();
@@ -1951,6 +1953,31 @@ export class PrayerService {
         newDisplayOrder = Math.min(maxDisplayOrderInRange + 1, newRange.max);
       }
 
+      // Clear update answered flags before leaving Answered so a later update edit
+      // cannot silently re-answer from a stale mark_as_answered value.
+      const clearingAnswered =
+        currentPrayer.category === 'Answered' && newCategory !== 'Answered';
+      if (clearingAnswered) {
+        const { error: clearFlagsError } = await this.supabase.client
+          .from('personal_prayer_updates')
+          .update({
+            mark_as_answered: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('personal_prayer_id', id);
+
+        if (clearFlagsError) {
+          console.error(
+            'Error clearing mark_as_answered on personal prayer updates:',
+            clearFlagsError
+          );
+          this.toast.error(
+            'Could not clear answered flags on updates. Prayer was left marked as answered.'
+          );
+          return false;
+        }
+      }
+
       const updateData = {
         ...updates,
         category: newCategory,
@@ -1976,8 +2003,17 @@ export class PrayerService {
               prayer_for: updates.prayer_for ?? p.prayer_for,
               description: updates.description ?? p.description,
               category: newCategory,
+              status: (newCategory === 'Answered' ? 'answered' : 'current') as PrayerStatus,
               display_order: newDisplayOrder,
-              updated_at: updateData.updated_at
+              updated_at: updateData.updated_at,
+              ...(clearingAnswered
+                ? {
+                    updates: (p.updates || []).map((u) => ({
+                      ...u,
+                      mark_as_answered: false,
+                    })),
+                  }
+                : {}),
             } 
           : p
       );
@@ -1989,7 +2025,9 @@ export class PrayerService {
       }
 
       console.log('[PrayerService] Personal prayer updated successfully');
-      this.toast.success('Personal prayer updated');
+      if (!options?.silentSuccess) {
+        this.toast.success('Personal prayer updated');
+      }
       return true;
     } catch (error) {
       console.error('Error updating personal prayer:', error);
@@ -2128,12 +2166,12 @@ export class PrayerService {
   }
 
   /**
-   * Update personal prayer update (content and/or author)
+   * Update personal prayer update (content and/or mark_as_answered)
    */
   async updatePersonalPrayerUpdate(
     updateId: string,
     prayerId: string,
-    updates: Partial<Pick<PrayerUpdate, 'content'>>
+    updates: Partial<Pick<PrayerUpdate, 'content' | 'mark_as_answered'>>
   ): Promise<boolean> {
     try {
       const userEmail = await this.getUserEmail();
@@ -2164,7 +2202,11 @@ export class PrayerService {
                 u.id === updateId
                   ? {
                       ...u,
-                      content: updates.content ?? u.content
+                      content: updates.content ?? u.content,
+                      mark_as_answered:
+                        updates.mark_as_answered !== undefined
+                          ? updates.mark_as_answered
+                          : u.mark_as_answered,
                     }
                   : u
               )
@@ -2205,7 +2247,7 @@ export class PrayerService {
     });
 
     // Don't add null category - only return actual categories
-    // Uncategorized prayers will still show in "All Categories" view without filter buttons
+    // Uncategorized prayers still show under Current and Total without their own chip
 
     // Sort categories by their minimum display_order (descending - highest display_order first)
     const sortedCategories = Array.from(categories.entries())
@@ -2784,122 +2826,6 @@ export class PrayerService {
     } catch (error) {
       console.error('[PrayerService] Fallback swap failed:', error);
       return false;
-    }
-  }
-
-  /**
-   * Share a personal prayer - create public copy for approval without deleting personal
-   * The personal prayer stays in the user's account for their reference
-   * The public prayer will go through the normal approval process
-   * @param personalPrayerId The ID of the personal prayer to share
-   */
-  async sharePrayerForApproval(personalPrayerId: string): Promise<string> {
-    try {
-      // Step 1: Fetch the personal prayer with its updates
-      const { data: personalPrayer, error: fetchError } = await this.supabase.client
-        .from('personal_prayers')
-        .select(`
-          id,
-          title,
-          description,
-          prayer_for,
-          user_email,
-          category,
-          created_at,
-          personal_prayer_updates (
-            id,
-            content,
-            author,
-            author_email,
-            mark_as_answered,
-            created_at
-          )
-        `)
-        .eq('id', personalPrayerId)
-        .single();
-
-      if (fetchError) throw new Error(`Failed to fetch personal prayer: ${fetchError.message}`);
-      if (!personalPrayer) throw new Error('Personal prayer not found');
-
-      // Step 2: Get the user's name from the session
-      const session = await this.userSessionService.userSession$.pipe(first()).toPromise();
-      let requesterName = session?.fullName || personalPrayer.user_email;
-      
-      // If no fullName in session, extract from email
-      if (!session?.fullName) {
-        const emailPart = personalPrayer.user_email.split('@')[0];
-        requesterName = emailPart
-          .replace(/[._-]/g, ' ')
-          .split(' ')
-          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-      }
-      
-      // Step 3: Create a new public prayer in the normal prayers table with pending status
-      const publicPrayerData = {
-        title: personalPrayer.title,
-        description: personalPrayer.description,
-        status: personalPrayer.category === 'Answered' ? 'answered' : 'current' as PrayerStatus,
-        requester: requesterName,
-        prayer_for: personalPrayer.prayer_for,
-        email: personalPrayer.user_email,
-        is_anonymous: false,
-        approval_status: 'pending' as const,
-        is_shared_personal_prayer: true
-      };
-
-      const { data: newPrayer, error: createError } = await this.supabase.client
-        .from('prayers')
-        .insert(publicPrayerData)
-        .select()
-        .single();
-
-      if (createError) throw new Error(`Failed to create public prayer: ${createError.message}`);
-      if (!newPrayer) throw new Error('Failed to create public prayer');
-
-      // Step 3: Copy all updates from personal prayer to public prayer
-      const updates = personalPrayer.personal_prayer_updates || [];
-      if (updates.length > 0) {
-        const updatesCopy = updates.map((update: any) => ({
-          prayer_id: newPrayer.id,
-          content: update.content,
-          author: update.author,
-          author_email: update.author_email || null,
-          is_anonymous: false,
-          approval_status: 'pending' as const,
-          created_at: update.created_at
-        }));
-
-        const { error: updatesCopyError } = await this.supabase.client
-          .from('prayer_updates')
-          .insert(updatesCopy);
-
-        if (updatesCopyError) {
-          console.error('Failed to copy updates, but public prayer was created:', updatesCopyError);
-          // Don't throw here - the prayer was created successfully
-        }
-      }
-
-      // Step 4: Keep the personal prayer - user can see it in their account and edit if needed
-      // Step 5: Send admin notification about the new public prayer request
-      this.emailNotification.sendAdminNotification({
-        type: 'prayer',
-        title: personalPrayer.title,
-        description: personalPrayer.description,
-        requester: requesterName,
-        requestId: newPrayer.id
-      }).catch(err => console.error('Failed to send admin notification:', err));
-
-      // Refresh user's personal prayers
-      await this.loadPersonalPrayers();
-
-      this.toast.success('Prayer shared! It has been submitted for admin approval.');
-      return newPrayer.id;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to share prayer';
-      console.error('[PrayerService] Error sharing prayer:', error);
-      this.toast.error(errorMessage);
-      throw error;
     }
   }
 

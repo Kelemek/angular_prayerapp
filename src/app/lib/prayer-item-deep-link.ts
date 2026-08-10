@@ -7,6 +7,23 @@ export type PrayerItemDeepLinkTab =
   | 'personal'
   | 'planning_center_list';
 
+export type PersonalDeepLinkCategoryMode = 'current' | 'answered' | 'total';
+
+/** Personal chip mode so `#prayer-card-{id}` is in the DOM for Home deep links. */
+export function resolvePersonalDeepLinkCategoryMode(
+  prayerId: string,
+  personalPrayers: ReadonlyArray<{ id: string; category?: string | null }>
+): PersonalDeepLinkCategoryMode | null {
+  const prayer = personalPrayers.find((p) => p.id === prayerId);
+  if (!prayer) {
+    return null;
+  }
+  if (prayer.category === 'Answered') {
+    return 'answered';
+  }
+  return 'current';
+}
+
 /** Home tab to show before scrolling to `#prayer-card-{id}` from email/push deep links. */
 export function resolvePrayerItemDeepLinkTab(
   prayerId: string,

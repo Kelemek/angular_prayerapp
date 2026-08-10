@@ -495,6 +495,7 @@ describe('PresentationComponent', () => {
     expect(component['homeReturnContext']).toEqual({
       activeFilter: 'personal',
       selectedPersonalCategories: ['Evening'],
+      personalCategoryFilterMode: 'named',
     });
     vi.unstubAllGlobals();
   });
@@ -1084,6 +1085,7 @@ describe('PresentationComponent', () => {
       expect(component['homeReturnContext']).toEqual({
         activeFilter: 'personal',
         selectedPersonalCategories: ['Evening'],
+        personalCategoryFilterMode: 'named',
       });
     });
 

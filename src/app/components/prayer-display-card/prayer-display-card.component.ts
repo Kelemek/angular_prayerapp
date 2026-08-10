@@ -232,6 +232,7 @@ interface PrayerPrompt {
             shellClass="rounded-xl"
             contentClass="block text-base md:text-lg lg:text-xl text-gray-800 dark:text-gray-200"
             [showUpdatedBy]="isCommunityPrayer()"
+            [compactHeaderInset]="isPersonalPrayer() || isMemberPrayer()"
           />
           }
         </div>

@@ -29,7 +29,7 @@ import {
   shouldOpenPersonalCategoryColorPickerUp,
 } from './personal-category-picker-placement';
 import {
-  PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES,
   PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES,
   PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
 } from '../../lib/prayer-card-layout';
@@ -93,7 +93,8 @@ import {
   `,
 })
 export class PersonalCategoryPillComponent implements OnInit {
-  readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+  /** Match personal meta header action inset (no unread badge clearance). */
+  readonly headerInsetClasses = PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES;
   readonly metaHeaderMinHeightClasses = PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES;
   readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
 

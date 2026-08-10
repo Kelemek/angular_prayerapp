@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolvePrayerItemDeepLinkTab } from './prayer-item-deep-link';
+import { resolvePrayerItemDeepLinkTab, resolvePersonalDeepLinkCategoryMode } from './prayer-item-deep-link';
 
 describe('resolvePrayerItemDeepLinkTab', () => {
   const community = [
@@ -43,5 +43,32 @@ describe('resolvePrayerItemDeepLinkTab', () => {
     expect(resolvePrayerItemDeepLinkTab('unknown', community, personal)).toBe(
       null
     );
+  });
+});
+
+describe('resolvePersonalDeepLinkCategoryMode', () => {
+  const personal = [
+    { id: 'p-current', category: 'Health' },
+    { id: 'p-answered', category: 'Answered' },
+    { id: 'p-uncategorized', category: null },
+  ];
+
+  it('returns answered for personal prayers in Answered category', () => {
+    expect(resolvePersonalDeepLinkCategoryMode('p-answered', personal)).toBe(
+      'answered'
+    );
+  });
+
+  it('returns current for non-answered personal prayers', () => {
+    expect(resolvePersonalDeepLinkCategoryMode('p-current', personal)).toBe(
+      'current'
+    );
+    expect(
+      resolvePersonalDeepLinkCategoryMode('p-uncategorized', personal)
+    ).toBe('current');
+  });
+
+  it('returns null when id is not a personal prayer', () => {
+    expect(resolvePersonalDeepLinkCategoryMode('unknown', personal)).toBeNull();
   });
 });

@@ -1671,6 +1671,12 @@ export class PresentationComponent implements OnInit, OnDestroy {
               ],
             }
           : {}),
+        ...(handoff.returnContext.personalCategoryFilterMode
+          ? {
+              personalCategoryFilterMode:
+                handoff.returnContext.personalCategoryFilterMode,
+            }
+          : {}),
       };
     }
   }

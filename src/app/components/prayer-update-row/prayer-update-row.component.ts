@@ -9,7 +9,7 @@ import {
   getPrayerUpdateHeaderLabelClasses,
   type PrayerUpdateRecord,
 } from '../../lib/prayer-update-header';
-import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prayer-update-row',
@@ -32,8 +32,9 @@ import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } f
         [centerDate]="displayDateParts.date"
         [centerTime]="displayDateParts.time"
         [centerSize]="size"
+        [compactActionsInset]="compactHeaderInset"
       >
-        <div cardMetaLeft [class]="'min-w-0 w-full ' + headerInsetClasses">
+        <div cardMetaLeft [class]="'min-w-0 w-full ' + leftInsetClasses">
           <span [class]="headerLabelClasses">{{ headerLabel }}</span>
         </div>
         <div cardMetaRight>
@@ -63,7 +64,17 @@ export class PrayerUpdateRowComponent {
   @Input() showUpdatedBy = false;
   @Input() shellClass = 'rounded-lg';
   @Input() contentClass = 'block text-sm text-gray-700 dark:text-gray-300';
+  /**
+   * Tighter left/right meta header inset when there is no corner unread badge
+   * (personal / member updates).
+   */
+  @Input() compactHeaderInset = false;
 
+  get leftInsetClasses(): string {
+    return this.compactHeaderInset
+      ? PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES
+      : PRAYER_CARD_HEADER_INSET_CLASSES;
+  }
   get headerLabel(): string {
     return getPrayerUpdateHeaderLabel(this.update);
   }

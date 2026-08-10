@@ -1002,7 +1002,21 @@ import { Subject, takeUntil } from "rxjs";
                       (click)="openPersonalCategoriesModal()"
                       class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
                     >
-                      All Categories (13)
+                      Current (10)
+                    </button>
+                    <button
+                      type="button"
+                      (click)="openPersonalCategoriesModal()"
+                      class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+                    >
+                      Answered (3)
+                    </button>
+                    <button
+                      type="button"
+                      (click)="openPersonalCategoriesModal()"
+                      class="flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+                    >
+                      Total (13)
                     </button>
                     <button
                       type="button"
@@ -1049,24 +1063,22 @@ import { Subject, takeUntil } from "rxjs";
                       <div class="flex items-center gap-1">
                         <button
                           type="button"
-                          (click)="openPersonalActionModal('share')"
-                          class="p-1 text-blue-500 dark:text-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                          title="Share prayer to public"
-                          aria-label="Share prayer to public"
+                          (click)="openPersonalActionModal('answered')"
+                          class="p-1 text-gray-400 dark:text-gray-500 rounded-md hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                          title="Mark as answered"
+                          aria-label="Mark as answered"
                         >
                           <svg
-                            width="16"
-                            height="16"
+                            width="20"
+                            height="20"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="2"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
                           >
-                            <path
-                              d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"
-                            ></path>
-                            <polyline points="16 6 12 2 8 6"></polyline>
-                            <line x1="12" y1="2" x2="12" y2="15"></line>
+                            <polyline points="20 6 9 17 4 12"></polyline>
                           </svg>
                         </button>
                         <button
@@ -1361,8 +1373,8 @@ import { Subject, takeUntil } from "rxjs";
         role="dialog"
         aria-modal="true"
         [attr.aria-label]="
-          personalActionModal === 'share'
-            ? 'Share personal prayer'
+          personalActionModal === 'answered'
+            ? 'Mark personal prayer answered'
             : personalActionModal === 'edit'
             ? 'Edit personal prayer'
             : 'Delete personal prayer'
@@ -1392,15 +1404,14 @@ import { Subject, takeUntil } from "rxjs";
               ></path>
             </svg>
           </button>
-          @if (personalActionModal === 'share') {
+          @if (personalActionModal === 'answered') {
           <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
-            Share to public
+            Mark as answered
           </p>
           <p class="text-sm text-gray-600 dark:text-gray-300">
-            Move this personal prayer to the public list so your church can see
-            it and pray for you. Once shared, it appears like any other request
-            and others can add updates or mark that they prayed. You can still
-            edit or delete it.
+            Tap the green checkmark on a personal prayer to move it into the
+            Answered category—the same as checking “Mark this prayer as
+            answered” when editing. Tap again to move it out of Answered.
           </p>
           } @if (personalActionModal === 'edit') {
           <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
@@ -1465,9 +1476,10 @@ import { Subject, takeUntil } from "rxjs";
           </p>
           <p class="text-sm text-gray-600 dark:text-gray-300">
             Use the filter buttons to show
-            <strong class="text-gray-800 dark:text-gray-200"
-              >All Categories</strong
-            >
+            <strong class="text-gray-800 dark:text-gray-200">Current</strong>,
+            <strong class="text-gray-800 dark:text-gray-200">Answered</strong>,
+            or
+            <strong class="text-gray-800 dark:text-gray-200">Total</strong>,
             or explore a category to see only prayers in that group. The number
             in parentheses is how many prayers are in that category. On the main
             app you can also reorder category buttons by dragging.
@@ -1497,7 +1509,7 @@ export class InfoComponent implements OnInit, OnDestroy {
   showPromptCategoriesModal = false;
   showBadgesModal = false;
   showPersonalCategoriesModal = false;
-  personalActionModal: "share" | "edit" | "delete" | null = null;
+  personalActionModal: "answered" | "edit" | "delete" | null = null;
 
   brandingImageUrl = "";
   brandingUseLogo = false;
@@ -1579,7 +1591,7 @@ export class InfoComponent implements OnInit, OnDestroy {
     this.showBadgesModal = false;
   }
 
-  openPersonalActionModal(which: "share" | "edit" | "delete"): void {
+  openPersonalActionModal(which: "answered" | "edit" | "delete"): void {
     this.personalActionModal = which;
   }
 

@@ -93,10 +93,18 @@ export type HomePresentationFilter =
 
 export type DefaultPrayerView = 'current' | 'personal';
 
+/** Home Personal tab fixed chips + named category selection. */
+export type PersonalCategoryFilterMode =
+  | 'current'
+  | 'answered'
+  | 'total'
+  | 'named';
+
 export interface HomeReturnContext {
   activeFilter: HomePresentationFilter;
   selectedPromptTypes?: string[];
   selectedPersonalCategories?: string[];
+  personalCategoryFilterMode?: PersonalCategoryFilterMode;
 }
 
 export interface PresentationHomeHandoff {
@@ -144,11 +152,32 @@ export function mapHomeTabToPresentationStatusFilters(
   }
 }
 
+export function mapPersonalCategoryFilterModeToPresentationStatusFilters(
+  mode: PersonalCategoryFilterMode
+): { current: boolean; answered: boolean } | undefined {
+  switch (mode) {
+    case 'current':
+      return { current: true, answered: false };
+    case 'answered':
+      return { current: false, answered: true };
+    case 'total':
+      return { current: false, answered: false };
+    case 'named':
+      // Named chips use personalCategories; do not apply status filtering.
+      return { current: false, answered: false };
+    default: {
+      const _exhaustive: never = mode;
+      return _exhaustive;
+    }
+  }
+}
+
 export function buildPresentationHomeHandoff(input: {
   contentTypes: SelectablePresentationContentType[];
   activeFilter: HomePresentationFilter;
   selectedPromptTypes?: string[];
   selectedPersonalCategories?: string[];
+  personalCategoryFilterMode?: PersonalCategoryFilterMode;
 }): PresentationHomeHandoff {
   const handoff: PresentationHomeHandoff = {
     contentTypes: [...input.contentTypes],
@@ -168,11 +197,13 @@ export function buildPresentationHomeHandoff(input: {
     handoff.promptCategories = [...input.selectedPromptTypes];
   }
 
-  if (
-    input.activeFilter === 'personal' &&
-    input.selectedPersonalCategories?.length
-  ) {
-    handoff.personalCategories = [...input.selectedPersonalCategories];
+  if (input.activeFilter === 'personal') {
+    const mode = input.personalCategoryFilterMode ?? 'current';
+    handoff.statusFilters =
+      mapPersonalCategoryFilterModeToPresentationStatusFilters(mode);
+    if (mode === 'named' && input.selectedPersonalCategories?.length) {
+      handoff.personalCategories = [...input.selectedPersonalCategories];
+    }
   }
 
   handoff.returnContext = buildHomeReturnContext(input);
@@ -184,6 +215,7 @@ export function buildHomeReturnContext(input: {
   activeFilter: HomePresentationFilter;
   selectedPromptTypes?: string[];
   selectedPersonalCategories?: string[];
+  personalCategoryFilterMode?: PersonalCategoryFilterMode;
 }): HomeReturnContext {
   const returnContext: HomeReturnContext = {
     activeFilter: input.activeFilter,
@@ -193,13 +225,32 @@ export function buildHomeReturnContext(input: {
     returnContext.selectedPromptTypes = [...input.selectedPromptTypes];
   }
 
-  if (input.selectedPersonalCategories?.length) {
+  if (input.activeFilter === 'personal') {
+    const mode = input.personalCategoryFilterMode ?? 'current';
+    returnContext.personalCategoryFilterMode = mode;
+    if (mode === 'named' && input.selectedPersonalCategories?.length) {
+      returnContext.selectedPersonalCategories = [
+        ...input.selectedPersonalCategories,
+      ];
+    }
+  } else if (input.selectedPersonalCategories?.length) {
     returnContext.selectedPersonalCategories = [
       ...input.selectedPersonalCategories,
     ];
   }
 
   return returnContext;
+}
+
+function isPersonalCategoryFilterMode(
+  value: unknown
+): value is PersonalCategoryFilterMode {
+  return (
+    value === 'current' ||
+    value === 'answered' ||
+    value === 'total' ||
+    value === 'named'
+  );
 }
 
 function isHomePresentationFilter(
@@ -254,6 +305,18 @@ function normalizeHomeReturnContext(
     if (categories.length > 0) {
       returnContext.selectedPersonalCategories = categories;
     }
+  }
+
+  if (isPersonalCategoryFilterMode(raw.personalCategoryFilterMode)) {
+    returnContext.personalCategoryFilterMode = raw.personalCategoryFilterMode;
+  } else if (
+    returnContext.activeFilter === 'personal' &&
+    returnContext.selectedPersonalCategories?.length
+  ) {
+    returnContext.personalCategoryFilterMode = 'named';
+  } else if (returnContext.activeFilter === 'personal') {
+    // Legacy handoffs had no mode; old UI treated empty chips as All Categories (= Total).
+    returnContext.personalCategoryFilterMode = 'total';
   }
 
   return returnContext;
@@ -402,6 +465,7 @@ function buildReturnContextFromHandoffQueryParts(input: {
   activeFilter: HomePresentationFilter;
   promptCategories?: string[];
   personalCategories?: string[];
+  statusFilters?: { current: boolean; answered: boolean };
 }): HomeReturnContext {
   const returnContext: HomeReturnContext = {
     activeFilter: input.activeFilter,
@@ -411,8 +475,23 @@ function buildReturnContextFromHandoffQueryParts(input: {
     returnContext.selectedPromptTypes = [...input.promptCategories];
   }
 
-  if (input.activeFilter === 'personal' && input.personalCategories?.length) {
-    returnContext.selectedPersonalCategories = [...input.personalCategories];
+  if (input.activeFilter === 'personal') {
+    if (input.personalCategories?.length) {
+      returnContext.personalCategoryFilterMode = 'named';
+      returnContext.selectedPersonalCategories = [...input.personalCategories];
+    } else if (input.statusFilters) {
+      const { current, answered } = input.statusFilters;
+      if (current && !answered) {
+        returnContext.personalCategoryFilterMode = 'current';
+      } else if (!current && answered) {
+        returnContext.personalCategoryFilterMode = 'answered';
+      } else {
+        returnContext.personalCategoryFilterMode = 'total';
+      }
+    } else {
+      // No status in query → legacy All Categories (= Total).
+      returnContext.personalCategoryFilterMode = 'total';
+    }
   }
 
   return returnContext;
@@ -465,6 +544,7 @@ export function parsePresentationHomeHandoffFromQueryParams(
       activeFilter: returnFilter,
       promptCategories: handoff.promptCategories,
       personalCategories: handoff.personalCategories,
+      statusFilters: handoff.statusFilters,
     });
   }
 

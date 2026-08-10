@@ -67,6 +67,7 @@ export const TOUR_PRAYER_UPDATE_MARK_ANSWERED_WRAP_ID = 'tour-prayer-update-mark
 export const TOUR_PERSONAL_CATEGORY_FILTERS_ID = 'tour-personal-category-filters';
 export const TOUR_WALKTHROUGH_PERSONAL_CARD_ID = 'tour-walkthrough-personal-prayer-card';
 export const TOUR_WALKTHROUGH_PERSONAL_EDIT_ID = 'tour-walkthrough-personal-edit';
+export const TOUR_WALKTHROUGH_PERSONAL_ANSWERED_ID = 'tour-walkthrough-personal-answered';
 export const TOUR_WALKTHROUGH_PERSONAL_DELETE_ID = 'tour-walkthrough-personal-delete';
 export const TOUR_WALKTHROUGH_ADD_UPDATE_ID = 'tour-walkthrough-add-update';
 export const TOUR_WALKTHROUGH_UPDATE_CONTENT_ID = 'tour-walkthrough-update-content';
@@ -2732,8 +2733,20 @@ export class HelpDriverTourService {
         element: () => document.getElementById(TOUR_WALKTHROUGH_PERSONAL_CARD_ID) ?? getPersonalFilterEl()!,
         popover: {
           title: 'Your new prayer',
-          description: 'This card is the prayer we just created. Next we’ll open <strong>Edit</strong>.',
+          description: 'This card is the prayer we just created. Next we’ll highlight <strong>Mark as answered</strong> in the header.',
           side: 'top',
+          align: 'start',
+        },
+      },
+      {
+        element: () =>
+          document.getElementById(TOUR_WALKTHROUGH_PERSONAL_ANSWERED_ID) ??
+          getPersonalFilterEl()!,
+        popover: {
+          title: 'Mark as answered',
+          description:
+            'Tap the green <strong>checkmark</strong> to move this prayer to the <strong>Answered</strong> chip (tap again to clear). Same outcome as the checkbox when editing or adding an update.',
+          side: 'left',
           align: 'start',
         },
       },

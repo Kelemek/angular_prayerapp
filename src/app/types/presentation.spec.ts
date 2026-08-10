@@ -59,21 +59,57 @@ describe('buildPresentationHomeHandoff', () => {
     });
   });
 
-  it('includes personal categories when a category chip is selected', () => {
+  it('includes personal categories when a named category chip is selected', () => {
     expect(
       buildPresentationHomeHandoff({
         contentTypes: ['personal'],
         activeFilter: 'personal',
         selectedPersonalCategories: ['Evening'],
+        personalCategoryFilterMode: 'named',
       })
     ).toEqual({
       contentTypes: ['personal'],
+      statusFilters: { current: false, answered: false },
       personalCategories: ['Evening'],
       returnContext: {
         activeFilter: 'personal',
         selectedPersonalCategories: ['Evening'],
+        personalCategoryFilterMode: 'named',
       },
     });
+  });
+
+  it('maps personal Current / Answered / Total chips to status filters', () => {
+    expect(
+      buildPresentationHomeHandoff({
+        contentTypes: ['personal'],
+        activeFilter: 'personal',
+        personalCategoryFilterMode: 'current',
+      })
+    ).toEqual({
+      contentTypes: ['personal'],
+      statusFilters: { current: true, answered: false },
+      returnContext: {
+        activeFilter: 'personal',
+        personalCategoryFilterMode: 'current',
+      },
+    });
+
+    expect(
+      buildPresentationHomeHandoff({
+        contentTypes: ['personal'],
+        activeFilter: 'personal',
+        personalCategoryFilterMode: 'answered',
+      }).statusFilters
+    ).toEqual({ current: false, answered: true });
+
+    expect(
+      buildPresentationHomeHandoff({
+        contentTypes: ['personal'],
+        activeFilter: 'personal',
+        personalCategoryFilterMode: 'total',
+      }).statusFilters
+    ).toEqual({ current: false, answered: false });
   });
 
   it('includes return context for restoring Home after presentation exit', () => {
@@ -102,6 +138,20 @@ describe('parseHomeReturnContextFromState', () => {
     ).toEqual({
       activeFilter: 'personal',
       selectedPersonalCategories: ['Evening'],
+      personalCategoryFilterMode: 'named',
+    });
+  });
+
+  it('defaults legacy personal handoff without mode to Total', () => {
+    expect(
+      parseHomeReturnContextFromState({
+        [HOME_RETURN_CONTEXT_STATE_KEY]: {
+          activeFilter: 'personal',
+        },
+      })
+    ).toEqual({
+      activeFilter: 'personal',
+      personalCategoryFilterMode: 'total',
     });
   });
 });
@@ -161,10 +211,12 @@ describe('presentation home handoff query params', () => {
       contentTypes: ['personal'],
       activeFilter: 'personal',
       selectedPersonalCategories: ['Evening'],
+      personalCategoryFilterMode: 'named',
     });
     const params = serializePresentationHomeHandoffQueryParams(handoff);
     expect(params.homeReturnFilter).toBe('personal');
     expect(params.homePersonalCats).toBe('Evening');
+    expect(params.homeStatus).toBe('all');
 
     const parsed = parsePresentationHomeHandoffFromQueryParams(
       (key) => params[key] ?? null
@@ -172,6 +224,7 @@ describe('presentation home handoff query params', () => {
     expect(parsed?.returnContext).toEqual({
       activeFilter: 'personal',
       selectedPersonalCategories: ['Evening'],
+      personalCategoryFilterMode: 'named',
     });
   });
 

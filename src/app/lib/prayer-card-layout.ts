@@ -7,6 +7,13 @@ export const PRAYER_CARD_HEADER_BLEED_CLASSES = '-mx-4 sm:-mx-6';
 /** Inset padding for content aligned with the card body on sm+. */
 export const PRAYER_CARD_HEADER_INSET_CLASSES = 'px-4 sm:px-6';
 
+/**
+ * Tighter actions-column inset when the card has no corner unread badge
+ * (personal prayers). Keeps icons closer to the card edge than badge clearance.
+ */
+export const PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES =
+  'px-2 sm:px-3';
+
 /** Horizontal gap between action icons in prayer/update meta headers (gap-1 is rem and scales). */
 export const PRAYER_CARD_META_ACTIONS_GAP_CLASSES = 'gap-[4px]';
 

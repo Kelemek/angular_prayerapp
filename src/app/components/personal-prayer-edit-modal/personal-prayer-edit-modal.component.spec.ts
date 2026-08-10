@@ -221,6 +221,64 @@ describe('PersonalPrayerEditModalComponent', () => {
       });
     });
 
+    it('should set category to Answered when mark as answered is checked', async () => {
+      prayerService.updatePersonalPrayer.mockResolvedValue(true);
+
+      component.formData.prayer_for = 'Updated Prayer';
+      component.formData.description = 'Updated Description';
+      component.formData.category = 'Health';
+      component.markAsAnswered = true;
+
+      await component.handleSubmit();
+
+      expect(prayerService.updatePersonalPrayer).toHaveBeenCalledWith('123', {
+        prayer_for: 'Updated Prayer',
+        description: 'Updated Description',
+        category: 'Answered'
+      });
+    });
+
+    it('should clear Answered category when mark as answered is unchecked', async () => {
+      prayerService.updatePersonalPrayer.mockResolvedValue(true);
+
+      component.formData.prayer_for = 'Updated Prayer';
+      component.formData.description = 'Updated Description';
+      component.formData.category = 'Answered';
+      component.markAsAnswered = false;
+
+      await component.handleSubmit();
+
+      expect(prayerService.updatePersonalPrayer).toHaveBeenCalledWith('123', {
+        prayer_for: 'Updated Prayer',
+        description: 'Updated Description',
+        category: null
+      });
+    });
+
+    it('should keep a non-Answered category when mark as answered is unchecked', async () => {
+      prayerService.updatePersonalPrayer.mockResolvedValue(true);
+
+      component.formData.prayer_for = 'Updated Prayer';
+      component.formData.description = 'Updated Description';
+      component.formData.category = 'Health';
+      component.markAsAnswered = false;
+
+      await component.handleSubmit();
+
+      expect(prayerService.updatePersonalPrayer).toHaveBeenCalledWith('123', {
+        prayer_for: 'Updated Prayer',
+        description: 'Updated Description',
+        category: 'Health'
+      });
+    });
+
+    it('should pre-check mark as answered when prayer category is Answered', () => {
+      component.isOpen = true;
+      component.prayer = { ...mockPrayer, category: 'Answered' } as any;
+      component.ngOnChanges();
+      expect(component.markAsAnswered).toBe(true);
+    });
+
     it('should set isSubmitting to true during submission', async () => {
       prayerService.updatePersonalPrayer.mockReturnValue(
         new Promise(resolve => setTimeout(() => resolve(true), 50))

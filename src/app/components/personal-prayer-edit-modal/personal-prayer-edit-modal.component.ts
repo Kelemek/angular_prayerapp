@@ -153,6 +153,22 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
             </div>
           </div>
 
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="editPrayerMarkAsAnswered"
+              [(ngModel)]="markAsAnswered"
+              name="markAsAnswered"
+              class="rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
+            />
+            <label
+              for="editPrayerMarkAsAnswered"
+              class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+            >
+              Mark this prayer as answered
+            </label>
+          </div>
+
           <div class="flex justify-end pt-4">
             <button
               type="submit"
@@ -184,6 +200,7 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
     category: "",
   };
 
+  markAsAnswered = false;
   availableCategories: string[] = [];
   filteredCategories: string[] = [];
   showCategoryDropdown = false;
@@ -231,6 +248,7 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
         description: this.prayer.description,
         category: this.prayer.category || "",
       };
+      this.markAsAnswered = this.prayer.category === "Answered";
       this.categoryColorDirty = false;
       this.refreshCategoryColorFromService();
       void this.personalCategoryColorService.loadColors();
@@ -335,11 +353,18 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
 
       this.descriptionEditor?.flushMarkdownToForm();
 
+      const trimmedCategory = this.formData.category.trim();
+      // Unchecking answered must clear reserved "Answered" even when the input still shows it.
+      const category = this.markAsAnswered
+        ? "Answered"
+        : trimmedCategory === "" || trimmedCategory === "Answered"
+          ? null
+          : this.formData.category;
+
       const updates: Partial<PrayerRequest> = {
         prayer_for: this.formData.prayer_for,
         description: this.formData.description,
-        category:
-          this.formData.category.trim() === "" ? null : this.formData.category,
+        category,
       };
 
       const success = await this.prayerService.updatePersonalPrayer(
@@ -348,7 +373,11 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
       );
 
       if (success) {
-        if (this.formData.category.trim() && this.categoryColorDirty) {
+        if (
+          !this.markAsAnswered &&
+          this.formData.category.trim() &&
+          this.categoryColorDirty
+        ) {
           const colorSaved = await this.personalCategoryColorService.setColor(
             this.formData.category,
             this.categoryColor
@@ -393,6 +422,7 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
       description: "",
       category: "",
     };
+    this.markAsAnswered = false;
     this.showCategoryDropdown = false;
     this.categoryColor = '#2563EB';
     this.categoryColorDirty = false;

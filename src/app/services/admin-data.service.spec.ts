@@ -909,111 +909,6 @@ describe('AdminDataService', () => {
       await expect(service.sendApprovedPrayerEmails('1')).rejects.toThrow('Prayer not found');
     });
 
-    it('should send approved update email for shared personal prayers with updates', async () => {
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'prayers') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn(() => Promise.resolve({
-                  data: {
-                    id: '1',
-                    title: 'Shared Prayer',
-                    description: 'Shared description',
-                    requester: 'John',
-                    prayer_for: 'Jane',
-                    status: 'current',
-                    is_anonymous: false,
-                    is_shared_personal_prayer: true,
-                    email: 'john@example.com'
-                  },
-                  error: null
-                }))
-              }))
-            }))
-          };
-        }
-        if (table === 'prayer_updates') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                order: vi.fn(() => ({
-                  limit: vi.fn(() => Promise.resolve({
-                    data: [{
-                      content: 'Latest shared update',
-                      author: 'Shared Author',
-                      author_email: 'author@example.com',
-                      is_anonymous: false,
-                      mark_as_answered: true,
-                      prayers: { title: 'Shared Prayer', description: 'Shared description', status: 'current' }
-                    }],
-                    error: null
-                  }))
-                }))
-              }))
-            }))
-          };
-        }
-        return createMockQueryChain([], null);
-      });
-
-      await service.sendApprovedPrayerEmails('1');
-
-      expect(mockEmailNotificationService.sendApprovedUpdateNotification).toHaveBeenCalledWith(expect.objectContaining({
-        prayerTitle: 'Shared Prayer',
-        content: 'Latest shared update',
-        author: 'Shared Author',
-        prayerStatus: 'current',
-        markedAsAnswered: true
-      }));
-    });
-
-    it('should send prayer notification for shared personal prayers without updates', async () => {
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'prayers') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn(() => Promise.resolve({
-                  data: {
-                    id: '1',
-                    title: 'Shared Prayer',
-                    description: 'Shared description',
-                    requester: 'John',
-                    prayer_for: 'Jane',
-                    status: 'current',
-                    is_anonymous: false,
-                    is_shared_personal_prayer: true,
-                    email: 'john@example.com'
-                  },
-                  error: null
-                }))
-              }))
-            }))
-          };
-        }
-        if (table === 'prayer_updates') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                order: vi.fn(() => ({
-                  limit: vi.fn(() => Promise.resolve({ data: [], error: null }))
-                }))
-              }))
-            }))
-          };
-        }
-        return createMockQueryChain([], null);
-      });
-
-      await service.sendApprovedPrayerEmails('1');
-
-      expect(mockEmailNotificationService.sendApprovedPrayerNotification).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Shared Prayer',
-        prayerFor: 'Jane'
-      }));
-    });
-
     it('should send broadcast notification for regular prayers', async () => {
       mockSupabaseClient.from = vi.fn(() => ({
         select: vi.fn(() => ({
@@ -1027,7 +922,6 @@ describe('AdminDataService', () => {
                 prayer_for: 'Jane',
                 status: 'current',
                 is_anonymous: false,
-                is_shared_personal_prayer: false,
                 email: 'john@example.com'
               },
               error: null
