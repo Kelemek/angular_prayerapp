@@ -11,7 +11,10 @@ import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
 import {
   PRAYER_CARD_HEADER_INSET_CLASSES,
   PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
+  PRAYER_CARD_META_ACTIONS_GAP_COMPACT_CLASSES,
+  PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES,
   PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
+  PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES,
   PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
 } from '../../lib/prayer-card-layout';
 
@@ -67,9 +70,9 @@ import {
           [attr.id]="personalAnsweredTourId"
           [title]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
           [attr.aria-label]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
-          [class]="'focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses + ' ' + (isAnswered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
+          [class]="iconButtonBaseClasses + ' focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses + ' ' + (isAnswered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </button>
@@ -79,9 +82,9 @@ import {
           [attr.id]="personalEditTourId"
           aria-label="Edit personal prayer"
           title="Edit prayer"
-          [class]="'text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
+          [class]="iconButtonBaseClasses + ' text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
@@ -94,9 +97,9 @@ import {
           [attr.id]="personalDeleteTourId"
           aria-label="Delete prayer request"
           title="Delete prayer request"
-          [class]="'inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
+          [class]="iconButtonBaseClasses + ' text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
@@ -108,8 +111,9 @@ import {
 })
 export class PrayerCardMetaHeaderComponent {
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
-  readonly actionsGapClasses = PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
   readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
+  readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
+  readonly iconSizeClasses = PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES;
   readonly iconButtonPaddingClasses =
     PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
   /** Matches Planning Center member card border (`#0047AB`). */
@@ -157,5 +161,11 @@ export class PrayerCardMetaHeaderComponent {
 
   get statusTextClasses(): string {
     return getPrayerStatusHeaderTextClasses(this.status);
+  }
+
+  get actionsGapClasses(): string {
+    return this.isPersonal
+      ? PRAYER_CARD_META_ACTIONS_GAP_COMPACT_CLASSES
+      : PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
   }
 }

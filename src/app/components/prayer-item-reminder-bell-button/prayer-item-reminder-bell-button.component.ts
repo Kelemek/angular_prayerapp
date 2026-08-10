@@ -5,7 +5,11 @@ import {
   Input,
   Output,
 } from '@angular/core';
-import { PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import {
+  PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES,
+  PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
+  PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES,
+} from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prayer-item-reminder-bell-button',
@@ -22,12 +26,13 @@ import { PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES } from '../../lib/p
       [attr.aria-label]="ariaLabel"
       [attr.title]="title"
       [class]="
-        'inline-flex items-center justify-center text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' +
+        iconButtonBaseClasses +
+        ' text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' +
         iconButtonPaddingClasses
       "
     >
       @if (hasReminder) {
-      <svg class="block size-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path
           d="M13.73 21a2 2 0 0 1-3.46 0"
@@ -40,7 +45,7 @@ import { PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES } from '../../lib/p
       </svg>
       } @else {
       <svg
-        class="block size-[18px]"
+        [class]="iconSizeClasses"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -57,6 +62,8 @@ import { PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES } from '../../lib/p
   `,
 })
 export class PrayerItemReminderBellButtonComponent {
+  readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
+  readonly iconSizeClasses = PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES;
   readonly iconButtonPaddingClasses =
     PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
 

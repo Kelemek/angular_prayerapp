@@ -12,14 +12,23 @@ export const PRAYER_CARD_HEADER_INSET_CLASSES = 'px-4 sm:px-6';
  * (personal prayers). Keeps icons closer to the card edge than badge clearance.
  */
 export const PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES =
-  'px-2 sm:px-3';
+  'px-1 sm:px-3';
 
-/** Horizontal gap between action icons in prayer/update meta headers (gap-1 is rem and scales). */
-export const PRAYER_CARD_META_ACTIONS_GAP_CLASSES = 'gap-[4px]';
+/** Uniform meta-header icon box (16px) so flex gaps look even between glyphs. */
+export const PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES = 'block size-[16px] shrink-0';
 
-/** Icon hit-area padding in meta header bands (p-1.5 / p-1 are rem and scale). */
-export const PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES =
-  'p-[6px] sm:p-[4px]';
+/** Shared flex centering for meta-header icon hit targets. */
+export const PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES =
+  'inline-flex items-center justify-center shrink-0';
+
+/** Horizontal gap between action icons in prayer/update meta headers. */
+export const PRAYER_CARD_META_ACTIONS_GAP_CLASSES = 'gap-[2px] sm:gap-[4px]';
+
+/** Tighter mobile gap when a card shows four personal header actions. */
+export const PRAYER_CARD_META_ACTIONS_GAP_COMPACT_CLASSES = 'gap-[1px] sm:gap-[4px]';
+
+/** Icon hit-area padding in meta header bands (fixed px; does not scale with text size). */
+export const PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES = 'p-[4px]';
 
 /** Horizontal padding around center date/time in meta header bands (px-2 is rem and scales). */
 export const PRAYER_CARD_META_HEADER_CENTER_PADDING_CLASSES = 'px-[8px]';
