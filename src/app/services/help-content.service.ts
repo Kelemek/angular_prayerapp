@@ -431,7 +431,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Managing Prayer Status',
-            text: 'As you pray and see answers, you can mark prayers as "Answered" with the green checkmark on the card header, by checking "Mark this prayer as answered" when adding or editing an update, or when editing the prayer itself. Answered personal prayers are put into an Answered category and show under the Answered filter chip. Tap the checkmark again to move the prayer out of Answered.',
+            text: 'As you pray and see answers, you can mark prayers as "Answered" with the green checkmark on the card header (you will be asked to confirm). Tap again to move the prayer out of Answered and choose a category. You can also check "Mark this prayer as answered" when adding or editing an update, or when editing the prayer itself. Answered personal prayers show under the Answered filter chip.',
           },
           {
             subtitle: 'Reordering Personal Prayers',

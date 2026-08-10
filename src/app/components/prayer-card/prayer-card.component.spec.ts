@@ -1952,6 +1952,81 @@ describe('PrayerCardComponent', () => {
         expect(component.showAddUpdateButton()).toBe(true);
       });
 
+      it('onPersonalAnsweredClick opens mark modal when not answered', () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          category: 'Health',
+        } as any;
+
+        component.onPersonalAnsweredClick();
+
+        expect(component.personalAnsweredStatusModalMode).toBe('mark');
+      });
+
+      it('onPersonalAnsweredClick opens unmark modal when answered', () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          category: 'Answered',
+        } as any;
+
+        component.onPersonalAnsweredClick();
+
+        expect(component.personalAnsweredStatusModalMode).toBe('unmark');
+      });
+
+      it('onConfirmPersonalUnanswered applies selected category', async () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          category: 'Answered',
+        } as any;
+
+        const mockPrayerService = {
+          updatePersonalPrayer: vi.fn().mockResolvedValue(true)
+        };
+        (component as any).prayerService = mockPrayerService;
+
+        component.onConfirmPersonalUnanswered('Health');
+
+        expect(component.personalAnsweredStatusModalMode).toBeNull();
+        expect(mockPrayerService.updatePersonalPrayer).toHaveBeenCalledWith(
+          'prayer-1',
+          { category: 'Health' }
+        );
+      });
+
+      it('onConfirmPersonalAnswered marks category Answered', async () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          title: 'Personal Prayer',
+          description: 'Description',
+          status: 'current',
+          requester: 'Test User',
+          prayer_for: 'Health',
+          category: 'Health',
+          date_requested: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          updates: []
+        } as any;
+
+        const mockPrayerService = {
+          updatePersonalPrayer: vi.fn().mockResolvedValue(true)
+        };
+        (component as any).prayerService = mockPrayerService;
+
+        component.onConfirmPersonalAnswered();
+
+        expect(component.personalAnsweredStatusModalMode).toBeNull();
+        expect(mockPrayerService.updatePersonalPrayer).toHaveBeenCalledWith(
+          'prayer-1',
+          { category: 'Answered' }
+        );
+      });
+
       it('togglePersonalAnswered marks category Answered', async () => {
         component.isPersonal = true;
         component.prayer = {

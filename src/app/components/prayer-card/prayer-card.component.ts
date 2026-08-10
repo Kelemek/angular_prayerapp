@@ -36,6 +36,10 @@ import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/
 import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import { PrayerUpdateRowComponent } from '../prayer-update-row/prayer-update-row.component';
 import {
+  PersonalPrayerAnsweredStatusModalComponent,
+  type PersonalPrayerAnsweredStatusMode,
+} from '../personal-prayer-answered-status-modal/personal-prayer-answered-status-modal.component';
+import {
   PrayerUpdateActionsComponent,
   type PrayerUpdateActionsMode,
 } from '../prayer-update-actions/prayer-update-actions.component';
@@ -61,7 +65,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
 @Component({
   selector: 'app-prayer-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent, PersonalPrayerAnsweredStatusModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -87,7 +91,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
         [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
         [centerDragHandle]="personalDragHandle && isPersonal"
         [centerDragHandleId]="personalDragTourId"
-        (toggleAnswered)="togglePersonalAnswered()"
+        (toggleAnswered)="onPersonalAnsweredClick()"
         (edit)="editPersonalPrayer.emit(prayer)"
         (delete)="handleDeleteClick()"
         (reminder)="openReminderModal()"
@@ -312,6 +316,14 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
       </app-confirmation-dialog>
       }
 
+      <app-personal-prayer-answered-status-modal
+        [isOpen]="personalAnsweredStatusModalMode !== null"
+        [mode]="personalAnsweredStatusModalMode ?? 'mark'"
+        (close)="closePersonalAnsweredStatusModal()"
+        (confirmMark)="onConfirmPersonalAnswered()"
+        (confirmUnmark)="onConfirmPersonalUnanswered($event)"
+      />
+
       <app-prayer-item-reminder-modal
         [isOpen]="showReminderModal"
         [email]="reminderSessionEmail()"
@@ -428,6 +440,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   showAllUpdates = false;
   showConfirmationDialog = false;
   showUpdateConfirmationDialog = false;
+  personalAnsweredStatusModalMode: PersonalPrayerAnsweredStatusMode | null = null;
   updateConfirmationTitle = '';
   updateConfirmationMessage = '';
   updateConfirmationId: string | null = null;
@@ -1121,21 +1134,54 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
+  onPersonalAnsweredClick(): void {
+    if (!this.isPersonal || this.isTogglingPersonalAnswered) {
+      return;
+    }
+
+    this.personalAnsweredStatusModalMode =
+      this.prayer.category === 'Answered' ? 'unmark' : 'mark';
+    this.cdr.markForCheck();
+  }
+
+  closePersonalAnsweredStatusModal(): void {
+    this.personalAnsweredStatusModalMode = null;
+    this.cdr.markForCheck();
+  }
+
+  onConfirmPersonalAnswered(): void {
+    this.personalAnsweredStatusModalMode = null;
+    void this.applyPersonalAnsweredCategory('Answered');
+  }
+
+  onConfirmPersonalUnanswered(category: string | null): void {
+    this.personalAnsweredStatusModalMode = null;
+    void this.applyPersonalAnsweredCategory(category);
+  }
+
+  async applyPersonalAnsweredCategory(category: string | null): Promise<void> {
+    if (!this.isPersonal || this.isTogglingPersonalAnswered) {
+      return;
+    }
+
+    this.isTogglingPersonalAnswered = true;
+    this.cdr.markForCheck();
+    try {
+      await this.prayerService.updatePersonalPrayer(this.prayer.id, {
+        category,
+      });
+    } finally {
+      this.isTogglingPersonalAnswered = false;
+      this.cdr.markForCheck();
+    }
+  }
+
   async togglePersonalAnswered(): Promise<void> {
     if (!this.isPersonal || this.isTogglingPersonalAnswered) {
       return;
     }
 
     const markAnswered = this.prayer.category !== 'Answered';
-    this.isTogglingPersonalAnswered = true;
-    this.cdr.markForCheck();
-    try {
-      await this.prayerService.updatePersonalPrayer(this.prayer.id, {
-        category: markAnswered ? 'Answered' : null,
-      });
-    } finally {
-      this.isTogglingPersonalAnswered = false;
-      this.cdr.markForCheck();
-    }
+    await this.applyPersonalAnsweredCategory(markAnswered ? 'Answered' : null);
   }
 }
