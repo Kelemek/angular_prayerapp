@@ -26,12 +26,9 @@ import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/
 import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import type { PrayerItemReminder } from '../../types/prayer-item-reminder';
 import {
-  PRAYER_CARD_HEADER_INSET_CLASSES,
-  PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
-  PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
-  PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES,
-  PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
-  PRAYER_CARD_SHELL_PADDING_CLASSES,
+  getPromptCardVariantLayout,
+  getMetaHeaderBandLayoutClasses,
+  type PrayerCardVariant,
 } from '../../lib/prayer-card-layout';
 
 const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
@@ -52,27 +49,46 @@ export interface PrayerPrompt {
   standalone: true,
   imports: [CommonModule, FormsModule, ConfirmationDialogComponent, CardMetaHeaderBandComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.contents]': 'variant === "presentation"',
+    '[class.block]': 'variant !== "presentation"',
+  },
   template: `
+    <div [class]="variantLayout.usePresentationWrapper ? variantLayout.presentationScrollClasses : 'contents'">
     <div
-      [class]="'prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 pb-4 mb-4 transition-colors relative ' + shellPaddingClasses"
-      [attr.id]="'prompt-card-' + prompt.id"
+      [class]="shellClasses()"
+      [attr.id]="variant === 'home' ? 'prompt-card-' + prompt.id : null"
     >
       <!-- Meta header: type (left) | delete (right) -->
-      <app-card-meta-header-band layout="two-column">
-        <div cardMetaLeft>
+      <app-card-meta-header-band
+        layout="two-column"
+        [bandSize]="variantLayout.bandSize"
+        [bleedClasses]="variantLayout.headerBleedClasses"
+        [actionsInsetClasses]="variantLayout.headerInsetClasses"
+      >
+        <div cardMetaLeft class="w-full min-w-0">
+          @if (variantLayout.typeHeaderInteractive) {
           <button
             type="button"
             (click)="onTypeClick.emit(prompt.type)"
-            [class]="'block h-full min-w-0 max-w-full truncate text-left font-bold transition-colors cursor-pointer ' + metaHeaderMinHeightClasses + ' ' + headerInsetClasses + ' ' + metaHeaderTextSmClasses + ' ' + getTypeHeaderTextClasses()"
+            [class]="'flex items-center min-w-0 max-w-full truncate text-left font-bold transition-colors cursor-pointer ' + headerInsetClasses + ' ' + metaHeaderTextSmClasses + ' ' + getTypeHeaderTextClasses()"
             [title]="isTypeSelected ? 'Remove ' + prompt.type + ' filter' : 'Filter by ' + prompt.type"
           >
             {{ prompt.type }}
           </button>
+          } @else {
+          <span
+            [class]="'flex items-center min-w-0 max-w-full truncate text-left font-bold ' + headerInsetClasses + ' ' + metaHeaderTextSmClasses + ' ' + variantLayout.typeHeaderClasses"
+          >
+            {{ prompt.type }}
+          </span>
+          }
         </div>
         <div cardMetaRight [class]="'flex items-center ' + metaActionsGapClasses">
           @if (showReminderButton()) {
           <app-prayer-item-reminder-bell-button
             [hasReminder]="hasReminderForPrompt()"
+            [bandSize]="variantLayout.bandSize"
             itemLabel="prompt"
             (reminder)="openReminderModal()"
           />
@@ -95,19 +111,18 @@ export interface PrayerPrompt {
       </app-card-meta-header-band>
 
       <!-- Title -->
-      <div class="flex items-start gap-2 mb-4">
-        <svg class="text-[#988F83] dark:text-[#988F83] w-[24px] h-[24px] flex-shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <div [class]="'flex items-center gap-2 ' + variantLayout.titleRowMargin">
+        <svg [class]="(variantLayout.typeHeaderClasses || 'text-[#988F83] dark:text-[#988F83]') + ' w-[24px] h-[24px] flex-shrink-0'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M9 18h6"></path>
           <path d="M10 22h4"></path>
           <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
         </svg>
-        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
+        <h3 [class]="variantLayout.titleClasses">
           {{ prompt.title }}
         </h3>
       </div>
 
-      <!-- Badge in top-right corner -->
-      @if ((promptBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
+      @if (variantLayout.showUnreadBadges && (promptBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
         <button
           (click)="markPromptAsRead()"
           class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
@@ -119,19 +134,19 @@ export interface PrayerPrompt {
       }
 
       <!-- Description -->
-      <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed mb-4">
+      <p [class]="variantLayout.descriptionClasses + ' ' + variantLayout.descriptionMargin">
         {{ prompt.description }}
       </p>
 
       <!-- Pray For actions -->
-      <div class="flex flex-nowrap gap-1 items-center min-w-0">
+      <div [class]="'flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
         @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
           @if (canPrayFor$ | async) {
             <button
               type="button"
               (click)="onPrayForClick()"
               title="Record that you prayed using this prompt"
-              class="flex-shrink-0 px-2 py-1 text-xs font-medium btn-chip btn-chip-blue whitespace-nowrap"
+              [class]="variantLayout.actionButtonClasses + ' btn-chip btn-chip-blue'"
             >
               Pray For
             </button>
@@ -140,7 +155,7 @@ export interface PrayerPrompt {
               type="button"
               disabled
               [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4) + ' hours'"
-              class="flex-shrink-0 px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md border border-gray-300 dark:border-gray-600 cursor-not-allowed whitespace-nowrap"
+              [class]="variantLayout.actionButtonClasses + ' bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md border border-gray-300 dark:border-gray-600 cursor-not-allowed'"
             >
               Prayed For
             </button>
@@ -148,10 +163,10 @@ export interface PrayerPrompt {
         }
         @if ((userSessionService.getShowPrayingCount$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && showPrayedForBadge()) {
           <span
-            class="flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap"
+            [class]="variantLayout.prayedForBadgeClasses"
             title="How many times you have prayed with this prompt"
           >
-            {{ (prompt.prayed_for_count ?? 0) }} Prayers
+            {{ (prompt.prayed_for_count ?? 0) }} {{ prayedForCountLabel() }}
           </span>
         }
       </div>
@@ -226,10 +241,12 @@ export interface PrayerPrompt {
         (remindersChange)="onPromptRemindersChanged($event)"
       />
     </div>
+    </div>
   `,
   styles: []
 })
 export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
+  @Input() variant: PrayerCardVariant = 'home';
   @Input() prompt!: PrayerPrompt;
   @Input() isAdmin = false;
   @Input() isTypeSelected = false;
@@ -238,14 +255,38 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   
   @Output() delete = new EventEmitter<string>();
   @Output() onTypeClick = new EventEmitter<string>();
+  /** Emitted after a successful Pray For so presentation can sync its local prompt lists. */
+  @Output() prayedForCountChange = new EventEmitter<{
+    promptId: string;
+    count: number;
+  }>();
 
-  readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
-  readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
-  readonly metaActionsGapClasses = PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
-  readonly metaHeaderMinHeightClasses = PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES;
-  readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
-  readonly iconButtonPaddingClasses =
-    PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
+  get variantLayout() {
+    return getPromptCardVariantLayout(this.variant);
+  }
+
+  get headerInsetClasses(): string {
+    return this.variantLayout.headerInsetClasses;
+  }
+
+  get metaActionsGapClasses(): string {
+    return getMetaHeaderBandLayoutClasses(this.variantLayout.bandSize).actionsGapClasses;
+  }
+
+  get metaHeaderTextSmClasses(): string {
+    return getMetaHeaderBandLayoutClasses(this.variantLayout.bandSize).textSmClasses;
+  }
+
+  get iconButtonPaddingClasses(): string {
+    return getMetaHeaderBandLayoutClasses(this.variantLayout.bandSize).iconButtonPaddingClasses;
+  }
+
+  shellClasses(): string {
+    const layout = this.variantLayout;
+    return [layout.shellBaseClasses, layout.shellPaddingClasses, layout.shellOuterMargin]
+      .filter(Boolean)
+      .join(' ');
+  }
 
   readonly userSessionService = inject(UserSessionService);
   readonly prayerEncouragementService = inject(PrayerEncouragementService);
@@ -331,6 +372,11 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
     return (this.prompt.prayed_for_count ?? 0) > 0;
   }
 
+  /** Badge noun: singular "Prayer" when count is 1. */
+  prayedForCountLabel(): string {
+    return (this.prompt.prayed_for_count ?? 0) === 1 ? 'Prayer' : 'Prayers';
+  }
+
   getTypeHeaderTextClasses(): string {
     if (this.isTypeSelected) {
       return 'text-[#988F83] dark:text-[#988F83]';
@@ -373,6 +419,7 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
       if (this.prompt?.id === promptId) {
         this.prompt = { ...this.prompt, prayed_for_count: newCount };
       }
+      this.prayedForCountChange.emit({ promptId, count: newCount });
     } else {
       this.prayerEncouragementService.clearPrayedForCooldown(promptId, true);
     }

@@ -14,7 +14,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, BehaviorSubject, Subject, of } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { PrayerRequest, PrayerService } from '../../services/prayer.service';
+import { PrayerRequest, PrayerService, type PrayerUpdate } from '../../services/prayer.service';
 import { RichTextEditorsSettingsService } from '../../services/rich-text-editors-settings.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { UserSessionService } from '../../services/user-session.service';
@@ -49,7 +49,17 @@ import {
 } from '../../lib/prayer-card-kind';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
 import { getPrayerStatusBorderClasses } from '../../lib/prayer-status-header';
-import { PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import {
+  getPrayerCardVariantLayout,
+  type PrayerCardVariant,
+} from '../../lib/prayer-card-layout';
+import type {
+  PrayerCardAddUpdateEvent,
+  PrayerCardDeleteUpdateEvent,
+  PrayerCardDeletionRequest,
+  PrayerCardToggleAnsweredEvent,
+  PrayerCardUpdateDeletionRequest,
+} from '../../services/prayer-card-actions.facade';
 import { PrayerItemReminderService } from '../../services/prayer-item-reminder.service';
 import {
   resolvePrayerItemKind,
@@ -67,335 +77,15 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
   standalone: true,
   imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent, PersonalPrayerAnsweredStatusModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div
-      [attr.id]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-prayer-card' : null"
-      [class]="'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] ' + shellPaddingClasses + ' pb-4 mb-4 transition-colors relative ' + (usesPrayerMetaHeader() ? 'pt-0 ' : 'pt-6 ') + getBorderClass()"
-    >
-      <!-- Meta header: category or status (left) | date (center) | actions (right) -->
-      @if (usesPrayerMetaHeader()) {
-      <app-prayer-card-meta-header
-        [prayerCreatedAt]="prayer.created_at"
-        [isPersonal]="isPersonal"
-        [isMember]="isMemberPrayer()"
-        [category]="prayer.category ?? null"
-        [status]="prayer.status"
-        [showStatus]="showStatusPillInHeader()"
-        [showDelete]="showDeleteButton()"
-        [showReminder]="showReminderButton()"
-        [hasReminder]="hasReminderForPrayer()"
-        [reminderBellTourId]="tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
-        [showCenterDateTime]="!isMemberPrayer()"
-        [personalEditTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
-        [personalAnsweredTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-answered' : null"
-        [personalDeleteTourId]="tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
-        [centerDragHandle]="personalDragHandle && isPersonal"
-        [centerDragHandleId]="personalDragTourId"
-        (toggleAnswered)="onPersonalAnsweredClick()"
-        (edit)="editPersonalPrayer.emit(prayer)"
-        (delete)="handleDeleteClick()"
-        (reminder)="openReminderModal()"
-        (pickerOpenChange)="onCategoryPickerOpenChange($event)"
-      />
-      }
-
-      <!-- Header -->
-      <div class="flex items-start justify-between mb-4 relative">
-        <div
-          class="flex gap-3 flex-1 min-w-0"
-          [class.items-center]="activeFilter === 'planning_center_list'"
-          [class.items-start]="activeFilter !== 'planning_center_list'"
-        >
-          <!-- Avatar for Planning Center members -->
-          @if (prayer.prayer_image && isMemberPrayer()) {
-            <img 
-              [src]="prayer.prayer_image" 
-              [alt]="'Avatar for ' + prayer.prayer_for"
-              class="w-20 h-20 rounded-full object-cover border border-gray-300 dark:border-gray-600 flex-shrink-0"
-              loading="lazy"
-            />
-          }
-          <div class="flex-1">
-            <div class="relative flex items-center gap-2 flex-wrap">
-              <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline">
-                Prayer for {{ prayer.prayer_for }}
-              </h3>
-            @if (!isPersonal && !isMemberPrayer()) {
-            <span class="text-sm text-gray-600 dark:text-gray-400">
-              Requested by: <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester() }}</span>
-            </span>
-            }
-            </div>
-          </div>
-        </div>
-        @if (!usesPrayerMetaHeader()) {
-        <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
-          @if (showReminderButton()) {
-          <app-prayer-item-reminder-bell-button
-            [hasReminder]="hasReminderForPrayer()"
-            [tourAnchorId]="tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
-            (reminder)="openReminderModal()"
-          />
-          }
-          @if (showDeleteButton()) {
-          <button
-            (click)="handleDeleteClick()"
-            aria-label="Delete prayer request"
-            title="Delete prayer request"
-            class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-          }
-        </div>
-        }
-      </div>
-
-      <!-- Badge in top-right corner -->
-      @if ((prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal && !isMemberPrayer()) {
-        <button
-          (click)="markPrayerAsRead()"
-          class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
-          title="Mark prayer as read"
-          aria-label="Mark prayer as read"
-        >
-          1
-        </button>
-      }
-
-      <!-- Prayer Description -->
-      <app-rich-text-view
-        class="block text-gray-600 dark:text-gray-300 mb-4"
-        [text]="prayer.description"
-      ></app-rich-text-view>
-
-      <!-- Action buttons - flex-nowrap, reduced padding so row fits without wrap or scroll -->
-      @if (showAddUpdateButton()) {
-      <div class="flex flex-nowrap gap-1 items-center min-w-0">
-        <button
-          type="button"
-          (click)="toggleAddUpdate()"
-          title="Add an update to this prayer"
-          [attr.id]="
-            tourPersonalWalkthroughAnchors
-              ? 'tour-walkthrough-add-update'
-              : tourUpdateAnchors
-                ? 'tour-prayer-add-update'
-                : null
-          "
-          class="flex-shrink-0 px-2 py-1 text-xs font-medium btn-chip btn-chip-green whitespace-nowrap"
-        >
-          Add Update
-        </button>
-        @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
-          @if (canPrayFor$ | async) {
-            <button
-              type="button"
-              (click)="onPrayForClick()"
-              title="Record that you prayed for this request"
-              [attr.id]="tourPrayForEncouragementAnchors ? 'tour-prayer-pray-for' : null"
-              class="flex-shrink-0 px-2 py-1 text-xs font-medium btn-chip btn-chip-blue whitespace-nowrap"
-            >
-              Pray For
-            </button>
-          } @else {
-            <button
-              type="button"
-              disabled
-              [attr.id]="tourPrayForEncouragementAnchors ? 'tour-prayer-pray-for' : null"
-              [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(usesPersonalCooldown()) | async) ?? 4) + ' hours'"
-              class="flex-shrink-0 px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md border border-gray-300 dark:border-gray-600 cursor-not-allowed whitespace-nowrap"
-            >
-              Prayed For
-            </button>
-          }
-        }
-        @if ((userSessionService.getShowPrayingCount$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && showPrayedForBadge()) {
-          <span
-            class="flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap"
-            title="Number praying for this request"
-          >
-            {{ (prayer.prayed_for_count ?? 0) }} {{ isPersonal || isMemberPrayer() ? 'Prayers' : 'Praying' }}
-          </span>
-        }
-      </div>
-      }
-
-      <app-prayer-add-update-modal
-        [isOpen]="showAddUpdateForm"
-        [prayerId]="prayer.id"
-        [isPersonal]="isPersonal"
-        [richTextEditorsEnabled]="richTextEditorsEnabled"
-        [tourElementIds]="addUpdateTourElementIds"
-        (close)="closeAddUpdateForm()"
-        (updateSubmit)="onAddUpdateSubmit($event)"
-      />
-
-      <app-prayer-delete-request-modal
-        [isOpen]="showDeleteRequestForm || showUpdateDeleteRequestForm !== null"
-        [prayerId]="prayer.id"
-        [requestType]="showUpdateDeleteRequestForm ? 'update' : 'prayer'"
-        [updateId]="showUpdateDeleteRequestForm ?? ''"
-        (close)="closeAllDeleteRequestForms()"
-        (submit)="onDeleteRequestModalSubmit($event)"
-      />
-
-      <!-- Prayer updates -->
-      @if (prayer.updates && prayer.updates.length > 0) {
-      <div [class.mt-4]="recentUpdatesNeedsTopMargin()">
-        @if (shouldShowToggleButton()) {
-        <div class="flex justify-end mb-2">
-          <button
-            (click)="showAllUpdates = !showAllUpdates"
-            class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
-          >
-            {{ showAllUpdates ? 'Show less' : 'Show all' }}
-            <svg [class]="'transform transition-transform ' + (showAllUpdates ? 'rotate-180' : '')" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-        </div>
-        }
-        <div class="space-y-3">
-          @for (update of getDisplayedUpdates(); track update.id) {
-          <app-prayer-update-row
-            [update]="update"
-            [showUpdatedBy]="isCommunityPrayer()"
-            [compactHeaderInset]="isPersonal || isMemberPrayer()"
-          >
-            <app-prayer-update-actions
-              updateActions
-              [update]="update"
-              [mode]="getUpdateActionsMode()"
-              [showDelete]="showUpdateDeleteButton()"
-              (edit)="onUpdateEdit(update)"
-              (delete)="handleDeleteUpdate(update.id)"
-              (toggleAnswered)="toggleMemberUpdateAnswered(update)"
-            />
-            @if ((updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && isCommunityPrayer()) {
-              <button
-                updateCorner
-                (click)="markUpdateAsRead(update.id)"
-                class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
-                title="Mark update as read"
-                aria-label="Mark update as read"
-              >
-                1
-              </button>
-            }
-          </app-prayer-update-row>
-          }
-        </div>
-      </div>
-      }
-
-      <!-- Confirmation Dialog -->
-      @if (showConfirmationDialog) {
-      <app-confirmation-dialog
-        [title]="'Delete Prayer'"
-        [message]="'Are you sure you want to delete this prayer? This action cannot be undone.'"
-        [isDangerous]="true"
-        [confirmText]="'Delete'"
-        (confirm)="onConfirmDelete()"
-        (cancel)="onCancelDelete()">
-      </app-confirmation-dialog>
-      }
-
-      <!-- Update Confirmation Dialog -->
-      @if (showUpdateConfirmationDialog) {
-      <app-confirmation-dialog
-        [title]="updateConfirmationTitle"
-        [message]="updateConfirmationMessage"
-        [isDangerous]="true"
-        [confirmText]="'Delete'"
-        (confirm)="onConfirmUpdateDelete()"
-        (cancel)="onCancelUpdateDelete()">
-      </app-confirmation-dialog>
-      }
-
-      <app-personal-prayer-answered-status-modal
-        [isOpen]="personalAnsweredStatusModalMode !== null"
-        [mode]="personalAnsweredStatusModalMode ?? 'mark'"
-        (close)="closePersonalAnsweredStatusModal()"
-        (confirmMark)="onConfirmPersonalAnswered()"
-        (confirmUnmark)="onConfirmPersonalUnanswered($event)"
-      />
-
-      <app-prayer-item-reminder-modal
-        [isOpen]="showReminderModal"
-        [email]="reminderSessionEmail()"
-        [prayerId]="prayer.id"
-        [prayerKind]="prayerItemKind()"
-        [prayerFor]="prayer.prayer_for"
-        [titleSnapshot]="prayer.title || ('Prayer for ' + prayer.prayer_for)"
-        [reminders]="remindersForThisPrayer()"
-        (close)="showReminderModal = false"
-        (remindersChange)="onPrayerRemindersChanged($event)"
-      />
-
-      <!-- Pray For explanation modal -->
-      @if (showPrayForModal) {
-      <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Pray For This Request</h2>
-          </div>
-          <div class="px-6 py-4">
-            <p class="text-gray-600 dark:text-gray-300 mb-4">
-              @if (isPersonal) {
-              When you click Pray For, your personal prayer count increases so you can track how often you have prayed for this request.
-              } @else if (isMemberPrayer()) {
-              When you click Pray For, the shared praying count for this Planning Center member increases. Only the total count is shown—your click is anonymous.
-              } @else {
-              When you click Pray For, the person who submitted this prayer request will see that others have prayed for them. Only the total count is shown—your click is anonymous.
-              }
-            </p>
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
-              <p class="text-sm text-blue-700 dark:text-blue-300">
-                @if (isPersonal) {
-                You can pray for the same personal request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
-                } @else if (isMemberPrayer()) {
-                This encourages others by showing how many times this member has been prayed for. You can pray for the same member again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
-                } @else {
-                This encourages the requester by showing how many times their prayer has been lifted up. You can pray for the same request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(false) | async) ?? 4 }} hours.
-                }
-              </p>
-            </div>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                [(ngModel)]="prayForDoNotShowAgain"
-                name="prayForDoNotShowAgain"
-                class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
-              />
-              <span class="text-sm text-gray-700 dark:text-gray-300">Do not show this again</span>
-            </label>
-          </div>
-          <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
-            <button
-              (click)="showPrayForModal = false; prayForDoNotShowAgain = false"
-              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              (click)="onConfirmPrayForFromModal()"
-              class="px-4 py-2 btn-chip btn-chip-blue"
-            >
-              Pray For
-            </button>
-          </div>
-        </div>
-      </div>
-      }
-    </div>
-  `,
+  host: {
+    '[class.contents]': 'variant === "presentation"',
+    '[class.block]': 'variant !== "presentation"',
+  },
+  templateUrl: './prayer-card.component.html',
   styles: []
 })
 export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
+  @Input() variant: PrayerCardVariant = 'home';
   @Input() prayer!: PrayerRequest;
   @Input() isAdmin = false;
   @Input() isPersonal = false;
@@ -415,17 +105,30 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() tourPersonalWalkthroughAnchors = false;
 
   @Output() delete = new EventEmitter<string>();
-  @Output() addUpdate = new EventEmitter<any>();
-  @Output() deleteUpdate = new EventEmitter<{updateId: string; prayerId: string}>();
-  @Output() requestDeletion = new EventEmitter<any>();
-  @Output() requestUpdateDeletion = new EventEmitter<any>();
+  @Output() addUpdate = new EventEmitter<PrayerCardAddUpdateEvent>();
+  @Output() deleteUpdate = new EventEmitter<PrayerCardDeleteUpdateEvent>();
+  @Output() requestDeletion = new EventEmitter<PrayerCardDeletionRequest>();
+  @Output() requestUpdateDeletion = new EventEmitter<PrayerCardUpdateDeletionRequest>();
   @Output() editPersonalPrayer = new EventEmitter<PrayerRequest>();
-  @Output() editPersonalUpdate = new EventEmitter<any>();
-  @Output() editMemberUpdate = new EventEmitter<any>();
-  @Output() toggleUpdateAnswered = new EventEmitter<any>();
+  @Output() editPersonalUpdate = new EventEmitter<{
+    update: PrayerUpdate;
+    prayerId: string;
+  }>();
+  @Output() editMemberUpdate = new EventEmitter<{
+    update: PrayerUpdate;
+    prayerId: string;
+  }>();
+  @Output() toggleUpdateAnswered = new EventEmitter<PrayerCardToggleAnsweredEvent>();
   @Output() categoryPickerOpenChange = new EventEmitter<boolean>();
-
-  readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
+  @Output() prayedForCountChange = new EventEmitter<{
+    prayerId: string;
+    count: number;
+  }>();
+  @Output() personalPrayerCategoryChange = new EventEmitter<{
+    prayerId: string;
+    category: string | null;
+    status: string;
+  }>();
 
   prayerBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);
@@ -617,8 +320,17 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['prayer'] || changes['isPersonal']) {
+    if (changes['prayer'] || changes['isPersonal'] || changes['variant']) {
       this.refreshCanPrayFor$();
+    }
+    if (changes['prayer']) {
+      const previousId = changes['prayer'].previousValue?.id;
+      const currentId = changes['prayer'].currentValue?.id;
+      if (previousId !== currentId) {
+        this.showPrayForModal = false;
+        this.prayForDoNotShowAgain = false;
+        this.cdr.markForCheck();
+      }
     }
     // Check if updates array has changed
     if (changes['prayer'] && !changes['prayer'].firstChange) {
@@ -711,14 +423,40 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  get variantLayout() {
+    return getPrayerCardVariantLayout(this.variant);
+  }
+
+  get showTourAnchors(): boolean {
+    return this.variantLayout.showTourAnchors;
+  }
+
+  get prayerUpdateList(): PrayerUpdateRecord[] {
+    return this.prayer.updates ?? [];
+  }
+
+  shellClasses(): string {
+    const layout = this.variantLayout;
+    const meta = this.usesPrayerMetaHeader();
+    const border =
+      this.variant === 'presentation' ? '' : ' ' + this.getBorderClass();
+    return [
+      layout.shellBaseClasses,
+      layout.shellPaddingClasses,
+      layout.shellBottomPadding,
+      layout.shellOuterMargin,
+      meta ? layout.shellTopPaddingWhenMetaHeader : layout.shellTopPaddingWithoutMetaHeader,
+      border,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }
+
   getBorderClass(): string {
     if (this.isPersonal) {
       return '!border-gray-300 dark:!border-gray-600';
     }
-    if (
-      this.activeFilter === 'planning_center_list' ||
-      isMemberPrayerId(this.prayer.id)
-    ) {
+    if (isMemberPrayerId(this.prayer.id)) {
       return PLANNING_CENTER_MEMBER_BORDER_CLASS;
     }
     return getPrayerStatusBorderClasses(this.prayer.status);
@@ -781,8 +519,24 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     return this.isCurrentUserTheRequester();
   }
 
+  /** Badge noun: singular "Prayer" when count is 1 for personal/member cards. */
+  prayedForCountLabel(): string {
+    if (this.isPersonal || this.isMemberPrayer()) {
+      return (this.prayer.prayed_for_count ?? 0) === 1 ? 'Prayer' : 'Prayers';
+    }
+    return 'Praying';
+  }
+
   isMemberPrayer(): boolean {
     return isMemberPrayerId(this.prayer?.id);
+  }
+
+  /** Member cards are a name + updates list; they have no request description. */
+  showDescription(): boolean {
+    if (this.isMemberPrayer()) {
+      return false;
+    }
+    return !!this.prayer.description?.trim();
   }
 
   isCommunityPrayer(): boolean {
@@ -794,12 +548,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   showStatusPillInHeader(): boolean {
-    return (
-      this.isCommunityPrayer() &&
-      (this.activeFilter === 'total' ||
-        this.activeFilter === 'current' ||
-        this.activeFilter === 'answered')
-    );
+    return this.isCommunityPrayer();
   }
 
   /** Personal and member cards use the user's personal cooldown setting. */
@@ -852,6 +601,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
       if (this.prayer?.id === prayerId) {
         this.prayer = { ...this.prayer, prayed_for_count: newCount };
       }
+      this.prayedForCountChange.emit({ prayerId, count: newCount });
     } else {
       this.prayerEncouragementService.clearPrayedForCooldown(prayerId, usePersonalCooldown);
     }
@@ -952,7 +702,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     const userSession = this.userSessionService.getCurrentSession();
     const authorName = userSession?.fullName || this.getCurrentUserName();
 
-    const updateData = {
+    const updateData: PrayerCardAddUpdateEvent = {
       prayer_id: this.prayer.id,
       content: payload.content,
       author: authorName,
@@ -1019,8 +769,8 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   getDisplayedUpdates() {
-    if (!this.prayer.updates) return [];
-    const sortedUpdates = [...this.prayer.updates].sort((a, b) => 
+    if (this.prayerUpdateList.length === 0) return [];
+    const sortedUpdates = [...this.prayerUpdateList].sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     
@@ -1039,9 +789,9 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   shouldShowToggleButton(): boolean {
-    if (!this.prayer.updates) return false;
+    if (this.prayerUpdateList.length === 0) return false;
     const displayed = this.getDisplayedUpdates();
-    return displayed.length < this.prayer.updates.length || this.showAllUpdates;
+    return displayed.length < this.prayerUpdateList.length || this.showAllUpdates;
   }
 
   private getCurrentUserEmail(): string {
@@ -1117,12 +867,22 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onUpdateEdit(update: PrayerUpdateRecord): void {
+    const payload: PrayerUpdate = {
+      id: update.id,
+      prayer_id: this.prayer.id,
+      content: update.content,
+      author: update.author ?? '',
+      created_at: update.created_at,
+      updated_at: update.updated_at,
+      is_answered: update.is_answered,
+      is_anonymous: update.is_anonymous,
+    };
     if (this.isPersonal) {
-      this.editPersonalUpdate.emit({ update, prayerId: this.prayer.id });
+      this.editPersonalUpdate.emit({ update: payload, prayerId: this.prayer.id });
       return;
     }
     if (this.isMemberPrayer()) {
-      this.editMemberUpdate.emit({ update, prayerId: this.prayer.id });
+      this.editMemberUpdate.emit({ update: payload, prayerId: this.prayer.id });
     }
   }
 
@@ -1167,9 +927,22 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     this.isTogglingPersonalAnswered = true;
     this.cdr.markForCheck();
     try {
-      await this.prayerService.updatePersonalPrayer(this.prayer.id, {
+      const success = await this.prayerService.updatePersonalPrayer(this.prayer.id, {
         category,
       });
+      if (success) {
+        const newStatus = category === 'Answered' ? 'answered' : 'current';
+        this.prayer = {
+          ...this.prayer,
+          category: category ?? undefined,
+          status: newStatus,
+        };
+        this.personalPrayerCategoryChange.emit({
+          prayerId: this.prayer.id,
+          category,
+          status: newStatus,
+        });
+      }
     } finally {
       this.isTogglingPersonalAnswered = false;
       this.cdr.markForCheck();

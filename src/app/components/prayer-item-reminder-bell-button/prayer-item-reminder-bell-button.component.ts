@@ -7,8 +7,8 @@ import {
 } from '@angular/core';
 import {
   PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES,
-  PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
-  PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES,
+  getMetaHeaderBandLayoutClasses,
+  type MetaHeaderBandSize,
 } from '../../lib/prayer-card-layout';
 
 @Component({
@@ -28,11 +28,11 @@ import {
       [class]="
         iconButtonBaseClasses +
         ' text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' +
-        iconButtonPaddingClasses
+        layoutClasses.iconButtonPaddingClasses
       "
     >
       @if (hasReminder) {
-      <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <svg [class]="layoutClasses.iconSizeClasses" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path
           d="M13.73 21a2 2 0 0 1-3.46 0"
@@ -45,7 +45,7 @@ import {
       </svg>
       } @else {
       <svg
-        [class]="iconSizeClasses"
+        [class]="layoutClasses.iconSizeClasses"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -63,17 +63,19 @@ import {
 })
 export class PrayerItemReminderBellButtonComponent {
   readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
-  readonly iconSizeClasses = PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES;
-  readonly iconButtonPaddingClasses =
-    PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
 
   @Input() hasReminder = false;
+  @Input() bandSize: MetaHeaderBandSize = 'sm';
   /** `prayer` uses prayer-card copy; `prompt` uses shorter prompt-card copy. */
   @Input() itemLabel: 'prayer' | 'prompt' = 'prayer';
   /** Optional stable id for driver.js help tours. */
   @Input() tourAnchorId: string | null = null;
 
   @Output() reminder = new EventEmitter<void>();
+
+  get layoutClasses() {
+    return getMetaHeaderBandLayoutClasses(this.bandSize);
+  }
 
   get ariaLabel(): string {
     if (this.itemLabel === 'prompt') {

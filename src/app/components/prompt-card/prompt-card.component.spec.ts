@@ -1237,11 +1237,14 @@ describe('PromptCardComponent - Core Logic', () => {
     it('confirmPrayFor increments prompt count with personal cooldown', async () => {
       const promptService = TestBed.inject(PromptService) as any;
       const encouragement = TestBed.inject(PrayerEncouragementService) as any;
+      const emitted: Array<{ promptId: string; count: number }> = [];
+      component.prayedForCountChange.subscribe((event) => emitted.push(event));
       component.prompt = { ...component.prompt, prayed_for_count: 0 };
       await component.confirmPrayFor();
       expect(encouragement.recordPrayedFor).toHaveBeenCalledWith('prompt-1', true);
       expect(promptService.incrementPromptPrayedFor).toHaveBeenCalledWith('prompt-1');
       expect(component.prompt.prayed_for_count).toBe(5);
+      expect(emitted).toEqual([{ promptId: 'prompt-1', count: 5 }]);
     });
 
     it('dismisses Pray For modal when prompt id changes', () => {
@@ -1277,6 +1280,16 @@ describe('PromptCardComponent - Core Logic', () => {
     it('showPrayedForBadge is true when count > 0', () => {
       component.prompt = { ...component.prompt, prayed_for_count: 2 };
       expect(component.showPrayedForBadge()).toBe(true);
+    });
+
+    it('prayedForCountLabel uses singular Prayer when count is 1', () => {
+      component.prompt = { ...component.prompt, prayed_for_count: 1 };
+      expect(component.prayedForCountLabel()).toBe('Prayer');
+    });
+
+    it('prayedForCountLabel uses plural Prayers when count is not 1', () => {
+      component.prompt = { ...component.prompt, prayed_for_count: 2 };
+      expect(component.prayedForCountLabel()).toBe('Prayers');
     });
 
     it('getTypeHeaderTextClasses uses stone color when type filter is active', () => {

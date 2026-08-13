@@ -21,3 +21,24 @@ export function isCommunityPrayerCard(
 ): boolean {
   return !isPersonal && !isMemberPrayerId(prayer.id);
 }
+
+export type PrayerCardMutationKind = 'member' | 'personal' | 'community';
+
+export function memberPersonIdFromPrayerId(prayerId: string): string {
+  return isMemberPrayerId(prayerId)
+    ? prayerId.slice('pc-member-'.length)
+    : prayerId;
+}
+
+export function getPrayerCardMutationKind(
+  prayer: PrayerCardIdentity,
+  isPersonalFlag = false
+): PrayerCardMutationKind {
+  if (isMemberPrayerId(prayer.id)) {
+    return 'member';
+  }
+  if (isPersonalPrayerCard(prayer, isPersonalFlag)) {
+    return 'personal';
+  }
+  return 'community';
+}

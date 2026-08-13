@@ -9,10 +9,8 @@ export interface PrayerUpdateRecord {
   is_anonymous?: boolean;
 }
 
-const HEADER_LABEL_BASE_SM =
+const HEADER_LABEL_BASE =
   'block min-w-0 max-w-full truncate text-[14px] font-medium ';
-const HEADER_LABEL_BASE_MD =
-  'block min-w-0 max-w-full truncate text-[14px] md:text-[16px] font-medium ';
 const ANSWERED_LABEL_CLASSES = 'font-bold text-[#39704D] dark:text-[#5FB876]';
 const DEFAULT_LABEL_CLASSES = 'text-gray-600 dark:text-gray-400';
 
@@ -23,13 +21,11 @@ export function getPrayerUpdateHeaderLabel(
 }
 
 export function getPrayerUpdateHeaderLabelClasses(
-  update: Pick<PrayerUpdateRecord, 'is_answered'>,
-  size: 'sm' | 'md' = 'sm'
+  update: Pick<PrayerUpdateRecord, 'is_answered'>
 ): string {
-  const base = size === 'md' ? HEADER_LABEL_BASE_MD : HEADER_LABEL_BASE_SM;
   return update.is_answered
-    ? `${base}${ANSWERED_LABEL_CLASSES}`
-    : `${base}${DEFAULT_LABEL_CLASSES}`;
+    ? `${HEADER_LABEL_BASE}${ANSWERED_LABEL_CLASSES}`
+    : `${HEADER_LABEL_BASE}${DEFAULT_LABEL_CLASSES}`;
 }
 
 export function formatPrayerUpdateDisplayDate(

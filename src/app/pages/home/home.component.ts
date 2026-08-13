@@ -83,7 +83,6 @@ import {
 import { PlanningCenterListService } from "../../services/planning-center-list.service";
 import { mapHomeFilterToContentType } from "../../services/presentation-settings.service";
 import { resolvePrayerItemDeepLinkTab, resolvePersonalDeepLinkCategoryMode } from "../../lib/prayer-item-deep-link";
-import { isMemberPrayerId } from "../../lib/prayer-card-kind";
 import {
   HomePresentationFilter,
   HomeReturnContext,
@@ -96,6 +95,16 @@ import {
   serializePresentationHomeHandoffQueryParams,
 } from "../../types/presentation";
 import { ToastService } from "../../services/toast.service";
+import {
+  PrayerCardActionsFacade,
+  type PrayerCardAddUpdateEvent,
+} from "../../services/prayer-card-actions.facade";
+import { PrayerAllowancePolicyService } from "../../services/prayer-allowance-policy.service";
+import {
+  isMemberPrayerId,
+  memberPersonIdFromPrayerId,
+} from "../../lib/prayer-card-kind";
+import type { AllowanceLevel } from "../../types/prayer";
 import { PersonalCategoryColorService } from "../../services/personal-category-color.service";
 import { AnalyticsService } from "../../services/analytics.service";
 import { PullToRefreshDirective } from "../../directives/pull-to-refresh.directive";
@@ -1228,11 +1237,11 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [deletionsAllowed]="deletionsAllowed"
               [updatesAllowed]="updatesAllowed"
               [tourUpdateAnchors]="isFirstPrayer"
-              (delete)="deletePrayer($event)"
-              (addUpdate)="addUpdate($event)"
-              (deleteUpdate)="deleteUpdate($event)"
-              (requestDeletion)="requestDeletion($event)"
-              (requestUpdateDeletion)="requestUpdateDeletion($event)"
+              (delete)="prayerCardActions.deleteCard(prayer)"
+              (addUpdate)="onCardAddUpdate(prayer, $event)"
+              (deleteUpdate)="onCardDeleteUpdate(prayer, $event)"
+              (requestDeletion)="prayerCardActions.requestDeletion($event)"
+              (requestUpdateDeletion)="prayerCardActions.requestUpdateDeletion($event)"
               (editMemberUpdate)="openEditMemberUpdateModal($event)"
               (toggleUpdateAnswered)="toggleMemberUpdateAnswered($event)"
             ></app-prayer-card>
@@ -1248,11 +1257,11 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [tourUpdateAnchors]="isFirstPrayer"
               [tourPrayForEncouragementAnchors]="isFirstPrayer"
               [tourPrayerReminderBellAnchors]="isFirstPrayer"
-              (delete)="deletePrayer($event)"
-              (addUpdate)="addUpdate($event)"
-              (deleteUpdate)="deleteUpdate($event)"
-              (requestDeletion)="requestDeletion($event)"
-              (requestUpdateDeletion)="requestUpdateDeletion($event)"
+              (delete)="prayerCardActions.deleteCard(prayer)"
+              (addUpdate)="onCardAddUpdate(prayer, $event)"
+              (deleteUpdate)="onCardDeleteUpdate(prayer, $event)"
+              (requestDeletion)="prayerCardActions.requestDeletion($event)"
+              (requestUpdateDeletion)="prayerCardActions.requestUpdateDeletion($event)"
             ></app-prayer-card>
             } } }
 
@@ -1309,9 +1318,9 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
                     prayer.prayer_for === personalWalkthroughPrayerFor &&
                     prayer.description === personalWalkthroughDescription
                   "
-                  (delete)="deletePersonalPrayer($event)"
-                  (addUpdate)="addPersonalUpdate($event)"
-                  (deleteUpdate)="deletePersonalUpdate($event)"
+                  (delete)="prayerCardActions.deleteCard(prayer)"
+                  (addUpdate)="onCardAddUpdate(prayer, $event)"
+                  (deleteUpdate)="onCardDeleteUpdate(prayer, $event)"
                   (editPersonalPrayer)="openEditModal($event)"
                   (editPersonalUpdate)="openEditUpdateModal($event)"
                   (categoryPickerOpenChange)="
@@ -1349,7 +1358,7 @@ const HELP_SECTION_ID_PRESENTATION = "help_presentation";
               [isAdmin]="(isAdmin$ | async) || false"
               [isTypeSelected]="isPromptTypeSelected(prompt.type)"
               [tourPromptAnchors]="$first"
-              (delete)="deletePrompt($event)"
+              (delete)="prayerCardActions.deletePrompt($event)"
               (onTypeClick)="togglePromptType($event)"
             ></app-prompt-card>
             } }
@@ -1489,11 +1498,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   private lastExplicitRefreshAt = 0;
 
   isAdmin = false;
-  // Admin settings for access control policies
-  // These are loaded from admin_settings and control who can delete prayers/updates
-  deletionsAllowed: "everyone" | "original-requestor" | "admin-only" =
-    "everyone";
-  updatesAllowed: "everyone" | "original-requestor" | "admin-only" = "everyone";
+
+  get deletionsAllowed(): AllowanceLevel {
+    return this.prayerAllowancePolicy.deletionsAllowed;
+  }
+
+  get updatesAllowed(): AllowanceLevel {
+    return this.prayerAllowancePolicy.updatesAllowed;
+  }
 
   // Subject for managing subscriptions
   private destroy$ = new Subject<void>();
@@ -1552,7 +1564,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     private supabaseService: SupabaseService,
     private helpDriverTourService: HelpDriverTourService,
     private helpContentService: HelpContentService,
-    private personalCategoryColorService: PersonalCategoryColorService
+    private personalCategoryColorService: PersonalCategoryColorService,
+    readonly prayerCardActions: PrayerCardActionsFacade,
+    readonly prayerAllowancePolicy: PrayerAllowancePolicyService
   ) {
     // Load logo state from cache immediately to prevent flash
     const windowCache = (window as any).__cachedLogos;
@@ -1740,7 +1754,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
 
     // Load admin settings (deletion and update policies)
-    this.loadAdminSettings();
+    void this.prayerAllowancePolicy.load().then(() => {
+      this.cdr.detectChanges();
+    });
 
     // Subscribe to ALL prayers to update counts (not filtered) - with cleanup
     this.prayerService.allPrayers$
@@ -2357,7 +2373,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           deleteWalkthroughTestPrayer: () => {
             const p = this.getWalkthroughPersonalPrayer();
             if (p) {
-              this.deletePersonalPrayer(p.id);
+              this.prayerCardActions.deleteCard(p);
             }
           },
         }
@@ -2893,48 +2909,35 @@ export class HomeComponent implements OnInit, OnDestroy {
     prayerId: string;
     isAnswered: boolean;
   }): Promise<void> {
-    try {
-      const personId = event.prayerId.substring("pc-member-".length);
-
-      const success = await this.prayerService.updateMemberPrayerUpdate(
-        event.updateId,
-        personId,
-        { is_answered: event.isAnswered } as any,
-        this.planningCenterListId ?? undefined
+    const ok = await this.prayerCardActions.toggleMemberUpdateAnswered(event);
+    if (ok) {
+      await this.reloadMemberPrayerUpdates(
+        memberPersonIdFromPrayerId(event.prayerId)
       );
-
-      if (success) {
-        // Reload member prayers to show the updated status
-        await this.reloadMemberPrayerUpdates(personId);
-      }
-    } catch (error) {
-      console.error("Error toggling update answered status:", error);
-      this.toastService.error("Failed to update answered status");
     }
   }
 
-  private async loadAdminSettings(): Promise<void> {
-    try {
-      const { data, error } = await this.supabaseService.client
-        .from("admin_settings")
-        .select("deletions_allowed, updates_allowed")
-        .eq("id", 1)
-        .maybeSingle();
+  async onCardAddUpdate(
+    prayer: PrayerRequest,
+    event: PrayerCardAddUpdateEvent
+  ): Promise<void> {
+    const ok = await this.prayerCardActions.addUpdateForCard(prayer, event);
+    if (ok && isMemberPrayerId(prayer.id)) {
+      await this.reloadMemberPrayerUpdates(
+        memberPersonIdFromPrayerId(prayer.id)
+      );
+    }
+  }
 
-      if (error) {
-        console.error("Error loading admin settings:", error);
-        return;
-      }
-
-      if (data) {
-        // Load deletion and update policies from admin settings
-        // These control who can delete prayers/updates and who can submit updates
-        this.deletionsAllowed = data.deletions_allowed || "everyone";
-        this.updatesAllowed = data.updates_allowed || "everyone";
-        this.cdr.detectChanges();
-      }
-    } catch (err) {
-      console.error("Error loading admin settings:", err);
+  async onCardDeleteUpdate(
+    prayer: PrayerRequest,
+    event: { updateId: string; prayerId: string }
+  ): Promise<void> {
+    const ok = await this.prayerCardActions.deleteUpdateForCard(prayer, event);
+    if (ok && isMemberPrayerId(prayer.id)) {
+      await this.reloadMemberPrayerUpdates(
+        memberPersonIdFromPrayerId(prayer.id)
+      );
     }
   }
 
@@ -3060,142 +3063,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   markAsAnswered(id: string): void {
     this.prayerService.updatePrayerStatus(id, "answered");
-  }
-
-  deletePrayer(id: string): void {
-    this.prayerService.deletePrayer(id);
-  }
-
-  deletePersonalPrayer(id: string): void {
-    this.prayerService.deletePersonalPrayer(id).catch((error) => {
-      console.error("Error deleting personal prayer:", error);
-    });
-    // Service updates cache and observable automatically
-  }
-
-  async addUpdate(updateData: any): Promise<void> {
-    try {
-      // Check if this is a member card (synthetic prayer for Planning Center member)
-      if (updateData.prayer_id?.startsWith("pc-member-")) {
-        // Extract person_id from prayer_id format: pc-member-{person_id}
-        const personId = updateData.prayer_id.split("-").slice(2).join("-");
-        // Find the member to get their current name
-        const member = this.planningCenterListMembers.find(
-          (m) => m.id === personId
-        );
-
-        if (!member) {
-          console.error("Member not found for person_id:", personId);
-          this.toastService.error("Member not found");
-          return;
-        }
-
-        const userSession = this.userSessionService.getCurrentSession();
-        const author = userSession?.fullName || "Anonymous";
-        const authorEmail = userSession?.email || "";
-
-        const success = await this.prayerService.addMemberPrayerUpdate(
-          personId,
-          member.name,
-          updateData.content,
-          author,
-          authorEmail,
-          updateData.mark_as_answered || false, // Pass the answered flag
-          this.planningCenterListId ?? undefined // Pass listId for cache invalidation
-        );
-
-        if (success) {
-          // Cache will be cleared automatically by the service
-          // Reload the member prayers to show the new update
-          await this.loadPlanningCenterMemberPrayers();
-        }
-      } else {
-        // User is logged in - submit regular prayer update
-        await this.submitUpdate(updateData);
-      }
-    } catch (error) {
-      console.error("Error adding update:", error);
-      this.toastService.error("Failed to submit update");
-    }
-  }
-
-  async addPersonalUpdate(updateData: any): Promise<void> {
-    try {
-      const userSession = this.userSessionService.getCurrentSession();
-      const author = userSession?.fullName || "Anonymous";
-      const authorEmail = userSession?.email || "";
-
-      const success = await this.prayerService.addPersonalPrayerUpdate(
-        updateData.prayer_id,
-        updateData.content,
-        author,
-        authorEmail,
-        updateData.mark_as_answered || false
-      );
-
-      if (success) {
-        // If update is marked as answered, set the prayer category to "Answered"
-        if (updateData.mark_as_answered) {
-          await this.prayerService.updatePersonalPrayer(updateData.prayer_id, {
-            category: "Answered",
-          });
-        }
-        // Service updates observable and cache automatically
-      }
-    } catch (error) {
-      console.error("Error adding personal prayer update:", error);
-      this.toastService.error("Failed to add update");
-    }
-  }
-
-  async deleteUpdate(event: {
-    updateId: string;
-    prayerId: string;
-  }): Promise<void> {
-    try {
-      const { updateId, prayerId } = event;
-
-      // Check if this is a member update (prayerId starts with 'pc-member-')
-      if (prayerId.startsWith("pc-member-")) {
-        // Extract person_id from prayerId (format: 'pc-member-{person_id}')
-        const personId = prayerId.substring("pc-member-".length);
-
-        // Delete from member_prayer_updates table and clear cache
-        const success = await this.prayerService.deleteMemberPrayerUpdate(
-          updateId,
-          personId,
-          this.planningCenterListId ?? undefined // Pass listId for cache invalidation
-        );
-        if (success) {
-          // Reload all member prayers to show immediate change
-          await this.loadPlanningCenterMemberPrayers();
-        }
-      } else {
-        // Regular prayer update - delete from prayer_updates table
-        await this.prayerService.deleteUpdate(updateId);
-      }
-    } catch (error) {
-      console.error("Error deleting update:", error);
-      this.toastService.error("Failed to delete update");
-    }
-  }
-
-  async deletePersonalUpdate(event: {
-    updateId: string;
-    prayerId: string;
-  }): Promise<void> {
-    try {
-      const { updateId } = event;
-      const success = await this.prayerService.deletePersonalPrayerUpdate(
-        updateId
-      );
-      if (success) {
-        // Service updates cache and observable automatically
-      }
-    } catch (error) {
-      console.error("Error deleting personal prayer update:", error);
-      this.toastService.error("Failed to delete update");
-    }
   }
 
   async onPersonalPrayerDrop(
@@ -3369,29 +3236,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.isSwappingCategories = false;
       this.cdr.detectChanges();
     }
-  }
-
-  async requestDeletion(requestData: any): Promise<void> {
-    try {
-      // User is logged in - submit directly without verification
-      await this.submitDeletion(requestData);
-    } catch (error) {
-      console.error("Error requesting deletion:", error);
-      this.toastService.error("Failed to submit deletion request");
-    }
-  }
-  async requestUpdateDeletion(requestData: any): Promise<void> {
-    try {
-      // User is logged in - submit directly without verification
-      await this.submitUpdateDeletion(requestData);
-    } catch (error) {
-      console.error("Error requesting update deletion:", error);
-      this.toastService.error("Failed to submit update deletion request");
-    }
-  }
-
-  async deletePrompt(id: string): Promise<void> {
-    await this.promptService.deletePrompt(id);
   }
 
   togglePromptType(type: string): void {
@@ -3823,18 +3667,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       day: "numeric",
       year: "numeric",
     });
-  }
-
-  private async submitUpdate(updateData: any): Promise<void> {
-    await this.prayerService.addUpdate(updateData);
-  }
-
-  private async submitDeletion(requestData: any): Promise<void> {
-    await this.prayerService.requestDeletion(requestData);
-  }
-
-  private async submitUpdateDeletion(requestData: any): Promise<void> {
-    await this.prayerService.requestUpdateDeletion(requestData);
   }
 
   async logout(): Promise<void> {

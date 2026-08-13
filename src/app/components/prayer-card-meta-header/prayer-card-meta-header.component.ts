@@ -9,13 +9,11 @@ import {
 } from '../../lib/prayer-status-header';
 import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
 import {
+  PRAYER_CARD_HEADER_BLEED_CLASSES,
   PRAYER_CARD_HEADER_INSET_CLASSES,
-  PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
-  PRAYER_CARD_META_ACTIONS_GAP_COMPACT_CLASSES,
   PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES,
-  PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
-  PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES,
-  PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
+  getMetaHeaderBandLayoutClasses,
+  type MetaHeaderBandSize,
 } from '../../lib/prayer-card-layout';
 
 @Component({
@@ -26,6 +24,9 @@ import {
   template: `
     <app-card-meta-header-band
       [layout]="showCenterDateTime ? 'three-column' : 'two-column'"
+      [bandSize]="bandSize"
+      [bleedClasses]="bleedClasses"
+      [actionsInsetClasses]="actionsInsetClasses"
       [centerDate]="showCenterDateTime ? metaHeaderDate : null"
       [centerTime]="showCenterDateTime ? metaHeaderTime : null"
       [centerDragHandle]="centerDragHandle"
@@ -37,19 +38,20 @@ import {
           @if (category) {
           <app-personal-category-pill
             variant="header"
+            [bandSize]="bandSize"
             [category]="category"
             (pickerOpenChange)="pickerOpenChange.emit($event)"
           />
           }
         } @else if (showStatus) {
         <span
-          [class]="'block min-w-0 max-w-full truncate font-bold ' + metaHeaderTextSmClasses + ' ' + headerInsetClasses + ' ' + statusTextClasses"
+          [class]="'block min-w-0 max-w-full truncate font-bold ' + layoutClasses.textSmClasses + ' ' + headerInsetClasses + ' ' + statusTextClasses"
         >
           {{ statusLabel }}
         </span>
         } @else if (isMember) {
         <span
-          [class]="'block min-w-0 max-w-full truncate font-bold ' + metaHeaderTextSmClasses + ' ' + headerInsetClasses + ' ' + memberHeaderTextClasses"
+          [class]="'block min-w-0 max-w-full truncate font-bold ' + layoutClasses.textSmClasses + ' ' + headerInsetClasses + ' ' + memberHeaderTextClasses"
         >
           Member
         </span>
@@ -59,6 +61,7 @@ import {
         @if (showReminder) {
         <app-prayer-item-reminder-bell-button
           [hasReminder]="hasReminder"
+          [bandSize]="bandSize"
           [tourAnchorId]="reminderBellTourId"
           (reminder)="reminder.emit()"
         />
@@ -70,9 +73,9 @@ import {
           [attr.id]="personalAnsweredTourId"
           [title]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
           [attr.aria-label]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
-          [class]="iconButtonBaseClasses + ' focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses + ' ' + (isAnswered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
+          [class]="iconButtonBaseClasses + ' focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + layoutClasses.iconButtonPaddingClasses + ' ' + (isAnswered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
         >
-          <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg [class]="layoutClasses.iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </button>
@@ -82,9 +85,9 @@ import {
           [attr.id]="personalEditTourId"
           aria-label="Edit personal prayer"
           title="Edit prayer"
-          [class]="iconButtonBaseClasses + ' text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
+          [class]="iconButtonBaseClasses + ' text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + layoutClasses.iconButtonPaddingClasses"
         >
-          <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg [class]="layoutClasses.iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
@@ -97,9 +100,9 @@ import {
           [attr.id]="personalDeleteTourId"
           aria-label="Delete prayer request"
           title="Delete prayer request"
-          [class]="iconButtonBaseClasses + ' text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
+          [class]="iconButtonBaseClasses + ' text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + layoutClasses.iconButtonPaddingClasses"
         >
-          <svg [class]="iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg [class]="layoutClasses.iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
@@ -110,14 +113,15 @@ import {
   `,
 })
 export class PrayerCardMetaHeaderComponent {
-  readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
-  readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
   readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
-  readonly iconSizeClasses = PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES;
-  readonly iconButtonPaddingClasses =
-    PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
   /** Matches Planning Center member card border (`#0047AB`). */
   readonly memberHeaderTextClasses = 'text-[#0047AB] dark:text-[#4A90E2]';
+
+  /** Override when the card shell uses non-standard horizontal padding (e.g. presentation p-8). */
+  @Input() bleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
+  @Input() headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+  @Input() actionsInsetClasses: string | null = null;
+  @Input() bandSize: MetaHeaderBandSize = 'sm';
 
   @Input({ required: true }) prayerCreatedAt!: string;
   @Input() isPersonal = false;
@@ -163,9 +167,14 @@ export class PrayerCardMetaHeaderComponent {
     return getPrayerStatusHeaderTextClasses(this.status);
   }
 
+  get layoutClasses() {
+    return getMetaHeaderBandLayoutClasses(this.bandSize);
+  }
+
   get actionsGapClasses(): string {
-    return this.isPersonal
-      ? PRAYER_CARD_META_ACTIONS_GAP_COMPACT_CLASSES
-      : PRAYER_CARD_META_ACTIONS_GAP_CLASSES;
+    if (this.isPersonal) {
+      return this.layoutClasses.actionsGapCompactClasses;
+    }
+    return this.layoutClasses.actionsGapClasses;
   }
 }

@@ -1,0 +1,335 @@
+    <div [class]="variantLayout.usePresentationWrapper ? variantLayout.presentationScrollClasses : 'contents'">
+    <div
+      [attr.id]="showTourAnchors && tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-prayer-card' : null"
+      [class]="shellClasses()"
+    >
+      <!-- Meta header: category or status (left) | date (center) | actions (right) -->
+      @if (usesPrayerMetaHeader()) {
+      <app-prayer-card-meta-header
+        [bandSize]="variantLayout.bandSize"
+        [bleedClasses]="variantLayout.headerBleedClasses"
+        [headerInsetClasses]="variantLayout.headerInsetClasses"
+        [actionsInsetClasses]="variantLayout.headerInsetClasses"
+        [prayerCreatedAt]="prayer.created_at"
+        [isPersonal]="isPersonal"
+        [isMember]="isMemberPrayer()"
+        [category]="prayer.category ?? null"
+        [status]="prayer.status"
+        [showStatus]="showStatusPillInHeader()"
+        [showDelete]="showDeleteButton()"
+        [showReminder]="showReminderButton()"
+        [hasReminder]="hasReminderForPrayer()"
+        [reminderBellTourId]="showTourAnchors && tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
+        [showCenterDateTime]="!isMemberPrayer()"
+        [personalEditTourId]="showTourAnchors && tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-edit' : null"
+        [personalAnsweredTourId]="showTourAnchors && tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-answered' : null"
+        [personalDeleteTourId]="showTourAnchors && tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
+        [centerDragHandle]="showTourAnchors && personalDragHandle && isPersonal"
+        [centerDragHandleId]="personalDragTourId"
+        (toggleAnswered)="onPersonalAnsweredClick()"
+        (edit)="editPersonalPrayer.emit(prayer)"
+        (delete)="handleDeleteClick()"
+        (reminder)="openReminderModal()"
+        (pickerOpenChange)="onCategoryPickerOpenChange($event)"
+      />
+      }
+
+      <!-- Header -->
+      <div [class]="'flex items-start justify-between relative ' + variantLayout.headerRowMargin">
+        <div
+          [class]="'flex flex-1 min-w-0 ' + variantLayout.titleRowGap"
+          [class.items-center]="isMemberPrayer()"
+          [class.items-start]="!isMemberPrayer()"
+        >
+          @if (prayer.prayer_image && isMemberPrayer()) {
+            <img
+              [src]="prayer.prayer_image"
+              [alt]="'Avatar for ' + prayer.prayer_for"
+              [class]="variantLayout.avatarClasses"
+              loading="lazy"
+            />
+          }
+          <div class="flex-1">
+            <div class="relative flex items-baseline gap-2 flex-wrap">
+              <h3 [class]="variantLayout.titleClasses">
+                Prayer for {{ prayer.prayer_for }}
+              </h3>
+              @if (!isPersonal && !isMemberPrayer()) {
+              <span [class]="variantLayout.requesterClasses">
+                Requested by: <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester() }}</span>
+              </span>
+              }
+            </div>
+          </div>
+        </div>
+        @if (!usesPrayerMetaHeader()) {
+        <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
+          @if (showReminderButton()) {
+          <app-prayer-item-reminder-bell-button
+            [hasReminder]="hasReminderForPrayer()"
+            [bandSize]="variantLayout.bandSize"
+            [tourAnchorId]="showTourAnchors && tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
+            (reminder)="openReminderModal()"
+          />
+          }
+          @if (showDeleteButton()) {
+          <button
+            (click)="handleDeleteClick()"
+            aria-label="Delete prayer request"
+            title="Delete prayer request"
+            class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+          }
+        </div>
+        }
+      </div>
+
+      @if (variantLayout.showUnreadBadges && (prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal && !isMemberPrayer()) {
+        <button
+          (click)="markPrayerAsRead()"
+          class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+          title="Mark prayer as read"
+          aria-label="Mark prayer as read"
+        >
+          1
+        </button>
+      }
+
+      <!-- Prayer Description -->
+      @if (showDescription()) {
+      <app-rich-text-view
+        [class]="variantLayout.descriptionClasses"
+        [text]="prayer.description"
+      ></app-rich-text-view>
+      }
+
+      <!-- Action buttons - flex-nowrap, reduced padding so row fits without wrap or scroll -->
+      @if (showAddUpdateButton()) {
+      <div [class]="'flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
+        <button
+          type="button"
+          (click)="toggleAddUpdate()"
+          title="Add an update to this prayer"
+          [attr.id]="
+            showTourAnchors && tourPersonalWalkthroughAnchors
+              ? 'tour-walkthrough-add-update'
+              : showTourAnchors && tourUpdateAnchors
+                ? 'tour-prayer-add-update'
+                : null
+          "
+          [class]="variantLayout.actionButtonClasses + ' btn-chip btn-chip-green'"
+        >
+          Add Update
+        </button>
+        @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
+          @if (canPrayFor$ | async) {
+            <button
+              type="button"
+              (click)="onPrayForClick()"
+              title="Record that you prayed for this request"
+              [attr.id]="showTourAnchors && tourPrayForEncouragementAnchors ? 'tour-prayer-pray-for' : null"
+              [class]="variantLayout.actionButtonClasses + ' btn-chip btn-chip-blue'"
+            >
+              Pray For
+            </button>
+          } @else {
+            <button
+              type="button"
+              disabled
+              [attr.id]="showTourAnchors && tourPrayForEncouragementAnchors ? 'tour-prayer-pray-for' : null"
+              [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(usesPersonalCooldown()) | async) ?? 4) + ' hours'"
+              [class]="variantLayout.actionButtonClasses + ' bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md border border-gray-300 dark:border-gray-600 cursor-not-allowed'"
+            >
+              Prayed For
+            </button>
+          }
+        }
+        @if ((userSessionService.getShowPrayingCount$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && showPrayedForBadge()) {
+          <span
+            [class]="variantLayout.prayedForBadgeClasses"
+            title="Number praying for this request"
+          >
+            {{ (prayer.prayed_for_count ?? 0) }} {{ prayedForCountLabel() }}
+          </span>
+        }
+      </div>
+      }
+
+      <app-prayer-add-update-modal
+        [isOpen]="showAddUpdateForm"
+        [prayerId]="prayer.id"
+        [isPersonal]="isPersonal"
+        [richTextEditorsEnabled]="richTextEditorsEnabled"
+        [tourElementIds]="addUpdateTourElementIds"
+        (close)="closeAddUpdateForm()"
+        (updateSubmit)="onAddUpdateSubmit($event)"
+      />
+
+      <app-prayer-delete-request-modal
+        [isOpen]="showDeleteRequestForm || showUpdateDeleteRequestForm !== null"
+        [prayerId]="prayer.id"
+        [requestType]="showUpdateDeleteRequestForm ? 'update' : 'prayer'"
+        [updateId]="showUpdateDeleteRequestForm ?? ''"
+        (close)="closeAllDeleteRequestForms()"
+        (submit)="onDeleteRequestModalSubmit($event)"
+      />
+
+      <!-- Prayer updates -->
+      @if (prayerUpdateList.length > 0) {
+      <div [class.mt-4]="recentUpdatesNeedsTopMargin()">
+        @if (shouldShowToggleButton()) {
+        <div class="flex justify-end mb-2">
+          <button
+            (click)="showAllUpdates = !showAllUpdates"
+            [class]="variantLayout.updateToggleButtonClasses"
+          >
+            {{ showAllUpdates ? 'Show less' : 'Show all' }}
+            <svg [class]="'transform transition-transform ' + (showAllUpdates ? 'rotate-180' : '')" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        }
+        <div [class]="variantLayout.updateSectionSpacing">
+          @for (update of getDisplayedUpdates(); track update.id) {
+          <app-prayer-update-row
+            [update]="update"
+            [size]="variantLayout.updateRowSize"
+            [shellClass]="variantLayout.updateShellClass"
+            [contentClass]="variantLayout.updateContentClass"
+            [showUpdatedBy]="isCommunityPrayer()"
+            [compactHeaderInset]="isPersonal || isMemberPrayer()"
+          >
+            <app-prayer-update-actions
+              updateActions
+              [bandSize]="variantLayout.updateRowSize"
+              [update]="update"
+              [mode]="getUpdateActionsMode()"
+              [showDelete]="showUpdateDeleteButton()"
+              (edit)="onUpdateEdit(update)"
+              (delete)="handleDeleteUpdate(update.id)"
+              (toggleAnswered)="toggleMemberUpdateAnswered(update)"
+            />
+            @if (variantLayout.showUnreadBadges && (updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && isCommunityPrayer()) {
+              <button
+                updateCorner
+                (click)="markUpdateAsRead(update.id)"
+                class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                title="Mark update as read"
+                aria-label="Mark update as read"
+              >
+                1
+              </button>
+            }
+          </app-prayer-update-row>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Confirmation Dialog -->
+      @if (showConfirmationDialog) {
+      <app-confirmation-dialog
+        [title]="'Delete Prayer'"
+        [message]="'Are you sure you want to delete this prayer? This action cannot be undone.'"
+        [isDangerous]="true"
+        [confirmText]="'Delete'"
+        (confirm)="onConfirmDelete()"
+        (cancel)="onCancelDelete()">
+      </app-confirmation-dialog>
+      }
+
+      <!-- Update Confirmation Dialog -->
+      @if (showUpdateConfirmationDialog) {
+      <app-confirmation-dialog
+        [title]="updateConfirmationTitle"
+        [message]="updateConfirmationMessage"
+        [isDangerous]="true"
+        [confirmText]="'Delete'"
+        (confirm)="onConfirmUpdateDelete()"
+        (cancel)="onCancelUpdateDelete()">
+      </app-confirmation-dialog>
+      }
+
+      <app-personal-prayer-answered-status-modal
+        [isOpen]="personalAnsweredStatusModalMode !== null"
+        [mode]="personalAnsweredStatusModalMode ?? 'mark'"
+        (close)="closePersonalAnsweredStatusModal()"
+        (confirmMark)="onConfirmPersonalAnswered()"
+        (confirmUnmark)="onConfirmPersonalUnanswered($event)"
+      />
+
+      <app-prayer-item-reminder-modal
+        [isOpen]="showReminderModal"
+        [email]="reminderSessionEmail()"
+        [prayerId]="prayer.id"
+        [prayerKind]="prayerItemKind()"
+        [prayerFor]="prayer.prayer_for"
+        [titleSnapshot]="prayer.title || ('Prayer for ' + prayer.prayer_for)"
+        [reminders]="remindersForThisPrayer()"
+        (close)="showReminderModal = false"
+        (remindersChange)="onPrayerRemindersChanged($event)"
+      />
+
+      <!-- Pray For explanation modal -->
+      @if (showPrayForModal) {
+      <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Pray For This Request</h2>
+          </div>
+          <div class="px-6 py-4">
+            <p class="text-gray-600 dark:text-gray-300 mb-4">
+              @if (isPersonal) {
+              When you click Pray For, your personal prayer count increases so you can track how often you have prayed for this request.
+              } @else if (isMemberPrayer()) {
+              When you click Pray For, the shared praying count for this Planning Center member increases. Only the total count is shown—your click is anonymous.
+              } @else {
+              When you click Pray For, the person who submitted this prayer request will see that others have prayed for them. Only the total count is shown—your click is anonymous.
+              }
+            </p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+              <p class="text-sm text-blue-700 dark:text-blue-300">
+                @if (isPersonal) {
+                You can pray for the same personal request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
+                } @else if (isMemberPrayer()) {
+                This encourages others by showing how many times this member has been prayed for. You can pray for the same member again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
+                } @else {
+                This encourages the requester by showing how many times their prayer has been lifted up. You can pray for the same request again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(false) | async) ?? 4 }} hours.
+                }
+              </p>
+            </div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                [(ngModel)]="prayForDoNotShowAgain"
+                name="prayForDoNotShowAgain"
+                class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+              />
+              <span class="text-sm text-gray-700 dark:text-gray-300">Do not show this again</span>
+            </label>
+          </div>
+          <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <button
+              (click)="showPrayForModal = false; prayForDoNotShowAgain = false"
+              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              (click)="onConfirmPrayForFromModal()"
+              class="px-4 py-2 btn-chip btn-chip-blue"
+            >
+              Pray For
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+    </div>

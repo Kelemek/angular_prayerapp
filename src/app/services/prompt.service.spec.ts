@@ -1124,5 +1124,28 @@ describe('PromptService', () => {
       expect(result).toBeNull();
       expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(1);
     });
+
+    it('incrementPromptPrayedFor returns rpc count when hydrate generation races but user stays logged in', async () => {
+      userSessionSubject.next({ email: 'me@test.com' });
+      mockSupabaseService.client.rpc.mockResolvedValue({ data: 4, error: null });
+      (service as any).promptsSubject.next([
+        {
+          id: '1',
+          title: 'A',
+          type: 'Healing',
+          description: 'd',
+          created_at: 't',
+          updated_at: 't',
+          prayed_for_count: 3,
+        },
+      ]);
+
+      (service as any).countsHydrateGeneration += 1;
+
+      const result = await service.incrementPromptPrayedFor('1');
+
+      expect(result).toBe(4);
+      expect((service as any).promptsSubject.value[0].prayed_for_count).toBe(4);
+    });
   });
 });

@@ -1,7 +1,11 @@
-import { Component, ChangeDetectionStrategy, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, EventEmitter, HostBinding, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
-import { PRAYER_CARD_META_ACTIONS_GAP_CLASSES, PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES, PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES, PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES } from '../../lib/prayer-card-layout';
+import {
+  PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES,
+  getMetaHeaderBandLayoutClasses,
+  type MetaHeaderBandSize,
+} from '../../lib/prayer-card-layout';
 
 export type PrayerUpdateActionsMode = 'personal' | 'member' | 'readonly';
 
@@ -10,9 +14,6 @@ export type PrayerUpdateActionsMode = 'personal' | 'member' | 'readonly';
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    class: 'inline-flex items-center ' + PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
-  },
   template: `
     @if (mode === 'personal') {
     <button
@@ -71,15 +72,30 @@ export type PrayerUpdateActionsMode = 'personal' | 'member' | 'readonly';
 })
 export class PrayerUpdateActionsComponent {
   readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
-  readonly iconSizeClasses = PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES;
-  readonly iconButtonPaddingClasses =
-    PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES;
 
   @Input({ required: true }) update!: PrayerUpdateRecord;
   @Input() mode: PrayerUpdateActionsMode = 'readonly';
   @Input() showDelete = false;
+  @Input() bandSize: MetaHeaderBandSize = 'sm';
 
   @Output() edit = new EventEmitter<void>();
   @Output() delete = new EventEmitter<void>();
   @Output() toggleAnswered = new EventEmitter<void>();
+
+  @HostBinding('class')
+  get hostClasses(): string {
+    return `inline-flex items-center ${this.layoutClasses.actionsGapClasses}`;
+  }
+
+  get layoutClasses() {
+    return getMetaHeaderBandLayoutClasses(this.bandSize);
+  }
+
+  get iconSizeClasses(): string {
+    return this.layoutClasses.iconSizeClasses;
+  }
+
+  get iconButtonPaddingClasses(): string {
+    return this.layoutClasses.iconButtonPaddingClasses;
+  }
 }

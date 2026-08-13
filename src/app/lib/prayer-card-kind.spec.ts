@@ -3,6 +3,7 @@ import {
   isCommunityPrayerCard,
   isMemberPrayerId,
   isPersonalPrayerCard,
+  getPrayerCardMutationKind,
 } from './prayer-card-kind';
 
 describe('prayer-card-kind', () => {
@@ -17,9 +18,11 @@ describe('prayer-card-kind', () => {
     expect(isPersonalPrayerCard({ id: 'p1' })).toBe(false);
   });
 
-  it('isCommunityPrayerCard excludes personal and member', () => {
-    expect(isCommunityPrayerCard({ id: 'p1' })).toBe(true);
-    expect(isCommunityPrayerCard({ id: 'pc-member-1' })).toBe(false);
-    expect(isCommunityPrayerCard({ id: 'p1', user_email: 'a@b.com' }, true)).toBe(false);
+  it('getPrayerCardMutationKind dispatches member, personal, and community', () => {
+    expect(getPrayerCardMutationKind({ id: 'pc-member-1' })).toBe('member');
+    expect(getPrayerCardMutationKind({ id: 'p1', user_email: 'a@b.com' })).toBe(
+      'personal'
+    );
+    expect(getPrayerCardMutationKind({ id: 'p1' })).toBe('community');
   });
 });

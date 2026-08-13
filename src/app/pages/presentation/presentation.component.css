@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+.presentation-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.presentation-scroll::-webkit-scrollbar {
+  display: none;
+}
+.presentation-slide-fade {
+  transition: opacity 400ms ease-in-out;
+  opacity: 1;
+}
+.presentation-slide-faded {
+  opacity: 0;
+}

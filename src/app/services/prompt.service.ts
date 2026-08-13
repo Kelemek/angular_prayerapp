@@ -19,12 +19,34 @@ export class PromptService {
   /** Bumps on session email change so late count hydrates are ignored. */
   private countsHydrateGeneration = 0;
 
+  /** Active prayer_types.name values in display_order (refreshed on load). */
+  private activePromptCategories: string[] = [];
+
   public prompts$ = this.promptsSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
   public error$ = this.errorSubject.asObservable();
 
   isPromptsLoading(): boolean {
     return this.loadingSubject.value;
+  }
+
+  getPromptsSnapshot(): PrayerPrompt[] {
+    return this.promptsSubject.value;
+  }
+
+  getActivePromptCategories(): string[] {
+    if (this.activePromptCategories.length) {
+      return this.activePromptCategories;
+    }
+    const seen = new Set<string>();
+    const categories: string[] = [];
+    for (const prompt of this.promptsSubject.value) {
+      if (!seen.has(prompt.type)) {
+        seen.add(prompt.type);
+        categories.push(prompt.type);
+      }
+    }
+    return categories;
   }
 
   constructor(
@@ -70,8 +92,10 @@ export class PromptService {
 
         if (typesError) throw typesError;
 
+        this.activePromptCategories = (typesData || []).map((t: any) => t.name);
+
         // Create a set of active type names for filtering
-        const activeTypeNames = new Set((typesData || []).map((t: any) => t.name));
+        const activeTypeNames = new Set(this.activePromptCategories);
 
         // Create a map of type name to display_order
         const typeOrderMap = new Map(typesData?.map((t: any) => [t.name, t.display_order]) || []);
@@ -275,12 +299,14 @@ export class PromptService {
 
       const stillLoggedIn =
         this.userSessionService.getUserEmail()?.trim().toLowerCase() === userEmail;
-      if (!stillLoggedIn || generationAtStart !== this.countsHydrateGeneration) {
+      if (!stillLoggedIn) {
         return null;
       }
 
-      // Invalidate in-flight hydrates so a late attach cannot overwrite this newer tally.
-      this.countsHydrateGeneration += 1;
+      if (generationAtStart === this.countsHydrateGeneration) {
+        // Invalidate in-flight hydrates so a late attach cannot overwrite this newer tally.
+        this.countsHydrateGeneration += 1;
+      }
 
       const updated = this.promptsSubject.value.map((p) =>
         p.id === promptId ? { ...p, prayed_for_count: count } : p

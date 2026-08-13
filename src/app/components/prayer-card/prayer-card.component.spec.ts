@@ -171,6 +171,33 @@ describe('PrayerCardComponent', () => {
     expect(component.getBorderClass()).not.toContain('blue-600');
   });
 
+  it('showDescription is false for member prayers even when description is set', () => {
+    component.prayer = {
+      ...component.prayer,
+      id: 'pc-member-123',
+      description: 'Updates from Jane Doe',
+    } as any;
+    expect(component.showDescription()).toBe(false);
+  });
+
+  it('showDescription is false when description is empty', () => {
+    component.prayer = {
+      ...component.prayer,
+      id: 'p1',
+      description: '   ',
+    } as any;
+    expect(component.showDescription()).toBe(false);
+  });
+
+  it('showDescription is true for community prayers with text', () => {
+    component.prayer = {
+      ...component.prayer,
+      id: 'p1',
+      description: 'Please pray for recovery.',
+    } as any;
+    expect(component.showDescription()).toBe(true);
+  });
+
   it('displayRequester respects anonymity', () => {
     component.prayer.is_anonymous = true;
     expect(component.displayRequester()).toBe('Anonymous');
@@ -212,23 +239,16 @@ describe('PrayerCardComponent', () => {
       expect(component.personalDragHandle).toBe(true);
     });
 
-    it('showStatusPillInHeader is true on current, answered, and total for community cards', () => {
+    it('showStatusPillInHeader is true for community cards only', () => {
       component.isPersonal = false;
       component.prayer.id = 'p1';
-      component.activeFilter = 'total';
       expect(component.showStatusPillInHeader()).toBe(true);
 
-      component.activeFilter = 'current';
-      expect(component.showStatusPillInHeader()).toBe(true);
-
-      component.activeFilter = 'answered';
-      expect(component.showStatusPillInHeader()).toBe(true);
-
-      component.activeFilter = 'personal';
+      component.prayer.id = 'pc-member-1';
       expect(component.showStatusPillInHeader()).toBe(false);
 
+      component.prayer.id = 'p1';
       component.isPersonal = true;
-      component.activeFilter = 'total';
       expect(component.showStatusPillInHeader()).toBe(false);
     });
   });
@@ -732,6 +752,28 @@ describe('PrayerCardComponent', () => {
       expect(prayForComponent.showPrayedForBadge()).toBe(true);
     });
 
+    it('prayedForCountLabel uses singular Prayer when personal count is 1', () => {
+      prayForComponent.isPersonal = true;
+      prayForComponent.prayer.prayed_for_count = 1;
+      expect(prayForComponent.prayedForCountLabel()).toBe('Prayer');
+    });
+
+    it('prayedForCountLabel uses plural Prayers when personal count is not 1', () => {
+      prayForComponent.isPersonal = true;
+      prayForComponent.prayer.prayed_for_count = 2;
+      expect(prayForComponent.prayedForCountLabel()).toBe('Prayers');
+    });
+
+    it('prayedForCountLabel uses Praying for community prayers', () => {
+      prayForComponent.isPersonal = false;
+      prayForComponent.prayer = {
+        ...prayForComponent.prayer,
+        id: 'community-1',
+        prayed_for_count: 1,
+      };
+      expect(prayForComponent.prayedForCountLabel()).toBe('Praying');
+    });
+
     it('showAddUpdateButton returns true for member prayers even when updates_allowed is admin-only', () => {
       prayForComponent.prayer = {
         ...prayForComponent.prayer,
@@ -754,6 +796,14 @@ describe('PrayerCardComponent', () => {
       expect(mockPrayerService.incrementMemberPrayedFor).not.toHaveBeenCalled();
       expect(prayForComponent.prayer.prayed_for_count).toBe(5);
       expect(mockCdr.markForCheck).toHaveBeenCalled();
+    });
+
+    it('confirmPrayFor emits prayedForCountChange when increment succeeds', async () => {
+      mockPrayerEncouragementService.canPrayFor.mockReturnValue(true);
+      const emitted: Array<{ prayerId: string; count: number }> = [];
+      prayForComponent.prayedForCountChange.subscribe((event) => emitted.push(event));
+      await prayForComponent.confirmPrayFor();
+      expect(emitted).toEqual([{ prayerId: 'prayer-1', count: 5 }]);
     });
 
     it('confirmPrayFor for personal prayer calls incrementPersonalPrayedFor', async () => {
@@ -1572,6 +1622,24 @@ describe('PrayerCardComponent', () => {
       expect(component.updateBadges$.has('update2') || component.updateBadges$.has('update1')).toBe(true);
     });
 
+    it('dismisses Pray For modal when prayer id changes', () => {
+      component.showPrayForModal = true;
+      component.prayForDoNotShowAgain = true;
+      const previous = { ...component.prayer, id: 'prayer-1' };
+      const next = { ...component.prayer, id: 'prayer-2' };
+      component.prayer = next;
+      component.ngOnChanges({
+        prayer: {
+          previousValue: previous,
+          currentValue: next,
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+      expect(component.showPrayForModal).toBe(false);
+      expect(component.prayForDoNotShowAgain).toBe(false);
+    });
+
     it('should skip ngOnChanges on first change', () => {
       const changes = {
         prayer: {
@@ -2020,11 +2088,54 @@ describe('PrayerCardComponent', () => {
 
         component.onConfirmPersonalAnswered();
 
+        await vi.waitFor(() => {
+          expect(mockPrayerService.updatePersonalPrayer).toHaveBeenCalled();
+        });
+
         expect(component.personalAnsweredStatusModalMode).toBeNull();
         expect(mockPrayerService.updatePersonalPrayer).toHaveBeenCalledWith(
           'prayer-1',
           { category: 'Answered' }
         );
+        expect(component.prayer.category).toBe('Answered');
+        expect(component.prayer.status).toBe('answered');
+      });
+
+      it('applyPersonalAnsweredCategory emits personalPrayerCategoryChange on success', async () => {
+        component.isPersonal = true;
+        component.prayer = {
+          id: 'prayer-1',
+          title: 'Personal Prayer',
+          description: 'Description',
+          status: 'current',
+          requester: 'Test User',
+          prayer_for: 'Health',
+          category: 'Health',
+          date_requested: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          updates: [],
+        } as any;
+
+        const emitted: Array<{
+          prayerId: string;
+          category: string | null;
+          status: string;
+        }> = [];
+        component.personalPrayerCategoryChange.subscribe((event) =>
+          emitted.push(event)
+        );
+
+        const mockPrayerService = {
+          updatePersonalPrayer: vi.fn().mockResolvedValue(true),
+        };
+        (component as any).prayerService = mockPrayerService;
+
+        await component.applyPersonalAnsweredCategory('Answered');
+
+        expect(emitted).toEqual([
+          { prayerId: 'prayer-1', category: 'Answered', status: 'answered' },
+        ]);
       });
 
       it('togglePersonalAnswered marks category Answered', async () => {
@@ -2096,6 +2207,63 @@ describe('PrayerCardComponent', () => {
 
         expect(mockPrayerService.updatePersonalPrayer).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('variant presentation', () => {
+    beforeEach(() => {
+      component.variant = 'presentation';
+    });
+
+    it('uses presentation layout tokens', () => {
+      expect(component.variantLayout.usePresentationWrapper).toBe(true);
+      expect(component.variantLayout.bandSize).toBe('sm');
+      expect(component.showTourAnchors).toBe(false);
+      expect(component.variantLayout.showUnreadBadges).toBe(false);
+    });
+
+    it('shellClasses omits status border for presentation', () => {
+      const classes = component.shellClasses();
+      expect(classes).toContain('rounded-3xl');
+      expect(classes).not.toContain('0047AB');
+    });
+
+    it('treats isPersonal input as the personal contract even when user_email is set', () => {
+      component.isPersonal = false;
+      component.prayer = {
+        ...component.prayer,
+        user_email: 'owner@example.com',
+      } as any;
+      expect(component.isCommunityPrayer()).toBe(true);
+
+      component.isPersonal = true;
+      expect(component.isCommunityPrayer()).toBe(false);
+    });
+
+    it('reads updates from prayer.updates', () => {
+      component.prayer = {
+        ...component.prayer,
+        updates: [
+          {
+            id: 'u1',
+            content: 'Update',
+            author: 'Author',
+            created_at: now.toISOString(),
+          },
+        ],
+      } as any;
+      expect(component.prayerUpdateList).toHaveLength(1);
+      expect(component.getDisplayedUpdates()).toHaveLength(1);
+    });
+
+    it('prayedForCountLabel uses singular Prayer for personal count of 1', () => {
+      component.isPersonal = true;
+      component.prayer = {
+        ...component.prayer,
+        user_email: 'owner@example.com',
+        prayed_for_count: 1,
+      } as any;
+      expect(component.prayedForCountLabel()).toBe('Prayer');
     });
   });
 

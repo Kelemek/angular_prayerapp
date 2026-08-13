@@ -9,7 +9,7 @@ import {
   getPrayerUpdateHeaderLabelClasses,
   type PrayerUpdateRecord,
 } from '../../lib/prayer-update-header';
-import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import { PRAYER_CARD_HEADER_BLEED_CLASSES, PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prayer-update-row',
@@ -31,7 +31,8 @@ import { PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_META_HEADER_ACTIONS_INSET
       <app-card-meta-header-band
         [centerDate]="displayDateParts.date"
         [centerTime]="displayDateParts.time"
-        [centerSize]="size"
+        [bandSize]="size"
+        [bleedClasses]="bandBleedClasses"
         [compactActionsInset]="compactHeaderInset"
       >
         <div cardMetaLeft [class]="'min-w-0 w-full ' + leftInsetClasses">
@@ -60,7 +61,7 @@ export class PrayerUpdateRowComponent {
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
 
   @Input({ required: true }) update!: PrayerUpdateRecord;
-  @Input() size: 'sm' | 'md' = 'sm';
+  @Input() size = 'sm' as const;
   @Input() showUpdatedBy = false;
   @Input() shellClass = 'rounded-lg';
   @Input() contentClass = 'block text-sm text-gray-700 dark:text-gray-300';
@@ -70,17 +71,24 @@ export class PrayerUpdateRowComponent {
    */
   @Input() compactHeaderInset = false;
 
+  /**
+   * Bleed matches this row's shell padding (px-4 sm:px-6), not the outer presentation card.
+   */
+  readonly bandBleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
+
   get leftInsetClasses(): string {
-    return this.compactHeaderInset
-      ? PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES
-      : PRAYER_CARD_HEADER_INSET_CLASSES;
+    if (this.compactHeaderInset) {
+      return PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES;
+    }
+    return PRAYER_CARD_HEADER_INSET_CLASSES;
   }
+
   get headerLabel(): string {
     return getPrayerUpdateHeaderLabel(this.update);
   }
 
   get headerLabelClasses(): string {
-    return getPrayerUpdateHeaderLabelClasses(this.update, this.size);
+    return getPrayerUpdateHeaderLabelClasses(this.update);
   }
 
   get displayDateParts(): { date: string; time: string } {
@@ -94,8 +102,6 @@ export class PrayerUpdateRowComponent {
   }
 
   get updatedByClass(): string {
-    return this.size === 'md'
-      ? 'mb-2 text-sm md:text-base text-gray-600 dark:text-gray-400'
-      : 'mb-2 text-sm text-gray-600 dark:text-gray-400';
+    return 'mb-2 text-sm text-gray-600 dark:text-gray-400';
   }
 }

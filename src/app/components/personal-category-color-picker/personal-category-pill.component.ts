@@ -22,6 +22,7 @@ import {
   personalCategoryPillStyles,
 } from '../../../utils/personalCategoryColor';
 import {
+  computePersonalCategoryHeaderPickerPosition,
   getPersonalCategoryColorPickerViewportBounds,
   isNodeInsidePersonalCategoryPickerDropdown,
   PERSONAL_CATEGORY_COLOR_PICKER_ESTIMATED_HEIGHT,
@@ -29,9 +30,9 @@ import {
   shouldOpenPersonalCategoryColorPickerUp,
 } from './personal-category-picker-placement';
 import {
-  PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES,
-  PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES,
-  PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES,
+  PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES,
+  getMetaHeaderBandLayoutClasses,
+  type MetaHeaderBandSize,
 } from '../../lib/prayer-card-layout';
 
 @Component({
@@ -48,14 +49,14 @@ import {
   },
   template: `
     <div
-      [class]="variant === 'header' ? 'relative h-full min-w-0 max-w-full w-full overflow-hidden ' + metaHeaderMinHeightClasses : 'relative inline-block'"
+      [class]="variant === 'header' ? 'relative h-full min-w-0 max-w-full w-full overflow-hidden ' + layoutClasses.minHeightClasses : 'relative inline-block'"
       data-personal-category-pill
     >
       <button
         type="button"
         [class]="
           variant === 'header'
-            ? 'personal-category-header-band block h-full w-full min-w-0 max-w-full ' + metaHeaderMinHeightClasses + ' ' + headerInsetClasses + ' text-left font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden ' + metaHeaderTextSmClasses
+            ? 'personal-category-header-band block h-full w-full min-w-0 max-w-full ' + layoutClasses.minHeightClasses + ' ' + headerInsetClasses + ' text-left font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden ' + layoutClasses.textSmClasses
             : 'personal-category-pill px-2 py-1 text-xs font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500'
         "
         [title]="variant === 'header' ? category : null"
@@ -74,7 +75,7 @@ import {
           #pickerDropdown
           [class]="
             variant === 'header'
-              ? 'fixed z-50 -translate-x-1/2 p-3 sm:p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg isolate'
+              ? 'fixed z-50 p-3 sm:p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg isolate'
               : 'absolute left-1/2 z-20 -translate-x-1/2 p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg ' +
                 (pickerOpenUp ? 'bottom-full mb-1' : 'top-full mt-1')
           "
@@ -94,12 +95,11 @@ import {
 })
 export class PersonalCategoryPillComponent implements OnInit {
   /** Match personal meta header action inset (no unread badge clearance). */
-  readonly headerInsetClasses = PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES;
-  readonly metaHeaderMinHeightClasses = PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES;
-  readonly metaHeaderTextSmClasses = PRAYER_CARD_META_HEADER_TEXT_SM_CLASSES;
+  readonly headerInsetClasses = PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES;
 
   @Input({ required: true }) category!: string;
   @Input() variant: 'pill' | 'header' = 'pill';
+  @Input() bandSize: MetaHeaderBandSize = 'sm';
   @Output() pickerOpenChange = new EventEmitter<boolean>();
 
   @ViewChild('pickerDropdown') pickerDropdownRef?: ElementRef<HTMLElement>;
@@ -156,6 +156,10 @@ export class PersonalCategoryPillComponent implements OnInit {
     this.destroyRef.onDestroy(() => this.unbindScrollDismiss());
   }
 
+  get layoutClasses() {
+    return getMetaHeaderBandLayoutClasses(this.bandSize);
+  }
+
   get pillStyles(): Record<string, string> {
     const hex = this.colorService.getColor(this.category);
     return this.variant === 'header'
@@ -171,17 +175,13 @@ export class PersonalCategoryPillComponent implements OnInit {
     this.pickerAnchorButton =
       pillButton instanceof HTMLElement ? pillButton : null;
     if (pillButton instanceof HTMLElement) {
-      const pillRect = pillButton.getBoundingClientRect();
-      const viewport = getPersonalCategoryColorPickerViewportBounds(pillButton);
-      this.pickerOpenUp = shouldOpenPersonalCategoryColorPickerUp(
-        pillRect.top,
-        pillRect.bottom,
-        PERSONAL_CATEGORY_COLOR_PICKER_ESTIMATED_HEIGHT,
-        viewport.bottom,
-        viewport.top
+      this.applyHeaderDropdownPosition(
+        pillButton,
+        PERSONAL_CATEGORY_COLOR_PICKER_ESTIMATED_HEIGHT
       );
     } else {
       this.pickerOpenUp = false;
+      this.pickerDropdownPosition = null;
     }
 
     this.setPickerOpen(true);
@@ -256,29 +256,33 @@ export class PersonalCategoryPillComponent implements OnInit {
     );
   }
 
+  private applyHeaderDropdownPosition(
+    pillButton: HTMLElement,
+    dropdownHeight: number
+  ): void {
+    const pillRect = pillButton.getBoundingClientRect();
+    const viewport = getPersonalCategoryColorPickerViewportBounds(pillButton);
+    const position = computePersonalCategoryHeaderPickerPosition(
+      pillRect,
+      dropdownHeight,
+      viewport
+    );
+    this.pickerOpenUp = position.openUp;
+    this.pickerDropdownPosition = {
+      top: `${position.topPx}px`,
+      left: `${position.leftPx}px`,
+    };
+  }
+
   private updateDropdownPosition(pillButton: HTMLElement): void {
     const dropdown = this.pickerDropdownRef?.nativeElement;
     if (!dropdown) {
       return;
     }
-    const pillRect = pillButton.getBoundingClientRect();
-    const dropdownHeight = dropdown.getBoundingClientRect().height;
-    const viewport = getPersonalCategoryColorPickerViewportBounds(pillButton);
-    this.pickerOpenUp = shouldOpenPersonalCategoryColorPickerUp(
-      pillRect.top,
-      pillRect.bottom,
-      dropdownHeight,
-      viewport.bottom,
-      viewport.top
+    this.applyHeaderDropdownPosition(
+      pillButton,
+      dropdown.getBoundingClientRect().height
     );
-    const gap = 4;
-    const topPx = this.pickerOpenUp
-      ? pillRect.top - dropdownHeight - gap
-      : pillRect.bottom + gap;
-    this.pickerDropdownPosition = {
-      top: `${topPx}px`,
-      left: `${pillRect.left + pillRect.width / 2}px`,
-    };
     this.cdr.markForCheck();
   }
 

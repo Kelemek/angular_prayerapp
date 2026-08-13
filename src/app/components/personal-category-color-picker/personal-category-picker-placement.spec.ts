@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  computePersonalCategoryHeaderPickerPosition,
   getPersonalCategoryColorPickerViewportBounds,
   isNodeInsidePersonalCategoryPickerDropdown,
   shouldDismissPersonalCategoryPickerOnScroll,
@@ -30,6 +31,32 @@ describe('personalCategoryPickerPlacement', () => {
       expect(
         shouldOpenPersonalCategoryColorPickerUp(350, 380, 200, 400, 80)
       ).toBe(true);
+    });
+  });
+
+  describe('computePersonalCategoryHeaderPickerPosition', () => {
+    it('places the popover below and left-aligned to the category pill', () => {
+      const position = computePersonalCategoryHeaderPickerPosition(
+        { top: 100, bottom: 136, left: 24 },
+        200,
+        { top: 0, bottom: 800 }
+      );
+
+      expect(position.openUp).toBe(false);
+      expect(position.topPx).toBe(140);
+      expect(position.leftPx).toBe(24);
+    });
+
+    it('opens upward when there is not enough room below', () => {
+      const position = computePersonalCategoryHeaderPickerPosition(
+        { top: 900, bottom: 936, left: 16 },
+        200,
+        { top: 0, bottom: 950 }
+      );
+
+      expect(position.openUp).toBe(true);
+      expect(position.topPx).toBe(696);
+      expect(position.leftPx).toBe(16);
     });
   });
 

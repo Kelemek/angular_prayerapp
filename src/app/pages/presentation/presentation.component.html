@@ -1,0 +1,207 @@
+
+    <div
+      class="presentation-page-shell bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white relative"
+    >
+      <!-- Loading State -->
+      @if (loading) {
+      <div class="presentation-main flex items-center justify-center px-3 md:px-6">
+        <div class="flex flex-col items-center gap-4">
+          <div
+            class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+          ></div>
+          <div class="text-gray-900 dark:text-white text-xl">
+            Loading {{ getContentLoadingLabel() }}...
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- Main Content Display -->
+      @if (!loading && items.length > 0) {
+      <div
+        [class]="
+          'presentation-main px-3 md:px-6 pt-3 md:pt-4 transition-all duration-300 relative z-0 ' +
+          (showControls ? 'presentation-content-with-toolbar' : 'pb-3 md:pb-4')
+        "
+      >
+        <div class="flex-1 min-h-0 w-full min-w-0 max-w-6xl mx-auto">
+          <div
+            #presentationScroll
+            class="presentation-scroll card-stack-shadow h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-x-none flex items-center"
+          >
+            <div
+              class="presentation-card-slot presentation-slide-fade w-full min-w-0 max-h-full min-h-0"
+              [class.presentation-slide-faded]="playback.slideCardFaded"
+            >
+              @if (currentPrayerForCard || currentPromptForCard) {
+              <app-presentation-slide-card
+                [prayer]="currentPrayerForCard"
+                [prompt]="currentPromptForCard"
+                (prayerPrayedForCountChange)="onPresentationPrayerPrayedForCountChange($event)"
+                (promptPrayedForCountChange)="onPresentationPromptPrayedForCountChange($event)"
+                (personalPrayerCategoryChange)="onPresentationPersonalPrayerCategoryChange($event)"
+                (itemRemoved)="onSlideItemRemoved($event)"
+                (itemMutated)="onSlideItemMutated($event)"
+              />
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- No Content Message -->
+      @if (!loading && items.length === 0) {
+      <div class="presentation-main flex items-center justify-center px-3 md:px-6">
+        <div class="text-center p-8">
+          <div class="text-6xl mb-4">🙏</div>
+          <h2
+            class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2"
+          >
+            No Content Available
+          </h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">
+            {{ getEmptyContentMessage() }}
+          </p>
+          <button
+            (click)="exitPresentation()"
+            class="px-6 py-3 btn-chip btn-chip-blue"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+      }
+
+      <!-- Toolbar -->
+      <app-presentation-toolbar
+        [visible]="showControls"
+        [isPlaying]="playback.isPlaying"
+        [showTimer]="true"
+        [countdownRemaining]="playback.countdownRemaining"
+        [currentDuration]="playback.currentDuration"
+        (previous)="playback.previousSlide()"
+        (next)="playback.nextSlide()"
+        (togglePlay)="playback.togglePlay()"
+        (settingsToggle)="showSettings = !showSettings"
+        (exit)="exitPresentation()"
+      >
+      </app-presentation-toolbar>
+
+      <!-- Settings Modal -->
+      <app-presentation-settings-modal
+        [visible]="showSettings"
+        [theme]="theme"
+        [smartMode]="smartMode"
+        [displayDuration]="displayDuration"
+        [contentTypes]="contentTypes"
+        [randomize]="randomize"
+        [loop]="loop"
+        [timeFilter]="timeFilter"
+        [statusFiltersCurrent]="statusFilters.current"
+        [statusFiltersAnswered]="statusFilters.answered"
+        [prayerTimerMinutes]="prayerTimerMinutes"
+        [availableCategories]="uniquePersonalCategories"
+        [hasMappedList]="hasMembers"
+        [selectedCategories]="selectedPersonalCategories"
+        [availablePromptCategories]="uniquePromptCategories"
+        [selectedPromptCategories]="selectedPromptCategories"
+        (close)="showSettings = false"
+        (themeChange)="handleThemeChange($event)"
+        (smartModeChange)="handleSmartModeChange($event)"
+        (displayDurationChange)="handleDisplayDurationChange($event)"
+        (contentTypesChange)="contentTypes = $event; handleContentTypeChange()"
+        (randomizeChange)="randomize = $event; handleRandomizeChange()"
+        (loopChange)="handleLoopChange($event)"
+        (timeFilterChange)="timeFilter = $event; handleTimeFilterChange()"
+        (statusFiltersChange)="
+          statusFilters = $event; handleStatusFilterChange()
+        "
+        (prayerTimerMinutesChange)="handlePrayerTimerMinutesChange($event)"
+        (categoriesChange)="handlePersonalCategoriesChange($event)"
+        (promptCategoriesChange)="handlePromptCategoriesChange($event)"
+        (startPrayerTimer)="startPrayerTimer()"
+      >
+      </app-presentation-settings-modal>
+
+      <!-- Timer Notification -->
+      @if (showTimerNotification) {
+      <div
+        class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 safe-area-overlay"
+      >
+        <div
+          class="bg-white dark:bg-gray-800 rounded-3xl p-12 shadow-2xl border border-gray-200 dark:border-gray-700 text-center max-w-2xl mx-4 relative"
+        >
+          <button
+            (click)="showTimerNotification = false"
+            class="absolute top-4 right-4 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <svg
+            width="80"
+            height="80"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="mx-auto mb-6 text-[#39704D] dark:text-[#5FB876]"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          <h2 class="text-6xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+            Prayer Timer Complete! 🙏
+          </h2>
+          <p class="text-2xl text-gray-600 dark:text-gray-300">
+            Your prayer time has ended
+          </p>
+        </div>
+      </div>
+      }
+
+      <!-- Presentation Complete Notification -->
+      @if (playback.showPresentationCompleteNotification) {
+      <div
+        class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 safe-area-overlay"
+      >
+        <div
+          class="bg-white dark:bg-gray-800 rounded-3xl p-12 shadow-2xl border border-gray-200 dark:border-gray-700 text-center max-w-2xl mx-4 relative"
+        >
+          <button
+            (click)="playback.dismissPresentationComplete()"
+            class="absolute top-4 right-4 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <h2 class="text-6xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+            Prayers Complete! 🙏
+          </h2>
+          <p class="text-2xl text-gray-600 dark:text-gray-300">
+            You've viewed all prayers
+          </p>
+        </div>
+      </div>
+      }
+    </div>
+  

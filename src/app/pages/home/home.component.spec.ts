@@ -3,6 +3,7 @@ import { BehaviorSubject, of, NEVER, Subject } from 'rxjs';
 import { NavigationEnd } from '@angular/router';
 import { HomeComponent } from './home.component';
 import { PrayerRequest } from '../../services/prayer.service';
+import { PrayerCardActionsFacade } from '../../services/prayer-card-actions.facade';
 
 const makeMocks = () => {
   const prayersSubject = new BehaviorSubject<any[]>([]);
@@ -29,6 +30,8 @@ const makeMocks = () => {
     addPersonalPrayerUpdate: vi.fn(),
     deletePersonalPrayerUpdate: vi.fn(),
     updatePersonalPrayer: vi.fn(),
+    addMemberPrayerUpdate: vi.fn().mockResolvedValue(true),
+    deleteMemberPrayerUpdate: vi.fn().mockResolvedValue(true),
     updatePersonalPrayerOrder: vi.fn(),
     getUniqueCategoriesForUser: vi.fn().mockResolvedValue([]),
     swapCategoryRanges: vi.fn(),
@@ -52,7 +55,8 @@ const makeMocks = () => {
   const adminAuthService: any = {
     isAdmin$: new BehaviorSubject(false).asObservable(),
     hasAdminEmail$: of(false),
-    logout: vi.fn(() => Promise.resolve())
+    logout: vi.fn(() => Promise.resolve()),
+    getIsAdmin: vi.fn(() => false),
   };
 
   const userSessionService: any = {
@@ -203,7 +207,13 @@ const makeMocks = () => {
     loadColors: vi.fn().mockResolvedValue({}),
   };
 
-  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, badgeService, memorizationService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, personalCategoryColorService, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
+  const prayerAllowancePolicy: any = {
+    deletionsAllowed: 'everyone',
+    updatesAllowed: 'everyone',
+    load: vi.fn().mockResolvedValue(undefined),
+  };
+
+  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, badgeService, memorizationService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, personalCategoryColorService, prayerAllowancePolicy, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
 };
 
 interface SupabaseEmailOptions {
@@ -257,11 +267,23 @@ const makeSupabaseForEmail = (options: SupabaseEmailOptions = {}) => {
 
 type HomeMocks = ReturnType<typeof makeMocks>;
 
+function createPrayerCardActionsFacade(m: HomeMocks): PrayerCardActionsFacade {
+  return new PrayerCardActionsFacade(
+    m.prayerService,
+    m.promptService,
+    m.toastService,
+    m.userSessionService,
+    m.adminAuthService,
+    m.planningCenterListService
+  );
+}
+
 function createHomeComponent(
   mocks: HomeMocks,
   overrides: Partial<HomeMocks> = {}
 ): HomeComponent {
   const m = { ...mocks, ...overrides };
+  const prayerCardActions = createPrayerCardActionsFacade(m);
   return new HomeComponent(
     m.prayerService,
     m.promptService,
@@ -281,7 +303,9 @@ function createHomeComponent(
     m.supabaseService,
     m.helpDriverTourService,
     m.helpContentService,
-    m.personalCategoryColorService
+    m.personalCategoryColorService,
+    prayerCardActions,
+    m.prayerAllowancePolicy
   );
 }
 
@@ -439,58 +463,63 @@ describe('HomeComponent', () => {
     expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ status: 'current', search: 's2' });
   });
 
-  it('markAsAnswered and deletePrayer call service', () => {
+  it('markAsAnswered and deleteCard call service', () => {
     const comp = createHomeComponent(mocks)
     comp.markAsAnswered('id1');
     expect(mocks.prayerService.updatePrayerStatus).toHaveBeenCalledWith('id1', 'answered');
-    comp.deletePrayer('id2');
+    const facade = createPrayerCardActionsFacade(mocks);
+    facade.deleteCard({ id: 'id2' });
     expect(mocks.prayerService.deletePrayer).toHaveBeenCalledWith('id2');
   });
 
   it('addUpdate success and failure paths', async () => {
-    const comp = createHomeComponent(mocks)
-    // success
+    const facade = createPrayerCardActionsFacade(mocks);
+    const payload = {
+      prayer_id: 'p1',
+      content: 'c',
+      author: 'A',
+      author_email: 'a@b.com',
+      is_anonymous: false,
+      mark_as_answered: false,
+    };
     mocks.prayerService.addUpdate.mockResolvedValue(undefined);
-    await comp.addUpdate({});
+    await facade.addUpdateForCard({ id: 'p1' }, payload);
     expect(mocks.prayerService.addUpdate).toHaveBeenCalled();
 
-    // failure
     mocks.prayerService.addUpdate.mockRejectedValue(new Error('fail'));
-    await comp.addUpdate({});
+    await facade.addUpdateForCard({ id: 'p1' }, payload);
     expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to submit update');
   });
 
   it('deleteUpdate success and failure paths', async () => {
-    const comp = createHomeComponent(mocks)
+    const facade = createPrayerCardActionsFacade(mocks);
     mocks.prayerService.deleteUpdate.mockResolvedValue(undefined);
-    await comp.deleteUpdate({updateId: 'u1', prayerId: 'p1'});
-    // Toast is handled by the service, not the component
+    await facade.deleteUpdateForCard({ id: 'p1' }, { updateId: 'u1', prayerId: 'p1' });
 
     mocks.prayerService.deleteUpdate.mockRejectedValue(new Error('bad'));
-    await comp.deleteUpdate({updateId: 'u2', prayerId: 'p2'});
+    await facade.deleteUpdateForCard({ id: 'p2' }, { updateId: 'u2', prayerId: 'p2' });
     expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to delete update');
   });
 
   it('requestDeletion and requestUpdateDeletion success/failure', async () => {
-    const comp = createHomeComponent(mocks)
+    const facade = createPrayerCardActionsFacade(mocks);
     mocks.prayerService.requestDeletion.mockResolvedValue(undefined);
-    await comp.requestDeletion({});
-    // no toast on success
+    await facade.requestDeletion({});
 
     mocks.prayerService.requestDeletion.mockRejectedValue(new Error('x'));
-    await comp.requestDeletion({});
+    await facade.requestDeletion({});
     expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to submit deletion request');
 
     mocks.prayerService.requestUpdateDeletion.mockResolvedValue(undefined);
-    await comp.requestUpdateDeletion({});
+    await facade.requestUpdateDeletion({});
     mocks.prayerService.requestUpdateDeletion.mockRejectedValue(new Error('y'));
-    await comp.requestUpdateDeletion({});
+    await facade.requestUpdateDeletion({});
     expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to submit update deletion request');
   });
 
   it('deletePrompt calls promptService.deletePrompt', async () => {
-    const comp = createHomeComponent(mocks)
-    await comp.deletePrompt('p1');
+    const facade = createPrayerCardActionsFacade(mocks);
+    await facade.deletePrompt('p1');
     expect(mocks.promptService.deletePrompt).toHaveBeenCalledWith('p1');
   });
 
@@ -730,134 +759,6 @@ describe('HomeComponent', () => {
 
     expect(comp.personalCategoryFilterMode).toBe('total');
     expect(comp.selectedPersonalCategories).toEqual([]);
-  });
-
-  it('loadAdminSettings loads deletion and update policies successfully', async () => {
-    const mockSupabaseService: any = {
-      client: {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: {
-                  deletions_allowed: 'original-requestor',
-                  updates_allowed: 'admin-only'
-                },
-                error: null
-              })
-            })
-          })
-        })
-      }
-    };
-
-    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
-
-    await comp['loadAdminSettings']();
-
-    expect(comp.deletionsAllowed).toBe('original-requestor');
-    expect(comp.updatesAllowed).toBe('admin-only');
-    expect(mocks.cdr.detectChanges).toHaveBeenCalled();
-  });
-
-  it('loadAdminSettings handles error gracefully', async () => {
-    const mockSupabaseService: any = {
-      client: {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: new Error('Database error')
-              })
-            })
-          })
-        })
-      }
-    };
-
-    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
-
-    await comp['loadAdminSettings']();
-
-    // Should keep default values
-    expect(comp.deletionsAllowed).toBe('everyone');
-    expect(comp.updatesAllowed).toBe('everyone');
-  });
-
-  it('loadAdminSettings handles exception gracefully', async () => {
-    const mockSupabaseService: any = {
-      client: {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockRejectedValue(new Error('Network error'))
-            })
-          })
-        })
-      }
-    };
-
-    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
-
-    await comp['loadAdminSettings']();
-
-    // Should keep default values
-    expect(comp.deletionsAllowed).toBe('everyone');
-    expect(comp.updatesAllowed).toBe('everyone');
-  });
-
-  it('loadAdminSettings uses default values when data is null', async () => {
-    const mockSupabaseService: any = {
-      client: {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: null
-              })
-            })
-          })
-        })
-      }
-    };
-
-    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
-
-    await comp['loadAdminSettings']();
-
-    // Should keep default values when data is null
-    expect(comp.deletionsAllowed).toBe('everyone');
-    expect(comp.updatesAllowed).toBe('everyone');
-  });
-
-  it('loadAdminSettings handles null/undefined policy values with fallbacks', async () => {
-    const mockSupabaseService: any = {
-      client: {
-        from: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: {
-                  deletions_allowed: null,
-                  updates_allowed: undefined
-                },
-                error: null
-              })
-            })
-          })
-        })
-      }
-    };
-
-    const comp = createHomeComponent(mocks, { supabaseService: mockSupabaseService });
-
-    await comp['loadAdminSettings']();
-
-    // Should use fallback 'everyone' when values are null/undefined
-    expect(comp.deletionsAllowed).toBe('everyone');
-    expect(comp.updatesAllowed).toBe('everyone');
   });
 
   it('updateDefaultViewPreference returns false when no email is cached', async () => {
@@ -1306,20 +1207,17 @@ describe('HomeComponent', () => {
       mocks.prayerService.deletePersonalPrayer.mockResolvedValue(true);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue(prayers);
 
-      const comp = createHomeComponent(mocks)
-
-      await comp.deletePersonalPrayer('p1');
+      const facade = createPrayerCardActionsFacade(mocks);
+      facade.deleteCard({ id: 'p1', user_email: 'me@example.com' });
 
       expect(mocks.prayerService.deletePersonalPrayer).toHaveBeenCalledWith('p1');
-      // Service handles cache invalidation automatically
     });
 
     it('deletePersonalPrayer failure does not refresh', async () => {
       mocks.prayerService.deletePersonalPrayer.mockResolvedValue(false);
 
-      const comp = createHomeComponent(mocks)
-
-      await comp.deletePersonalPrayer('p1');
+      const facade = createPrayerCardActionsFacade(mocks);
+      facade.deleteCard({ id: 'p1', user_email: 'me@example.com' });
 
       expect(mocks.prayerService.deletePersonalPrayer).toHaveBeenCalledWith('p1');
       expect(mocks.cacheService.invalidate).not.toHaveBeenCalled();
@@ -1331,13 +1229,18 @@ describe('HomeComponent', () => {
       mocks.cacheService.get.mockReturnValue(null);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      const comp = createHomeComponent(mocks, { userSessionService: { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any })
-
-      await comp.addPersonalUpdate({
-        prayer_id: 'p1',
-        content: 'Update text',
-        mark_as_answered: true
-      });
+      const facade = createPrayerCardActionsFacade(mocks);
+      await facade.addUpdateForCard(
+        { id: 'p1', user_email: 'john@example.com' },
+        {
+          prayer_id: 'p1',
+          content: 'Update text',
+          author: 'John',
+          author_email: 'john@example.com',
+          is_anonymous: false,
+          mark_as_answered: true,
+        }
+      );
 
       expect(mocks.prayerService.addPersonalPrayerUpdate).toHaveBeenCalled();
       expect(mocks.prayerService.updatePersonalPrayer).toHaveBeenCalledWith('p1', { category: 'Answered' });
@@ -1348,13 +1251,18 @@ describe('HomeComponent', () => {
       mocks.cacheService.get.mockReturnValue(null);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      const comp = createHomeComponent(mocks, { userSessionService: { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any })
-
-      await comp.addPersonalUpdate({
-        prayer_id: 'p1',
-        content: 'Update text',
-        mark_as_answered: false
-      });
+      const facade = createPrayerCardActionsFacade(mocks);
+      await facade.addUpdateForCard(
+        { id: 'p1', user_email: 'john@example.com' },
+        {
+          prayer_id: 'p1',
+          content: 'Update text',
+          author: 'John',
+          author_email: 'john@example.com',
+          is_anonymous: false,
+          mark_as_answered: false,
+        }
+      );
 
       expect(mocks.prayerService.addPersonalPrayerUpdate).toHaveBeenCalled();
       expect(mocks.prayerService.updatePersonalPrayer).not.toHaveBeenCalled();
@@ -1363,14 +1271,20 @@ describe('HomeComponent', () => {
     it('addPersonalUpdate error handling', async () => {
       mocks.prayerService.addPersonalPrayerUpdate.mockRejectedValue(new Error('Add failed'));
 
-      const comp = createHomeComponent(mocks, { userSessionService: { getCurrentSession: vi.fn().mockReturnValue({ fullName: 'John', email: 'john@example.com' }) } as any })
+      const facade = createPrayerCardActionsFacade(mocks);
+      await facade.addUpdateForCard(
+        { id: 'p1', user_email: 'john@example.com' },
+        {
+          prayer_id: 'p1',
+          content: 'Update text',
+          author: 'John',
+          author_email: 'john@example.com',
+          is_anonymous: false,
+          mark_as_answered: false,
+        }
+      );
 
-      await comp.addPersonalUpdate({
-        prayer_id: 'p1',
-        content: 'Update text'
-      });
-
-      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to add update');
+      expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to submit update');
     });
 
     it('deletePersonalUpdate success refreshes cache', async () => {
@@ -1378,20 +1292,23 @@ describe('HomeComponent', () => {
       mocks.cacheService.get.mockReturnValue(null);
       mocks.prayerService.getPersonalPrayers.mockResolvedValue([]);
 
-      const comp = createHomeComponent(mocks)
-
-      await comp.deletePersonalUpdate({updateId: 'u1', prayerId: 'p1'});
+      const facade = createPrayerCardActionsFacade(mocks);
+      await facade.deleteUpdateForCard(
+        { id: 'p1', user_email: 'me@example.com' },
+        { updateId: 'u1', prayerId: 'p1' }
+      );
 
       expect(mocks.prayerService.deletePersonalPrayerUpdate).toHaveBeenCalledWith('u1');
-      // Service handles cache invalidation automatically
     });
 
     it('deletePersonalUpdate error handling', async () => {
       mocks.prayerService.deletePersonalPrayerUpdate.mockRejectedValue(new Error('Delete failed'));
 
-      const comp = createHomeComponent(mocks)
-
-      await comp.deletePersonalUpdate({updateId: 'u1', prayerId: 'p1'});
+      const facade = createPrayerCardActionsFacade(mocks);
+      await facade.deleteUpdateForCard(
+        { id: 'p1', user_email: 'me@example.com' },
+        { updateId: 'u1', prayerId: 'p1' }
+      );
 
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to delete update');
     });
@@ -2071,6 +1988,7 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       const prayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
+      comp.ngOnInit();
       comp.openEditModal(prayer);
 
       expect(comp.editingPrayer).toEqual(prayer);
@@ -2096,6 +2014,7 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       const update = { id: 'u1', text: 'Update text' } as any;
+      comp.ngOnInit();
       comp.openEditUpdateModal({ update, prayerId: 'p1' });
 
       expect(comp.editingUpdate).toEqual(update);
@@ -2122,6 +2041,7 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       const update = { id: 'u1', text: 'Update' } as any;
+      comp.ngOnInit();
       comp.openEditMemberUpdateModal({ update, prayerId: 'pc-member-123' });
 
       expect(comp.editingMemberUpdate).toEqual(update);
@@ -2478,38 +2398,53 @@ describe('HomeComponent', () => {
     });
   });
 
-  describe('Submit methods for modals', () => {
-    it('submitUpdate should call prayerService.addUpdate', async () => {
+  describe('Prayer card action facade delegation', () => {
+    it('addUpdate delegates to prayerService.addUpdate for regular prayers', async () => {
       mocks.prayerService.addUpdate.mockResolvedValue(undefined);
 
-      const comp = createHomeComponent(mocks)
+      const facade = createPrayerCardActionsFacade(mocks);
+      await facade.addUpdateForCard(
+        { id: 'p1' },
+        {
+          prayer_id: 'p1',
+          content: 'Update',
+          author: 'A',
+          author_email: 'a@b.com',
+          is_anonymous: false,
+          mark_as_answered: false,
+        }
+      );
 
-      const updateData = { id: 'u1', text: 'Update' };
-      await (comp as any).submitUpdate(updateData);
-
-      expect(mocks.prayerService.addUpdate).toHaveBeenCalledWith(updateData);
+      expect(mocks.prayerService.addUpdate).toHaveBeenCalledWith({
+        prayer_id: 'p1',
+        content: 'Update',
+        author: 'A',
+        author_email: 'a@b.com',
+        is_anonymous: false,
+        mark_as_answered: false,
+      });
     });
 
-    it('submitDeletion should call prayerService.requestDeletion', async () => {
+    it('requestDeletion delegates to prayerService.requestDeletion', async () => {
       mocks.prayerService.requestDeletion.mockResolvedValue(undefined);
 
-      const comp = createHomeComponent(mocks)
-
+      const facade = createPrayerCardActionsFacade(mocks);
       const requestData = { id: 'p1', reason: 'Done' };
-      await (comp as any).submitDeletion(requestData);
+      await facade.requestDeletion(requestData);
 
       expect(mocks.prayerService.requestDeletion).toHaveBeenCalledWith(requestData);
     });
 
-    it('submitUpdateDeletion should call prayerService.requestUpdateDeletion', async () => {
+    it('requestUpdateDeletion delegates to prayerService.requestUpdateDeletion', async () => {
       mocks.prayerService.requestUpdateDeletion.mockResolvedValue(undefined);
 
-      const comp = createHomeComponent(mocks)
-
+      const facade = createPrayerCardActionsFacade(mocks);
       const requestData = { id: 'u1', reason: 'Spam' };
-      await (comp as any).submitUpdateDeletion(requestData);
+      await facade.requestUpdateDeletion(requestData);
 
-      expect(mocks.prayerService.requestUpdateDeletion).toHaveBeenCalledWith(requestData);
+      expect(mocks.prayerService.requestUpdateDeletion).toHaveBeenCalledWith(
+        requestData
+      );
     });
   });
 
@@ -2889,7 +2824,7 @@ describe('HomeComponent', () => {
     it('toggleMemberUpdateAnswered updates member prayer via service', async () => {
       const m = makeMocks();
       const comp = newHome(m);
-      comp.planningCenterListId = 'list-1';
+      m.planningCenterListService.getCurrentListId.mockReturnValue('list-1');
       comp.planningCenterListMembers = [{ id: 'person-1', name: 'Bob' }];
       comp.filteredPlanningCenterPrayers = [
         { id: 'pc-member-person-1', updates: [] } as any,
@@ -2897,7 +2832,6 @@ describe('HomeComponent', () => {
       m.prayerService.getMemberPrayerUpdates.mockResolvedValue([
         { id: 'u1', content: 'updated' },
       ]);
-
       await comp.toggleMemberUpdateAnswered({
         updateId: 'upd-1',
         prayerId: 'pc-member-person-1',

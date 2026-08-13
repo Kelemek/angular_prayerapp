@@ -5,10 +5,8 @@ import {
   PRAYER_CARD_HEADER_BLEED_CLASSES,
   PRAYER_CARD_HEADER_INSET_CLASSES,
   PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES,
-  PRAYER_CARD_META_HEADER_CENTER_PADDING_CLASSES,
-  PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES,
-  PRAYER_CARD_META_HEADER_TEXT_XS_CLASSES,
-  PRAYER_CARD_META_HEADER_TEXT_XS_MD_CLASSES,
+  getMetaHeaderBandLayoutClasses,
+  type MetaHeaderBandSize,
 } from '../../lib/prayer-card-layout';
 
 @Component({
@@ -20,11 +18,11 @@ import {
     <div
       [class]="
         layout === 'two-column'
-          ? 'grid grid-cols-[minmax(0,1fr)_auto] items-center ' + headerBleedClasses + ' mb-4 overflow-hidden rounded-t-lg border-b border-gray-200 dark:border-gray-700 ' + metaHeaderMinHeightClasses
-          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + headerBleedClasses + ' mb-4 overflow-hidden rounded-t-lg border-b border-gray-200 dark:border-gray-700 ' + metaHeaderMinHeightClasses
+          ? 'grid grid-cols-[minmax(0,1fr)_auto] items-stretch ' + bleedClasses + ' overflow-hidden rounded-t-lg border-b border-gray-200 dark:border-gray-700 ' + bandMarginClasses + ' ' + minHeightClasses
+          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden rounded-t-lg border-b border-gray-200 dark:border-gray-700 ' + bandMarginClasses + ' ' + minHeightClasses
       "
     >
-      <div [class]="'flex min-w-0 items-center overflow-hidden ' + metaHeaderMinHeightClasses">
+      <div [class]="'flex h-full min-w-0 w-full items-center self-stretch overflow-hidden ' + minHeightClasses">
         <ng-content select="[cardMetaLeft]" />
       </div>
       @if (layout === 'three-column' && (centerDate || centerTime || center !== null)) {
@@ -46,8 +44,8 @@ import {
       }
       <div
         [class]="
-          'flex min-w-0 flex-shrink-0 items-center justify-end ' +
-          actionsInsetClasses
+          'flex min-w-0 items-center justify-end self-stretch ' +
+          resolvedActionsInsetClasses
         "
         [class.col-start-2]="layout === 'two-column'"
         [class.row-start-1]="layout === 'two-column'"
@@ -59,7 +57,7 @@ import {
 
     <ng-template #centerDateTime>
       @if (centerDate && centerTime) {
-      <span class="flex flex-col leading-tight sm:flex-row sm:whitespace-nowrap">
+      <span class="flex flex-col items-center leading-tight sm:flex-row sm:whitespace-nowrap">
         <span>{{ centerDate }}</span>
         <span class="hidden sm:inline">, </span>
         <span>{{ centerTime }}</span>
@@ -71,16 +69,18 @@ import {
   `,
 })
 export class CardMetaHeaderBandComponent {
-  readonly headerBleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
-  readonly metaHeaderMinHeightClasses = PRAYER_CARD_META_HEADER_MIN_HEIGHT_CLASSES;
+
+  /** Override when the card shell uses non-standard horizontal padding (e.g. presentation p-8). */
+  @Input() bleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
+  /** Controls band height, center date size, and vertical spacing below the band. */
+  @Input() bandSize: MetaHeaderBandSize = 'sm';
 
   /** `three-column` — left | center | right. `two-column` — left | right only. */
   @Input() layout: 'three-column' | 'two-column' = 'three-column';
   @Input() center: string | null = null;
   @Input() centerDate: string | null = null;
   @Input() centerTime: string | null = null;
-  @Input() centerSize: 'sm' | 'md' = 'sm';
   /** When true, the center date/time is the CDK drag handle (personal prayer reorder). */
   @Input() centerDragHandle = false;
   @Input() centerDragHandleId: string | null = null;
@@ -89,21 +89,35 @@ export class CardMetaHeaderBandComponent {
    * (cards without corner unread badges, e.g. personal).
    */
   @Input() compactActionsInset = false;
+  /** Override actions-column inset when the card shell uses non-standard padding. */
+  @Input() actionsInsetClasses: string | null = null;
 
-  get actionsInsetClasses(): string {
+  get layoutClasses() {
+    return getMetaHeaderBandLayoutClasses(this.bandSize);
+  }
+
+  get minHeightClasses(): string {
+    return this.layoutClasses.minHeightClasses;
+  }
+
+  get bandMarginClasses(): string {
+    return this.layoutClasses.bandMarginClasses;
+  }
+
+  get resolvedActionsInsetClasses(): string {
+    if (this.actionsInsetClasses) {
+      return this.actionsInsetClasses;
+    }
     return this.compactActionsInset
       ? PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES
       : PRAYER_CARD_HEADER_INSET_CLASSES;
   }
 
   get centerClass(): string {
-    const size =
-      this.centerSize === 'md'
-        ? PRAYER_CARD_META_HEADER_TEXT_XS_MD_CLASSES
-        : PRAYER_CARD_META_HEADER_TEXT_XS_CLASSES;
+    const size = this.layoutClasses.centerTextClasses;
     const nowrap =
       this.centerDate && this.centerTime ? '' : ' whitespace-nowrap';
-    return `${PRAYER_CARD_META_HEADER_CENTER_PADDING_CLASSES} text-center ${size} text-gray-500 dark:text-gray-400${nowrap}`;
+    return `${this.layoutClasses.centerPaddingClasses} text-center ${size} text-gray-500 dark:text-gray-400${nowrap}`;
   }
 
   get centerDragHandleClass(): string {

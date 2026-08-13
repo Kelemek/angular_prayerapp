@@ -22,6 +22,37 @@ export const shouldOpenPersonalCategoryColorPickerUp = (
 /** Rough height for pre-flip before the popover is measured in the DOM. */
 export const PERSONAL_CATEGORY_COLOR_PICKER_ESTIMATED_HEIGHT = 260;
 
+export interface PersonalCategoryHeaderPickerPosition {
+  topPx: number;
+  leftPx: number;
+  openUp: boolean;
+}
+
+/** Fixed header popover: below the category label, left-aligned to the pill. */
+export const computePersonalCategoryHeaderPickerPosition = (
+  pillRect: Pick<DOMRect, 'top' | 'bottom' | 'left'>,
+  dropdownHeight: number,
+  viewport: { top: number; bottom: number },
+  gap = 4
+): PersonalCategoryHeaderPickerPosition => {
+  const openUp = shouldOpenPersonalCategoryColorPickerUp(
+    pillRect.top,
+    pillRect.bottom,
+    dropdownHeight,
+    viewport.bottom,
+    viewport.top,
+    gap
+  );
+  const topPx = openUp
+    ? pillRect.top - dropdownHeight - gap
+    : pillRect.bottom + gap;
+  return {
+    topPx,
+    leftPx: pillRect.left,
+    openUp,
+  };
+};
+
 /** Visible bounds for clipping checks (scroll viewport or visual viewport). */
 export const getPersonalCategoryColorPickerViewportBounds = (
   anchor: HTMLElement | null
