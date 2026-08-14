@@ -4,6 +4,61 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Refactor — Home page Phase 1 decomposition
+- [`home.component.ts`](src/app/pages/home/home.component.ts) template and styles moved to [`home.component.html`](src/app/pages/home/home.component.html) and [`home.component.css`](src/app/pages/home/home.component.css) (same pattern as Presentation).
+- Prayer/prompt/filter deep links (`?prayerId=`, `?promptId=`, `?filter=`) now orchestrate through [`home-deep-link.coordinator.ts`](src/app/services/home-deep-link.coordinator.ts) with a page host adapter in [`home-deep-link-host.adapter.ts`](src/app/services/home-deep-link-host.adapter.ts); unified scroll-retry logic replaces duplicated prayer/prompt schedulers.
+
+### Refactor — Home page Phase 2 help tours
+- Help section UI tours and the full guided tour queue moved to [`home-help-tour.launcher.ts`](src/app/services/home-help-tour.launcher.ts) with [`home-help-tour-host.adapter.ts`](src/app/services/home-help-tour-host.adapter.ts); [`home.component.html`](src/app/pages/home/home.component.html) routes all help-tour outputs through `startHelpSectionTour`.
+
+### Refactor — Home page Phase 3 catalog and filters
+- Personal, Planning Center, and prompt list filtering moved to pure helpers in [`home-catalog.ts`](src/app/lib/home-catalog.ts) and a per-page [`home-catalog.store.ts`](src/app/services/home-catalog.store.ts) rebuilt via `refreshHomeCatalog()` after prayers, prompts, or filter state change.
+- Tab switching and search-only filter changes delegate to [`home-filter.coordinator.ts`](src/app/services/home-filter.coordinator.ts) with [`home-filter-host.adapter.ts`](src/app/services/home-filter-host.adapter.ts); [`home.component.html`](src/app/pages/home/home.component.html) binds hot paths to `catalog.filteredPersonalPrayers`, `catalog.displayedPrompts`, and related store fields instead of template getters.
+
+### Refactor — Home page Phase 4 personal category controller
+- Personal category chips (Current / Answered / Total / named), drag-reorder, long-press rename, and rename-modal save flow moved to [`home-personal-category.controller.ts`](src/app/services/home-personal-category.controller.ts); [`home.component.ts`](src/app/pages/home/home.component.ts) keeps thin delegators and property accessors for deep links and presentation handoff.
+
+### Refactor — Home page Phase 5 memorization panel
+- Memorize tab panel state (items, recommendations modal, practice session, add/remove flows) moved to [`home-memorization-panel.controller.ts`](src/app/services/home-memorization-panel.controller.ts); Home keeps the keyboard-bridge `ViewChild` and thin delegators for the template.
+
+### Refactor — Home page Phase 6 presentation handoff
+- Home ↔ Presentation filter handoff is symmetric in [`presentation-home-handoff.coordinator.ts`](src/app/services/presentation-home-handoff.coordinator.ts): build/query params, navigate to Pray, consume/apply return context on Home via [`home-presentation-handoff-host.adapter.ts`](src/app/services/home-presentation-handoff-host.adapter.ts).
+
+### Refactor — Home page Phase 7 Planning Center + personal reorder
+- Planning Center list state, member virtual cards, batch load, and single-member update reload moved to [`home-planning-center.controller.ts`](src/app/services/home-planning-center.controller.ts).
+- Personal prayer drag-reorder (`onPersonalPrayerDrop`) moved into [`home-personal-category.controller.ts`](src/app/services/home-personal-category.controller.ts).
+
+### Refactor — Home page Phase 8 lifecycle bootstrap
+- Home `ngOnInit` subscriptions (session, catalog streams, router/deep-link resume, default filter) moved to [`home-lifecycle.coordinator.ts`](src/app/services/home-lifecycle.coordinator.ts) via [`home-lifecycle-host.adapter.ts`](src/app/services/home-lifecycle-host.adapter.ts).
+
+### Refactor — Home page Phase 9 modals and settings
+- Prayer form, settings, help, logout confirmation, and personal/member edit modals moved to [`home-modal.controller.ts`](src/app/services/home-modal.controller.ts); Home keeps thin getters/delegators for the template.
+
+### Refactor — Home page Phase 10 shell cleanup
+- Template binds directly to `modals`, `personalCategory`, `memorizationPanel`, and `planningCenter` controllers (removed ~325 lines of delegator getters from Home).
+- Prompt-type chip logic moved into [`home-filter.coordinator.ts`](src/app/services/home-filter.coordinator.ts); pull-to-refresh into [`home-refresh.coordinator.ts`](src/app/services/home-refresh.coordinator.ts).
+- Default prayer-view persistence extracted to [`home-default-view-preference.ts`](src/app/lib/home-default-view-preference.ts); deep-link page state via [`home-deep-link-page.adapter.ts`](src/app/services/home-deep-link-page.adapter.ts).
+
+### Refactor — Home page Phase 12 help-tour decoupling
+- [`home-help-tour-host.adapter.ts`](src/app/services/home-help-tour-host.adapter.ts) uses explicit `HomeHelpTourHostBindings` (modals + personal category) instead of casting `HomeComponent` as `HomeHelpTourPageState`.
+- [`home.component.ts`](src/app/pages/home/home.component.ts) drops help-tour bridge getters; template calls `helpTour` and `refresh` coordinators directly.
+
+### Refactor — Home page Phase 11 coordinator shell
+- [`home.component.ts`](src/app/pages/home/home.component.ts) is now a thin shell (~290 lines): coordinator host wiring lives in [`home-coordinator-wiring.ts`](src/app/services/home-coordinator-wiring.ts); catalog refresh in [`home-catalog-refresh.ts`](src/app/lib/home-catalog-refresh.ts).
+- New page-scoped controllers: [`home-admin-navigation.controller.ts`](src/app/services/home-admin-navigation.controller.ts) (admin link + header email), [`home-prayer-card-actions.controller.ts`](src/app/services/home-prayer-card-actions.controller.ts) (member PC reload after card mutations), [`home-presentation-navigation.controller.ts`](src/app/services/home-presentation-navigation.controller.ts) (Pray handoff + return context).
+- [`home.component.html`](src/app/pages/home/home.component.html) calls `filter`, `adminNav`, `presentationNav`, `memberCardActions`, and `badgeService` directly instead of one-line Home delegators.
+
+### Refactor — Home page Phase 13 template child components
+- Header, modals host, filter stat tabs, prompt-type chips, and personal-category chips extracted from [`home.component.html`](src/app/pages/home/home.component.html) into standalone components: [`home-header`](src/app/components/home-header/home-header.component.ts), [`home-modals-host`](src/app/components/home-modals-host/home-modals-host.component.ts), [`home-filter-tabs`](src/app/components/home-filter-tabs/home-filter-tabs.component.ts), [`home-prompt-type-filters`](src/app/components/home-prompt-type-filters/home-prompt-type-filters.component.ts), [`home-personal-category-filters`](src/app/components/home-personal-category-filters/home-personal-category-filters.component.ts). Each injects the same page-scoped coordinators as before; help-tour anchor IDs are unchanged.
+- [`home-filter.coordinator.ts`](src/app/services/home-filter.coordinator.ts) adds `clearSelectedPromptTypes()` for the prompt-type **All Types** chip.
+- [`home.component.ts`](src/app/pages/home/home.component.ts) exposes `getPrayerFormComp()` via `#modalsHost` `ViewChild` for the help tour; the memorize keyboard bridge stays on Home.
+
+### Refactor — Home page Phase 14 prayer content component
+- Prayer/prompt card lists, empty states, personal drag-reorder list, and the Memorize passages panel moved to [`home-prayer-content`](src/app/components/home-prayer-content/home-prayer-content.component.ts). [`home.component.html`](src/app/pages/home/home.component.html) is now ~155 lines (shell: keyboard bridge, header, filters, loading/error, chip bars, content host).
+- **Bug fix** — Members tab mutations and personal prayer reorder now call `refreshHomeCatalog()` via `onMemberPrayersLoaded` / `onFilterStateChanged`; stale Planning Center batch loads are ignored when the list or session changes mid-flight ([`home-planning-center.controller.ts`](src/app/services/home-planning-center.controller.ts), [`home-personal-category.controller.ts`](src/app/services/home-personal-category.controller.ts)).
+- **Bug fix** — Deep-link filter clearing and help-tour filter mutations now call `refreshHomeCatalog()` so `home-prayer-content` lists stay in sync ([`home-deep-link-host.adapter.ts`](src/app/services/home-deep-link-host.adapter.ts), [`home-help-tour-host.adapter.ts`](src/app/services/home-help-tour-host.adapter.ts)).
+- **Bug fix** — Prompts tab shows a filtered-empty message when search or type chips hide all prompts but the global list is non-empty ([`home-prayer-content.component.html`](src/app/components/home-prayer-content/home-prayer-content.component.html)).
+
 ### Unify — Home and presentation card layout
 - [`PrayerCardComponent`](src/app/components/prayer-card/prayer-card.component.ts) and [`PromptCardComponent`](src/app/components/prompt-card/prompt-card.component.ts) accept **`variant="home" | "presentation"`**. Presentation slides use the same section order as Home (meta header → title/requester → description → actions → updates) with larger typography via [`getPrayerCardVariantLayout`](src/app/lib/prayer-card-layout.ts) / [`getPromptCardVariantLayout`](src/app/lib/prayer-card-layout.ts).
 - Community prayer title and **Requested by** sit on the same text baseline (`items-baseline`) instead of vertically centering the smaller attribution against the title.

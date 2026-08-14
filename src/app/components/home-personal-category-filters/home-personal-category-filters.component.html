@@ -1,0 +1,149 @@
+      <div
+        id="tour-personal-category-filters"
+        cdkDropList
+        cdkDropListOrientation="mixed"
+        [cdkDropListData]="personalCategory.uniquePersonalCategories"
+        (cdkDropListDropped)="personalCategory.onCategoryDrop($event)"
+        [cdkDropListDisabled]="personalCategory.isSwappingCategories"
+        class="flex flex-wrap gap-2 mb-4"
+      >
+        <!-- Fixed: Current -->
+        <button
+          type="button"
+          (click)="personalCategory.selectPersonalCategoryFilterMode('current')"
+          [disabled]="personalCategory.isSwappingCategories"
+          [class]="
+            'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
+            (personalCategory.personalCategoryFilterMode === 'current'
+              ? personalCategory.personalCategoryActiveClass
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
+            (personalCategory.isSwappingCategories
+              ? ' opacity-50 cursor-not-allowed'
+              : ' cursor-pointer')
+          "
+        >
+          Current ({{ personalCategory.personalCurrentPrayersCount(personalPrayers) }})
+        </button>
+
+        <!-- Fixed: Answered -->
+        <button
+          type="button"
+          (click)="personalCategory.selectPersonalCategoryFilterMode('answered')"
+          [disabled]="personalCategory.isSwappingCategories"
+          [class]="
+            'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
+            (personalCategory.personalCategoryFilterMode === 'answered'
+              ? personalCategory.personalCategoryActiveClass
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
+            (personalCategory.isSwappingCategories
+              ? ' opacity-50 cursor-not-allowed'
+              : ' cursor-pointer')
+          "
+        >
+          Answered ({{ personalCategory.personalAnsweredPrayersCount(personalPrayers) }})
+        </button>
+
+        <!-- Fixed: Total -->
+        <button
+          type="button"
+          (click)="personalCategory.selectPersonalCategoryFilterMode('total')"
+          [disabled]="personalCategory.isSwappingCategories"
+          [class]="
+            'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
+            (personalCategory.personalCategoryFilterMode === 'total'
+              ? personalCategory.personalCategoryActiveClass
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
+            (personalCategory.isSwappingCategories
+              ? ' opacity-50 cursor-not-allowed'
+              : ' cursor-pointer')
+          "
+        >
+          Total ({{ personalPrayersCount }})
+        </button>
+
+        <!-- Individual Category Buttons (excludes Answered) -->
+        @for (category of personalCategory.uniquePersonalCategories; let i = $index; track
+        category) {
+        <div
+          cdkDrag
+          [cdkDragData]="category"
+          [cdkDragDisabled]="personalCategory.isSwappingCategories"
+          (cdkDragStarted)="personalCategory.onCategoryDragStarted()"
+          (cdkDragEnded)="personalCategory.onCategoryDragEnded()"
+          class="flex-1 relative"
+        >
+          <button
+            (click)="personalCategory.togglePersonalCategory(category)"
+            (pointerdown)="personalCategory.onPersonalCategoryPointerDown($event, category)"
+            (pointermove)="personalCategory.onPersonalCategoryPointerMove($event)"
+            (pointerup)="personalCategory.onPersonalCategoryPointerUp()"
+            (pointerleave)="personalCategory.onPersonalCategoryPointerUp()"
+            (pointercancel)="personalCategory.onPersonalCategoryPointerUp()"
+            (contextmenu)="personalCategory.onPersonalCategoryContextMenu($event, category)"
+            [disabled]="personalCategory.isSwappingCategories"
+            [class]="
+              'w-full whitespace-nowrap pl-7 pr-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 relative ' +
+              (personalCategory.isPersonalCategorySelected(category)
+                ? personalCategory.personalCategoryActiveClass
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]') +
+              (personalCategory.isSwappingCategories
+                ? ' opacity-50 cursor-not-allowed'
+                : ' cursor-pointer')
+            "
+          >
+            <svg
+              cdkDragHandle
+              data-personal-category-drag-handle
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              [class]="
+                'flex-shrink-0 absolute left-2 top-1/2 -translate-y-1/2 ' +
+                (personalCategory.isSwappingCategories
+                  ? 'cursor-not-allowed'
+                  : 'cursor-grab')
+              "
+            >
+              <circle cx="9" cy="5" r="1"></circle>
+              <circle cx="9" cy="12" r="1"></circle>
+              <circle cx="9" cy="19" r="1"></circle>
+              <circle cx="15" cy="5" r="1"></circle>
+              <circle cx="15" cy="12" r="1"></circle>
+              <circle cx="15" cy="19" r="1"></circle>
+            </svg>
+            <span class="cursor-pointer flex-1 text-center"
+              >{{ category }} ({{
+                catalog.personalCategoryCount(category)
+              }})</span
+            >
+            @if (personalCategory.isSwappingCategories) {
+            <svg
+              class="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            }
+          </button>
+        </div>
+        }
+      </div>

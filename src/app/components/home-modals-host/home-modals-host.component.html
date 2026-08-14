@@ -1,0 +1,125 @@
+      <!-- Prayer Form Modal -->
+      <app-prayer-form
+        #prayerFormComp
+        [isOpen]="modals.showPrayerForm"
+        [defaultPersonalPrayer]="activeFilter === 'personal'"
+        (close)="modals.onPrayerFormClose()"
+      ></app-prayer-form>
+
+      <!-- User Settings Modal -->
+      <app-user-settings
+        [isOpen]="modals.showSettings"
+        [scrollToSectionId]="modals.settingsScrollToSectionId"
+        (onClose)="modals.closeUserSettings()"
+        (scrollToSectionComplete)="modals.onSettingsScrollToSectionComplete()"
+      ></app-user-settings>
+
+      <!-- Help Modal -->
+      <app-help-modal
+        [isOpen]="modals.showHelp"
+        (closeModal)="modals.showHelp = false"
+        (startCreatingPrayersHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startFilteringHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startPrayerPromptsUiTour)="helpTour.startSectionTour($event)"
+        (startPrayerEncouragementUiTour)="helpTour.startSectionTour($event)"
+        (startSearchPrayersUiTour)="helpTour.startSectionTour($event)"
+        (startPersonalPrayersHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startMemorizeHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startPresentationModeHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startPrintingHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startEmailSubscriptionHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startPrayerRemindersHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startFeedbackHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (startAppSettingsHelpSectionUiTour)="helpTour.startSectionTour($event)"
+        (fullGuidedTourRequested)="helpTour.startFullGuidedTour($event)"
+      ></app-help-modal>
+
+      <!-- Logout Confirmation Modal -->
+      @if (modals.showLogoutConfirmation) {
+      <app-confirmation-dialog
+        title="Log Out?"
+        message="Are you sure you want to log out?"
+        confirmText="Log Out"
+        cancelText="Cancel"
+        [isDangerous]="false"
+        (confirm)="modals.handleLogout()"
+        (cancel)="modals.showLogoutConfirmation = false"
+      ></app-confirmation-dialog>
+      }
+
+      <!-- Personal Prayer Edit Modal -->
+      <app-personal-prayer-edit-modal
+        [isOpen]="modals.showEditPersonalPrayer"
+        [prayer]="modals.editingPrayer"
+        (close)="modals.showEditPersonalPrayer = false"
+        (save)="modals.onPersonalPrayerSaved()"
+      ></app-personal-prayer-edit-modal>
+
+      <app-personal-category-rename-modal
+        [isOpen]="personalCategory.showRenamePersonalCategory"
+        [categoryName]="personalCategory.renamingPersonalCategory ?? ''"
+        [saving]="personalCategory.isRenamingPersonalCategory"
+        (close)="personalCategory.closeRenamePersonalCategoryModal()"
+        (save)="personalCategory.saveRenamedPersonalCategory($event)"
+      ></app-personal-category-rename-modal>
+
+      <!-- Personal Prayer Update Edit Modal -->
+      <app-personal-prayer-update-edit-modal
+        [isOpen]="modals.showEditPersonalUpdate"
+        [update]="modals.editingUpdate"
+        [prayerId]="modals.editingUpdatePrayerId"
+        (close)="modals.showEditPersonalUpdate = false"
+        (save)="modals.onPersonalUpdateSaved()"
+      ></app-personal-prayer-update-edit-modal>
+
+      <!-- Member Prayer Update Edit Modal -->
+      <app-personal-prayer-update-edit-modal
+        [isOpen]="modals.showEditMemberUpdate"
+        [update]="modals.editingMemberUpdate"
+        [prayerId]="modals.editingMemberUpdatePrayerId"
+        [isMemberUpdate]="true"
+        [planningCenterListId]="planningCenter.planningCenterListId"
+        (close)="modals.showEditMemberUpdate = false"
+        (save)="modals.onMemberUpdateSaved()"
+      ></app-personal-prayer-update-edit-modal>
+
+  <app-add-memorized-verse-modal
+    [isOpen]="memorizationPanel.showAddMemorizedVerse"
+    (onClose)="memorizationPanel.showAddMemorizedVerse = false"
+    (added)="memorizationPanel.onMemorizedVerseAdded()"
+  />
+  <app-add-memorized-bible-books-modal
+    [isOpen]="memorizationPanel.showAddMemorizedBibleBooks"
+    (onClose)="memorizationPanel.showAddMemorizedBibleBooks = false"
+  />
+  <app-memorization-recommendations-modal
+    [isOpen]="memorizationPanel.showMemorizationRecommendations"
+    [groups]="memorizationPanel.memorizationRecommendationGroups"
+    [alreadyAddedReferences]="memorizationPanel.memorizationRecommendationOwnedKeys"
+    [busyId]="memorizationPanel.addingRecommendationId"
+    [loading]="!!(memorizationRecommendationsService.loading$ | async)"
+    (onClose)="memorizationPanel.showMemorizationRecommendations = false"
+    (add)="memorizationPanel.addRecommendedVerse($event)"
+  />
+  @if (memorizationPanel.practiceMemorizedItem) {
+  <app-memorization-practice-session
+    [item]="memorizationPanel.practiceMemorizedItem"
+    [isOpen]="!!memorizationPanel.practiceMemorizedItem"
+    (closed)="memorizationPanel.closeMemorizationPractice()"
+    (completed)="memorizationPanel.onMemorizationPracticeComplete($event)"
+    (persistInProgress)="memorizationPanel.onMemorizationPersistInProgress($event)"
+    (clearInProgress)="memorizationPanel.onMemorizationClearInProgress()"
+    (openSettings)="modals.openSettingsFromReciteFeedback()"
+  />
+  }
+  @if (memorizationPanel.showRemoveMemorizedConfirm && memorizationPanel.memorizedItemToRemove) {
+  <app-confirmation-dialog
+    title="Remove from list?"
+    [message]="'Remove ' + memorizationPanel.memorizedItemToRemove.reference + ' from your memorization list?'"
+    confirmText="Remove"
+    cancelText="Cancel"
+    [isDangerous]="true"
+    (confirm)="memorizationPanel.removeMemorizedItemConfirmed()"
+    (cancel)="memorizationPanel.showRemoveMemorizedConfirm = false"
+  />
+  }

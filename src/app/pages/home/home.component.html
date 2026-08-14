@@ -1,0 +1,155 @@
+<div
+  class="main-page-shell w-full min-h-screen bg-gray-50 dark:bg-gray-900"
+>
+  <!-- Pre-mounted so resume can focus inside the verse-card tap (iOS keyboard). -->
+  <form autocomplete="off" class="contents" (submit)="$event.preventDefault()">
+    <input
+      #memorizeKeyboardBridge
+      type="text"
+      name="search"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      enterkeyhint="done"
+      data-1p-ignore="true"
+      data-lpignore="true"
+      data-form-type="other"
+      aria-hidden="true"
+      tabindex="-1"
+      class="memorize-keyboard-bridge"
+      data-testid="memorize-keyboard-bridge"
+    />
+  </form>
+  <!-- Scroll viewport below safe area: header sticky inside so content scrolls under header to top of header, never into safe area -->
+  <div
+    class="safe-area-viewport w-full bg-gray-50 dark:bg-gray-900"
+    appPullToRefresh
+    [refreshing]="isRefreshing"
+    (refresh)="refresh.onPullToRefresh()"
+  >
+    <app-home-header
+      [hasAdminEmail$]="hasAdminEmail$"
+      (logoStatusChange)="hasLogo = $event"
+    ></app-home-header>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-6xl mx-auto px-4 py-6">
+      <!-- Top refresh indicator -->
+      <div
+        *ngIf="isRefreshing"
+        class="flex items-center justify-center mb-3 text-xs text-gray-500 dark:text-gray-400"
+        aria-live="polite"
+      >
+        <svg
+          class="animate-spin mr-2 h-4 w-4 text-gray-500 dark:text-gray-300"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+          ></path>
+        </svg>
+        <span>Refreshing prayers…</span>
+      </div>
+      <app-home-modals-host
+        #modalsHost
+        [activeFilter]="activeFilter"
+      ></app-home-modals-host>
+
+      <!-- Prayer Filters -->
+      <app-prayer-filters
+        [filters]="filters"
+        [searchPlaceholder]="
+          activeFilter === 'memorize'
+            ? 'Search verses...'
+            : 'Search prayers...'
+        "
+        (filtersChange)="filter.onFiltersChange($event)"
+      ></app-prayer-filters>
+      <app-home-filter-tabs
+        [activeFilter]="activeFilter"
+        [currentPrayersCount]="currentPrayersCount"
+        [answeredPrayersCount]="answeredPrayersCount"
+        [totalPrayersCount]="totalPrayersCount"
+        [promptsCount]="promptsCount"
+        [personalPrayersCount]="personalPrayersCount"
+        [currentPrayerBadge$]="currentPrayerBadge$"
+        [answeredPrayerBadge$]="answeredPrayerBadge$"
+        [promptBadge$]="promptBadge$"
+      ></app-home-filter-tabs>
+
+      <!-- Loading State -->
+      @if (!viewReady || (loading$ | async) || (activeFilter === 'personal'
+      && (prayerService.loadingPersonalPrayers$ | async)) || (activeFilter ===
+      'memorize' && (memorizationService.loading$ | async))) {
+      <app-skeleton-loader [count]="5" type="card"></app-skeleton-loader>
+      }
+
+      <!-- Error State -->
+      @if ((error$ | async); as error) {
+      <div
+        class="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg mb-6"
+      >
+        {{ error }}
+      </div>
+      }
+
+      <!-- Prompt Type Filters -->
+      @if (activeFilter === 'prompts' && promptsCount > 0) {
+      <app-home-prompt-type-filters
+        [promptsCount]="promptsCount"
+        [selectedPromptTypes]="selectedPromptTypes"
+        [promptTypeActiveClass]="promptTypeActiveClass"
+        [promptTypeInactiveClass]="promptTypeInactiveClass"
+      ></app-home-prompt-type-filters>
+      }
+
+      <!-- Personal Category Filters -->
+      @if (activeFilter === 'personal') {
+      <app-home-personal-category-filters
+        [personalPrayers]="personalPrayers"
+        [personalPrayersCount]="personalPrayersCount"
+      ></app-home-personal-category-filters>
+      }
+
+      <!-- Prayers or Prompts List -->
+      <app-home-prayer-content
+        [viewReady]="viewReady"
+        [activeFilter]="activeFilter"
+        [filters]="filters"
+        [prayers$]="prayers$"
+        [prompts$]="prompts$"
+        [loading$]="loading$"
+        [error$]="error$"
+        [isAdmin$]="isAdmin$"
+        [deletionsAllowed]="deletionsAllowed"
+        [updatesAllowed]="updatesAllowed"
+        [personalCategoryPickerPrayerId]="personalCategoryPickerPrayerId"
+        [personalWalkthroughPrayerFor]="personalWalkthroughPrayerFor"
+        [personalWalkthroughDescription]="personalWalkthroughDescription"
+        (personalCategoryPickerOpenChange)="
+          onPersonalCategoryPickerOpenChange($event.prayerId, $event.open)
+        "
+      ></app-home-prayer-content>
+    </main>
+    <!-- Native app: bottom safe zone bar - matches header (bg-white/50 dark:bg-gray-800/50 backdrop-blur-md) -->
+    <footer
+      class="bottom-safe-bar w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 sticky bottom-0 z-50"
+      aria-hidden="true"
+    ></footer>
+  </div>
+
+  <!-- No Footer Links -->
+</div>

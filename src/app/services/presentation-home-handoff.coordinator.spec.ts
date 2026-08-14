@@ -72,4 +72,75 @@ describe("PresentationHomeHandoffCoordinator", () => {
       state: { [HOME_RETURN_CONTEXT_STATE_KEY]: returnContext },
     });
   });
+
+  it("builds home handoff from active filter and category state", () => {
+    const handoff = coordinator.buildHandoffFromHome({
+      activeFilter: "personal",
+      selectedPromptTypes: [],
+      selectedPersonalCategories: ["Family"],
+      personalCategoryFilterMode: "named",
+      defaultPrayerView: "current",
+    });
+
+    expect(handoff.contentTypes).toEqual(["personal"]);
+    expect(handoff.personalCategories).toEqual(["Family"]);
+    expect(handoff.returnContext).toEqual({
+      activeFilter: "personal",
+      personalCategoryFilterMode: "named",
+      selectedPersonalCategories: ["Family"],
+    });
+  });
+
+  it("consumes one-shot home return context from history state", () => {
+    const replaceHistoryState = vi.fn();
+    const consumed = coordinator.consumeHomeReturnContext({
+      historyState: {
+        [HOME_RETURN_CONTEXT_STATE_KEY]: {
+          activeFilter: "prompts",
+          selectedPromptTypes: ["Morning"],
+        },
+      },
+      replaceHistoryState,
+    });
+
+    expect(consumed).toEqual({
+      activeFilter: "prompts",
+      selectedPromptTypes: ["Morning"],
+    });
+    expect(replaceHistoryState).toHaveBeenCalled();
+  });
+
+  it("applies home return context through host adapter hooks", () => {
+    const host = {
+      setFilter: vi.fn(),
+      setSelectedPromptTypes: vi.fn(),
+      applyPersonalReturnContext: vi.fn(),
+      onReturnContextApplied: vi.fn(),
+    };
+
+    coordinator.applyHomeReturnContext(host, {
+      activeFilter: "personal",
+      personalCategoryFilterMode: "named",
+      selectedPersonalCategories: ["Family"],
+    });
+
+    expect(host.setFilter).toHaveBeenCalledWith("personal");
+    expect(host.applyPersonalReturnContext).toHaveBeenCalledWith({
+      personalCategoryFilterMode: "named",
+      selectedPersonalCategories: ["Family"],
+    });
+    expect(host.onReturnContextApplied).toHaveBeenCalled();
+  });
+
+  it("defers presentation navigation for modifier clicks", () => {
+    expect(
+      coordinator.shouldUseNativePresentationNavigation({
+        button: 0,
+        ctrlKey: true,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+      } as MouseEvent)
+    ).toBe(true);
+  });
 });

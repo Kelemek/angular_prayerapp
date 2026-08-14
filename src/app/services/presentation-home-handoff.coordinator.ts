@@ -1,15 +1,39 @@
 import { Injectable } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
+import { mapHomeFilterToContentType } from "./presentation-settings.service";
 import {
   HOME_RETURN_CONTEXT_STATE_KEY,
   PRESENTATION_HOME_HANDOFF_QUERY_PARAM_KEYS,
   PRESENTATION_HOME_HANDOFF_STATE_KEY,
   PRESENTATION_HOME_NAV_STATE_KEY,
+  buildPresentationHomeHandoff,
+  parseHomeReturnContextFromState,
+  serializePresentationHomeHandoffQueryParams,
+  type HomePresentationFilter,
   type HomeReturnContext,
+  type PersonalCategoryFilterMode,
   type PresentationHomeHandoff,
   parsePresentationHomeHandoffFromQueryParams,
   parsePresentationHomeHandoffFromState,
 } from "../types/presentation";
+
+export interface HomePresentationHandoffSource {
+  activeFilter: HomePresentationFilter;
+  selectedPromptTypes: string[];
+  selectedPersonalCategories: string[];
+  personalCategoryFilterMode: PersonalCategoryFilterMode;
+  defaultPrayerView: "current" | "personal" | null | undefined;
+}
+
+export interface HomeReturnContextApplier {
+  setFilter(filter: HomeReturnContext["activeFilter"]): void;
+  setSelectedPromptTypes(types: string[]): void;
+  applyPersonalReturnContext(context: {
+    personalCategoryFilterMode?: PersonalCategoryFilterMode;
+    selectedPersonalCategories?: string[];
+  }): void;
+  onReturnContextApplied(): void;
+}
 
 export interface PresentationHandoffPageState {
   contentTypes: PresentationHomeHandoff["contentTypes"];
@@ -21,6 +45,85 @@ export interface PresentationHandoffPageState {
 
 @Injectable()
 export class PresentationHomeHandoffCoordinator {
+  buildHandoffFromHome(
+    source: HomePresentationHandoffSource
+  ): PresentationHomeHandoff {
+    const defaultPrayerView = source.defaultPrayerView ?? "current";
+    return buildPresentationHomeHandoff({
+      contentTypes: [
+        mapHomeFilterToContentType(source.activeFilter, defaultPrayerView),
+      ],
+      activeFilter: source.activeFilter,
+      selectedPromptTypes: source.selectedPromptTypes,
+      selectedPersonalCategories: source.selectedPersonalCategories,
+      personalCategoryFilterMode: source.personalCategoryFilterMode,
+    });
+  }
+
+  getQueryParamsForLink(
+    handoff: PresentationHomeHandoff
+  ): Record<string, string> | null {
+    const params = serializePresentationHomeHandoffQueryParams(handoff);
+    return Object.keys(params).length > 0 ? params : null;
+  }
+
+  shouldUseNativePresentationNavigation(event: MouseEvent): boolean {
+    return (
+      event.button !== 0 ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.altKey
+    );
+  }
+
+  navigateToPresentation(
+    router: Router,
+    handoff: PresentationHomeHandoff
+  ): void {
+    void router.navigate(["/presentation"], {
+      state: {
+        [PRESENTATION_HOME_HANDOFF_STATE_KEY]: handoff,
+      },
+    });
+  }
+
+  consumeHomeReturnContext(options: {
+    historyState: Record<string, unknown> | null;
+    replaceHistoryState: (state: Record<string, unknown>) => void;
+  }): HomeReturnContext | null {
+    const returnContext = parseHomeReturnContextFromState(options.historyState);
+    if (!returnContext) {
+      return null;
+    }
+
+    options.replaceHistoryState({
+      ...(options.historyState ?? {}),
+      [HOME_RETURN_CONTEXT_STATE_KEY]: undefined,
+    });
+    return returnContext;
+  }
+
+  applyHomeReturnContext(
+    host: HomeReturnContextApplier,
+    context: HomeReturnContext
+  ): void {
+    host.setFilter(context.activeFilter);
+    if (
+      context.activeFilter === "prompts" &&
+      context.selectedPromptTypes?.length
+    ) {
+      host.setSelectedPromptTypes([...context.selectedPromptTypes]);
+    }
+    if (context.activeFilter === "personal") {
+      host.applyPersonalReturnContext({
+        personalCategoryFilterMode: context.personalCategoryFilterMode,
+        selectedPersonalCategories: context.selectedPersonalCategories,
+      });
+    }
+    host.onReturnContextApplied();
+  }
+
   consumeFromNavigation(options: {
     historyState: Record<string, unknown> | null;
     replaceHistoryState: (state: Record<string, unknown>) => void;

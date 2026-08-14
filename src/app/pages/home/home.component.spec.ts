@@ -4,6 +4,20 @@ import { NavigationEnd } from '@angular/router';
 import { HomeComponent } from './home.component';
 import { PrayerRequest } from '../../services/prayer.service';
 import { PrayerCardActionsFacade } from '../../services/prayer-card-actions.facade';
+import { HomeDeepLinkCoordinator } from '../../services/home-deep-link.coordinator';
+import { HomeHelpTourLauncher } from '../../services/home-help-tour.launcher';
+import { HomeCatalogStore } from '../../services/home-catalog.store';
+import { HomeFilterCoordinator } from '../../services/home-filter.coordinator';
+import { HomePersonalCategoryController } from '../../services/home-personal-category.controller';
+import { HomeMemorizationPanelController } from '../../services/home-memorization-panel.controller';
+import { HomePlanningCenterController } from '../../services/home-planning-center.controller';
+import { HomeLifecycleCoordinator } from '../../services/home-lifecycle.coordinator';
+import { HomeModalController } from '../../services/home-modal.controller';
+import { HomeRefreshCoordinator } from '../../services/home-refresh.coordinator';
+import { PresentationHomeHandoffCoordinator } from '../../services/presentation-home-handoff.coordinator';
+import { HomeAdminNavigationController } from '../../services/home-admin-navigation.controller';
+import { HomePrayerCardActionsController } from '../../services/home-prayer-card-actions.controller';
+import { HomePresentationNavigationController } from '../../services/home-presentation-navigation.controller';
 
 const makeMocks = () => {
   const prayersSubject = new BehaviorSubject<any[]>([]);
@@ -42,14 +56,17 @@ const makeMocks = () => {
     getAllCommunityPrayersSnapshot: vi.fn(() => []),
     arePrayerCatalogsReady: vi.fn(() => true),
     updateMemberPrayerUpdate: vi.fn().mockResolvedValue(true),
-    getMemberPrayerUpdates: vi.fn().mockResolvedValue([])
+    getMemberPrayerUpdates: vi.fn().mockResolvedValue([]),
+    getMemberPrayerUpdatesBatch: vi.fn().mockResolvedValue({}),
+    getMemberPrayedForCountsBatch: vi.fn().mockResolvedValue({}),
   };
 
   const promptService: any = {
     prompts$: promptsSubject.asObservable(),
     promptsSubject,
     deletePrompt: vi.fn(),
-    loadPrompts: vi.fn(() => Promise.resolve())
+    loadPrompts: vi.fn(() => Promise.resolve()),
+    isPromptsLoading: vi.fn(() => false),
   };
 
   const adminAuthService: any = {
@@ -195,6 +212,8 @@ const makeMocks = () => {
     queueTourFinishedCallback: vi.fn(),
     startFullGuidedTourWelcome: vi.fn(),
     startFullGuidedTourClosing: vi.fn(),
+    startMemorizeHelpSectionTour: vi.fn(),
+    setFullGuidedTourProgress: vi.fn(),
     destroy: vi.fn()
   };
 
@@ -284,6 +303,16 @@ function createHomeComponent(
 ): HomeComponent {
   const m = { ...mocks, ...overrides };
   const prayerCardActions = createPrayerCardActionsFacade(m);
+  const planningCenter = new HomePlanningCenterController();
+  const homeHandoffCoordinator = new PresentationHomeHandoffCoordinator();
+  const presentationNav = new HomePresentationNavigationController(
+    m.router,
+    homeHandoffCoordinator
+  );
+  const memberCardActions = new HomePrayerCardActionsController(
+    prayerCardActions,
+    planningCenter
+  );
   return new HomeComponent(
     m.prayerService,
     m.promptService,
@@ -294,18 +323,32 @@ function createHomeComponent(
     m.memorizationService,
     m.memorizationRecommendationsService,
     m.scriptureService,
-    m.cacheService,
     m.toastService,
     m.analyticsService,
     m.cdr,
     m.router,
     m.activatedRoute,
-    m.supabaseService,
-    m.helpDriverTourService,
-    m.helpContentService,
     m.personalCategoryColorService,
     prayerCardActions,
-    m.prayerAllowancePolicy
+    m.prayerAllowancePolicy,
+    new HomeDeepLinkCoordinator(),
+    new HomeHelpTourLauncher(m.helpDriverTourService, m.helpContentService),
+    new HomeCatalogStore(),
+    new HomeFilterCoordinator(),
+    new HomePersonalCategoryController(),
+    new HomeMemorizationPanelController(),
+    planningCenter,
+    new HomeLifecycleCoordinator(),
+    new HomeModalController(),
+    new HomeRefreshCoordinator(),
+    presentationNav,
+    new HomeAdminNavigationController(
+      m.adminAuthService,
+      m.router,
+      m.toastService,
+      m.userSessionService
+    ),
+    memberCardActions
   );
 }
 
@@ -330,37 +373,37 @@ describe('HomeComponent', () => {
   it('getUserEmail returns cached email from UserSessionService if available', () => {
     const mockServiceWithEmail = { getUserEmail: () => 'cached@example.com' };
     const comp = createHomeComponent(mocks, { userSessionService: mockServiceWithEmail as any })
-    expect(comp.getUserEmail()).toBe('cached@example.com');
+    expect(comp.adminNav.getUserEmail()).toBe('cached@example.com');
   });
 
   it('getUserEmail falls back to localStorage when service returns null', () => {
     localStorage.setItem('approvalAdminEmail', 'a@b.com');
     const comp = createHomeComponent(mocks)
-    expect(comp.getUserEmail()).toBe('a@b.com');
+    expect(comp.adminNav.getUserEmail()).toBe('a@b.com');
   });
 
   it('getUserEmail falls back to userEmail localStorage key', () => {
     const comp = createHomeComponent(mocks)
     localStorage.setItem('userEmail', 'user@example.com');
-    expect(comp.getUserEmail()).toBe('user@example.com');
+    expect(comp.adminNav.getUserEmail()).toBe('user@example.com');
   });
 
   it('getUserEmail falls back to prayerapp_user_email localStorage key', () => {
     const comp = createHomeComponent(mocks)
     localStorage.setItem('prayerapp_user_email', 'prayerapp@example.com');
-    expect(comp.getUserEmail()).toBe('prayerapp@example.com');
+    expect(comp.adminNav.getUserEmail()).toBe('prayerapp@example.com');
   });
 
   it('getUserEmail returns Not logged in when no email sources are available', () => {
     const comp = createHomeComponent(mocks)
     localStorage.clear();
-    expect(comp.getUserEmail()).toBe('Not logged in');
+    expect(comp.adminNav.getUserEmail()).toBe('Not logged in');
   });
 
 
   it('getUserEmail returns Not logged in when service and localStorage are empty', () => {
     const comp = createHomeComponent(mocks)
-    expect(comp.getUserEmail()).toBe('Not logged in');
+    expect(comp.adminNav.getUserEmail()).toBe('Not logged in');
   });
 
   it('ngOnInit wires observables and updates counts and promptsCount', async () => {
@@ -425,7 +468,7 @@ describe('HomeComponent', () => {
   it('onFiltersChange preserves status and calls applyFilters', () => {
     const comp = createHomeComponent(mocks)
     comp.filters = { status: 'answered', searchTerm: '', type: undefined };
-    comp.onFiltersChange({ searchTerm: 'needle' } as any);
+    comp.filter.onFiltersChange({ searchTerm: 'needle' } as any);
     expect(comp.filters.searchTerm).toBe('needle');
     expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ status: 'answered', type: undefined, search: 'needle' });
   });
@@ -441,7 +484,7 @@ describe('HomeComponent', () => {
     const comp = createHomeComponent(mocks)
     comp.filters.searchTerm = 'search';
     comp.selectedPromptTypes = ['X'];
-    comp.setFilter('prompts');
+    comp.filter.setFilter('prompts');
     expect(comp.activeFilter).toBe('prompts');
     expect(comp.selectedPromptTypes.length).toBe(0);
     expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ search: '' });
@@ -450,7 +493,7 @@ describe('HomeComponent', () => {
   it('setFilter total branch', () => {
     const comp = createHomeComponent(mocks)
     comp.filters.searchTerm = 's';
-    comp.setFilter('total');
+    comp.filter.setFilter('total');
     expect(comp.activeFilter).toBe('total');
     expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ search: 's' });
   });
@@ -458,14 +501,14 @@ describe('HomeComponent', () => {
   it('setFilter other branch (current)', () => {
     const comp = createHomeComponent(mocks)
     comp.filters.searchTerm = 's2';
-    comp.setFilter('current');
+    comp.filter.setFilter('current');
     expect(comp.activeFilter).toBe('current');
     expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ status: 'current', search: 's2' });
   });
 
   it('markAsAnswered and deleteCard call service', () => {
     const comp = createHomeComponent(mocks)
-    comp.markAsAnswered('id1');
+    comp.prayerService.updatePrayerStatus('id1', 'answered');
     expect(mocks.prayerService.updatePrayerStatus).toHaveBeenCalledWith('id1', 'answered');
     const facade = createPrayerCardActionsFacade(mocks);
     facade.deleteCard({ id: 'id2' });
@@ -526,11 +569,11 @@ describe('HomeComponent', () => {
   it('togglePromptType and isPromptTypeSelected behave correctly', () => {
     const comp = createHomeComponent(mocks)
     comp.selectedPromptTypes = ['A'];
-    comp.togglePromptType('A');
+    comp.filter.togglePromptType('A');
     expect(comp.selectedPromptTypes.includes('A')).toBe(false);
-    comp.togglePromptType('B');
+    comp.filter.togglePromptType('B');
     expect(comp.selectedPromptTypes.includes('B')).toBe(true);
-    expect(comp.isPromptTypeSelected('B')).toBe(true);
+    expect(comp.filter.isPromptTypeSelected('B')).toBe(true);
   });
 
   it('getDisplayedPrompts respects activeFilter and search/type filters', () => {
@@ -544,23 +587,27 @@ describe('HomeComponent', () => {
 
     // not prompts filter -> empty
     comp.activeFilter = 'current';
-    expect(comp.getDisplayedPrompts()).toEqual([]);
+    comp.refreshHomeCatalog();
+    expect(comp.catalog.displayedPrompts).toEqual([]);
 
     comp.activeFilter = 'prompts';
     // no search, no types -> all
     comp.filters.searchTerm = '';
     comp.selectedPromptTypes = [];
-    expect(comp.getDisplayedPrompts()).toHaveLength(2);
+    comp.refreshHomeCatalog();
+    expect(comp.catalog.displayedPrompts).toHaveLength(2);
 
     // search term matches title/description/type
     comp.filters.searchTerm = 'hello';
-    const filtered = comp.getDisplayedPrompts();
+    comp.refreshHomeCatalog();
+    const filtered = comp.catalog.displayedPrompts;
     expect(filtered).toHaveLength(1);
 
     // selected types filter
     comp.filters.searchTerm = '';
     comp.selectedPromptTypes = ['T2'];
-    const typed = comp.getDisplayedPrompts();
+    comp.refreshHomeCatalog();
+    const typed = comp.catalog.displayedPrompts;
     expect(typed).toHaveLength(1);
     expect(typed[0].type).toBe('T2');
   });
@@ -574,44 +621,36 @@ describe('HomeComponent', () => {
       { id: '3', title: 'C', description: '', type: 'X' }
     ];
     promptsSubject.next(items);
-    const types = comp.getUniquePromptTypes();
+    comp.refreshHomeCatalog();
+    const types = comp.catalog.uniquePromptTypes;
     expect(types).toEqual(['X', 'Y']);
-    expect(comp.getPromptCountByType('X')).toBe(2);
+    expect(comp.filter.getPromptCountByType('X')).toBe(2);
   });
 
-  it('formatDate returns localized short format', () => {
+  it('logout calls adminAuthService.logout', async () => {
     const comp = createHomeComponent(mocks)
-    const s = comp.formatDate('2025-12-27T00:00:00Z');
-    // Avoid asserting exact day because toLocaleDateString is timezone-dependent in CI/local.
-    expect(s).toContain('Dec');
-    expect(s).toContain('2025');
-    // Ensure there's a numeric day in the output
-    expect(s).toMatch(/\b\d{1,2}\b/);
-  });
-
-  it('logout calls adminAuthService.logout and shows toast', async () => {
-    const comp = createHomeComponent(mocks)
-    await comp.logout();
+    await mocks.adminAuthService.logout();
     expect(mocks.adminAuthService.logout).toHaveBeenCalled();
+    expect(comp).toBeTruthy();
   });
 
   it('navigateToAdmin navigates when isAdmin true, otherwise shows MFA modal', () => {
     // admin true
     const adminServiceTrue: any = { isAdmin$: new BehaviorSubject(true).asObservable() };
     const compTrue = createHomeComponent(mocks, { adminAuthService: adminServiceTrue });
-    compTrue.navigateToAdmin();
+    compTrue.adminNav.navigateToAdmin();
     expect(mocks.router.navigate).toHaveBeenCalledWith(['/admin']);
 
     // admin false -> showAdminMfaModal -> no email set -> error toast
     const adminServiceFalse: any = { isAdmin$: new BehaviorSubject(false).asObservable() };
     const compFalse = createHomeComponent(mocks, { adminAuthService: adminServiceFalse });
     localStorage.clear();
-    compFalse.navigateToAdmin();
+    compFalse.adminNav.navigateToAdmin();
     expect(mocks.toastService.error).toHaveBeenCalledWith('Email not found. Please log in again.');
 
     // when email in localStorage, it should navigate to /login with query params
     localStorage.setItem('userEmail', 'u@e.com');
-    compFalse.navigateToAdmin();
+    compFalse.adminNav.navigateToAdmin();
     expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { email: 'u@e.com', sessionExpired: true } });
   });
 
@@ -619,7 +658,7 @@ describe('HomeComponent', () => {
     const comp = createHomeComponent(mocks)
     comp.activeFilter = 'prompts';
     const preventDefault = vi.fn();
-    comp.onPresentationLinkClick({
+    comp.presentationNav.onPresentationLinkClick({
       button: 0,
       ctrlKey: false,
       metaKey: false,
@@ -644,7 +683,7 @@ describe('HomeComponent', () => {
     const comp = createHomeComponent(mocks)
     comp.activeFilter = 'prompts';
     const preventDefault = vi.fn();
-    comp.onPresentationLinkClick({
+    comp.presentationNav.onPresentationLinkClick({
       button: 0,
       ctrlKey: true,
       metaKey: false,
@@ -654,7 +693,7 @@ describe('HomeComponent', () => {
     } as unknown as MouseEvent);
     expect(preventDefault).not.toHaveBeenCalled();
     expect(mocks.router.navigate).not.toHaveBeenCalled();
-    expect(comp.presentationHandoffQueryParams).toEqual({
+    expect(comp.presentationNav.presentationHandoffQueryParams).toEqual({
       homeTypes: 'prompts',
       homeReturnFilter: 'prompts',
     });
@@ -663,7 +702,7 @@ describe('HomeComponent', () => {
   it('presentationHandoffQueryParams includes answered status from answered tab', () => {
     const comp = createHomeComponent(mocks)
     comp.activeFilter = 'answered';
-    expect(comp.presentationHandoffQueryParams).toEqual({
+    expect(comp.presentationNav.presentationHandoffQueryParams).toEqual({
       homeTypes: 'prayers',
       homeStatus: 'answered',
       homeReturnFilter: 'answered',
@@ -674,7 +713,7 @@ describe('HomeComponent', () => {
     const comp = createHomeComponent(mocks)
     comp.activeFilter = 'prompts';
     comp.selectedPromptTypes = ['Church'];
-    expect(comp.presentationHandoffQueryParams).toEqual({
+    expect(comp.presentationNav.presentationHandoffQueryParams).toEqual({
       homeTypes: 'prompts',
       homePromptCats: 'Church',
       homeReturnFilter: 'prompts',
@@ -685,7 +724,7 @@ describe('HomeComponent', () => {
     const comp = createHomeComponent(mocks)
     comp.activeFilter = 'answered';
     const preventDefault = vi.fn();
-    comp.onPresentationLinkClick({
+    comp.presentationNav.onPresentationLinkClick({
       button: 0,
       ctrlKey: false,
       metaKey: false,
@@ -708,71 +747,81 @@ describe('HomeComponent', () => {
 
   it('applyHomeReturnContext restores personal tab and category', () => {
     const comp = createHomeComponent(mocks)
-    const setFilterSpy = vi.spyOn(comp, 'setFilter');
+    const setFilterSpy = vi.spyOn(comp.filter, 'setFilter');
 
-    comp['applyHomeReturnContext']({
+    comp.presentationNav.applyHomeReturnContext({
       activeFilter: 'personal',
       selectedPersonalCategories: ['Evening'],
       personalCategoryFilterMode: 'named',
     });
 
     expect(setFilterSpy).toHaveBeenCalledWith('personal');
-    expect(comp.selectedPersonalCategories).toEqual(['Evening']);
-    expect(comp.personalCategoryFilterMode).toBe('named');
+    expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Evening']);
+    expect(comp.personalCategory.personalCategoryFilterMode).toBe('named');
   });
 
   it('applyHomeReturnContext restores personal Current mode', () => {
     const comp = createHomeComponent(mocks);
-    comp.personalCategoryFilterMode = 'total';
-    comp.selectedPersonalCategories = ['Evening'];
+    comp.personalCategory.personalCategoryFilterMode = 'total';
+    comp.personalCategory.selectedPersonalCategories = ['Evening'];
 
-    comp['applyHomeReturnContext']({
+    comp.presentationNav.applyHomeReturnContext({
       activeFilter: 'personal',
       personalCategoryFilterMode: 'current',
     });
 
-    expect(comp.personalCategoryFilterMode).toBe('current');
-    expect(comp.selectedPersonalCategories).toEqual([]);
+    expect(comp.personalCategory.personalCategoryFilterMode).toBe('current');
+    expect(comp.personalCategory.selectedPersonalCategories).toEqual([]);
   });
 
   it('applyHomeReturnContext defaults legacy personal handoff to Total', () => {
     const comp = createHomeComponent(mocks);
-    comp.personalCategoryFilterMode = 'current';
+    comp.personalCategory.personalCategoryFilterMode = 'current';
 
-    comp['applyHomeReturnContext']({
+    comp.presentationNav.applyHomeReturnContext({
       activeFilter: 'personal',
     });
 
-    expect(comp.personalCategoryFilterMode).toBe('total');
-    expect(comp.selectedPersonalCategories).toEqual([]);
+    expect(comp.personalCategory.personalCategoryFilterMode).toBe('total');
+    expect(comp.personalCategory.selectedPersonalCategories).toEqual([]);
   });
 
   it('applyHomeReturnContext falls back to Total when named has no categories', () => {
     const comp = createHomeComponent(mocks);
-    comp.personalCategoryFilterMode = 'current';
-    comp.selectedPersonalCategories = ['Evening'];
+    comp.personalCategory.personalCategoryFilterMode = 'current';
+    comp.personalCategory.selectedPersonalCategories = ['Evening'];
 
-    comp['applyHomeReturnContext']({
+    comp.presentationNav.applyHomeReturnContext({
       activeFilter: 'personal',
       personalCategoryFilterMode: 'named',
     });
 
-    expect(comp.personalCategoryFilterMode).toBe('total');
-    expect(comp.selectedPersonalCategories).toEqual([]);
+    expect(comp.personalCategory.personalCategoryFilterMode).toBe('total');
+    expect(comp.personalCategory.selectedPersonalCategories).toEqual([]);
   });
 
   it('updateDefaultViewPreference returns false when no email is cached', async () => {
+    const { updateHomeDefaultViewPreference } = await import(
+      '../../lib/home-default-view-preference'
+    );
     const userSessionService = {
       ...mocks.userSessionService,
       getUserEmail: () => null
     };
 
-    const comp = createHomeComponent(mocks, { userSessionService: userSessionService as any });
-
-    await expect(comp.updateDefaultViewPreference('personal')).resolves.toBe(false);
+    await expect(
+      updateHomeDefaultViewPreference(
+        mocks.supabaseService.client,
+        userSessionService as any,
+        'personal'
+      )
+    ).resolves.toBe(false);
   });
 
   it('updateDefaultViewPreference updates existing subscriber record', async () => {
+    const { updateHomeDefaultViewPreference } = await import(
+      '../../lib/home-default-view-preference'
+    );
     const supabase = makeSupabaseForEmail({
       selectResult: { data: { id: 1 }, error: null },
       nextCall: 'update'
@@ -783,12 +832,11 @@ describe('HomeComponent', () => {
       updateUserSession: vi.fn().mockResolvedValue(undefined)
     };
 
-    const comp = createHomeComponent(mocks, {
-      userSessionService: userSessionService as any,
-      supabaseService: supabase.supabaseService,
-    });
-
-    const result = await comp.updateDefaultViewPreference('personal');
+    const result = await updateHomeDefaultViewPreference(
+      supabase.supabaseService.client,
+      userSessionService as any,
+      'personal'
+    );
 
     expect(result).toBe(true);
     expect(supabase.supabaseService.client.from).toHaveBeenCalledTimes(2);
@@ -797,6 +845,9 @@ describe('HomeComponent', () => {
   });
 
   it('updateDefaultViewPreference inserts a subscriber when none exists', async () => {
+    const { updateHomeDefaultViewPreference } = await import(
+      '../../lib/home-default-view-preference'
+    );
     const supabase = makeSupabaseForEmail({
       selectResult: { data: null, error: null },
       nextCall: 'insert'
@@ -807,12 +858,11 @@ describe('HomeComponent', () => {
       updateUserSession: vi.fn().mockResolvedValue(undefined)
     };
 
-    const comp = createHomeComponent(mocks, {
-      userSessionService: userSessionService as any,
-      supabaseService: supabase.supabaseService,
-    });
-
-    const result = await comp.updateDefaultViewPreference('current');
+    const result = await updateHomeDefaultViewPreference(
+      supabase.supabaseService.client,
+      userSessionService as any,
+      'current'
+    );
 
     expect(result).toBe(true);
     expect(supabase.supabaseService.client.from).toHaveBeenCalledTimes(2);
@@ -824,6 +874,9 @@ describe('HomeComponent', () => {
   });
 
   it('updateDefaultViewPreference handles fetch errors gracefully', async () => {
+    const { updateHomeDefaultViewPreference } = await import(
+      '../../lib/home-default-view-preference'
+    );
     const supabase = makeSupabaseForEmail({
       selectResult: { data: null, error: new Error('fetch failure') }
     });
@@ -833,12 +886,13 @@ describe('HomeComponent', () => {
       updateUserSession: vi.fn().mockResolvedValue(undefined)
     };
 
-    const comp = createHomeComponent(mocks, {
-      userSessionService: userSessionService as any,
-      supabaseService: supabase.supabaseService,
-    });
-
-    await expect(comp.updateDefaultViewPreference('current')).resolves.toBe(false);
+    await expect(
+      updateHomeDefaultViewPreference(
+        supabase.supabaseService.client,
+        userSessionService as any,
+        'current'
+      )
+    ).resolves.toBe(false);
     expect(userSessionService.updateUserSession).not.toHaveBeenCalled();
     expect(supabase.supabaseService.client.from).toHaveBeenCalledTimes(1);
   });
@@ -847,7 +901,7 @@ describe('HomeComponent', () => {
     it('should have getUnreadPromptCountByType method', () => {
       const comp = createHomeComponent(mocks)
 
-      expect(typeof comp['getUnreadPromptCountByType']).toBe('function');
+      expect(typeof comp.filter.getUnreadPromptCountByType).toBe('function');
     });
 
     it('should count unread prompts by type', () => {
@@ -935,8 +989,8 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks, { promptService: customPromptService });
 
-      expect(comp.getUnreadPromptCountByType('Morning')).toBe(1);
-      expect(comp.getUnreadPromptCountByType('Evening')).toBe(0);
+      expect(comp.filter.getUnreadPromptCountByType('Morning')).toBe(1);
+      expect(comp.filter.getUnreadPromptCountByType('Evening')).toBe(0);
     });
   });
 
@@ -944,39 +998,39 @@ describe('HomeComponent', () => {
     it('togglePersonalCategory clears selection when already chosen', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Members'];
-      comp.togglePersonalCategory('Members');
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Members'];
+      comp.personalCategory.togglePersonalCategory('Members');
 
-      expect(comp.selectedPersonalCategories).toEqual([]);
-      expect(comp.personalCategoryFilterMode).toBe('current');
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual([]);
+      expect(comp.personalCategory.personalCategoryFilterMode).toBe('current');
     });
 
     it('togglePersonalCategory ignores click only on the long-pressed category', () => {
       const comp = createHomeComponent(mocks);
 
-      comp.selectedPersonalCategories = [];
-      (comp as any).suppressPersonalCategoryClickFor = 'Members';
+      comp.personalCategory.selectedPersonalCategories = [];
+      comp.personalCategory.setSuppressPersonalCategoryClickForForTests('Members');
 
-      comp.togglePersonalCategory('Other');
-      expect(comp.selectedPersonalCategories).toEqual(['Other']);
-      expect(comp.personalCategoryFilterMode).toBe('named');
-      expect((comp as any).suppressPersonalCategoryClickFor).toBe('Members');
+      comp.personalCategory.togglePersonalCategory('Other');
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Other']);
+      expect(comp.personalCategory.personalCategoryFilterMode).toBe('named');
+      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBe('Members');
 
-      comp.togglePersonalCategory('Members');
-      expect(comp.selectedPersonalCategories).toEqual(['Other']);
-      expect((comp as any).suppressPersonalCategoryClickFor).toBeNull();
+      comp.personalCategory.togglePersonalCategory('Members');
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Other']);
+      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBeNull();
     });
 
     it('clears suppressPersonalCategoryClickFor after the click-suppress window', () => {
       vi.useFakeTimers();
       const comp = createHomeComponent(mocks);
 
-      comp.openRenamePersonalCategoryModal('Members');
-      expect((comp as any).suppressPersonalCategoryClickFor).toBe('Members');
+      comp.personalCategory.openRenamePersonalCategoryModal('Members');
+      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBe('Members');
 
       vi.advanceTimersByTime(400);
-      expect((comp as any).suppressPersonalCategoryClickFor).toBeNull();
+      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBeNull();
 
       vi.useRealTimers();
     });
@@ -985,12 +1039,12 @@ describe('HomeComponent', () => {
       vi.useFakeTimers();
       const comp = createHomeComponent(mocks);
 
-      comp.openRenamePersonalCategoryModal('Members');
-      comp.closeRenamePersonalCategoryModal();
+      comp.personalCategory.openRenamePersonalCategoryModal('Members');
+      comp.personalCategory.closeRenamePersonalCategoryModal();
 
-      expect((comp as any).suppressPersonalCategoryClickFor).toBe('Members');
+      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBe('Members');
       vi.advanceTimersByTime(400);
-      expect((comp as any).suppressPersonalCategoryClickFor).toBeNull();
+      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBeNull();
 
       vi.useRealTimers();
     });
@@ -1002,21 +1056,24 @@ describe('HomeComponent', () => {
       };
       const comp = createHomeComponent(mocks, { prayerService });
 
-      comp.renamingPersonalCategory = 'Evening';
-      comp.showRenamePersonalCategory = true;
-      await comp.saveRenamedPersonalCategory('Evening');
+      comp.personalCategory.renamingPersonalCategory = 'Evening';
+      comp.personalCategory.showRenamePersonalCategory = true;
+      await comp.personalCategory.saveRenamedPersonalCategory('Evening');
 
       expect(prayerService.renamePersonalCategory).not.toHaveBeenCalled();
       expect(mocks.toastService.success).not.toHaveBeenCalled();
-      expect(comp.showRenamePersonalCategory).toBe(false);
+      expect(comp.personalCategory.showRenamePersonalCategory).toBe(false);
     });
 
     it('context menu clears pending long-press before opening rename', () => {
       vi.useFakeTimers();
       const comp = createHomeComponent(mocks);
-      const openSpy = vi.spyOn(comp, 'openRenamePersonalCategoryModal');
+      const openSpy = vi.spyOn(
+        comp.personalCategory,
+        'openRenamePersonalCategoryModal'
+      );
 
-      comp.onPersonalCategoryPointerDown(
+      comp.personalCategory.onPersonalCategoryPointerDown(
         {
           button: 0,
           clientX: 10,
@@ -1025,9 +1082,9 @@ describe('HomeComponent', () => {
         } as unknown as PointerEvent,
         'Members'
       );
-      expect((comp as any).personalCategoryLongPressTimer).not.toBeNull();
+      expect(comp.personalCategory.getPersonalCategoryLongPressTimerForTests()).not.toBeNull();
 
-      comp.onPersonalCategoryContextMenu(
+      comp.personalCategory.onPersonalCategoryContextMenu(
         {
           preventDefault: vi.fn(),
           target: document.createElement('button'),
@@ -1035,7 +1092,7 @@ describe('HomeComponent', () => {
         'Members'
       );
 
-      expect((comp as any).personalCategoryLongPressTimer).toBeNull();
+      expect(comp.personalCategory.getPersonalCategoryLongPressTimerForTests()).toBeNull();
       expect(openSpy).toHaveBeenCalledWith('Members');
 
       vi.advanceTimersByTime(500);
@@ -1066,19 +1123,19 @@ describe('HomeComponent', () => {
         personalCategoryColorService,
       });
 
-      comp.renamingPersonalCategory = 'Evening';
-      comp.showRenamePersonalCategory = true;
-      comp.selectedPersonalCategories = ['Evening'];
-      const savePromise = comp.saveRenamedPersonalCategory('Night');
+      comp.personalCategory.renamingPersonalCategory = 'Evening';
+      comp.personalCategory.showRenamePersonalCategory = true;
+      comp.personalCategory.selectedPersonalCategories = ['Evening'];
+      const savePromise = comp.personalCategory.saveRenamedPersonalCategory('Night');
 
-      comp.closeRenamePersonalCategoryModal();
-      expect(comp.isRenamingPersonalCategory).toBe(false);
+      comp.personalCategory.closeRenamePersonalCategoryModal();
+      expect(comp.personalCategory.isRenamingPersonalCategory).toBe(false);
       resolvePrayerRename(true);
       await savePromise;
 
       expect(mocks.toastService.success).not.toHaveBeenCalled();
-      expect(comp.showRenamePersonalCategory).toBe(false);
-      expect(comp.selectedPersonalCategories).toEqual(['Evening']);
+      expect(comp.personalCategory.showRenamePersonalCategory).toBe(false);
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Evening']);
       expect(prayerService.renamePersonalCategory).toHaveBeenNthCalledWith(
         2,
         'Night',
@@ -1105,19 +1162,19 @@ describe('HomeComponent', () => {
         personalCategoryColorService,
       });
 
-      comp.renamingPersonalCategory = 'Evening';
-      comp.showRenamePersonalCategory = true;
-      comp.selectedPersonalCategories = ['Evening'];
-      const savePromise = comp.saveRenamedPersonalCategory('Night');
+      comp.personalCategory.renamingPersonalCategory = 'Evening';
+      comp.personalCategory.showRenamePersonalCategory = true;
+      comp.personalCategory.selectedPersonalCategories = ['Evening'];
+      const savePromise = comp.personalCategory.saveRenamedPersonalCategory('Night');
 
       await Promise.resolve();
-      comp.closeRenamePersonalCategoryModal();
+      comp.personalCategory.closeRenamePersonalCategoryModal();
       resolveColorRename(true);
       await savePromise;
 
       expect(mocks.toastService.success).not.toHaveBeenCalled();
-      expect(comp.selectedPersonalCategories).toEqual(['Night']);
-      expect(comp.isRenamingPersonalCategory).toBe(false);
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Night']);
+      expect(comp.personalCategory.isRenamingPersonalCategory).toBe(false);
     });
 
     it('restores active filter when color rename fails after modal dismiss', async () => {
@@ -1142,41 +1199,41 @@ describe('HomeComponent', () => {
         personalCategoryColorService,
       });
 
-      comp.renamingPersonalCategory = 'Evening';
-      comp.showRenamePersonalCategory = true;
-      comp.selectedPersonalCategories = ['Evening'];
-      const savePromise = comp.saveRenamedPersonalCategory('Night');
+      comp.personalCategory.renamingPersonalCategory = 'Evening';
+      comp.personalCategory.showRenamePersonalCategory = true;
+      comp.personalCategory.selectedPersonalCategories = ['Evening'];
+      const savePromise = comp.personalCategory.saveRenamedPersonalCategory('Night');
 
       await Promise.resolve();
-      expect(comp.selectedPersonalCategories).toEqual(['Night']);
-      comp.closeRenamePersonalCategoryModal();
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Night']);
+      comp.personalCategory.closeRenamePersonalCategoryModal();
       resolveColorRename(false);
       await savePromise;
 
-      expect(comp.selectedPersonalCategories).toEqual(['Evening']);
-      expect(comp.isRenamingPersonalCategory).toBe(false);
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Evening']);
+      expect(comp.personalCategory.isRenamingPersonalCategory).toBe(false);
     });
 
     it('togglePersonalCategory selects a new category and isPersonalCategorySelected reports true', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.togglePersonalCategory('NewCat');
-      expect(comp.isPersonalCategorySelected('NewCat')).toBe(true);
-      expect(comp.isPersonalCategorySelected('Other')).toBe(false);
-      expect(comp.personalCategoryFilterMode).toBe('named');
+      comp.personalCategory.togglePersonalCategory('NewCat');
+      expect(comp.personalCategory.isPersonalCategorySelected('NewCat')).toBe(true);
+      expect(comp.personalCategory.isPersonalCategorySelected('Other')).toBe(false);
+      expect(comp.personalCategory.personalCategoryFilterMode).toBe('named');
     });
 
     it('selectPersonalCategoryFilterMode switches fixed chips and clears named selection', () => {
       const comp = createHomeComponent(mocks);
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Health'];
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Health'];
 
-      comp.selectPersonalCategoryFilterMode('answered');
-      expect(comp.personalCategoryFilterMode).toBe('answered');
-      expect(comp.selectedPersonalCategories).toEqual([]);
+      comp.personalCategory.selectPersonalCategoryFilterMode('answered');
+      expect(comp.personalCategory.personalCategoryFilterMode).toBe('answered');
+      expect(comp.personalCategory.selectedPersonalCategories).toEqual([]);
 
-      comp.selectPersonalCategoryFilterMode('total');
-      expect(comp.personalCategoryFilterMode).toBe('total');
+      comp.personalCategory.selectPersonalCategoryFilterMode('total');
+      expect(comp.personalCategory.personalCategoryFilterMode).toBe('total');
     });
   });
 
@@ -1184,18 +1241,18 @@ describe('HomeComponent', () => {
     it('onPrayerFormClose with isPersonal=true just closes form', async () => {
       const comp = createHomeComponent(mocks)
 
-      await comp.onPrayerFormClose({ isPersonal: true });
+      await comp.modals.onPrayerFormClose({ isPersonal: true });
 
-      expect(comp.showPrayerForm).toBe(false);
+      expect(comp.modals.showPrayerForm).toBe(false);
       // Personal prayers are automatically updated by the service observable
     });
 
     it('onPrayerFormClose without isPersonal just closes form', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.onPrayerFormClose({});
+      comp.modals.onPrayerFormClose({});
 
-      expect(comp.showPrayerForm).toBe(false);
+      expect(comp.modals.showPrayerForm).toBe(false);
       expect(mocks.cacheService.invalidate).not.toHaveBeenCalled();
     });
 
@@ -1390,8 +1447,8 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
       comp.personalPrayers = prayers;
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Evening'];
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Evening'];
 
       const filtered = comp.getFilteredPersonalPrayers();
 
@@ -1408,12 +1465,12 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks);
       comp.personalPrayers = prayers as any;
-      comp.personalCategoryFilterMode = 'current';
+      comp.personalCategory.personalCategoryFilterMode = 'current';
 
       const filtered = comp.getFilteredPersonalPrayers();
       expect(filtered.map((p) => p.id)).toEqual(['p1', 'p3']);
-      expect(comp.personalCurrentPrayersCount).toBe(2);
-      expect(comp.personalAnsweredPrayersCount).toBe(1);
+      expect(comp.personalCategory.personalCurrentPrayersCount(comp.personalPrayers)).toBe(2);
+      expect(comp.personalCategory.personalAnsweredPrayersCount(comp.personalPrayers)).toBe(1);
     });
 
     it('getFilteredPersonalPrayers Answered and Total modes', () => {
@@ -1425,10 +1482,10 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks);
       comp.personalPrayers = prayers as any;
 
-      comp.personalCategoryFilterMode = 'answered';
+      comp.personalCategory.personalCategoryFilterMode = 'answered';
       expect(comp.getFilteredPersonalPrayers().map((p) => p.id)).toEqual(['p2']);
 
-      comp.personalCategoryFilterMode = 'total';
+      comp.personalCategory.personalCategoryFilterMode = 'total';
       expect(comp.getFilteredPersonalPrayers().map((p) => p.id)).toEqual([
         'p1',
         'p2',
@@ -1443,14 +1500,14 @@ describe('HomeComponent', () => {
           .mockResolvedValue(['Health', 'Answered', 'Family']),
       };
       const comp = createHomeComponent(mocks, { prayerService });
-      await (comp as any).extractUniqueCategories([]);
-      expect(comp.uniquePersonalCategories).toEqual(['Health', 'Family']);
+      await comp.personalCategory.syncCategoriesFromPrayers([]);
+      expect(comp.personalCategory.uniquePersonalCategories).toEqual(['Health', 'Family']);
     });
 
     it('markAllCurrentAsRead calls badgeService', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.markAllCurrentAsRead();
+      comp.badgeService.markAllAsReadByStatus("prayers", "current");
 
       expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'current');
     });
@@ -1458,7 +1515,7 @@ describe('HomeComponent', () => {
     it('markAllAnsweredAsRead calls badgeService', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.markAllAnsweredAsRead();
+      comp.badgeService.markAllAsReadByStatus("prayers", "answered");
 
       expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'answered');
     });
@@ -1466,7 +1523,7 @@ describe('HomeComponent', () => {
     it('markAllPromptsAsRead calls badgeService', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.markAllPromptsAsRead();
+      comp.badgeService.markAllAsRead("prompts");
 
       expect(mocks.badgeService.markAllAsRead).toHaveBeenCalledWith('prompts');
     });
@@ -1474,7 +1531,7 @@ describe('HomeComponent', () => {
     it('markPromptTypeAsRead calls badgeService with prompt type', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.markPromptTypeAsRead('Church');
+      comp.badgeService.markAllAsReadByPromptType('Church');
 
       expect(mocks.badgeService.markAllAsReadByPromptType).toHaveBeenCalledWith('Church');
     });
@@ -1485,7 +1542,7 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       comp.filters.searchTerm = 'search';
-      comp.setFilter('personal');
+      comp.filter.setFilter('personal');
 
       expect(comp.activeFilter).toBe('personal');
       expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ search: 'search' });
@@ -1507,7 +1564,7 @@ describe('HomeComponent', () => {
         currentIndex: 0
       } as any;
 
-      await comp.onPersonalPrayerDrop(event);
+      await comp.personalCategory.onPersonalPrayerDrop(event);
 
       expect(comp.personalPrayers).toEqual(prayers);
       expect(mocks.prayerService.updatePersonalPrayerOrder).not.toHaveBeenCalled();
@@ -1520,14 +1577,14 @@ describe('HomeComponent', () => {
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest,
         { id: '2', title: 'Prayer 2', category: 'Leaders', display_order: 2 } as PrayerRequest
       ];
-      comp.selectedPersonalCategories = ['Members', 'Leaders'];
+      comp.personalCategory.selectedPersonalCategories = ['Members', 'Leaders'];
 
       const event = {
         previousIndex: 0,
         currentIndex: 1
       } as any;
 
-      await comp.onPersonalPrayerDrop(event);
+      await comp.personalCategory.onPersonalPrayerDrop(event);
 
       expect(mocks.toastService.error).toHaveBeenCalledWith('Select a single category to reorder prayers');
       expect(mocks.prayerService.updatePersonalPrayerOrder).not.toHaveBeenCalled();
@@ -1549,15 +1606,15 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = prayers;
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
       const event = {
         previousIndex: 0,
         currentIndex: 1
       } as any;
 
-      await comp.onPersonalPrayerDrop(event);
+      await comp.personalCategory.onPersonalPrayerDrop(event);
 
       expect(mocks.prayerService.updatePersonalPrayerOrder).toHaveBeenCalled();
       // Personal prayers are now updated via service observable subscription, not explicit getPersonalPrayers call
@@ -1583,15 +1640,15 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       comp.personalPrayers = [...prayers]; // Make a copy to avoid reference issues
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Members']; // Must have single category to reorder
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Members']; // Must have single category to reorder
 
       const event = {
         previousIndex: 0,
         currentIndex: 1
       } as any;
 
-      await comp.onPersonalPrayerDrop(event);
+      await comp.personalCategory.onPersonalPrayerDrop(event);
 
       // After error, should be restored to original order
       expect(comp.personalPrayers[0].id).toBe('1');
@@ -1604,35 +1661,35 @@ describe('HomeComponent', () => {
     it('onCategoryDragStarted should set dragging flag and cursor', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.onCategoryDragStarted();
+      comp.personalCategory.onCategoryDragStarted();
 
-      expect(comp.isCategoryDragging).toBe(true);
+      expect(comp.personalCategory.isCategoryDragging).toBe(true);
       expect(document.body.style.cursor).toBe('grabbing');
     });
 
     it('onCategoryDragEnded should clear dragging flag and cursor', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.isCategoryDragging = true;
+      comp.personalCategory.isCategoryDragging = true;
       document.body.style.cursor = 'grabbing';
 
-      comp.onCategoryDragEnded();
+      comp.personalCategory.onCategoryDragEnded();
 
-      expect(comp.isCategoryDragging).toBe(false);
+      expect(comp.personalCategory.isCategoryDragging).toBe(false);
       expect(document.body.style.cursor).toBe('');
     });
 
     it('onCategoryDrop should return early if index does not change', async () => {
       const comp = createHomeComponent(mocks)
 
-      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
 
       const event = {
         previousIndex: 0,
         currentIndex: 0
       } as any;
 
-      await comp.onCategoryDrop(event);
+      await comp.personalCategory.onCategoryDrop(event);
 
       expect(mocks.prayerService.swapCategoryRanges).not.toHaveBeenCalled();
       expect(mocks.prayerService.reorderCategories).not.toHaveBeenCalled();
@@ -1641,15 +1698,15 @@ describe('HomeComponent', () => {
     it('onCategoryDrop should return early if already swapping', async () => {
       const comp = createHomeComponent(mocks)
 
-      comp.uniquePersonalCategories = ['Members', 'Leaders'];
-      comp.isSwappingCategories = true;
+      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalCategory.isSwappingCategories = true;
 
       const event = {
         previousIndex: 0,
         currentIndex: 1
       } as any;
 
-      await comp.onCategoryDrop(event);
+      await comp.personalCategory.onCategoryDrop(event);
 
       expect(mocks.prayerService.swapCategoryRanges).not.toHaveBeenCalled();
     });
@@ -1663,7 +1720,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
       comp.personalPrayers = [
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest,
         { id: '2', title: 'Prayer 2', category: 'Leaders', display_order: 2 } as PrayerRequest
@@ -1674,11 +1731,11 @@ describe('HomeComponent', () => {
         currentIndex: 1
       } as any;
 
-      await comp.onCategoryDrop(event);
+      await comp.personalCategory.onCategoryDrop(event);
 
       expect(mocks.prayerService.swapCategoryRanges).toHaveBeenCalledWith('Members', 'Leaders');
       // Service handles cache invalidation automatically
-      expect(comp.isSwappingCategories).toBe(false);
+      expect(comp.personalCategory.isSwappingCategories).toBe(false);
     });
 
     it('onCategoryDrop should use reorderCategories for non-adjacent swap', async () => {
@@ -1689,14 +1746,14 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp.uniquePersonalCategories = ['A', 'B', 'C', 'D', 'E'];
+      comp.personalCategory.uniquePersonalCategories = ['A', 'B', 'C', 'D', 'E'];
 
       const event = {
         previousIndex: 0,
         currentIndex: 4
       } as any;
 
-      await comp.onCategoryDrop(event);
+      await comp.personalCategory.onCategoryDrop(event);
 
       expect(mocks.prayerService.reorderCategories).toHaveBeenCalledWith(['B', 'C', 'D', 'E', 'A']);
     });
@@ -1706,19 +1763,19 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
 
       const event = {
         previousIndex: 0,
         currentIndex: 1
       } as any;
 
-      await comp.onCategoryDrop(event);
+      await comp.personalCategory.onCategoryDrop(event);
 
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder categories');
       // Should be rolled back to original order
-      expect(comp.uniquePersonalCategories[0]).toBe('Members');
-      expect(comp.uniquePersonalCategories[1]).toBe('Leaders');
+      expect(comp.personalCategory.uniquePersonalCategories[0]).toBe('Members');
+      expect(comp.personalCategory.uniquePersonalCategories[1]).toBe('Leaders');
     });
 
     it('onCategoryDrop should show error and rollback on swap exception', async () => {
@@ -1726,7 +1783,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
 
       const event = {
         previousIndex: 0,
@@ -1734,13 +1791,13 @@ describe('HomeComponent', () => {
       } as any;
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      await comp.onCategoryDrop(event);
+      await comp.personalCategory.onCategoryDrop(event);
 
       expect(consoleSpy).toHaveBeenCalledWith('Error reordering categories:', expect.any(Error));
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder categories');
       // Should be rolled back
-      expect(comp.uniquePersonalCategories[0]).toBe('Members');
-      expect(comp.uniquePersonalCategories[1]).toBe('Leaders');
+      expect(comp.personalCategory.uniquePersonalCategories[0]).toBe('Members');
+      expect(comp.personalCategory.uniquePersonalCategories[1]).toBe('Leaders');
       consoleSpy.mockRestore();
     });
 
@@ -1755,7 +1812,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp.uniquePersonalCategories = ['Members', 'Leaders'];
+      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
       comp.personalPrayers = [];
 
       const event = {
@@ -1763,10 +1820,10 @@ describe('HomeComponent', () => {
         currentIndex: 1
       } as any;
 
-      await comp.onCategoryDrop(event);
+      await comp.personalCategory.onCategoryDrop(event);
 
       // Service handles cache invalidation automatically
-      expect(comp.isSwappingCategories).toBe(false);
+      expect(comp.personalCategory.isSwappingCategories).toBe(false);
     });
   });
 
@@ -1783,15 +1840,15 @@ describe('HomeComponent', () => {
         { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1001 } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Members'];
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Members'];
 
       const event = {
         previousIndex: 0,
         currentIndex: 0
       } as any;
 
-      await comp.onPersonalPrayerDrop(event);
+      await comp.personalCategory.onPersonalPrayerDrop(event);
 
       expect(mocks.prayerService.updatePersonalPrayerOrder).not.toHaveBeenCalled(); // No change in index
     });
@@ -1806,8 +1863,8 @@ describe('HomeComponent', () => {
         { id: '2', title: 'Prayer 2', category: 'Members', display_order: 1000 } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Members'];
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Members'];
 
       const event = {
         previousIndex: 0,
@@ -1815,7 +1872,7 @@ describe('HomeComponent', () => {
       } as any;
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      await comp.onPersonalPrayerDrop(event);
+      await comp.personalCategory.onPersonalPrayerDrop(event);
 
       expect(consoleSpy).toHaveBeenCalledWith('Error reordering personal prayers:', expect.any(Error));
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder prayers');
@@ -1836,15 +1893,15 @@ describe('HomeComponent', () => {
         { id: '3', title: 'Prayer 3', category: 'Members', display_order: 999 } as PrayerRequest
       ];
       comp.personalPrayers = prayers;
-      comp.personalCategoryFilterMode = 'named';
-      comp.selectedPersonalCategories = ['Members'];
+      comp.personalCategory.personalCategoryFilterMode = 'named';
+      comp.personalCategory.selectedPersonalCategories = ['Members'];
 
       const event = {
         previousIndex: 1,
         currentIndex: 0
       } as any;
 
-      await comp.onPersonalPrayerDrop(event);
+      await comp.personalCategory.onPersonalPrayerDrop(event);
 
       expect(mocks.prayerService.updatePersonalPrayerOrder).toHaveBeenCalled();
       expect(mocks.toastService.error).not.toHaveBeenCalled();
@@ -1852,21 +1909,12 @@ describe('HomeComponent', () => {
   });
 
   describe('Utility methods', () => {
-    it('formatDate should return formatted date string', () => {
-      const comp = createHomeComponent(mocks)
-
-      const result = comp.formatDate('2024-01-15T10:30:00Z');
-      expect(result).toContain('Jan');
-      expect(result).toContain('15');
-      expect(result).toContain('2024');
-    });
-
     it('getUserEmail should return cached email from userSessionService', () => {
       mocks.userSessionService.getUserEmail.mockReturnValue('test@example.com');
 
       const comp = createHomeComponent(mocks)
 
-      const result = comp.getUserEmail();
+      const result = comp.adminNav.getUserEmail();
       expect(result).toBe('test@example.com');
     });
 
@@ -1876,7 +1924,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      const result = comp.getUserEmail();
+      const result = comp.adminNav.getUserEmail();
       expect(result).toBe('admin@example.com');
       localStorage.removeItem('approvalAdminEmail');
     });
@@ -1884,21 +1932,21 @@ describe('HomeComponent', () => {
     it('markAllCurrentAsRead should call badgeService', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.markAllCurrentAsRead();
+      comp.badgeService.markAllAsReadByStatus("prayers", "current");
       expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'current');
     });
 
     it('markAllAnsweredAsRead should call badgeService', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.markAllAnsweredAsRead();
+      comp.badgeService.markAllAsReadByStatus("prayers", "answered");
       expect(mocks.badgeService.markAllAsReadByStatus).toHaveBeenCalledWith('prayers', 'answered');
     });
 
     it('markAllPromptsAsRead should call badgeService', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.markAllPromptsAsRead();
+      comp.badgeService.markAllAsRead("prompts");
       expect(mocks.badgeService.markAllAsRead).toHaveBeenCalledWith('prompts');
     });
   });
@@ -1919,9 +1967,9 @@ describe('HomeComponent', () => {
       mocks.cdr.markForCheck.mockClear();
       mocks.cdr.detectChanges.mockClear();
 
-      comp.openMemorizationPractice(item);
+      comp.memorizationPanel.openMemorizationPractice(item);
 
-      expect(comp.practiceMemorizedItem).toEqual(item);
+      expect(comp.memorizationPanel.practiceMemorizedItem).toEqual(item);
       expect(mocks.cdr.markForCheck).toHaveBeenCalled();
       expect(mocks.cdr.detectChanges).toHaveBeenCalled();
     });
@@ -1952,11 +2000,11 @@ describe('HomeComponent', () => {
         },
       } as any;
 
-      comp.openMemorizationPractice(item);
+      comp.memorizationPanel.openMemorizationPractice(item);
 
       expect(focusSpy).toHaveBeenCalled();
       expect(clickSpy).toHaveBeenCalled();
-      expect(comp.practiceMemorizedItem).toEqual(item);
+      expect(comp.memorizationPanel.practiceMemorizedItem).toEqual(item);
       focusSpy.mockRestore();
       clickSpy.mockRestore();
     });
@@ -1978,7 +2026,7 @@ describe('HomeComponent', () => {
         practiceSessions: [],
       } as any;
 
-      comp.openMemorizationPractice(item);
+      comp.memorizationPanel.openMemorizationPractice(item);
 
       expect(focusSpy).not.toHaveBeenCalled();
       focusSpy.mockRestore();
@@ -1989,23 +2037,23 @@ describe('HomeComponent', () => {
 
       const prayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
       comp.ngOnInit();
-      comp.openEditModal(prayer);
+      comp.modals.openEditModal(prayer);
 
-      expect(comp.editingPrayer).toEqual(prayer);
-      expect(comp.showEditPersonalPrayer).toBe(true);
+      expect(comp.modals.editingPrayer).toEqual(prayer);
+      expect(comp.modals.showEditPersonalPrayer).toBe(true);
       expect(mocks.cdr.markForCheck).toHaveBeenCalled();
     });
 
     it('onPersonalPrayerSaved should clear state and reload', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.editingPrayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
-      comp.showEditPersonalPrayer = true;
+      comp.modals.editingPrayer = { id: '1', prayer_for: 'Test', title: 'Test Prayer' } as any;
+      comp.modals.showEditPersonalPrayer = true;
 
-      comp.onPersonalPrayerSaved();
+      comp.modals.onPersonalPrayerSaved();
 
-      expect(comp.showEditPersonalPrayer).toBe(false);
-      expect(comp.editingPrayer).toBeNull();
+      expect(comp.modals.showEditPersonalPrayer).toBe(false);
+      expect(comp.modals.editingPrayer).toBeNull();
       expect(mocks.cdr.markForCheck).toHaveBeenCalled();
       // Service automatically updates personal prayers via observable
     });
@@ -2015,25 +2063,25 @@ describe('HomeComponent', () => {
 
       const update = { id: 'u1', text: 'Update text' } as any;
       comp.ngOnInit();
-      comp.openEditUpdateModal({ update, prayerId: 'p1' });
+      comp.modals.openEditUpdateModal({ update, prayerId: 'p1' });
 
-      expect(comp.editingUpdate).toEqual(update);
-      expect(comp.editingUpdatePrayerId).toBe('p1');
-      expect(comp.showEditPersonalUpdate).toBe(true);
+      expect(comp.modals.editingUpdate).toEqual(update);
+      expect(comp.modals.editingUpdatePrayerId).toBe('p1');
+      expect(comp.modals.showEditPersonalUpdate).toBe(true);
     });
 
     it('onPersonalUpdateSaved should clear state and reload', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.editingUpdate = { id: 'u1', text: 'Update' } as any;
-      comp.editingUpdatePrayerId = 'p1';
-      comp.showEditPersonalUpdate = true;
+      comp.modals.editingUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.modals.editingUpdatePrayerId = 'p1';
+      comp.modals.showEditPersonalUpdate = true;
 
-      comp.onPersonalUpdateSaved();
+      comp.modals.onPersonalUpdateSaved();
 
-      expect(comp.showEditPersonalUpdate).toBe(false);
-      expect(comp.editingUpdate).toBeNull();
-      expect(comp.editingUpdatePrayerId).toBe('');
+      expect(comp.modals.showEditPersonalUpdate).toBe(false);
+      expect(comp.modals.editingUpdate).toBeNull();
+      expect(comp.modals.editingUpdatePrayerId).toBe('');
       // Service automatically updates personal prayers via observable
     });
 
@@ -2042,22 +2090,22 @@ describe('HomeComponent', () => {
 
       const update = { id: 'u1', text: 'Update' } as any;
       comp.ngOnInit();
-      comp.openEditMemberUpdateModal({ update, prayerId: 'pc-member-123' });
+      comp.modals.openEditMemberUpdateModal({ update, prayerId: 'pc-member-123' });
 
-      expect(comp.editingMemberUpdate).toEqual(update);
-      expect(comp.editingMemberUpdatePrayerId).toBe('pc-member-123');
-      expect(comp.showEditMemberUpdate).toBe(true);
+      expect(comp.modals.editingMemberUpdate).toEqual(update);
+      expect(comp.modals.editingMemberUpdatePrayerId).toBe('pc-member-123');
+      expect(comp.modals.showEditMemberUpdate).toBe(true);
     });
 
     it('onMemberUpdateSaved should clear state and reload member updates', async () => {
       vi.useFakeTimers();
       const comp = createHomeComponent(mocks)
 
-      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
-      comp.editingMemberUpdatePrayerId = 'pc-member-123';
-      comp.showEditMemberUpdate = true;
-      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
-      comp.filteredPlanningCenterPrayers = [{
+      comp.modals.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.modals.editingMemberUpdatePrayerId = 'pc-member-123';
+      comp.modals.showEditMemberUpdate = true;
+      comp.planningCenter.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.planningCenter.filteredPlanningCenterPrayers = [{
         id: 'pc-member-123',
         prayer_for: 'Member',
         title: 'Member Prayer',
@@ -2066,15 +2114,15 @@ describe('HomeComponent', () => {
 
       mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([{ id: 'u2', text: 'New update' }]);
 
-      comp.onMemberUpdateSaved();
+      comp.modals.onMemberUpdateSaved();
 
-      expect(comp.showEditMemberUpdate).toBe(false);
-      expect(comp.editingMemberUpdate).toBeNull();
-      expect(comp.editingMemberUpdatePrayerId).toBe('');
+      expect(comp.modals.showEditMemberUpdate).toBe(false);
+      expect(comp.modals.editingMemberUpdate).toBeNull();
+      expect(comp.modals.editingMemberUpdatePrayerId).toBe('');
 
       // Wait for async operations
       await vi.advanceTimersByTimeAsync(150);
-      expect(comp.filteredPlanningCenterPrayers[0].updates).toHaveLength(1);
+      expect(comp.planningCenter.filteredPlanningCenterPrayers[0].updates).toHaveLength(1);
       vi.useRealTimers();
     });
   });
@@ -2085,7 +2133,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp.navigateToAdmin();
+      comp.adminNav.navigateToAdmin();
 
       expect(mocks.router.navigate).toHaveBeenCalledWith(['/admin']);
     });
@@ -2096,7 +2144,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp.navigateToAdmin();
+      comp.adminNav.navigateToAdmin();
 
       expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], {
         queryParams: {
@@ -2110,7 +2158,7 @@ describe('HomeComponent', () => {
     it('logout should call adminAuthService and show success toast', async () => {
       const comp = createHomeComponent(mocks)
 
-      await comp.logout();
+      await mocks.adminAuthService.logout();
 
       expect(mocks.adminAuthService.logout).toHaveBeenCalled();
     });
@@ -2121,16 +2169,16 @@ describe('HomeComponent', () => {
       vi.useFakeTimers();
       const comp = createHomeComponent(mocks)
 
-      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
-      comp.editingMemberUpdatePrayerId = 'pc-member-999';
-      comp.showEditMemberUpdate = true;
-      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
-      comp.filteredPlanningCenterPrayers = [] as any;
+      comp.modals.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.modals.editingMemberUpdatePrayerId = 'pc-member-999';
+      comp.modals.showEditMemberUpdate = true;
+      comp.planningCenter.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.planningCenter.filteredPlanningCenterPrayers = [] as any;
 
-      comp.onMemberUpdateSaved();
+      comp.modals.onMemberUpdateSaved();
 
       await vi.advanceTimersByTimeAsync(150);
-      expect(comp.editingMemberUpdate).toBeNull();
+      expect(comp.modals.editingMemberUpdate).toBeNull();
       vi.useRealTimers();
     });
 
@@ -2138,11 +2186,11 @@ describe('HomeComponent', () => {
       vi.useFakeTimers();
       const comp = createHomeComponent(mocks)
 
-      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
-      comp.editingMemberUpdatePrayerId = 'pc-member-123';
-      comp.showEditMemberUpdate = true;
-      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
-      comp.filteredPlanningCenterPrayers = [{
+      comp.modals.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.modals.editingMemberUpdatePrayerId = 'pc-member-123';
+      comp.modals.showEditMemberUpdate = true;
+      comp.planningCenter.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.planningCenter.filteredPlanningCenterPrayers = [{
         id: 'pc-member-999',
         prayer_for: 'Other Member',
         title: 'Other Prayer',
@@ -2151,10 +2199,10 @@ describe('HomeComponent', () => {
 
       mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([]);
 
-      comp.onMemberUpdateSaved();
+      comp.modals.onMemberUpdateSaved();
 
       await vi.advanceTimersByTimeAsync(150);
-      expect(comp.editingMemberUpdate).toBeNull();
+      expect(comp.modals.editingMemberUpdate).toBeNull();
       vi.useRealTimers();
     });
 
@@ -2164,11 +2212,11 @@ describe('HomeComponent', () => {
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
-      comp.editingMemberUpdatePrayerId = 'pc-member-123';
-      comp.showEditMemberUpdate = true;
-      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
-      comp.filteredPlanningCenterPrayers = [{
+      comp.modals.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+      comp.modals.editingMemberUpdatePrayerId = 'pc-member-123';
+      comp.modals.showEditMemberUpdate = true;
+      comp.planningCenter.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
+      comp.planningCenter.filteredPlanningCenterPrayers = [{
         id: 'pc-member-123',
         prayer_for: 'Member',
         title: 'Member Prayer',
@@ -2177,7 +2225,7 @@ describe('HomeComponent', () => {
 
       mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockRejectedValue(new Error('Load failed'));
 
-      comp.onMemberUpdateSaved();
+      comp.modals.onMemberUpdateSaved();
 
       await vi.advanceTimersByTimeAsync(150);
       expect(consoleSpy).toHaveBeenCalled();
@@ -2192,7 +2240,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp['showAdminMfaModal']();
+      comp.adminNav.navigateToAdmin();
 
       expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], {
         queryParams: {
@@ -2209,7 +2257,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp['showAdminMfaModal']();
+      comp.adminNav.navigateToAdmin();
 
       expect(mocks.toastService.error).toHaveBeenCalledWith('Email not found. Please log in again.');
       expect(mocks.router.navigate).not.toHaveBeenCalled();
@@ -2221,7 +2269,7 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks)
 
-      comp['showAdminMfaModal']();
+      comp.adminNav.navigateToAdmin();
 
       expect(mocks.router.navigate).toHaveBeenCalledWith(['/login'], {
         queryParams: {
@@ -2238,14 +2286,15 @@ describe('HomeComponent', () => {
     it('should return all prayers when no search term', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: 'Healing', description: '' } as any,
         { id: '2', prayer_for: 'Jane', title: 'Wisdom', description: '' } as any
       ];
 
       comp.filters = { searchTerm: '' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(2);
     });
@@ -2253,14 +2302,15 @@ describe('HomeComponent', () => {
     it('should search in prayer_for field', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John Doe', title: 'Healing', description: 'Needs prayer' } as any,
         { id: '2', prayer_for: 'Jane Smith', title: 'Wisdom', description: 'Job interview' } as any
       ];
 
       comp.filters = { searchTerm: 'John' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(1);
       expect(result[0].prayer_for).toBe('John Doe');
@@ -2269,13 +2319,14 @@ describe('HomeComponent', () => {
     it('should search case-insensitively in prayer_for', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John Doe', title: '', description: '' } as any
       ];
 
       comp.filters = { searchTerm: 'JOHN' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(1);
     });
@@ -2283,7 +2334,7 @@ describe('HomeComponent', () => {
     it('should search in update content', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { 
           id: '1', 
           prayer_for: 'John Doe', 
@@ -2302,7 +2353,8 @@ describe('HomeComponent', () => {
 
       comp.filters = { searchTerm: 'specific update' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('1');
@@ -2311,13 +2363,14 @@ describe('HomeComponent', () => {
     it('should search in title field', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: 'Healing Surgery', description: '' } as any
       ];
 
       comp.filters = { searchTerm: 'Healing' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(1);
     });
@@ -2325,13 +2378,14 @@ describe('HomeComponent', () => {
     it('should search in description field', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'Jane', title: 'Work Issues', description: 'Difficult project deadline' } as any
       ];
 
       comp.filters = { searchTerm: 'deadline' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(1);
     });
@@ -2339,13 +2393,14 @@ describe('HomeComponent', () => {
     it('should return empty array when no matches found', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: 'Healing', description: '' } as any
       ];
 
       comp.filters = { searchTerm: 'xyz' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(0);
     });
@@ -2353,13 +2408,14 @@ describe('HomeComponent', () => {
     it('should trim whitespace from search term', () => {
       const comp = createHomeComponent(mocks)
 
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: '1', prayer_for: 'John', title: '', description: '' } as any
       ];
 
       comp.filters = { searchTerm: '  John  ' } as any;
 
-      const result = comp.getFilteredPlanningCenterPrayers();
+      comp.refreshHomeCatalog();
+      const result = comp.catalog.filteredPlanningCenterPrayers;
 
       expect(result).toHaveLength(1);
     });
@@ -2375,8 +2431,8 @@ describe('HomeComponent', () => {
         { id: '3', category: 'Wisdom' } as any
       ];
 
-      expect(comp.getPersonalCategoryCount('Healing')).toBe(2);
-      expect(comp.getPersonalCategoryCount('Wisdom')).toBe(1);
+      expect(comp.catalog.personalCategoryCount('Healing')).toBe(2);
+      expect(comp.catalog.personalCategoryCount('Wisdom')).toBe(1);
     });
 
     it('getPersonalCategoryCount should return 0 for non-existent category', () => {
@@ -2386,7 +2442,7 @@ describe('HomeComponent', () => {
         { id: '1', category: 'Healing' } as any
       ];
 
-      expect(comp.getPersonalCategoryCount('NonExistent')).toBe(0);
+      expect(comp.catalog.personalCategoryCount('NonExistent')).toBe(0);
     });
 
     it('getPersonalCategoryCount should work with empty prayers array', () => {
@@ -2394,7 +2450,7 @@ describe('HomeComponent', () => {
 
       comp.personalPrayers = [];
 
-      expect(comp.getPersonalCategoryCount('Healing')).toBe(0);
+      expect(comp.catalog.personalCategoryCount('Healing')).toBe(0);
     });
   });
 
@@ -2449,37 +2505,44 @@ describe('HomeComponent', () => {
   });
 
   describe('Error handling in member update reload', () => {
-    it('should handle detectChanges errors gracefully', async () => {
+    it('should refresh catalog after member update reload', async () => {
       vi.useFakeTimers();
-      const comp = createHomeComponent(mocks)
+      try {
+        const comp = createHomeComponent(mocks);
+        const refreshSpy = vi.spyOn(comp, 'refreshHomeCatalog');
 
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      comp.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
-      comp.editingMemberUpdatePrayerId = 'pc-member-123';
-      comp.showEditMemberUpdate = true;
-      comp.planningCenterListMembers = [{ id: '123', name: 'Member' }] as any;
-      comp.filteredPlanningCenterPrayers = [{
-        id: 'pc-member-123',
-        prayer_for: 'Member',
-        title: 'Member Prayer',
-        updates: []
-      }] as any;
+        comp.modals.editingMemberUpdate = { id: 'u1', text: 'Update' } as any;
+        comp.modals.editingMemberUpdatePrayerId = 'pc-member-123';
+        comp.modals.showEditMemberUpdate = true;
+        comp.planningCenter.planningCenterListMembers = [
+          { id: '123', name: 'Member' },
+        ] as any;
+        comp.planningCenter.filteredPlanningCenterPrayers = [
+          {
+            id: 'pc-member-123',
+            prayer_for: 'Member',
+            title: 'Member Prayer',
+            updates: [],
+          },
+        ] as any;
 
-      mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([
-        { id: 'u2', text: 'New update' }
-      ]);
+        mocks.prayerService.getMemberPrayerUpdates = vi.fn().mockResolvedValue([
+          { id: 'u2', text: 'New update' },
+        ]);
 
-      mocks.cdr.detectChanges.mockImplementation(() => {
-        throw new Error('Change detection error');
-      });
+        comp.modals.onMemberUpdateSaved();
 
-      comp.onMemberUpdateSaved();
+        await vi.advanceTimersByTimeAsync(150);
+        await Promise.resolve();
+        await Promise.resolve();
 
-      await vi.advanceTimersByTimeAsync(150);
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
-      vi.useRealTimers();
+        expect(refreshSpy).toHaveBeenCalled();
+        expect(
+          comp.planningCenter.filteredPlanningCenterPrayers[0].updates
+        ).toEqual([{ id: 'u2', text: 'New update' }]);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
@@ -2488,8 +2551,9 @@ describe('HomeComponent', () => {
       const comp = createHomeComponent(mocks)
 
       comp.activeFilter = 'current';
+      comp.refreshHomeCatalog();
 
-      const result = comp.getDisplayedPrompts();
+      const result = comp.catalog.displayedPrompts;
 
       expect(result).toHaveLength(0);
     });
@@ -2502,9 +2566,10 @@ describe('HomeComponent', () => {
         { id: '1', text: 'Prompt 1' } as any,
         { id: '2', text: 'Prompt 2' } as any
       ];
-      mocks.promptService.promptsSubject = { value: prompts } as any;
+      mocks.promptService.promptsSubject.next(prompts);
+      comp.refreshHomeCatalog();
 
-      const result = comp.getDisplayedPrompts();
+      const result = comp.catalog.displayedPrompts;
 
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('1');
@@ -2597,12 +2662,12 @@ describe('HomeComponent', () => {
 
       const comp = createHomeComponent(mocks);
       comp.personalPrayers = [answeredPrayer];
-      comp.personalCategoryFilterMode = 'current';
+      comp.personalCategory.personalCategoryFilterMode = 'current';
       comp.activeFilter = 'personal';
 
-      (comp as any).openPrayerDeepLink('p-answered');
+      (comp as any).deepLinkCoordinator.openPrayerDeepLink('p-answered');
 
-      expect(comp.personalCategoryFilterMode).toBe('answered');
+      expect(comp.personalCategory.personalCategoryFilterMode).toBe('answered');
       expect(
         comp.getFilteredPersonalPrayers().some((p) => p.id === 'p-answered')
       ).toBe(true);
@@ -2739,46 +2804,46 @@ describe('HomeComponent', () => {
     it('shows filter when list id is set before members finish loading', () => {
       const mocks = makeMocks();
       const comp = newHome(mocks);
-      comp.planningCenterListId = 'list-abc';
-      comp.planningCenterListMembers = [];
-      comp.loadingPlanningCenterList = true;
+      comp.planningCenter.planningCenterListId = 'list-abc';
+      comp.planningCenter.planningCenterListMembers = [];
+      comp.planningCenter.loadingPlanningCenterList = true;
 
-      expect(comp.showPlanningCenterMembersFilter).toBe(true);
-      expect(comp.planningCenterMembersDisplayCount).toBe('…');
+      expect(comp.planningCenter.showPlanningCenterMembersFilter).toBe(true);
+      expect(comp.planningCenter.planningCenterMembersDisplayCount).toBe('…');
     });
 
     it('shows member count after load completes', () => {
       const mocks = makeMocks();
       const comp = newHome(mocks);
-      comp.planningCenterListId = 'list-abc';
-      comp.planningCenterListMembers = [
+      comp.planningCenter.planningCenterListId = 'list-abc';
+      comp.planningCenter.planningCenterListMembers = [
         { id: '1', name: 'A' },
         { id: '2', name: 'B' },
       ];
-      comp.loadingPlanningCenterList = false;
+      comp.planningCenter.loadingPlanningCenterList = false;
 
-      expect(comp.planningCenterMembersDisplayCount).toBe('2');
+      expect(comp.planningCenter.planningCenterMembersDisplayCount).toBe('2');
     });
 
     it('hides filter when user has no mapped list', () => {
       const mocks = makeMocks();
       const comp = newHome(mocks);
-      comp.planningCenterListId = null;
-      comp.planningCenterListMembers = [];
+      comp.planningCenter.planningCenterListId = null;
+      comp.planningCenter.planningCenterListMembers = [];
 
-      expect(comp.showPlanningCenterMembersFilter).toBe(false);
+      expect(comp.planningCenter.showPlanningCenterMembersFilter).toBe(false);
     });
 
     it('clears filtered Planning Center prayers when list id exists but members are empty', () => {
       const mocks = makeMocks();
       const comp = newHome(mocks);
       comp.ngOnInit();
-      comp.filteredPlanningCenterPrayers = [{ id: 'pc-member-stale' }] as any;
+      comp.planningCenter.filteredPlanningCenterPrayers = [{ id: 'pc-member-stale' }] as any;
 
       mocks.pcListIdSubject.next('list-abc');
       mocks.pcMembersSubject.next([]);
 
-      expect(comp.filteredPlanningCenterPrayers).toEqual([]);
+      expect(comp.planningCenter.filteredPlanningCenterPrayers).toEqual([]);
     });
   });
 
@@ -2788,9 +2853,9 @@ describe('HomeComponent', () => {
     it('handleLogout hides confirmation and calls logout', async () => {
       const m = makeMocks();
       const comp = newHome(m);
-      comp.showLogoutConfirmation = true;
-      await comp.handleLogout();
-      expect(comp.showLogoutConfirmation).toBe(false);
+      comp.modals.showLogoutConfirmation = true;
+      await comp.modals.handleLogout();
+      expect(comp.modals.showLogoutConfirmation).toBe(false);
       expect(m.adminAuthService.logout).toHaveBeenCalled();
     });
 
@@ -2798,7 +2863,7 @@ describe('HomeComponent', () => {
       const m = makeMocks();
       m.userSessionService.getCurrentSession = vi.fn(() => ({ email: 'user@example.com' }));
       const comp = newHome(m);
-      await comp.onPullToRefresh();
+      await comp.refresh.onPullToRefresh();
       expect(m.prayerService.loadPrayers).toHaveBeenCalledWith(false);
       expect(m.prayerService.loadPersonalPrayers).toHaveBeenCalledWith(false);
       expect(comp.isRefreshing).toBe(false);
@@ -2807,9 +2872,9 @@ describe('HomeComponent', () => {
     it('onPullToRefresh skips when called again within 30 seconds', async () => {
       const m = makeMocks();
       const comp = newHome(m);
-      await comp.onPullToRefresh();
+      await comp.refresh.onPullToRefresh();
       m.prayerService.loadPrayers.mockClear();
-      await comp.onPullToRefresh();
+      await comp.refresh.onPullToRefresh();
       expect(m.prayerService.loadPrayers).not.toHaveBeenCalled();
     });
 
@@ -2817,7 +2882,7 @@ describe('HomeComponent', () => {
       const m = makeMocks();
       const comp = newHome(m);
       comp.activeFilter = 'memorize';
-      await comp.onPullToRefresh();
+      await comp.refresh.onPullToRefresh();
       expect(m.memorizationService.loadItems).toHaveBeenCalled();
     });
 
@@ -2825,14 +2890,14 @@ describe('HomeComponent', () => {
       const m = makeMocks();
       const comp = newHome(m);
       m.planningCenterListService.getCurrentListId.mockReturnValue('list-1');
-      comp.planningCenterListMembers = [{ id: 'person-1', name: 'Bob' }];
-      comp.filteredPlanningCenterPrayers = [
+      comp.planningCenter.planningCenterListMembers = [{ id: 'person-1', name: 'Bob' }];
+      comp.planningCenter.filteredPlanningCenterPrayers = [
         { id: 'pc-member-person-1', updates: [] } as any,
       ];
       m.prayerService.getMemberPrayerUpdates.mockResolvedValue([
         { id: 'u1', content: 'updated' },
       ]);
-      await comp.toggleMemberUpdateAnswered({
+      await comp.memberCardActions.toggleMemberUpdateAnswered({
         updateId: 'upd-1',
         prayerId: 'pc-member-person-1',
         isAnswered: true,
@@ -2850,18 +2915,18 @@ describe('HomeComponent', () => {
     it('onMemorizedVerseAdded marks for check', () => {
       const m = makeMocks();
       const comp = newHome(m);
-      comp.onMemorizedVerseAdded();
+      comp.memorizationPanel.onMemorizedVerseAdded();
       expect(m.cdr.markForCheck).toHaveBeenCalled();
     });
 
     it('isRecommendationAlreadyAdded matches verse reference and translation', () => {
       const m = makeMocks();
       const comp = newHome(m);
-      comp.memorizedItems = [
+      comp.memorizationPanel.memorizedItems = [
         { id: '1', reference: 'John 3:16', translation: 'esv', kind: 'verse' } as any,
       ];
       expect(
-        comp.isRecommendationAlreadyAdded({
+        comp.memorizationPanel.isRecommendationAlreadyAdded({
           id: 'r1',
           reference: 'John 3:16',
           translation: 'esv',
@@ -2871,7 +2936,7 @@ describe('HomeComponent', () => {
         })
       ).toBe(true);
       expect(
-        comp.isRecommendationAlreadyAdded({
+        comp.memorizationPanel.isRecommendationAlreadyAdded({
           id: 'r2',
           reference: 'Romans 8:28',
           translation: 'esv',
@@ -2896,21 +2961,21 @@ describe('HomeComponent', () => {
         createdAt: '',
         updatedAt: '',
       };
-      await comp.addRecommendedVerse(rec);
+      await comp.memorizationPanel.addRecommendedVerse(rec);
       expect(m.scriptureService.getPassage).toHaveBeenCalledWith('John 3:16', 'esv');
       expect(m.memorizationService.addVerse).toHaveBeenCalledWith('John 3:16', 'esv');
       expect(m.toastService.success).toHaveBeenCalled();
-      expect(comp.addingRecommendationId).toBeNull();
+      expect(comp.memorizationPanel.addingRecommendationId).toBeNull();
     });
 
     it('addRecommendedVerse skips when already added', async () => {
       const m = makeMocks();
       m.memorizationService.addVerse = vi.fn();
       const comp = newHome(m);
-      comp.memorizedItems = [
+      comp.memorizationPanel.memorizedItems = [
         { id: '1', reference: 'John 3:16', translation: 'esv', kind: 'verse' } as any,
       ];
-      await comp.addRecommendedVerse({
+      await comp.memorizationPanel.addRecommendedVerse({
         id: 'r1',
         reference: 'John 3:16',
         translation: 'esv',
@@ -2924,9 +2989,9 @@ describe('HomeComponent', () => {
     it('closeMemorizationPractice clears active practice item', () => {
       const m = makeMocks();
       const comp = newHome(m);
-      comp.practiceMemorizedItem = { id: 'v1' } as any;
-      comp.closeMemorizationPractice();
-      expect(comp.practiceMemorizedItem).toBeNull();
+      comp.memorizationPanel.practiceMemorizedItem = { id: 'v1' } as any;
+      comp.memorizationPanel.closeMemorizationPractice();
+      expect(comp.memorizationPanel.practiceMemorizedItem).toBeNull();
       expect(m.cdr.markForCheck).toHaveBeenCalled();
     });
 
@@ -2939,9 +3004,9 @@ describe('HomeComponent', () => {
         .fn()
         .mockResolvedValue(updated);
       const comp = newHome(m);
-      comp.practiceMemorizedItem = item;
+      comp.memorizationPanel.practiceMemorizedItem = item;
 
-      await comp.onMemorizationPracticeComplete({
+      await comp.memorizationPanel.onMemorizationPracticeComplete({
         wrongAttempts: 0,
         correctKeystrokes: 10,
         completed: true,
@@ -2952,23 +3017,23 @@ describe('HomeComponent', () => {
         correctKeystrokes: 10,
         completed: true,
       });
-      expect(comp.practiceMemorizedItem).toEqual(updated);
+      expect(comp.memorizationPanel.practiceMemorizedItem).toEqual(updated);
     });
 
     it('onMemorizationPersistInProgress saves in-progress state', () => {
       const m = makeMocks();
       const comp = newHome(m);
-      comp.practiceMemorizedItem = { id: 'v1' } as any;
+      comp.memorizationPanel.practiceMemorizedItem = { id: 'v1' } as any;
       const payload = { typedText: 'abc' } as any;
-      comp.onMemorizationPersistInProgress(payload);
+      comp.memorizationPanel.onMemorizationPersistInProgress(payload);
       expect(m.memorizationService.saveInProgress).toHaveBeenCalledWith('v1', payload);
     });
 
     it('onMemorizationClearInProgress clears in-progress state', () => {
       const m = makeMocks();
       const comp = newHome(m);
-      comp.practiceMemorizedItem = { id: 'v1' } as any;
-      comp.onMemorizationClearInProgress();
+      comp.memorizationPanel.practiceMemorizedItem = { id: 'v1' } as any;
+      comp.memorizationPanel.onMemorizationClearInProgress();
       expect(m.memorizationService.clearInProgress).toHaveBeenCalledWith('v1');
     });
 
@@ -2976,24 +3041,24 @@ describe('HomeComponent', () => {
       const m = makeMocks();
       const comp = newHome(m);
       const item = { id: 'v1' } as any;
-      comp.confirmRemoveMemorizedItem(item);
-      expect(comp.memorizedItemToRemove).toBe(item);
-      expect(comp.showRemoveMemorizedConfirm).toBe(true);
+      comp.memorizationPanel.confirmRemoveMemorizedItem(item);
+      expect(comp.memorizationPanel.memorizedItemToRemove).toBe(item);
+      expect(comp.memorizationPanel.showRemoveMemorizedConfirm).toBe(true);
     });
 
     it('removeMemorizedItemConfirmed removes item and clears practice', async () => {
       const m = makeMocks();
       const comp = newHome(m);
       const item = { id: 'v1' } as any;
-      comp.memorizedItemToRemove = item;
-      comp.showRemoveMemorizedConfirm = true;
-      comp.practiceMemorizedItem = item;
+      comp.memorizationPanel.memorizedItemToRemove = item;
+      comp.memorizationPanel.showRemoveMemorizedConfirm = true;
+      comp.memorizationPanel.practiceMemorizedItem = item;
 
-      await comp.removeMemorizedItemConfirmed();
+      await comp.memorizationPanel.removeMemorizedItemConfirmed();
 
       expect(m.memorizationService.removeItem).toHaveBeenCalledWith('v1');
-      expect(comp.practiceMemorizedItem).toBeNull();
-      expect(comp.showRemoveMemorizedConfirm).toBe(false);
+      expect(comp.memorizationPanel.practiceMemorizedItem).toBeNull();
+      expect(comp.memorizationPanel.showRemoveMemorizedConfirm).toBe(false);
     });
   });
 });

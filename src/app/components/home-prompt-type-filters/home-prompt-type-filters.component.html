@@ -1,0 +1,42 @@
+      <div id="tour-prompt-type-filters" class="flex flex-wrap gap-2 mb-4">
+        <!-- All Types Button -->
+        <button
+          (click)="filter.clearSelectedPromptTypes()"
+          [class]="
+            'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ' +
+            (selectedPromptTypes.length === 0
+              ? promptTypeActiveClass
+              : promptTypeInactiveClass)
+          "
+        >
+          All Types ({{ promptsCount }})
+        </button>
+
+        <!-- Individual Type Buttons -->
+        @for (type of catalog.uniquePromptTypes; track type) {
+        <button
+          (click)="filter.togglePromptType(type)"
+          [class]="
+            'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all relative cursor-pointer ' +
+            (filter.isPromptTypeSelected(type)
+              ? promptTypeActiveClass
+              : promptTypeInactiveClass)
+          "
+        >
+          {{ type }} ({{ filter.getPromptCountByType(type) }})
+          @if
+          ((badgeService.getBadgeFunctionalityEnabled$() | async) &&
+          filter.getUnreadPromptCountByType(type) > 0) {
+          <button
+            type="button"
+            (click)="$event.stopPropagation(); badgeService.markAllAsReadByPromptType(type)"
+            class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-5 h-5 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+            [title]="'Mark all ' + type + ' prompts as read'"
+            [attr.aria-label]="'Mark all ' + type + ' prompts as read'"
+          >
+            {{ filter.getUnreadPromptCountByType(type) }}
+          </button>
+          }
+        </button>
+        }
+      </div>
