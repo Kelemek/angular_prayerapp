@@ -1,5 +1,6 @@
 import { Component, Input, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { Observable } from "rxjs";
 import { PrayerFormComponent } from "../prayer-form/prayer-form.component";
 import { UserSettingsComponent } from "../user-settings/user-settings.component";
 import { HelpModalComponent } from "../help-modal/help-modal.component";
@@ -12,12 +13,12 @@ import { AddMemorizedBibleBooksModalComponent } from "../add-memorized-bible-boo
 import { MemorizationRecommendationsModalComponent } from "../memorization-recommendations-modal/memorization-recommendations-modal.component";
 import { MemorizationPracticeSessionComponent } from "../memorization-practice-session/memorization-practice-session.component";
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
-import { HomeModalController } from "../../services/home-modal.controller";
-import { HomePersonalCategoryController } from "../../services/home-personal-category.controller";
-import { HomeMemorizationPanelController } from "../../services/home-memorization-panel.controller";
-import { HomePlanningCenterController } from "../../services/home-planning-center.controller";
-import { HomeHelpTourLauncher } from "../../services/home-help-tour.launcher";
-import { MemorizationRecommendationsService } from "../../services/memorization-recommendations.service";
+import type { PrayerRequest, PrayerUpdate } from "../../services/prayer.service";
+import type {
+  MemorizationRecommendationCategoryGroup,
+  MemorizedItem,
+} from "../../types/memorization";
+import type { HomeModalsHostHandlers } from "../../lib/home-modals-host-handlers";
 
 @Component({
   selector: "app-home-modals-host",
@@ -40,15 +41,37 @@ import { MemorizationRecommendationsService } from "../../services/memorization-
 })
 export class HomeModalsHostComponent {
   @Input({ required: true }) activeFilter!: HomeActiveFilter;
+  @Input({ required: true }) showPrayerForm!: boolean;
+  @Input({ required: true }) showSettings!: boolean;
+  @Input({ required: true }) settingsScrollToSectionId!: string | null;
+  @Input({ required: true }) showHelp!: boolean;
+  @Input({ required: true }) showLogoutConfirmation!: boolean;
+  @Input({ required: true }) showEditPersonalPrayer!: boolean;
+  @Input({ required: true }) editingPrayer!: PrayerRequest | null;
+  @Input({ required: true }) showRenamePersonalCategory!: boolean;
+  @Input({ required: true }) renamingPersonalCategory!: string | null;
+  @Input({ required: true }) isRenamingPersonalCategory!: boolean;
+  @Input({ required: true }) showEditPersonalUpdate!: boolean;
+  @Input({ required: true }) editingUpdate!: PrayerUpdate | null;
+  @Input({ required: true }) editingUpdatePrayerId!: string;
+  @Input({ required: true }) showEditMemberUpdate!: boolean;
+  @Input({ required: true }) editingMemberUpdate!: PrayerUpdate | null;
+  @Input({ required: true }) editingMemberUpdatePrayerId!: string;
+  @Input({ required: true }) planningCenterListId!: string | null;
+  @Input({ required: true }) showAddMemorizedVerse!: boolean;
+  @Input({ required: true }) showAddMemorizedBibleBooks!: boolean;
+  @Input({ required: true }) showMemorizationRecommendations!: boolean;
+  @Input({ required: true })
+  memorizationRecommendationGroups!: MemorizationRecommendationCategoryGroup[];
+  @Input({ required: true })
+  memorizationRecommendationOwnedKeys!: Set<string>;
+  @Input({ required: true }) addingRecommendationId!: string | null;
+  @Input({ required: true })
+  memorizationRecommendationsLoading$!: Observable<boolean>;
+  @Input({ required: true }) practiceMemorizedItem!: MemorizedItem | null;
+  @Input({ required: true }) showRemoveMemorizedConfirm!: boolean;
+  @Input({ required: true }) memorizedItemToRemove!: MemorizedItem | null;
+  @Input({ required: true }) handlers!: HomeModalsHostHandlers;
 
   @ViewChild("prayerFormComp") prayerFormComp?: PrayerFormComponent;
-
-  constructor(
-    readonly modals: HomeModalController,
-    readonly personalCategory: HomePersonalCategoryController,
-    readonly memorizationPanel: HomeMemorizationPanelController,
-    readonly planningCenter: HomePlanningCenterController,
-    readonly helpTour: HomeHelpTourLauncher,
-    readonly memorizationRecommendationsService: MemorizationRecommendationsService
-  ) {}
 }

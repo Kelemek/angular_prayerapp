@@ -9,6 +9,7 @@ import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
 import { PrayerItemReminderService } from './prayer-item-reminder.service';
 import { resolvePrayerUpdateContent } from '../lib/prayer-update-content';
+import { personalCategoryNamesFromPrayers } from '../lib/personal-category-order';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type PrayerStatus = 'current' | 'answered' | 'archived';
@@ -2231,30 +2232,8 @@ export class PrayerService {
    * Categories with higher ranges appear first (newer categories appear at top)
    */
   async getUniqueCategoriesForUser(prayers?: PrayerRequest[]): Promise<string[]> {
-    const personalPrayers = prayers || this.allPersonalPrayersSubject.value;
-    const categories = new Map<string, number>(); // category -> min display_order for that category
-    
-    personalPrayers.forEach(prayer => {
-      if (prayer.category && prayer.category.trim()) {
-        const cat = prayer.category.trim();
-        const displayOrder = prayer.display_order ?? 0;
-        const current = categories.get(cat);
-        // Track the minimum display_order for each category (represents its position)
-        if (current === undefined || displayOrder < current) {
-          categories.set(cat, displayOrder);
-        }
-      }
-    });
-
-    // Don't add null category - only return actual categories
-    // Uncategorized prayers still show under Current and Total without their own chip
-
-    // Sort categories by their minimum display_order (descending - highest display_order first)
-    const sortedCategories = Array.from(categories.entries())
-      .sort((a, b) => b[1] - a[1]) // Descending by display_order
-      .map(entry => entry[0] as string);
-
-    return sortedCategories;
+    const personalPrayers = prayers ?? this.allPersonalPrayersSubject.value;
+    return personalCategoryNamesFromPrayers(personalPrayers);
   }
 
   /**

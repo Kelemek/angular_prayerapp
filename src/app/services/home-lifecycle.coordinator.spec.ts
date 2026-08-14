@@ -176,6 +176,23 @@ describe("HomeLifecycleCoordinator", () => {
     destroy$.complete();
   });
 
+  it("syncs personal categories when allPersonalPrayers$ emits an empty list", async () => {
+    const destroy$ = new Subject<void>();
+    coordinator.initialize(destroy$);
+
+    allPersonalPrayersSubject.next([{ id: "p1", category: "Health" }]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    vi.mocked(host.syncPersonalCategoriesFromPrayers).mockClear();
+
+    allPersonalPrayersSubject.next([]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(host.syncPersonalCategoriesFromPrayers).toHaveBeenCalledWith([]);
+
+    destroy$.next();
+    destroy$.complete();
+  });
+
   it("stores pending return context when navigation arrives before viewReady", () => {
     const destroy$ = new Subject<void>();
     vi.mocked(host.consumeHomeReturnContext).mockReturnValue({

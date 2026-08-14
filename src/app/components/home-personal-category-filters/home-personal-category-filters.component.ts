@@ -1,22 +1,56 @@
-import { Component, Input } from "@angular/core";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { DragDropModule } from "@angular/cdk/drag-drop";
-import type { PrayerRequest } from "../../services/prayer.service";
-import { HomePersonalCategoryController } from "../../services/home-personal-category.controller";
-import { HomeCatalogStore } from "../../services/home-catalog.store";
+import {
+  CdkDragDrop,
+  DragDropModule,
+} from "@angular/cdk/drag-drop";
+import type { PersonalCategoryFilterMode } from "../../types/presentation";
+import {
+  HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS,
+  HOME_SUB_FILTER_CHIP_DRAG_WRAP_CLASS,
+} from "../../lib/home-sub-filter-chip-classes";
+import { HOME_SHELL_SECTION_GAP_CLASSES } from "../../lib/home-shell-spacing";
+import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
 
 @Component({
   selector: "app-home-personal-category-filters",
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, HomeSubFilterChipComponent],
   templateUrl: "./home-personal-category-filters.component.html",
 })
 export class HomePersonalCategoryFiltersComponent {
-  @Input({ required: true }) personalPrayers!: PrayerRequest[];
   @Input({ required: true }) personalPrayersCount!: number;
+  @Input({ required: true }) filterMode!: PersonalCategoryFilterMode;
+  @Input({ required: true }) personalCategoryActiveClass!: string;
+  @Input({ required: true }) uniqueCategories!: string[];
+  @Input({ required: true }) isCategoryDropListDisabled!: boolean;
+  @Input({ required: true }) personalCurrentCount!: number;
+  @Input({ required: true }) personalAnsweredCount!: number;
+  @Input({ required: true }) isCategorySwapping!: (category: string) => boolean;
+  @Input({ required: true }) isPersonalCategorySelected!: (
+    category: string
+  ) => boolean;
+  @Input({ required: true }) getCategoryCount!: (category: string) => number;
 
-  constructor(
-    readonly personalCategory: HomePersonalCategoryController,
-    readonly catalog: HomeCatalogStore
-  ) {}
+  @Output() selectFilterMode = new EventEmitter<
+    Exclude<PersonalCategoryFilterMode, "named">
+  >();
+  @Output() toggleCategory = new EventEmitter<string>();
+  @Output() categoryDrop = new EventEmitter<CdkDragDrop<string[]>>();
+  @Output() categoryDragStarted = new EventEmitter<void>();
+  @Output() categoryDragEnded = new EventEmitter<void>();
+  @Output() categoryPointerDown = new EventEmitter<{
+    event: PointerEvent;
+    category: string;
+  }>();
+  @Output() categoryPointerMove = new EventEmitter<PointerEvent>();
+  @Output() categoryPointerUp = new EventEmitter<void>();
+  @Output() categoryContextMenu = new EventEmitter<{
+    event: MouseEvent;
+    category: string;
+  }>();
+
+  readonly namedChipWrapClass = HOME_SUB_FILTER_CHIP_DRAG_WRAP_CLASS;
+  readonly namedChipInactiveClass = HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS;
+  readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
 }

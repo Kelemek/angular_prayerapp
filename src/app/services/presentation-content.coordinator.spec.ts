@@ -221,9 +221,9 @@ describe("PresentationContentCoordinator", () => {
   it("fetchPersonalPrayers extracts unique trimmed personal categories", async () => {
     const host = createHost();
     mockLoader.loadPersonalPrayers.mockResolvedValue([
-      { category: "Answered " },
-      { category: "Answered" },
-      { category: "Current" },
+      { category: "Answered ", display_order: 2000 },
+      { category: "Answered", display_order: 2001 },
+      { category: "Current", display_order: 1000 },
     ] as any);
 
     await coordinator.fetchPersonalPrayers(host);

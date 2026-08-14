@@ -15,6 +15,7 @@ import {
   type PlanningCenterListMember,
 } from "./presentation-content-loader";
 import { PrayerService } from "./prayer.service";
+import { personalCategoryNamesFromPrayers } from "../lib/personal-category-order";
 
 export interface PresentationContentHost {
   loading: boolean;
@@ -248,12 +249,8 @@ export class PresentationContentCoordinator {
   }
 
   private syncUniquePersonalCategories(host: PresentationContentHost): void {
-    const categories = new Set<string>();
-    host.catalog.personalPrayers.forEach((prayer) => {
-      if (prayer.category && prayer.category.trim()) {
-        categories.add(prayer.category.trim());
-      }
-    });
-    host.uniquePersonalCategories = Array.from(categories).sort();
+    host.uniquePersonalCategories = personalCategoryNamesFromPrayers(
+      host.catalog.personalPrayers
+    );
   }
 }

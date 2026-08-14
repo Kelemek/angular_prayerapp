@@ -19,6 +19,22 @@ describe("HomeModalController", () => {
     });
   });
 
+  it("toggles search panel and focuses search input", () => {
+    const focusSpy = vi.spyOn(HTMLInputElement.prototype, "focus");
+    const input = document.createElement("input");
+    input.id = "tour-prayer-search";
+    document.body.appendChild(input);
+
+    vi.useFakeTimers();
+    controller.toggleSearchPanel();
+    expect(controller.showSearchPanel).toBe(true);
+    vi.advanceTimersByTime(320);
+    expect(focusSpy).toHaveBeenCalled();
+    vi.useRealTimers();
+    focusSpy.mockRestore();
+    input.remove();
+  });
+
   it("opens and closes user settings with scroll target", () => {
     controller.openUserSettings("tour-settings-print-buttons");
     expect(controller.showSettings).toBe(true);

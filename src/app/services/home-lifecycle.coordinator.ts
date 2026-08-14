@@ -242,9 +242,7 @@ export class HomeLifecycleCoordinator {
       .subscribe(async (prayers) => {
         host.setPersonalPrayers(prayers);
         host.setPersonalPrayersCount(prayers.length);
-        if (prayers.length > 0) {
-          await host.syncPersonalCategoriesFromPrayers(prayers);
-        }
+        await host.syncPersonalCategoriesFromPrayers(prayers);
         host.refreshHomeCatalog();
         host.markForCheck();
         services.deepLinkCoordinator.retryPendingPrayerDeepLinkIfNeeded();

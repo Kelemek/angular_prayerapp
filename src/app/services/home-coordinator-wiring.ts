@@ -105,6 +105,7 @@ export function wireHomeCoordinators(
   deps: HomeCoordinatorWiringDeps
 ): WiredHomeHosts {
   const { page, cdr } = deps;
+  const refreshCatalog = () => refreshHomeCatalogAndMark(page, cdr);
 
   deps.catalog.bindPageSource(() => page.getCatalogBindings());
 
@@ -138,38 +139,7 @@ export function wireHomeCoordinators(
   });
   deps.deepLinkCoordinator.bindHost(deepLinkHost);
 
-  const helpTourBindings: HomeHelpTourHostBindings = {
-    getActiveFilter: () => page.activeFilter,
-    getPromptsCount: () => deps.lifecyclePage.promptsCount,
-    getMemorizedItemsCount: () => deps.memorizationPanel.memorizedItemsCount,
-    getSelectedPromptTypes: () => page.selectedPromptTypes,
-    setSelectedPromptTypes: (types) => {
-      page.selectedPromptTypes = types;
-    },
-    getPersonalCategoryFilterMode: () =>
-      deps.personalCategory.personalCategoryFilterMode,
-    setPersonalCategoryFilterMode: (mode) => {
-      deps.personalCategory.personalCategoryFilterMode = mode;
-    },
-    getSelectedPersonalCategories: () =>
-      deps.personalCategory.selectedPersonalCategories,
-    setSelectedPersonalCategories: (categories) => {
-      deps.personalCategory.selectedPersonalCategories = categories;
-    },
-    closeHelp: () => {
-      deps.modals.showHelp = false;
-    },
-    openPrayerForm: () => {
-      deps.modals.showPrayerForm = true;
-    },
-    closePrayerForm: () => {
-      deps.modals.showPrayerForm = false;
-    },
-    closeWalkthroughPersonalEdit: () => {
-      deps.modals.showEditPersonalPrayer = false;
-      deps.modals.editingPrayer = null;
-    },
-  };
+  const helpTourBindings = createHomeHelpTourBindings(page, deps);
 
   const helpTourHost = new HomeHelpTourHostAdapter({
     bindings: helpTourBindings,
@@ -181,6 +151,7 @@ export function wireHomeCoordinators(
     setFilter: (filter) => deps.filterCoordinator.setFilter(filter),
     openUserSettings: () => deps.modals.openUserSettings(),
     closeUserSettings: () => deps.modals.closeUserSettings(),
+    openSearchPanel: () => deps.modals.openSearchPanel(),
     openEditModal: (prayer) => deps.modals.openEditModal(prayer),
     getFilteredPersonalPrayers: () => page.getFilteredPersonalPrayers(),
     getPrayerFormHooks: () => {
@@ -213,10 +184,7 @@ export function wireHomeCoordinators(
     loadPlanningCenterMemberPrayers: () => {
       void deps.planningCenter.loadMemberPrayers();
     },
-    onFilterChanged: () => {
-      page.refreshHomeCatalog();
-      cdr.markForCheck();
-    },
+    onFilterChanged: refreshCatalog,
   });
   deps.filterCoordinator.bindHost(filterHost);
 
@@ -232,10 +200,7 @@ export function wireHomeCoordinators(
       },
       markForCheck: () => cdr.markForCheck(),
       detectChanges: () => cdr.detectChanges(),
-      onFilterStateChanged: () => {
-        page.refreshHomeCatalog();
-        cdr.markForCheck();
-      },
+      onFilterStateChanged: refreshCatalog,
     },
     {
       prayerService: deps.prayerService,
@@ -268,22 +233,22 @@ export function wireHomeCoordinators(
     }
   );
 
+  const retryDeepLink = () =>
+    deps.deepLinkCoordinator.retryPendingPrayerDeepLinkIfNeeded();
+
   deps.planningCenter.bindHost(
     {
       markForCheck: () => cdr.markForCheck(),
       detectChanges: () => cdr.detectChanges(),
       onListStateChanged: () => {
-        page.refreshHomeCatalog();
-        cdr.markForCheck();
-        deps.deepLinkCoordinator.retryPendingPrayerDeepLinkIfNeeded();
+        refreshCatalog();
+        retryDeepLink();
       },
       onMemberPrayersLoaded: () => {
-        page.refreshHomeCatalog();
-        cdr.markForCheck();
-        deps.deepLinkCoordinator.retryPendingPrayerDeepLinkIfNeeded();
+        refreshCatalog();
+        retryDeepLink();
       },
-      retryPendingPrayerDeepLink: () =>
-        deps.deepLinkCoordinator.retryPendingPrayerDeepLinkIfNeeded(),
+      retryPendingPrayerDeepLink: retryDeepLink,
     },
     {
       planningCenterListService: deps.planningCenterListService,
@@ -376,6 +341,52 @@ export function wireHomeCoordinators(
   page.refreshHomeCatalog();
 
   return { deepLinkHost };
+}
+
+function refreshHomeCatalogAndMark(
+  page: Pick<HomeCoordinatorWiringPage, "refreshHomeCatalog">,
+  cdr: ChangeDetectorRef
+): void {
+  page.refreshHomeCatalog();
+  cdr.markForCheck();
+}
+
+function createHomeHelpTourBindings(
+  page: HomeCoordinatorWiringPage,
+  deps: HomeCoordinatorWiringDeps
+): HomeHelpTourHostBindings {
+  return {
+    getActiveFilter: () => page.activeFilter,
+    getPromptsCount: () => deps.lifecyclePage.promptsCount,
+    getMemorizedItemsCount: () => deps.memorizationPanel.memorizedItemsCount,
+    getSelectedPromptTypes: () => page.selectedPromptTypes,
+    setSelectedPromptTypes: (types) => {
+      page.selectedPromptTypes = types;
+    },
+    getPersonalCategoryFilterMode: () =>
+      deps.personalCategory.personalCategoryFilterMode,
+    setPersonalCategoryFilterMode: (mode) => {
+      deps.personalCategory.personalCategoryFilterMode = mode;
+    },
+    getSelectedPersonalCategories: () =>
+      deps.personalCategory.selectedPersonalCategories,
+    setSelectedPersonalCategories: (categories) => {
+      deps.personalCategory.selectedPersonalCategories = categories;
+    },
+    closeHelp: () => {
+      deps.modals.showHelp = false;
+    },
+    openPrayerForm: () => {
+      deps.modals.showPrayerForm = true;
+    },
+    closePrayerForm: () => {
+      deps.modals.showPrayerForm = false;
+    },
+    closeWalkthroughPersonalEdit: () => {
+      deps.modals.showEditPersonalPrayer = false;
+      deps.modals.editingPrayer = null;
+    },
+  };
 }
 
 function primeMemorizeKeyboardBridge(page: HomeCoordinatorWiringPage): void {

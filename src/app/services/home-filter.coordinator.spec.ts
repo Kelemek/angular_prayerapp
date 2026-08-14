@@ -81,4 +81,28 @@ describe("HomeFilterCoordinator", () => {
     expect(host.setSelectedPromptTypes).toHaveBeenCalledWith([]);
     expect(host.onFilterChanged).toHaveBeenCalled();
   });
+
+  it("selectPublicTab switches to current when leaving another tab", () => {
+    host.getPageState = vi.fn(() => ({
+      activeFilter: "prompts" as const,
+      filters: { status: "current" as const, searchTerm: "" },
+      selectedPromptTypes: [],
+    }));
+
+    coordinator.selectPublicTab();
+
+    expect(host.setActiveFilter).toHaveBeenCalledWith("current");
+  });
+
+  it("selectPublicTab preserves answered when already on public", () => {
+    host.getPageState = vi.fn(() => ({
+      activeFilter: "answered" as const,
+      filters: { status: "answered" as const, searchTerm: "" },
+      selectedPromptTypes: [],
+    }));
+
+    coordinator.selectPublicTab();
+
+    expect(host.setActiveFilter).not.toHaveBeenCalled();
+  });
 });

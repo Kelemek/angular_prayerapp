@@ -9,15 +9,10 @@ import type { PrayerFilters } from "../prayer-filters/prayer-filters.component";
 import type { PrayerPrompt } from "../prompt-card/prompt-card.component";
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
 import type { AllowanceLevel } from "../../types/prayer";
-import { PrayerService, PrayerRequest } from "../../services/prayer.service";
-import { MemorizationService } from "../../services/memorization.service";
-import { PrayerCardActionsFacade } from "../../services/prayer-card-actions.facade";
-import { HomeCatalogStore } from "../../services/home-catalog.store";
-import { HomeFilterCoordinator } from "../../services/home-filter.coordinator";
-import { HomePersonalCategoryController } from "../../services/home-personal-category.controller";
-import { HomeMemorizationPanelController } from "../../services/home-memorization-panel.controller";
-import { HomeModalController } from "../../services/home-modal.controller";
-import { HomePrayerCardActionsController } from "../../services/home-prayer-card-actions.controller";
+import { PrayerRequest } from "../../services/prayer.service";
+import type { MemorizedItem } from "../../types/memorization";
+import type { HomePrayerContentHandlers } from "../../lib/home-prayer-content-handlers";
+import { HOME_SHELL_STACK_GAP_CLASSES } from "../../lib/home-shell-spacing";
 
 export type HomePersonalCategoryPickerOpenChange = {
   prayerId: string;
@@ -37,7 +32,7 @@ export type HomePersonalCategoryPickerOpenChange = {
   templateUrl: "./home-prayer-content.component.html",
 })
 export class HomePrayerContentComponent {
-  @Input({ required: true }) viewReady!: boolean;
+  @Input({ required: true }) contentHidden!: boolean;
   @Input({ required: true }) activeFilter!: HomeActiveFilter;
   @Input({ required: true }) filters!: PrayerFilters;
   @Input({ required: true }) prayers$!: Observable<PrayerRequest[]>;
@@ -50,21 +45,27 @@ export class HomePrayerContentComponent {
   @Input({ required: true }) personalCategoryPickerPrayerId!: string | null;
   @Input({ required: true }) personalWalkthroughPrayerFor!: string;
   @Input({ required: true }) personalWalkthroughDescription!: string;
+  @Input({ required: true }) filteredPersonalPrayers!: PrayerRequest[];
+  @Input({ required: true }) filteredPlanningCenterPrayers!: PrayerRequest[];
+  @Input({ required: true }) displayedPrompts!: PrayerPrompt[];
+  @Input({ required: true }) loadingPersonalPrayers$!: Observable<boolean>;
+  @Input({ required: true }) canReorderPersonalPrayers!: boolean;
+  @Input({ required: true }) selectedPromptTypes!: string[];
+  @Input({ required: true }) memorizedItems!: MemorizedItem[];
+  @Input({ required: true }) memorizeLoading$!: Observable<boolean>;
+  @Input({ required: true }) showAddMemorizedVerse!: boolean;
+  @Input({ required: true }) showAddMemorizedBibleBooks!: boolean;
+  @Input({ required: true }) showMemorizationRecommendations!: boolean;
+  @Input({ required: true }) handlers!: HomePrayerContentHandlers;
 
   @Output() personalCategoryPickerOpenChange =
     new EventEmitter<HomePersonalCategoryPickerOpenChange>();
 
-  constructor(
-    readonly prayerService: PrayerService,
-    readonly memorizationService: MemorizationService,
-    readonly catalog: HomeCatalogStore,
-    readonly filter: HomeFilterCoordinator,
-    readonly personalCategory: HomePersonalCategoryController,
-    readonly memorizationPanel: HomeMemorizationPanelController,
-    readonly modals: HomeModalController,
-    readonly prayerCardActions: PrayerCardActionsFacade,
-    readonly memberCardActions: HomePrayerCardActionsController
-  ) {}
+  readonly stackGapClass = HOME_SHELL_STACK_GAP_CLASSES;
+
+  isPromptTypeSelected(type: string): boolean {
+    return this.selectedPromptTypes.includes(type);
+  }
 
   onCategoryPickerOpenChange(prayerId: string, open: boolean): void {
     this.personalCategoryPickerOpenChange.emit({ prayerId, open });

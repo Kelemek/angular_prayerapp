@@ -1,42 +1,35 @@
-      <div id="tour-prompt-type-filters" class="flex flex-wrap gap-2 mb-4">
-        <!-- All Types Button -->
-        <button
-          (click)="filter.clearSelectedPromptTypes()"
-          [class]="
-            'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ' +
-            (selectedPromptTypes.length === 0
-              ? promptTypeActiveClass
-              : promptTypeInactiveClass)
-          "
+      <div [class]="sectionGapClass + ' flex w-full flex-wrap gap-2'" id="tour-prompt-type-filters">
+        @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
+        <app-home-sub-filter-chip
+          [stretch]="false"
+          [layoutClass]="chipWrapClass"
+          [active]="selectedPromptTypes.length === 0"
+          [activeClass]="promptTypeActiveClass"
+          [inactiveClass]="promptTypeInactiveClass"
+          (chipClick)="clearTypes.emit()"
         >
           All Types ({{ promptsCount }})
-        </button>
+        </app-home-sub-filter-chip>
 
-        <!-- Individual Type Buttons -->
-        @for (type of catalog.uniquePromptTypes; track type) {
-        <button
-          (click)="filter.togglePromptType(type)"
-          [class]="
-            'flex-1 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-all relative cursor-pointer ' +
-            (filter.isPromptTypeSelected(type)
-              ? promptTypeActiveClass
-              : promptTypeInactiveClass)
-          "
+        @for (type of uniquePromptTypes; track type) {
+        <app-home-sub-filter-chip
+          [stretch]="false"
+          [layoutClass]="chipWrapClass"
+          [active]="selectedPromptTypes.includes(type)"
+          [activeClass]="promptTypeActiveClass"
+          [inactiveClass]="promptTypeInactiveClass"
+          [badgeOverlay]="true"
+          (chipClick)="toggleType.emit(type)"
         >
-          {{ type }} ({{ filter.getPromptCountByType(type) }})
-          @if
-          ((badgeService.getBadgeFunctionalityEnabled$() | async) &&
-          filter.getUnreadPromptCountByType(type) > 0) {
-          <button
-            type="button"
-            (click)="$event.stopPropagation(); badgeService.markAllAsReadByPromptType(type)"
-            class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-5 h-5 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+          {{ type }} ({{ getPromptCountByType(type) }})
+          @if (badgesEnabled && getUnreadPromptCountByType(type) > 0) {
+          <app-home-filter-badge-button
+            [count]="getUnreadPromptCountByType(type)"
             [title]="'Mark all ' + type + ' prompts as read'"
-            [attr.aria-label]="'Mark all ' + type + ' prompts as read'"
-          >
-            {{ filter.getUnreadPromptCountByType(type) }}
-          </button>
+            [ariaLabel]="'Mark all ' + type + ' prompts as read'"
+            (markRead)="badgeService.markAllAsReadByPromptType(type)"
+          />
           }
-        </button>
+        </app-home-sub-filter-chip>
         }
       </div>

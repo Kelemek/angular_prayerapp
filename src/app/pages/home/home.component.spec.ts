@@ -1492,16 +1492,17 @@ describe('HomeComponent', () => {
       ]);
     });
 
-    it('extractUniqueCategories omits Answered from reorderable chips', async () => {
-      const prayerService = {
-        ...mocks.prayerService,
-        getUniqueCategoriesForUser: vi
-          .fn()
-          .mockResolvedValue(['Health', 'Answered', 'Family']),
-      };
-      const comp = createHomeComponent(mocks, { prayerService });
-      await comp.personalCategory.syncCategoriesFromPrayers([]);
-      expect(comp.personalCategory.uniquePersonalCategories).toEqual(['Health', 'Family']);
+    it('derived named categories omit Answered from reorderable chips', () => {
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', category: 'Health', display_order: 2000 } as PrayerRequest,
+        { id: '2', category: 'Answered', display_order: 1500 } as PrayerRequest,
+        { id: '3', category: 'Family', display_order: 1000 } as PrayerRequest,
+      ]);
+      const comp = createHomeComponent(mocks);
+      expect(comp.personalCategory.uniquePersonalCategories).toEqual([
+        'Health',
+        'Family',
+      ]);
     });
 
     it('markAllCurrentAsRead calls badgeService', () => {
@@ -1681,8 +1682,10 @@ describe('HomeComponent', () => {
 
     it('onCategoryDrop should return early if index does not change', async () => {
       const comp = createHomeComponent(mocks)
-
-      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', category: 'Members', display_order: 2000 } as PrayerRequest,
+        { id: '2', category: 'Leaders', display_order: 1000 } as PrayerRequest,
+      ]);
 
       const event = {
         previousIndex: 0,
@@ -1697,9 +1700,11 @@ describe('HomeComponent', () => {
 
     it('onCategoryDrop should return early if already swapping', async () => {
       const comp = createHomeComponent(mocks)
-
-      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
-      comp.personalCategory.isSwappingCategories = true;
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', category: 'Members', display_order: 2000 } as PrayerRequest,
+        { id: '2', category: 'Leaders', display_order: 1000 } as PrayerRequest,
+      ]);
+      comp.personalCategory.setSwappingCategoriesForTests("Members", "Leaders");
 
       const event = {
         previousIndex: 0,
@@ -1713,18 +1718,12 @@ describe('HomeComponent', () => {
 
     it('onCategoryDrop should use swapCategoryRanges for adjacent swap', async () => {
       mocks.prayerService.swapCategoryRanges.mockResolvedValue(true);
-      mocks.prayerService.getPersonalPrayers.mockResolvedValue([
-        { id: '1', title: 'Prayer 1', category: 'Leaders', display_order: 1 } as PrayerRequest,
-        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 2 } as PrayerRequest
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 2000 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Leaders', display_order: 1000 } as PrayerRequest,
       ]);
 
       const comp = createHomeComponent(mocks)
-
-      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
-      comp.personalPrayers = [
-        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 1 } as PrayerRequest,
-        { id: '2', title: 'Prayer 2', category: 'Leaders', display_order: 2 } as PrayerRequest
-      ];
 
       const event = {
         previousIndex: 0,
@@ -1734,19 +1733,20 @@ describe('HomeComponent', () => {
       await comp.personalCategory.onCategoryDrop(event);
 
       expect(mocks.prayerService.swapCategoryRanges).toHaveBeenCalledWith('Members', 'Leaders');
-      // Service handles cache invalidation automatically
-      expect(comp.personalCategory.isSwappingCategories).toBe(false);
+      expect(comp.personalCategory.isCategoryDropListDisabled).toBe(false);
     });
 
     it('onCategoryDrop should use reorderCategories for non-adjacent swap', async () => {
       mocks.prayerService.reorderCategories.mockResolvedValue(true);
-      mocks.prayerService.getPersonalPrayers.mockResolvedValue([
-        { id: '1', title: 'Prayer 1', category: 'C', display_order: 1 } as PrayerRequest
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', category: 'A', display_order: 5000 } as PrayerRequest,
+        { id: '2', category: 'B', display_order: 4000 } as PrayerRequest,
+        { id: '3', category: 'C', display_order: 3000 } as PrayerRequest,
+        { id: '4', category: 'D', display_order: 2000 } as PrayerRequest,
+        { id: '5', category: 'E', display_order: 1000 } as PrayerRequest,
       ]);
 
       const comp = createHomeComponent(mocks)
-
-      comp.personalCategory.uniquePersonalCategories = ['A', 'B', 'C', 'D', 'E'];
 
       const event = {
         previousIndex: 0,
@@ -1760,10 +1760,12 @@ describe('HomeComponent', () => {
 
     it('onCategoryDrop should show error and rollback on swap failure', async () => {
       mocks.prayerService.swapCategoryRanges.mockResolvedValue(false);
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', category: 'Members', display_order: 2000 } as PrayerRequest,
+        { id: '2', category: 'Leaders', display_order: 1000 } as PrayerRequest,
+      ]);
 
       const comp = createHomeComponent(mocks)
-
-      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
 
       const event = {
         previousIndex: 0,
@@ -1773,17 +1775,18 @@ describe('HomeComponent', () => {
       await comp.personalCategory.onCategoryDrop(event);
 
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder categories');
-      // Should be rolled back to original order
       expect(comp.personalCategory.uniquePersonalCategories[0]).toBe('Members');
       expect(comp.personalCategory.uniquePersonalCategories[1]).toBe('Leaders');
     });
 
     it('onCategoryDrop should show error and rollback on swap exception', async () => {
       mocks.prayerService.swapCategoryRanges.mockRejectedValue(new Error('Swap error'));
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', category: 'Members', display_order: 2000 } as PrayerRequest,
+        { id: '2', category: 'Leaders', display_order: 1000 } as PrayerRequest,
+      ]);
 
       const comp = createHomeComponent(mocks)
-
-      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
 
       const event = {
         previousIndex: 0,
@@ -1795,25 +1798,19 @@ describe('HomeComponent', () => {
 
       expect(consoleSpy).toHaveBeenCalledWith('Error reordering categories:', expect.any(Error));
       expect(mocks.toastService.error).toHaveBeenCalledWith('Failed to reorder categories');
-      // Should be rolled back
       expect(comp.personalCategory.uniquePersonalCategories[0]).toBe('Members');
       expect(comp.personalCategory.uniquePersonalCategories[1]).toBe('Leaders');
       consoleSpy.mockRestore();
     });
 
-    it('onCategoryDrop should reload prayers and update categories on success', async () => {
-      const reloadedPrayers = [
-        { id: '1', title: 'Prayer 1', category: 'Leaders', display_order: 1 } as PrayerRequest,
-        { id: '2', title: 'Prayer 2', category: 'Members', display_order: 2 } as PrayerRequest
-      ];
+    it('onCategoryDrop should leave categories derived from snapshot after success', async () => {
       mocks.prayerService.swapCategoryRanges.mockResolvedValue(true);
-      mocks.prayerService.getPersonalPrayers.mockResolvedValue(reloadedPrayers);
-      mocks.cacheService.get.mockReturnValue(null);
+      mocks.prayerService.getPersonalPrayersSnapshot.mockReturnValue([
+        { id: '1', title: 'Prayer 1', category: 'Members', display_order: 2000 } as PrayerRequest,
+        { id: '2', title: 'Prayer 2', category: 'Leaders', display_order: 1000 } as PrayerRequest,
+      ]);
 
       const comp = createHomeComponent(mocks)
-
-      comp.personalCategory.uniquePersonalCategories = ['Members', 'Leaders'];
-      comp.personalPrayers = [];
 
       const event = {
         previousIndex: 0,
@@ -1822,8 +1819,7 @@ describe('HomeComponent', () => {
 
       await comp.personalCategory.onCategoryDrop(event);
 
-      // Service handles cache invalidation automatically
-      expect(comp.personalCategory.isSwappingCategories).toBe(false);
+      expect(comp.personalCategory.isCategoryDropListDisabled).toBe(false);
     });
   });
 

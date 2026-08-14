@@ -58,7 +58,9 @@ import { HomeModalsHostComponent } from "../../components/home-modals-host/home-
 import { HomeFilterTabsComponent } from "../../components/home-filter-tabs/home-filter-tabs.component";
 import { HomePromptTypeFiltersComponent } from "../../components/home-prompt-type-filters/home-prompt-type-filters.component";
 import { HomePersonalCategoryFiltersComponent } from "../../components/home-personal-category-filters/home-personal-category-filters.component";
+import { HomePublicStatusFiltersComponent } from "../../components/home-public-status-filters/home-public-status-filters.component";
 import { HomePrayerContentComponent } from "../../components/home-prayer-content/home-prayer-content.component";
+import { isCommunityPrayerFilter } from "../../lib/home-community-filter";
 import {
   createHomeCatalogBindings,
   readHomeFilteredPersonalPrayers,
@@ -71,6 +73,10 @@ import type { PrayerPrompt } from "../../components/prompt-card/prompt-card.comp
 import type { PrayerFilters } from "../../components/prayer-filters/prayer-filters.component";
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
 import { MemorizationService } from "../../services/memorization.service";
+import {
+  createHomePageShell,
+  type HomePageShell,
+} from "../../lib/home-page-shell";
 
 @Component({
   selector: "app-home",
@@ -83,6 +89,7 @@ import { MemorizationService } from "../../services/memorization.service";
     HomeFilterTabsComponent,
     HomePromptTypeFiltersComponent,
     HomePersonalCategoryFiltersComponent,
+    HomePublicStatusFiltersComponent,
     HomePrayerContentComponent,
     PrayerFiltersComponent,
     SkeletonLoaderComponent,
@@ -146,7 +153,11 @@ export class HomeComponent
   readonly personalWalkthroughDescription =
     PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION;
 
+  readonly isCommunityPrayerFilter = isCommunityPrayerFilter;
+
   personalCategoryPickerPrayerId: string | null = null;
+
+  readonly shell: HomePageShell;
 
   private destroy$ = new Subject<void>();
   private deepLinkHost!: HomeDeepLinkHostAdapter;
@@ -235,6 +246,23 @@ export class HomeComponent
       presentationNav: this.presentationNav,
     });
     this.deepLinkHost = wired.deepLinkHost;
+
+    this.shell = createHomePageShell({
+      prayerCardActions: this.prayerCardActions,
+      memberCardActions: this.memberCardActions,
+      modals: this.modals,
+      filter: this.filter,
+      personalCategory: this.personalCategory,
+      memorizationPanel: this.memorizationPanel,
+      helpTour: this.helpTour,
+      adminNav: this.adminNav,
+      presentationNav: this.presentationNav,
+      memorizationRecommendationsService: this.memorizationRecommendationsService,
+      planningCenterListId: () => this.planningCenter.planningCenterListId,
+      catalog: this.catalog,
+      getActiveFilter: () => this.activeFilter,
+      getPersonalPrayers: () => this.personalPrayers,
+    });
   }
 
   ngOnInit(): void {

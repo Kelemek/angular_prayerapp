@@ -6,6 +6,7 @@ import type { HelpContent, HelpSection } from '../types/help-content';
 export const TOUR_REQUEST_BTN_MOBILE_ID = 'tour-btn-new-prayer-request-mobile';
 export const TOUR_REQUEST_BTN_DESKTOP_ID = 'tour-btn-new-prayer-request-desktop';
 export const TOUR_FILTER_PERSONAL_ID = 'tour-filter-personal';
+export const TOUR_FILTER_PUBLIC_ID = 'tour-filter-public';
 export const TOUR_FILTER_CURRENT_ID = 'tour-filter-current';
 export const TOUR_FILTER_TOTAL_ID = 'tour-filter-total';
 export const TOUR_FILTER_ANSWERED_ID = 'tour-filter-answered';
@@ -48,6 +49,8 @@ export const TOUR_PRAYER_PRAY_FOR_ID = 'tour-prayer-pray-for';
 /** Reminder bell on the first community prayer card (see `PrayerCardComponent.tourPrayerReminderBellAnchors`). */
 export const TOUR_PRAYER_REMINDER_BELL_ID = 'tour-prayer-reminder-bell';
 /** Home prayer list search field (`PrayerFiltersComponent`). */
+export const TOUR_BTN_SEARCH_MOBILE_ID = 'tour-btn-search-mobile';
+export const TOUR_BTN_SEARCH_DESKTOP_ID = 'tour-btn-search-desktop';
 export const TOUR_PRAYER_SEARCH_ID = 'tour-prayer-search';
 
 /** Hands-on Personal Prayers help tour — sample prayer (must match `PrayerFormComponent` + Home helpers). */
@@ -220,6 +223,13 @@ function getPersonalFilterEl(): HTMLElement | null {
     return null;
   }
   return document.getElementById(TOUR_FILTER_PERSONAL_ID);
+}
+
+function getPublicFilterEl(): HTMLElement | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  return document.getElementById(TOUR_FILTER_PUBLIC_ID);
 }
 
 function getCurrentFilterEl(): HTMLElement | null {
@@ -450,6 +460,7 @@ export interface FilteringHelpSectionTourHooks {
   switchToTotal: () => void;
   switchToPrompts: () => void;
   switchToPersonal: () => void;
+  openSearchPanel?: () => void;
 }
 
 /** Pull `"Name" …` clause from **Filter Options** overview text for per-filter popovers. */
@@ -1171,19 +1182,14 @@ export class HelpDriverTourService {
   }
 
   /**
-   * **Personal** (intro) → **Current** → **Answered** → **Total** filter tiles.
+   * **Personal** (intro) → **Public** sub-chips (**Current** → **Answered** → **Total**).
    */
   startManagingPrayerViewsTour(helpContent: HelpContent, hooks: ManagingPrayerViewsTourHooks): void {
     if (typeof document === 'undefined') {
       return;
     }
 
-    if (
-      !getPersonalFilterEl() ||
-      !getCurrentFilterEl() ||
-      !getAnsweredFilterEl() ||
-      !getTotalFilterEl()
-    ) {
+    if (!getPersonalFilterEl() || !getPublicFilterEl()) {
       return;
     }
 
@@ -1197,10 +1203,10 @@ export class HelpDriverTourService {
         element: () => getPersonalFilterEl()!,
         popover: {
           title: title0,
-          description: `${body0}<br><br>The <strong>Personal</strong> tile is for prayers only you can see. Tap <strong>Show Current</strong> next to switch to the shared community list (active requests).`,
+          description: `${body0}<br><br>The <strong>Personal</strong> tile is for prayers only you can see. Tap <strong>Show Public</strong> next to switch to the shared community list.`,
           side: 'bottom',
           align: 'start',
-          nextBtnText: 'Show Current &rarr;',
+          nextBtnText: 'Show Public &rarr;',
           onNextClick: this.advanceAfterOrKill(hooks.switchToCurrent),
         },
       },
@@ -1445,7 +1451,7 @@ export class HelpDriverTourService {
 
   /**
    * **Filtering Prayers** (`help_filtering`): intro from section title/description; each step **title** matches the
-   * highlighted control (**Current**, **Answered**, **Total**, **Prompts**, **Personal**, **Search**). Help copy lives
+   * highlighted control (**Public**, **Current**, **Answered**, **Total**, **Prompts**, **Personal**, **Search**). Help copy lives
    * in descriptions; **Next** applies the matching filter then advances.
    */
   startFilteringHelpSectionTour(section: HelpSection, hooks: FilteringHelpSectionTourHooks): void {
@@ -1454,7 +1460,7 @@ export class HelpDriverTourService {
     }
 
     const c0 = section.content[0];
-    if (!c0 || !getCurrentFilterEl()) {
+    if (!c0 || !getPublicFilterEl()) {
       return;
     }
 
@@ -1479,6 +1485,18 @@ export class HelpDriverTourService {
         },
       },
       {
+        element: () => getPublicFilterEl()!,
+        popover: {
+          title: escapeHtml('Public'),
+          description:
+            'The <strong>Public</strong> tab shows community prayers shared with your church. Use the chips below it to switch between <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong>.',
+          side: 'bottom',
+          align: 'start',
+          nextBtnText: 'Next',
+          onNextClick: this.advanceAfterOrKill(hooks.switchToCurrent),
+        },
+      },
+      {
         element: () => getCurrentFilterEl()!,
         popover: {
           title: escapeHtml('Current'),
@@ -1492,23 +1510,21 @@ export class HelpDriverTourService {
     ];
 
     const answeredPhrase = excerptForNamedFilter(overview, 'Answered');
-    if (getAnsweredFilterEl()) {
-      steps.push({
-        element: () => getAnsweredFilterEl()!,
-        popover: {
-          title: escapeHtml('Answered'),
-          description: answeredPhrase
-            ? escapeHtml(answeredPhrase)
-            : escapeHtml('This filter shows prayers that have been answered.'),
-          side: 'bottom',
-          align: 'start',
-          nextBtnText: 'Next',
-          onNextClick: this.advanceAfterOrKill(hooks.switchToAnswered),
-        },
-      });
-    }
+    steps.push({
+      element: () => getAnsweredFilterEl()!,
+      popover: {
+        title: escapeHtml('Answered'),
+        description: answeredPhrase
+          ? escapeHtml(answeredPhrase)
+          : escapeHtml('This filter shows prayers that have been answered.'),
+        side: 'bottom',
+        align: 'start',
+        nextBtnText: 'Next',
+        onNextClick: this.advanceAfterOrKill(hooks.switchToAnswered),
+      },
+    });
 
-    if (c2 && getTotalFilterEl()) {
+    if (c2) {
       const totalDescription = `${escapeHtml(c2.subtitle)}<br><br>${escapeHtml(c2.text)}`;
       steps.push({
         element: () => getTotalFilterEl()!,
@@ -1542,6 +1558,12 @@ export class HelpDriverTourService {
 
     if (c1 && getPersonalFilterEl()) {
       const personalDescription = `${escapeHtml(c1.subtitle)}<br><br>${escapeHtml(c1.text)}`;
+      const advancePersonal = hooks.openSearchPanel
+        ? () => {
+            hooks.switchToPersonal();
+            hooks.openSearchPanel!();
+          }
+        : hooks.switchToPersonal;
       steps.push({
         element: () => getPersonalFilterEl()!,
         popover: {
@@ -1550,7 +1572,7 @@ export class HelpDriverTourService {
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Next',
-          onNextClick: this.advanceAfterOrKill(hooks.switchToPersonal),
+          onNextClick: this.advanceAfterOrKill(advancePersonal),
         },
       });
     }
@@ -1791,7 +1813,7 @@ export class HelpDriverTourService {
   }
 
   /**
-   * **Pray For** / Prayer Encouragement: **Current** filter → **Pray For** button on first community card (when visible)
+   * **Pray For** / Prayer Encouragement: **Public** tab → **Pray For** button on first community card (when visible)
    * → popover-only step with fuller explanation.
    */
   startPrayerEncouragementTour(
@@ -1803,7 +1825,7 @@ export class HelpDriverTourService {
       return;
     }
 
-    if (!getCurrentFilterEl()) {
+    if (!getPublicFilterEl()) {
       return;
     }
 
@@ -1814,10 +1836,10 @@ export class HelpDriverTourService {
 
     const steps: DriveStep[] = [
       {
-        element: () => getCurrentFilterEl()!,
+        element: () => getPublicFilterEl()!,
         popover: {
           title: title0,
-          description: `${desc0}<br><br>Community prayer requests appear under <strong>Current</strong>, <strong>Answered</strong>, or <strong>Total</strong> (not Personal or member-list views). Tap <strong>Show current</strong> to jump to active requests.`,
+          description: `${desc0}<br><br>Community prayer requests live under the <strong>Public</strong> tab—use the <strong>Current</strong>, <strong>Answered</strong>, or <strong>Total</strong> chips below it (not Personal or member-list views). Tap <strong>Show current</strong> to jump to active requests.`,
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Show current &rarr;',
@@ -2135,7 +2157,7 @@ export class HelpDriverTourService {
   }
 
   /**
-   * **Prayer reminders** (`help_prayer_reminders`): **Current** → bell on a card (when available) → Settings **Prayer reminders**.
+   * **Prayer reminders** (`help_prayer_reminders`): **Public** tab → bell on a card (when available) → Settings **Prayer reminders**.
    */
   startPrayerRemindersHelpSectionTour(
     section: { title: string; description: string },
@@ -2146,7 +2168,7 @@ export class HelpDriverTourService {
       return;
     }
 
-    if (!getCurrentFilterEl() || !getSettingsHeaderButtonEl()) {
+    if (!getPublicFilterEl() || !getSettingsHeaderButtonEl()) {
       return;
     }
 
@@ -2174,10 +2196,10 @@ export class HelpDriverTourService {
 
     const steps: DriveStep[] = [
       {
-        element: () => getCurrentFilterEl()!,
+        element: () => getPublicFilterEl()!,
         popover: {
           title: title0,
-          description: `${desc0}<br><br>There are two kinds of reminders: the <strong>bell</strong> on a prayer card (one prayer at a time) and <strong>general nudges</strong> in Settings. Tap <strong>Next</strong> to open <strong>Current</strong> prayers.`,
+          description: `${desc0}<br><br>There are two kinds of reminders: the <strong>bell</strong> on a prayer card (one prayer at a time) and <strong>general nudges</strong> in Settings. Tap <strong>Next</strong> to open <strong>Public</strong> prayers on the <strong>Current</strong> chip.`,
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Show current &rarr;',

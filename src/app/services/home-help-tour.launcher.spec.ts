@@ -49,6 +49,7 @@ describe("HomeHelpTourLauncher", () => {
       closePrayerForm: vi.fn(),
       openUserSettings: vi.fn(),
       closeUserSettings: vi.fn(),
+      openSearchPanel: vi.fn(),
       getPrayerFormHooks: vi.fn(() => null),
       getWalkthroughPersonalPrayer: vi.fn(),
       openWalkthroughPersonalEdit: vi.fn(),

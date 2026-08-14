@@ -21,7 +21,11 @@ export interface PrayerFilters {
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div
-      class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-6 transition-colors"
+      [class]="
+        embedded
+          ? ''
+          : 'bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-6 transition-colors'
+      "
     >
       <div class="grid grid-cols-1 gap-4">
         <!-- Search -->
@@ -69,6 +73,7 @@ export interface PrayerFilters {
 export class PrayerFiltersComponent {
   @Input() filters: PrayerFilters = {};
   @Input() searchPlaceholder = 'Search prayers...';
+  @Input() embedded = false;
   @Output() filtersChange = new EventEmitter<PrayerFilters>();
 
   onSearchChange(searchTerm: string) {

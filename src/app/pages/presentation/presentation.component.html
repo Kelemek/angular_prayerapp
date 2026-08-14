@@ -33,10 +33,11 @@
               class="presentation-card-slot presentation-slide-fade w-full min-w-0 max-h-full min-h-0"
               [class.presentation-slide-faded]="playback.slideCardFaded"
             >
-              @if (currentPrayerForCard || currentPromptForCard) {
+              @let slideItem = currentItem;
+              @if (slideItem) {
               <app-presentation-slide-card
-                [prayer]="currentPrayerForCard"
-                [prompt]="currentPromptForCard"
+                [prayer]="slidePrayerFromItem(slideItem)"
+                [prompt]="slidePromptFromItem(slideItem)"
                 (prayerPrayedForCountChange)="onPresentationPrayerPrayedForCountChange($event)"
                 (promptPrayedForCountChange)="onPresentationPromptPrayedForCountChange($event)"
                 (personalPrayerCategoryChange)="onPresentationPersonalPrayerCategoryChange($event)"
@@ -91,7 +92,7 @@
       <!-- Settings Modal -->
       <app-presentation-settings-modal
         [visible]="showSettings"
-        [theme]="theme"
+        [theme]="themeService.getTheme()"
         [smartMode]="smartMode"
         [displayDuration]="displayDuration"
         [contentTypes]="contentTypes"

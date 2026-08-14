@@ -28,13 +28,44 @@
     [refreshing]="isRefreshing"
     (refresh)="refresh.onPullToRefresh()"
   >
-    <app-home-header
-      [hasAdminEmail$]="hasAdminEmail$"
-      (logoStatusChange)="hasLogo = $event"
-    ></app-home-header>
+    <div class="sticky top-0 z-50">
+      <app-home-header
+        [hasAdminEmail$]="hasAdminEmail$"
+        [showSearchPanel]="shell.header.showSearchPanel"
+        [presentationHandoffQueryParams]="shell.header.presentationHandoffQueryParams"
+        [userEmailFallback]="shell.header.getUserEmailFallback()"
+        [handlers]="shell.handlers.header"
+        (logoStatusChange)="hasLogo = $event"
+      ></app-home-header>
+
+      <div
+        id="home-search-panel"
+        class="overflow-hidden transition-[max-height,opacity] duration-300 ease-out bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-200 dark:border-gray-700"
+        [class.border-b]="shell.header.showSearchPanel"
+        [class.max-h-0]="!shell.header.showSearchPanel"
+        [class.opacity-0]="!shell.header.showSearchPanel"
+        [class.max-h-28]="shell.header.showSearchPanel"
+        [class.opacity-100]="shell.header.showSearchPanel"
+        [class.pointer-events-none]="!shell.header.showSearchPanel"
+        [attr.aria-hidden]="!shell.header.showSearchPanel"
+      >
+        <div class="w-full max-w-6xl mx-auto px-4 py-2 sm:py-3">
+          <app-prayer-filters
+            [embedded]="true"
+            [filters]="filters"
+            [searchPlaceholder]="
+              activeFilter === 'memorize'
+                ? 'Search verses...'
+                : 'Search prayers...'
+            "
+            (filtersChange)="filter.onFiltersChange($event)"
+          ></app-prayer-filters>
+        </div>
+      </div>
+    </div>
 
     <!-- Main Content -->
-    <main class="w-full max-w-6xl mx-auto px-4 py-6">
+    <main class="w-full max-w-6xl mx-auto px-4 pt-2 sm:pt-3 pb-6">
       <!-- Top refresh indicator -->
       <div
         *ngIf="isRefreshing"
@@ -65,19 +96,37 @@
       </div>
       <app-home-modals-host
         #modalsHost
-        [activeFilter]="activeFilter"
+        [activeFilter]="shell.modals.activeFilter"
+        [showPrayerForm]="shell.modals.showPrayerForm"
+        [showSettings]="shell.modals.showSettings"
+        [settingsScrollToSectionId]="shell.modals.settingsScrollToSectionId"
+        [showHelp]="shell.modals.showHelp"
+        [showLogoutConfirmation]="shell.modals.showLogoutConfirmation"
+        [showEditPersonalPrayer]="shell.modals.showEditPersonalPrayer"
+        [editingPrayer]="shell.modals.editingPrayer"
+        [showRenamePersonalCategory]="shell.modals.showRenamePersonalCategory"
+        [renamingPersonalCategory]="shell.modals.renamingPersonalCategory"
+        [isRenamingPersonalCategory]="shell.modals.isRenamingPersonalCategory"
+        [showEditPersonalUpdate]="shell.modals.showEditPersonalUpdate"
+        [editingUpdate]="shell.modals.editingUpdate"
+        [editingUpdatePrayerId]="shell.modals.editingUpdatePrayerId"
+        [showEditMemberUpdate]="shell.modals.showEditMemberUpdate"
+        [editingMemberUpdate]="shell.modals.editingMemberUpdate"
+        [editingMemberUpdatePrayerId]="shell.modals.editingMemberUpdatePrayerId"
+        [planningCenterListId]="shell.modals.planningCenterListId"
+        [showAddMemorizedVerse]="shell.modals.showAddMemorizedVerse"
+        [showAddMemorizedBibleBooks]="shell.modals.showAddMemorizedBibleBooks"
+        [showMemorizationRecommendations]="shell.modals.showMemorizationRecommendations"
+        [memorizationRecommendationGroups]="shell.modals.memorizationRecommendationGroups"
+        [memorizationRecommendationOwnedKeys]="shell.modals.memorizationRecommendationOwnedKeys"
+        [addingRecommendationId]="shell.modals.addingRecommendationId"
+        [memorizationRecommendationsLoading$]="shell.modals.memorizationRecommendationsLoading$"
+        [practiceMemorizedItem]="shell.modals.practiceMemorizedItem"
+        [showRemoveMemorizedConfirm]="shell.modals.showRemoveMemorizedConfirm"
+        [memorizedItemToRemove]="shell.modals.memorizedItemToRemove"
+        [handlers]="shell.handlers.modals"
       ></app-home-modals-host>
 
-      <!-- Prayer Filters -->
-      <app-prayer-filters
-        [filters]="filters"
-        [searchPlaceholder]="
-          activeFilter === 'memorize'
-            ? 'Search verses...'
-            : 'Search prayers...'
-        "
-        (filtersChange)="filter.onFiltersChange($event)"
-      ></app-prayer-filters>
       <app-home-filter-tabs
         [activeFilter]="activeFilter"
         [currentPrayersCount]="currentPrayersCount"
@@ -85,15 +134,46 @@
         [totalPrayersCount]="totalPrayersCount"
         [promptsCount]="promptsCount"
         [personalPrayersCount]="personalPrayersCount"
+        [memorizedItemsCount]="memorizationPanel.memorizedItemsCount"
+        [showPlanningCenterMembersFilter]="
+          planningCenter.showPlanningCenterMembersFilter
+        "
+        [planningCenterMembersDisplayCount]="
+          planningCenter.planningCenterMembersDisplayCount
+        "
+        [planningCenterMembersLoading]="
+          planningCenter.loadingPlanningCenterList &&
+          planningCenter.planningCenterListMembers.length === 0
+        "
         [currentPrayerBadge$]="currentPrayerBadge$"
         [answeredPrayerBadge$]="answeredPrayerBadge$"
         [promptBadge$]="promptBadge$"
+        (tabSelected)="filter.setFilter($event)"
+        (publicTabSelected)="filter.selectPublicTab()"
       ></app-home-filter-tabs>
 
+      <!-- Public Status Filters -->
+      @if (isCommunityPrayerFilter(activeFilter)) {
+      <app-home-public-status-filters
+        [activeFilter]="activeFilter"
+        [currentPrayersCount]="currentPrayersCount"
+        [answeredPrayersCount]="answeredPrayersCount"
+        [totalPrayersCount]="totalPrayersCount"
+        [currentPrayerBadge$]="currentPrayerBadge$"
+        [answeredPrayerBadge$]="answeredPrayerBadge$"
+        (selectFilter)="filter.setFilter($event)"
+      ></app-home-public-status-filters>
+      }
+
       <!-- Loading State -->
-      @if (!viewReady || (loading$ | async) || (activeFilter === 'personal'
-      && (prayerService.loadingPersonalPrayers$ | async)) || (activeFilter ===
-      'memorize' && (memorizationService.loading$ | async))) {
+      @let contentLoading =
+        !viewReady ||
+        !!(loading$ | async) ||
+        (activeFilter === 'personal' &&
+          !!(prayerService.loadingPersonalPrayers$ | async)) ||
+        (activeFilter === 'memorize' &&
+          !!(memorizationService.loading$ | async));
+      @if (contentLoading) {
       <app-skeleton-loader [count]="5" type="card"></app-skeleton-loader>
       }
 
@@ -111,22 +191,56 @@
       <app-home-prompt-type-filters
         [promptsCount]="promptsCount"
         [selectedPromptTypes]="selectedPromptTypes"
+        [uniquePromptTypes]="catalog.uniquePromptTypes"
         [promptTypeActiveClass]="promptTypeActiveClass"
         [promptTypeInactiveClass]="promptTypeInactiveClass"
+        [getPromptCountByType]="shell.getPromptCountByType"
+        [getUnreadPromptCountByType]="shell.getUnreadPromptCountByType"
+        (clearTypes)="filter.clearSelectedPromptTypes()"
+        (toggleType)="filter.togglePromptType($event)"
       ></app-home-prompt-type-filters>
       }
 
       <!-- Personal Category Filters -->
       @if (activeFilter === 'personal') {
       <app-home-personal-category-filters
-        [personalPrayers]="personalPrayers"
         [personalPrayersCount]="personalPrayersCount"
+        [filterMode]="shell.personalCategory.filterMode"
+        [personalCategoryActiveClass]="shell.personalCategory.personalCategoryActiveClass"
+        [uniqueCategories]="shell.personalCategory.uniqueCategories"
+        [isCategoryDropListDisabled]="shell.personalCategory.isCategoryDropListDisabled"
+        [personalCurrentCount]="shell.personalCategory.personalCurrentCount()"
+        [personalAnsweredCount]="shell.personalCategory.personalAnsweredCount()"
+        [isCategorySwapping]="shell.personalCategory.isCategorySwapping"
+        [isPersonalCategorySelected]="shell.personalCategory.isPersonalCategorySelected"
+        [getCategoryCount]="shell.personalCategory.getCategoryCount"
+        (selectFilterMode)="shell.personalCategory.actions.selectFilterMode($event)"
+        (toggleCategory)="shell.personalCategory.actions.toggleCategory($event)"
+        (categoryDrop)="shell.personalCategory.actions.onCategoryDrop($event)"
+        (categoryDragStarted)="shell.personalCategory.actions.onCategoryDragStarted()"
+        (categoryDragEnded)="shell.personalCategory.actions.onCategoryDragEnded()"
+        (categoryPointerDown)="
+          shell.personalCategory.actions.onPersonalCategoryPointerDown(
+            $event.event,
+            $event.category
+          )
+        "
+        (categoryPointerMove)="
+          shell.personalCategory.actions.onPersonalCategoryPointerMove($event)
+        "
+        (categoryPointerUp)="shell.personalCategory.actions.onPersonalCategoryPointerUp()"
+        (categoryContextMenu)="
+          shell.personalCategory.actions.onPersonalCategoryContextMenu(
+            $event.event,
+            $event.category
+          )
+        "
       ></app-home-personal-category-filters>
       }
 
       <!-- Prayers or Prompts List -->
       <app-home-prayer-content
-        [viewReady]="viewReady"
+        [contentHidden]="contentLoading"
         [activeFilter]="activeFilter"
         [filters]="filters"
         [prayers$]="prayers$"
@@ -139,6 +253,18 @@
         [personalCategoryPickerPrayerId]="personalCategoryPickerPrayerId"
         [personalWalkthroughPrayerFor]="personalWalkthroughPrayerFor"
         [personalWalkthroughDescription]="personalWalkthroughDescription"
+        [filteredPersonalPrayers]="catalog.filteredPersonalPrayers"
+        [filteredPlanningCenterPrayers]="catalog.filteredPlanningCenterPrayers"
+        [displayedPrompts]="catalog.displayedPrompts"
+        [loadingPersonalPrayers$]="prayerService.loadingPersonalPrayers$"
+        [canReorderPersonalPrayers]="shell.personalCategory.canReorderPersonalPrayers"
+        [selectedPromptTypes]="selectedPromptTypes"
+        [memorizedItems]="memorizationPanel.memorizedItems"
+        [memorizeLoading$]="memorizationService.loading$"
+        [showAddMemorizedVerse]="shell.modals.showAddMemorizedVerse"
+        [showAddMemorizedBibleBooks]="shell.modals.showAddMemorizedBibleBooks"
+        [showMemorizationRecommendations]="shell.modals.showMemorizationRecommendations"
+        [handlers]="shell.handlers.prayerContent"
         (personalCategoryPickerOpenChange)="
           onPersonalCategoryPickerOpenChange($event.prayerId, $event.open)
         "

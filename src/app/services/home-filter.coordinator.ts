@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import type { PrayerFilters } from "../components/prayer-filters/prayer-filters.component";
 import type { PrayerPrompt } from "../components/prompt-card/prompt-card.component";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
+import { isCommunityPrayerFilter } from "../lib/home-community-filter";
 
 export interface HomeFilterPageState {
   activeFilter: HomeActiveFilter;
@@ -86,6 +87,14 @@ export class HomeFilterCoordinator {
     }
 
     host.onFilterChanged();
+  }
+
+  selectPublicTab(): void {
+    const host = this.requireHost();
+    const page = host.getPageState();
+    if (!isCommunityPrayerFilter(page.activeFilter)) {
+      this.setFilter("current");
+    }
   }
 
   togglePromptType(type: string): void {

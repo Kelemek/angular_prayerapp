@@ -1,16 +1,16 @@
-import { Component, Input } from "@angular/core";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Observable } from "rxjs";
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
-import { HomeFilterCoordinator } from "../../services/home-filter.coordinator";
-import { HomePlanningCenterController } from "../../services/home-planning-center.controller";
-import { HomeMemorizationPanelController } from "../../services/home-memorization-panel.controller";
 import { BadgeService } from "../../services/badge.service";
+import { isCommunityPrayerFilter } from "../../lib/home-community-filter";
+import { HOME_SHELL_SECTION_GAP_CLASSES } from "../../lib/home-shell-spacing";
+import { HomeFilterBadgeButtonComponent } from "../home-filter-badge-button/home-filter-badge-button.component";
 
 @Component({
   selector: "app-home-filter-tabs",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HomeFilterBadgeButtonComponent],
   templateUrl: "./home-filter-tabs.component.html",
 })
 export class HomeFilterTabsComponent {
@@ -20,14 +20,24 @@ export class HomeFilterTabsComponent {
   @Input({ required: true }) totalPrayersCount!: number;
   @Input({ required: true }) promptsCount!: number;
   @Input({ required: true }) personalPrayersCount!: number;
+  @Input({ required: true }) memorizedItemsCount!: number;
+  @Input({ required: true }) showPlanningCenterMembersFilter!: boolean;
+  @Input({ required: true }) planningCenterMembersDisplayCount!: number | string;
+  @Input() planningCenterMembersLoading = false;
   @Input({ required: true }) currentPrayerBadge$!: Observable<number>;
   @Input({ required: true }) answeredPrayerBadge$!: Observable<number>;
   @Input({ required: true }) promptBadge$!: Observable<number>;
 
-  constructor(
-    readonly filter: HomeFilterCoordinator,
-    readonly badgeService: BadgeService,
-    readonly planningCenter: HomePlanningCenterController,
-    readonly memorizationPanel: HomeMemorizationPanelController
-  ) {}
+  @Output() tabSelected = new EventEmitter<HomeActiveFilter>();
+  @Output() publicTabSelected = new EventEmitter<void>();
+
+  readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
+  readonly isCommunityPrayerFilter = isCommunityPrayerFilter;
+
+  constructor(readonly badgeService: BadgeService) {}
+
+  markAllPublicPrayersRead(): void {
+    this.badgeService.markAllAsReadByStatus("prayers", "current");
+    this.badgeService.markAllAsReadByStatus("prayers", "answered");
+  }
 }

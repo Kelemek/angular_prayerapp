@@ -4,9 +4,7 @@ import { RouterModule } from "@angular/router";
 import { Observable } from "rxjs";
 import { AppLogoComponent } from "../app-logo/app-logo.component";
 import { UserSessionService } from "../../services/user-session.service";
-import { HomeModalController } from "../../services/home-modal.controller";
-import { HomeAdminNavigationController } from "../../services/home-admin-navigation.controller";
-import { HomePresentationNavigationController } from "../../services/home-presentation-navigation.controller";
+import type { HomeHeaderHandlers } from "../../lib/home-header-handlers";
 
 @Component({
   selector: "app-home-header",
@@ -16,12 +14,14 @@ import { HomePresentationNavigationController } from "../../services/home-presen
 })
 export class HomeHeaderComponent {
   @Input({ required: true }) hasAdminEmail$!: Observable<boolean>;
+  @Input({ required: true }) showSearchPanel!: boolean;
+  @Input({ required: true }) presentationHandoffQueryParams!:
+    | Record<string, string>
+    | null;
+  @Input({ required: true }) userEmailFallback!: string;
+  @Input({ required: true }) handlers!: HomeHeaderHandlers;
+
   @Output() logoStatusChange = new EventEmitter<boolean>();
 
-  constructor(
-    public userSessionService: UserSessionService,
-    readonly modals: HomeModalController,
-    readonly adminNav: HomeAdminNavigationController,
-    readonly presentationNav: HomePresentationNavigationController
-  ) {}
+  constructor(readonly userSessionService: UserSessionService) {}
 }

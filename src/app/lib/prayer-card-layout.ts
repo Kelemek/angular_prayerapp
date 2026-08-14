@@ -1,3 +1,5 @@
+import { HOME_SHELL_SECTION_GAP_CLASSES } from './home-shell-spacing';
+
 /** Home prayer card horizontal padding (mobile tighter, sm+ unchanged). */
 export const PRAYER_CARD_SHELL_PADDING_CLASSES = 'px-4 sm:px-6';
 
@@ -158,7 +160,7 @@ const HOME_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
   shellTopPaddingWhenMetaHeader: 'pt-0',
   shellTopPaddingWithoutMetaHeader: 'pt-6',
   shellBottomPadding: 'pb-4',
-  shellOuterMargin: 'mb-4',
+  shellOuterMargin: HOME_SHELL_SECTION_GAP_CLASSES,
   titleClasses: 'text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline',
   requesterClasses: 'text-sm text-gray-600 dark:text-gray-400',
   descriptionClasses: 'block text-gray-600 dark:text-gray-300 mb-4',
@@ -234,7 +236,7 @@ const HOME_PROMPT_CARD_VARIANT_LAYOUT: PromptCardVariantLayout = {
   ...HOME_CARD_CHROME,
   shellBaseClasses:
     'prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 pb-4 transition-colors relative',
-  shellOuterMargin: 'mb-4',
+  shellOuterMargin: HOME_SHELL_SECTION_GAP_CLASSES,
   typeHeaderClasses: '',
   titleClasses: 'text-lg font-semibold text-gray-700 dark:text-gray-300',
   descriptionClasses:

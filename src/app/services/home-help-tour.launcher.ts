@@ -316,6 +316,10 @@ export class HomeHelpTourLauncher {
         host.setFilter("personal");
         host.markForCheck();
       },
+      openSearchPanel: () => {
+        host.openSearchPanel();
+        host.markForCheck();
+      },
     });
   }
 
@@ -356,10 +360,18 @@ export class HomeHelpTourLauncher {
   }
 
   private startSearchPrayersTour(section: HelpSection): void {
-    this.helpDriverTourService.startSearchPrayersTour({
-      title: section.title,
-      description: section.description,
-    });
+    const host = this.requireHost();
+    host.closeHelp();
+    host.openSearchPanel();
+    host.markForCheck();
+    window.setTimeout(
+      () =>
+        this.helpDriverTourService.startSearchPrayersTour({
+          title: section.title,
+          description: section.description,
+        }),
+      280
+    );
   }
 
   private startPersonalPrayersTour(section: HelpSection): void {

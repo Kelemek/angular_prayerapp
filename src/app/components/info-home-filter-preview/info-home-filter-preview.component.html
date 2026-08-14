@@ -1,0 +1,516 @@
+<!-- Filter-style preview tabs (mock of home filters): Public, Prompts, Personal -->
+                <div class="mt-4 space-y-4">
+                  <div class="flex w-full gap-2">
+                    <div
+                      class="relative flex-1 min-w-0"
+                      role="button"
+                      tabindex="0"
+                      (click)="selectPublicPreviewTab()"
+                      (keydown.enter)="selectPublicPreviewTab()"
+                      (keydown.space)="
+                        selectPublicPreviewTab(); $event.preventDefault()
+                      "
+                    >
+                      <button
+                        type="button"
+                        (click)="$event.stopPropagation(); openBadges.emit()"
+                        class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors cursor-pointer"
+                        title="About badges"
+                        aria-label="About badges"
+                      >
+                        1
+                      </button>
+                      <div
+                        [class]="
+                          'rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer flex flex-col items-center justify-center w-full ' +
+                          (isCommunityPreviewFilter()
+                            ? 'border !border-[#0047AB] bg-blue-100 text-[#0047AB] dark:bg-blue-950 dark:text-blue-100 ring ring-[#0047AB] ring-offset-0 shadow-sm'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-[2px] border-gray-200 dark:border-gray-700 hover:border-[#0047AB] dark:hover:border-[#0047AB]')
+                        "
+                      >
+                        <div
+                          class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
+                        >
+                          47
+                        </div>
+                        <div
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
+                        >
+                          Public
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      (click)="previewFilter = 'prompts'"
+                      [class]="
+                        'flex-1 min-w-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer flex flex-col items-center justify-center ' +
+                        (previewFilter === 'prompts'
+                          ? 'border !border-[#988F83] bg-stone-100 text-[#4b4137] dark:bg-stone-900/40 dark:text-stone-100 ring ring-[#988F83] ring-offset-0 shadow-sm'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-[2px] border-gray-200 dark:border-gray-700 hover:border-[#988F83] dark:hover:border-[#988F83]')
+                      "
+                    >
+                      <div
+                        class="flex flex-col items-center justify-center w-full"
+                      >
+                        <div
+                          class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
+                        >
+                          76
+                        </div>
+                        <div
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
+                        >
+                          Prompts
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      (click)="previewFilter = 'personal'"
+                      [class]="
+                        'flex-1 min-w-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer flex flex-col items-center justify-center ' +
+                        (previewFilter === 'personal'
+                          ? 'border !border-[#2F5F54] bg-slate-100 text-[#2F5F54] dark:bg-green-900/40 dark:text-emerald-100 ring ring-[#2F5F54] ring-offset-0 shadow-sm'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-[2px] border-gray-200 dark:border-gray-700 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]')
+                      "
+                    >
+                      <div
+                        class="flex flex-col items-center justify-center w-full"
+                      >
+                        <div
+                          class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
+                        >
+                          13
+                        </div>
+                        <div
+                          class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
+                        >
+                          Personal
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  @if (isCommunityPreviewFilter()) {
+                  <div class="flex w-full gap-2 mb-4">
+                    <button
+                      type="button"
+                      (click)="previewFilter = 'current'"
+                      [class]="
+                        subFilterChipBaseClass + ' cursor-pointer ' +
+                        (previewFilter === 'current'
+                          ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#0047AB] dark:hover:border-[#0047AB]')
+                      "
+                    >
+                      Current (22)
+                    </button>
+                    <button
+                      type="button"
+                      (click)="previewFilter = 'answered'"
+                      [class]="
+                        subFilterChipBaseClass + ' cursor-pointer ' +
+                        (previewFilter === 'answered'
+                          ? 'border !border-[#39704D] dark:!border-[#39704D] bg-green-100 dark:bg-green-950 ring ring-[#39704D] dark:ring-[#39704D] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#39704D] dark:hover:border-[#39704D]')
+                      "
+                    >
+                      Answered (4)
+                    </button>
+                    <button
+                      type="button"
+                      (click)="previewFilter = 'total'"
+                      [class]="
+                        subFilterChipBaseClass + ' cursor-pointer ' +
+                        (previewFilter === 'total'
+                          ? 'border !border-[#C9A961] dark:!border-[#C9A961] bg-amber-100 dark:bg-amber-900/40 ring ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#C9A961] dark:hover:border-[#C9A961]')
+                      "
+                    >
+                      Total (47)
+                    </button>
+                  </div>
+                  }
+
+                  <!-- Mock prayer cards explaining each feature -->
+                  @if (previewFilter === 'current') {
+                  <div
+                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-[#0047AB] dark:!border-[#0047AB] rounded-lg p-4 sm:p-5 shadow-md space-y-3"
+                  >
+                    <span
+                      class="absolute left-1/2 top-4 transform -translate-x-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 pb-2"
+                      >Jan 12, 2025</span
+                    >
+                    <div class="mb-1 flex flex-wrap items-center gap-2">
+                      <span
+                        class="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                        >Prayer for Marcus</span
+                      >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Requested by:
+                        <span
+                          class="font-medium text-gray-800 dark:text-gray-100"
+                          >Sarah</span
+                        ></span
+                      >
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                      See every active request in one place so your church
+                      always knows what needs prayer right now.
+                    </p>
+                    <div class="flex flex-wrap gap-1 items-center">
+                      <button
+                        type="button"
+                        (click)="openHeaderPreview.emit('card-update')"
+                        title="Add an update to this prayer"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-green"
+                      >
+                        Add Update
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openHeaderPreview.emit('card-pray-for')"
+                        title="Record that you prayed for this request"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-blue"
+                      >
+                        Pray For
+                      </button>
+                    </div>
+                    <h4
+                      class="text-sm font-medium text-gray-700 dark:text-gray-300 mt-3"
+                    >
+                      Recent Updates
+                    </h4>
+                    <div
+                      class="relative bg-inset-surface-muted rounded-lg p-4 pt-3 border border-gray-300 dark:border-gray-600"
+                    >
+                      <button
+                        type="button"
+                        (click)="openBadges.emit()"
+                        class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors cursor-pointer"
+                        title="About badges"
+                        aria-label="About badges"
+                      >
+                        1
+                      </button>
+                      <p
+                        class="text-xs text-gray-500 dark:text-gray-400 text-center mb-1 mt-0"
+                      >
+                        Jan 10, 2025
+                      </p>
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400"
+                          >Updated by:
+                          <span
+                            class="font-medium text-gray-700 dark:text-gray-300"
+                            >Someone</span
+                          ></span
+                        >
+                      </div>
+                      <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Prayer updates let you share progress, answered prayers,
+                        or new developments with the community. Click
+                        <strong>Add Update</strong> on a request to post one.
+                        You can also mark a prayer as answered from an update.
+                      </p>
+                    </div>
+                  </div>
+                  } @if (previewFilter === 'answered') {
+                  <div
+                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-[#39704D] dark:!border-[#39704D] rounded-lg p-4 sm:p-5 shadow-md space-y-3"
+                  >
+                    <span
+                      class="absolute left-1/2 top-4 transform -translate-x-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 pb-2"
+                      >Jan 12, 2025</span
+                    >
+                    <div class="mb-1 flex flex-wrap items-center gap-2">
+                      <span
+                        class="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                        >Prayer for Jamie</span
+                      >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Requested by:
+                        <span
+                          class="font-medium text-gray-800 dark:text-gray-100"
+                          >Alex</span
+                        ></span
+                      >
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                      These are prayers that have been marked as answered. See
+                      how God has been at work and celebrate together as a
+                      community.
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-500">
+                      Mark a request as answered from the app to move it into
+                      this view.
+                    </p>
+                    <div class="flex flex-wrap gap-1 items-center">
+                      <button
+                        type="button"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-green"
+                      >
+                        Add Update
+                      </button>
+                    </div>
+                  </div>
+                  } @if (previewFilter === 'total') {
+                  <div
+                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-[#C9A961] dark:!border-[#C9A961] rounded-lg p-4 sm:p-5 shadow-md space-y-3"
+                  >
+                    <span
+                      class="absolute left-1/2 top-4 transform -translate-x-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400"
+                      >Jan 15, 2025</span
+                    >
+                    <div class="mb-1 flex flex-wrap items-center gap-2">
+                      <span
+                        class="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                        >Prayer for the mission team</span
+                      >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Requested by:
+                        <span
+                          class="font-medium text-gray-800 dark:text-gray-100"
+                          >Morgan</span
+                        ></span
+                      >
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                      See every request in one place: current prayers, answered
+                      prayers, and archived requests together.
+                    </p>
+                    <div class="flex flex-wrap gap-1 items-center">
+                      <button
+                        type="button"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-green"
+                      >
+                        Add Update
+                      </button>
+                    </div>
+                  </div>
+                  } @if (previewFilter === 'prompts') {
+                  <!-- Type filter bar above card (like main site) -->
+                  <div class="flex w-full flex-wrap gap-2 mb-4">
+                    <button
+                      type="button"
+                      (click)="openPromptCategories.emit()"
+                      class="{{ subFilterChipWrapClass }} cursor-pointer border !border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
+                    >
+                      All Types (76)
+                    </button>
+                    <button
+                      type="button"
+                      (click)="openPromptCategories.emit()"
+                      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]"
+                    >
+                      Church (27)
+                    </button>
+                    <button
+                      type="button"
+                      (click)="openPromptCategories.emit()"
+                      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]"
+                    >
+                      Family (5)
+                    </button>
+                    <button
+                      type="button"
+                      (click)="openPromptCategories.emit()"
+                      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]"
+                    >
+                      Cities (9)
+                    </button>
+                  </div>
+                  <div
+                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-[#988F83] dark:!border-[#988F83] rounded-lg p-4 sm:p-5 shadow-md space-y-3"
+                  >
+                    <!-- Mock prompt card header: icon + title + type chip -->
+                    <div class="flex items-start justify-between">
+                      <div class="flex items-center gap-2 flex-1">
+                        <svg
+                          class="text-[#988F83] dark:text-[#988F83] shrink-0"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M9 18h6"></path>
+                          <path d="M10 22h4"></path>
+                          <path
+                            d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"
+                          ></path>
+                        </svg>
+                        <span
+                          class="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                          >Prayer prompts</span
+                        >
+                      </div>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer border !border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
+                      >
+                        Church
+                      </button>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                      Prayer prompts are set up by leaders to direct your
+                      church’s prayers—for ministries, missionaries, events, and
+                      more. They’re not created by users; they focus everyone on
+                      what to pray for.
+                    </p>
+                  </div>
+                  } @if (previewFilter === 'personal') {
+                  <!-- Personal category filter bar (like main site) -->
+                  <div class="mb-4">
+                    <div class="flex w-full gap-2">
+                      <button
+                        type="button"
+                        (click)="openPersonalCategories.emit()"
+                        class="{{ subFilterChipBaseClass }} cursor-pointer border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
+                      >
+                        Current (10)
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openPersonalCategories.emit()"
+                        class="{{ subFilterChipBaseClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+                      >
+                        Answered (3)
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openPersonalCategories.emit()"
+                        class="{{ subFilterChipBaseClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+                      >
+                        Total (13)
+                      </button>
+                    </div>
+                    <div class="flex w-full flex-wrap gap-2 mt-2">
+                      <button
+                        type="button"
+                        (click)="openPersonalCategories.emit()"
+                        class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+                      >
+                        Health (4)
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openPersonalCategories.emit()"
+                        class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+                      >
+                        Family (5)
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openPersonalCategories.emit()"
+                        class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+                      >
+                        Work (2)
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Mock personal prayer card (like main site) -->
+                  <div
+                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-gray-300 dark:!border-gray-600 rounded-lg p-4 sm:p-5 shadow-md space-y-3"
+                  >
+                    <span
+                      class="absolute left-1/2 top-4 transform -translate-x-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400"
+                      >Jan 14, 2025</span
+                    >
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <h3
+                          class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-0"
+                        >
+                          Prayer for Riley
+                        </h3>
+                        <span
+                          class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
+                          >Health</span
+                        >
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <button
+                          type="button"
+                          (click)="openPersonalAction.emit('answered')"
+                          class="p-1 text-gray-400 dark:text-gray-500 rounded-md hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                          title="Mark as answered"
+                          aria-label="Mark as answered"
+                        >
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="openPersonalAction.emit('edit')"
+                          class="p-1 text-blue-500 dark:text-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                          title="Edit prayer"
+                          aria-label="Edit prayer"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path
+                              d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                            ></path>
+                            <path
+                              d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                            ></path>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="openPersonalAction.emit('delete')"
+                          class="p-1 text-red-500 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                          title="Delete prayer"
+                          aria-label="Delete prayer"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path
+                              d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                            ></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                      Give every person a private list of their own prayers that
+                      only they can see and update.
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-500">
+                      Personal prayers never appear on the public list, but they
+                      live in the same simple interface. Organize with
+                      categories and reorder by dragging.
+                    </p>
+                  </div>
+                  }
+                </div>

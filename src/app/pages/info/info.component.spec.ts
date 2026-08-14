@@ -1,12 +1,37 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { ɵresolveComponentResources as resolveComponentResources } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { InfoHomeFilterPreviewComponent } from '../../components/info-home-filter-preview/info-home-filter-preview.component';
 import { provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { InfoComponent } from './info.component';
 import { BRANDING_SERVICE_TOKEN } from '../../components/app-logo/app-logo.component';
 import { BrandingService, BrandingData } from '../../services/branding.service';
 
+const infoDir = dirname(fileURLToPath(import.meta.url));
+const previewDir = join(infoDir, '../../components/info-home-filter-preview');
+
+function readComponentResource(url: string): string {
+  for (const base of [infoDir, previewDir]) {
+    const path = join(base, url);
+    if (existsSync(path)) {
+      return readFileSync(path, 'utf-8');
+    }
+  }
+  throw new Error(`Component resource not found: ${url}`);
+}
+
 describe('InfoComponent', () => {
+  beforeAll(async () => {
+    await resolveComponentResources((url) =>
+      Promise.resolve(readComponentResource(url))
+    );
+  });
+
   let component: InfoComponent;
   let fixture: ComponentFixture<InfoComponent>;
   let mockBrandingService: any;
@@ -65,9 +90,15 @@ describe('InfoComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  function previewComponent(): InfoHomeFilterPreviewComponent {
+    fixture.detectChanges();
+    return fixture.debugElement.query(By.directive(InfoHomeFilterPreviewComponent))
+      .componentInstance as InfoHomeFilterPreviewComponent;
+  }
+
   describe('default state', () => {
-    it('should have previewFilter as current', () => {
-      expect(component.previewFilter).toBe('current');
+    it('should have previewFilter as current on home preview', () => {
+      expect(previewComponent().previewFilter).toBe('current');
     });
     it('should have headerPreview as null', () => {
       expect(component.headerPreview).toBeNull();
@@ -221,16 +252,17 @@ describe('InfoComponent', () => {
 
   describe('previewFilter', () => {
     it('should allow setting previewFilter to answered, total, prompts, personal', () => {
-      component.previewFilter = 'answered';
-      expect(component.previewFilter).toBe('answered');
-      component.previewFilter = 'total';
-      expect(component.previewFilter).toBe('total');
-      component.previewFilter = 'prompts';
-      expect(component.previewFilter).toBe('prompts');
-      component.previewFilter = 'personal';
-      expect(component.previewFilter).toBe('personal');
-      component.previewFilter = 'current';
-      expect(component.previewFilter).toBe('current');
+      const preview = previewComponent();
+      preview.previewFilter = 'answered';
+      expect(preview.previewFilter).toBe('answered');
+      preview.previewFilter = 'total';
+      expect(preview.previewFilter).toBe('total');
+      preview.previewFilter = 'prompts';
+      expect(preview.previewFilter).toBe('prompts');
+      preview.previewFilter = 'personal';
+      expect(preview.previewFilter).toBe('personal');
+      preview.previewFilter = 'current';
+      expect(preview.previewFilter).toBe('current');
     });
   });
 
@@ -260,10 +292,11 @@ describe('InfoComponent', () => {
       expect(playBtn).toBeTruthy();
       expect(playBtn?.disabled).toBe(false);
     });
-    it('should show filter tabs with Current, Answered, Total, Prompts, Personal', async () => {
+    it('should show filter tabs with Public, Prompts, Personal and public sub-chips', async () => {
       await component.ngOnInit();
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
+      expect(el.textContent).toContain('Public');
       expect(el.textContent).toContain('Current');
       expect(el.textContent).toContain('Answered');
       expect(el.textContent).toContain('Total');
@@ -304,7 +337,7 @@ describe('InfoComponent', () => {
       if (answeredBtn) {
         answeredBtn.click();
         fixture.detectChanges();
-        expect(component.previewFilter).toBe('answered');
+        expect(previewComponent().previewFilter).toBe('answered');
       }
     });
   });

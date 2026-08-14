@@ -49,6 +49,7 @@ export interface HomeHelpTourHost {
   closePrayerForm(): void;
   openUserSettings(): void;
   closeUserSettings(): void;
+  openSearchPanel(): void;
   getPrayerFormHooks(): HomeHelpTourPrayerFormHooks | null;
   getWalkthroughPersonalPrayer(): PrayerRequest | undefined;
   openWalkthroughPersonalEdit(prayer: PrayerRequest): void;
@@ -72,6 +73,7 @@ export interface HomeHelpTourHostDependencies {
   setFilter: (filter: HomeActiveFilter) => void;
   openUserSettings: () => void;
   closeUserSettings: () => void;
+  openSearchPanel: () => void;
   openEditModal: (prayer: PrayerRequest) => void;
   getFilteredPersonalPrayers: () => PrayerRequest[];
   getPrayerFormHooks: () => HomeHelpTourPrayerFormHooks | null;
@@ -124,6 +126,10 @@ export class HomeHelpTourHostAdapter implements HomeHelpTourHost {
 
   closeUserSettings(): void {
     this.deps.closeUserSettings();
+  }
+
+  openSearchPanel(): void {
+    this.deps.openSearchPanel();
   }
 
   getPrayerFormHooks(): HomeHelpTourPrayerFormHooks | null {

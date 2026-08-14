@@ -7,8 +7,10 @@ export interface HomeModalHost {
 }
 
 @Injectable()
+@Injectable()
 export class HomeModalController {
   showPrayerForm = false;
+  showSearchPanel = false;
   showSettings = false;
   settingsScrollToSectionId: string | null = null;
   showHelp = false;
@@ -40,6 +42,35 @@ export class HomeModalController {
 
   onPrayerFormClose(): void {
     this.showPrayerForm = false;
+    this.requireHost().markForCheck();
+  }
+
+  toggleSearchPanel(): void {
+    this.showSearchPanel = !this.showSearchPanel;
+    this.requireHost().markForCheck();
+    if (this.showSearchPanel) {
+      window.setTimeout(() => {
+        document.getElementById("tour-prayer-search")?.focus();
+      }, 320);
+    }
+  }
+
+  openSearchPanel(): void {
+    if (this.showSearchPanel) {
+      return;
+    }
+    this.showSearchPanel = true;
+    this.requireHost().markForCheck();
+    window.setTimeout(() => {
+      document.getElementById("tour-prayer-search")?.focus();
+    }, 320);
+  }
+
+  closeSearchPanel(): void {
+    if (!this.showSearchPanel) {
+      return;
+    }
+    this.showSearchPanel = false;
     this.requireHost().markForCheck();
   }
 

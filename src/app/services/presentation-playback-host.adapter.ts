@@ -1,4 +1,5 @@
 import type { ChangeDetectorRef } from "@angular/core";
+import { isPresentationPrayer } from "../lib/presentation-slide-item";
 import type { PresentationSlideItem } from "./presentation-catalog.store";
 import type { PresentationPlaybackHost } from "./presentation-playback.controller";
 import type { PrayerRequest } from "./prayer.service";
@@ -13,7 +14,6 @@ export interface PresentationPlaybackPageState {
   presentationScrollRef?: { nativeElement: HTMLElement };
   items: PresentationSlideItem[];
   currentItem: PresentationSlideItem | undefined;
-  isPrayer(item: PresentationSlideItem): item is PrayerRequest;
 }
 
 export class PresentationPlaybackHostAdapter implements PresentationPlaybackHost {
@@ -67,7 +67,7 @@ export class PresentationPlaybackHostAdapter implements PresentationPlaybackHost
   }
 
   isPrayerItem(item: PresentationSlideItem): item is PrayerRequest {
-    return this.page.isPrayer(item);
+    return isPresentationPrayer(item);
   }
 
   getScrollRoot(): HTMLElement | null {

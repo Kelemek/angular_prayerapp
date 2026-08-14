@@ -11,6 +11,7 @@ import {
   PERSONAL_CATEGORY_LONG_PRESS_MOVE_PX,
   PERSONAL_CATEGORY_CLICK_SUPPRESS_MS,
 } from "../lib/personal-category-long-press";
+import { namedPersonalCategoryNamesFromPrayers } from "../lib/personal-category-order";
 import {
   renamePersonalCategoryWithColors,
   type RenamePersonalCategoryWithColorsResult,
@@ -35,9 +36,9 @@ export interface HomePersonalCategoryReturnContext {
 export class HomePersonalCategoryController {
   personalCategoryFilterMode: PersonalCategoryFilterMode = "current";
   selectedPersonalCategories: string[] = [];
-  uniquePersonalCategories: string[] = [];
   isCategoryDragging = false;
-  isSwappingCategories = false;
+  private pendingCategoryOrder: string[] | null = null;
+  private swappingCategories = new Set<string>();
   showRenamePersonalCategory = false;
   renamingPersonalCategory: string | null = null;
   isRenamingPersonalCategory = false;
@@ -95,14 +96,27 @@ export class HomePersonalCategoryController {
     return prayers.filter((p) => p.category === "Answered").length;
   }
 
-  async syncCategoriesFromPrayers(prayers: PrayerRequest[]): Promise<void> {
-    const prayerService = this.requirePrayerService();
-    const categories =
-      await prayerService.getUniqueCategoriesForUser(prayers);
-    this.uniquePersonalCategories = categories.filter(
-      (category) => category !== "Answered"
+  /** True while any named category chip is persisting a reorder. */
+  get isCategoryDropListDisabled(): boolean {
+    return this.swappingCategories.size > 0;
+  }
+
+  isCategorySwapping(category: string): boolean {
+    return this.swappingCategories.has(category);
+  }
+
+  get uniquePersonalCategories(): string[] {
+    if (this.pendingCategoryOrder !== null) {
+      return this.pendingCategoryOrder;
+    }
+    return namedPersonalCategoryNamesFromPrayers(
+      this.requirePrayerService().getPersonalPrayersSnapshot()
     );
-    this.requireHost().detectChanges();
+  }
+
+  async syncCategoriesFromPrayers(_prayers?: PrayerRequest[]): Promise<void> {
+    this.pendingCategoryOrder = null;
+    this.requireHost().markForCheck();
   }
 
   selectPersonalCategoryFilterMode(
@@ -153,24 +167,33 @@ export class HomePersonalCategoryController {
     if (event.previousIndex === event.currentIndex) {
       return;
     }
-    if (this.isSwappingCategories) {
+    if (this.isCategoryDropListDisabled) {
       return;
     }
 
     const originalCategories = [...this.uniquePersonalCategories];
+    const isAdjacentSwap =
+      Math.abs(event.previousIndex - event.currentIndex) === 1;
+    const categoriesInvolved = isAdjacentSwap
+      ? [
+          originalCategories[event.previousIndex],
+          originalCategories[event.currentIndex],
+        ]
+      : [...originalCategories];
+
+    const reorderedCategories = [...originalCategories];
     moveItemInArray(
-      this.uniquePersonalCategories,
+      reorderedCategories,
       event.previousIndex,
       event.currentIndex
     );
-    this.isSwappingCategories = true;
-    this.requireHost().detectChanges();
+    this.pendingCategoryOrder = reorderedCategories;
+    this.setSwappingCategories(categoriesInvolved);
+    this.requireHost().markForCheck();
 
+    const prayerService = this.requirePrayerService();
     try {
       let success = false;
-      const isAdjacentSwap =
-        Math.abs(event.previousIndex - event.currentIndex) === 1;
-      const prayerService = this.requirePrayerService();
 
       if (isAdjacentSwap) {
         const categoryA = originalCategories[event.previousIndex];
@@ -180,37 +203,19 @@ export class HomePersonalCategoryController {
           categoryB
         );
       } else {
-        success = await prayerService.reorderCategories(
-          this.uniquePersonalCategories
-        );
+        success = await prayerService.reorderCategories(reorderedCategories);
       }
 
-      if (success) {
-        await this.syncCategoriesFromPrayers(
-          this.requireHost().getPersonalPrayers()
-        );
-        this.requireHost().detectChanges();
-      } else {
+      if (!success) {
         this.requireToastService().error("Failed to reorder categories");
-        moveItemInArray(
-          this.uniquePersonalCategories,
-          event.currentIndex,
-          event.previousIndex
-        );
-        this.requireHost().detectChanges();
       }
     } catch (error) {
       console.error("Error reordering categories:", error);
       this.requireToastService().error("Failed to reorder categories");
-      moveItemInArray(
-        this.uniquePersonalCategories,
-        event.currentIndex,
-        event.previousIndex
-      );
-      this.requireHost().detectChanges();
     } finally {
-      this.isSwappingCategories = false;
-      this.requireHost().detectChanges();
+      this.pendingCategoryOrder = null;
+      this.clearSwappingCategories();
+      this.requireHost().markForCheck();
     }
   }
 
@@ -291,7 +296,7 @@ export class HomePersonalCategoryController {
 
   onPersonalCategoryPointerDown(event: PointerEvent, category: string): void {
     if (
-      this.isSwappingCategories ||
+      this.isCategoryDropListDisabled ||
       this.isCategoryDragging ||
       event.button !== 0
     ) {
@@ -326,7 +331,7 @@ export class HomePersonalCategoryController {
   }
 
   onPersonalCategoryContextMenu(event: MouseEvent, category: string): void {
-    if (this.isSwappingCategories || this.isCategoryDragging) {
+    if (this.isCategoryDropListDisabled || this.isCategoryDragging) {
       return;
     }
     if (isPersonalCategoryDragHandleTarget(event.target)) {
@@ -520,6 +525,21 @@ export class HomePersonalCategoryController {
   private clearPersonalCategoryClickSuppress(): void {
     this.suppressPersonalCategoryClickFor = null;
     this.clearPersonalCategoryClickSuppressTimer();
+  }
+
+  /** Test hook: simulate in-flight category reorder. */
+  setSwappingCategoriesForTests(...categories: string[]): void {
+    this.setSwappingCategories(categories);
+  }
+
+  private setSwappingCategories(categories: string[]): void {
+    this.swappingCategories = new Set(
+      categories.filter((category): category is string => !!category)
+    );
+  }
+
+  private clearSwappingCategories(): void {
+    this.swappingCategories.clear();
   }
 
   private requireHost(): HomePersonalCategoryHost {

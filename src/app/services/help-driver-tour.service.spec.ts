@@ -9,6 +9,7 @@ import {
   TOUR_REQUEST_BTN_MOBILE_ID,
   TOUR_REQUEST_BTN_DESKTOP_ID,
   TOUR_FILTER_PERSONAL_ID,
+  TOUR_FILTER_PUBLIC_ID,
   TOUR_ADD_UPDATE_BTN_ID,
   TOUR_FILTER_CURRENT_ID,
   TOUR_FILTER_TOTAL_ID,
@@ -415,6 +416,9 @@ describe('HelpDriverTourService', () => {
       const personal = document.createElement('button');
       personal.id = TOUR_FILTER_PERSONAL_ID;
       document.body.appendChild(personal);
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
       const current = document.createElement('button');
       current.id = TOUR_FILTER_CURRENT_ID;
       document.body.appendChild(current);
@@ -426,13 +430,16 @@ describe('HelpDriverTourService', () => {
       document.body.appendChild(total);
     }
 
-    it('does not call driver when Answered filter element is missing', () => {
+    it('does not call driver when Public filter element is missing', () => {
       const personal = document.createElement('button');
       personal.id = TOUR_FILTER_PERSONAL_ID;
       document.body.appendChild(personal);
       const current = document.createElement('button');
       current.id = TOUR_FILTER_CURRENT_ID;
       document.body.appendChild(current);
+      const answered = document.createElement('button');
+      answered.id = TOUR_FILTER_ANSWERED_ID;
+      document.body.appendChild(answered);
       const total = document.createElement('button');
       total.id = TOUR_FILTER_TOTAL_ID;
       document.body.appendChild(total);
@@ -440,7 +447,7 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts tour when Personal, Current, Answered, and Total exist', () => {
+    it('starts tour when Personal and Public exist', () => {
       mountFourFilters();
       service.startManagingPrayerViewsTour(sampleManagingViewsHelp, managingHooks());
       expect(driver).toHaveBeenCalledTimes(1);
@@ -872,7 +879,7 @@ describe('HelpDriverTourService', () => {
       description: 'Encourage others by marking when you pray',
     };
 
-    it('does not call driver when Current filter tile is missing', () => {
+    it('does not call driver when Public filter tile is missing', () => {
       service.startPrayerEncouragementTour(
         sampleEncouragementSection,
         { hasCommunityPrayer: false },
@@ -882,9 +889,9 @@ describe('HelpDriverTourService', () => {
     });
 
     it('starts with 2 steps when hasCommunityPrayer is false', () => {
-      const cur = document.createElement('button');
-      cur.id = TOUR_FILTER_CURRENT_ID;
-      document.body.appendChild(cur);
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
       service.startPrayerEncouragementTour(
         sampleEncouragementSection,
         { hasCommunityPrayer: false },
@@ -897,9 +904,9 @@ describe('HelpDriverTourService', () => {
     });
 
     it('starts with 3 steps when hasCommunityPrayer is true', () => {
-      const cur = document.createElement('button');
-      cur.id = TOUR_FILTER_CURRENT_ID;
-      document.body.appendChild(cur);
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
       service.startPrayerEncouragementTour(
         sampleEncouragementSection,
         { hasCommunityPrayer: true },
@@ -912,9 +919,9 @@ describe('HelpDriverTourService', () => {
     });
 
     it('step 0 onNext runs switchToCurrent then refresh and moveNext', () => {
-      const cur = document.createElement('button');
-      cur.id = TOUR_FILTER_CURRENT_ID;
-      document.body.appendChild(cur);
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
       const switchToCurrent = vi.fn();
       const refresh = vi.fn();
       const moveNext = vi.fn();
@@ -994,7 +1001,7 @@ describe('HelpDriverTourService', () => {
       ],
     };
 
-    it('does not call driver when Current filter element is missing', () => {
+    it('does not call driver when Public filter element is missing', () => {
       service.startFilteringHelpSectionTour(filteringSection as any, {
         switchToCurrent,
         switchToAnswered,
@@ -1005,7 +1012,10 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts tour when Current filter exists', () => {
+    it('starts tour when Public filter exists', () => {
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
       const cur = document.createElement('button');
       cur.id = TOUR_FILTER_CURRENT_ID;
       document.body.appendChild(cur);
@@ -1018,7 +1028,26 @@ describe('HelpDriverTourService', () => {
       });
       expect(driver).toHaveBeenCalledTimes(1);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBeGreaterThanOrEqual(2);
+      expect(config?.steps?.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('includes Answered and Total steps when community sub-chips are absent at tour start', () => {
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
+
+      service.startFilteringHelpSectionTour(filteringSection as any, {
+        switchToCurrent,
+        switchToAnswered,
+        switchToTotal,
+        switchToPrompts,
+        switchToPersonal: switchToPersonalFilter,
+      });
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const titles = (config?.steps ?? []).map((step) => step.popover?.title);
+      expect(titles).toContain('Answered');
+      expect(titles).toContain('Total');
     });
   });
 
@@ -1482,9 +1511,9 @@ describe('HelpDriverTourService', () => {
 
     it('startPrayerRemindersHelpSectionTour', () => {
       mountSettingsGear(true);
-      const cur = document.createElement('div');
-      cur.id = TOUR_FILTER_CURRENT_ID;
-      document.body.appendChild(cur);
+      const publicTab = document.createElement('div');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
       mountEl(TOUR_PRAYER_REMINDER_BELL_ID, 'button');
       mountEl(TOUR_SETTINGS_PRAYER_REMINDERS_ID, 'div');
       mountEl(TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID, 'div');
@@ -1510,9 +1539,9 @@ describe('HelpDriverTourService', () => {
 
     it('startPrayerRemindersHelpSectionTour omits bell step when anchor is missing', () => {
       mountSettingsGear(true);
-      const cur = document.createElement('div');
-      cur.id = TOUR_FILTER_CURRENT_ID;
-      document.body.appendChild(cur);
+      const publicTab = document.createElement('div');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
       mountEl(TOUR_SETTINGS_PRAYER_REMINDERS_ID, 'div');
       mountEl(TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID, 'div');
       const h = { ...settingsTourHooks(), switchToCurrent: vi.fn() };

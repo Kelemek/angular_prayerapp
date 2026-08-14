@@ -3,6 +3,7 @@ import { BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
 import { ChangeDetectorRef, NgZone } from '@angular/core';
 import { PresentationComponent } from './presentation.component';
+import { prayerFromSlideItem, promptFromSlideItem } from '../../lib/presentation-slide-item';
 import { PresentationCatalogStore } from '../../services/presentation-catalog.store';
 import { PresentationPlaybackController } from '../../services/presentation-playback.controller';
 import { PresentationContentLoader } from '../../services/presentation-content-loader';
@@ -182,11 +183,11 @@ describe('PresentationComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('currentPrayerForCard returns the catalog item by identity', () => {
+  it('prayerFromSlideItem returns the catalog item by identity', () => {
     const prayer = { id: 'p1', prayer_for: 'A', updates: [] } as any;
     component.catalog.prayers = [prayer];
     component.currentIndex = 0;
-    expect(component.currentPrayerForCard).toBe(prayer);
+    expect(prayerFromSlideItem(component.currentItem)).toBe(prayer);
   });
 
   it('onSlideItemRemoved drops the item and clamps the index', () => {
@@ -237,7 +238,7 @@ describe('PresentationComponent', () => {
     mockPromptService.promptsSubject.next([prompt1]);
 
     expect(component.currentIndex).toBe(0);
-    expect(component.currentPromptForCard?.id).toBe('p1');
+    expect(promptFromSlideItem(component.currentItem)?.id).toBe('p1');
   });
 
   it('ngOnInit calls loadContent and setupControlsAutoHide', async () => {
@@ -406,27 +407,9 @@ describe('PresentationComponent', () => {
 
   });
 
-  describe('items helpers', () => {
-    it('isPrayer and isPrompt detect types', () => {
-      const prayer = { prayer_for: 'x' };
-      const prompt = { type: 't' };
-      expect(component.isPrayer(prayer)).toBe(true);
-      expect(component.isPrompt(prayer)).toBe(false);
-      expect(component.isPrompt(prompt)).toBe(true);
-      expect(component.isPrayer(prompt)).toBe(false);
-    });
-
-  });
-
   it('handleThemeChange delegates to ThemeService', () => {
     component.handleThemeChange('dark');
     expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
-  });
-
-  it('theme getter reads from ThemeService', () => {
-    mockThemeService.getTheme.mockReturnValue('light');
-    expect(component.theme).toBe('light');
-    expect(mockThemeService.getTheme).toHaveBeenCalled();
   });
 
   it('setupControlsAutoHide treats device as mobile when touch present', () => {
@@ -477,70 +460,13 @@ describe('PresentationComponent', () => {
     expect(component.currentIndex).toBe(0);
   });
 
-  describe('filter and type handlers', () => {
-    it('handleStatusFilterChange resets index and refetches prayer-scoped content', async () => {
-      const refetchSpy = vi
-        .spyOn(contentCoordinator, 'refetchPrayerScopedContent')
-        .mockResolvedValue();
-      component.currentIndex = 5;
-      await component.handleStatusFilterChange();
-      expect(component.currentIndex).toBe(0);
-      expect(refetchSpy).toHaveBeenCalled();
-    });
-
-    it('handleTimeFilterChange resets index and refetches prayer-scoped content', async () => {
-      const refetchSpy = vi
-        .spyOn(contentCoordinator, 'refetchPrayerScopedContent')
-        .mockResolvedValue();
-      component.currentIndex = 5;
-      await component.handleTimeFilterChange();
-      expect(component.currentIndex).toBe(0);
-      expect(refetchSpy).toHaveBeenCalled();
-    });
-
-    it('handleContentTypeChange resets index and loads content', async () => {
-      const loadSpy = vi.spyOn(component, 'loadContent').mockImplementation(() => Promise.resolve());
-      component.currentIndex = 5;
-      await component.handleContentTypeChange();
-      expect(component.currentIndex).toBe(0);
-      expect(loadSpy).toHaveBeenCalled();
-    });
-
-    it('refreshContent resets index and loads content', async () => {
-      const loadSpy = vi.spyOn(component, 'loadContent').mockImplementation(() => Promise.resolve());
-      component.currentIndex = 5;
-      await component.refreshContent();
-      expect(component.currentIndex).toBe(0);
-      expect(loadSpy).toHaveBeenCalled();
-    });
-  });
-
-  // --- merged from first PresentationComponent suite ---
-
-  it('startPrayerTimer counts down and shows notification when complete', () => {
+  it('startPrayerTimer closes settings via prayer timer host', () => {
     vi.useFakeTimers();
-    component.prayerTimerMinutes = 0.001; // ~0.06s
-    component.showSettings = true;  // Set showSettings to test that it gets closed
-    component.startPrayerTimer();
-    expect(component.prayerTimerActive).toBe(true);
-    expect(component.showSettings).toBe(false);  // Should be closed
-    // advance enough time for timer to complete
-    vi.advanceTimersByTime(2000);
-    expect(component.prayerTimerActive).toBe(false);
-    expect(component.showTimerNotification).toBe(true);
-    vi.useRealTimers();
-  });
-
-  it('startPrayerTimer unsubscribes from existing subscription before starting new one', () => {
-    vi.useFakeTimers();
-    const stopSpy = vi.spyOn(component.prayerTimer, 'stop');
-    
     component.prayerTimerMinutes = 0.001;
+    component.showSettings = true;
     component.startPrayerTimer();
-    
-    expect(stopSpy).toHaveBeenCalled();
-    expect(component.prayerTimerActive).toBe(true);
-    
+    expect(component.prayerTimer.active).toBe(true);
+    expect(component.showSettings).toBe(false);
     vi.useRealTimers();
   });
 

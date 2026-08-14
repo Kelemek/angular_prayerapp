@@ -1,10 +1,6 @@
 <!-- Prayers or Prompts List -->
-@if (viewReady && !(loading$ | async) && !(error$ | async) &&
-!(activeFilter === 'personal' &&
-(prayerService.loadingPersonalPrayers$ | async)) &&
-!(activeFilter === 'memorize' &&
-(memorizationService.loading$ | async))) {
-<div class="space-y-4">
+@if (!contentHidden && !(error$ | async)) {
+<div [class]="stackGapClass">
   <!-- Empty State for Prayers -->
   @if (activeFilter !== 'prompts' && activeFilter !== 'personal' &&
   activeFilter !== 'planning_center_list' && activeFilter !== 'memorize' && (prayers$ |
@@ -55,8 +51,8 @@
 
   <!-- Empty State for Personal Prayers -->
   @if (activeFilter === 'personal' &&
-  !(prayerService.loadingPersonalPrayers$ | async) &&
-  catalog.filteredPersonalPrayers.length === 0) {
+  !(loadingPersonalPrayers$ | async) &&
+  filteredPersonalPrayers.length === 0) {
   <div
     class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700"
   >
@@ -99,7 +95,7 @@
 
   <!-- Empty State for Planning Center List -->
   @if (activeFilter === 'planning_center_list' &&
-  catalog.filteredPlanningCenterPrayers.length === 0) {
+  filteredPlanningCenterPrayers.length === 0) {
   <div
     class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700"
   >
@@ -144,7 +140,7 @@
   @if (activeFilter !== 'prompts' && activeFilter !== 'personal' &&
   activeFilter !== 'memorize') {
   @if (activeFilter === 'planning_center_list') { @for (prayer of
-  catalog.filteredPlanningCenterPrayers; track prayer.id; let
+  filteredPlanningCenterPrayers; track prayer.id; let
   isFirstPrayer = $first) {
   <app-prayer-card
     [attr.id]="'prayer-card-' + prayer.id"
@@ -154,13 +150,13 @@
     [deletionsAllowed]="deletionsAllowed"
     [updatesAllowed]="updatesAllowed"
     [tourUpdateAnchors]="isFirstPrayer"
-    (delete)="prayerCardActions.deleteCard(prayer)"
-    (addUpdate)="memberCardActions.onCardAddUpdate(prayer, $event)"
-    (deleteUpdate)="memberCardActions.onCardDeleteUpdate(prayer, $event)"
-    (requestDeletion)="prayerCardActions.requestDeletion($event)"
-    (requestUpdateDeletion)="prayerCardActions.requestUpdateDeletion($event)"
-    (editMemberUpdate)="modals.openEditMemberUpdateModal($event)"
-    (toggleUpdateAnswered)="memberCardActions.toggleMemberUpdateAnswered($event)"
+    (delete)="handlers.deleteCard(prayer)"
+    (addUpdate)="handlers.onCardAddUpdate(prayer, $event)"
+    (deleteUpdate)="handlers.onCardDeleteUpdate(prayer, $event)"
+    (requestDeletion)="handlers.requestDeletion($event)"
+    (requestUpdateDeletion)="handlers.requestUpdateDeletion($event)"
+    (editMemberUpdate)="handlers.editMemberUpdate($event)"
+    (toggleUpdateAnswered)="handlers.toggleMemberUpdateAnswered($event)"
   ></app-prayer-card>
   } } @else { @for (prayer of prayers$ | async; track prayer.id; let
   isFirstPrayer = $first) {
@@ -174,27 +170,27 @@
     [tourUpdateAnchors]="isFirstPrayer"
     [tourPrayForEncouragementAnchors]="isFirstPrayer"
     [tourPrayerReminderBellAnchors]="isFirstPrayer"
-    (delete)="prayerCardActions.deleteCard(prayer)"
-    (addUpdate)="memberCardActions.onCardAddUpdate(prayer, $event)"
-    (deleteUpdate)="memberCardActions.onCardDeleteUpdate(prayer, $event)"
-    (requestDeletion)="prayerCardActions.requestDeletion($event)"
-    (requestUpdateDeletion)="prayerCardActions.requestUpdateDeletion($event)"
+    (delete)="handlers.deleteCard(prayer)"
+    (addUpdate)="handlers.onCardAddUpdate(prayer, $event)"
+    (deleteUpdate)="handlers.onCardDeleteUpdate(prayer, $event)"
+    (requestDeletion)="handlers.requestDeletion($event)"
+    (requestUpdateDeletion)="handlers.requestUpdateDeletion($event)"
   ></app-prayer-card>
   } } }
 
   @if (activeFilter === 'memorize') {
   <app-memorize-passages-panel
-    [items]="memorizationPanel.memorizedItems"
+    [items]="memorizedItems"
     [searchTerm]="filters.searchTerm ?? ''"
-    [loading]="!!(memorizationService.loading$ | async)"
-    [addVersesActive]="memorizationPanel.showAddMemorizedVerse"
-    [bibleBooksActive]="memorizationPanel.showAddMemorizedBibleBooks"
-    [recommendedActive]="memorizationPanel.showMemorizationRecommendations"
-    (addVerses)="memorizationPanel.showAddMemorizedVerse = true"
-    (addBibleBooks)="memorizationPanel.showAddMemorizedBibleBooks = true"
-    (openRecommended)="memorizationPanel.openMemorizationRecommendations()"
-    (practice)="memorizationPanel.openMemorizationPractice($event)"
-    (remove)="memorizationPanel.confirmRemoveMemorizedItem($event)"
+    [loading]="!!(memorizeLoading$ | async)"
+    [addVersesActive]="showAddMemorizedVerse"
+    [bibleBooksActive]="showAddMemorizedBibleBooks"
+    [recommendedActive]="showMemorizationRecommendations"
+    (addVerses)="handlers.openMemorizationAddVerses()"
+    (addBibleBooks)="handlers.openMemorizationBibleBooks()"
+    (openRecommended)="handlers.openMemorizationRecommendations()"
+    (practice)="handlers.openMemorizationPractice($event)"
+    (remove)="handlers.confirmRemoveMemorizedItem($event)"
   />
   }
 
@@ -202,11 +198,11 @@
   @if (activeFilter === 'personal') {
   <div
     cdkDropList
-    (cdkDropListDropped)="personalCategory.onPersonalPrayerDrop($event)"
-    [cdkDropListDisabled]="!personalCategory.canReorderPersonalPrayers"
-    class="space-y-3"
+    (cdkDropListDropped)="handlers.onPersonalPrayerDrop($event)"
+    [cdkDropListDisabled]="!canReorderPersonalPrayers"
+    [class]="stackGapClass"
   >
-    @for (prayer of catalog.filteredPersonalPrayers; track prayer.id; let
+    @for (prayer of filteredPersonalPrayers; track prayer.id; let
     isFirstPrayer = $first) {
     <div
       cdkDrag
@@ -221,7 +217,7 @@
         [isPersonal]="true"
         [deletionsAllowed]="'everyone'"
         [updatesAllowed]="'everyone'"
-        [personalDragHandle]="personalCategory.canReorderPersonalPrayers"
+        [personalDragHandle]="canReorderPersonalPrayers"
         [personalDragTourId]="
           prayer.prayer_for === personalWalkthroughPrayerFor
             ? 'tour-walkthrough-personal-drag-handle'
@@ -235,11 +231,11 @@
           prayer.prayer_for === personalWalkthroughPrayerFor &&
           prayer.description === personalWalkthroughDescription
         "
-        (delete)="prayerCardActions.deleteCard(prayer)"
-        (addUpdate)="memberCardActions.onCardAddUpdate(prayer, $event)"
-        (deleteUpdate)="memberCardActions.onCardDeleteUpdate(prayer, $event)"
-        (editPersonalPrayer)="modals.openEditModal($event)"
-        (editPersonalUpdate)="modals.openEditUpdateModal($event)"
+        (delete)="handlers.deleteCard(prayer)"
+        (addUpdate)="handlers.onCardAddUpdate(prayer, $event)"
+        (deleteUpdate)="handlers.onCardDeleteUpdate(prayer, $event)"
+        (editPersonalPrayer)="handlers.editPersonalPrayer($event)"
+        (editPersonalUpdate)="handlers.editPersonalUpdate($event)"
               (categoryPickerOpenChange)="
                 onCategoryPickerOpenChange(prayer.id, $event)
               "
@@ -250,7 +246,7 @@
   }
 
   <!-- Empty State for Prompts -->
-  @if (activeFilter === 'prompts' && catalog.displayedPrompts.length === 0) {
+  @if (activeFilter === 'prompts' && displayedPrompts.length === 0) {
   @if ((prompts$ | async)?.length === 0) {
   <div
     id="tour-prompt-empty-state"
@@ -302,14 +298,14 @@
 
   <!-- Prompt Cards (only show when on prompts filter) -->
   @if (activeFilter === 'prompts') { @for (prompt of
-  catalog.displayedPrompts; track prompt.id) {
+  displayedPrompts; track prompt.id) {
   <app-prompt-card
     [prompt]="prompt"
     [isAdmin]="(isAdmin$ | async) || false"
-    [isTypeSelected]="filter.isPromptTypeSelected(prompt.type)"
+    [isTypeSelected]="isPromptTypeSelected(prompt.type)"
     [tourPromptAnchors]="$first"
-    (delete)="prayerCardActions.deletePrompt($event)"
-    (onTypeClick)="filter.togglePromptType($event)"
+    (delete)="handlers.deletePrompt($event)"
+    (onTypeClick)="handlers.togglePromptType($event)"
   ></app-prompt-card>
   } }
 </div>

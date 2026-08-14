@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { HomePersonalCategoryController } from "./home-personal-category.controller";
 import type { PrayerRequest } from "./prayer.service";
 
+function prayersWithCategoryOrder(
+  entries: Array<{ category: string; display_order: number }>
+): PrayerRequest[] {
+  return entries.map((entry, index) => ({
+    id: String(index + 1),
+    category: entry.category,
+    display_order: entry.display_order,
+  })) as PrayerRequest[];
+}
+
 describe("HomePersonalCategoryController", () => {
   let controller: HomePersonalCategoryController;
   let host: {
@@ -13,7 +23,7 @@ describe("HomePersonalCategoryController", () => {
   let prayerService: {
     swapCategoryRanges: ReturnType<typeof vi.fn>;
     reorderCategories: ReturnType<typeof vi.fn>;
-    getUniqueCategoriesForUser: ReturnType<typeof vi.fn>;
+    getPersonalPrayersSnapshot: ReturnType<typeof vi.fn>;
     renamePersonalCategory: ReturnType<typeof vi.fn>;
     updatePersonalPrayerOrder: ReturnType<typeof vi.fn>;
   };
@@ -37,7 +47,7 @@ describe("HomePersonalCategoryController", () => {
     prayerService = {
       swapCategoryRanges: vi.fn(),
       reorderCategories: vi.fn(),
-      getUniqueCategoriesForUser: vi.fn().mockResolvedValue(["Health", "Family"]),
+      getPersonalPrayersSnapshot: vi.fn(() => []),
       renamePersonalCategory: vi.fn(),
       updatePersonalPrayerOrder: vi.fn(),
     };
@@ -72,13 +82,26 @@ describe("HomePersonalCategoryController", () => {
     expect(controller.personalCategoryFilterMode).toBe("total");
   });
 
-  it("onCategoryDrop uses swapCategoryRanges for adjacent swap", async () => {
-    prayerService.swapCategoryRanges.mockResolvedValue(true);
-    host.getPersonalPrayers.mockReturnValue([
-      { id: "1", category: "Leaders" } as PrayerRequest,
-    ]);
+  it("derives named categories from prayer snapshot excluding Answered", () => {
+    prayerService.getPersonalPrayersSnapshot.mockReturnValue(
+      prayersWithCategoryOrder([
+        { category: "Health", display_order: 2000 },
+        { category: "Answered", display_order: 1500 },
+        { category: "Family", display_order: 1000 },
+      ])
+    );
+    expect(controller.uniquePersonalCategories).toEqual(["Health", "Family"]);
+  });
 
-    controller.uniquePersonalCategories = ["Members", "Leaders"];
+  it("onCategoryDrop uses swapCategoryRanges for adjacent swap", async () => {
+    prayerService.getPersonalPrayersSnapshot.mockReturnValue(
+      prayersWithCategoryOrder([
+        { category: "Members", display_order: 2000 },
+        { category: "Leaders", display_order: 1000 },
+      ])
+    );
+    prayerService.swapCategoryRanges.mockResolvedValue(true);
+
     await controller.onCategoryDrop({
       previousIndex: 0,
       currentIndex: 1,
@@ -88,20 +111,37 @@ describe("HomePersonalCategoryController", () => {
       "Members",
       "Leaders"
     );
-    expect(controller.isSwappingCategories).toBe(false);
+    expect(host.getPersonalPrayers).not.toHaveBeenCalled();
+    expect(controller.isCategoryDropListDisabled).toBe(false);
   });
 
-  it("onCategoryDrop rolls back on failure", async () => {
+  it("onCategoryDrop rolls back optimistic order when swap fails", async () => {
+    prayerService.getPersonalPrayersSnapshot.mockReturnValue(
+      prayersWithCategoryOrder([
+        { category: "Members", display_order: 2000 },
+        { category: "Leaders", display_order: 1000 },
+      ])
+    );
     prayerService.swapCategoryRanges.mockResolvedValue(false);
-    controller.uniquePersonalCategories = ["Members", "Leaders"];
+
     await controller.onCategoryDrop({
       previousIndex: 0,
       currentIndex: 1,
     } as any);
+
     expect(toastService.error).toHaveBeenCalledWith(
       "Failed to reorder categories"
     );
     expect(controller.uniquePersonalCategories).toEqual(["Members", "Leaders"]);
+  });
+
+  it("syncCategoriesFromPrayers clears pending optimistic order", async () => {
+    prayerService.getPersonalPrayersSnapshot.mockReturnValue(
+      prayersWithCategoryOrder([{ category: "Health", display_order: 1000 }])
+    );
+    await controller.syncCategoriesFromPrayers([]);
+    expect(controller.uniquePersonalCategories).toEqual(["Health"]);
+    expect(host.markForCheck).toHaveBeenCalled();
   });
 
   it("onPersonalPrayerDrop refreshes catalog after optimistic reorder", async () => {

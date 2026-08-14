@@ -21,32 +21,34 @@ import {
   SelectablePresentationContentType,
 } from "../../types/presentation";
 import { PresentationToolbarComponent } from "../../components/presentation-toolbar/presentation-toolbar.component";
-import { PrayerPrompt } from "../../components/prompt-card/prompt-card.component";
 import { PresentationSlideCardComponent } from "../../components/presentation-slide-card/presentation-slide-card.component";
 import { PrayerAllowancePolicyService } from "../../services/prayer-allowance-policy.service";
 import {
   PresentationCatalogStore,
-  type PresentationSlideItem,
-  isPresentationPrompt,
+  type   PresentationSlideItem,
 } from "../../services/presentation-catalog.store";
 import { PresentationSettingsModalComponent } from "../../components/presentation-settings-modal/presentation-settings-modal.component";
 import { HelpDriverTourService } from "../../services/help-driver-tour.service";
 import { PresentationPlaybackController } from "../../services/presentation-playback.controller";
-import { PresentationPlaybackHostAdapter } from "../../services/presentation-playback-host.adapter";
 import { PresentationContentCoordinator } from "../../services/presentation-content.coordinator";
 import { PresentationContentLoader } from "../../services/presentation-content-loader";
 import { PresentationPrayerTimerController } from "../../services/presentation-prayer-timer.controller";
-import { PresentationPrayerTimerHostAdapter } from "../../services/presentation-prayer-timer-host.adapter";
 import { PresentationControlsInputController } from "../../services/presentation-controls-input.controller";
-import { PresentationControlsInputHostAdapter } from "../../services/presentation-controls-input-host.adapter";
 import { PresentationHelpTourLauncher } from "../../services/presentation-help-tour.launcher";
-import { PresentationHelpTourHostAdapter } from "../../services/presentation-help-tour-host.adapter";
 import { PresentationHomeHandoffCoordinator } from "../../services/presentation-home-handoff.coordinator";
 import { PresentationSettingsCoordinator } from "../../services/presentation-settings.coordinator";
+import {
+  wirePresentationControllers,
+  type WiredPresentationHosts,
+} from "../../services/presentation-coordinator-wiring";
 import {
   getPresentationContentLoadingLabel,
   getPresentationEmptyContentMessage,
 } from "../../lib/presentation-content-messages";
+import {
+  prayerFromSlideItem,
+  promptFromSlideItem,
+} from "../../lib/presentation-slide-item";
 import { shuffleCopy } from "../../lib/shuffle-copy";
 import type { PrayerRequest } from "../../services/prayer.service";
 
@@ -125,7 +127,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private helpDriverTourService: HelpDriverTourService,
     private readonly planningCenterListService: PlanningCenterListService,
-    private readonly themeService: ThemeService,
+    readonly themeService: ThemeService,
     readonly prayerAllowancePolicy: PrayerAllowancePolicyService,
     readonly catalog: PresentationCatalogStore,
     readonly playback: PresentationPlaybackController,
@@ -137,46 +139,30 @@ export class PresentationComponent implements OnInit, OnDestroy {
     private readonly settingsCoordinator: PresentationSettingsCoordinator
   ) {}
 
-  private prayerTimerHost!: PresentationPrayerTimerHostAdapter;
-  private controlsInputHost!: PresentationControlsInputHostAdapter;
-  private helpTourHost!: PresentationHelpTourHostAdapter;
+  private presentationHosts!: WiredPresentationHosts;
 
-  get prayerTimerActive(): boolean {
-    return this.prayerTimer.active;
+  readonly slidePrayerFromItem = prayerFromSlideItem;
+  readonly slidePromptFromItem = promptFromSlideItem;
+
+  private get prayerTimerHost() {
+    return this.presentationHosts.prayerTimerHost;
   }
 
-  set prayerTimerActive(value: boolean) {
-    this.prayerTimer.active = value;
+  private get controlsInputHost() {
+    return this.presentationHosts.controlsInputHost;
   }
 
-  get prayerTimerRemaining(): number {
-    return this.prayerTimer.remainingSeconds;
-  }
-
-  set prayerTimerRemaining(value: number) {
-    this.prayerTimer.remainingSeconds = value;
-  }
-
-  get theme(): Theme {
-    return this.themeService.getTheme();
+  private get helpTourHost() {
+    return this.presentationHosts.helpTourHost;
   }
 
   private wireControllers(): void {
-    this.playback.bindHost(
-      new PresentationPlaybackHostAdapter(this, this.cdr)
-    );
-    this.prayerTimerHost = new PresentationPrayerTimerHostAdapter(this, this.cdr);
-    this.controlsInputHost = new PresentationControlsInputHostAdapter(this, {
-      onNextSlide: () => this.playback.nextSlide(),
-      onPreviousSlide: () => this.playback.previousSlide(),
-      onTogglePlay: () => this.playback.togglePlay(),
-      onExitPresentation: () => this.exitPresentation(),
-    });
-    this.helpTourHost = new PresentationHelpTourHostAdapter(this, {
-      markForCheck: () => this.cdr.markForCheck(),
+    this.presentationHosts = wirePresentationControllers({
+      page: this,
+      cdr: this.cdr,
+      playback: this.playback,
+      controlsInput: this.controlsInput,
       exitPresentation: () => this.exitPresentation(),
-      cancelControlsInitialTimer: () =>
-        this.controlsInput.cancelInitialAutoHideTimer(),
     });
   }
 
@@ -382,24 +368,6 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   get currentItem(): PresentationSlideItem | undefined {
     return this.items[this.currentIndex];
-  }
-
-  get currentPrayerForCard(): PrayerRequest | null {
-    const item = this.currentItem;
-    return item && this.isPrayer(item) ? item : null;
-  }
-
-  get currentPromptForCard(): PrayerPrompt | null {
-    const item = this.currentItem;
-    return item && this.isPrompt(item) ? item : null;
-  }
-
-  isPrayer(item: PresentationSlideItem | null | undefined): item is PrayerRequest {
-    return !!item && "prayer_for" in item;
-  }
-
-  isPrompt(item: PresentationSlideItem | null | undefined): item is PrayerPrompt {
-    return isPresentationPrompt(item);
   }
 
   async refreshContent(): Promise<void> {
