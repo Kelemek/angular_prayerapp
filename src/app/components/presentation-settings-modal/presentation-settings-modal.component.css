@@ -1,0 +1,10 @@
+:host {
+  display: contents;
+}
+:host .presentation-settings-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+:host .presentation-settings-body::-webkit-scrollbar {
+  display: none;
+}

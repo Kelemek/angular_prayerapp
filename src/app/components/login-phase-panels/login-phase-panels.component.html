@@ -1,0 +1,57 @@
+@switch (phase.kind) {
+  @case ('email') {
+  <app-login-email-form
+    [email]="email"
+    (emailChange)="shell.handlers.setEmail($event)"
+    [loading]="loading"
+    [error]="error"
+    [canSubmit]="shell.isValidEmail()"
+    (submitForm)="shell.handlers.submitEmail($event)"
+  />
+  }
+  @case ('mfa') {
+  <div class="space-y-4">
+    <app-login-mfa-panel
+      [email]="email"
+      [codeLength]="codeLength"
+      [mfaCodeInput]="mfaCodeInput"
+      (mfaCodeInputChange)="shell.handlers.setMfaCodeInput($event)"
+      [loading]="loading"
+      [resendLoading]="resendLoading"
+      [error]="error"
+      [showInstructions]="true"
+      (codeInput)="shell.handlers.onMfaCodeInput()"
+      (codeBlur)="shell.handlers.sanitizeMfaCode()"
+      (enterSubmit)="shell.handlers.submitEmail($event)"
+      (resend)="shell.handlers.resendMfa()"
+      (reset)="shell.handlers.resetLogin()"
+    />
+  </div>
+  }
+  @case ('registration') {
+  <div class="space-y-4">
+    <app-login-registration-form
+      [firstName]="firstName"
+      (firstNameChange)="shell.handlers.setFirstName($event)"
+      [lastName]="lastName"
+      (lastNameChange)="shell.handlers.setLastName($event)"
+      [affiliationReason]="affiliationReason"
+      (affiliationReasonChange)="shell.handlers.setAffiliationReason($event)"
+      [requiresApproval]="phase.requiresApproval"
+      [loading]="loading"
+      [error]="error"
+      (save)="shell.handlers.saveRegistration()"
+    />
+  </div>
+  }
+  @case ('pending_approval') {
+  <div class="space-y-4">
+    <app-login-account-status status="pending_approval" />
+  </div>
+  }
+  @case ('blocked') {
+  <div class="space-y-4">
+    <app-login-account-status status="blocked" />
+  </div>
+  }
+}

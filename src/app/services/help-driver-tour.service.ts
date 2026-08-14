@@ -1451,7 +1451,7 @@ export class HelpDriverTourService {
 
   /**
    * **Filtering Prayers** (`help_filtering`): intro from section title/description; each step **title** matches the
-   * highlighted control (**Public**, **Current**, **Answered**, **Total**, **Prompts**, **Personal**, **Search**). Help copy lives
+   * highlighted control (**Public**, **Current**, **Answered**, **Total**, **Personal**, **Prompts**, **Search**). Help copy lives
    * in descriptions; **Next** applies the matching filter then advances.
    */
   startFilteringHelpSectionTour(section: HelpSection, hooks: FilteringHelpSectionTourHooks): void {
@@ -1539,23 +1539,6 @@ export class HelpDriverTourService {
       });
     }
 
-    const promptsPhrase = excerptForNamedFilter(overview, 'Prompts');
-    if (getPromptsFilterEl()) {
-      steps.push({
-        element: () => getPromptsFilterEl()!,
-        popover: {
-          title: escapeHtml('Prompts'),
-          description: promptsPhrase
-            ? escapeHtml(promptsPhrase)
-            : escapeHtml('This filter shows prayer prompt cards.'),
-          side: 'bottom',
-          align: 'start',
-          nextBtnText: 'Next',
-          onNextClick: this.advanceAfterOrKill(hooks.switchToPrompts),
-        },
-      });
-    }
-
     if (c1 && getPersonalFilterEl()) {
       const personalDescription = `${escapeHtml(c1.subtitle)}<br><br>${escapeHtml(c1.text)}`;
       const advancePersonal = hooks.openSearchPanel
@@ -1573,6 +1556,23 @@ export class HelpDriverTourService {
           align: 'start',
           nextBtnText: 'Next',
           onNextClick: this.advanceAfterOrKill(advancePersonal),
+        },
+      });
+    }
+
+    const promptsPhrase = excerptForNamedFilter(overview, 'Prompts');
+    if (getPromptsFilterEl()) {
+      steps.push({
+        element: () => getPromptsFilterEl()!,
+        popover: {
+          title: escapeHtml('Prompts'),
+          description: promptsPhrase
+            ? escapeHtml(promptsPhrase)
+            : escapeHtml('This filter shows prayer prompt cards.'),
+          side: 'bottom',
+          align: 'start',
+          nextBtnText: 'Next',
+          onNextClick: this.advanceAfterOrKill(hooks.switchToPrompts),
         },
       });
     }

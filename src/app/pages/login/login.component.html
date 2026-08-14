@@ -1,0 +1,21 @@
+<app-login-page-layout>
+  <app-login-header
+    [useLogo]="useLogo"
+    [logoUrl]="logoUrl"
+    [requireSiteLogin]="requireSiteLogin"
+  />
+
+  <app-login-phase-panels
+    [phase]="phase"
+    [shell]="shell"
+    [email]="email"
+    [mfaCodeInput]="mfaCodeInput"
+    [codeLength]="codeLength"
+    [loading]="loading"
+    [resendLoading]="resendLoading"
+    [error]="error"
+    [firstName]="firstName"
+    [lastName]="lastName"
+    [affiliationReason]="affiliationReason"
+  />
+</app-login-page-layout>

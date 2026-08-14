@@ -1,0 +1,45 @@
+<div class="text-center">
+  @if (useLogo && logoUrl) {
+  <div class="flex justify-center mb-4">
+    <img
+      [src]="logoUrl"
+      alt="Prayer Community Logo"
+      class="h-16 w-auto max-w-xs object-contain"
+    />
+  </div>
+  } @if (!useLogo || !logoUrl) {
+  <svg
+    class="mx-auto h-16 w-16 text-[#2F5F54] dark:text-emerald-400"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+  >
+    <path
+      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+    />
+  </svg>
+  }
+  <h2 class="mt-6 text-4xl font-bold text-[#2F5F54] dark:text-[#2F5F54]">
+    Prayer Community
+  </h2>
+  <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+    {{
+      requireSiteLogin
+        ? "Sign in to join our community"
+        : "Secure access with verification code"
+    }}
+  </p>
+  <p class="mt-1 text-xs text-gray-500 dark:text-gray-500 italic">
+    "Where prayer brings us together"
+  </p>
+</div>
+
+<div class="mt-2 text-center">
+  <a
+    routerLink="/info"
+    class="inline-flex items-center justify-center gap-1 text-xs text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+  >
+    <span>Learn more about this app</span>
+  </a>
+</div>

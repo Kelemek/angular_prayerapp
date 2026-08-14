@@ -12,10 +12,12 @@ import {
   ChangeDetectorRef,
   inject,
 } from "@angular/core";
+import { NgClass } from "@angular/common";
 
 @Component({
   selector: "app-modal-shell",
   standalone: true,
+  imports: [NgClass],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -39,6 +41,7 @@ import {
     <div
       #overlay
       class="modal-shell-overlay fixed inset-0 bg-gray-900/50 z-50 flex items-start sm:items-center justify-center px-2 pb-2 sm:px-4 sm:pb-4 overflow-hidden overscroll-none touch-none safe-area-overlay"
+      [ngClass]="overlayClass"
       [style.top]="overlayTop"
       [style.left]="overlayLeft"
       [style.width]="overlayWidth"
@@ -48,13 +51,16 @@ import {
     >
       <div
         [id]="panelId || null"
-        class="modal-shell-panel flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full overflow-hidden touch-none"
+        class="modal-shell-panel flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full overflow-hidden touch-none"
+        [ngClass]="panelClass"
         [style.max-height]="panelMaxHeight"
         (click)="$event.stopPropagation()"
         role="dialog"
         aria-modal="true"
-        [attr.aria-labelledby]="titleId"
+        [attr.aria-labelledby]="showHeader ? titleId : null"
+        [attr.aria-label]="!showHeader && ariaLabel ? ariaLabel : null"
       >
+        @if (showHeader) {
         <div
           class="flex shrink-0 items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 touch-none"
         >
@@ -86,11 +92,36 @@ import {
             </svg>
           </button>
         </div>
+        }
         <div
           #bodyScroller
           class="modal-shell-body flex-1 min-h-0 overflow-y-auto touch-pan-y"
+          [class.relative]="!showHeader"
           (focusin)="onBodyFocusIn($event)"
         >
+          @if (!showHeader) {
+          <button
+            type="button"
+            (click)="close.emit()"
+            [attr.aria-label]="closeAriaLabel"
+            class="absolute top-3 right-3 p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer z-10"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+          }
           <ng-content />
         </div>
       </div>
@@ -107,6 +138,11 @@ export class ModalShellComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() titleId = "modal-title";
   @Input() panelId = "";
   @Input() closeAriaLabel = "Close dialog";
+  @Input() panelClass = "max-w-2xl";
+  @Input() overlayClass = "";
+  @Input() closeOnBackdrop = true;
+  @Input() showHeader = true;
+  @Input() ariaLabel = "";
 
   @Output() close = new EventEmitter<void>();
 
@@ -190,6 +226,9 @@ export class ModalShellComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onBackdropClick(event: MouseEvent): void {
+    if (!this.closeOnBackdrop) {
+      return;
+    }
     if (event.target === event.currentTarget) {
       this.close.emit();
     }

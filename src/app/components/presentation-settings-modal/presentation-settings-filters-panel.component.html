@@ -1,0 +1,57 @@
+<app-presentation-settings-section-card
+  title="Filters"
+  subtitle="Choose what to show and narrow which items appear in this session"
+  bodyClass="space-y-4"
+  headerClass="mb-0"
+  subtitleClass="mt-1 mb-4"
+>
+  <app-presentation-settings-multi-select-filter-row
+    label="Content type"
+    tourAnchorId="tour-presentation-setting-content-type"
+    dropdownKey="content-type"
+    allSelectedLabel="All Content Types"
+    [field]="contentTypeField"
+    [options]="contentTypeDropdownOptions"
+  />
+
+  @if (
+    includesPresentationContentType(localContentTypes, 'personal') &&
+    availableCategories.length > 0
+  ) {
+  <app-presentation-settings-multi-select-filter-row
+    label="Personal categories"
+    tourAnchorId="tour-presentation-setting-categories"
+    dropdownKey="categories"
+    allSelectedLabel="All Categories"
+    [field]="categoriesField"
+    [options]="categoryDropdownOptions"
+  />
+  }
+
+  @if (
+    includesPresentationContentType(localContentTypes, 'prompts') &&
+    availablePromptCategories.length > 0
+  ) {
+  <app-presentation-settings-multi-select-filter-row
+    label="Prompt categories"
+    tourAnchorId="tour-presentation-setting-prompt-categories"
+    dropdownKey="prompt-categories"
+    allSelectedLabel="All Categories"
+    [field]="promptCategoriesField"
+    [options]="promptCategoryDropdownOptions"
+  />
+  }
+
+  @if (showsPrayerTimeStatusFilters(localContentTypes)) {
+  <app-presentation-settings-prayer-status-time-filters
+    [statusField]="statusField"
+    [statusDropdownOptions]="statusDropdownOptions"
+    [timeFilterDisplay]="getTimeFilterDisplay()"
+    [showTimeFilterDropdown]="timeFilterDropdown.open"
+    [localTimeFilter]="localTimeFilter"
+    [timeFilterOptions]="timeFilterOptions"
+    (toggleTimeFilter)="toggleTimeFilterDropdown()"
+    (selectTimeFilter)="selectTimeFilter($event)"
+  />
+  }
+</app-presentation-settings-section-card>

@@ -1,0 +1,42 @@
+<app-presentation-settings-section-card title="Display &amp; Timing">
+  <div id="tour-presentation-setting-smart">
+    <app-presentation-settings-toggle-row
+      label="Smart mode"
+      [checked]="localSmartMode"
+      (checkedChange)="setSmartMode($event)"
+    />
+  </div>
+
+  @if (!localSmartMode) {
+  <div id="tour-presentation-setting-duration" class="mt-4">
+    <app-presentation-settings-duration-controls
+      [durationSeconds]="localDisplayDuration"
+      (durationChange)="setDuration($event)"
+    />
+  </div>
+  }
+
+  @if (localSmartMode) {
+  <div id="tour-presentation-setting-smart-info">
+    <app-presentation-settings-smart-mode-info />
+  </div>
+  }
+
+  <div id="tour-presentation-setting-randomize" class="mt-4">
+    <app-presentation-settings-toggle-row
+      label="Randomize order"
+      hint="Shuffle the display order randomly"
+      [checked]="localRandomize"
+      (checkedChange)="setRandomize($event)"
+    />
+  </div>
+
+  <div id="tour-presentation-setting-loop" class="mt-4">
+    <app-presentation-settings-toggle-row
+      label="Loop"
+      hint="When off, playback runs through the list once and stops"
+      [checked]="localLoop"
+      (checkedChange)="setLoop($event)"
+    />
+  </div>
+</app-presentation-settings-section-card>

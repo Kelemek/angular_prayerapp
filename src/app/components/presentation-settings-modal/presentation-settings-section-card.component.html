@@ -1,0 +1,29 @@
+<div
+  [id]="tourAnchorId || null"
+  class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4"
+>
+  @if (title || subtitle) {
+  <div [class]="headerClass">
+    @if (title) {
+    <div
+      class="font-medium text-gray-800 dark:text-gray-100"
+      [class]="titleClass"
+    >
+      {{ title }}
+    </div>
+    }
+    @if (subtitle) {
+    <p
+      class="text-xs sm:text-sm text-gray-600 dark:text-gray-400"
+      [class]="subtitleClass"
+    >
+      {{ subtitle }}
+    </p>
+    }
+  </div>
+  }
+
+  <div [class]="bodyClass">
+    <ng-content />
+  </div>
+</div>

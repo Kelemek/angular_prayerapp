@@ -1,0 +1,20 @@
+<app-info-preview-header-modal
+  [headerAction]="headerAction()"
+  (closeModal)="closeModal()"
+/>
+<app-info-preview-prompt-categories-modal
+  [open]="isModalOpen('promptCategories')"
+  (closeModal)="closeModal()"
+/>
+<app-info-preview-badges-modal
+  [open]="isModalOpen('badges')"
+  (closeModal)="closeModal()"
+/>
+<app-info-preview-personal-action-modal
+  [previewAction]="personalPreviewAction()"
+  (closeModal)="closeModal()"
+/>
+<app-info-preview-personal-categories-modal
+  [open]="isModalOpen('personalCategories')"
+  (closeModal)="closeModal()"
+/>

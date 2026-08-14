@@ -1,0 +1,92 @@
+<div class="grid grid-cols-3 gap-1.5 sm:gap-2">
+  <button
+    type="button"
+    (click)="themeChange.emit('light')"
+    class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
+    [ngClass]="{
+      'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'light',
+      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+        theme !== 'light'
+    }"
+  >
+    <svg
+      width="18"
+      height="18"
+      class="text-amber-600 sm:w-5 sm:h-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+    <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+      >Light</span
+    >
+  </button>
+  <button
+    type="button"
+    (click)="themeChange.emit('dark')"
+    class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
+    [ngClass]="{
+      'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'dark',
+      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+        theme !== 'dark'
+    }"
+  >
+    <svg
+      width="18"
+      height="18"
+      class="text-blue-600 dark:text-blue-400 sm:w-5 sm:h-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+    <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+      >Dark</span
+    >
+  </button>
+  <button
+    type="button"
+    (click)="themeChange.emit('system')"
+    class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
+    [ngClass]="{
+      'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'system',
+      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+        theme !== 'system'
+    }"
+  >
+    <svg
+      width="18"
+      height="18"
+      class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+      <line x1="8" y1="21" x2="16" y2="21"></line>
+    </svg>
+    <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+      >System</span
+    >
+  </button>
+</div>

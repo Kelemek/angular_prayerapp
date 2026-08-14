@@ -1,0 +1,21 @@
+<app-presentation-settings-range-field
+  label="Auto-advance interval (seconds)"
+  [min]="5"
+  [max]="60"
+  [step]="5"
+  [value]="durationSeconds"
+  valueSuffix="s"
+  (valueChange)="durationChange.emit($event)"
+/>
+
+<div class="flex gap-2 sm:gap-3 mt-3 sm:mt-4">
+  @for (seconds of presetDurations; track seconds) {
+  <button
+    type="button"
+    (click)="setDuration(seconds)"
+    class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-base sm:text-lg transition-colors cursor-pointer"
+  >
+    {{ seconds }}s
+  </button>
+  }
+</div>

@@ -34,6 +34,28 @@
           </div>
         </button>
 
+        <!-- Personal Prayers Filter -->
+        <button
+          id="tour-filter-personal"
+          (click)="tabSelected.emit('personal')"
+          title="Show your personal prayers"
+          [class]="
+            'flex-1 min-w-0 rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
+            (activeFilter === 'personal'
+              ? 'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0'
+              : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#2F5F54] dark:hover:!border-[#2F5F54] hover:shadow-lg')
+          "
+        >
+          <div
+            class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
+          >
+            {{ personalPrayersCount }}
+          </div>
+          <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
+            Personal
+          </div>
+        </button>
+
         <button
           id="tour-filter-prompts"
           (click)="tabSelected.emit('prompts')"
@@ -60,28 +82,6 @@
           </div>
           <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
             Prompts
-          </div>
-        </button>
-
-        <!-- Personal Prayers Filter -->
-        <button
-          id="tour-filter-personal"
-          (click)="tabSelected.emit('personal')"
-          title="Show your personal prayers"
-          [class]="
-            'flex-1 min-w-0 rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
-            (activeFilter === 'personal'
-              ? 'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0'
-              : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#2F5F54] dark:hover:!border-[#2F5F54] hover:shadow-lg')
-          "
-        >
-          <div
-            class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-          >
-            {{ personalPrayersCount }}
-          </div>
-          <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
-            Personal
           </div>
         </button>
 

@@ -1,0 +1,11 @@
+<app-presentation-settings-single-select-dropdown
+  [label]="label"
+  [tourAnchorId]="tourAnchorId"
+  [dropdownKey]="dropdownKey"
+  [displayText]="displayText"
+  [open]="open"
+  [options]="options"
+  [selectedValue]="selectedValue"
+  (toggleOpen)="toggleOpen.emit()"
+  (selectOption)="selectOption.emit($event)"
+/>

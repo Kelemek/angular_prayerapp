@@ -1,0 +1,14 @@
+<app-presentation-settings-multi-select-dropdown
+  [label]="label"
+  [tourAnchorId]="tourAnchorId"
+  [dropdownKey]="dropdownKey"
+  [displayText]="field.getDisplay()"
+  [open]="field.showDropdown"
+  [options]="options"
+  [allSelectedLabel]="allSelectedLabel"
+  [isOptionSelected]="field.bindIsOptionSelected"
+  [isAllSelected]="field.isAllPendingSelected()"
+  (toggleOpen)="field.toggleDropdown()"
+  (toggleOption)="field.togglePending($event)"
+  (selectAll)="field.selectAllPending()"
+/>

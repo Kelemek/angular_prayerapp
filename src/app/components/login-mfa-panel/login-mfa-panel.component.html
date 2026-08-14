@@ -1,0 +1,177 @@
+<div
+  class="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-300 dark:border-emerald-700 rounded-lg p-6 shadow-lg"
+>
+  <div class="flex items-start gap-3 mb-4">
+    <svg
+      class="text-[#2F5F54] dark:text-emerald-400 flex-shrink-0 mt-0.5 w-6 h-6"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+    <div class="flex-1">
+      <h3 class="text-[#2F5F54] dark:text-emerald-100 font-bold text-lg">
+        Check Your Email ✉️
+      </h3>
+      <p class="text-[#3a7566] dark:text-emerald-200 text-sm mt-1">
+        We've sent a verification code to:
+      </p>
+      <p class="text-[#2F5F54] dark:text-emerald-100 font-semibold text-base mt-2">
+        {{ email }}
+      </p>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <div
+      class="bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800 space-y-4"
+    >
+      <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+        Enter Your Verification Code
+      </h4>
+      @if (!loading) {
+      <input
+        #codeField
+        id="mfa-code-input"
+        type="text"
+        inputmode="numeric"
+        [maxlength]="codeLength"
+        name="mfa-code-input"
+        [ngModel]="mfaCodeInput"
+        (ngModelChange)="onMfaCodeInputChange($event)"
+        (input)="onCodeInput()"
+        (blur)="onCodeBlur()"
+        (keydown.enter)="onEnterSubmit($event)"
+        autocomplete="one-time-code"
+        placeholder="Code"
+        autofocus
+        class="w-full px-4 py-3 text-center text-2xl font-semibold letter-spacing tracking-widest border-2 rounded-lg
+               bg-inset-surface text-gray-900 dark:text-gray-100
+               border-emerald-400 dark:border-emerald-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200
+               disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60
+               transition-opacity duration-200"
+      />
+      } @if (loading) {
+      <div
+        class="w-full py-4 px-4 text-center bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 border-2 border-emerald-400 dark:border-emerald-500 rounded-lg flex flex-col items-center justify-center gap-4"
+      >
+        <div class="relative w-12 h-12">
+          <div
+            class="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-emerald-500 dark:border-t-emerald-400 border-r-emerald-500 dark:border-r-emerald-400"
+          ></div>
+          <div
+            class="absolute inset-1 animate-spin rounded-full border-4 border-transparent border-b-emerald-300 dark:border-b-emerald-600"
+            style="animation-direction: reverse; animation-duration: 1.5s;"
+          ></div>
+        </div>
+        <span class="text-sm font-semibold text-[#2F5F54] dark:text-emerald-300"
+          >Verifying code...</span
+        >
+      </div>
+      }
+
+      @if (error) {
+      <div
+        class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md"
+      >
+        <svg
+          class="text-red-600 dark:text-red-400 w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span class="text-red-800 dark:text-red-200 text-sm">{{ error }}</span>
+      </div>
+      }
+
+      <button
+        (click)="onResend()"
+        [disabled]="resendLoading"
+        type="button"
+        class="w-full py-2 px-4 text-sm font-medium text-[#2F5F54] dark:text-emerald-400 hover:text-[#1a3a2e] dark:hover:text-emerald-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+      >
+        {{ resendLoading ? "Sending..." : "Resend Code" }}
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (showInstructions) {
+<div
+  class="mt-4 bg-white dark:bg-gray-800 rounded-md p-4 border border-emerald-200 dark:border-emerald-800"
+>
+  <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+    Here's what to do:
+  </h4>
+  <ol class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+    <li class="flex items-start gap-2">
+      <span
+        class="flex-shrink-0 w-5 h-5 bg-[#2F5F54] dark:bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+        >1</span
+      >
+      <span>Check your email inbox for a message from Prayer Community</span>
+    </li>
+    <li class="flex items-start gap-2">
+      <span
+        class="flex-shrink-0 w-5 h-5 bg-[#2F5F54] dark:bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+        >2</span
+      >
+      <span
+        >Look for the
+        <strong>{{ codeLength }}-digit verification code</strong> in the
+        email</span
+      >
+    </li>
+    <li class="flex items-start gap-2">
+      <span
+        class="flex-shrink-0 w-5 h-5 bg-[#2F5F54] dark:bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+        >3</span
+      >
+      <span>Enter the code above and it will verify automatically</span>
+    </li>
+  </ol>
+</div>
+}
+
+<div
+  class="mt-4 flex items-start gap-2 text-xs text-[#3a7566] dark:text-emerald-300"
+>
+  <svg
+    class="flex-shrink-0 mt-0.5 w-3.5 h-3.5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+  <p>
+    <strong>No email?</strong> Check your spam folder. The code expires in 10
+    minutes.
+  </p>
+</div>
+
+<button
+  (click)="onReset()"
+  type="button"
+  class="w-full py-2 text-center text-sm font-medium text-[#2F5F54] dark:text-emerald-400 hover:text-[#1a3a2e] dark:hover:text-emerald-300 border border-emerald-300 dark:border-emerald-600 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer"
+>
+  ← Try a different email
+</button>

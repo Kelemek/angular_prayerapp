@@ -1,0 +1,21 @@
+@if (label) {
+<label class="block text-sm sm:text-base mb-2 text-gray-900 dark:text-gray-100">{{
+  label
+}}</label>
+}
+<input
+  type="range"
+  [min]="min"
+  [max]="max"
+  [step]="step"
+  [ngModel]="value"
+  (ngModelChange)="valueChange.emit($event)"
+  [style.--value-percent]="valuePercent"
+  style="--fill-color: #2F5F54"
+  class="presentation-range w-full h-2.5 sm:h-3 bg-gray-300 dark:bg-gray-700 rounded-lg cursor-pointer accent-[#2F5F54]"
+/>
+<div
+  class="text-center text-xl sm:text-2xl mt-2 font-semibold text-gray-900 dark:text-gray-100"
+>
+  {{ value }}{{ valueSuffix }}
+</div>

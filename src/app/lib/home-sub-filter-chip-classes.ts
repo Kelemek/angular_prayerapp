@@ -20,6 +20,29 @@ export const HOME_SUB_FILTER_CHIP_DRAG_WRAP_CLASS = [
   "min-h-9 py-2 rounded-lg text-xs font-medium",
 ].join(" ");
 
+/** Flex item: equal split up to 2/row (3 on sm+); grows to fit label or full row when needed. */
+export const HOME_PERSONAL_CATEGORY_CHIP_FLEX_CLASS = [
+  "relative flex min-w-max flex-[1_1_0]",
+  "max-w-[min(100%,max(calc((100%-0.5rem)/2),max-content))]",
+  "sm:max-w-[min(100%,max(calc((100%-1rem)/3),max-content))]",
+].join(" ");
+
+/** Solo-row flex item: full row width, no min-w-max (avoids conflicting with truncation). */
+export const HOME_PERSONAL_CATEGORY_CHIP_SOLO_FLEX_CLASS =
+  "relative flex min-w-0 w-full max-w-full flex-[1_1_0]";
+
+/** Button inside category chip when it shares a row with others. */
+export const HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS = [
+  "relative flex w-full min-w-max items-center justify-center gap-1 text-center transition-all pl-7 pr-3",
+  "min-h-9 py-2 rounded-lg text-xs font-medium whitespace-nowrap",
+].join(" ");
+
+/** Full-width solo-row chip button; label may truncate when constrained. */
+export const HOME_SUB_FILTER_CHIP_DRAG_SOLO_STRETCH_CLASS = [
+  "relative flex w-full min-w-0 items-center gap-1 overflow-hidden text-center transition-all pl-7 pr-3",
+  "min-h-9 py-2 rounded-lg text-xs font-medium whitespace-nowrap",
+].join(" ");
+
 export const HOME_SUB_FILTER_CHIP_INACTIVE_CLASS =
   "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600";
 

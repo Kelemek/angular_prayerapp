@@ -81,12 +81,8 @@
     /*
      * Wide “TV / kiosk” view: hide the long Feature overview block (hero + CTAs only).
      * Uses min-width only so short viewports (browser chrome, taskbar) still qualify.
+     * (Feature overview hides itself via app-info-feature-overview host styles.)
      */
-    @media (min-width: 1920px) {
-      :host .info-page-feature-overview {
-        display: none !important;
-      }
-    }
 
     /* Large TV only: 16:9 content frame (replaces book dimensions) */
     @media (min-width: 1920px) and (min-height: 720px) {
@@ -133,101 +129,5 @@
         flex-direction: column;
         min-height: 0;
         width: 100%;
-      }
-
-      .info-page-tv-hero {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-evenly;
-        align-items: stretch;
-        width: 100%;
-        min-height: 0;
-        gap: clamp(0.75rem, 2.5vmin, 2rem);
-      }
-
-      .info-page-tv-hero .info-page-hero-row {
-        display: flex;
-        width: 100%;
-        align-items: center;
-        justify-content: flex-start;
-        flex-wrap: nowrap;
-        gap: clamp(1.25rem, 3vw, 3rem);
-      }
-
-      .info-page-tv-hero .info-page-hero-icon {
-        width: clamp(7rem, 18vmin, 15rem);
-        height: clamp(7rem, 18vmin, 15rem);
-        flex-shrink: 0;
-      }
-
-      .info-page-tv-hero .info-page-title {
-        font-size: clamp(2.5rem, 7vmin, 6rem);
-        line-height: 1.08;
-        text-align: left;
-      }
-
-      .info-page-tv-hero .info-page-verse {
-        max-width: none;
-        width: 100%;
-        font-size: clamp(1.2rem, 3.2vmin, 2.35rem);
-        line-height: 1.45;
-        text-align: left;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid {
-        width: 100%;
-        align-items: stretch;
-        gap: clamp(1.25rem, 3vmin, 3rem);
-      }
-
-      .info-page-tv-hero .info-page-cta-grid > div {
-        flex: 1 1 0;
-        min-width: 0;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid button {
-        min-height: clamp(15rem, 40vmin, 32rem);
-        padding: clamp(1.75rem, 4.2vmin, 3.25rem) clamp(1.5rem, 3.5vw, 2.75rem);
-        font-size: clamp(1.35rem, 3.4vmin, 2.35rem);
-        border-radius: 1.25rem;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid button .text-sm {
-        font-size: clamp(1.25rem, 3.2vmin, 2.15rem) !important;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid button .h-9.w-9 {
-        width: clamp(3.75rem, 10vmin, 7rem) !important;
-        height: clamp(3.75rem, 10vmin, 7rem) !important;
-        min-width: clamp(3.75rem, 10vmin, 7rem) !important;
-        min-height: clamp(3.75rem, 10vmin, 7rem) !important;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid button svg {
-        width: clamp(2.25rem, 5.5vmin, 4rem) !important;
-        height: clamp(2.25rem, 5.5vmin, 4rem) !important;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid button .text-xl {
-        font-size: clamp(2.25rem, 5.5vmin, 4rem) !important;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid .info-page-qr-tile {
-        width: clamp(12rem, 28vmin, 20rem) !important;
-        height: clamp(12rem, 28vmin, 20rem) !important;
-        min-width: clamp(12rem, 28vmin, 20rem) !important;
-        min-height: clamp(12rem, 28vmin, 20rem) !important;
-        border-radius: 1.25rem;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid .info-page-qr-tile img {
-        width: clamp(10rem, 24vmin, 17rem) !important;
-        height: clamp(10rem, 24vmin, 17rem) !important;
-      }
-
-      .info-page-tv-hero .info-page-cta-grid .info-page-qr-tile > .grid {
-        width: clamp(10rem, 24vmin, 17rem) !important;
-        height: clamp(10rem, 24vmin, 17rem) !important;
       }
     }

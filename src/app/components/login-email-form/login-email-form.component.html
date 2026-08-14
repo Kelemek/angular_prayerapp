@@ -1,0 +1,71 @@
+<form class="mt-8 space-y-6" (ngSubmit)="onSubmit($event)">
+  <div>
+    <label for="email" class="sr-only"> Email Address </label>
+    <div class="relative">
+      <svg
+        class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#2F5F54] w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+        />
+      </svg>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        required
+        [ngModel]="email"
+        (ngModelChange)="onEmailChange($event)"
+        class="pl-12 pr-3 py-3 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-inset-surface text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2F5F54] focus:border-[#2F5F54]"
+        placeholder="Your email address"
+      />
+    </div>
+    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      We'll send you a secure verification code
+    </p>
+  </div>
+
+  @if (error) {
+  <div
+    class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md"
+  >
+    <svg
+      class="text-red-600 dark:text-red-400 w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+    <span class="text-red-800 dark:text-red-200 text-sm">{{ error }}</span>
+  </div>
+  }
+
+  <button
+    type="submit"
+    [disabled]="loading || !canSubmit"
+    class="w-full flex justify-center py-3 px-4 text-sm font-medium btn-chip btn-chip-green-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    @if (loading) {
+    <div class="flex items-center gap-2">
+      <div
+        class="animate-spin rounded-full h-4 w-4 border-b-2 border-[#39704D] dark:border-[#5FB876]"
+      ></div>
+      Sending code...
+    </div>
+    } @if (!loading) {
+    <span>Send Verification Code</span>
+    }
+  </button>
+</form>

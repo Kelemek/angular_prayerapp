@@ -1,0 +1,27 @@
+@if (open) {
+<app-modal-shell
+  [showHeader]="false"
+  ariaLabel="About badges"
+  panelClass="max-w-md border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl"
+  (close)="closeModal.emit()"
+>
+  <div class="p-5 sm:p-6 space-y-3 text-gray-800 dark:text-gray-200">
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">Badges</p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      The green circle with a number is a
+      <strong class="text-gray-800 dark:text-gray-200">badge</strong>. It shows
+      how many items are unread—for example, new current prayers, new updates on a
+      request, or new prompts.
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Explore the badge (or use “Mark all as read” in the app) to clear the count.
+      Badges help you see what’s new at a glance without opening every list or
+      card.
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Badges are optional. You can turn them on or off in
+      <strong class="text-gray-800 dark:text-gray-200">Settings</strong>.
+    </p>
+  </div>
+</app-modal-shell>
+}

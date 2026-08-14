@@ -1,0 +1,25 @@
+<app-presentation-settings-section-card
+  tourAnchorId="tour-presentation-setting-timer"
+  title="Prayer timer"
+  subtitle="Set a dedicated time for focused prayer"
+  headerClass="mb-3 sm:mb-4"
+  titleClass="mb-1 sm:mb-2 text-sm sm:text-base"
+>
+  <app-presentation-settings-range-field
+    label="Duration (minutes)"
+    [min]="1"
+    [max]="60"
+    [step]="1"
+    [value]="localPrayerTimerMinutes"
+    valueSuffix=" min"
+    (valueChange)="prayerTimerMinutesChange.emit($event)"
+  />
+
+  <button
+    type="button"
+    (click)="startPrayerTimer.emit()"
+    class="w-full mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 btn-chip btn-chip-green text-base sm:text-lg font-semibold"
+  >
+    Start Prayer Timer
+  </button>
+</app-presentation-settings-section-card>

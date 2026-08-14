@@ -1,0 +1,68 @@
+<div class="mt-4">
+  <div
+    class="bg-white dark:bg-gray-800 rounded-md p-4 border space-y-4"
+    [class.border-emerald-200]="status === 'pending_approval'"
+    [class.dark:border-emerald-800]="status === 'pending_approval'"
+    [class.border-amber-200]="status === 'blocked'"
+    [class.dark:border-amber-800]="status === 'blocked'"
+  >
+    <div class="flex items-start gap-3">
+      @if (status === 'pending_approval') {
+      <svg
+        class="text-emerald-600 dark:text-emerald-400 w-6 h-6 flex-shrink-0"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <div>
+        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          Account Approval Request Submitted
+        </h4>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          Your account request has been submitted successfully. An administrator
+          will review your information and you'll receive an email notification
+          once your account has been approved or if additional information is
+          needed.
+        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          You can close this window now. Please check your email for updates on
+          your account status.
+        </p>
+      </div>
+      } @if (status === 'blocked') {
+      <svg
+        class="text-amber-600 dark:text-amber-400 w-6 h-6 flex-shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+      </svg>
+      <div>
+        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          Account Access Restricted
+        </h4>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          Your account has been temporarily restricted and you are unable to
+          access the prayer community at this time.
+        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Please contact an administrator for assistance in restoring your
+          account access.
+        </p>
+      </div>
+      }
+    </div>
+  </div>
+</div>

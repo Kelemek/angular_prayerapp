@@ -1,0 +1,72 @@
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+  <div class="flex items-center gap-3 shrink-0">
+    <img
+      [src]="brandingImageUrl || '/favicon.ico'"
+      alt="Church Logo"
+      class="h-10 w-auto max-w-[160px] object-contain rounded"
+    />
+  </div>
+  <div class="flex items-center gap-2 flex-wrap">
+    <button
+      type="button"
+      (click)="openHeaderPreview.emit('help')"
+      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-gray"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        ></circle>
+        <text
+          x="12"
+          y="16"
+          text-anchor="middle"
+          fill="currentColor"
+          font-size="12"
+          font-weight="bold"
+        >
+          ?
+        </text>
+      </svg>
+    </button>
+    <button
+      type="button"
+      (click)="openHeaderPreview.emit('settings')"
+      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-gray"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+        ></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
+    <button
+      type="button"
+      (click)="openHeaderPreview.emit('pray')"
+      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-green"
+    >
+      <span>Pray</span>
+    </button>
+    <button
+      type="button"
+      (click)="openHeaderPreview.emit('request')"
+      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-blue"
+    >
+      <span>Request</span>
+    </button>
+  </div>
+</div>

@@ -1,0 +1,62 @@
+<div [id]="tourAnchorId || null">
+  <label class="block text-sm sm:text-base mb-2 text-gray-900 dark:text-gray-100">{{
+    label
+  }}</label>
+  <div class="relative">
+    <div class="flex">
+      <div
+        class="flex-1 flex items-center px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-l-lg text-base sm:text-lg border border-r-0 border-gray-300 dark:border-gray-600"
+      >
+        <span>{{ displayText }}</span>
+      </div>
+      <button
+        type="button"
+        [attr.data-settings-dropdown-trigger]="dropdownKey"
+        (click)="toggleOpen.emit()"
+        class="flex items-center justify-center px-2.5 sm:px-3 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-r-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+      >
+        <svg
+          class="w-5 h-5 sm:w-6 sm:h-6 transition-transform"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          [class.rotate-180]="open"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+    </div>
+    @if (open) {
+    <div
+      class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-[70]"
+      [attr.data-settings-dropdown-panel]="dropdownKey"
+    >
+      @for (option of options; track option.value) {
+      @if (!option.hidden) {
+      <div
+        (mousedown)="toggleOption.emit(option.value); $event.preventDefault()"
+        class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer"
+      >
+        <span>{{ option.label }}</span>
+        @if (isOptionSelected(option.value)) {
+        <span class="text-green-600 dark:text-green-400">✓</span>
+        }
+      </div>
+      }
+      }
+      <div
+        (mousedown)="selectAll.emit(); $event.preventDefault()"
+        class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between cursor-pointer border-t border-gray-200 dark:border-gray-700"
+      >
+        <span>{{ allSelectedLabel }}</span>
+        @if (isAllSelected) {
+        <span class="text-green-600 dark:text-green-400">✓</span>
+        }
+      </div>
+    </div>
+    }
+  </div>
+</div>

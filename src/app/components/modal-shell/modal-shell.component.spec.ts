@@ -70,6 +70,21 @@ describe("ModalShellComponent", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it("onBackdropClick does not emit close when closeOnBackdrop is false", () => {
+    fixture = TestBed.createComponent(ModalShellComponent);
+    const component = fixture.componentInstance;
+    component.closeOnBackdrop = false;
+    const spy = vi.spyOn(component.close, "emit");
+    const overlay = document.createElement("div");
+
+    component.onBackdropClick({
+      target: overlay,
+      currentTarget: overlay,
+    } as unknown as MouseEvent);
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("locks body and safe-area-viewport scroll on init", () => {
     fixture = TestBed.createComponent(ModalShellComponent);
     const component = fixture.componentInstance;

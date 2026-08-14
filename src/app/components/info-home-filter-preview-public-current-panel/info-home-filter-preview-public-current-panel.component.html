@@ -1,0 +1,81 @@
+<div
+                    class="relative bg-gray-100/80 dark:bg-white/5 border-[2px] !border-[#0047AB] dark:!border-[#0047AB] rounded-lg p-4 sm:p-5 shadow-md space-y-3"
+                  >
+                    <span
+                      class="absolute left-1/2 top-4 transform -translate-x-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 pb-2"
+                      >Jan 12, 2025</span
+                    >
+                    <div class="mb-1 flex flex-wrap items-center gap-2">
+                      <span
+                        class="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                        >Prayer for Marcus</span
+                      >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Requested by:
+                        <span
+                          class="font-medium text-gray-800 dark:text-gray-100"
+                          >Sarah</span
+                        ></span
+                      >
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                      See every active request in one place so your church
+                      always knows what needs prayer right now.
+                    </p>
+                    <div class="flex flex-wrap gap-1 items-center">
+                      <button
+                        type="button"
+                        (click)="openHeaderPreview.emit('card-update')"
+                        title="Add an update to this prayer"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-green"
+                      >
+                        Add Update
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openHeaderPreview.emit('card-pray-for')"
+                        title="Record that you prayed for this request"
+                        class="px-3 py-1 text-xs font-medium btn-chip btn-chip-blue"
+                      >
+                        Pray For
+                      </button>
+                    </div>
+                    <h4
+                      class="text-sm font-medium text-gray-700 dark:text-gray-300 mt-3"
+                    >
+                      Recent Updates
+                    </h4>
+                    <div
+                      class="relative bg-inset-surface-muted rounded-lg p-4 pt-3 border border-gray-300 dark:border-gray-600"
+                    >
+                      <button
+                        type="button"
+                        (click)="openBadges.emit()"
+                        class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors cursor-pointer"
+                        title="About badges"
+                        aria-label="About badges"
+                      >
+                        1
+                      </button>
+                      <p
+                        class="text-xs text-gray-500 dark:text-gray-400 text-center mb-1 mt-0"
+                      >
+                        Jan 10, 2025
+                      </p>
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400"
+                          >Updated by:
+                          <span
+                            class="font-medium text-gray-700 dark:text-gray-300"
+                            >Someone</span
+                          ></span
+                        >
+                      </div>
+                      <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Prayer updates let you share progress, answered prayers,
+                        or new developments with the community. Click
+                        <strong>Add Update</strong> on a request to post one.
+                        You can also mark a prayer as answered from an update.
+                      </p>
+                    </div>
+                  </div>

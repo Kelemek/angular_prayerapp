@@ -1,0 +1,127 @@
+<!-- Filter-style preview tabs (mock of home filters): Public, Personal, Prompts -->
+<div class="flex w-full gap-2">
+  <div
+    class="relative flex-1 min-w-0"
+    role="button"
+    tabindex="0"
+    (click)="selectPublicPreviewTab()"
+    (keydown.enter)="selectPublicPreviewTab()"
+    (keydown.space)="selectPublicPreviewTab(); $event.preventDefault()"
+  >
+    <button
+      type="button"
+      (click)="$event.stopPropagation(); openBadges.emit()"
+      class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors cursor-pointer"
+      title="About badges"
+      aria-label="About badges"
+    >
+      1
+    </button>
+    <div
+      [class]="
+        'rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer flex flex-col items-center justify-center w-full ' +
+        (isPublicTabActive()
+          ? 'border !border-[#0047AB] bg-blue-100 text-[#0047AB] dark:bg-blue-950 dark:text-blue-100 ring ring-[#0047AB] ring-offset-0 shadow-sm'
+          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-[2px] border-gray-200 dark:border-gray-700 hover:border-[#0047AB] dark:hover:border-[#0047AB]')
+      "
+    >
+      <div
+        class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
+      >
+        47
+      </div>
+      <div
+        class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
+      >
+        Public
+      </div>
+    </div>
+  </div>
+  <button
+    type="button"
+    (click)="setPreviewFilter('personal')"
+    [class]="
+      'flex-1 min-w-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer flex flex-col items-center justify-center ' +
+      (previewFilter === 'personal'
+        ? 'border !border-[#2F5F54] bg-slate-100 text-[#2F5F54] dark:bg-green-900/40 dark:text-emerald-100 ring ring-[#2F5F54] ring-offset-0 shadow-sm'
+        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-[2px] border-gray-200 dark:border-gray-700 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]')
+    "
+  >
+    <div class="flex flex-col items-center justify-center w-full">
+      <div
+        class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
+      >
+        13
+      </div>
+      <div
+        class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
+      >
+        Personal
+      </div>
+    </div>
+  </button>
+  <button
+    type="button"
+    (click)="setPreviewFilter('prompts')"
+    [class]="
+      'flex-1 min-w-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer flex flex-col items-center justify-center ' +
+      (previewFilter === 'prompts'
+        ? 'border !border-[#988F83] bg-stone-100 text-[#4b4137] dark:bg-stone-900/40 dark:text-stone-100 ring ring-[#988F83] ring-offset-0 shadow-sm'
+        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-[2px] border-gray-200 dark:border-gray-700 hover:border-[#988F83] dark:hover:border-[#988F83]')
+    "
+  >
+    <div class="flex flex-col items-center justify-center w-full">
+      <div
+        class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
+      >
+        76
+      </div>
+      <div
+        class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
+      >
+        Prompts
+      </div>
+    </div>
+  </button>
+</div>
+
+@if (isPublicTabActive()) {
+<div class="flex w-full gap-2 mb-4">
+  <button
+    type="button"
+    (click)="setPreviewFilter('current')"
+    [class]="
+      subFilterChipBaseClass + ' cursor-pointer ' +
+      (previewFilter === 'current'
+        ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md'
+        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#0047AB] dark:hover:border-[#0047AB]')
+    "
+  >
+    Current (22)
+  </button>
+  <button
+    type="button"
+    (click)="setPreviewFilter('answered')"
+    [class]="
+      subFilterChipBaseClass + ' cursor-pointer ' +
+      (previewFilter === 'answered'
+        ? 'border !border-[#39704D] dark:!border-[#39704D] bg-green-100 dark:bg-green-950 ring ring-[#39704D] dark:ring-[#39704D] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md'
+        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#39704D] dark:hover:border-[#39704D]')
+    "
+  >
+    Answered (4)
+  </button>
+  <button
+    type="button"
+    (click)="setPreviewFilter('total')"
+    [class]="
+      subFilterChipBaseClass + ' cursor-pointer ' +
+      (previewFilter === 'total'
+        ? 'border !border-[#C9A961] dark:!border-[#C9A961] bg-amber-100 dark:bg-amber-900/40 ring ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md'
+        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#C9A961] dark:hover:border-[#C9A961]')
+    "
+  >
+    Total (47)
+  </button>
+</div>
+}

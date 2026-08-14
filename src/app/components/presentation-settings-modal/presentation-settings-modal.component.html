@@ -1,0 +1,58 @@
+@if (visible) {
+<app-modal-shell
+  panelId="tour-presentation-settings-modal"
+  title="Presentation Settings"
+  closeAriaLabel="Close settings"
+  panelClass="max-w-md sm:max-w-lg"
+  overlayClass="backdrop-blur-sm items-center"
+  [closeOnBackdrop]="false"
+  (close)="closeModal()"
+>
+  <div
+    class="presentation-settings-body p-4 sm:p-6 space-y-4"
+    (mousedown)="onSettingsBodyPointerDown($event)"
+  >
+    <app-presentation-settings-theme-section
+      [theme]="theme"
+      (themeChange)="themeChange.emit($event)"
+    ></app-presentation-settings-theme-section>
+
+    <app-presentation-settings-filters-panel
+      [contentTypes]="contentTypes"
+      [timeFilter]="timeFilter"
+      [statusFiltersCurrent]="statusFiltersCurrent"
+      [statusFiltersAnswered]="statusFiltersAnswered"
+      [availableCategories]="availableCategories"
+      [selectedCategories]="selectedCategories"
+      [availablePromptCategories]="availablePromptCategories"
+      [selectedPromptCategories]="selectedPromptCategories"
+      [hasMappedList]="hasMappedList"
+      [modalVisible]="visible"
+      (contentTypesChange)="contentTypesChange.emit($event)"
+      (timeFilterChange)="timeFilterChange.emit($event)"
+      (statusFiltersChange)="statusFiltersChange.emit($event)"
+      (categoriesChange)="categoriesChange.emit($event)"
+      (promptCategoriesChange)="promptCategoriesChange.emit($event)"
+    ></app-presentation-settings-filters-panel>
+
+    <app-presentation-settings-display-section
+      [smartMode]="smartMode"
+      [displayDuration]="displayDuration"
+      [randomize]="randomize"
+      [loop]="loop"
+      [modalVisible]="visible"
+      (smartModeChange)="smartModeChange.emit($event)"
+      (displayDurationChange)="displayDurationChange.emit($event)"
+      (randomizeChange)="randomizeChange.emit($event)"
+      (loopChange)="loopChange.emit($event)"
+    ></app-presentation-settings-display-section>
+
+    <app-presentation-settings-timer-section
+      [prayerTimerMinutes]="prayerTimerMinutes"
+      [modalVisible]="visible"
+      (prayerTimerMinutesChange)="prayerTimerMinutesChange.emit($event)"
+      (startPrayerTimer)="startPrayerTimer.emit()"
+    ></app-presentation-settings-timer-section>
+  </div>
+</app-modal-shell>
+}

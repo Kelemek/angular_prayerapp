@@ -1,0 +1,11 @@
+<app-presentation-settings-section-card
+  tourAnchorId="tour-presentation-setting-theme"
+  title="Theme Preference"
+  subtitle="Choose your preferred color theme or use your system settings"
+  headerClass="mb-3"
+>
+  <app-presentation-settings-theme-picker
+    [theme]="theme"
+    (themeChange)="themeChange.emit($event)"
+  />
+</app-presentation-settings-section-card>

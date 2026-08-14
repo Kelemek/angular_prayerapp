@@ -1,0 +1,6 @@
+/* Wide TV / kiosk: hide interactive feature preview (hero + CTAs only on parent page). */
+@media (min-width: 1920px) {
+  :host {
+    display: none !important;
+  }
+}

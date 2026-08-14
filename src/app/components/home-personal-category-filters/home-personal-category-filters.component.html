@@ -1,4 +1,4 @@
-<div id="tour-personal-category-filters" [class]="sectionGapClass">
+<div id="tour-personal-category-filters" #categoryDropList [class]="sectionGapClass">
   <div class="flex w-full gap-2">
     <app-home-sub-filter-chip
       [active]="filterMode === 'current'"
@@ -33,7 +33,7 @@
     cdkDropList
     cdkDropListOrientation="mixed"
     [cdkDropListData]="uniqueCategories"
-    (cdkDropListDropped)="categoryDrop.emit($event)"
+    (cdkDropListDropped)="onCategoryDrop($event)"
     [cdkDropListDisabled]="isCategoryDropListDisabled"
     class="cdk-drop-list flex w-full flex-wrap gap-2 mt-2"
   >
@@ -41,12 +41,14 @@
     <div
       cdkDrag
       [cdkDragData]="category"
+      [attr.data-personal-category-chip]="category"
       [cdkDragDisabled]="isCategorySwapping(category)"
       (cdkDragStarted)="categoryDragStarted.emit()"
-      (cdkDragEnded)="categoryDragEnded.emit()"
-      class="relative"
+      (cdkDragEnded)="onCategoryDragEnded()"
+      [class]="categoryChipHostClass(category)"
     >
       <button
+        type="button"
         (click)="toggleCategory.emit(category)"
         (pointerdown)="categoryPointerDown.emit({ event: $event, category })"
         (pointermove)="categoryPointerMove.emit($event)"
@@ -55,15 +57,7 @@
         (pointercancel)="categoryPointerUp.emit()"
         (contextmenu)="categoryContextMenu.emit({ event: $event, category })"
         [disabled]="isCategorySwapping(category)"
-        [class]="
-          namedChipWrapClass +
-          (isPersonalCategorySelected(category)
-            ? ' ' + personalCategoryActiveClass
-            : ' ' + namedChipInactiveClass) +
-          (isCategorySwapping(category)
-            ? ' opacity-50 cursor-not-allowed'
-            : ' cursor-pointer')
-        "
+        [class]="categoryChipButtonClass(category)"
       >
         <svg
           cdkDragHandle
@@ -90,12 +84,21 @@
           <circle cx="15" cy="12" r="1"></circle>
           <circle cx="15" cy="19" r="1"></circle>
         </svg>
-        <span class="cursor-pointer"
+        <span
+          data-personal-category-label
+          class="cursor-pointer"
+          [class.block]="isSoloRowCategory(category)"
+          [class.min-w-0]="isSoloRowCategory(category)"
+          [class.flex-1]="isSoloRowCategory(category)"
+          [class.truncate]="shouldTruncateCategory(category)"
+          [attr.title]="
+            shouldTruncateCategory(category) ? categoryChipLabel(category) : null
+          "
           >{{ category }} ({{ getCategoryCount(category) }})</span
         >
         @if (isCategorySwapping(category)) {
         <svg
-          class="animate-spin h-4 w-4"
+          class="h-4 w-4 shrink-0 animate-spin"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"

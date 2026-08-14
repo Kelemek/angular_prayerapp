@@ -1,0 +1,48 @@
+<div class="mb-4">
+  <div class="flex w-full gap-2">
+    <button
+      type="button"
+      (click)="openPersonalCategories.emit()"
+      class="{{ subFilterChipBaseClass }} cursor-pointer border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
+    >
+      Current (10)
+    </button>
+    <button
+      type="button"
+      (click)="openPersonalCategories.emit()"
+      class="{{ subFilterChipBaseClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+    >
+      Answered (3)
+    </button>
+    <button
+      type="button"
+      (click)="openPersonalCategories.emit()"
+      class="{{ subFilterChipBaseClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+    >
+      Total (13)
+    </button>
+  </div>
+  <div class="flex w-full flex-wrap gap-2 mt-2">
+    <button
+      type="button"
+      (click)="openPersonalCategories.emit()"
+      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+    >
+      Health (4)
+    </button>
+    <button
+      type="button"
+      (click)="openPersonalCategories.emit()"
+      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+    >
+      Family (5)
+    </button>
+    <button
+      type="button"
+      (click)="openPersonalCategories.emit()"
+      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+    >
+      Work (2)
+    </button>
+  </div>
+</div>

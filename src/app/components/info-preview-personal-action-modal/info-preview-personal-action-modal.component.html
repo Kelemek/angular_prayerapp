@@ -1,0 +1,36 @@
+@if (previewAction !== null) {
+<app-modal-shell
+  [showHeader]="false"
+  [ariaLabel]="previewAriaLabel()"
+  panelClass="max-w-md border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl"
+  (close)="closeModal.emit()"
+>
+  <div class="p-5 sm:p-6 space-y-3 text-gray-800 dark:text-gray-200">
+    @if (previewAction === 'answered') {
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
+      Mark as answered
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Tap the green checkmark on a personal prayer to move it into the Answered
+      category—the same as checking “Mark this prayer as answered” when editing.
+      Tap again to move it out of Answered.
+    </p>
+    } @if (previewAction === 'edit') {
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">Edit prayer</p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Change the subject (Prayer for), description, or category. Updates are saved
+      immediately. Use this to add details, correct a typo, or move the prayer to
+      a different category.
+    </p>
+    } @if (previewAction === 'delete') {
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
+      Delete prayer
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Permanently remove this personal prayer and any updates. This cannot be
+      undone. In the app you’ll be asked to confirm before the prayer is deleted.
+    </p>
+    }
+  </div>
+</app-modal-shell>
+}

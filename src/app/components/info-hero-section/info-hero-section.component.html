@@ -1,0 +1,226 @@
+              <div class="space-y-6">
+                <div
+                  class="info-page-hero-row inline-flex items-center gap-4 mb-2"
+                >
+                  <div
+                    class="info-page-hero-icon h-20 w-20 shrink-0 rounded-2xl bg-gray-200 dark:bg-gray-800 flex items-center justify-center shadow-xl overflow-hidden"
+                  >
+                    <img
+                      src="/CrossPointPrayer.jpg"
+                      alt="Prayer App Icon"
+                      class="h-full w-full rounded-2xl object-contain shadow-xl"
+                    />
+                  </div>
+                  <h1
+                    class="info-page-title text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight"
+                  >
+                    Cross Pointe<br />
+                    <span class="text-emerald-600 dark:text-emerald-300"
+                      >Prayer Community</span
+                    >
+                  </h1>
+                </div>
+                <p
+                  class="info-page-verse text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl"
+                >
+                  Rejoice always, pray without ceasing, give thanks in all
+                  circumstances; for this is the will of God in Christ Jesus for
+                  you. <span class="whitespace-nowrap">1 Thes. 5:16–18</span>
+                </p>
+              </div>
+
+              <!-- CTA buttons: second row under hero -->
+              <div
+                class="info-page-cta-grid w-full grid gap-3 sm:gap-4 sm:grid-cols-3"
+              >
+                <!-- Web app CTA + QR -->
+                <div class="w-full flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    routerLink="/"
+                    class="group w-full inline-flex flex-row sm:flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors cursor-pointer"
+                  >
+                    <span class="flex w-full items-center justify-center">
+                      <span
+                        class="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg overflow-hidden bg-gray-300 dark:bg-gray-800"
+                      >
+                        <img
+                          src="/CrossPointPrayer.jpg"
+                          alt=""
+                          class="h-full w-full object-contain"
+                        />
+                      </span>
+                      <span class="text-left leading-tight">
+                        <span
+                          class="block text-sm font-semibold whitespace-nowrap"
+                          >Web Site</span
+                        >
+                      </span>
+                    </span>
+                    <div
+                      class="info-page-qr-tile hidden sm:flex sm:h-28 sm:w-28 sm:min-h-28 sm:min-w-28 shrink-0 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 items-center justify-center p-1 ring-2 ring-emerald-400/50"
+                      aria-hidden="true"
+                    >
+                      @if (webAppQrUrl) {
+                      <img
+                        [src]="webAppQrUrl"
+                        alt="QR code for web app"
+                        class="h-24 w-24 shrink-0 rounded object-contain"
+                        width="96"
+                        height="96"
+                        loading="lazy"
+                      />
+                      } @else {
+                      <div
+                        class="h-24 w-24 grid grid-cols-5 grid-rows-5 gap-0 shrink-0"
+                      >
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                      </div>
+                      }
+                    </div>
+                  </button>
+                </div>
+
+                <!-- iOS CTA + QR -->
+                <div class="w-full flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="openIosStore()"
+                    class="group w-full inline-flex flex-row sm:flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors cursor-pointer"
+                  >
+                    <span class="flex w-full items-center justify-center">
+                      <span
+                        class="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black"
+                      >
+                        <span
+                          class="text-xl sm:text-2xl font-semibold text-white"
+                          >&#63743;</span
+                        >
+                      </span>
+                      <span class="text-left leading-tight">
+                        <span
+                          class="block text-sm font-semibold whitespace-nowrap"
+                          >App Store</span
+                        >
+                      </span>
+                    </span>
+                    <div
+                      class="info-page-qr-tile hidden sm:flex sm:h-28 sm:w-28 sm:min-h-28 sm:min-w-28 shrink-0 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 items-center justify-center p-1 ring-2 ring-emerald-400/50"
+                      aria-hidden="true"
+                    >
+                      <img
+                        [src]="iosStoreQrUrl"
+                        alt="QR code for App Store"
+                        class="h-24 w-24 shrink-0 rounded object-contain"
+                        width="96"
+                        height="96"
+                        loading="lazy"
+                      />
+                    </div>
+                  </button>
+                </div>
+
+                <!-- Android CTA + QR -->
+                <div class="w-full flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="openAndroidStore()"
+                    aria-label="Download on Play Store"
+                    class="group w-full inline-flex flex-row sm:flex-col items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-200/80 dark:bg-gray-800/70 px-5 py-3 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors cursor-pointer"
+                  >
+                    <span class="flex w-full items-center justify-center">
+                      <span
+                        class="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black text-white"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 -960 960 960"
+                          class="h-5 w-5 shrink-0 sm:h-6 sm:w-6"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M40-240q9-107 65.5-197T256-580l-74-128q-6-9-3-19t13-15q8-5 18-2t16 12l74 128q86-36 180-36t180 36l74-128q6-9 16-12t18 2q10 5 13 15t-3 19l-74 128q94 53 150.5 143T920-240H40Zm275.5-124.5Q330-379 330-400t-14.5-35.5Q301-450 280-450t-35.5 14.5Q230-421 230-400t14.5 35.5Q259-350 280-350t35.5-14.5Zm400 0Q730-379 730-400t-14.5-35.5Q701-450 680-450t-35.5 14.5Q630-421 630-400t14.5 35.5Q659-350 680-350t35.5-14.5Z"
+                          />
+                        </svg>
+                      </span>
+                      <span class="text-left leading-tight">
+                        <span
+                          class="block text-sm font-semibold whitespace-nowrap"
+                          >Play Store</span
+                        >
+                      </span>
+                    </span>
+                    <div
+                      class="info-page-qr-tile hidden sm:flex sm:h-28 sm:w-28 sm:min-h-28 sm:min-w-28 shrink-0 rounded-xl border-2 border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-100 items-center justify-center p-1 ring-2 ring-emerald-400/50"
+                      aria-hidden="true"
+                    >
+                      @if (androidStoreQrUrl) {
+                      <img
+                        [src]="androidStoreQrUrl"
+                        alt="QR code for Play Store"
+                        class="h-24 w-24 shrink-0 rounded object-contain"
+                        width="96"
+                        height="96"
+                        loading="lazy"
+                      />
+                      } @else {
+                      <div
+                        class="h-24 w-24 grid grid-cols-5 grid-rows-5 gap-0 shrink-0"
+                      >
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-white"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                        <div class="bg-black"></div>
+                      </div>
+                      }
+                    </div>
+                  </button>
+                </div>
+              </div>
