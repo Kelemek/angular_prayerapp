@@ -1,30 +1,13 @@
 <div class="flex w-full flex-wrap gap-2 mb-4">
-  <button
-    type="button"
-    (click)="openPromptCategories.emit()"
-    class="{{ subFilterChipWrapClass }} cursor-pointer border !border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
-  >
-    All Types (76)
-  </button>
-  <button
-    type="button"
-    (click)="openPromptCategories.emit()"
-    class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]"
-  >
-    Church (27)
-  </button>
-  <button
-    type="button"
-    (click)="openPromptCategories.emit()"
-    class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]"
-  >
-    Family (5)
-  </button>
-  <button
-    type="button"
-    (click)="openPromptCategories.emit()"
-    class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#988F83] dark:hover:border-[#988F83]"
-  >
-    Cities (9)
-  </button>
+  @for (chip of previewChips; track chip.label) {
+  <div [class]="chipHostClass">
+    <button
+      type="button"
+      (click)="openPromptCategories.emit()"
+      [class]="chipButtonClass(chip.active)"
+    >
+      {{ chip.label }}
+    </button>
+  </div>
+  }
 </div>

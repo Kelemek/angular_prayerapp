@@ -14,6 +14,13 @@ export const HOME_SUB_FILTER_CHIP_WRAP_CLASS = [
   HOME_SUB_FILTER_CHIP_SIZE_CLASS,
 ].join(" ");
 
+/** Full-width chip button inside a shared wrap row (no drag handle). */
+export const HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS = [
+  "relative flex w-full min-w-max items-center justify-center gap-1 text-center transition-all",
+  HOME_SUB_FILTER_CHIP_SIZE_CLASS,
+  "whitespace-nowrap",
+].join(" ");
+
 /** Content-sized chip with left padding for a drag handle (personal categories). */
 export const HOME_SUB_FILTER_CHIP_DRAG_WRAP_CLASS = [
   "relative inline-flex items-center justify-center whitespace-nowrap transition-all pl-7 pr-3",
@@ -21,15 +28,23 @@ export const HOME_SUB_FILTER_CHIP_DRAG_WRAP_CLASS = [
 ].join(" ");
 
 /** Flex item: equal split up to 2/row (3 on sm+); grows to fit label or full row when needed. */
-export const HOME_PERSONAL_CATEGORY_CHIP_FLEX_CLASS = [
+export const HOME_WRAP_FILTER_CHIP_FLEX_CLASS = [
   "relative flex min-w-max flex-[1_1_0]",
   "max-w-[min(100%,max(calc((100%-0.5rem)/2),max-content))]",
   "sm:max-w-[min(100%,max(calc((100%-1rem)/3),max-content))]",
 ].join(" ");
 
 /** Solo-row flex item: full row width, no min-w-max (avoids conflicting with truncation). */
-export const HOME_PERSONAL_CATEGORY_CHIP_SOLO_FLEX_CLASS =
+export const HOME_WRAP_FILTER_CHIP_SOLO_FLEX_CLASS =
   "relative flex min-w-0 w-full max-w-full flex-[1_1_0]";
+
+/** @deprecated Use {@link HOME_WRAP_FILTER_CHIP_FLEX_CLASS}. */
+export const HOME_PERSONAL_CATEGORY_CHIP_FLEX_CLASS =
+  HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
+
+/** @deprecated Use {@link HOME_WRAP_FILTER_CHIP_SOLO_FLEX_CLASS}. */
+export const HOME_PERSONAL_CATEGORY_CHIP_SOLO_FLEX_CLASS =
+  HOME_WRAP_FILTER_CHIP_SOLO_FLEX_CLASS;
 
 /** Button inside category chip when it shares a row with others. */
 export const HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS = [

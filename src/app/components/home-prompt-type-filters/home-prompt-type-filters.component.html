@@ -1,35 +1,43 @@
-      <div [class]="sectionGapClass + ' flex w-full flex-wrap gap-2'" id="tour-prompt-type-filters">
-        @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
-        <app-home-sub-filter-chip
-          [stretch]="false"
-          [layoutClass]="chipWrapClass"
-          [active]="selectedPromptTypes.length === 0"
-          [activeClass]="promptTypeActiveClass"
-          [inactiveClass]="promptTypeInactiveClass"
-          (chipClick)="clearTypes.emit()"
-        >
-          All Types ({{ promptsCount }})
-        </app-home-sub-filter-chip>
+<div
+  [class]="sectionGapClass + ' flex w-full flex-wrap gap-2'"
+  id="tour-prompt-type-filters"
+>
+  @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
 
-        @for (type of uniquePromptTypes; track type) {
-        <app-home-sub-filter-chip
-          [stretch]="false"
-          [layoutClass]="chipWrapClass"
-          [active]="selectedPromptTypes.includes(type)"
-          [activeClass]="promptTypeActiveClass"
-          [inactiveClass]="promptTypeInactiveClass"
-          [badgeOverlay]="true"
-          (chipClick)="toggleType.emit(type)"
-        >
-          {{ type }} ({{ getPromptCountByType(type) }})
-          @if (badgesEnabled && getUnreadPromptCountByType(type) > 0) {
-          <app-home-filter-badge-button
-            [count]="getUnreadPromptCountByType(type)"
-            [title]="'Mark all ' + type + ' prompts as read'"
-            [ariaLabel]="'Mark all ' + type + ' prompts as read'"
-            (markRead)="badgeService.markAllAsReadByPromptType(type)"
-          />
-          }
-        </app-home-sub-filter-chip>
-        }
-      </div>
+  <div [class]="chipHostClass">
+    <button
+      type="button"
+      (click)="clearTypes.emit()"
+      [class]="
+        promptChipButtonClass(selectedPromptTypes.length === 0, false)
+      "
+    >
+      All Types ({{ promptsCount }})
+    </button>
+  </div>
+
+  @for (type of uniquePromptTypes; track type) {
+  <div [class]="chipHostClass">
+    <button
+      type="button"
+      (click)="toggleType.emit(type)"
+      [class]="
+        promptChipButtonClass(
+          selectedPromptTypes.includes(type),
+          !!(badgesEnabled && getUnreadPromptCountByType(type) > 0)
+        )
+      "
+    >
+      {{ type }} ({{ getPromptCountByType(type) }})
+      @if (badgesEnabled && getUnreadPromptCountByType(type) > 0) {
+      <app-home-filter-badge-button
+        [count]="getUnreadPromptCountByType(type)"
+        [title]="'Mark all ' + type + ' prompts as read'"
+        [ariaLabel]="'Mark all ' + type + ' prompts as read'"
+        (markRead)="badgeService.markAllAsReadByPromptType(type)"
+      />
+      }
+    </button>
+  </div>
+  }
+</div>

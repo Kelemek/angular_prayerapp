@@ -31,7 +31,8 @@ import {
   personalCategoryChipLayoutEqual,
   personalCategoryLayoutSignature,
   type PersonalCategoryChipLayout,
-} from "../../lib/home-personal-category-chip-layout";
+} from "../../lib/home-wrap-filter-chip-layout";
+import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
 import { HOME_SHELL_SECTION_GAP_CLASSES } from "../../lib/home-shell-spacing";
 import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
 
@@ -152,15 +153,13 @@ export class HomePersonalCategoryFiltersComponent
     const base = this.isSoloRowCategory(category)
       ? this.namedChipSoloStretchClass
       : this.namedChipStretchClass;
-    return (
-      base +
-      (this.isPersonalCategorySelected(category)
-        ? " " + this.personalCategoryActiveClass
-        : " " + this.namedChipInactiveClass) +
-      (this.isCategorySwapping(category)
-        ? " opacity-50 cursor-not-allowed"
-        : " cursor-pointer")
-    );
+    return buildHomeSubFilterChipButtonClass({
+      base,
+      active: this.isPersonalCategorySelected(category),
+      activeClass: this.personalCategoryActiveClass,
+      inactiveClass: this.namedChipInactiveClass,
+      disabled: this.isCategorySwapping(category),
+    });
   }
 
   categoryChipLabel(category: string): string {

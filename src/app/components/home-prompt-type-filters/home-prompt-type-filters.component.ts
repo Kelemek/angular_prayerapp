@@ -1,17 +1,18 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, inject, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { BadgeService } from "../../services/badge.service";
 import {
-  HOME_SUB_FILTER_CHIP_WRAP_CLASS,
+  HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
+  HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
+import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
 import { HOME_SHELL_SECTION_GAP_CLASSES } from "../../lib/home-shell-spacing";
 import { HomeFilterBadgeButtonComponent } from "../home-filter-badge-button/home-filter-badge-button.component";
-import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
 
 @Component({
   selector: "app-home-prompt-type-filters",
   standalone: true,
-  imports: [CommonModule, HomeFilterBadgeButtonComponent, HomeSubFilterChipComponent],
+  imports: [CommonModule, HomeFilterBadgeButtonComponent],
   templateUrl: "./home-prompt-type-filters.component.html",
 })
 export class HomePromptTypeFiltersComponent {
@@ -26,8 +27,19 @@ export class HomePromptTypeFiltersComponent {
   @Output() clearTypes = new EventEmitter<void>();
   @Output() toggleType = new EventEmitter<string>();
 
-  readonly chipWrapClass = HOME_SUB_FILTER_CHIP_WRAP_CLASS;
-  readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
+  readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
+  readonly chipButtonClass = HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS;
+  @Input() sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
 
-  constructor(readonly badgeService: BadgeService) {}
+  readonly badgeService = inject(BadgeService);
+
+  promptChipButtonClass(active: boolean, hasBadge: boolean): string {
+    return buildHomeSubFilterChipButtonClass({
+      base: this.chipButtonClass,
+      active,
+      activeClass: this.promptTypeActiveClass,
+      inactiveClass: this.promptTypeInactiveClass,
+      relative: hasBadge,
+    });
+  }
 }

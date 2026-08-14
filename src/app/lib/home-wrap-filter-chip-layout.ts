@@ -1,14 +1,40 @@
-export function personalCategoryLayoutSignature(
-  categories: readonly string[],
-  countFor: (category: string) => number
-): string {
-  return categories.map((category) => `${category}:${countFor(category)}`).join("|");
+export type PersonalCategoryChipLayout = {
+  soloRowCategories: Set<string>;
+  truncatedCategories: Set<string>;
+};
+
+interface WrapFilterChipMeasureOptions {
+  chipSelector: string;
+  chipKeyAttribute: string;
+  labelSelector: string;
+  labelInsetPx: number;
 }
+
+type WrapFilterChipLayout = {
+  soloRowKeys: Set<string>;
+  truncatedKeys: Set<string>;
+};
 
 export const PERSONAL_CATEGORY_CHIP_ROW_TOLERANCE_PX = 4;
 
 /** pl-7 + pr-3 on the category chip button (drag handle lives in padding). */
 export const PERSONAL_CATEGORY_CHIP_LABEL_INSET_PX = 40;
+
+const PERSONAL_CATEGORY_CHIP_MEASURE_OPTIONS: WrapFilterChipMeasureOptions = {
+  chipSelector: "[data-personal-category-chip]",
+  chipKeyAttribute: "data-personal-category-chip",
+  labelSelector: "[data-personal-category-label]",
+  labelInsetPx: PERSONAL_CATEGORY_CHIP_LABEL_INSET_PX,
+};
+
+export function personalCategoryLayoutSignature(
+  categories: readonly string[],
+  countFor: (category: string) => number
+): string {
+  return categories
+    .map((category) => `${category}:${countFor(category)}`)
+    .join("|");
+}
 
 export function groupElementsByRow(
   elements: HTMLElement[],
@@ -53,45 +79,53 @@ export function measureNaturalLabelWidth(label: HTMLElement): number {
   return width;
 }
 
-export type PersonalCategoryChipLayout = {
-  soloRowCategories: Set<string>;
-  truncatedCategories: Set<string>;
-};
-
-/** Solo-row chips span full width; truncate only when the natural label exceeds that width. */
-export function computePersonalCategoryChipLayout(
+function computeWrapFilterChipLayout(
   container: HTMLElement,
-  chipSelector = "[data-personal-category-chip]",
-  labelInsetPx = PERSONAL_CATEGORY_CHIP_LABEL_INSET_PX
-): PersonalCategoryChipLayout {
+  options: WrapFilterChipMeasureOptions
+): WrapFilterChipLayout {
   const chips = Array.from(
-    container.querySelectorAll<HTMLElement>(chipSelector)
+    container.querySelectorAll<HTMLElement>(options.chipSelector)
   );
-  const soloRowCategories = new Set<string>();
-  const truncatedCategories = new Set<string>();
+  const soloRowKeys = new Set<string>();
+  const truncatedKeys = new Set<string>();
   const rows = groupElementsByRow(chips);
-  const availableLabelWidth = Math.max(0, container.clientWidth - labelInsetPx);
+  const availableLabelWidth = Math.max(
+    0,
+    container.clientWidth - options.labelInsetPx
+  );
 
   for (const row of rows) {
     if (row.length !== 1) {
       continue;
     }
     const chip = row[0]!;
-    const category = chip.getAttribute("data-personal-category-chip");
-    const label = chip.querySelector<HTMLElement>(
-      "[data-personal-category-label]"
-    );
-    if (!category || !label) {
+    const key = chip.getAttribute(options.chipKeyAttribute);
+    const label = chip.querySelector<HTMLElement>(options.labelSelector);
+    if (!key || !label) {
       continue;
     }
 
-    soloRowCategories.add(category);
+    soloRowKeys.add(key);
     if (measureNaturalLabelWidth(label) > availableLabelWidth + 1) {
-      truncatedCategories.add(category);
+      truncatedKeys.add(key);
     }
   }
 
-  return { soloRowCategories, truncatedCategories };
+  return { soloRowKeys, truncatedKeys };
+}
+
+/** Solo-row chips span full width; truncate only when the natural label exceeds that width. */
+export function computePersonalCategoryChipLayout(
+  container: HTMLElement
+): PersonalCategoryChipLayout {
+  const layout = computeWrapFilterChipLayout(
+    container,
+    PERSONAL_CATEGORY_CHIP_MEASURE_OPTIONS
+  );
+  return {
+    soloRowCategories: layout.soloRowKeys,
+    truncatedCategories: layout.truncatedKeys,
+  };
 }
 
 export function personalCategoryChipSetsEqual(

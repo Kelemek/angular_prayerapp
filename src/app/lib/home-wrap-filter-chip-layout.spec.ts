@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  HOME_PERSONAL_CATEGORY_CHIP_FLEX_CLASS,
-  HOME_PERSONAL_CATEGORY_CHIP_SOLO_FLEX_CLASS,
+  HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
+  HOME_WRAP_FILTER_CHIP_SOLO_FLEX_CLASS,
 } from "./home-sub-filter-chip-classes";
 import {
   computePersonalCategoryChipLayout,
   groupElementsByRow,
   measureNaturalLabelWidth,
   personalCategoryLayoutSignature,
-} from "./home-personal-category-chip-layout";
+} from "./home-wrap-filter-chip-layout";
 
 function makeChip(
   category: string,
@@ -44,7 +44,10 @@ function makeChip(
 
 describe("personalCategoryLayoutSignature", () => {
   it("changes when a category count changes", () => {
-    const counts = new Map([["Family", 2], ["Health", 9]]);
+    const counts = new Map([
+      ["Family", 2],
+      ["Health", 9],
+    ]);
     const signature = () =>
       personalCategoryLayoutSignature(["Family", "Health"], (c) => counts.get(c) ?? 0);
 
@@ -56,9 +59,9 @@ describe("personalCategoryLayoutSignature", () => {
 
 describe("personal category chip flex classes", () => {
   it("uses disjoint min-width rules for shared vs solo rows", () => {
-    expect(HOME_PERSONAL_CATEGORY_CHIP_FLEX_CLASS).toContain("min-w-max");
-    expect(HOME_PERSONAL_CATEGORY_CHIP_SOLO_FLEX_CLASS).toContain("min-w-0");
-    expect(HOME_PERSONAL_CATEGORY_CHIP_SOLO_FLEX_CLASS).not.toContain("min-w-max");
+    expect(HOME_WRAP_FILTER_CHIP_FLEX_CLASS).toContain("min-w-max");
+    expect(HOME_WRAP_FILTER_CHIP_SOLO_FLEX_CLASS).toContain("min-w-0");
+    expect(HOME_WRAP_FILTER_CHIP_SOLO_FLEX_CLASS).not.toContain("min-w-max");
   });
 });
 
@@ -101,15 +104,9 @@ describe("computePersonalCategoryChipLayout", () => {
       get: () => 300,
     });
 
-    container.appendChild(
-      makeChip("short", "short (1)", 0, 80)
-    );
-    container.appendChild(
-      makeChip("paired-a", "paired-a (1)", 0, 120)
-    );
-    container.appendChild(
-      makeChip("paired-b", "paired-b (1)", 0, 120)
-    );
+    container.appendChild(makeChip("short", "short (1)", 0, 80));
+    container.appendChild(makeChip("paired-a", "paired-a (1)", 0, 120));
+    container.appendChild(makeChip("paired-b", "paired-b (1)", 0, 120));
     container.appendChild(
       makeChip("solo-long", "solo-long label (1)", 40, 320)
     );
