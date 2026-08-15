@@ -11,9 +11,15 @@ Major features and milestones for the Prayer App.
 ### Fix — Presentation page scroll and scrollbar
 - Presentation mode uses a fixed viewport shell so the document does not scroll behind slides; the outer slide column no longer scrolls when content fits, and scrollbars are hidden on both the slide column and inner `.presentation-card-scroll` surfaces ([`styles.css`](src/styles.css), [`presentation.component.html`](src/app/pages/presentation/presentation.component.html)).
 
+### Fix — Memorize tab-to-action-bar spacing
+- **Memorize** now uses the tighter `mb-1.5` gap between the main filter tabs and the action bar group, matching **Public**, **Personal**, and **Prompts** ([`homeHasSubFilterRowBelowTabs`](src/app/lib/home-community-filter.ts)).
+
+### Fix — Prompts sub-filter group border color
+- **Prompts** sub-filter row group border now renders the correct `#988F83` accent: group border classes are static literals in [`home-sub-filter-chip-classes.ts`](src/app/lib/home-sub-filter-chip-classes.ts) so Tailwind emits `border-[#988F83]` (the previous dynamic `border-[${hex}]` builder was not scanned and only the `!border` chip variant existed in CSS).
+
 ### UI — Home sub-filter group borders
-- **Public**, **Personal**, **Prompts**, and **Memorize** sub-filter rows are wrapped in a 2px rounded border that matches the active tab color via [`homeSubFilterGroupClass`](src/app/lib/home-sub-filter-chip-classes.ts) / [`HOME_FILTER_TAB_BORDER`](src/app/lib/home-sub-filter-chip-classes.ts). Memorize reuses the Public blue group border; action buttons stretch equally across the row like other sub-chips.
-- Main filter tabs use [`homeHasSubFilterRowBelowTabs`](src/app/lib/home-community-filter.ts) with `HOME_SHELL_FILTER_TAB_GAP_CLASSES` when a sub-filter row sits directly under the tab row; **Members**, **Memorize**, and empty **Prompts** keep the standard section gap.
+- **Public**, **Personal**, **Prompts**, and **Memorize** sub-filter rows are wrapped in a 2px rounded border that matches the active tab color via [`HOME_*_SUB_FILTER_GROUP_CLASS`](src/app/lib/home-sub-filter-chip-classes.ts) / [`HOME_FILTER_TAB_BORDER`](src/app/lib/home-sub-filter-chip-classes.ts). Memorize reuses the Public blue group border; action buttons stretch equally across the row like other sub-chips.
+- Main filter tabs use [`homeHasSubFilterRowBelowTabs`](src/app/lib/home-community-filter.ts) with `HOME_SHELL_FILTER_TAB_GAP_CLASSES` when a sub-filter row sits directly under the tab row; **Members** and empty **Prompts** keep the standard section gap.
 
 ### UI — Personal sub-filter active chip border
 - Active **Current** / **Answered** / **Total** / category chips on the Personal tab use a thin `#2F5F54` border (matching the Personal tab) instead of ring + shadow ([`HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS`](src/app/lib/home-sub-filter-chip-classes.ts)).

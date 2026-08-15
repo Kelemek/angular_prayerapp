@@ -95,6 +95,7 @@ export const HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS =
   "border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 text-gray-700 dark:text-gray-300";
 
 /** Wraps all sub-filter chips for a tab; border matches that tab's active color (2px like cards). */
+/** Tab accent hex values (documented; group borders use full literals below for Tailwind). */
 export const HOME_FILTER_TAB_BORDER = {
   public: "#0047AB",
   personal: "#2F5F54",
@@ -102,21 +103,13 @@ export const HOME_FILTER_TAB_BORDER = {
   memorize: "#0047AB",
 } as const;
 
-export function homeSubFilterGroupClass(
-  borderColor: (typeof HOME_FILTER_TAB_BORDER)[keyof typeof HOME_FILTER_TAB_BORDER]
-): string {
-  return `rounded-lg border-[2px] border-[${borderColor}] dark:border-[${borderColor}] p-2`;
-}
-
-export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS = homeSubFilterGroupClass(
-  HOME_FILTER_TAB_BORDER.public
-);
-export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS = homeSubFilterGroupClass(
-  HOME_FILTER_TAB_BORDER.personal
-);
-export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS = homeSubFilterGroupClass(
-  HOME_FILTER_TAB_BORDER.prompts
-);
+/** Literal class strings so Tailwind emits border-color utilities (dynamic `border-[${hex}]` is not scanned). */
+export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS =
+  "rounded-lg border-[2px] border-[#0047AB] dark:border-[#0047AB] p-2";
+export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS =
+  "rounded-lg border-[2px] border-[#2F5F54] dark:border-[#2F5F54] p-2";
+export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS =
+  "rounded-lg border-[2px] border-[#988F83] dark:border-[#988F83] p-2";
 /** Same blue border as Public — Memorize tab shares `#0047AB`. */
 export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
   HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;

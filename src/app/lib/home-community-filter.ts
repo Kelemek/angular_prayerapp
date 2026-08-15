@@ -16,6 +16,7 @@ export function homeHasSubFilterRowBelowTabs(
   return (
     isCommunityPrayerFilter(filter) ||
     filter === "personal" ||
+    filter === "memorize" ||
     (filter === "prompts" && promptsCount > 0)
   );
 }
