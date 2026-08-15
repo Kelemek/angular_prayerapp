@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { ɵresolveComponentResources as resolveComponentResources } from "@angular/core";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import {
+  HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
@@ -51,6 +52,15 @@ describe("HomePersonalCategoryFiltersComponent", () => {
 
   afterEach(() => {
     fixture?.destroy();
+  });
+
+  it("wraps status and category chips in a tab-colored group border", () => {
+    const group = fixture.nativeElement.querySelector(
+      "#tour-personal-category-filters > div"
+    ) as HTMLElement;
+    for (const token of HOME_PERSONAL_SUB_FILTER_GROUP_CLASS.split(" ")) {
+      expect(group.className).toContain(token);
+    }
   });
 
   it("wraps each category chip with static flex row host classes like prompt types", () => {

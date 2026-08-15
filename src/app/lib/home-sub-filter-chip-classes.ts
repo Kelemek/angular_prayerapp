@@ -89,3 +89,34 @@ export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
 export const HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS =
   HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
   " hover:border-[#2F5F54] dark:hover:border-[#2F5F54]";
+
+/** Personal sub-chips: thin tab-color border only (no ring/shadow box). */
+export const HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS =
+  "border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 text-gray-700 dark:text-gray-300";
+
+/** Wraps all sub-filter chips for a tab; border matches that tab's active color (2px like cards). */
+export const HOME_FILTER_TAB_BORDER = {
+  public: "#0047AB",
+  personal: "#2F5F54",
+  prompts: "#988F83",
+  memorize: "#0047AB",
+} as const;
+
+export function homeSubFilterGroupClass(
+  borderColor: (typeof HOME_FILTER_TAB_BORDER)[keyof typeof HOME_FILTER_TAB_BORDER]
+): string {
+  return `rounded-lg border-[2px] border-[${borderColor}] dark:border-[${borderColor}] p-2`;
+}
+
+export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS = homeSubFilterGroupClass(
+  HOME_FILTER_TAB_BORDER.public
+);
+export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS = homeSubFilterGroupClass(
+  HOME_FILTER_TAB_BORDER.personal
+);
+export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS = homeSubFilterGroupClass(
+  HOME_FILTER_TAB_BORDER.prompts
+);
+/** Same blue border as Public — Memorize tab shares `#0047AB`. */
+export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
+  HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;

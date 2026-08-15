@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
+import { HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS } from '../../lib/home-sub-filter-chip-classes';
 import { MemorizationActionBarComponent } from './memorization-action-bar.component';
 
 describe('MemorizationActionBarComponent', () => {
@@ -88,12 +89,29 @@ describe('MemorizationActionBarComponent', () => {
     );
   });
 
+  it('wraps action buttons in a tab-colored group border and stretches them full width', async () => {
+    const { container } = await render(MemorizationActionBarComponent);
+    const bar = container.querySelector('#tour-memorize-action-bar');
+    const group = bar?.querySelector('div');
+    for (const token of HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS.split(' ')) {
+      expect(group?.className).toContain(token);
+    }
+
+    for (const name of ['Add Verses', 'Bible Books', 'Recommended']) {
+      const button = screen.getByRole('button', { name: new RegExp(name, 'i') });
+      expect(button.className).toContain('flex-1');
+      expect(button.className).toContain('w-full');
+      expect(button.className).not.toContain('flex-none');
+    }
+  });
+
   it('places a compact Cards/Table toggle under the actions, right-aligned with a View label', async () => {
     const { container } = await render(MemorizationActionBarComponent);
     const bar = container.querySelector('#tour-memorize-action-bar');
     expect(bar?.className).toContain('flex-col');
     expect(bar?.className).toContain('gap-2');
     expect(bar?.className).toContain('mb-2');
+    expect(bar?.className).toContain('sm:mb-3');
     const row = screen.getByTestId('memorize-list-layout-row');
     expect(row.className).toContain('self-end');
     expect(row.textContent).toContain('View');

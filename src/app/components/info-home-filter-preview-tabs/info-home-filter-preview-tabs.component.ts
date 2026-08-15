@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
+  HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_BASE_CLASS,
   HOME_SUB_FILTER_CHIP_WRAP_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
@@ -22,6 +23,7 @@ export class InfoHomeFilterPreviewTabsComponent {
 
   readonly subFilterChipBaseClass = HOME_SUB_FILTER_CHIP_BASE_CLASS;
   readonly subFilterChipWrapClass = HOME_SUB_FILTER_CHIP_WRAP_CLASS;
+  readonly publicSubFilterGroupClass = HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;
 
   isPublicTabActive(): boolean {
     return isPublicPreviewFilter(this.previewFilter);

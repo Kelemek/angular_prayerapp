@@ -1,4 +1,4 @@
-      <div [class]="sectionGapClass + ' flex w-full gap-2'">
+      <div [class]="tabRowMarginClass + ' flex w-full gap-2'">
         @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
         @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
         @let aggregateBadge = currentBadge + answeredBadge;

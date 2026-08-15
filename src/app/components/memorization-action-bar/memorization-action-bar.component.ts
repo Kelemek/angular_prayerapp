@@ -1,10 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { MemorizeListView } from '../../lib/memorization/memorization-list-prefs';
+import { HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS } from '../../lib/home-sub-filter-chip-classes';
+import { HOME_SHELL_SECTION_GAP_CLASSES } from '../../lib/home-shell-spacing';
 
 /** Fixed `14px` (not `text-sm` rem) so labels stay the same under Settings text size. */
 const ACTION_BTN_BASE =
-  'flex flex-1 items-center justify-center whitespace-nowrap rounded-lg border px-2 py-2 text-[14px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer sm:flex-none sm:px-4';
+  'flex w-full min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border px-2 py-2 text-[14px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer sm:px-4';
 
 /** Outlined blue — matches active **Memorize** stat tab (`#tour-filter-memorize`). */
 const MEMORIZE_TAB_CHIP =
@@ -42,8 +44,11 @@ const VIEW_BTN_INACTIVE =
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div id="tour-memorize-action-bar" class="mb-2 flex w-full flex-col gap-2">
-      <div class="flex w-full min-w-0 gap-2">
+    <div
+      id="tour-memorize-action-bar"
+      [class]="sectionGapClass + ' flex w-full flex-col gap-2'"
+    >
+      <div [class]="subFilterGroupClass + ' flex w-full min-w-0 gap-2'">
         <button
           type="button"
           id="tour-memorize-add-verses"
@@ -136,6 +141,8 @@ export class MemorizationActionBarComponent {
   protected readonly viewBtnBase = VIEW_BTN_BASE;
   protected readonly viewBtnActive = VIEW_BTN_ACTIVE;
   protected readonly viewBtnInactive = VIEW_BTN_INACTIVE;
+  protected readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
+  protected readonly subFilterGroupClass = HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS;
 
   setListView(view: MemorizeListView): void {
     if (view === this.listView) return;

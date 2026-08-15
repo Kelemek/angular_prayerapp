@@ -1,7 +1,7 @@
-<div
-  [class]="sectionGapClass + ' flex w-full flex-wrap gap-2'"
-  id="tour-prompt-type-filters"
->
+<div [class]="sectionGapClass" id="tour-prompt-type-filters">
+  <div
+    [class]="subFilterGroupClass + ' flex w-full flex-wrap gap-2'"
+  >
   @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
 
   <div [class]="chipHostClass">
@@ -40,4 +40,5 @@
     </button>
   </div>
   }
+  </div>
 </div>

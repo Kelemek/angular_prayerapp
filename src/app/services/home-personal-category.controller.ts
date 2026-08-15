@@ -11,6 +11,7 @@ import {
   PERSONAL_CATEGORY_LONG_PRESS_MOVE_PX,
   PERSONAL_CATEGORY_CLICK_SUPPRESS_MS,
 } from "../lib/personal-category-long-press";
+import { HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS } from "../lib/home-sub-filter-chip-classes";
 import { namedPersonalCategoryNamesFromPrayers } from "../lib/personal-category-order";
 import {
   renamePersonalCategoryWithColors,
@@ -44,8 +45,7 @@ export class HomePersonalCategoryController {
   isRenamingPersonalCategory = false;
   isReorderingPersonalPrayers = false;
 
-  readonly personalCategoryActiveClass =
-    "border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+  readonly personalCategoryActiveClass = HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS;
 
   private host: HomePersonalCategoryHost | null = null;
   private prayerService: PrayerService | null = null;

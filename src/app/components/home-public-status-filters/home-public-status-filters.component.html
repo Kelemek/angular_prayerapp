@@ -1,4 +1,5 @@
-<div [class]="sectionGapClass + ' flex w-full gap-2'">
+<div [class]="sectionGapClass">
+  <div [class]="subFilterGroupClass + ' flex w-full gap-2'">
   @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
   @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
   @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
@@ -50,4 +51,5 @@
   >
     Total ({{ totalPrayersCount }})
   </app-home-sub-filter-chip>
+  </div>
 </div>

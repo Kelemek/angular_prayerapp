@@ -7,6 +7,7 @@ import {
 import type { PersonalCategoryFilterMode } from "../../types/presentation";
 import {
   HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS,
+  HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
@@ -56,6 +57,7 @@ export class HomePersonalCategoryFiltersComponent {
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS;
   readonly namedChipInactiveClass = HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS;
   readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
+  readonly subFilterGroupClass = HOME_PERSONAL_SUB_FILTER_GROUP_CLASS;
 
   categoryChipButtonClass(category: string): string {
     return buildHomeSubFilterChipButtonClass({

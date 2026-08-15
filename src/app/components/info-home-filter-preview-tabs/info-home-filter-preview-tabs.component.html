@@ -86,7 +86,7 @@
 </div>
 
 @if (isPublicTabActive()) {
-<div class="flex w-full gap-2 mb-4">
+<div [class]="publicSubFilterGroupClass + ' flex w-full gap-2 mb-4'">
   <button
     type="button"
     (click)="setPreviewFilter('current')"

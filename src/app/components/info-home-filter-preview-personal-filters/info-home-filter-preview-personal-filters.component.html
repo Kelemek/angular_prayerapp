@@ -1,9 +1,10 @@
 <div class="mb-4">
+  <div [class]="personalSubFilterGroupClass">
   <div class="flex w-full gap-2">
     <button
       type="button"
       (click)="openPersonalCategories.emit()"
-      class="{{ subFilterChipBaseClass }} cursor-pointer border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md"
+      class="{{ subFilterChipBaseClass }} cursor-pointer {{ personalSubFilterChipActiveClass }}"
     >
       Current (10)
     </button>
@@ -44,5 +45,6 @@
     >
       Work (2)
     </button>
+  </div>
   </div>
 </div>

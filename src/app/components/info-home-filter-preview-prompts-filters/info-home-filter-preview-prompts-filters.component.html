@@ -1,4 +1,4 @@
-<div class="flex w-full flex-wrap gap-2 mb-4">
+<div [class]="promptsSubFilterGroupClass + ' flex w-full flex-wrap gap-2 mb-4'">
   @for (chip of previewChips; track chip.label) {
   <div [class]="chipHostClass">
     <button

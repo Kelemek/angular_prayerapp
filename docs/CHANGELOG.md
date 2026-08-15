@@ -4,6 +4,13 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### UI — Home sub-filter group borders
+- **Public**, **Personal**, **Prompts**, and **Memorize** sub-filter rows are wrapped in a 2px rounded border that matches the active tab color via [`homeSubFilterGroupClass`](src/app/lib/home-sub-filter-chip-classes.ts) / [`HOME_FILTER_TAB_BORDER`](src/app/lib/home-sub-filter-chip-classes.ts). Memorize reuses the Public blue group border; action buttons stretch equally across the row like other sub-chips.
+- Main filter tabs use [`homeHasSubFilterRowBelowTabs`](src/app/lib/home-community-filter.ts) with `HOME_SHELL_FILTER_TAB_GAP_CLASSES` when a sub-filter row sits directly under the tab row; **Members**, **Memorize**, and empty **Prompts** keep the standard section gap.
+
+### UI — Personal sub-filter active chip border
+- Active **Current** / **Answered** / **Total** / category chips on the Personal tab use a thin `#2F5F54` border (matching the Personal tab) instead of ring + shadow ([`HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS`](src/app/lib/home-sub-filter-chip-classes.ts)).
+
 ### Fix — Help markdown bold rendering
 - Help modal and guided tours convert `**bold**` markers in help copy to `<strong>` via [`formatHelpContentHtml`](src/app/lib/help-content-html.ts) instead of showing literal asterisks.
 - Filtering tour **Answered** step falls back to descriptive copy when `excerptForNamedFilter` only finds a chip-list fragment ([`isDescriptiveFilterTourExcerpt`](src/app/lib/help-filter-tour-excerpt.ts)).

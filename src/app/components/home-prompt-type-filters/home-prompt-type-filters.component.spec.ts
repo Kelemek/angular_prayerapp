@@ -7,6 +7,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { of } from "rxjs";
 import { BadgeService } from "../../services/badge.service";
 import {
+  HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
@@ -66,13 +67,22 @@ describe("HomePromptTypeFiltersComponent", () => {
 
   it("wraps each chip with static flex row host classes", () => {
     const hosts = fixture.nativeElement.querySelectorAll(
-      "#tour-prompt-type-filters > div"
+      "#tour-prompt-type-filters .flex > div"
     );
     expect(hosts.length).toBe(3);
     for (const host of hosts) {
       expect(host.className).toContain(
         HOME_WRAP_FILTER_CHIP_FLEX_CLASS.split(" ")[0]
       );
+    }
+  });
+
+  it("wraps chips in a tab-colored group border", () => {
+    const group = fixture.nativeElement.querySelector(
+      "#tour-prompt-type-filters > div"
+    ) as HTMLElement;
+    for (const token of HOME_PROMPTS_SUB_FILTER_GROUP_CLASS.split(" ")) {
+      expect(group.className).toContain(token);
     }
   });
 

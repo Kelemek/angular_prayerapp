@@ -5,6 +5,7 @@ import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapte
 import { BadgeService } from "../../services/badge.service";
 import {
   HOME_PUBLIC_STATUS_CHIP_THEMES,
+  HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_BASE_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
 import { HOME_SHELL_SECTION_GAP_CLASSES } from "../../lib/home-shell-spacing";
@@ -34,6 +35,7 @@ export class HomePublicStatusFiltersComponent {
   readonly chipThemes = HOME_PUBLIC_STATUS_CHIP_THEMES;
   readonly chipBaseClass = HOME_SUB_FILTER_CHIP_BASE_CLASS;
   readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
+  readonly subFilterGroupClass = HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;
 
   constructor(readonly badgeService: BadgeService) {}
 }

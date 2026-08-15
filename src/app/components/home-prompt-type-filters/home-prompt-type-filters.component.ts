@@ -2,6 +2,7 @@ import { Component, EventEmitter, inject, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { BadgeService } from "../../services/badge.service";
 import {
+  HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
@@ -29,6 +30,7 @@ export class HomePromptTypeFiltersComponent {
 
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS;
+  readonly subFilterGroupClass = HOME_PROMPTS_SUB_FILTER_GROUP_CLASS;
   @Input() sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
 
   readonly badgeService = inject(BadgeService);
