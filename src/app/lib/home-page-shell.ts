@@ -49,7 +49,7 @@ export interface HomePersonalCategoryFilterActions {
   onCategoryDragEnded(): void;
   onPersonalCategoryPointerDown(event: PointerEvent, category: string): void;
   onPersonalCategoryPointerMove(event: PointerEvent): void;
-  onPersonalCategoryPointerUp(): void;
+  onPersonalCategoryPointerUp(event?: PointerEvent): void;
   onPersonalCategoryContextMenu(event: MouseEvent, category: string): void;
 }
 
@@ -248,8 +248,8 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
         deps.personalCategory.onPersonalCategoryPointerDown(event, category),
       onPersonalCategoryPointerMove: (event: PointerEvent) =>
         deps.personalCategory.onPersonalCategoryPointerMove(event),
-      onPersonalCategoryPointerUp: () =>
-        deps.personalCategory.onPersonalCategoryPointerUp(),
+      onPersonalCategoryPointerUp: (event?: PointerEvent) =>
+        deps.personalCategory.onPersonalCategoryPointerUp(event),
       onPersonalCategoryContextMenu: (event: MouseEvent, category: string) =>
         deps.personalCategory.onPersonalCategoryContextMenu(event, category),
     },

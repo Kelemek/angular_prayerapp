@@ -6,6 +6,11 @@ import type { PersonalCategoryColorService } from "./personal-category-color.ser
 import type { ToastService } from "./toast.service";
 import type { PersonalCategoryFilterMode } from "../types/presentation";
 import {
+  lockHomePersonalCategoryDragScroll,
+  unlockHomePersonalCategoryDragScroll,
+} from "../lib/personal-category-drag-scroll";
+import {
+  clearBrowserTextSelection,
   isPersonalCategoryDragHandleTarget,
   PERSONAL_CATEGORY_LONG_PRESS_MS,
   PERSONAL_CATEGORY_LONG_PRESS_MOVE_PX,
@@ -38,6 +43,7 @@ export class HomePersonalCategoryController {
   personalCategoryFilterMode: PersonalCategoryFilterMode = "current";
   selectedPersonalCategories: string[] = [];
   isCategoryDragging = false;
+  private categoryDragScrollLockTarget: HTMLElement | null = null;
   private pendingCategoryOrder: string[] | null = null;
   private swappingCategories = new Set<string>();
   showRenamePersonalCategory = false;
@@ -59,6 +65,8 @@ export class HomePersonalCategoryController {
   > | null = null;
   private personalCategoryLongPressTimer: ReturnType<typeof setTimeout> | null =
     null;
+  private personalCategoryLongPressTriggered = false;
+  private personalCategoryLongPressReleaseGuard: (() => void) | null = null;
   private personalCategoryPressStartX = 0;
   private personalCategoryPressStartY = 0;
 
@@ -78,6 +86,7 @@ export class HomePersonalCategoryController {
 
   dispose(): void {
     this.clearPersonalCategoryLongPress();
+    this.clearPersonalCategoryLongPressReleaseGuard();
     this.clearPersonalCategoryClickSuppress();
   }
 
@@ -156,11 +165,14 @@ export class HomePersonalCategoryController {
   onCategoryDragStarted(): void {
     this.isCategoryDragging = true;
     document.body.style.cursor = "grabbing";
+    this.categoryDragScrollLockTarget = lockHomePersonalCategoryDragScroll();
   }
 
   onCategoryDragEnded(): void {
     this.isCategoryDragging = false;
     document.body.style.cursor = "";
+    unlockHomePersonalCategoryDragScroll(this.categoryDragScrollLockTarget);
+    this.categoryDragScrollLockTarget = null;
   }
 
   async onCategoryDrop(event: CdkDragDrop<string[]>): Promise<void> {
@@ -307,10 +319,13 @@ export class HomePersonalCategoryController {
     }
 
     this.clearPersonalCategoryLongPress();
+    this.personalCategoryLongPressTriggered = false;
     this.personalCategoryPressStartX = event.clientX;
     this.personalCategoryPressStartY = event.clientY;
     this.personalCategoryLongPressTimer = setTimeout(() => {
       this.personalCategoryLongPressTimer = null;
+      this.personalCategoryLongPressTriggered = true;
+      clearBrowserTextSelection();
       this.openRenamePersonalCategoryModal(category);
     }, PERSONAL_CATEGORY_LONG_PRESS_MS);
   }
@@ -326,8 +341,18 @@ export class HomePersonalCategoryController {
     }
   }
 
-  onPersonalCategoryPointerUp(): void {
+  onPersonalCategoryPointerUp(event?: PointerEvent): void {
+    const wasLongPress = this.personalCategoryLongPressTriggered;
     this.clearPersonalCategoryLongPress();
+    if (!wasLongPress) {
+      return;
+    }
+    this.personalCategoryLongPressTriggered = false;
+    clearBrowserTextSelection();
+    if (event?.cancelable) {
+      event.preventDefault();
+    }
+    event?.stopPropagation();
   }
 
   onPersonalCategoryContextMenu(event: MouseEvent, category: string): void {
@@ -344,6 +369,10 @@ export class HomePersonalCategoryController {
 
   openRenamePersonalCategoryModal(category: string): void {
     this.clearPersonalCategoryLongPress();
+    clearBrowserTextSelection();
+    if (this.personalCategoryLongPressTriggered) {
+      this.installPersonalCategoryLongPressReleaseGuard();
+    }
     this.suppressPersonalCategoryClickFor = category;
     this.schedulePersonalCategoryClickSuppressClear();
     this.renamingPersonalCategory = category;
@@ -356,6 +385,8 @@ export class HomePersonalCategoryController {
       this.personalCategoryRenameGeneration++;
       this.isRenamingPersonalCategory = false;
     }
+    this.personalCategoryLongPressTriggered = false;
+    this.clearPersonalCategoryLongPressReleaseGuard();
     this.showRenamePersonalCategory = false;
     this.renamingPersonalCategory = null;
     this.requireHost().markForCheck();
@@ -505,6 +536,41 @@ export class HomePersonalCategoryController {
       clearTimeout(this.personalCategoryLongPressTimer);
       this.personalCategoryLongPressTimer = null;
     }
+  }
+
+  private installPersonalCategoryLongPressReleaseGuard(): void {
+    this.clearPersonalCategoryLongPressReleaseGuard();
+
+    const options: AddEventListenerOptions = {
+      capture: true,
+      passive: false,
+    };
+    const onRelease = (event: Event) => {
+      clearBrowserTextSelection();
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      event.stopPropagation();
+      this.personalCategoryLongPressTriggered = false;
+      this.clearPersonalCategoryLongPressReleaseGuard();
+    };
+
+    document.addEventListener("pointerup", onRelease, options);
+    document.addEventListener("pointercancel", onRelease, options);
+    document.addEventListener("touchend", onRelease, options);
+    document.addEventListener("touchcancel", onRelease, options);
+
+    this.personalCategoryLongPressReleaseGuard = () => {
+      document.removeEventListener("pointerup", onRelease, options);
+      document.removeEventListener("pointercancel", onRelease, options);
+      document.removeEventListener("touchend", onRelease, options);
+      document.removeEventListener("touchcancel", onRelease, options);
+    };
+  }
+
+  private clearPersonalCategoryLongPressReleaseGuard(): void {
+    this.personalCategoryLongPressReleaseGuard?.();
+    this.personalCategoryLongPressReleaseGuard = null;
   }
 
   private schedulePersonalCategoryClickSuppressClear(): void {

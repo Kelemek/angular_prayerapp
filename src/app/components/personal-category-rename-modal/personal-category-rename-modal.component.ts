@@ -6,10 +6,14 @@ import {
   ChangeDetectionStrategy,
   OnChanges,
   SimpleChanges,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalShellComponent } from '../modal-shell/modal-shell.component';
+import { clearBrowserTextSelection } from '../../lib/personal-category-long-press';
 
 @Component({
   selector: 'app-personal-category-rename-modal',
@@ -37,6 +41,7 @@ import { ModalShellComponent } from '../modal-shell/modal-shell.component';
             Category name
           </label>
           <input
+            #categoryNameInput
             id="personal-category-rename-input"
             type="text"
             name="categoryName"
@@ -49,18 +54,18 @@ import { ModalShellComponent } from '../modal-shell/modal-shell.component';
           />
         </div>
 
-        <div class="flex justify-end gap-3 pt-2">
+        <div class="flex justify-end gap-3 pt-2 select-none [-webkit-touch-callout:none]">
           <button
             type="button"
             (click)="close.emit()"
-            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer select-none [-webkit-touch-callout:none]"
           >
             Cancel
           </button>
           <button
             type="submit"
             [disabled]="!renameForm.valid || saving"
-            class="btn-chip btn-chip-blue min-h-11 px-6 py-2.5 text-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-chip btn-chip-blue min-h-11 px-6 py-2.5 text-base rounded-md disabled:opacity-50 disabled:cursor-not-allowed select-none [-webkit-touch-callout:none]"
           >
             {{ saving ? 'Saving…' : 'Save' }}
           </button>
@@ -70,7 +75,9 @@ import { ModalShellComponent } from '../modal-shell/modal-shell.component';
     }
   `,
 })
-export class PersonalCategoryRenameModalComponent implements OnChanges {
+export class PersonalCategoryRenameModalComponent
+  implements OnChanges, AfterViewInit
+{
   @Input() isOpen = false;
   @Input() categoryName = '';
   @Input() saving = false;
@@ -78,12 +85,41 @@ export class PersonalCategoryRenameModalComponent implements OnChanges {
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<string>();
 
+  @ViewChild('categoryNameInput')
+  private categoryNameInput?: ElementRef<HTMLInputElement>;
+
   draftName = '';
+  private shouldFocusInput = false;
+
+  ngAfterViewInit(): void {
+    this.focusCategoryNameInputIfNeeded();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue || changes['categoryName']) {
       this.draftName = this.categoryName;
     }
+    if (changes['isOpen']?.currentValue) {
+      clearBrowserTextSelection();
+      this.shouldFocusInput = true;
+      this.focusCategoryNameInputIfNeeded();
+    }
+  }
+
+  private focusCategoryNameInputIfNeeded(): void {
+    if (!this.isOpen || !this.shouldFocusInput) {
+      return;
+    }
+    const input = this.categoryNameInput?.nativeElement;
+    if (!input) {
+      return;
+    }
+    this.shouldFocusInput = false;
+    requestAnimationFrame(() => {
+      clearBrowserTextSelection();
+      input.focus({ preventScroll: true });
+      input.select();
+    });
   }
 
   onSubmit(): void {

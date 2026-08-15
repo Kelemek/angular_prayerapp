@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { isPersonalCategoryDragHandleTarget } from './personal-category-long-press';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  clearBrowserTextSelection,
+  isPersonalCategoryDragHandleTarget,
+} from './personal-category-long-press';
 
 describe('isPersonalCategoryDragHandleTarget', () => {
   it('returns true for elements inside the drag handle', () => {
@@ -14,5 +17,18 @@ describe('isPersonalCategoryDragHandleTarget', () => {
   it('returns false for other category button content', () => {
     const label = document.createElement('span');
     expect(isPersonalCategoryDragHandleTarget(label)).toBe(false);
+  });
+});
+
+describe('clearBrowserTextSelection', () => {
+  it('removes all selection ranges', () => {
+    const removeAllRanges = vi.fn();
+    vi.spyOn(window, 'getSelection').mockReturnValue({
+      removeAllRanges,
+    } as unknown as Selection);
+
+    clearBrowserTextSelection();
+
+    expect(removeAllRanges).toHaveBeenCalled();
   });
 });

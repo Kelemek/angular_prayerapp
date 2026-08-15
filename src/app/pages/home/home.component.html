@@ -228,7 +228,7 @@
         (categoryPointerMove)="
           shell.personalCategory.actions.onPersonalCategoryPointerMove($event)
         "
-        (categoryPointerUp)="shell.personalCategory.actions.onPersonalCategoryPointerUp()"
+        (categoryPointerUp)="shell.personalCategory.actions.onPersonalCategoryPointerUp($event)"
         (categoryContextMenu)="
           shell.personalCategory.actions.onPersonalCategoryContextMenu(
             $event.event,

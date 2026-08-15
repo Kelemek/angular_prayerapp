@@ -15,3 +15,8 @@ export function isPersonalCategoryDragHandleTarget(
     !!target.closest('[data-personal-category-drag-handle]')
   );
 }
+
+/** Clears native text selection started by a mobile long-press gesture. */
+export function clearBrowserTextSelection(): void {
+  window.getSelection()?.removeAllRanges();
+}

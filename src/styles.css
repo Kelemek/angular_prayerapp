@@ -501,6 +501,12 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Lock home scroll while reordering personal category chips (mobile). */
+.main-page-shell .safe-area-viewport.home-personal-category-drag-scroll-lock {
+  overflow: hidden;
+  touch-action: none;
+}
+
 /* Room for card box-shadows inside scroll containers (overflow-y clips horizontal bleed). */
 .card-stack-shadow {
   padding-inline: 20px;

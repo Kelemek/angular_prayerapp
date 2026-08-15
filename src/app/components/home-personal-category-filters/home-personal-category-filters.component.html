@@ -53,38 +53,44 @@
         (click)="toggleCategory.emit(category)"
         (pointerdown)="categoryPointerDown.emit({ event: $event, category })"
         (pointermove)="categoryPointerMove.emit($event)"
-        (pointerup)="categoryPointerUp.emit()"
-        (pointerleave)="categoryPointerUp.emit()"
-        (pointercancel)="categoryPointerUp.emit()"
+        (pointerup)="categoryPointerUp.emit($event)"
+        (pointerleave)="categoryPointerUp.emit($event)"
+        (pointercancel)="categoryPointerUp.emit($event)"
         (contextmenu)="categoryContextMenu.emit({ event: $event, category })"
         [disabled]="isCategorySwapping(category)"
         [class]="categoryChipButtonClass(category)"
       >
-        <svg
+        <span
           cdkDragHandle
           data-personal-category-drag-handle
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          [class]="
-            'flex-shrink-0 absolute left-2 top-1/2 -translate-y-1/2 ' +
-            (isCategorySwapping(category)
-              ? 'cursor-not-allowed'
-              : 'cursor-grab')
-          "
+          class="absolute inset-y-0 left-0 flex w-7 items-center justify-center"
+          aria-hidden="true"
+          (pointerdown)="$event.stopPropagation()"
         >
-          <circle cx="9" cy="5" r="1"></circle>
-          <circle cx="9" cy="12" r="1"></circle>
-          <circle cx="9" cy="19" r="1"></circle>
-          <circle cx="15" cy="5" r="1"></circle>
-          <circle cx="15" cy="12" r="1"></circle>
-          <circle cx="15" cy="19" r="1"></circle>
-        </svg>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            [class]="
+              'pointer-events-none flex-shrink-0 ' +
+              (isCategorySwapping(category)
+                ? 'cursor-not-allowed'
+                : 'cursor-grab')
+            "
+          >
+            <circle cx="9" cy="5" r="1"></circle>
+            <circle cx="9" cy="12" r="1"></circle>
+            <circle cx="9" cy="19" r="1"></circle>
+            <circle cx="15" cy="5" r="1"></circle>
+            <circle cx="15" cy="12" r="1"></circle>
+            <circle cx="15" cy="19" r="1"></circle>
+          </svg>
+        </span>
         {{ category }} ({{ getCategoryCount(category) }})
         @if (isCategorySwapping(category)) {
         <svg

@@ -47,7 +47,7 @@ export class HomePersonalCategoryFiltersComponent {
     category: string;
   }>();
   @Output() categoryPointerMove = new EventEmitter<PointerEvent>();
-  @Output() categoryPointerUp = new EventEmitter<void>();
+  @Output() categoryPointerUp = new EventEmitter<PointerEvent>();
   @Output() categoryContextMenu = new EventEmitter<{
     event: MouseEvent;
     category: string;

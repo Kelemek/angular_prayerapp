@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HomePersonalCategoryController } from "./home-personal-category.controller";
 import type { PrayerRequest } from "./prayer.service";
+import { HOME_PERSONAL_CATEGORY_DRAG_SCROLL_LOCK_CLASS } from "../lib/personal-category-drag-scroll";
+import * as personalCategoryLongPress from "../lib/personal-category-long-press";
+import { PERSONAL_CATEGORY_LONG_PRESS_MS } from "../lib/personal-category-long-press";
 
 function prayersWithCategoryOrder(
   entries: Array<{ category: string; display_order: number }>
@@ -183,5 +186,85 @@ describe("HomePersonalCategoryController", () => {
 
     expect(host.setPersonalPrayers).toHaveBeenLastCalledWith(prayers);
     expect(host.onFilterStateChanged).toHaveBeenCalled();
+  });
+
+  describe("personal category long-press rename", () => {
+    it("opens rename modal after long-press and swallows the release gesture", () => {
+      vi.useFakeTimers();
+      const clearSelectionSpy = vi.spyOn(
+        personalCategoryLongPress,
+        "clearBrowserTextSelection"
+      );
+      const addListenerSpy = vi.spyOn(document, "addEventListener");
+
+      controller.onPersonalCategoryPointerDown(
+        {
+          button: 0,
+          clientX: 10,
+          clientY: 10,
+          target: document.createElement("button"),
+        } as unknown as PointerEvent,
+        "Health"
+      );
+
+      vi.advanceTimersByTime(PERSONAL_CATEGORY_LONG_PRESS_MS);
+
+      expect(controller.showRenamePersonalCategory).toBe(true);
+      expect(controller.renamingPersonalCategory).toBe("Health");
+      expect(clearSelectionSpy).toHaveBeenCalled();
+      expect(addListenerSpy).toHaveBeenCalledWith(
+        "pointerup",
+        expect.any(Function),
+        expect.objectContaining({ capture: true, passive: false })
+      );
+
+      const releaseEvent = {
+        cancelable: true,
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      } as unknown as PointerEvent;
+      controller.onPersonalCategoryPointerUp(releaseEvent);
+
+      expect(releaseEvent.preventDefault).toHaveBeenCalled();
+      expect(releaseEvent.stopPropagation).toHaveBeenCalled();
+
+      vi.useRealTimers();
+      clearSelectionSpy.mockRestore();
+      addListenerSpy.mockRestore();
+    });
+  });
+
+  describe("category drag scroll lock", () => {
+    let viewport: HTMLElement;
+
+    beforeEach(() => {
+      const shell = document.createElement("div");
+      shell.className = "main-page-shell";
+      viewport = document.createElement("div");
+      viewport.className = "safe-area-viewport";
+      shell.appendChild(viewport);
+      document.body.appendChild(shell);
+    });
+
+    afterEach(() => {
+      document.body.innerHTML = "";
+      document.body.style.cursor = "";
+    });
+
+    it("locks home scroll on drag start and unlocks on drag end", () => {
+      controller.onCategoryDragStarted();
+      expect(controller.isCategoryDragging).toBe(true);
+      expect(document.body.style.cursor).toBe("grabbing");
+      expect(
+        viewport.classList.contains(HOME_PERSONAL_CATEGORY_DRAG_SCROLL_LOCK_CLASS)
+      ).toBe(true);
+
+      controller.onCategoryDragEnded();
+      expect(controller.isCategoryDragging).toBe(false);
+      expect(document.body.style.cursor).toBe("");
+      expect(
+        viewport.classList.contains(HOME_PERSONAL_CATEGORY_DRAG_SCROLL_LOCK_CLASS)
+      ).toBe(false);
+    });
   });
 });

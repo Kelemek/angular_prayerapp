@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — Personal category chip drag on mobile
+- Dragging personal category chips on mobile no longer scrolls the page behind the chip: the drag handle hit area matches the left `pl-7` zone, and the home scroll viewport locks while a category drag is active ([`personal-category-drag-scroll.ts`](src/app/lib/personal-category-drag-scroll.ts), [`home-personal-category-filters`](src/app/components/home-personal-category-filters/home-personal-category-filters.component.html)).
+- Long-pressing a category chip to rename no longer highlights **Cancel** / **Save** text when the modal appears under your finger: the release gesture is swallowed, native selection is cleared, and the rename input is focused ([`personal-category-long-press.ts`](src/app/lib/personal-category-long-press.ts), [`personal-category-rename-modal`](src/app/components/personal-category-rename-modal/personal-category-rename-modal.component.ts)).
+
 ### UI — Home sub-filter group borders
 - **Public**, **Personal**, **Prompts**, and **Memorize** sub-filter rows are wrapped in a 2px rounded border that matches the active tab color via [`homeSubFilterGroupClass`](src/app/lib/home-sub-filter-chip-classes.ts) / [`HOME_FILTER_TAB_BORDER`](src/app/lib/home-sub-filter-chip-classes.ts). Memorize reuses the Public blue group border; action buttons stretch equally across the row like other sub-chips.
 - Main filter tabs use [`homeHasSubFilterRowBelowTabs`](src/app/lib/home-community-filter.ts) with `HOME_SHELL_FILTER_TAB_GAP_CLASSES` when a sub-filter row sits directly under the tab row; **Members**, **Memorize**, and empty **Prompts** keep the standard section gap.
