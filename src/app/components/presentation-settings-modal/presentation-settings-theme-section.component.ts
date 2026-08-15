@@ -14,6 +14,7 @@ export type PresentationSettingsThemeOption = "light" | "dark" | "system";
 @Component({
   selector: "app-presentation-settings-theme-section",
   standalone: true,
+  host: { class: "block" },
   imports: [
     CommonModule,
     PresentationSettingsSectionCardComponent,

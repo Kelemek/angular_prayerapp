@@ -549,6 +549,15 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Home main page: keep scroll, hide visible scrollbar */
+.main-page-shell .safe-area-viewport {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.main-page-shell .safe-area-viewport::-webkit-scrollbar {
+  display: none;
+}
+
 /* Safe area padding for notch/camera cutout - Capacitor only */
 @supports (padding: env(safe-area-inset-top)) {
   html {
@@ -690,6 +699,13 @@ html, body {
   html:not(.native-app) .main-page-shell .safe-area-viewport {
     height: 100%;
   }
+}
+
+/* Bordered section cards in Home Settings + Presentation Settings modals */
+.settings-modal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 /* Driver.js help tutorials: wider popover, scroll long copy; dark theme when html.dark */

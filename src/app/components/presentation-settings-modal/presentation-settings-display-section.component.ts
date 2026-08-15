@@ -17,6 +17,7 @@ import { PresentationSettingsSectionCardComponent } from "./presentation-setting
 @Component({
   selector: "app-presentation-settings-display-section",
   standalone: true,
+  host: { class: "block" },
   imports: [
     CommonModule,
     PresentationSettingsSectionCardComponent,

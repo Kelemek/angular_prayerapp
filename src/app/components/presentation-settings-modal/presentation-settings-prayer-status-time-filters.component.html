@@ -1,20 +1,22 @@
-<app-presentation-settings-multi-select-filter-row
-  label="Prayer status"
-  tourAnchorId="tour-presentation-setting-status"
-  dropdownKey="status"
-  allSelectedLabel="All Statuses"
-  [field]="statusField"
-  [options]="statusDropdownOptions"
-/>
+<div class="flex flex-col gap-4">
+  <app-presentation-settings-multi-select-filter-row
+    label="Prayer status"
+    tourAnchorId="tour-presentation-setting-status"
+    dropdownKey="status"
+    allSelectedLabel="All Statuses"
+    [field]="statusField"
+    [options]="statusDropdownOptions"
+  />
 
-<app-presentation-settings-single-select-filter-row
-  label="Time period"
-  tourAnchorId="tour-presentation-setting-time-filter"
-  dropdownKey="time-filter"
-  [displayText]="timeFilterDisplay"
-  [open]="showTimeFilterDropdown"
-  [options]="timeFilterOptions"
-  [selectedValue]="localTimeFilter"
-  (toggleOpen)="toggleTimeFilter.emit()"
-  (selectOption)="selectTimeFilter.emit($event)"
-/>
+  <app-presentation-settings-single-select-filter-row
+    label="Time period"
+    tourAnchorId="tour-presentation-setting-time-filter"
+    dropdownKey="time-filter"
+    [displayText]="timeFilterDisplay"
+    [open]="showTimeFilterDropdown"
+    [options]="timeFilterOptions"
+    [selectedValue]="localTimeFilter"
+    (toggleOpen)="toggleTimeFilter.emit()"
+    (selectOption)="selectTimeFilter.emit($event)"
+  />
+</div>

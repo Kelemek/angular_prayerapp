@@ -41,6 +41,7 @@ import {
 @Component({
   selector: "app-presentation-settings-filters-panel",
   standalone: true,
+  host: { class: "block" },
   imports: [
     CommonModule,
     PresentationSettingsMultiSelectFilterRowComponent,
