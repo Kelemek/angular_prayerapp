@@ -1,12 +1,12 @@
 import type { PrayerPrompt } from "../components/prompt-card/prompt-card.component";
 import type { PrayerRequest } from "../services/prayer.service";
+import type {
+  PresentationStatusFilters,
+  PresentationTimeFilter,
+} from "../types/presentation";
 import { filterPrayersByPresentationTimeFilter } from "./presentation-time-filter";
-import type { PresentationTimeFilter } from "../types/presentation";
 
-export type PresentationStatusFilters = {
-  current: boolean;
-  answered: boolean;
-};
+export type { PresentationStatusFilters };
 
 export function filterCommunityPrayersByStatus(
   prayers: PrayerRequest[],
@@ -18,6 +18,9 @@ export function filterCommunityPrayersByStatus(
   }
   if (statusFilters.answered) {
     statuses.push("answered");
+  }
+  if (statusFilters.archived) {
+    statuses.push("archived");
   }
   if (statuses.length === 0) {
     return prayers;
@@ -31,7 +34,8 @@ export function filterPersonalPrayersByStatus(
 ): PrayerRequest[] {
   const showCurrent = statusFilters.current;
   const showAnswered = statusFilters.answered;
-  if (!showCurrent && !showAnswered) {
+  const showArchived = statusFilters.archived;
+  if (!showCurrent && !showAnswered && !showArchived) {
     return prayers;
   }
   return prayers.filter((prayer) => {

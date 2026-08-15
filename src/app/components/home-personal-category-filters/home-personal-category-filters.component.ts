@@ -9,6 +9,7 @@ import {
   HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS,
   HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
+  HOME_SUB_FILTER_CHIP_ROW_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
 import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
@@ -20,6 +21,7 @@ import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-fil
   standalone: true,
   imports: [CommonModule, DragDropModule, HomeSubFilterChipComponent],
   templateUrl: "./home-personal-category-filters.component.html",
+  host: { class: "block" },
 })
 export class HomePersonalCategoryFiltersComponent {
   @Input({ required: true }) personalPrayersCount!: number;
@@ -56,6 +58,7 @@ export class HomePersonalCategoryFiltersComponent {
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS;
   readonly namedChipInactiveClass = HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS;
+  readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
   readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
   readonly subFilterGroupClass = HOME_PERSONAL_SUB_FILTER_GROUP_CLASS;
 

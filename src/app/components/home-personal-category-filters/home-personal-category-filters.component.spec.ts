@@ -54,7 +54,7 @@ describe("HomePersonalCategoryFiltersComponent", () => {
     fixture?.destroy();
   });
 
-  it("wraps status and category chips in a tab-colored group border", () => {
+  it("wraps status and category filters in the Personal folder panel", () => {
     const group = fixture.nativeElement.querySelector(
       "#tour-personal-category-filters > div"
     ) as HTMLElement;
@@ -63,7 +63,7 @@ describe("HomePersonalCategoryFiltersComponent", () => {
     }
   });
 
-  it("wraps each category chip with static flex row host classes like prompt types", () => {
+  it("wraps each category filter with shared wrap-row host classes like prompt types", () => {
     const hosts = fixture.nativeElement.querySelectorAll(
       "[data-personal-category-chip]"
     );

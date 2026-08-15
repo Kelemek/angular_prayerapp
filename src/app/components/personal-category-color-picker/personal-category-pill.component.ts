@@ -22,12 +22,14 @@ import {
   personalCategoryPillStyles,
 } from '../../../utils/personalCategoryColor';
 import {
+  getSafeAreaViewportBounds,
+  shouldOpenFixedPopoverUp,
+} from '../../lib/fixed-popover-placement';
+import {
   computePersonalCategoryHeaderPickerPosition,
-  getPersonalCategoryColorPickerViewportBounds,
   isNodeInsidePersonalCategoryPickerDropdown,
   PERSONAL_CATEGORY_COLOR_PICKER_ESTIMATED_HEIGHT,
   shouldDismissPersonalCategoryPickerOnScroll,
-  shouldOpenPersonalCategoryColorPickerUp,
 } from './personal-category-picker-placement';
 import {
   PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES,
@@ -211,7 +213,7 @@ export class PersonalCategoryPillComponent implements OnInit {
       return;
     }
     const pillRect = anchor.getBoundingClientRect();
-    const viewport = getPersonalCategoryColorPickerViewportBounds(anchor);
+    const viewport = getSafeAreaViewportBounds(anchor);
     if (shouldDismissPersonalCategoryPickerOnScroll(pillRect, viewport)) {
       this.closePicker();
       return;
@@ -261,7 +263,7 @@ export class PersonalCategoryPillComponent implements OnInit {
     dropdownHeight: number
   ): void {
     const pillRect = pillButton.getBoundingClientRect();
-    const viewport = getPersonalCategoryColorPickerViewportBounds(pillButton);
+    const viewport = getSafeAreaViewportBounds(pillButton);
     const position = computePersonalCategoryHeaderPickerPosition(
       pillRect,
       dropdownHeight,
@@ -300,8 +302,8 @@ export class PersonalCategoryPillComponent implements OnInit {
     }
     const pillRect = pillButton.getBoundingClientRect();
     const dropdownHeight = dropdown.getBoundingClientRect().height;
-    const viewport = getPersonalCategoryColorPickerViewportBounds(pillButton);
-    this.pickerOpenUp = shouldOpenPersonalCategoryColorPickerUp(
+    const viewport = getSafeAreaViewportBounds(pillButton);
+    this.pickerOpenUp = shouldOpenFixedPopoverUp(
       pillRect.top,
       pillRect.bottom,
       dropdownHeight,

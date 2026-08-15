@@ -1,6 +1,6 @@
 <div [class]="sectionGapClass" id="tour-prompt-type-filters">
   <div
-    [class]="subFilterGroupClass + ' flex w-full flex-wrap gap-2'"
+    [class]="subFilterGroupClass + ' ' + chipRowClass"
   >
   @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
 
@@ -24,14 +24,14 @@
       [class]="
         promptChipButtonClass(
           selectedPromptTypes.includes(type),
-          !!(badgesEnabled && getUnreadPromptCountByType(type) > 0)
+          !!(badgesEnabled && unreadCountForType(type) > 0)
         )
       "
     >
       {{ type }} ({{ getPromptCountByType(type) }})
-      @if (badgesEnabled && getUnreadPromptCountByType(type) > 0) {
+      @if (badgesEnabled && unreadCountForType(type) > 0) {
       <app-home-filter-badge-button
-        [count]="getUnreadPromptCountByType(type)"
+        [count]="unreadCountForType(type)"
         [title]="'Mark all ' + type + ' prompts as read'"
         [ariaLabel]="'Mark all ' + type + ' prompts as read'"
         (markRead)="badgeService.markAllAsReadByPromptType(type)"

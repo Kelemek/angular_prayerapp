@@ -19,32 +19,69 @@ describe("presentation-settings-filters-state status helpers", () => {
   const available = ["current", "answered", "archived"];
 
   it("initPendingStatusFilter returns all when none active", () => {
-    expect(initPendingStatusFilter(false, false, available)).toEqual(available);
+    expect(
+      initPendingStatusFilter(
+        { current: false, answered: false, archived: false },
+        available
+      )
+    ).toEqual(available);
   });
 
   it("initPendingStatusFilter reflects active flags", () => {
-    expect(initPendingStatusFilter(true, false, available)).toEqual(["current"]);
-    expect(initPendingStatusFilter(true, true, available)).toEqual([
-      "current",
-      "answered",
-    ]);
+    expect(
+      initPendingStatusFilter(
+        { current: true, answered: false, archived: false },
+        available
+      )
+    ).toEqual(["current"]);
+    expect(
+      initPendingStatusFilter(
+        { current: true, answered: true, archived: false },
+        available
+      )
+    ).toEqual(["current", "answered"]);
+    expect(
+      initPendingStatusFilter(
+        { current: false, answered: false, archived: true },
+        available
+      )
+    ).toEqual(["archived"]);
   });
 
   it("resolveAppliedStatusFilters treats all selected as none", () => {
     expect(
       resolveAppliedStatusFilters(["current", "answered", "archived"], available)
-    ).toEqual({ current: false, answered: false });
+    ).toEqual({ current: false, answered: false, archived: false });
   });
 
   it("formatStatusFilterDisplay shows active labels", () => {
-    expect(formatStatusFilterDisplay(true, false)).toBe("Current");
-    expect(formatStatusFilterDisplay(false, false)).toBe("All Statuses");
+    expect(
+      formatStatusFilterDisplay({ current: true, answered: false, archived: false })
+    ).toBe("Current");
+    expect(
+      formatStatusFilterDisplay({ current: false, answered: false, archived: true })
+    ).toBe("Archived");
+    expect(
+      formatStatusFilterDisplay({ current: false, answered: false, archived: false })
+    ).toBe("All Statuses");
   });
 
   it("statusFiltersMatchApplied compares resolved values", () => {
-    const applied = { current: true, answered: false };
-    expect(statusFiltersMatchApplied(applied, true, false)).toBe(true);
-    expect(statusFiltersMatchApplied(applied, false, false)).toBe(false);
+    const applied = { current: true, answered: false, archived: false };
+    expect(
+      statusFiltersMatchApplied(applied, {
+        current: true,
+        answered: false,
+        archived: false,
+      })
+    ).toBe(true);
+    expect(
+      statusFiltersMatchApplied(applied, {
+        current: false,
+        answered: false,
+        archived: false,
+      })
+    ).toBe(false);
   });
 });
 

@@ -4,7 +4,6 @@
       [class]="shellClasses()"
     >
       <!-- Meta header: category or status (left) | date (center) | actions (right) -->
-      @if (usesPrayerMetaHeader()) {
       <app-prayer-card-meta-header
         [bandSize]="variantLayout.bandSize"
         [bleedClasses]="variantLayout.headerBleedClasses"
@@ -32,7 +31,6 @@
         (reminder)="openReminderModal()"
         (pickerOpenChange)="onCategoryPickerOpenChange($event)"
       />
-      }
 
       <!-- Header -->
       <div [class]="'flex items-start justify-between relative ' + variantLayout.headerRowMargin">
@@ -62,31 +60,6 @@
             </div>
           </div>
         </div>
-        @if (!usesPrayerMetaHeader()) {
-        <div class="absolute top-0 right-0 flex items-center gap-2 flex-shrink-0">
-          @if (showReminderButton()) {
-          <app-prayer-item-reminder-bell-button
-            [hasReminder]="hasReminderForPrayer()"
-            [bandSize]="variantLayout.bandSize"
-            [tourAnchorId]="showTourAnchors && tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
-            (reminder)="openReminderModal()"
-          />
-          }
-          @if (showDeleteButton()) {
-          <button
-            (click)="handleDeleteClick()"
-            aria-label="Delete prayer request"
-            title="Delete prayer request"
-            class="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-          }
-        </div>
-        }
       </div>
 
       @if (variantLayout.showUnreadBadges && (prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal && !isMemberPrayer()) {

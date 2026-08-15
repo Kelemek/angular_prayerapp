@@ -1,4 +1,54 @@
-/** Shared sizing for Home secondary filter rows (Public status, Personal, Prompt types). */
+/** Folder-tab chrome shared by Home and the Info filter mock. */
+export const HOME_FILTER_TAB_BASE_CLASS =
+  "flex-1 min-w-0 px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center";
+
+export const HOME_FILTER_TAB_INACTIVE_CLASS =
+  "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-[2px] border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700";
+
+export type HomeFilterTabAccent =
+  | "public"
+  | "personal"
+  | "prompts"
+  | "memorize"
+  | "members";
+
+/**
+ * Fill + accent color only. Width is applied in {@link homeFilterTabClass}:
+ * `border-[2px]` on a connected tab overrides `border-b-0` in the generated CSS.
+ */
+export const HOME_FILTER_TAB_ACTIVE_FILL = {
+  public: "bg-blue-100 dark:bg-blue-950 border-[#0047AB] dark:border-[#0047AB]",
+  personal:
+    "bg-slate-100 dark:bg-green-900/40 border-[#2F5F54] dark:border-[#2F5F54]",
+  prompts:
+    "bg-stone-100 dark:bg-stone-900/40 border-[#988F83] dark:border-[#988F83]",
+  memorize: "bg-blue-100 dark:bg-blue-950 border-[#0047AB] dark:border-[#0047AB]",
+  members:
+    "bg-slate-100 dark:bg-blue-900/40 border-[#0047AB] dark:border-[#0047AB]",
+} as const;
+
+/** Top + sides only so the tab joins the folder panel (no bottom stroke). */
+export const HOME_FILTER_TAB_CONNECTED_BORDER_CLASS =
+  "border-t-[2px] border-x-[2px] border-b-0 z-10";
+
+export function homeFilterTabClass(options: {
+  accent: HomeFilterTabAccent;
+  active: boolean;
+  hasSubRow: boolean;
+}): string {
+  const { accent, active, hasSubRow } = options;
+  const shape = hasSubRow ? "rounded-t-lg" : "rounded-lg";
+  if (!active) {
+    return `${HOME_FILTER_TAB_BASE_CLASS} ${shape} ${HOME_FILTER_TAB_INACTIVE_CLASS}`;
+  }
+  const fill = HOME_FILTER_TAB_ACTIVE_FILL[accent];
+  const border = hasSubRow
+    ? HOME_FILTER_TAB_CONNECTED_BORDER_CLASS
+    : "border-[2px]";
+  return `${HOME_FILTER_TAB_BASE_CLASS} ${shape} ${fill} ${border}`;
+}
+
+/** Shared sizing for Home secondary filter chips (Public status, Personal, Prompt types). */
 export const HOME_SUB_FILTER_CHIP_SIZE_CLASS =
   "min-h-9 px-3 py-2 rounded-lg text-xs font-medium";
 
@@ -58,6 +108,10 @@ export const HOME_SUB_FILTER_CHIP_DRAG_SOLO_STRETCH_CLASS = [
   "min-h-9 py-2 rounded-lg text-xs font-medium whitespace-nowrap",
 ].join(" ");
 
+/** Chip row inside a folder-tab panel. */
+export const HOME_SUB_FILTER_CHIP_ROW_CLASS =
+  "flex w-full flex-wrap items-center gap-2";
+
 export const HOME_SUB_FILTER_CHIP_INACTIVE_CLASS =
   "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600";
 
@@ -77,12 +131,26 @@ export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
       HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
       " hover:border-[#39704D] dark:hover:border-[#39704D]",
   },
-  total: {
+  archived: {
     active:
       "border !border-[#C9A961] dark:!border-[#C9A961] bg-amber-100 dark:bg-amber-900/40 ring ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md",
     inactive:
       HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
       " hover:border-[#C9A961] dark:hover:border-[#C9A961]",
+  },
+  total: {
+    active:
+      "border !border-gray-500 dark:!border-gray-400 bg-gray-100 dark:bg-gray-800 ring ring-gray-500 dark:ring-gray-400 ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md",
+    inactive:
+      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+      " hover:border-gray-500 dark:hover:border-gray-400",
+  },
+  members: {
+    active:
+      "border !border-[#0047AB] dark:!border-[#0047AB] bg-slate-100 dark:bg-blue-900/40 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md",
+    inactive:
+      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+      " hover:border-[#0047AB] dark:hover:border-[#0047AB]",
   },
 } as const;
 
@@ -90,12 +158,11 @@ export const HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS =
   HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
   " hover:border-[#2F5F54] dark:hover:border-[#2F5F54]";
 
-/** Personal sub-chips: thin tab-color border only (no ring/shadow box). */
+/** Personal sub-filters: selected chip (matches Personal tab accent). */
 export const HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS =
-  "border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 text-gray-700 dark:text-gray-300";
+  "border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
 
-/** Wraps all sub-filter chips for a tab; border matches that tab's active color (2px like cards). */
-/** Tab accent hex values (documented; group borders use full literals below for Tailwind). */
+/** Tab accent hex values (documented; panel fills use full literals below for Tailwind). */
 export const HOME_FILTER_TAB_BORDER = {
   public: "#0047AB",
   personal: "#2F5F54",
@@ -103,13 +170,13 @@ export const HOME_FILTER_TAB_BORDER = {
   memorize: "#0047AB",
 } as const;
 
-/** Literal class strings so Tailwind emits border-color utilities (dynamic `border-[${hex}]` is not scanned). */
+/** Folder-tab body: fill + side/bottom accent; no top border so it joins the selected tab. */
 export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS =
-  "rounded-lg border-[2px] border-[#0047AB] dark:border-[#0047AB] p-2";
+  "rounded-b-lg bg-blue-100 dark:bg-blue-950 border-x-[2px] border-b-[2px] border-t-0 border-[#0047AB] dark:border-[#0047AB] px-3 py-2";
 export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS =
-  "rounded-lg border-[2px] border-[#2F5F54] dark:border-[#2F5F54] p-2";
+  "rounded-b-lg bg-slate-100 dark:bg-green-900/40 border-x-[2px] border-b-[2px] border-t-0 border-[#2F5F54] dark:border-[#2F5F54] px-3 py-2";
 export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS =
-  "rounded-lg border-[2px] border-[#988F83] dark:border-[#988F83] p-2";
-/** Same blue border as Public — Memorize tab shares `#0047AB`. */
+  "rounded-b-lg bg-stone-100 dark:bg-stone-900/40 border-x-[2px] border-b-[2px] border-t-0 border-[#988F83] dark:border-[#988F83] px-3 py-2";
+/** Same blue fill as Public — Memorize tab shares `#0047AB`. */
 export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
   HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;

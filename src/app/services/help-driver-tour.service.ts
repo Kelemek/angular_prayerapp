@@ -4,14 +4,20 @@ import { driver, type Driver, type DriveStep, type DriverHook, type Config } fro
 import type { HelpContent, HelpSection } from '../types/help-content';
 import { excerptForNamedFilter, isDescriptiveFilterTourExcerpt } from '../lib/help-filter-tour-excerpt';
 import { formatHelpContentHtml } from '../lib/help-content-html';
+import {
+  getCardActionsOverflowTriggerEl,
+  openCardActionsOverflowMenu,
+} from '../lib/help-card-actions-menu-tour';
 
 export const TOUR_REQUEST_BTN_MOBILE_ID = 'tour-btn-new-prayer-request-mobile';
 export const TOUR_REQUEST_BTN_DESKTOP_ID = 'tour-btn-new-prayer-request-desktop';
 export const TOUR_FILTER_PERSONAL_ID = 'tour-filter-personal';
 export const TOUR_FILTER_PUBLIC_ID = 'tour-filter-public';
 export const TOUR_FILTER_CURRENT_ID = 'tour-filter-current';
+export const TOUR_FILTER_ARCHIVED_ID = 'tour-filter-archived';
 export const TOUR_FILTER_TOTAL_ID = 'tour-filter-total';
 export const TOUR_FILTER_ANSWERED_ID = 'tour-filter-answered';
+export const TOUR_FILTER_MEMBERS_ID = 'tour-filter-members';
 export const TOUR_FILTER_PROMPTS_ID = 'tour-filter-prompts';
 export const TOUR_FILTER_MEMORIZE_ID = 'tour-filter-memorize';
 export const TOUR_MEMORIZE_ACTION_BAR_ID = 'tour-memorize-action-bar';
@@ -48,7 +54,7 @@ export const TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID = 'tour-settings-memoriza
 export const TOUR_ADD_UPDATE_BTN_ID = 'tour-prayer-add-update';
 /** **Pray For** / **Prayed For** on the first community card (see `PrayerCardComponent.tourPrayForEncouragementAnchors`). */
 export const TOUR_PRAYER_PRAY_FOR_ID = 'tour-prayer-pray-for';
-/** Reminder bell on the first community prayer card (see `PrayerCardComponent.tourPrayerReminderBellAnchors`). */
+/** Reminder row in the first community prayer card menu (see `PrayerCardComponent.tourPrayerReminderBellAnchors`). */
 export const TOUR_PRAYER_REMINDER_BELL_ID = 'tour-prayer-reminder-bell';
 /** Home prayer list search field (`PrayerFiltersComponent`). */
 export const TOUR_BTN_SEARCH_MOBILE_ID = 'tour-btn-search-mobile';
@@ -241,6 +247,13 @@ function getCurrentFilterEl(): HTMLElement | null {
   return document.getElementById(TOUR_FILTER_CURRENT_ID);
 }
 
+function getArchivedFilterEl(): HTMLElement | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  return document.getElementById(TOUR_FILTER_ARCHIVED_ID);
+}
+
 function getTotalFilterEl(): HTMLElement | null {
   if (typeof document === 'undefined') {
     return null;
@@ -253,6 +266,13 @@ function getAnsweredFilterEl(): HTMLElement | null {
     return null;
   }
   return document.getElementById(TOUR_FILTER_ANSWERED_ID);
+}
+
+function getMembersFilterEl(): HTMLElement | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  return document.getElementById(TOUR_FILTER_MEMBERS_ID);
 }
 
 function getPromptsFilterEl(): HTMLElement | null {
@@ -413,6 +433,16 @@ function getPrayerReminderBellEl(): HTMLElement | null {
   return document.getElementById(TOUR_PRAYER_REMINDER_BELL_ID);
 }
 
+function openWalkthroughPersonalCardActionsMenu(): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  const card = document.getElementById(TOUR_WALKTHROUGH_PERSONAL_CARD_ID);
+  openCardActionsOverflowMenu(
+    getCardActionsOverflowTriggerEl(card) ?? getCardActionsOverflowTriggerEl(document)
+  );
+}
+
 function getPrayerSearchInputEl(): HTMLElement | null {
   if (typeof document === 'undefined') {
     return null;
@@ -444,6 +474,7 @@ export interface UpdatingPrayerTourOptions {
 export interface ManagingPrayerViewsTourHooks {
   switchToCurrent: () => void;
   switchToAnswered: () => void;
+  switchToArchived: () => void;
   switchToTotal: () => void;
 }
 
@@ -459,7 +490,9 @@ export interface CreatingPrayersHelpSectionTourHooks {
 export interface FilteringHelpSectionTourHooks {
   switchToCurrent: () => void;
   switchToAnswered: () => void;
+  switchToArchived: () => void;
   switchToTotal: () => void;
+  switchToMembers: () => void;
   switchToPrompts: () => void;
   switchToPersonal: () => void;
   openSearchPanel?: () => void;
@@ -537,8 +570,8 @@ export interface PrayerRemindersHelpTourHooks extends PrintingHelpTourHooks {
 }
 
 export interface PrayerRemindersHelpTourOptions {
-  /** When true, a step highlights the reminder bell on the first community prayer card. */
-  hasReminderBellTarget: boolean;
+  /** When true, a step highlights the reminder row after the card menu opens. */
+  hasReminderCardMenuTarget: boolean;
 }
 
 /** Same as printing (`help_feedback`). */
@@ -1158,7 +1191,7 @@ export class HelpDriverTourService {
   }
 
   /**
-   * **Personal** (intro) → **Public** sub-chips (**Current** → **Answered** → **Total**).
+   * **Personal** (intro) → **Public** sub-chips (**Current** → **Answered** → **Archived** → **Total**).
    */
   startManagingPrayerViewsTour(helpContent: HelpContent, hooks: ManagingPrayerViewsTourHooks): void {
     if (typeof document === 'undefined') {
@@ -1203,7 +1236,19 @@ export class HelpDriverTourService {
         popover: {
           title: 'Answered (community)',
           description:
-            '<strong>Answered</strong> lists prayers marked as answered. Tap <strong>Show Total</strong> to see every community prayer in one place.',
+            '<strong>Answered</strong> lists prayers marked as answered. Next: <strong>Archived</strong> prayers.',
+          side: 'bottom',
+          align: 'start',
+          nextBtnText: 'Show Archived &rarr;',
+          onNextClick: this.advanceAfterOrKill(hooks.switchToArchived),
+        },
+      },
+      {
+        element: () => getArchivedFilterEl()!,
+        popover: {
+          title: 'Archived (community)',
+          description:
+            '<strong>Archived</strong> shows only archived community prayers. Tap <strong>Show Total</strong> to see every community prayer in one place.',
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Show Total &rarr;',
@@ -1427,7 +1472,7 @@ export class HelpDriverTourService {
 
   /**
    * **Filtering Prayers** (`help_filtering`): intro from section title/description; each step **title** matches the
-   * highlighted control (**Public**, **Current**, **Answered**, **Total**, **Personal**, **Prompts**, **Search**). Help copy lives
+   * highlighted control (**Public**, **Current**, **Answered**, **Archived**, **Total**, **Personal**, **Prompts**, **Search**). Help copy lives
    * in descriptions; **Next** applies the matching filter then advances.
    */
   startFilteringHelpSectionTour(section: HelpSection, hooks: FilteringHelpSectionTourHooks): void {
@@ -1465,7 +1510,7 @@ export class HelpDriverTourService {
         popover: {
           title: escapeHtml('Public'),
           description:
-            'The <strong>Public</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> chips in the row below to switch views.',
+            'The <strong>Public</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, <strong>Archived</strong>, and <strong>Total</strong> filters in the row below to switch views. If a Planning Center list is mapped, <strong>Members</strong> also appears after <strong>Total</strong>.',
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Next',
@@ -1502,16 +1547,51 @@ export class HelpDriverTourService {
     });
 
     if (c2) {
-      const totalDescription = `${escapeHtml(c2.subtitle)}<br><br>${formatHelpContentHtml(c2.text)}`;
+      const archivedDescription = `${escapeHtml(c2.subtitle)}<br><br>${formatHelpContentHtml(c2.text)}`;
       steps.push({
-        element: () => getTotalFilterEl()!,
+        element: () => getArchivedFilterEl()!,
         popover: {
-          title: escapeHtml('Total'),
-          description: totalDescription,
+          title: escapeHtml('Archived'),
+          description: archivedDescription,
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Next',
-          onNextClick: this.advanceAfterOrKill(hooks.switchToTotal),
+          onNextClick: this.advanceAfterOrKill(hooks.switchToArchived),
+        },
+      });
+    }
+
+    const totalPhrase = excerptForNamedFilter(overview, 'Total');
+    const totalDescription = isDescriptiveFilterTourExcerpt(totalPhrase)
+      ? totalPhrase
+      : 'This filter shows all community prayers, including current, answered, and archived.';
+    steps.push({
+      element: () => getTotalFilterEl()!,
+      popover: {
+        title: escapeHtml('Total'),
+        description: formatHelpContentHtml(totalDescription),
+        side: 'bottom',
+        align: 'start',
+        nextBtnText: 'Next',
+        onNextClick: this.advanceAfterOrKill(hooks.switchToTotal),
+      },
+    });
+
+    const membersPhrase = excerptForNamedFilter(overview, 'Members');
+    if (getMembersFilterEl()) {
+      steps.push({
+        element: () => getMembersFilterEl()!,
+        popover: {
+          title: escapeHtml('Members'),
+          description: membersPhrase
+            ? formatHelpContentHtml(membersPhrase)
+            : formatHelpContentHtml(
+                'Members shows Planning Center list people as prayer cards under Public, after Total.'
+              ),
+          side: 'bottom',
+          align: 'start',
+          nextBtnText: 'Next',
+          onNextClick: this.advanceAfterOrKill(hooks.switchToMembers),
         },
       });
     }
@@ -2134,7 +2214,7 @@ export class HelpDriverTourService {
   }
 
   /**
-   * **Prayer reminders** (`help_prayer_reminders`): **Public** tab → bell on a card (when available) → Settings **Prayer reminders**.
+   * **Prayer reminders** (`help_prayer_reminders`): **Public** tab → card menu reminder (when available) → Settings **Prayer reminders**.
    */
   startPrayerRemindersHelpSectionTour(
     section: { title: string; description: string },
@@ -2176,22 +2256,25 @@ export class HelpDriverTourService {
         element: () => getPublicFilterEl()!,
         popover: {
           title: title0,
-          description: `${desc0}<br><br>There are two kinds of reminders: the <strong>bell</strong> on a prayer card (one prayer at a time) and <strong>general nudges</strong> in Settings. Tap <strong>Next</strong> to open <strong>Public</strong> prayers on the <strong>Current</strong> chip.`,
+          description: `${desc0}<br><br>There are two kinds of reminders: the <strong>card menu</strong> (hamburger) on a prayer card for one prayer at a time, and <strong>general nudges</strong> in Settings. Tap <strong>Next</strong> to open <strong>Public</strong> prayers on the <strong>Current</strong> chip.`,
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Show current &rarr;',
-          onNextClick: this.advanceAfterOrKill(hooks.switchToCurrent),
+          onNextClick: this.advanceAfterOrKill(() => {
+            hooks.switchToCurrent();
+            openCardActionsOverflowMenu(getCardActionsOverflowTriggerEl(document));
+          }),
         },
       },
     ];
 
-    if (options.hasReminderBellTarget && getPrayerReminderBellEl()) {
+    if (options.hasReminderCardMenuTarget && getCardActionsOverflowTriggerEl(document)) {
       steps.push({
         element: () => getPrayerReminderBellEl()!,
         popover: {
-          title: 'Per-prayer reminder (bell)',
+          title: 'Per-prayer reminder',
           description:
-            'Tap the <strong>bell</strong> on any community, personal, member, or prompt card to set a <strong>one-time</strong>, <strong>daily</strong>, or <strong>weekly</strong> reminder for that specific prayer. Times use 15-minute steps in your device time zone. A filled bell means you already have a reminder scheduled.',
+            'Open the <strong>card menu</strong> (hamburger), then tap <strong>Add prayer reminder</strong> (or <strong>Manage prayer reminders</strong> if one is already set) to schedule a <strong>one-time</strong>, <strong>daily</strong>, or <strong>weekly</strong> reminder for that specific prayer. Times use 15-minute steps in your device time zone. A filled bell in the menu means you already have a reminder scheduled.',
           side: 'left',
           align: 'start',
         },
@@ -2543,7 +2626,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Prayer reminders',
           description:
-            'Optional nudges in <strong>15-minute</strong> steps (device time zone). Add times with the dropdown and <strong>Add reminder</strong>; works with email and/or push when those are on. Use the <strong>bell</strong> on a prayer card for a reminder on a specific prayer.',
+            'Optional nudges in <strong>15-minute</strong> steps (device time zone). Add times with the dropdown and <strong>Add reminder</strong>; works with email and/or push when those are on. Use the <strong>card menu</strong> on a prayer card for a reminder on a specific prayer.',
           side: 'bottom',
           align: 'start',
         },
@@ -2732,9 +2815,10 @@ export class HelpDriverTourService {
         element: () => document.getElementById(TOUR_WALKTHROUGH_PERSONAL_CARD_ID) ?? getPersonalFilterEl()!,
         popover: {
           title: 'Your new prayer',
-          description: 'This card is the prayer we just created. Next we’ll highlight <strong>Mark as answered</strong> in the header.',
+          description: 'This card is the prayer we just created. Next we’ll open the <strong>card menu</strong> and highlight <strong>Mark as answered</strong>.',
           side: 'top',
           align: 'start',
+          onNextClick: advance(() => openWalkthroughPersonalCardActionsMenu(), 80),
         },
       },
       {
@@ -2744,7 +2828,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Mark as answered',
           description:
-            'Tap the green <strong>checkmark</strong> to move this prayer to the <strong>Answered</strong> chip (tap again to clear). Same outcome as the checkbox when editing or adding an update.',
+            'Open the <strong>card menu</strong>, then tap <strong>Mark as answered</strong> to move this prayer to the <strong>Answered</strong> chip (tap again to clear). Same outcome as the checkbox when editing or adding an update.',
           side: 'left',
           align: 'start',
         },
@@ -2753,7 +2837,7 @@ export class HelpDriverTourService {
         element: () => document.getElementById(TOUR_WALKTHROUGH_PERSONAL_EDIT_ID) ?? getPersonalFilterEl()!,
         popover: {
           title: 'Edit',
-          description: 'Use the pencil to change the subject, details, or category any time.',
+          description: 'Open the <strong>card menu</strong>, then tap <strong>Edit prayer</strong> to change the subject, details, or category any time.',
           side: 'left',
           align: 'start',
           onNextClick: advance(() => hooks.openWalkthroughPersonalEdit(), 320),
@@ -2807,9 +2891,10 @@ export class HelpDriverTourService {
         popover: {
           title: 'Reorder prayers',
           description:
-            'With <strong>one category</strong> selected, drag the <strong>date and time</strong> at the top of the card to reorder prayers. Your order is saved automatically.',
+            'With <strong>one category</strong> selected, drag the <strong>date and time</strong> at the top of the card to reorder prayers. Your order is saved automatically. Tap <strong>Next</strong> to open the card menu for delete.',
           side: 'right',
           align: 'start',
+          onNextClick: advance(() => openWalkthroughPersonalCardActionsMenu(), 80),
         },
       },
       {
@@ -2817,7 +2902,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Delete',
           description:
-            'Tap <strong>Next</strong> to remove the <strong>sample prayer</strong> we created (this tour’s test data only).',
+            'Open the <strong>card menu</strong>, then tap <strong>Next</strong> to remove the <strong>sample prayer</strong> we created (this tour’s test data only).',
           side: 'left',
           align: 'start',
           onNextClick: (_e, _s) => {

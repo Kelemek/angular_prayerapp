@@ -1,4 +1,4 @@
-      <div [class]="tabRowMarginClass + ' flex w-full gap-2'">
+      <div [class]="tabRowMarginClass + ' flex w-full gap-1'">
         @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
         @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
         @let aggregateBadge = currentBadge + answeredBadge;
@@ -8,12 +8,7 @@
           id="tour-filter-public"
           (click)="publicTabSelected.emit()"
           title="Show public prayers"
-          [class]="
-            'flex-1 min-w-0 rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
-            (isCommunityPrayerFilter(activeFilter)
-              ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0'
-              : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')
-          "
+          [class]="tabClass('public', isPublicTabFilter(activeFilter))"
         >
           @if (badgesEnabled && aggregateBadge > 0) {
           <app-home-filter-badge-button
@@ -39,12 +34,7 @@
           id="tour-filter-personal"
           (click)="tabSelected.emit('personal')"
           title="Show your personal prayers"
-          [class]="
-            'flex-1 min-w-0 rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
-            (activeFilter === 'personal'
-              ? 'border !border-[#2F5F54] dark:!border-[#2F5F54] bg-slate-100 dark:bg-green-900/40 ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0'
-              : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#2F5F54] dark:hover:!border-[#2F5F54] hover:shadow-lg')
-          "
+          [class]="tabClass('personal', activeFilter === 'personal')"
         >
           <div
             class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
@@ -60,12 +50,7 @@
           id="tour-filter-prompts"
           (click)="tabSelected.emit('prompts')"
           title="Show prayer prompts"
-          [class]="
-            'flex-1 min-w-0 rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
-            (activeFilter === 'prompts'
-              ? 'border !border-[#988F83] dark:!border-[#988F83] bg-stone-100 dark:bg-stone-900/40 ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0'
-              : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#988F83] dark:hover:!border-[#988F83] hover:shadow-lg')
-          "
+          [class]="tabClass('prompts', activeFilter === 'prompts')"
         >
           @if (badgesEnabled && promptCount > 0) {
           <app-home-filter-badge-button
@@ -89,12 +74,7 @@
           id="tour-filter-memorize"
           (click)="tabSelected.emit('memorize')"
           title="Memorize Bible verses"
-          [class]="
-            'flex-1 min-w-0 rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
-            (activeFilter === 'memorize'
-              ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-blue-100 dark:bg-blue-950 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0'
-              : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')
-          "
+          [class]="tabClass('memorize', activeFilter === 'memorize')"
         >
           <div
             class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
@@ -105,28 +85,4 @@
             Memorize
           </div>
         </button>
-
-        <!-- Planning Center List Members Filter (shown once list id is known; count fills in when members load) -->
-        @if (showPlanningCenterMembersFilter) {
-        <button
-          (click)="tabSelected.emit('planning_center_list')"
-          title="Show prayers for Planning Center list members"
-          [attr.aria-busy]="planningCenterMembersLoading"
-          [class]="
-            'flex-1 min-w-0 rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 text-center transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center ' +
-            (activeFilter === 'planning_center_list'
-              ? 'border !border-[#0047AB] dark:!border-[#0047AB] bg-slate-100 dark:bg-blue-900/40 ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0'
-              : 'bg-white dark:bg-gray-800 border-[2px] !border-gray-200 dark:!border-gray-700 hover:!border-[#0047AB] dark:hover:!border-[#0047AB] hover:shadow-lg')
-          "
-        >
-          <div
-            class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums min-w-[1.25rem] leading-tight"
-          >
-            {{ planningCenterMembersDisplayCount }}
-          </div>
-          <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
-            Members
-          </div>
-        </button>
-        }
       </div>

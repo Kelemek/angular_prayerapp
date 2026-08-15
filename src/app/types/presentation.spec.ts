@@ -13,33 +13,96 @@ import {
   parsePresentationHomeHandoffFromQueryParams,
   parsePresentationHomeHandoffFromState,
   serializePresentationHomeHandoffQueryParams,
+  serializePresentationStatusQueryParam,
 } from './presentation';
 
 describe('mapHomeTabToPresentationStatusFilters', () => {
-  it('maps current, answered, and total tabs', () => {
+  it('maps current, answered, archived, and total tabs', () => {
     expect(mapHomeTabToPresentationStatusFilters('current')).toEqual({
       current: true,
       answered: false,
+      archived: false,
     });
     expect(mapHomeTabToPresentationStatusFilters('answered')).toEqual({
       current: false,
       answered: true,
+      archived: false,
+    });
+    expect(mapHomeTabToPresentationStatusFilters('archived')).toEqual({
+      current: false,
+      answered: false,
+      archived: true,
     });
     expect(mapHomeTabToPresentationStatusFilters('total')).toEqual({
       current: false,
       answered: false,
+      archived: false,
     });
   });
 });
 
+describe('serializePresentationStatusQueryParam', () => {
+  it('serializes single-status filters and all', () => {
+    expect(
+      serializePresentationStatusQueryParam({
+        current: true,
+        answered: false,
+        archived: false,
+      })
+    ).toBe('current');
+    expect(
+      serializePresentationStatusQueryParam({
+        current: false,
+        answered: true,
+        archived: false,
+      })
+    ).toBe('answered');
+    expect(
+      serializePresentationStatusQueryParam({
+        current: false,
+        answered: false,
+        archived: true,
+      })
+    ).toBe('archived');
+    expect(
+      serializePresentationStatusQueryParam({
+        current: false,
+        answered: false,
+        archived: false,
+      })
+    ).toBe('all');
+    expect(
+      serializePresentationStatusQueryParam({
+        current: true,
+        answered: true,
+        archived: false,
+      })
+    ).toBeNull();
+  });
+});
+
 describe('buildPresentationHomeHandoff', () => {
-  it('includes prayer status filters for current, answered, and total tabs', () => {
+  it('includes prayer status filters for current, answered, archived, and total tabs', () => {
     expect(
       buildPresentationHomeHandoff({
         contentTypes: ['prayers'],
         activeFilter: 'answered',
       }).statusFilters
-    ).toEqual({ current: false, answered: true });
+    ).toEqual({ current: false, answered: true, archived: false });
+
+    expect(
+      buildPresentationHomeHandoff({
+        contentTypes: ['prayers'],
+        activeFilter: 'archived',
+      }).statusFilters
+    ).toEqual({ current: false, answered: false, archived: true });
+
+    expect(
+      buildPresentationHomeHandoff({
+        contentTypes: ['prayers'],
+        activeFilter: 'total',
+      }).statusFilters
+    ).toEqual({ current: false, answered: false, archived: false });
   });
 
   it('includes prompt categories when a prompt type is selected', () => {
@@ -69,7 +132,7 @@ describe('buildPresentationHomeHandoff', () => {
       })
     ).toEqual({
       contentTypes: ['personal'],
-      statusFilters: { current: false, answered: false },
+      statusFilters: { current: false, answered: false, archived: false },
       personalCategories: ['Evening'],
       returnContext: {
         activeFilter: 'personal',
@@ -88,7 +151,7 @@ describe('buildPresentationHomeHandoff', () => {
       })
     ).toEqual({
       contentTypes: ['personal'],
-      statusFilters: { current: true, answered: false },
+      statusFilters: { current: true, answered: false, archived: false },
       returnContext: {
         activeFilter: 'personal',
         personalCategoryFilterMode: 'current',
@@ -101,7 +164,7 @@ describe('buildPresentationHomeHandoff', () => {
         activeFilter: 'personal',
         personalCategoryFilterMode: 'answered',
       }).statusFilters
-    ).toEqual({ current: false, answered: true });
+    ).toEqual({ current: false, answered: true, archived: false });
 
     expect(
       buildPresentationHomeHandoff({
@@ -109,7 +172,7 @@ describe('buildPresentationHomeHandoff', () => {
         activeFilter: 'personal',
         personalCategoryFilterMode: 'total',
       }).statusFilters
-    ).toEqual({ current: false, answered: false });
+    ).toEqual({ current: false, answered: false, archived: false });
   });
 
   it('includes return context for restoring Home after presentation exit', () => {
@@ -162,12 +225,12 @@ describe('parsePresentationHomeHandoffFromState', () => {
       parsePresentationHomeHandoffFromState({
         [PRESENTATION_HOME_HANDOFF_STATE_KEY]: {
           contentTypes: ['prayers'],
-          statusFilters: { current: false, answered: true },
+          statusFilters: { current: false, answered: true, archived: false },
         },
       })
     ).toEqual({
       contentTypes: ['prayers'],
-      statusFilters: { current: false, answered: true },
+      statusFilters: { current: false, answered: true, archived: false },
     });
   });
 
@@ -231,7 +294,7 @@ describe('presentation home handoff query params', () => {
   it('serializes answered status for new-tab navigation', () => {
     const params = serializePresentationHomeHandoffQueryParams({
       contentTypes: ['prayers'],
-      statusFilters: { current: false, answered: true },
+      statusFilters: { current: false, answered: true, archived: false },
     });
     expect(params[PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY]).toBe('answered');
 
@@ -240,7 +303,31 @@ describe('presentation home handoff query params', () => {
       if (key === PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY) return 'answered';
       return null;
     });
-    expect(parsed?.statusFilters).toEqual({ current: false, answered: true });
+    expect(parsed?.statusFilters).toEqual({
+      current: false,
+      answered: true,
+      archived: false,
+    });
+  });
+
+  it('serializes archived status for new-tab navigation', () => {
+    const handoff = buildPresentationHomeHandoff({
+      contentTypes: ['prayers'],
+      activeFilter: 'archived',
+    });
+    const params = serializePresentationHomeHandoffQueryParams(handoff);
+    expect(params[PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY]).toBe('archived');
+    expect(params.homeReturnFilter).toBe('archived');
+
+    const parsed = parsePresentationHomeHandoffFromQueryParams(
+      (key) => params[key] ?? null
+    );
+    expect(parsed?.statusFilters).toEqual({
+      current: false,
+      answered: false,
+      archived: true,
+    });
+    expect(parsed?.returnContext?.activeFilter).toBe('archived');
   });
 
   it('serializes personal categories for new-tab navigation', () => {

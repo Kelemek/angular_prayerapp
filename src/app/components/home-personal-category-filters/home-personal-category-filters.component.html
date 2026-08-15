@@ -1,6 +1,6 @@
 <div id="tour-personal-category-filters" [class]="sectionGapClass">
   <div [class]="subFilterGroupClass">
-  <div class="flex w-full gap-2">
+  <div [class]="chipRowClass">
     <app-home-sub-filter-chip
       [active]="filterMode === 'current'"
       [activeClass]="personalCategoryActiveClass"
@@ -36,7 +36,7 @@
     [cdkDropListData]="uniqueCategories"
     (cdkDropListDropped)="categoryDrop.emit($event)"
     [cdkDropListDisabled]="isCategoryDropListDisabled"
-    class="cdk-drop-list flex w-full flex-wrap gap-2 mt-2"
+    [class]="chipRowClass + ' mt-2'"
   >
     @for (category of uniqueCategories; track category) {
     <div

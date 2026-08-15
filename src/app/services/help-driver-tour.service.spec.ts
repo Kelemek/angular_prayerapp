@@ -98,7 +98,9 @@ describe('HelpDriverTourService', () => {
   let switchToPersonal: ReturnType<typeof vi.fn>;
   let switchToCurrent: ReturnType<typeof vi.fn>;
   let switchToAnswered: ReturnType<typeof vi.fn>;
+  let switchToArchived: ReturnType<typeof vi.fn>;
   let switchToTotal: ReturnType<typeof vi.fn>;
+  let switchToMembers: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -109,7 +111,9 @@ describe('HelpDriverTourService', () => {
     switchToPersonal = vi.fn();
     switchToCurrent = vi.fn();
     switchToAnswered = vi.fn();
+    switchToArchived = vi.fn();
     switchToTotal = vi.fn();
+    switchToMembers = vi.fn();
     vi.mocked(driver).mockImplementation(
       () =>
         ({
@@ -409,6 +413,7 @@ describe('HelpDriverTourService', () => {
     const managingHooks = () => ({
       switchToCurrent,
       switchToAnswered,
+      switchToArchived,
       switchToTotal,
     });
 
@@ -452,7 +457,7 @@ describe('HelpDriverTourService', () => {
       service.startManagingPrayerViewsTour(sampleManagingViewsHelp, managingHooks());
       expect(driver).toHaveBeenCalledTimes(1);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(4);
+      expect(config?.steps?.length).toBe(5);
     });
 
     it('step 0 onNext runs switchToCurrent then refresh and moveNext', () => {
@@ -513,7 +518,7 @@ describe('HelpDriverTourService', () => {
       vi.useRealTimers();
     });
 
-    it('step 2 onNext runs switchToTotal', () => {
+    it('step 2 onNext runs switchToArchived', () => {
       mountFourFilters();
       const refresh = vi.fn();
       const moveNext = vi.fn();
@@ -531,6 +536,35 @@ describe('HelpDriverTourService', () => {
       const config = vi.mocked(driver).mock.calls[0][0];
       const hook = config?.steps?.[2]?.popover?.onNextClick;
       hook?.(document.body, config!.steps![2]!, {
+        config: config!,
+        state: {} as any,
+        driver: { refresh, moveNext } as any,
+      });
+      expect(switchToArchived).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(250);
+      expect(refresh).toHaveBeenCalled();
+      expect(moveNext).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('step 3 onNext runs switchToTotal', () => {
+      mountFourFilters();
+      const refresh = vi.fn();
+      const moveNext = vi.fn();
+      vi.mocked(driver).mockImplementation(
+        () =>
+          ({
+            drive: vi.fn(),
+            destroy: vi.fn(),
+            refresh,
+            moveNext,
+          }) as ReturnType<typeof driver>
+      );
+      vi.useFakeTimers();
+      service.startManagingPrayerViewsTour(sampleManagingViewsHelp, managingHooks());
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const hook = config?.steps?.[3]?.popover?.onNextClick;
+      hook?.(document.body, config!.steps![3]!, {
         config: config!,
         state: {} as any,
         driver: { refresh, moveNext } as any,
@@ -996,7 +1030,7 @@ describe('HelpDriverTourService', () => {
           examples: [] as string[],
         },
         { subtitle: 'Personal Prayers Filter', text: 'Personal help body.', examples: [] },
-        { subtitle: 'Finding Archived Prayers', text: 'Total help body.', examples: [] },
+        { subtitle: 'Finding Archived Prayers', text: 'Archived help body.', examples: [] },
         { subtitle: 'Search Across All Filters', text: 'Search help body.', examples: [] },
       ],
     };
@@ -1005,7 +1039,9 @@ describe('HelpDriverTourService', () => {
       service.startFilteringHelpSectionTour(filteringSection as any, {
         switchToCurrent,
         switchToAnswered,
+        switchToArchived,
         switchToTotal,
+        switchToMembers,
         switchToPrompts,
         switchToPersonal: switchToPersonalFilter,
       });
@@ -1022,7 +1058,9 @@ describe('HelpDriverTourService', () => {
       service.startFilteringHelpSectionTour(filteringSection as any, {
         switchToCurrent,
         switchToAnswered,
+        switchToArchived,
         switchToTotal,
+        switchToMembers,
         switchToPrompts,
         switchToPersonal: switchToPersonalFilter,
       });
@@ -1045,7 +1083,9 @@ describe('HelpDriverTourService', () => {
       service.startFilteringHelpSectionTour(filteringSection as any, {
         switchToCurrent,
         switchToAnswered,
+        switchToArchived,
         switchToTotal,
+        switchToMembers,
         switchToPrompts,
         switchToPersonal: switchToPersonalFilter,
       });
@@ -1062,6 +1102,17 @@ describe('HelpDriverTourService', () => {
       );
       expect(answeredStep?.popover?.description).toBe(
         '<strong>Answered</strong> shows answered ones'
+      );
+      const archivedStep = (config?.steps ?? []).find(
+        (step) => step.popover?.title === 'Archived'
+      );
+      expect(archivedStep?.popover?.description).toContain('Finding Archived Prayers');
+      expect(archivedStep?.popover?.description).toContain('Archived help body.');
+      const totalStep = (config?.steps ?? []).find(
+        (step) => step.popover?.title === 'Total'
+      );
+      expect(totalStep?.popover?.description).toContain(
+        '<strong>Total</strong> shows all'
       );
     });
 
@@ -1090,7 +1141,9 @@ describe('HelpDriverTourService', () => {
       service.startFilteringHelpSectionTour(productionStyleSection as any, {
         switchToCurrent,
         switchToAnswered,
+        switchToArchived,
         switchToTotal,
+        switchToMembers,
         switchToPrompts,
         switchToPersonal: switchToPersonalFilter,
       });
@@ -1129,7 +1182,9 @@ describe('HelpDriverTourService', () => {
       service.startFilteringHelpSectionTour(productionStyleSection as any, {
         switchToCurrent,
         switchToAnswered,
+        switchToArchived,
         switchToTotal,
+        switchToMembers,
         switchToPrompts,
         switchToPersonal: switchToPersonalFilter,
       });
@@ -1144,7 +1199,7 @@ describe('HelpDriverTourService', () => {
       expect(currentStep?.popover?.description).not.toContain('<br><br>');
     });
 
-    it('includes Answered and Total steps when community sub-chips are absent at tour start', () => {
+    it('includes Answered, Archived, and Total steps when community sub-chips are absent at tour start', () => {
       const publicTab = document.createElement('button');
       publicTab.id = TOUR_FILTER_PUBLIC_ID;
       document.body.appendChild(publicTab);
@@ -1152,7 +1207,9 @@ describe('HelpDriverTourService', () => {
       service.startFilteringHelpSectionTour(filteringSection as any, {
         switchToCurrent,
         switchToAnswered,
+        switchToArchived,
         switchToTotal,
+        switchToMembers,
         switchToPrompts,
         switchToPersonal: switchToPersonalFilter,
       });
@@ -1160,7 +1217,31 @@ describe('HelpDriverTourService', () => {
       const config = vi.mocked(driver).mock.calls[0][0];
       const titles = (config?.steps ?? []).map((step) => step.popover?.title);
       expect(titles).toContain('Answered');
+      expect(titles).toContain('Archived');
       expect(titles).toContain('Total');
+    });
+
+    it('includes Members step when the Members sub-filter is in the DOM', () => {
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
+      const members = document.createElement('button');
+      members.id = 'tour-filter-members';
+      document.body.appendChild(members);
+
+      service.startFilteringHelpSectionTour(filteringSection as any, {
+        switchToCurrent,
+        switchToAnswered,
+        switchToArchived,
+        switchToTotal,
+        switchToMembers,
+        switchToPrompts,
+        switchToPersonal: switchToPersonalFilter,
+      });
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const titles = (config?.steps ?? []).map((step) => step.popover?.title);
+      expect(titles).toContain('Members');
     });
   });
 
@@ -1217,6 +1298,14 @@ describe('HelpDriverTourService', () => {
       const config = vi.mocked(driver).mock.calls[0][0];
       expect(config?.steps?.length).toBe(17);
       expect(config?.steps?.[0]?.element).toBeUndefined();
+      const titles = (config?.steps ?? []).map((step) => step.popover?.title);
+      expect(titles).toEqual(
+        expect.arrayContaining(['Your new prayer', 'Mark as answered', 'Edit'])
+      );
+      const answered = config?.steps?.find(
+        (step) => step.popover?.title === 'Mark as answered'
+      );
+      expect(answered?.popover?.description).toContain('card menu');
     });
   });
 
@@ -1230,6 +1319,13 @@ describe('HelpDriverTourService', () => {
   function mountEl(id: string, tag = 'button'): HTMLElement {
     const el = document.createElement(tag);
     el.id = id;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function mountCardActionsTrigger(): HTMLButtonElement {
+    const el = document.createElement('button');
+    el.setAttribute('data-card-actions-trigger', '');
     document.body.appendChild(el);
     return el;
   }
@@ -1627,6 +1723,7 @@ describe('HelpDriverTourService', () => {
       const publicTab = document.createElement('div');
       publicTab.id = TOUR_FILTER_PUBLIC_ID;
       document.body.appendChild(publicTab);
+      mountCardActionsTrigger();
       mountEl(TOUR_PRAYER_REMINDER_BELL_ID, 'button');
       mountEl(TOUR_SETTINGS_PRAYER_REMINDERS_ID, 'div');
       mountEl(TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID, 'div');
@@ -1634,7 +1731,7 @@ describe('HelpDriverTourService', () => {
       vi.useFakeTimers();
       service.startPrayerRemindersHelpSectionTour(
         section,
-        { hasReminderBellTarget: true },
+        { hasReminderCardMenuTarget: true },
         h
       );
       const config = vi.mocked(driver).mock.calls[0][0];
@@ -1650,7 +1747,30 @@ describe('HelpDriverTourService', () => {
       vi.unstubAllGlobals();
     });
 
-    it('startPrayerRemindersHelpSectionTour omits bell step when anchor is missing', () => {
+    it('startPrayerRemindersHelpSectionTour includes reminder step when hamburger trigger exists', () => {
+      mountSettingsGear(true);
+      const publicTab = document.createElement('div');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
+      mountCardActionsTrigger();
+      mountEl(TOUR_SETTINGS_PRAYER_REMINDERS_ID, 'div');
+      mountEl(TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID, 'div');
+      const h = { ...settingsTourHooks(), switchToCurrent: vi.fn() };
+      service.startPrayerRemindersHelpSectionTour(
+        section,
+        { hasReminderCardMenuTarget: true },
+        h
+      );
+      const config = vi.mocked(driver).mock.calls[0][0];
+      expect(config?.steps?.length).toBe(7);
+      const reminder = config?.steps?.find(
+        (step) => step.popover?.title === 'Per-prayer reminder'
+      );
+      expect(reminder?.popover?.description).toContain('card menu');
+      vi.unstubAllGlobals();
+    });
+
+    it('startPrayerRemindersHelpSectionTour omits reminder step when trigger is missing', () => {
       mountSettingsGear(true);
       const publicTab = document.createElement('div');
       publicTab.id = TOUR_FILTER_PUBLIC_ID;
@@ -1660,7 +1780,7 @@ describe('HelpDriverTourService', () => {
       const h = { ...settingsTourHooks(), switchToCurrent: vi.fn() };
       service.startPrayerRemindersHelpSectionTour(
         section,
-        { hasReminderBellTarget: true },
+        { hasReminderCardMenuTarget: true },
         h
       );
       const config = vi.mocked(driver).mock.calls[0][0];

@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import {
   includesPresentationContentType,
+  type PresentationStatusFilters,
   type PresentationTimeFilter,
   type SelectablePresentationContentType,
 } from "../types/presentation";
@@ -21,7 +22,7 @@ export interface PresentationContentHost {
   loading: boolean;
   randomize: boolean;
   contentTypes: SelectablePresentationContentType[];
-  statusFilters: { current: boolean; answered: boolean };
+  statusFilters: PresentationStatusFilters;
   timeFilter: PresentationTimeFilter;
   hasMembers: boolean;
   planningCenterListMembers: PlanningCenterListMember[];

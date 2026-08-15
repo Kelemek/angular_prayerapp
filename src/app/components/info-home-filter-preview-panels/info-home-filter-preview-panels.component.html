@@ -8,19 +8,19 @@
   @case ('answered') {
     <app-info-home-filter-preview-public-answered-panel />
   }
+  @case ('archived') {
+    <app-info-home-filter-preview-public-archived-panel />
+  }
   @case ('total') {
     <app-info-home-filter-preview-public-total-panel />
   }
+  @case ('members') {
+    <app-info-home-filter-preview-public-members-panel />
+  }
   @case ('prompts') {
-    <app-info-home-filter-preview-prompts-filters
-      (openPromptCategories)="openPromptCategories.emit()"
-    />
     <app-info-home-filter-preview-prompts-card />
   }
   @case ('personal') {
-    <app-info-home-filter-preview-personal-filters
-      (openPersonalCategories)="openPersonalCategories.emit()"
-    />
     <app-info-home-filter-preview-personal-card
       (openPersonalAction)="openPersonalAction.emit($event)"
     />

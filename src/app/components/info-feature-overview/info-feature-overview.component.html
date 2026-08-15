@@ -29,12 +29,12 @@
                     [previewFilter]="previewFilter"
                     (previewFilterChange)="previewFilter = $event"
                     (openBadges)="previewModals.openModal({ kind: 'badges' })"
+                    (openPromptCategories)="previewModals.openModal({ kind: 'promptCategories' })"
+                    (openPersonalCategories)="previewModals.openModal({ kind: 'personalCategories' })"
                   />
                   <app-info-home-filter-preview-panels
                     [previewFilter]="previewFilter"
                     (openBadges)="previewModals.openModal({ kind: 'badges' })"
-                    (openPromptCategories)="previewModals.openModal({ kind: 'promptCategories' })"
-                    (openPersonalCategories)="previewModals.openModal({ kind: 'personalCategories' })"
                     (openPersonalAction)="previewModals.openModal({ kind: 'personalAction', action: $event })"
                     (openHeaderPreview)="previewModals.openModal({ kind: 'header', action: $event })"
                   />

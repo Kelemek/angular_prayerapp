@@ -14,6 +14,7 @@ import type { PrayerFilters } from "../components/prayer-filters/prayer-filters.
 export type HomeActiveFilter =
   | "current"
   | "answered"
+  | "archived"
   | "total"
   | "prompts"
   | "personal"

@@ -10,7 +10,7 @@ import { CommonModule } from "@angular/common";
 
 export interface PrayerFilters {
   searchTerm?: string;
-  status?: "current" | "answered";
+  status?: "current" | "answered" | "archived";
   type?: "prompt";
 }
 

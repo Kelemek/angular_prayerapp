@@ -17,8 +17,10 @@ import { PlanningCenterListService } from "../../services/planning-center-list.s
 import { ThemeService, type Theme } from "../../services/theme.service";
 import {
   HomeReturnContext,
+  PRESENTATION_STATUS_FILTERS_DEFAULT,
   PresentationTimeFilter,
   SelectablePresentationContentType,
+  type PresentationStatusFilters,
 } from "../../types/presentation";
 import { PresentationToolbarComponent } from "../../components/presentation-toolbar/presentation-toolbar.component";
 import { PresentationSlideCardComponent } from "../../components/presentation-slide-card/presentation-slide-card.component";
@@ -96,7 +98,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   loading = true;
   showControls = true;
   contentTypes: SelectablePresentationContentType[] = ["prayers"];
-  statusFilters = { current: true, answered: true };
+  statusFilters: PresentationStatusFilters = { ...PRESENTATION_STATUS_FILTERS_DEFAULT };
   timeFilter: PresentationTimeFilter = "all";
   randomize = false;
   loop = true;

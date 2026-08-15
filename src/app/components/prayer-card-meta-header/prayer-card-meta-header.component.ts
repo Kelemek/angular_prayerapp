@@ -2,7 +2,8 @@ import { Component, ChangeDetectionStrategy, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-header-band.component';
 import { PersonalCategoryPillComponent } from '../personal-category-color-picker/personal-category-pill.component';
-import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
+import { CardActionsOverflowMenuComponent } from '../card-actions-overflow-menu/card-actions-overflow-menu.component';
+import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card-actions-overflow-menu.types';
 import {
   getPrayerStatusHeaderTextClasses,
   getPrayerStatusLabel,
@@ -11,7 +12,6 @@ import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
 import {
   PRAYER_CARD_HEADER_BLEED_CLASSES,
   PRAYER_CARD_HEADER_INSET_CLASSES,
-  PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES,
   getMetaHeaderBandLayoutClasses,
   type MetaHeaderBandSize,
 } from '../../lib/prayer-card-layout';
@@ -19,7 +19,7 @@ import {
 @Component({
   selector: 'app-prayer-card-meta-header',
   standalone: true,
-  imports: [CommonModule, CardMetaHeaderBandComponent, PersonalCategoryPillComponent, PrayerItemReminderBellButtonComponent],
+  imports: [CommonModule, CardMetaHeaderBandComponent, PersonalCategoryPillComponent, CardActionsOverflowMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card-meta-header-band
@@ -57,63 +57,16 @@ import {
         </span>
         }
       </div>
-      <div cardMetaRight [class]="'flex items-center ' + actionsGapClasses">
-        @if (showReminder) {
-        <app-prayer-item-reminder-bell-button
-          [hasReminder]="hasReminder"
+      <div cardMetaRight class="flex items-center justify-end">
+        <app-card-actions-overflow-menu
+          [items]="overflowItems"
           [bandSize]="bandSize"
-          [tourAnchorId]="reminderBellTourId"
-          (reminder)="reminder.emit()"
         />
-        }
-        @if (isPersonal) {
-        <button
-          type="button"
-          (click)="toggleAnswered.emit()"
-          [attr.id]="personalAnsweredTourId"
-          [title]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
-          [attr.aria-label]="isAnswered ? 'Mark as unanswered' : 'Mark as answered'"
-          [class]="iconButtonBaseClasses + ' focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md cursor-pointer ' + layoutClasses.iconButtonPaddingClasses + ' ' + (isAnswered ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400')"
-        >
-          <svg [class]="layoutClasses.iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </button>
-        <button
-          type="button"
-          (click)="edit.emit()"
-          [attr.id]="personalEditTourId"
-          aria-label="Edit personal prayer"
-          title="Edit prayer"
-          [class]="iconButtonBaseClasses + ' text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' + layoutClasses.iconButtonPaddingClasses"
-        >
-          <svg [class]="layoutClasses.iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-        </button>
-        }
-        @if (showDelete) {
-        <button
-          type="button"
-          (click)="delete.emit()"
-          [attr.id]="personalDeleteTourId"
-          aria-label="Delete prayer request"
-          title="Delete prayer request"
-          [class]="iconButtonBaseClasses + ' text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + layoutClasses.iconButtonPaddingClasses"
-        >
-          <svg [class]="layoutClasses.iconSizeClasses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
-        </button>
-        }
       </div>
     </app-card-meta-header-band>
   `,
 })
 export class PrayerCardMetaHeaderComponent {
-  readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
   /** Matches Planning Center member card border (`#0047AB`). */
   readonly memberHeaderTextClasses = 'text-[#0047AB] dark:text-[#4A90E2]';
 
@@ -171,10 +124,49 @@ export class PrayerCardMetaHeaderComponent {
     return getMetaHeaderBandLayoutClasses(this.bandSize);
   }
 
-  get actionsGapClasses(): string {
-    if (this.isPersonal) {
-      return this.layoutClasses.actionsGapCompactClasses;
+  get overflowItems(): CardActionsOverflowItem[] {
+    const items: CardActionsOverflowItem[] = [];
+    if (this.showReminder) {
+      items.push({
+        id: 'reminder',
+        label: this.hasReminder ? 'Manage prayer reminders' : 'Add prayer reminder',
+        icon: 'bell',
+        tone: 'blue',
+        filled: this.hasReminder,
+        tourAnchorId: this.reminderBellTourId,
+        onSelect: () => this.reminder.emit(),
+      });
     }
-    return this.layoutClasses.actionsGapClasses;
+    if (this.isPersonal) {
+      items.push({
+        id: 'answered',
+        label: this.isAnswered ? 'Mark as unanswered' : 'Mark as answered',
+        icon: 'check',
+        tone: this.isAnswered ? 'green' : 'gray',
+        tourAnchorId: this.personalAnsweredTourId,
+        onSelect: () => this.toggleAnswered.emit(),
+      });
+      items.push({
+        id: 'edit',
+        label: 'Edit prayer',
+        ariaLabel: 'Edit personal prayer',
+        icon: 'edit',
+        tone: 'blue',
+        tourAnchorId: this.personalEditTourId,
+        onSelect: () => this.edit.emit(),
+      });
+    }
+    if (this.showDelete) {
+      items.push({
+        id: 'delete',
+        label: 'Delete prayer',
+        ariaLabel: 'Delete prayer request',
+        icon: 'trash',
+        tone: 'red',
+        tourAnchorId: this.personalDeleteTourId,
+        onSelect: () => this.delete.emit(),
+      });
+    }
+    return items;
   }
 }

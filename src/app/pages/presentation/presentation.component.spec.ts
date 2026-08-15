@@ -347,7 +347,11 @@ describe('PresentationComponent', () => {
       await Promise.resolve();
 
       expect(component.contentTypes).toEqual(['prompts']);
-      expect(component.statusFilters).toEqual({ current: false, answered: true });
+      expect(component.statusFilters).toEqual({
+        current: false,
+        answered: true,
+        archived: false,
+      });
       expect(mockPresentationSettingsService.save).not.toHaveBeenCalled();
       expect(mockRouter.navigate).toHaveBeenCalledWith([], {
         relativeTo: mockRoute,

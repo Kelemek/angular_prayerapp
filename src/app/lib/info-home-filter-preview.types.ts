@@ -19,14 +19,20 @@ export type InfoPreviewModalState =
 export type InfoPreviewFilter =
   | "current"
   | "answered"
+  | "archived"
   | "total"
+  | "members"
   | "prompts"
   | "personal";
 
 export function isPublicPreviewFilter(
   filter: InfoPreviewFilter
-): filter is "current" | "answered" | "total" {
+): filter is "current" | "answered" | "archived" | "total" | "members" {
   return (
-    filter === "current" || filter === "answered" || filter === "total"
+    filter === "current" ||
+    filter === "answered" ||
+    filter === "archived" ||
+    filter === "total" ||
+    filter === "members"
   );
 }

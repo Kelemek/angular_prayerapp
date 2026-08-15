@@ -1,7 +1,11 @@
 import { Injectable } from "@angular/core";
 import type { HomeDeepLinkHost } from "./home-deep-link-host.adapter";
 
-export type HomeEmailFilterTab = "current" | "answered" | "memorize";
+export type HomeEmailFilterTab =
+  | "current"
+  | "answered"
+  | "archived"
+  | "memorize";
 
 export type HomeDeepLinkQueryParamKey = "filter" | "prayerId" | "promptId";
 
@@ -31,7 +35,12 @@ export class HomeDeepLinkCoordinator {
     promptId?: string | null;
   }): void {
     const filter = params.filter;
-    if (filter === "current" || filter === "answered" || filter === "memorize") {
+    if (
+      filter === "current" ||
+      filter === "answered" ||
+      filter === "archived" ||
+      filter === "memorize"
+    ) {
       this.initialEmailFilterTab = filter;
     }
     const prayerId = this.normalizeId(params.prayerId);
@@ -188,7 +197,12 @@ export class HomeDeepLinkCoordinator {
   private parseEmailFilterTab(
     filter: string | null | undefined
   ): HomeEmailFilterTab | null {
-    if (filter === "current" || filter === "answered" || filter === "memorize") {
+    if (
+      filter === "current" ||
+      filter === "answered" ||
+      filter === "archived" ||
+      filter === "memorize"
+    ) {
       return filter;
     }
     return null;

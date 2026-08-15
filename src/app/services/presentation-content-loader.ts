@@ -4,15 +4,10 @@ import {
   filterPresentationCommunityPrayers,
   filterPresentationPersonalPrayers,
 } from "../lib/presentation-content-filter";
-import type { PresentationTimeFilter } from "../types/presentation";
+import type { PresentationTimeFilter, PresentationStatusFilters } from "../types/presentation";
 import type { PrayerRequest } from "./prayer.service";
 import { PrayerService } from "./prayer.service";
 import { PromptService } from "./prompt.service";
-
-export type PresentationContentStatusFilters = {
-  current: boolean;
-  answered: boolean;
-};
 
 export type PlanningCenterListMember = {
   id: string;
@@ -28,7 +23,7 @@ export class PresentationContentLoader {
   ) {}
 
   async loadCommunityPrayers(options: {
-    statusFilters: PresentationContentStatusFilters;
+    statusFilters: PresentationStatusFilters;
     timeFilter: PresentationTimeFilter;
     now?: Date;
   }): Promise<PrayerRequest[]> {
@@ -38,7 +33,7 @@ export class PresentationContentLoader {
   }
 
   async loadPersonalPrayers(options: {
-    statusFilters: PresentationContentStatusFilters;
+    statusFilters: PresentationStatusFilters;
     timeFilter: PresentationTimeFilter;
     now?: Date;
   }): Promise<PrayerRequest[]> {

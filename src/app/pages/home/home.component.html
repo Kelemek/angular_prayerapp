@@ -136,6 +136,23 @@
         [promptsCount]="promptsCount"
         [personalPrayersCount]="personalPrayersCount"
         [memorizedItemsCount]="memorizationPanel.memorizedItemsCount"
+        [currentPrayerBadge$]="currentPrayerBadge$"
+        [answeredPrayerBadge$]="answeredPrayerBadge$"
+        [promptBadge$]="promptBadge$"
+        (tabSelected)="filter.setFilter($event)"
+        (publicTabSelected)="filter.selectPublicTab()"
+      ></app-home-filter-tabs>
+
+      <!-- Public Status Filters -->
+      @if (isPublicTabFilter(activeFilter)) {
+      <app-home-public-status-filters
+        [activeFilter]="activeFilter"
+        [currentPrayersCount]="currentPrayersCount"
+        [answeredPrayersCount]="answeredPrayersCount"
+        [archivedPrayersCount]="archivedPrayersCount"
+        [totalPrayersCount]="totalPrayersCount"
+        [currentPrayerBadge$]="currentPrayerBadge$"
+        [answeredPrayerBadge$]="answeredPrayerBadge$"
         [showPlanningCenterMembersFilter]="
           planningCenter.showPlanningCenterMembersFilter
         "
@@ -146,22 +163,6 @@
           planningCenter.loadingPlanningCenterList &&
           planningCenter.planningCenterListMembers.length === 0
         "
-        [currentPrayerBadge$]="currentPrayerBadge$"
-        [answeredPrayerBadge$]="answeredPrayerBadge$"
-        [promptBadge$]="promptBadge$"
-        (tabSelected)="filter.setFilter($event)"
-        (publicTabSelected)="filter.selectPublicTab()"
-      ></app-home-filter-tabs>
-
-      <!-- Public Status Filters -->
-      @if (isCommunityPrayerFilter(activeFilter)) {
-      <app-home-public-status-filters
-        [activeFilter]="activeFilter"
-        [currentPrayersCount]="currentPrayersCount"
-        [answeredPrayersCount]="answeredPrayersCount"
-        [totalPrayersCount]="totalPrayersCount"
-        [currentPrayerBadge$]="currentPrayerBadge$"
-        [answeredPrayerBadge$]="answeredPrayerBadge$"
         (selectFilter)="filter.setFilter($event)"
       ></app-home-public-status-filters>
       }

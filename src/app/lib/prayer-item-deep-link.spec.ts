@@ -27,9 +27,9 @@ describe('resolvePrayerItemDeepLinkTab', () => {
     );
   });
 
-  it('routes archived community prayers to total tab', () => {
+  it('routes archived community prayers to archived tab', () => {
     expect(resolvePrayerItemDeepLinkTab('c-archived', community, personal)).toBe(
-      'total'
+      'archived'
     );
   });
 

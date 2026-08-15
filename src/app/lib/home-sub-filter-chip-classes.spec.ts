@@ -1,23 +1,102 @@
 import { describe, it, expect } from "vitest";
 import {
+  HOME_FILTER_TAB_ACTIVE_FILL,
   HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
   HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
   HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
+  HOME_PUBLIC_STATUS_CHIP_THEMES,
   HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
+  homeFilterTabClass,
 } from "./home-sub-filter-chip-classes";
 
 describe("HOME_*_SUB_FILTER_GROUP_CLASS", () => {
-  it("uses static 2px tab-colored borders (Tailwind must see full literals)", () => {
-    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toBe(
-      "rounded-lg border-[2px] border-[#2F5F54] dark:border-[#2F5F54] p-2"
+  it("uses static folder-panel fills matching each tab (Tailwind must see full literals)", () => {
+    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain("bg-slate-100");
+    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain(
+      "dark:bg-green-900/40"
     );
-    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain("border-[#988F83]");
+    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain("bg-stone-100");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("bg-blue-100");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("rounded-b-lg");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-[#0047AB]");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-t-0");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-x-[2px]");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-b-[2px]");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS.split(" ")).not.toContain(
+      "border-[2px]"
+    );
+    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain("border-[#2F5F54]");
+    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain("border-[#988F83]");
   });
 
-  it("aliases memorize group border to public blue", () => {
+  it("aliases memorize group fill to public blue", () => {
     expect(HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS).toBe(
       HOME_PUBLIC_SUB_FILTER_GROUP_CLASS
+    );
+  });
+});
+
+describe("homeFilterTabClass", () => {
+  it("connects the active tab to the panel when a sub-row is present", () => {
+    const cls = homeFilterTabClass({
+      accent: "public",
+      active: true,
+      hasSubRow: true,
+    });
+    const tokens = cls.split(" ");
+    expect(tokens).toContain("rounded-t-lg");
+    expect(tokens).not.toContain("rounded-lg");
+    expect(cls).toContain("z-10");
+    expect(cls).toContain("border-t-[2px]");
+    expect(cls).toContain("border-x-[2px]");
+    expect(cls).toContain("border-b-0");
+    expect(cls).not.toContain("-mb-[2px]");
+    expect(cls).toContain("bg-blue-100");
+    expect(cls).toContain("border-[#0047AB]");
+    expect(tokens).not.toContain("border-[2px]");
+  });
+
+  it("keeps a fully rounded selected tab when there is no sub-row", () => {
+    const cls = homeFilterTabClass({
+      accent: "members",
+      active: true,
+      hasSubRow: false,
+    });
+    expect(cls).toContain("rounded-lg");
+    expect(cls).toContain(HOME_FILTER_TAB_ACTIVE_FILL.members.split(" ")[0]);
+    expect(cls).toContain("border-[#0047AB]");
+    expect(cls).not.toContain("border-b-0");
+  });
+
+  it("uses inactive chrome for unselected tabs", () => {
+    const cls = homeFilterTabClass({
+      accent: "personal",
+      active: false,
+      hasSubRow: true,
+    });
+    expect(cls).toContain("rounded-t-lg");
+    expect(cls).toContain("bg-white");
+    expect(cls).not.toContain("z-10");
+  });
+});
+
+describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
+  it("uses bordered chips with accent rings", () => {
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain("ring");
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain(
+      "border-[#0047AB]"
+    );
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.answered.active).toContain(
+      "border-[#39704D]"
+    );
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.archived.active).toContain(
+      "border-[#C9A961]"
+    );
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.total.active).toContain(
+      "border-gray-500"
+    );
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.members.active).toContain(
+      "border-[#0047AB]"
     );
   });
 });

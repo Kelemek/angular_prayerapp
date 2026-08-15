@@ -60,7 +60,7 @@ import { HomePromptTypeFiltersComponent } from "../../components/home-prompt-typ
 import { HomePersonalCategoryFiltersComponent } from "../../components/home-personal-category-filters/home-personal-category-filters.component";
 import { HomePublicStatusFiltersComponent } from "../../components/home-public-status-filters/home-public-status-filters.component";
 import { HomePrayerContentComponent } from "../../components/home-prayer-content/home-prayer-content.component";
-import { isCommunityPrayerFilter } from "../../lib/home-community-filter";
+import { isPublicTabFilter } from "../../lib/home-community-filter";
 import {
   createHomeCatalogBindings,
   readHomeFilteredPersonalPrayers,
@@ -133,6 +133,7 @@ export class HomeComponent
 
   currentPrayersCount = 0;
   answeredPrayersCount = 0;
+  archivedPrayersCount = 0;
   totalPrayersCount = 0;
   promptsCount = 0;
   personalPrayersCount = 0;
@@ -153,7 +154,7 @@ export class HomeComponent
   readonly personalWalkthroughDescription =
     PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION;
 
-  readonly isCommunityPrayerFilter = isCommunityPrayerFilter;
+  readonly isPublicTabFilter = isPublicTabFilter;
 
   personalCategoryPickerPrayerId: string | null = null;
 

@@ -4,6 +4,31 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### UI — Card hamburger overflow menu
+- Prayer, prompt, and nested update cards replace the tight 16px header/update icon row (bell / check / edit / trash) with a hamburger that opens a **fixed** dropdown of the same actions ([`card-actions-overflow-menu`](src/app/components/card-actions-overflow-menu/card-actions-overflow-menu.component.ts)). Rows are labeled, `min-h-[44px]`, and keep the existing colors; a filled bell still means a reminder is set. The panel flips **up** when there is not enough room below the trigger.
+- Wired on [`prayer-card-meta-header`](src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts), [`prompt-card`](src/app/components/prompt-card/prompt-card.component.ts), [`prayer-update-actions`](src/app/components/prayer-update-actions/prayer-update-actions.component.ts), and the Info personal mock. Presentation slides reuse the same card components. Parents still own confirmation dialogs and reminder/edit modals.
+- Personal walkthrough and prayer-reminder tours open the menu before highlighting those actions; Help copy describes the **card menu** instead of inline icons ([`help-driver-tour.service.ts`](src/app/services/help-driver-tour.service.ts), [`help-content.service.ts`](src/app/services/help-content.service.ts)).
+
+### UI — Folder-panel filter chips
+- Folder-tab panels keep the connected fill under the selected main tab, but the sub-options are **bordered chips** again (accent ring when selected) instead of underlined text: Public **Current** / **Answered** / **Archived** / **Total** / **Members**, Personal categories, prompt types, and Memorize actions ([`home-sub-filter-chip-classes.ts`](src/app/lib/home-sub-filter-chip-classes.ts)). The Info preview matches.
+- Public **Archived** uses the gold `#C9A961` chip (same accent as archived prayer cards); **Total** uses the gray chip.
+- Public status chips use the same wrapping flex hosts as prompt types (`HOME_WRAP_FILTER_CHIP_FLEX_CLASS`) so Current / Answered / Archived / Total / Members flow onto extra rows instead of shrinking to fit one line.
+
+### Fix — Prompt type-chip unread badges
+- Marking a prompt card as read now decrements the matching Prompts type-chip unread badge, not only the main Prompts tab count ([`home-prompt-type-filters`](src/app/components/home-prompt-type-filters/home-prompt-type-filters.component.ts)). The chips subscribe to `BadgeService.getUpdateBadgesChanged$()` so they refresh when a card badge is cleared.
+
+### UI — Members under Public
+- **Members** is no longer a main Home tab. When a Planning Center list is mapped, it appears as a Public filter chip after **Total** ([`home-public-status-filters`](src/app/components/home-public-status-filters/home-public-status-filters.component.html)). Selecting it keeps the Public folder tab selected (`isPublicTabFilter` in [`home-community-filter.ts`](src/app/lib/home-community-filter.ts)) and still uses `activeFilter === 'planning_center_list'` for member cards, deep links, and Pray handoff. The Info preview includes a matching **Members** control.
+
+### UI — Public Archived filter
+- Under **Public**, an **Archived** filter chip sits between **Answered** and **Total** and lists only community prayers with status `archived` ([`home-public-status-filters`](src/app/components/home-public-status-filters/home-public-status-filters.component.html)). **Total** still includes archived prayers. Deep links use `?filter=archived`, and opening an archived community prayer switches to that filter ([`prayer-item-deep-link.ts`](src/app/lib/prayer-item-deep-link.ts)). Help copy and the Info preview match this layout.
+
+### Fix — Public Archived Pray handoff
+- **Pray** from Home **Public → Archived** now opens Presentation with archived-only community prayers (`statusFilters.archived`), not the same all-status deck as **Total** ([`mapHomeTabToPresentationStatusFilters`](src/app/types/presentation.ts), [`presentation-content-filter.ts`](src/app/lib/presentation-content-filter.ts)). New-tab handoff uses `homeStatus=archived`.
+
+### UI — Folder-style Home filter tabs
+- Home main filters are **folder tabs**: the selected tab’s fill continues into a connected panel outlined with the same 2px accent as the old tab button (**Public** / **Memorize** `#0047AB`, **Personal** `#2F5F54`, **Prompts** `#988F83`). The selected tab uses top and side borders only, and the panel omits its top border (`border-t-0`), so there is no stroke across the join. **Current** / **Answered** / **Archived** / **Total** (and **Members** when a Planning Center list is mapped), prompt types, personal categories, and Memorize actions are **bordered chips** in that panel (selected = accent ring) ([`home-filter-tabs`](src/app/components/home-filter-tabs/home-filter-tabs.component.html), [`home-sub-filter-chip-classes.ts`](src/app/lib/home-sub-filter-chip-classes.ts)). Prayer cards stay on the page background below the panel. Empty **Prompts** keeps a fully rounded selected tab with no panel. The Info page mock matches this look ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)).
+
 ### Fix — Personal category chip drag on mobile
 - Dragging personal category chips on mobile no longer scrolls the page behind the chip: the drag handle hit area matches the left `pl-7` zone, and the home scroll viewport locks while a category drag is active ([`personal-category-drag-scroll.ts`](src/app/lib/personal-category-drag-scroll.ts), [`home-personal-category-filters`](src/app/components/home-personal-category-filters/home-personal-category-filters.component.html)).
 - Long-pressing a category chip to rename no longer highlights **Cancel** / **Save**, the **Category name** label, or the input value when the modal appears under your finger: the release gesture is swallowed, native selection is cleared, static modal copy is non-selectable, and the rename input is focused (without auto-select) after lift ([`personal-category-long-press.ts`](src/app/lib/personal-category-long-press.ts), [`personal-category-rename-modal`](src/app/components/personal-category-rename-modal/personal-category-rename-modal.component.ts)).

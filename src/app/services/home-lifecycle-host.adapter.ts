@@ -20,6 +20,7 @@ export interface HomeLifecyclePageBindings {
   personalPrayers: PrayerRequest[];
   currentPrayersCount: number;
   answeredPrayersCount: number;
+  archivedPrayersCount: number;
   totalPrayersCount: number;
   promptsCount: number;
   personalPrayersCount: number;
@@ -92,10 +93,12 @@ export class HomeLifecycleHostAdapter implements HomeLifecycleHost {
   setPrayerCounts(counts: {
     current: number;
     answered: number;
+    archived: number;
     total: number;
   }): void {
     this.deps.page.currentPrayersCount = counts.current;
     this.deps.page.answeredPrayersCount = counts.answered;
+    this.deps.page.archivedPrayersCount = counts.archived;
     this.deps.page.totalPrayersCount = counts.total;
   }
 

@@ -18,12 +18,13 @@ import { takeUntil } from 'rxjs/operators';
 import { BadgeService } from '../../services/badge.service';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
 import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-header-band.component';
+import { CardActionsOverflowMenuComponent } from '../card-actions-overflow-menu/card-actions-overflow-menu.component';
+import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card-actions-overflow-menu.types';
 import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { PromptService } from '../../services/prompt.service';
 import { PrayerItemReminderService } from '../../services/prayer-item-reminder.service';
 import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/prayer-item-reminder-modal.component';
-import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import type { PrayerItemReminder } from '../../types/prayer-item-reminder';
 import {
   getPromptCardVariantLayout,
@@ -47,7 +48,7 @@ export interface PrayerPrompt {
 @Component({
   selector: 'app-prompt-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, CardMetaHeaderBandComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, CardMetaHeaderBandComponent, PrayerItemReminderModalComponent, CardActionsOverflowMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.contents]': 'variant === "presentation"',
@@ -84,29 +85,11 @@ export interface PrayerPrompt {
           </span>
           }
         </div>
-        <div cardMetaRight [class]="'flex items-center ' + metaActionsGapClasses">
-          @if (showReminderButton()) {
-          <app-prayer-item-reminder-bell-button
-            [hasReminder]="hasReminderForPrompt()"
+        <div cardMetaRight class="flex items-center justify-end">
+          <app-card-actions-overflow-menu
+            [items]="overflowItems"
             [bandSize]="variantLayout.bandSize"
-            itemLabel="prompt"
-            (reminder)="openReminderModal()"
           />
-          }
-          @if (isAdmin) {
-          <button
-            type="button"
-            (click)="handleDelete()"
-            aria-label="Delete prayer prompt"
-            title="Delete prompt"
-            [class]="'inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md cursor-pointer ' + iconButtonPaddingClasses"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-          }
         </div>
       </app-card-meta-header-band>
 
@@ -269,16 +252,34 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
     return this.variantLayout.headerInsetClasses;
   }
 
-  get metaActionsGapClasses(): string {
-    return getMetaHeaderBandLayoutClasses(this.variantLayout.bandSize).actionsGapClasses;
-  }
-
   get metaHeaderTextSmClasses(): string {
     return getMetaHeaderBandLayoutClasses(this.variantLayout.bandSize).textSmClasses;
   }
 
-  get iconButtonPaddingClasses(): string {
-    return getMetaHeaderBandLayoutClasses(this.variantLayout.bandSize).iconButtonPaddingClasses;
+  get overflowItems(): CardActionsOverflowItem[] {
+    const items: CardActionsOverflowItem[] = [];
+    if (this.showReminderButton()) {
+      const hasReminder = this.hasReminderForPrompt();
+      items.push({
+        id: 'reminder',
+        label: hasReminder ? 'Manage prayer reminders' : 'Add prayer reminder',
+        icon: 'bell',
+        tone: 'blue',
+        filled: hasReminder,
+        onSelect: () => this.openReminderModal(),
+      });
+    }
+    if (this.isAdmin) {
+      items.push({
+        id: 'delete',
+        label: 'Delete prompt',
+        ariaLabel: 'Delete prayer prompt',
+        icon: 'trash',
+        tone: 'red',
+        onSelect: () => this.handleDelete(),
+      });
+    }
+    return items;
   }
 
   shellClasses(): string {

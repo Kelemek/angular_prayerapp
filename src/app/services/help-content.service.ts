@@ -262,7 +262,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Managing Personal vs. Regular Prayers',
-            text: 'Use the "Personal" filter tab to access your private prayers that are only visible to you. For community prayers, tap the **Public** tab (highlighted with a colored border when active), then choose the **Current** or **Total** chip below it. Personal prayers are a great way to track private prayer requests.',
+            text: 'Use the "Personal" filter tab to access your private prayers that are only visible to you. For community prayers, tap the **Public** tab (it fills the folder section below when active), then choose the **Current** or **Total** filter in that section. Personal prayers are a great way to track private prayer requests.',
           },
         ],
         order: 1,
@@ -283,11 +283,11 @@ export class HelpContentService {
           },
           {
             subtitle: 'Accessing Prayer Prompts',
-            text: 'Tap the **Prompts** filter tab at the top (it shows a colored border when active) to view prayer prompts. Type chips appear in a row below the main tabs; prompt cards list underneath.',
+            text: 'Tap the **Prompts** filter tab at the top (it fills the folder section below when active) to view prayer prompts. Type filters appear as text in that section; prompt cards list underneath.',
           },
           {
             subtitle: 'Filtering by Type',
-            text: 'Each prompt has a type (such as Church, Family, Cities, Country, World, Bible, etc.). After you open **Prompts**, tap a **type chip** in the row below the main tabs to show only that type. Chips share each row when they fit and wrap to the next line when needed. Tap **All Types** to view every prompt again. You can also tap the type badge on a card to toggle that filter.',
+            text: 'Each prompt has a type (such as Church, Family, Cities, Country, World, Bible, etc.). After you open **Prompts**, tap a **type** name in the folder section below the main tabs to show only that type. Names wrap to the next line when needed. Tap **All Types** to view every prompt again. You can also tap the type badge on a card to toggle that filter.',
           },
           {
             subtitle: 'Using Prompts in Presentation Mode',
@@ -320,7 +320,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'When can I use Pray For?',
-            text: 'Pray For appears on community prayer cards (**Public** tab, especially **Current**), on your **Personal** tab cards, on **Members** tab cards when you have a Planning Center list applied, on **Prompts** tab cards, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
+            text: 'Pray For appears on community prayer cards (**Public** tab, especially **Current**), on your **Personal** tab cards, on **Members** cards under **Public** when you have a Planning Center list applied, on **Prompts** tab cards, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
           },
           {
             subtitle: 'Personal prayers',
@@ -328,7 +328,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Member list cards',
-            text: 'If admins have mapped a Planning Center list to your account, the **Members** tab shows those people as prayer cards. Pray For on a member card increases a **shared** anonymous **{n} Prayers** count for that person (visible to everyone who can see the Members list). Your cooldown from Settings controls how soon you can tap Pray For again on the same member. Member lists still appear only for users who have a list applied—Pray For does not change who can see Members.',
+            text: 'If admins have mapped a Planning Center list to your account, **Members** appears under the **Public** tab after **Total** and shows those people as prayer cards. Pray For on a member card increases a **shared** anonymous **{n} Prayers** count for that person (visible to everyone who can see the Members list). Your cooldown from Settings controls how soon you can tap Pray For again on the same member. Member lists still appear only for users who have a list applied—Pray For does not change who can see Members.',
           },
           {
             subtitle: 'Prayer prompts',
@@ -398,7 +398,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Creating Personal Prayers',
-            text: 'Tap the **Personal** filter tab (highlighted with a colored border when active) to view your personal prayers section. Tap **Request** (Add Request) while **Personal** is selected to create a new personal prayer. Fill in "Prayer For" (the subject of your prayer), add prayer details in the description field, and optionally assign a category. Your personal prayer is created instantly without waiting for approval.',
+            text: 'Tap the **Personal** filter tab (it fills the folder section below when active) to view your personal prayers section. Tap **Request** (Add Request) while **Personal** is selected to create a new personal prayer. Fill in "Prayer For" (the subject of your prayer), add prayer details in the description field, and optionally assign a category. Your personal prayer is created instantly without waiting for approval.',
             examples: [
               'Example: Prayer For: "My Family", Details: "Pray for stronger relationships and more quality time together"',
               'Example: Prayer For: "Personal Growth", Details: "Help me develop patience and wisdom in my daily decisions"',
@@ -415,11 +415,11 @@ export class HelpContentService {
           },
           {
             subtitle: 'Filtering Personal Prayers by Category',
-            text: 'Once you have personal prayers, filter chips always appear below the main tabs when **Personal** is active: **Current** (everything except answered), **Answered**, and **Total** (all personal prayers), then any categories you created. Category chips share each row when they fit and wrap to the next line when needed (same layout as prompt type chips). Click a category chip to show only prayers in that category. Long-press a category chip (or right-click on desktop) to rename it. Re-tap a category chip to return to Current.',
+            text: 'Once you have personal prayers, filter chips always appear in the folder section when **Personal** is active: **Current** (everything except answered), **Answered**, and **Total** (all personal prayers), then any categories you created. Category names wrap to the next line when needed (same layout as prompt type filters). Click a category to show only prayers in that category. Long-press a category (or right-click on desktop) to rename it. Re-tap a category to return to Current.',
           },
           {
             subtitle: 'Editing Personal Prayers',
-            text: 'Click the edit button (pencil icon) on any personal prayer card to modify it. You can update the prayer subject (Prayer For field), change the description, reassign the category, or check "Mark this prayer as answered" to move it into the Answered category. All changes are saved immediately. This is helpful when you need to add more details or track the evolution of your prayer request over time.',
+            text: 'Open the **card menu** (hamburger) on any personal prayer card, then tap **Edit prayer** to modify it. You can update the prayer subject (Prayer For field), change the description, reassign the category, or check "Mark this prayer as answered" to move it into the Answered category. All changes are saved immediately. This is helpful when you need to add more details or track the evolution of your prayer request over time.',
           },
           {
             subtitle: 'Adding Prayer Updates',
@@ -427,11 +427,11 @@ export class HelpContentService {
           },
           {
             subtitle: 'Editing Prayer Updates',
-            text: 'Click the edit button (pencil icon) on any prayer update to modify the update content. You can also check "Mark this prayer as answered" while editing an update—the same option as when adding an update. This allows you to correct typos, add more details, or clarify what you wrote. Your edits are saved instantly. You can also delete updates if needed.',
+            text: 'Open the **card menu** on any prayer update, then tap **Edit update** to modify the update content. You can also check "Mark this prayer as answered" while editing an update—the same option as when adding an update. This allows you to correct typos, add more details, or clarify what you wrote. Your edits are saved instantly. You can also delete updates from that same menu if needed.',
           },
           {
             subtitle: 'Managing Prayer Status',
-            text: 'As you pray and see answers, you can mark prayers as "Answered" with the green checkmark on the card header (you will be asked to confirm). Tap again to move the prayer out of Answered and choose a category. You can also check "Mark this prayer as answered" when adding or editing an update, or when editing the prayer itself. Answered personal prayers show under the Answered filter chip.',
+            text: 'As you pray and see answers, open the **card menu** and tap **Mark as answered** (you will be asked to confirm). Tap that item again to move the prayer out of Answered and choose a category. You can also check "Mark this prayer as answered" when adding or editing an update, or when editing the prayer itself. Answered personal prayers show under the Answered filter.',
           },
           {
             subtitle: 'Reordering Personal Prayers',
@@ -526,7 +526,7 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'The main filter row has **Public**, **Personal**, **Prompts**, **Memorize**, and optionally **Members**. The active tab is highlighted with a colored border. Tap **Public** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below. **Personal**, **Prompts**, and **Memorize** each show their own sub-filter chips under the main row when selected.',
+            text: 'The main filter row has **Public**, **Personal**, **Prompts**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Public** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. If your church maps a Planning Center list, **Members** also appears after **Total**. **Personal**, **Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.',
           },
           {
             subtitle: 'Personal Prayers Filter',
@@ -534,7 +534,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Finding Archived Prayers',
-            text: 'Archived prayers are still accessible and can be updated. Under the **Public** tab, tap the **Total** chip to see all community prayers including archived ones. You can find, edit, and update archived prayers just like active prayers.',
+            text: 'Archived prayers are still accessible and can be updated. Under the **Public** tab, tap the **Archived** filter to see only archived community prayers. You can find, edit, and update them just like active prayers. **Total** still includes archived prayers along with current and answered.',
           },
           {
             subtitle: 'Search Across All Filters',
@@ -633,16 +633,16 @@ export class HelpContentService {
       {
         id: 'help_prayer_reminders',
         title: 'Prayer reminders',
-        description: 'Bell on a card or general nudges in Settings',
+        description: 'Card menu reminder or general nudges in Settings',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
         content: [
           {
             subtitle: 'Two ways to get reminders',
-            text: 'You can set a reminder on a specific prayer from the bell icon on its card, or add general “pause and pray” nudges in Settings. Both use 15-minute time steps (:00, :15, :30, :45) in your device time zone. They are only for you and are separate from community prayer update emails (those are set up by admins for people who submitted requests).',
+            text: 'You can set a reminder on a specific prayer from the **card menu** (hamburger) on its card, or add general “pause and pray” nudges in Settings. Both use 15-minute time steps (:00, :15, :30, :45) in your device time zone. They are only for you and are separate from community prayer update emails (those are set up by admins for people who submitted requests).',
           },
           {
-            subtitle: 'Per-prayer reminders (bell icon)',
-            text: 'On community, personal, Planning Center member, and prayer prompt cards, tap the bell to schedule a one-time, daily, or weekly reminder for that prayer. A filled bell means you already have at least one reminder. Reminders are removed automatically when the prayer is deleted, archived, or marked answered. Email and push links open the app on that prayer.',
+            subtitle: 'Per-prayer reminders (card menu)',
+            text: 'On community, personal, Planning Center member, and prayer prompt cards, open the **card menu** and tap **Add prayer reminder** (or **Manage prayer reminders** if one is already set) to schedule a one-time, daily, or weekly reminder for that prayer. A filled bell in the menu means you already have at least one reminder. Reminders are removed automatically when the prayer is deleted, archived, or marked answered. Email and push links open the app on that prayer.',
           },
           {
             subtitle: 'General prayer nudges (Settings)',
@@ -745,7 +745,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Notification Badges',
-            text: 'Badges appear on the main filter tabs and sub-filter chips to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge on a **Public**, **Prompts**, or community sub-chip to clear all badges for that category at once.',
+            text: 'Badges appear on the main filter tabs and on the filter chips in each tab section to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge on a **Public**, **Prompts**, or community filter to clear all badges for that category at once.',
           },
           {
             subtitle: 'Enabling Badges',
@@ -776,8 +776,8 @@ export class HelpContentService {
             text: 'Below **Memorization practice**, choose one or more times in **15-minute** steps when you would like a short reminder to practice memorization. Times follow your device time zone. If email subscription is on, you will get an email at those times; if push notifications are on and this device is registered for push, you will also get a push reminder—if both are on, you may receive both. These are separate from **Prayer reminders**.',
           },
           {
-            subtitle: 'Prayer reminders (Settings nudges and bell)',
-            text: 'In Settings you can choose one or more times in **15-minute** steps for a short reminder to pray. You can also tap the **bell** on any community, personal, member, or prompt card to set a once, daily, or weekly reminder for that specific prayer. Times follow your device time zone. If email subscription is on, you will get an email at those times; if push notifications are on and your phone has the installed app registered for push, you will also get a push—if both are on, you may receive both. Pick a time with the dropdown, tap Add reminder, or Remove a slot you no longer want. These are your personal reminders to pause and pray; they are separate from community prayer update reminders (which admins configure for requesters).',
+            subtitle: 'Prayer reminders (Settings nudges and card menu)',
+            text: 'In Settings you can choose one or more times in **15-minute** steps for a short reminder to pray. You can also open the **card menu** on any community, personal, member, or prompt card to set a once, daily, or weekly reminder for that specific prayer. Times follow your device time zone. If email subscription is on, you will get an email at those times; if push notifications are on and your phone has the installed app registered for push, you will also get a push—if both are on, you may receive both. Pick a time with the dropdown, tap Add reminder, or Remove a slot you no longer want. These are your personal reminders to pause and pray; they are separate from community prayer update reminders (which admins configure for requesters).',
           },
           {
             subtitle: 'Feedback Form',

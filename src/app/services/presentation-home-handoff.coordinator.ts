@@ -15,6 +15,7 @@ import {
   type PresentationHomeHandoff,
   parsePresentationHomeHandoffFromQueryParams,
   parsePresentationHomeHandoffFromState,
+  type PresentationStatusFilters,
 } from "../types/presentation";
 
 export interface HomePresentationHandoffSource {
@@ -37,7 +38,7 @@ export interface HomeReturnContextApplier {
 
 export interface PresentationHandoffPageState {
   contentTypes: PresentationHomeHandoff["contentTypes"];
-  statusFilters: { current: boolean; answered: boolean };
+  statusFilters: PresentationStatusFilters;
   selectedPromptCategories: string[];
   selectedPersonalCategories: string[];
   homeReturnContext: HomeReturnContext | null;

@@ -1375,6 +1375,28 @@ describe('PromptCardComponent - Core Logic', () => {
       };
       expect(component.hasReminderForPrompt()).toBe(true);
     });
+
+    it('includes reminder and admin delete in the overflow menu', () => {
+      const component = createPromptCard({
+        isPromptUnread: vi.fn(),
+        markPromptAsRead: vi.fn(),
+        getUpdateBadgesChanged$: vi.fn().mockReturnValue(of()),
+        getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(true)),
+      });
+      component.prompt = {
+        id: 'prompt-1',
+        title: 'T',
+        type: 'Guidance',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+      };
+      component.isAdmin = true;
+      expect(component.overflowItems.map((item) => item.id)).toEqual([
+        'reminder',
+        'delete',
+      ]);
+    });
   });
 });
 

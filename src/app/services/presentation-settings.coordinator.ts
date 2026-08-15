@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { PresentationSettingsService } from "./presentation-settings.service";
 import type {
   PresentationSettings,
+  PresentationStatusFilters,
   PresentationTimeFilter,
   SelectablePresentationContentType,
 } from "../types/presentation";
@@ -13,7 +14,7 @@ export interface PresentationSettingsPageState {
   displayDuration: number;
   loop: boolean;
   timeFilter: PresentationTimeFilter;
-  statusFilters: { current: boolean; answered: boolean };
+  statusFilters: PresentationStatusFilters;
   prayerTimerMinutes: number;
 }
 

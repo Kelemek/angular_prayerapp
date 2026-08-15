@@ -250,12 +250,15 @@ describe('PresentationSettingsFiltersPanelComponent', () => {
 
     it('emits status apply from status field', () => {
       const emitSpy = vi.spyOn(component.statusFiltersChange, 'emit');
-      component.statusFiltersCurrent = false;
-      component.statusFiltersAnswered = false;
+      component.statusFilters = { current: false, answered: false, archived: false };
       component.syncFromInputs();
       component.statusField.pending = ['current', 'answered'];
       component.statusField.apply();
-      expect(emitSpy).toHaveBeenCalledWith({ current: true, answered: true });
+      expect(emitSpy).toHaveBeenCalledWith({
+        current: true,
+        answered: true,
+        archived: false,
+      });
     });
   });
 

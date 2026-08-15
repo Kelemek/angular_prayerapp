@@ -1,13 +1,15 @@
 <div [class]="sectionGapClass">
-  <div [class]="subFilterGroupClass + ' flex w-full gap-2'">
+  <div [class]="subFilterGroupClass + ' ' + chipRowClass">
   @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
   @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
   @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
 
+  <div [class]="chipHostClass">
   <app-home-sub-filter-chip
     chipId="tour-filter-current"
     [active]="activeFilter === 'current'"
     [badgeOverlay]="true"
+    [layoutClass]="chipButtonClass"
     [activeClass]="chipThemes.current.active"
     [inactiveClass]="chipThemes.current.inactive"
     (chipClick)="selectFilter.emit('current')"
@@ -22,11 +24,14 @@
     />
     }
   </app-home-sub-filter-chip>
+  </div>
 
+  <div [class]="chipHostClass">
   <app-home-sub-filter-chip
     chipId="tour-filter-answered"
     [active]="activeFilter === 'answered'"
     [badgeOverlay]="true"
+    [layoutClass]="chipButtonClass"
     [activeClass]="chipThemes.answered.active"
     [inactiveClass]="chipThemes.answered.inactive"
     (chipClick)="selectFilter.emit('answered')"
@@ -41,9 +46,25 @@
     />
     }
   </app-home-sub-filter-chip>
+  </div>
 
+  <div [class]="chipHostClass">
+  <app-home-sub-filter-chip
+    chipId="tour-filter-archived"
+    [layoutClass]="chipButtonClass"
+    [active]="activeFilter === 'archived'"
+    [activeClass]="chipThemes.archived.active"
+    [inactiveClass]="chipThemes.archived.inactive"
+    (chipClick)="selectFilter.emit('archived')"
+  >
+    Archived ({{ archivedPrayersCount }})
+  </app-home-sub-filter-chip>
+  </div>
+
+  <div [class]="chipHostClass">
   <app-home-sub-filter-chip
     chipId="tour-filter-total"
+    [layoutClass]="chipButtonClass"
     [active]="activeFilter === 'total'"
     [activeClass]="chipThemes.total.active"
     [inactiveClass]="chipThemes.total.inactive"
@@ -51,5 +72,22 @@
   >
     Total ({{ totalPrayersCount }})
   </app-home-sub-filter-chip>
+  </div>
+
+  @if (showPlanningCenterMembersFilter) {
+  <div [class]="chipHostClass">
+  <app-home-sub-filter-chip
+    chipId="tour-filter-members"
+    [layoutClass]="chipButtonClass"
+    [active]="activeFilter === 'planning_center_list'"
+    [busy]="planningCenterMembersLoading"
+    [activeClass]="chipThemes.members.active"
+    [inactiveClass]="chipThemes.members.inactive"
+    (chipClick)="selectFilter.emit('planning_center_list')"
+  >
+    Members ({{ planningCenterMembersDisplayCount }})
+  </app-home-sub-filter-chip>
+  </div>
+  }
   </div>
 </div>

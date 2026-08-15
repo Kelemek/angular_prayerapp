@@ -115,7 +115,8 @@ const makeMocks = () => {
     getBadgeCount$: vi.fn().mockReturnValue(of(0)),
     markAllAsReadByStatus: vi.fn(),
     markAllAsRead: vi.fn(),
-    markAllAsReadByPromptType: vi.fn()
+    markAllAsReadByPromptType: vi.fn(),
+    getUpdateBadgesChanged$: vi.fn().mockReturnValue(of()),
   };
 
   const memorizationService: any = {
@@ -414,7 +415,8 @@ describe('HomeComponent', () => {
     prayersSubject.next([
       { id: '1', status: 'current' },
       { id: '2', status: 'answered' },
-      { id: '3', status: 'current' }
+      { id: '3', status: 'current' },
+      { id: '4', status: 'archived' }
     ]);
     promptsSubject.next([
       { id: 'p1', title: 'T1', description: 'D1', type: 'A' }
@@ -432,7 +434,8 @@ describe('HomeComponent', () => {
     // counts should reflect the seeded data
     expect(comp.currentPrayersCount).toBe(2);
     expect(comp.answeredPrayersCount).toBe(1);
-    expect(comp.totalPrayersCount).toBe(3);
+    expect(comp.archivedPrayersCount).toBe(1);
+    expect(comp.totalPrayersCount).toBe(4);
     expect(comp.promptsCount).toBe(1);
     expect(mocks.cdr.markForCheck).toHaveBeenCalled();
     // Verify that the active filter was set (which triggers applyFilters)
@@ -496,6 +499,17 @@ describe('HomeComponent', () => {
     comp.filter.setFilter('total');
     expect(comp.activeFilter).toBe('total');
     expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({ search: 's' });
+  });
+
+  it('setFilter archived branch', () => {
+    const comp = createHomeComponent(mocks)
+    comp.filters.searchTerm = 's';
+    comp.filter.setFilter('archived');
+    expect(comp.activeFilter).toBe('archived');
+    expect(mocks.prayerService.applyFilters).toHaveBeenCalledWith({
+      status: 'archived',
+      search: 's',
+    });
   });
 
   it('setFilter other branch (current)', () => {
@@ -736,7 +750,7 @@ describe('HomeComponent', () => {
       state: {
         presentationHomeHandoff: {
           contentTypes: ['prayers'],
-          statusFilters: { current: false, answered: true },
+          statusFilters: { current: false, answered: true, archived: false },
           returnContext: {
             activeFilter: 'answered',
           },

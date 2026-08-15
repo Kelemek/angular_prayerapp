@@ -2,6 +2,7 @@ import { Component, EventEmitter, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
   HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
+  HOME_SUB_FILTER_CHIP_ROW_CLASS,
   HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
@@ -16,10 +17,12 @@ import {
   standalone: true,
   imports: [CommonModule],
   templateUrl: "./info-home-filter-preview-prompts-filters.component.html",
+  host: { class: "block" },
 })
 export class InfoHomeFilterPreviewPromptsFiltersComponent {
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipButtonStretchClass = HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS;
+  readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
   readonly promptsSubFilterGroupClass = HOME_PROMPTS_SUB_FILTER_GROUP_CLASS;
   readonly promptTypeActiveClass = PROMPT_TYPE_CHIP_ACTIVE_CLASS;
   readonly promptTypeInactiveClass = PROMPT_TYPE_CHIP_INACTIVE_CLASS;

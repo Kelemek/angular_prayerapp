@@ -34,6 +34,7 @@ import { PresentationPrayerStatusFilterField } from "../../lib/presentation-sett
 import {
   PresentationTimeFilter,
   SelectablePresentationContentType,
+  type PresentationStatusFilters,
   includesPresentationContentType,
   showsPrayerTimeStatusFilters,
 } from "../../types/presentation";
@@ -54,8 +55,11 @@ import {
 export class PresentationSettingsFiltersPanelComponent implements OnInit, OnChanges {
   @Input() contentTypes: SelectablePresentationContentType[] = ["prayers"];
   @Input() timeFilter: PresentationTimeFilter = "all";
-  @Input() statusFiltersCurrent = true;
-  @Input() statusFiltersAnswered = true;
+  @Input() statusFilters: PresentationStatusFilters = {
+    current: true,
+    answered: true,
+    archived: false,
+  };
   @Input() availableCategories: string[] = [];
   @Input() selectedCategories: string[] = [];
   @Input() availablePromptCategories: string[] = [];
@@ -65,7 +69,7 @@ export class PresentationSettingsFiltersPanelComponent implements OnInit, OnChan
 
   @Output() contentTypesChange = new EventEmitter<SelectablePresentationContentType[]>();
   @Output() timeFilterChange = new EventEmitter<PresentationTimeFilter>();
-  @Output() statusFiltersChange = new EventEmitter<{ current: boolean; answered: boolean }>();
+  @Output() statusFiltersChange = new EventEmitter<PresentationStatusFilters>();
   @Output() categoriesChange = new EventEmitter<string[]>();
   @Output() promptCategoriesChange = new EventEmitter<string[]>();
 
@@ -117,10 +121,7 @@ export class PresentationSettingsFiltersPanelComponent implements OnInit, OnChan
       allLabel: "All Categories",
     });
     this.statusField = new PresentationPrayerStatusFilterField({
-      getStatusFilters: () => ({
-        current: this.statusFiltersCurrent,
-        answered: this.statusFiltersAnswered,
-      }),
+      getStatusFilters: () => this.statusFilters,
       getAvailable: () => [...this.statusFilterOptions],
       emit: (next) => this.statusFiltersChange.emit(next),
       closeOther: () => this.closeOtherDropdowns("status"),

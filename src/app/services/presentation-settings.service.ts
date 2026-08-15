@@ -8,6 +8,8 @@ import {
   SelectablePresentationContentType,
   isSelectablePresentationContentType,
   normalizeContentTypes,
+  normalizePresentationStatusFilters,
+  PRESENTATION_STATUS_FILTERS_DEFAULT,
 } from '../types/presentation';
 
 const STORAGE_KEY = 'prayer_app_presentation_settings';
@@ -27,6 +29,7 @@ export function mapHomeFilterToContentType(
   switch (filter) {
     case 'current':
     case 'answered':
+    case 'archived':
     case 'total':
       return 'prayers';
     case 'prompts':
@@ -94,12 +97,10 @@ function parseStoredSettings(
     return null;
   }
 
-  if (
-    !settings.statusFilters ||
-    typeof settings.statusFilters !== 'object' ||
-    typeof settings.statusFilters.current !== 'boolean' ||
-    typeof settings.statusFilters.answered !== 'boolean'
-  ) {
+  const statusFilters = normalizePresentationStatusFilters(
+    settings.statusFilters
+  );
+  if (!statusFilters) {
     return null;
   }
 
@@ -150,10 +151,7 @@ function parseStoredSettings(
     loop:
       typeof settings.loop === 'boolean' ? settings.loop : defaults.loop,
     timeFilter: settings.timeFilter,
-    statusFilters: {
-      current: settings.statusFilters.current,
-      answered: settings.statusFilters.answered,
-    },
+    statusFilters,
     prayerTimerMinutes: settings.prayerTimerMinutes,
   };
 }
@@ -170,7 +168,7 @@ export class PresentationSettingsService {
       displayDuration: 10,
       loop: true,
       timeFilter: 'all',
-      statusFilters: { current: true, answered: true },
+      statusFilters: { ...PRESENTATION_STATUS_FILTERS_DEFAULT },
       prayerTimerMinutes: 10,
     };
   }

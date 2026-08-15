@@ -217,16 +217,17 @@ describe('HelpContentService', () => {
       const remindersSection = sections.find((s) => s.id === 'help_prayer_reminders');
       expect(remindersSection).toBeDefined();
       expect(
-        remindersSection!.content?.some((item) => item.subtitle === 'Per-prayer reminders (bell icon)')
+        remindersSection!.content?.some((item) => item.subtitle === 'Per-prayer reminders (card menu)')
       ).toBe(true);
       expect(
         remindersSection!.content?.some((item) => item.subtitle === 'General prayer nudges (Settings)')
       ).toBe(true);
       const bell = remindersSection!.content?.find(
-        (item) => item.subtitle === 'Per-prayer reminders (bell icon)'
+        (item) => item.subtitle === 'Per-prayer reminders (card menu)'
       );
       expect(bell?.text).toContain('prompt');
       expect(bell?.text).toContain('one-time');
+      expect(bell?.text).toContain('card menu');
     });
 
     it('should handle empty data from database', async () => {

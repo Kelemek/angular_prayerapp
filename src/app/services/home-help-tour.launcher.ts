@@ -5,10 +5,10 @@ import type { HelpSection } from "../types/help-content";
 import {
   FULL_GUIDED_TOUR_QUEUE_KEY,
   HelpDriverTourService,
-  TOUR_PRAYER_REMINDER_BELL_ID,
   parseFullGuidedTourQueue,
   type PresentationHelpTourSessionPayload,
 } from "./help-driver-tour.service";
+import { getCardActionsOverflowTriggerEl } from "../lib/help-card-actions-menu-tour";
 import { HelpContentService } from "./help-content.service";
 import type { HomeHelpTourHost } from "./home-help-tour-host.adapter";
 
@@ -304,8 +304,16 @@ export class HomeHelpTourLauncher {
         host.setFilter("answered");
         host.markForCheck();
       },
+      switchToArchived: () => {
+        host.setFilter("archived");
+        host.markForCheck();
+      },
       switchToTotal: () => {
         host.setFilter("total");
+        host.markForCheck();
+      },
+      switchToMembers: () => {
+        host.setFilter("planning_center_list");
         host.markForCheck();
       },
       switchToPrompts: () => {
@@ -470,21 +478,21 @@ export class HomeHelpTourLauncher {
     host.markForCheck();
     await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
     const hasEmail = host.hasSessionEmail();
-    let hasReminderBellTarget = false;
+    let hasReminderCardMenuTarget = false;
     if (hasEmail) {
       const list = await host.getCurrentPrayers();
-      hasReminderBellTarget = list.length > 0;
+      hasReminderCardMenuTarget = list.length > 0;
     }
     if (
-      hasReminderBellTarget &&
+      hasReminderCardMenuTarget &&
       typeof document !== "undefined" &&
-      !document.getElementById(TOUR_PRAYER_REMINDER_BELL_ID)
+      !getCardActionsOverflowTriggerEl(document)
     ) {
-      hasReminderBellTarget = false;
+      hasReminderCardMenuTarget = false;
     }
     this.helpDriverTourService.startPrayerRemindersHelpSectionTour(
       { title: section.title, description: section.description },
-      { hasReminderBellTarget },
+      { hasReminderCardMenuTarget },
       {
         switchToCurrent: () => {
           host.setFilter("current");

@@ -35,12 +35,6 @@ export const PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES = 'block size-[16px] shri
 export const PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES =
   'inline-flex items-center justify-center shrink-0';
 
-/** Horizontal gap between action icons in prayer/update meta headers. */
-export const PRAYER_CARD_META_ACTIONS_GAP_CLASSES = 'gap-[2px] sm:gap-[4px]';
-
-/** Tighter mobile gap when a card shows four personal header actions. */
-export const PRAYER_CARD_META_ACTIONS_GAP_COMPACT_CLASSES = 'gap-[1px] sm:gap-[4px]';
-
 /** Icon hit-area padding in meta header bands (fixed px; does not scale with text size). */
 export const PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES = 'p-[4px]';
 
@@ -64,8 +58,6 @@ export interface MetaHeaderBandLayoutClasses {
   iconSizeClasses: string;
   iconButtonPaddingClasses: string;
   centerPaddingClasses: string;
-  actionsGapClasses: string;
-  actionsGapCompactClasses: string;
   bandMarginClasses: string;
 }
 
@@ -77,8 +69,6 @@ const META_HEADER_BAND_LAYOUT: MetaHeaderBandLayoutClasses = {
   iconSizeClasses: PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES,
   iconButtonPaddingClasses: PRAYER_CARD_META_HEADER_ICON_BUTTON_PADDING_CLASSES,
   centerPaddingClasses: PRAYER_CARD_META_HEADER_CENTER_PADDING_CLASSES,
-  actionsGapClasses: PRAYER_CARD_META_ACTIONS_GAP_CLASSES,
-  actionsGapCompactClasses: PRAYER_CARD_META_ACTIONS_GAP_COMPACT_CLASSES,
   bandMarginClasses: 'mb-4',
 };
 
@@ -135,8 +125,7 @@ const PRESENTATION_CARD_CHROME: CardVariantChrome = {
 
 export interface PrayerCardVariantLayout extends CardVariantChrome {
   shellBaseClasses: string;
-  shellTopPaddingWhenMetaHeader: string;
-  shellTopPaddingWithoutMetaHeader: string;
+  shellTopPadding: string;
   shellBottomPadding: string;
   shellOuterMargin: string;
   titleClasses: string;
@@ -157,8 +146,7 @@ const HOME_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
   ...HOME_CARD_CHROME,
   shellBaseClasses:
     'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] transition-colors relative',
-  shellTopPaddingWhenMetaHeader: 'pt-0',
-  shellTopPaddingWithoutMetaHeader: 'pt-6',
+  shellTopPadding: 'pt-0',
   shellBottomPadding: 'pb-4',
   shellOuterMargin: HOME_SHELL_SECTION_GAP_CLASSES,
   titleClasses: 'text-lg font-semibold text-gray-800 dark:text-gray-100 mb-0 inline',
@@ -181,9 +169,7 @@ const PRESENTATION_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
   ...PRESENTATION_CARD_CHROME,
   shellBaseClasses:
     'bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto presentation-card-scroll transition-colors relative',
-  shellTopPaddingWhenMetaHeader: 'pt-0',
-  shellTopPaddingWithoutMetaHeader:
-    'px-4 sm:px-6 md:px-8 pt-4 sm:pt-6 md:pt-8',
+  shellTopPadding: 'pt-0',
   shellBottomPadding: 'pb-4 sm:pb-6 md:pb-8',
   shellOuterMargin: '',
   titleClasses:

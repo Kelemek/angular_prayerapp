@@ -105,4 +105,62 @@ describe("HomeFilterCoordinator", () => {
 
     expect(host.setActiveFilter).not.toHaveBeenCalled();
   });
+
+  it("selectPublicTab preserves archived when already on public", () => {
+    host.getPageState = vi.fn(() => ({
+      activeFilter: "archived" as const,
+      filters: { status: "archived" as const, searchTerm: "" },
+      selectedPromptTypes: [],
+    }));
+
+    coordinator.selectPublicTab();
+
+    expect(host.setActiveFilter).not.toHaveBeenCalled();
+  });
+
+  it("selectPublicTab preserves Members when already on public", () => {
+    host.getPageState = vi.fn(() => ({
+      activeFilter: "planning_center_list" as const,
+      filters: { searchTerm: "" },
+      selectedPromptTypes: [],
+    }));
+
+    coordinator.selectPublicTab();
+
+    expect(host.setActiveFilter).not.toHaveBeenCalled();
+  });
+
+  it("getUnreadPromptCountByType counts only unread prompts of that type", () => {
+    host.getPrompts = vi.fn(() => [
+      {
+        id: "1",
+        type: "Morning",
+        title: "a",
+        description: "a",
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: "2",
+        type: "Morning",
+        title: "b",
+        description: "b",
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: "3",
+        type: "Evening",
+        title: "c",
+        description: "c",
+        created_at: "",
+        updated_at: "",
+      },
+    ]);
+    host.isPromptUnread = vi.fn((id: string) => id === "1" || id === "3");
+
+    expect(coordinator.getUnreadPromptCountByType("Morning")).toBe(1);
+    expect(coordinator.getUnreadPromptCountByType("Evening")).toBe(1);
+    expect(coordinator.getUnreadPromptCountByType("Night")).toBe(0);
+  });
 });

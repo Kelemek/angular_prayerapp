@@ -12,6 +12,7 @@ import { HOME_SUB_FILTER_CHIP_BASE_CLASS } from "../../lib/home-sub-filter-chip-
     <button
       type="button"
       [attr.id]="chipId || null"
+      [attr.aria-busy]="busy || null"
       [disabled]="disabled"
       (click)="chipClick.emit($event)"
       [class]="
@@ -30,7 +31,8 @@ export class HomeSubFilterChipComponent {
   @Input() chipId = "";
   @Input() active = false;
   @Input() disabled = false;
-  /** When true, chip grows to fill a full-width sub-filter row (Current / Answered / Total). */
+  @Input() busy = false;
+  /** When true, the host grows with flex-1 so chips share the row equally. */
   @Input() stretch = true;
   /** When true, adds {@code relative} for absolutely positioned badge pills. */
   @Input() badgeOverlay = false;

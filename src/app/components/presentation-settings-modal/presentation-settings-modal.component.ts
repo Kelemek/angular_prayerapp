@@ -12,6 +12,7 @@ import { CommonModule } from "@angular/common";
 import {
   PresentationTimeFilter,
   SelectablePresentationContentType,
+  type PresentationStatusFilters,
 } from "../../types/presentation";
 import { ModalShellComponent } from "../modal-shell/modal-shell.component";
 import { PresentationSettingsThemeSectionComponent } from "./presentation-settings-theme-section.component";
@@ -47,8 +48,11 @@ export class PresentationSettingsModalComponent implements OnChanges {
   @Input() randomize = false;
   @Input() loop = true;
   @Input() timeFilter: PresentationTimeFilter = "all";
-  @Input() statusFiltersCurrent = true;
-  @Input() statusFiltersAnswered = true;
+  @Input() statusFilters: PresentationStatusFilters = {
+    current: true,
+    answered: true,
+    archived: false,
+  };
   @Input() prayerTimerMinutes = 10;
   @Input() availableCategories: string[] = [];
   @Input() selectedCategories: string[] = [];
@@ -66,10 +70,7 @@ export class PresentationSettingsModalComponent implements OnChanges {
   @Output() randomizeChange = new EventEmitter<boolean>();
   @Output() loopChange = new EventEmitter<boolean>();
   @Output() timeFilterChange = new EventEmitter<PresentationTimeFilter>();
-  @Output() statusFiltersChange = new EventEmitter<{
-    current: boolean;
-    answered: boolean;
-  }>();
+  @Output() statusFiltersChange = new EventEmitter<PresentationStatusFilters>();
   @Output() prayerTimerMinutesChange = new EventEmitter<number>();
   @Output() startPrayerTimer = new EventEmitter<void>();
   @Output() categoriesChange = new EventEmitter<string[]>();

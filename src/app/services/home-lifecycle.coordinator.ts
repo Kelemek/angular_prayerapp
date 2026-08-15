@@ -51,6 +51,7 @@ export interface HomeLifecycleHost {
   setPrayerCounts(counts: {
     current: number;
     answered: number;
+    archived: number;
     total: number;
   }): void;
   setPromptsCount(count: number): void;
@@ -215,6 +216,7 @@ export class HomeLifecycleCoordinator {
         host.setPrayerCounts({
           current: prayers.filter((p) => p.status === "current").length,
           answered: prayers.filter((p) => p.status === "answered").length,
+          archived: prayers.filter((p) => p.status === "archived").length,
           total: prayers.length,
         });
         services.badgeService.refreshBadgeCounts();

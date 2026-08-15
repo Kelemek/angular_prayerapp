@@ -33,7 +33,6 @@ import {
 } from '../prayer-delete-request-modal/prayer-delete-request-modal.component';
 import { PrayerCardMetaHeaderComponent } from '../prayer-card-meta-header/prayer-card-meta-header.component';
 import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/prayer-item-reminder-modal.component';
-import { PrayerItemReminderBellButtonComponent } from '../prayer-item-reminder-bell-button/prayer-item-reminder-bell-button.component';
 import { PrayerUpdateRowComponent } from '../prayer-update-row/prayer-update-row.component';
 import {
   PersonalPrayerAnsweredStatusModalComponent,
@@ -75,7 +74,7 @@ const PLANNING_CENTER_MEMBER_BORDER_CLASS =
 @Component({
   selector: 'app-prayer-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerItemReminderModalComponent, PrayerItemReminderBellButtonComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent, PersonalPrayerAnsweredStatusModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, RichTextViewComponent, PrayerAddUpdateModalComponent, PrayerDeleteRequestModalComponent, PrayerCardMetaHeaderComponent, PrayerItemReminderModalComponent, PrayerUpdateRowComponent, PrayerUpdateActionsComponent, PersonalPrayerAnsweredStatusModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.contents]': 'variant === "presentation"',
@@ -437,7 +436,6 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
 
   shellClasses(): string {
     const layout = this.variantLayout;
-    const meta = this.usesPrayerMetaHeader();
     const border =
       this.variant === 'presentation' ? '' : ' ' + this.getBorderClass();
     return [
@@ -445,7 +443,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
       layout.shellPaddingClasses,
       layout.shellBottomPadding,
       layout.shellOuterMargin,
-      meta ? layout.shellTopPaddingWhenMetaHeader : layout.shellTopPaddingWithoutMetaHeader,
+      layout.shellTopPadding,
       border,
     ]
       .filter(Boolean)
@@ -541,10 +539,6 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
 
   isCommunityPrayer(): boolean {
     return isCommunityPrayerCard(this.prayer, this.isPersonal);
-  }
-
-  usesPrayerMetaHeader(): boolean {
-    return this.isPersonal || this.isCommunityPrayer() || this.isMemberPrayer();
   }
 
   showStatusPillInHeader(): boolean {

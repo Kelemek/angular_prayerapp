@@ -3,6 +3,7 @@ import { isMemberPrayerId } from './prayer-card-kind';
 export type PrayerItemDeepLinkTab =
   | 'current'
   | 'answered'
+  | 'archived'
   | 'total'
   | 'personal'
   | 'planning_center_list';
@@ -42,7 +43,7 @@ export function resolvePrayerItemDeepLinkTab(
       return 'answered';
     }
     if (community.status === 'archived') {
-      return 'total';
+      return 'archived';
     }
     return 'current';
   }

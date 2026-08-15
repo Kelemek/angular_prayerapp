@@ -1,3 +1,4 @@
+import type { PresentationStatusFilters } from "../types/presentation";
 import {
   isAllOptionsSelected,
   sortedArraysEqual,
@@ -71,51 +72,56 @@ export function normalizeWithAvailableFallback<T extends string>(
 }
 
 export function initPendingStatusFilter(
-  statusFiltersCurrent: boolean,
-  statusFiltersAnswered: boolean,
+  statusFilters: PresentationStatusFilters,
   available: readonly string[]
 ): string[] {
-  if (!statusFiltersCurrent && !statusFiltersAnswered) {
+  if (
+    !statusFilters.current &&
+    !statusFilters.answered &&
+    !statusFilters.archived
+  ) {
     return [...available];
   }
   const filters: string[] = [];
-  if (statusFiltersCurrent) filters.push("current");
-  if (statusFiltersAnswered) filters.push("answered");
+  if (statusFilters.current) filters.push("current");
+  if (statusFilters.answered) filters.push("answered");
+  if (statusFilters.archived) filters.push("archived");
   return filters;
 }
 
 export function resolveAppliedStatusFilters(
   pending: readonly string[],
   available: readonly string[]
-): { current: boolean; answered: boolean } {
+): PresentationStatusFilters {
   if (isAllOptionsSelected(available, pending)) {
-    return { current: false, answered: false };
+    return { current: false, answered: false, archived: false };
   }
   return {
     current: pending.includes("current"),
     answered: pending.includes("answered"),
+    archived: pending.includes("archived"),
   };
 }
 
 export function formatStatusFilterDisplay(
-  statusFiltersCurrent: boolean,
-  statusFiltersAnswered: boolean
+  statusFilters: PresentationStatusFilters
 ): string {
   const filters: string[] = [];
-  if (statusFiltersCurrent) filters.push("Current");
-  if (statusFiltersAnswered) filters.push("Answered");
+  if (statusFilters.current) filters.push("Current");
+  if (statusFilters.answered) filters.push("Answered");
+  if (statusFilters.archived) filters.push("Archived");
   if (filters.length === 0) return "All Statuses";
   return filters.join(", ");
 }
 
 export function statusFiltersMatchApplied(
-  applied: { current: boolean; answered: boolean },
-  statusFiltersCurrent: boolean,
-  statusFiltersAnswered: boolean
+  applied: PresentationStatusFilters,
+  statusFilters: PresentationStatusFilters
 ): boolean {
   return (
-    applied.current === statusFiltersCurrent &&
-    applied.answered === statusFiltersAnswered
+    applied.current === statusFilters.current &&
+    applied.answered === statusFilters.answered &&
+    applied.archived === statusFilters.archived
   );
 }
 

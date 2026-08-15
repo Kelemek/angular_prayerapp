@@ -42,7 +42,7 @@ describe('MemorizationActionBarComponent', () => {
     expect(openRecommended).toHaveBeenCalledOnce();
   });
 
-  it('applies soft blue styles to secondary buttons when their modal is active', async () => {
+  it('uses outlined chips for the active action and muted chips for the rest', async () => {
     await render(MemorizationActionBarComponent, {
       componentInputs: {
         bibleBooksActive: true,
@@ -53,15 +53,12 @@ describe('MemorizationActionBarComponent', () => {
     const bibleBooks = screen.getByRole('button', { name: /Bible Books/i });
     const recommended = screen.getByRole('button', { name: /Recommended/i });
 
+    expect(bibleBooks.className).toMatch(/(?:^|\s)ring(?:\s|$)/);
     expect(bibleBooks.className).toContain('bg-blue-100');
-    expect(bibleBooks.className).toContain('dark:bg-blue-950');
-    expect(bibleBooks.className).toContain('#0047AB');
     expect(bibleBooks.getAttribute('aria-pressed')).toBe('true');
 
+    expect(recommended.className).not.toMatch(/(?:^|\s)ring(?:\s|$)/);
     expect(recommended.className).toContain('bg-white');
-    expect(recommended.className).toContain('dark:bg-gray-800');
-    expect(recommended.className).toContain('hover:ring-[#0047AB]');
-    expect(recommended.className).toContain('dark:hover:!bg-blue-950');
     expect(recommended.getAttribute('aria-pressed')).toBe('false');
   });
 
@@ -89,7 +86,7 @@ describe('MemorizationActionBarComponent', () => {
     );
   });
 
-  it('wraps action buttons in a tab-colored group border and stretches them full width', async () => {
+  it('wraps action chips in the Memorize folder panel', async () => {
     const { container } = await render(MemorizationActionBarComponent);
     const bar = container.querySelector('#tour-memorize-action-bar');
     const group = bar?.querySelector('div');
@@ -99,9 +96,8 @@ describe('MemorizationActionBarComponent', () => {
 
     for (const name of ['Add Verses', 'Bible Books', 'Recommended']) {
       const button = screen.getByRole('button', { name: new RegExp(name, 'i') });
-      expect(button.className).toContain('flex-1');
-      expect(button.className).toContain('w-full');
-      expect(button.className).not.toContain('flex-none');
+      expect(button.className).toContain('rounded-lg');
+      expect(button.className).toContain('border');
     }
   });
 
@@ -120,7 +116,7 @@ describe('MemorizationActionBarComponent', () => {
     const toggle = screen.getByTestId('memorize-list-layout-toggle');
     expect(toggle.getAttribute('aria-labelledby')).toBe('memorize-list-layout-label');
     expect(screen.getByTestId('memorize-view-cards').className).toContain('text-xs');
-    const actionsRow = bar?.querySelector('.flex.w-full.min-w-0.gap-2');
+    const actionsRow = bar?.querySelector('.flex.w-full.flex-wrap');
     expect(actionsRow).toBeTruthy();
     expect(
       actionsRow!.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING

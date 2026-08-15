@@ -71,6 +71,49 @@ export type PresentationTimeFilter =
   | 'year'
   | 'all';
 
+/** Community (and settings) status flags. All-false means every status. */
+export interface PresentationStatusFilters {
+  current: boolean;
+  answered: boolean;
+  archived: boolean;
+}
+
+export const PRESENTATION_STATUS_FILTERS_DEFAULT: PresentationStatusFilters = {
+  current: true,
+  answered: true,
+  archived: false,
+};
+
+export const PRESENTATION_STATUS_FILTERS_ALL: PresentationStatusFilters = {
+  current: false,
+  answered: false,
+  archived: false,
+};
+
+export function normalizePresentationStatusFilters(
+  raw: unknown
+): PresentationStatusFilters | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const filters = raw as {
+    current?: unknown;
+    answered?: unknown;
+    archived?: unknown;
+  };
+  if (
+    typeof filters.current !== 'boolean' ||
+    typeof filters.answered !== 'boolean'
+  ) {
+    return null;
+  }
+  return {
+    current: filters.current,
+    answered: filters.answered,
+    archived: typeof filters.archived === 'boolean' ? filters.archived : false,
+  };
+}
+
 export interface PresentationSettings {
   contentTypes: SelectablePresentationContentType[];
   randomize: boolean;
@@ -78,13 +121,14 @@ export interface PresentationSettings {
   displayDuration: number;
   loop: boolean;
   timeFilter: PresentationTimeFilter;
-  statusFilters: { current: boolean; answered: boolean };
+  statusFilters: PresentationStatusFilters;
   prayerTimerMinutes: number;
 }
 
 export type HomePresentationFilter =
   | 'current'
   | 'answered'
+  | 'archived'
   | 'total'
   | 'prompts'
   | 'personal'
@@ -109,7 +153,7 @@ export interface HomeReturnContext {
 
 export interface PresentationHomeHandoff {
   contentTypes: SelectablePresentationContentType[];
-  statusFilters?: { current: boolean; answered: boolean };
+  statusFilters?: PresentationStatusFilters;
   promptCategories?: string[];
   personalCategories?: string[];
   returnContext?: HomeReturnContext;
@@ -136,35 +180,28 @@ export const PRESENTATION_HOME_PERSONAL_CATS_QUERY_PARAM_KEY = 'homePersonalCats
 export const HOME_RETURN_FILTER_QUERY_PARAM_KEY = 'homeReturnFilter';
 
 export function mapHomeTabToPresentationStatusFilters(
-  filter: 'current' | 'answered' | 'total'
-): { current: boolean; answered: boolean } {
-  switch (filter) {
-    case 'current':
-      return { current: true, answered: false };
-    case 'answered':
-      return { current: false, answered: true };
-    case 'total':
-      return { current: false, answered: false };
-    default: {
-      const _exhaustive: never = filter;
-      return _exhaustive;
-    }
-  }
+  filter: 'current' | 'answered' | 'archived' | 'total'
+): PresentationStatusFilters {
+  return {
+    current: filter === 'current',
+    answered: filter === 'answered',
+    archived: filter === 'archived',
+  };
 }
 
 export function mapPersonalCategoryFilterModeToPresentationStatusFilters(
   mode: PersonalCategoryFilterMode
-): { current: boolean; answered: boolean } | undefined {
+): PresentationStatusFilters {
   switch (mode) {
     case 'current':
-      return { current: true, answered: false };
+      return { current: true, answered: false, archived: false };
     case 'answered':
-      return { current: false, answered: true };
+      return { current: false, answered: true, archived: false };
     case 'total':
-      return { current: false, answered: false };
+      return { ...PRESENTATION_STATUS_FILTERS_ALL };
     case 'named':
       // Named chips use personalCategories; do not apply status filtering.
-      return { current: false, answered: false };
+      return { ...PRESENTATION_STATUS_FILTERS_ALL };
     default: {
       const _exhaustive: never = mode;
       return _exhaustive;
@@ -186,6 +223,7 @@ export function buildPresentationHomeHandoff(input: {
   if (
     input.activeFilter === 'current' ||
     input.activeFilter === 'answered' ||
+    input.activeFilter === 'archived' ||
     input.activeFilter === 'total'
   ) {
     handoff.statusFilters = mapHomeTabToPresentationStatusFilters(
@@ -261,6 +299,7 @@ function isHomePresentationFilter(
     ([
       'current',
       'answered',
+      'archived',
       'total',
       'prompts',
       'personal',
@@ -355,18 +394,9 @@ function normalizePresentationHomeHandoff(
   const handoff: PresentationHomeHandoff = { contentTypes };
 
   if (raw.statusFilters && typeof raw.statusFilters === 'object') {
-    const statusFilters = raw.statusFilters as {
-      current?: unknown;
-      answered?: unknown;
-    };
-    if (
-      typeof statusFilters.current === 'boolean' &&
-      typeof statusFilters.answered === 'boolean'
-    ) {
-      handoff.statusFilters = {
-        current: statusFilters.current,
-        answered: statusFilters.answered,
-      };
+    const statusFilters = normalizePresentationStatusFilters(raw.statusFilters);
+    if (statusFilters) {
+      handoff.statusFilters = statusFilters;
     }
   }
 
@@ -424,6 +454,42 @@ export function parsePresentationHomeHandoffFromState(
   return null;
 }
 
+export function serializePresentationStatusQueryParam(
+  filters: PresentationStatusFilters
+): 'current' | 'answered' | 'archived' | 'all' | null {
+  const { current, answered, archived } = filters;
+  if (current && !answered && !archived) {
+    return 'current';
+  }
+  if (!current && answered && !archived) {
+    return 'answered';
+  }
+  if (!current && !answered && archived) {
+    return 'archived';
+  }
+  if (!current && !answered && !archived) {
+    return 'all';
+  }
+  return null;
+}
+
+export function parsePresentationStatusQueryParam(
+  status: string | null | undefined
+): PresentationStatusFilters | undefined {
+  switch (status) {
+    case 'current':
+      return { current: true, answered: false, archived: false };
+    case 'answered':
+      return { current: false, answered: true, archived: false };
+    case 'archived':
+      return { current: false, answered: false, archived: true };
+    case 'all':
+      return { ...PRESENTATION_STATUS_FILTERS_ALL };
+    default:
+      return undefined;
+  }
+}
+
 export function serializePresentationHomeHandoffQueryParams(
   handoff: PresentationHomeHandoff
 ): Record<string, string> {
@@ -434,13 +500,9 @@ export function serializePresentationHomeHandoffQueryParams(
   }
 
   if (handoff.statusFilters) {
-    const { current, answered } = handoff.statusFilters;
-    if (current && !answered) {
-      params[PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY] = 'current';
-    } else if (!current && answered) {
-      params[PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY] = 'answered';
-    } else if (!current && !answered) {
-      params[PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY] = 'all';
+    const status = serializePresentationStatusQueryParam(handoff.statusFilters);
+    if (status) {
+      params[PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY] = status;
     }
   }
 
@@ -465,7 +527,7 @@ function buildReturnContextFromHandoffQueryParts(input: {
   activeFilter: HomePresentationFilter;
   promptCategories?: string[];
   personalCategories?: string[];
-  statusFilters?: { current: boolean; answered: boolean };
+  statusFilters?: PresentationStatusFilters;
 }): HomeReturnContext {
   const returnContext: HomeReturnContext = {
     activeFilter: input.activeFilter,
@@ -510,12 +572,9 @@ export function parsePresentationHomeHandoffFromQueryParams(
   const handoff: PresentationHomeHandoff = { contentTypes };
 
   const status = getter(PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY);
-  if (status === 'current') {
-    handoff.statusFilters = { current: true, answered: false };
-  } else if (status === 'answered') {
-    handoff.statusFilters = { current: false, answered: true };
-  } else if (status === 'all') {
-    handoff.statusFilters = { current: false, answered: false };
+  const statusFilters = parsePresentationStatusQueryParam(status);
+  if (statusFilters) {
+    handoff.statusFilters = statusFilters;
   }
 
   const promptCategories = getter(

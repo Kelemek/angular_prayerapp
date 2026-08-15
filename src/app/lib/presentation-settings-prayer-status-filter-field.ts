@@ -1,3 +1,4 @@
+import type { PresentationStatusFilters } from "../types/presentation";
 import {
   formatStatusFilterDisplay,
   initPendingStatusFilter,
@@ -13,9 +14,9 @@ import {
 } from "./presentation-settings-multi-select-field";
 
 export interface PresentationPrayerStatusFilterFieldConfig {
-  getStatusFilters: () => { current: boolean; answered: boolean };
+  getStatusFilters: () => PresentationStatusFilters;
   getAvailable: () => readonly string[];
-  emit: (next: { current: boolean; answered: boolean }) => void;
+  emit: (next: PresentationStatusFilters) => void;
   closeOther: () => void;
 }
 
@@ -26,10 +27,8 @@ export class PresentationPrayerStatusFilterField {
   constructor(private readonly config: PresentationPrayerStatusFilterFieldConfig) {}
 
   initPending(): void {
-    const { current, answered } = this.config.getStatusFilters();
     this.pending = initPendingStatusFilter(
-      current,
-      answered,
+      this.config.getStatusFilters(),
       this.config.getAvailable()
     );
   }
@@ -51,8 +50,8 @@ export class PresentationPrayerStatusFilterField {
       this.pending,
       this.config.getAvailable()
     );
-    const { current, answered } = this.config.getStatusFilters();
-    if (statusFiltersMatchApplied(applied, current, answered)) {
+    const current = this.config.getStatusFilters();
+    if (statusFiltersMatchApplied(applied, current)) {
       this.showDropdown = false;
       return;
     }
@@ -82,8 +81,7 @@ export class PresentationPrayerStatusFilterField {
   }
 
   getDisplay(): string {
-    const { current, answered } = this.config.getStatusFilters();
-    return formatStatusFilterDisplay(current, answered);
+    return formatStatusFilterDisplay(this.config.getStatusFilters());
   }
 
   readonly bindIsOptionSelected = (value: string): boolean =>

@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import type { PrayerFilters } from "../components/prayer-filters/prayer-filters.component";
 import type { PrayerPrompt } from "../components/prompt-card/prompt-card.component";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
-import { isCommunityPrayerFilter } from "../lib/home-community-filter";
+import { isPublicTabFilter } from "../lib/home-community-filter";
 
 export interface HomeFilterPageState {
   activeFilter: HomeActiveFilter;
@@ -75,7 +75,11 @@ export class HomeFilterCoordinator {
     } else if (filter === "total") {
       host.setFilters({ searchTerm: page.filters.searchTerm });
       host.applyPrayerFilters({ search: page.filters.searchTerm });
-    } else {
+    } else if (
+      filter === "current" ||
+      filter === "answered" ||
+      filter === "archived"
+    ) {
       host.setFilters({
         status: filter,
         searchTerm: page.filters.searchTerm,
@@ -84,6 +88,9 @@ export class HomeFilterCoordinator {
         status: filter,
         search: page.filters.searchTerm,
       });
+    } else {
+      const _exhaustive: never = filter;
+      void _exhaustive;
     }
 
     host.onFilterChanged();
@@ -92,7 +99,7 @@ export class HomeFilterCoordinator {
   selectPublicTab(): void {
     const host = this.requireHost();
     const page = host.getPageState();
-    if (!isCommunityPrayerFilter(page.activeFilter)) {
+    if (!isPublicTabFilter(page.activeFilter)) {
       this.setFilter("current");
     }
   }

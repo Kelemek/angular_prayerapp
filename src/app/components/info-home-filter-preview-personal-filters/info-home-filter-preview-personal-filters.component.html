@@ -1,47 +1,47 @@
-<div class="mb-4">
+<div>
   <div [class]="personalSubFilterGroupClass">
-  <div class="flex w-full gap-2">
+  <div [class]="chipRowClass">
     <button
       type="button"
       (click)="openPersonalCategories.emit()"
-      class="{{ subFilterChipBaseClass }} cursor-pointer {{ personalSubFilterChipActiveClass }}"
+      [class]="subFilterChipBaseClass + ' flex-1 cursor-pointer ' + personalSubFilterChipActiveClass"
     >
       Current (10)
     </button>
     <button
       type="button"
       (click)="openPersonalCategories.emit()"
-      class="{{ subFilterChipBaseClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+      [class]="subFilterChipBaseClass + ' flex-1 cursor-pointer ' + namedChipInactiveClass"
     >
       Answered (3)
     </button>
     <button
       type="button"
       (click)="openPersonalCategories.emit()"
-      class="{{ subFilterChipBaseClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+      [class]="subFilterChipBaseClass + ' flex-1 cursor-pointer ' + namedChipInactiveClass"
     >
       Total (13)
     </button>
   </div>
-  <div class="flex w-full flex-wrap gap-2 mt-2">
+  <div [class]="chipRowClass + ' mt-2'">
     <button
       type="button"
       (click)="openPersonalCategories.emit()"
-      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+      [class]="subFilterChipWrapClass + ' cursor-pointer ' + namedChipInactiveClass"
     >
       Health (4)
     </button>
     <button
       type="button"
       (click)="openPersonalCategories.emit()"
-      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+      [class]="subFilterChipWrapClass + ' cursor-pointer ' + namedChipInactiveClass"
     >
       Family (5)
     </button>
     <button
       type="button"
       (click)="openPersonalCategories.emit()"
-      class="{{ subFilterChipWrapClass }} cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-[#2F5F54] dark:hover:border-[#2F5F54]"
+      [class]="subFilterChipWrapClass + ' cursor-pointer ' + namedChipInactiveClass"
     >
       Work (2)
     </button>

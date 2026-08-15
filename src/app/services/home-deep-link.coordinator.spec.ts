@@ -38,6 +38,14 @@ describe("HomeDeepLinkCoordinator", () => {
     expect(coordinator.consumeInitialEmailFilterTab()).toBe("memorize");
   });
 
+  it("captures archived email filter tab", () => {
+    coordinator.captureInitialQueryParams({
+      filter: "archived",
+    });
+
+    expect(coordinator.consumeInitialEmailFilterTab()).toBe("archived");
+  });
+
   it("defers deep links until view is ready", () => {
     coordinator.handleNavigationDeepLinks(
       { filter: null, prayerId: "p1", promptId: null },
