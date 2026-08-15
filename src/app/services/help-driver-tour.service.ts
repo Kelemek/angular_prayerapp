@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { driver, type Driver, type DriveStep, type DriverHook, type Config } from 'driver.js';
 import type { HelpContent, HelpSection } from '../types/help-content';
+import { excerptForNamedFilter, isDescriptiveFilterTourExcerpt } from '../lib/help-filter-tour-excerpt';
+import { formatHelpContentHtml } from '../lib/help-content-html';
 
 export const TOUR_REQUEST_BTN_MOBILE_ID = 'tour-btn-new-prayer-request-mobile';
 export const TOUR_REQUEST_BTN_DESKTOP_ID = 'tour-btn-new-prayer-request-desktop';
@@ -463,32 +465,6 @@ export interface FilteringHelpSectionTourHooks {
   openSearchPanel?: () => void;
 }
 
-/** Pull `"Name" …` clause from **Filter Options** overview text for per-filter popovers. */
-function excerptForNamedFilter(overview: string, name: string): string {
-  const needle = `"${name}"`;
-  const idx = overview.indexOf(needle);
-  if (idx < 0) {
-    return '';
-  }
-  const rest = overview.slice(idx);
-  const after = needle.length;
-  const commaNext = rest.indexOf(', "', after);
-  const andNext = rest.indexOf(', and "', after);
-  const next =
-    commaNext > 0 && andNext > 0
-      ? Math.min(commaNext, andNext)
-      : commaNext > 0
-        ? commaNext
-        : andNext > 0
-          ? andNext
-          : -1;
-  if (next > 0) {
-    return rest.slice(0, next).trim();
-  }
-  const dot = rest.indexOf('.', after);
-  return dot > 0 ? rest.slice(0, dot + 1).trim() : rest.trim();
-}
-
 export interface PrayerPromptsTourHooks {
   switchToPrompts: () => void;
   clearPromptTypes: () => void;
@@ -898,7 +874,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(helpContent.subtitle);
-    const body0 = escapeHtml(helpContent.text);
+    const body0 = formatHelpContentHtml(helpContent.text);
     const d = this.startTourDriver({
       showProgress: true,
       showButtons: ['next', 'previous', 'close'],
@@ -995,7 +971,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(helpContent.subtitle);
-    const body0 = escapeHtml(helpContent.text);
+    const body0 = formatHelpContentHtml(helpContent.text);
 
     const d = this.startTourDriver({
       showProgress: true,
@@ -1100,7 +1076,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(helpContent.subtitle);
-    const body0 = escapeHtml(helpContent.text);
+    const body0 = formatHelpContentHtml(helpContent.text);
     const includeAnonymous = options.includeAnonymousUpdateStep === true;
 
     const openUpdateFormOnNext: DriverHook = (_element, _step, { driver: drv }) => {
@@ -1196,14 +1172,14 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(helpContent.subtitle);
-    const body0 = escapeHtml(helpContent.text);
+    const body0 = formatHelpContentHtml(helpContent.text);
 
     const steps: DriveStep[] = [
       {
         element: () => getPersonalFilterEl()!,
         popover: {
           title: title0,
-          description: `${body0}<br><br>The <strong>Personal</strong> tile is for prayers only you can see. Tap <strong>Show Public</strong> next to switch to the shared community list.`,
+          description: `${body0}<br><br>The <strong>Personal</strong> tab is for prayers only you can see (highlighted when active). Sub-chips for <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> appear below when it is selected. Tap <strong>Show Public</strong> next to switch to the shared community list.`,
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Show Public &rarr;',
@@ -1279,7 +1255,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
     const includeAnonymous = options.includeAnonymousUpdateStep === true;
 
     const openUpdateFormOnNext: DriverHook = (_element, _step, { driver: drv }) => {
@@ -1471,15 +1447,15 @@ export class HelpDriverTourService {
     const c3 = section.content[3];
     const overview = c0.text;
     const currentPhrase = excerptForNamedFilter(overview, 'Current');
-    const currentStepDescription = currentPhrase
-      ? `${escapeHtml(currentPhrase)}<br><br>${escapeHtml(c0.text)}`
-      : escapeHtml(c0.text);
+    const currentStepDescription = isDescriptiveFilterTourExcerpt(currentPhrase)
+      ? `${formatHelpContentHtml(currentPhrase)}<br><br>${formatHelpContentHtml(c0.text)}`
+      : formatHelpContentHtml(c0.text);
 
     const steps: DriveStep[] = [
       {
         popover: {
           title: escapeHtml(section.title),
-          description: escapeHtml(section.description),
+          description: formatHelpContentHtml(section.description),
           side: 'bottom',
           align: 'center',
         },
@@ -1489,7 +1465,7 @@ export class HelpDriverTourService {
         popover: {
           title: escapeHtml('Public'),
           description:
-            'The <strong>Public</strong> tab shows community prayers shared with your church. Use the chips below it to switch between <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong>.',
+            'The <strong>Public</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> chips in the row below to switch views.',
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Next',
@@ -1510,13 +1486,14 @@ export class HelpDriverTourService {
     ];
 
     const answeredPhrase = excerptForNamedFilter(overview, 'Answered');
+    const answeredDescription = isDescriptiveFilterTourExcerpt(answeredPhrase)
+      ? answeredPhrase
+      : 'This filter shows prayers that have been answered.';
     steps.push({
       element: () => getAnsweredFilterEl()!,
       popover: {
         title: escapeHtml('Answered'),
-        description: answeredPhrase
-          ? escapeHtml(answeredPhrase)
-          : escapeHtml('This filter shows prayers that have been answered.'),
+        description: formatHelpContentHtml(answeredDescription),
         side: 'bottom',
         align: 'start',
         nextBtnText: 'Next',
@@ -1525,7 +1502,7 @@ export class HelpDriverTourService {
     });
 
     if (c2) {
-      const totalDescription = `${escapeHtml(c2.subtitle)}<br><br>${escapeHtml(c2.text)}`;
+      const totalDescription = `${escapeHtml(c2.subtitle)}<br><br>${formatHelpContentHtml(c2.text)}`;
       steps.push({
         element: () => getTotalFilterEl()!,
         popover: {
@@ -1540,7 +1517,7 @@ export class HelpDriverTourService {
     }
 
     if (c1 && getPersonalFilterEl()) {
-      const personalDescription = `${escapeHtml(c1.subtitle)}<br><br>${escapeHtml(c1.text)}`;
+      const personalDescription = `${escapeHtml(c1.subtitle)}<br><br>${formatHelpContentHtml(c1.text)}`;
       const advancePersonal = hooks.openSearchPanel
         ? () => {
             hooks.switchToPersonal();
@@ -1567,8 +1544,8 @@ export class HelpDriverTourService {
         popover: {
           title: escapeHtml('Prompts'),
           description: promptsPhrase
-            ? escapeHtml(promptsPhrase)
-            : escapeHtml('This filter shows prayer prompt cards.'),
+            ? formatHelpContentHtml(promptsPhrase)
+            : formatHelpContentHtml('This filter shows prayer prompt cards.'),
           side: 'bottom',
           align: 'start',
           nextBtnText: 'Next',
@@ -1582,7 +1559,7 @@ export class HelpDriverTourService {
         element: () => getPrayerSearchInputEl()!,
         popover: {
           title: escapeHtml('Search'),
-          description: `${escapeHtml(c3.subtitle)}<br><br>${escapeHtml(c3.text)}`,
+          description: `${escapeHtml(c3.subtitle)}<br><br>${formatHelpContentHtml(c3.text)}`,
           side: 'bottom',
           align: 'start',
           onNextClick: this.popoverNextKillsTour(),
@@ -1622,13 +1599,13 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const step0: DriveStep = {
       element: () => getPromptsFilterEl()!,
       popover: {
         title: title0,
-        description: `${desc0}<br><br><strong>Prayer prompts</strong> are ideas to guide what you pray. Tap <strong>Show prompts</strong> to open the prompts view (or tap the tile yourself).`,
+        description: `${desc0}<br><br><strong>Prayer prompts</strong> are ideas to guide what you pray. The <strong>Prompts</strong> tab shows a colored border when active; type chips appear in the row below. Tap <strong>Show prompts</strong> to open the prompts view (or tap the tab yourself).`,
         side: 'bottom',
         align: 'start',
         nextBtnText: 'Show prompts &rarr;',
@@ -1645,7 +1622,7 @@ export class HelpDriverTourService {
           popover: {
             title: 'Filter by type',
             description:
-              'Use <strong>All Types</strong> to see every prompt. Tap a type chip to narrow the list. On each card, the type badge also toggles that filter.',
+              'Use <strong>All Types</strong> to see every prompt. Tap a <strong>type chip</strong> in this row to narrow the list (chips share each row when they fit and wrap when needed). On each card, the type badge also toggles that filter.',
             side: 'bottom',
             align: 'start',
             nextBtnText: 'Next &rarr;',
@@ -1719,7 +1696,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const step0: DriveStep = {
       element: () => getMemorizeFilterEl()!,
@@ -1832,7 +1809,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const steps: DriveStep[] = [
       {
@@ -1899,7 +1876,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const steps: DriveStep[] = [
       {
@@ -1954,7 +1931,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const advance = (fn: () => void, delayMs: number): DriverHook => {
       return (_element, _step, { driver: drv }) => {
@@ -2082,7 +2059,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const advance = (fn: () => void, delayMs: number): DriverHook => {
       return (_element, _step, { driver: drv }) => {
@@ -2175,7 +2152,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const advance = (fn: () => void, delayMs: number): DriverHook => {
       return (_element, _step, { driver: drv }) => {
@@ -2307,7 +2284,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const advance = (fn: () => void, delayMs: number): DriverHook => {
       return (_element, _step, { driver: drv }) => {
@@ -2424,7 +2401,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const advance = (fn: () => void, delayMs: number): DriverHook => {
       return (_element, _step, { driver: drv }) => {
@@ -2636,7 +2613,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const advance = (fn: () => void, delayMs: number): DriverHook => {
       return (_element, _step, { driver: drv }) => {
@@ -2746,7 +2723,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Personal list',
           description:
-            'You’re on the <strong>Personal</strong> filter. Your sample prayer should appear in the list below.',
+            'You’re on the <strong>Personal</strong> tab. <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> chips sit in the row below the main tabs; your sample prayer should appear in the list underneath.',
           side: 'bottom',
           align: 'start',
         },
@@ -2819,7 +2796,7 @@ export class HelpDriverTourService {
         popover: {
           title: 'Categories',
           description:
-            'When you have categories, these chips appear above the list. Drag the <strong>six-dot handle</strong> on a chip to <strong>reorder categories</strong>. Tap <strong>Next</strong> to filter to your sample category so card reordering unlocks.',
+            'When you have categories, chips appear in the row below the main tabs—<strong>Current</strong>, <strong>Answered</strong>, <strong>Total</strong>, then your named categories (they share each row when they fit and wrap when needed, like prompt type chips). Drag the <strong>six-dot handle</strong> on a chip to <strong>reorder categories</strong>. Tap <strong>Next</strong> to filter to your sample category so card reordering unlocks.',
           side: 'bottom',
           align: 'start',
           onNextClick: advance(() => hooks.narrowToWalkthroughCategoryFilter(), 280),
@@ -2880,7 +2857,7 @@ export class HelpDriverTourService {
     this.killActiveDriver();
 
     const title0 = escapeHtml(section.title);
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
     const pray = (): HTMLElement | null => getPrayerModeButtonEl();
 
     const abortFullTourPrelude = (): void => {
@@ -2961,7 +2938,7 @@ export class HelpDriverTourService {
 
     this.killActiveDriver();
 
-    const desc0 = escapeHtml(section.description);
+    const desc0 = formatHelpContentHtml(section.description);
 
     const advance = (fn: () => void, delayMs: number): DriverHook => {
       return (_element, _step, { driver: drv }) => {

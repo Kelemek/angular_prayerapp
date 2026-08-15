@@ -1,4 +1,4 @@
-<div id="tour-personal-category-filters" #categoryDropList [class]="sectionGapClass">
+<div id="tour-personal-category-filters" [class]="sectionGapClass">
   <div class="flex w-full gap-2">
     <app-home-sub-filter-chip
       [active]="filterMode === 'current'"
@@ -33,19 +33,19 @@
     cdkDropList
     cdkDropListOrientation="mixed"
     [cdkDropListData]="uniqueCategories"
-    (cdkDropListDropped)="onCategoryDrop($event)"
+    (cdkDropListDropped)="categoryDrop.emit($event)"
     [cdkDropListDisabled]="isCategoryDropListDisabled"
     class="cdk-drop-list flex w-full flex-wrap gap-2 mt-2"
   >
-    @for (category of uniqueCategories; let i = $index; track category) {
+    @for (category of uniqueCategories; track category) {
     <div
       cdkDrag
       [cdkDragData]="category"
       [attr.data-personal-category-chip]="category"
       [cdkDragDisabled]="isCategorySwapping(category)"
       (cdkDragStarted)="categoryDragStarted.emit()"
-      (cdkDragEnded)="onCategoryDragEnded()"
-      [class]="categoryChipHostClass(category)"
+      (cdkDragEnded)="categoryDragEnded.emit()"
+      [class]="chipHostClass"
     >
       <button
         type="button"
@@ -84,18 +84,7 @@
           <circle cx="15" cy="12" r="1"></circle>
           <circle cx="15" cy="19" r="1"></circle>
         </svg>
-        <span
-          data-personal-category-label
-          class="cursor-pointer"
-          [class.block]="isSoloRowCategory(category)"
-          [class.min-w-0]="isSoloRowCategory(category)"
-          [class.flex-1]="isSoloRowCategory(category)"
-          [class.truncate]="shouldTruncateCategory(category)"
-          [attr.title]="
-            shouldTruncateCategory(category) ? categoryChipLabel(category) : null
-          "
-          >{{ category }} ({{ getCategoryCount(category) }})</span
-        >
+        {{ category }} ({{ getCategoryCount(category) }})
         @if (isCategorySwapping(category)) {
         <svg
           class="h-4 w-4 shrink-0 animate-spin"

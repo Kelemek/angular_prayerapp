@@ -75,7 +75,7 @@ const sampleHelp: HelpContent = {
 
 const samplePersonalHelp: HelpContent = {
   subtitle: 'Creating Personal Prayers (Private Prayers)',
-  text: 'Click the filter button labeled Personal to view your private prayers.',
+  text: 'Tap the Personal filter tab to view your private prayers.',
   examples: [],
 };
 
@@ -87,7 +87,7 @@ const sampleUpdatingHelp: HelpContent = {
 
 const sampleManagingViewsHelp: HelpContent = {
   subtitle: 'Managing Personal vs. Regular Prayers',
-  text: 'Use the Personal filter for private prayers and Current or Total for community.',
+  text: 'Use the Personal tab for private prayers and Public with Current or Total chips for community.',
   examples: [],
 };
 
@@ -992,7 +992,7 @@ describe('HelpDriverTourService', () => {
       content: [
         {
           subtitle: 'Filter Options',
-          text: 'Use filters: "Current" shows active, "Answered" shows answered ones, "Total" shows all, "Prompts" displays cards, and "Personal" shows private.',
+          text: 'Use filters: under **Public**, **Current** shows active community prayers, **Answered** shows answered ones, and **Total** shows all. **Prompts** and **Personal** are main tabs with their own sub-chips below.',
           examples: [] as string[],
         },
         { subtitle: 'Personal Prayers Filter', text: 'Personal help body.', examples: [] },
@@ -1029,6 +1029,119 @@ describe('HelpDriverTourService', () => {
       expect(driver).toHaveBeenCalledTimes(1);
       const config = vi.mocked(driver).mock.calls[0][0];
       expect(config?.steps?.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('uses markdown-bold excerpts in Current and Answered step copy', () => {
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
+      const cur = document.createElement('button');
+      cur.id = TOUR_FILTER_CURRENT_ID;
+      document.body.appendChild(cur);
+      const answered = document.createElement('button');
+      answered.id = TOUR_FILTER_ANSWERED_ID;
+      document.body.appendChild(answered);
+
+      service.startFilteringHelpSectionTour(filteringSection as any, {
+        switchToCurrent,
+        switchToAnswered,
+        switchToTotal,
+        switchToPrompts,
+        switchToPersonal: switchToPersonalFilter,
+      });
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const currentStep = (config?.steps ?? []).find(
+        (step) => step.popover?.title === 'Current'
+      );
+      const answeredStep = (config?.steps ?? []).find(
+        (step) => step.popover?.title === 'Answered'
+      );
+      expect(currentStep?.popover?.description).toContain(
+        '<strong>Current</strong> shows active community prayers'
+      );
+      expect(answeredStep?.popover?.description).toBe(
+        '<strong>Answered</strong> shows answered ones'
+      );
+    });
+
+    it('uses Answered fallback when Filter Options excerpt is only a chip list', () => {
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
+      const answered = document.createElement('button');
+      answered.id = TOUR_FILTER_ANSWERED_ID;
+      document.body.appendChild(answered);
+
+      const productionStyleSection = {
+        ...filteringSection,
+        content: [
+          {
+            subtitle: 'Filter Options',
+            text: 'Tap **Public** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below.',
+            examples: [] as string[],
+          },
+          filteringSection.content[1],
+          filteringSection.content[2],
+          filteringSection.content[3],
+        ],
+      };
+
+      service.startFilteringHelpSectionTour(productionStyleSection as any, {
+        switchToCurrent,
+        switchToAnswered,
+        switchToTotal,
+        switchToPrompts,
+        switchToPersonal: switchToPersonalFilter,
+      });
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const answeredStep = (config?.steps ?? []).find(
+        (step) => step.popover?.title === 'Answered'
+      );
+      expect(answeredStep?.popover?.description).toBe(
+        'This filter shows prayers that have been answered.'
+      );
+    });
+
+    it('omits chip-list Current excerpt when Filter Options copy is not descriptive', () => {
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
+      const cur = document.createElement('button');
+      cur.id = TOUR_FILTER_CURRENT_ID;
+      document.body.appendChild(cur);
+
+      const productionStyleSection = {
+        ...filteringSection,
+        content: [
+          {
+            subtitle: 'Filter Options',
+            text: 'Tap **Public** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below.',
+            examples: [] as string[],
+          },
+          filteringSection.content[1],
+          filteringSection.content[2],
+          filteringSection.content[3],
+        ],
+      };
+
+      service.startFilteringHelpSectionTour(productionStyleSection as any, {
+        switchToCurrent,
+        switchToAnswered,
+        switchToTotal,
+        switchToPrompts,
+        switchToPersonal: switchToPersonalFilter,
+      });
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const currentStep = (config?.steps ?? []).find(
+        (step) => step.popover?.title === 'Current'
+      );
+      expect(currentStep?.popover?.description).toBe(
+        'Tap <strong>Public</strong> for community prayers, then use the <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> chips that appear below.'
+      );
+      expect(currentStep?.popover?.description).not.toContain('<br><br>');
     });
 
     it('includes Answered and Total steps when community sub-chips are absent at tour start', () => {

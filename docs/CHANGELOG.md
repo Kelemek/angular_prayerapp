@@ -4,7 +4,22 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
-### Refactor — Login page shell
+### Fix — Help markdown bold rendering
+- Help modal and guided tours convert `**bold**` markers in help copy to `<strong>` via [`formatHelpContentHtml`](src/app/lib/help-content-html.ts) instead of showing literal asterisks.
+- Filtering tour **Answered** step falls back to descriptive copy when `excerptForNamedFilter` only finds a chip-list fragment ([`isDescriptiveFilterTourExcerpt`](src/app/lib/help-filter-tour-excerpt.ts)).
+- Filtering tour **Current** step skips prepending a chip-list-only excerpt so the popover does not repeat misleading chip-list text before the full Filter Options paragraph.
+- `excerptForNamedFilter` stops markdown-bold clauses at the next `**Name** shows` segment so one-sentence Filter Options copy does not bleed **Total** (or other filters) into **Current** / **Answered** tour steps.
+
+### Fix — Filtering Prayers tour excerpt parsing
+- Guided tour popovers parse per-filter clauses from **Filter Options** help using [`excerptForNamedFilter`](src/app/lib/help-filter-tour-excerpt.ts), which now matches markdown-bold names (`**Current**`) as well as legacy quoted names (`"Current"`).
+
+### Fix — Personal category chip layout (match prompt type chips)
+- Personal category chips use the same **static CSS flex-wrap row** as prompt type filters (`HOME_WRAP_FILTER_CHIP_FLEX_CLASS` + `HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS` for the drag handle). Removed `ResizeObserver` measurement and [`home-wrap-filter-chip-layout.ts`](src/app/lib/home-wrap-filter-chip-layout.ts) ([`home-personal-category-filters`](src/app/components/home-personal-category-filters/home-personal-category-filters.component.ts)).
+
+### Docs — Help & guided tours (Home filter UI)
+- **Help & Guidance** copy in [`help-content.service.ts`](src/app/services/help-content.service.ts) now describes the **Public** tab with **Current** / **Answered** / **Total** sub-chips, the **active tab colored border**, prompt **type chips** (not “type tags”), and badge placement on main tabs and sub-chips.
+- Guided tour popovers in [`help-driver-tour.service.ts`](src/app/services/help-driver-tour.service.ts) updated for the same layout (Filtering, Prompts, Personal Prayers, Managing views).
+
 - Login template and styles extracted to [`login.component.html`](src/app/pages/login/login.component.html) and [`login.component.css`](src/app/pages/login/login.component.css); [`login.component.ts`](src/app/pages/login/login.component.ts) is slimmer and delegates post-MFA flows to page-scoped [`login-auth.coordinator.ts`](src/app/services/login-auth.coordinator.ts) (subscriber lookup, pending approval, Planning Center registration gate, save subscriber / approval RPC).
 - Presentational child components: [`login-header`](src/app/components/login-header/login-header.component.ts), [`login-email-form`](src/app/components/login-email-form/login-email-form.component.ts), [`login-mfa-panel`](src/app/components/login-mfa-panel/login-mfa-panel.component.ts), [`login-registration-form`](src/app/components/login-registration-form/login-registration-form.component.ts), and [`login-account-status`](src/app/components/login-account-status/login-account-status.component.ts). Removed legacy multi-digit MFA input handlers (`handleCodeChange`, `handleKeyDown`, `handlePaste`, `codeInputs` `ViewChildren`).
 - Login MFA uses a single `mfaCodeInput` field (removed duplicate `mfaCode` array sync). Removed unused theme watchers and `EmailNotificationService` injection from the page; `queryParams` subscription now uses `takeUntil(destroy$)`.

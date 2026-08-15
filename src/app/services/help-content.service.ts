@@ -237,7 +237,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Creating Personal Prayers (Private Prayers)',
-            text: 'Click the filter button labeled "Personal" to view your private personal prayers. These are prayers that are visible only to you. Click "Add Request" while in the Personal filter to create a personal prayer. Personal prayers are immediately available without requiring administrator approval, making them perfect for private prayer mangement.',
+            text: 'Tap the **Personal** filter tab to view your private personal prayers. These are prayers that are visible only to you. Tap **Request** (Add Request) while **Personal** is active to create a personal prayer. Personal prayers are immediately available without requiring administrator approval, making them perfect for private prayer mangement.',
           },
           {
             subtitle: 'Adding Categories to Personal Prayers',
@@ -262,7 +262,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Managing Personal vs. Regular Prayers',
-            text: 'Use the "Personal" filter to access your private prayers that are only visible to you. Use the "Current" or "Total" filters to view prayers that are shared with the community. Personal prayers are a great way to track private prayer requests.',
+            text: 'Use the "Personal" filter tab to access your private prayers that are only visible to you. For community prayers, tap the **Public** tab (highlighted with a colored border when active), then choose the **Current** or **Total** chip below it. Personal prayers are a great way to track private prayer requests.',
           },
         ],
         order: 1,
@@ -283,11 +283,11 @@ export class HelpContentService {
           },
           {
             subtitle: 'Accessing Prayer Prompts',
-            text: 'Click the "Prompts" filter button at the top to view all available prayer prompts. The prompts are displayed as cards that you can read and use as inspiration for your prayers.',
+            text: 'Tap the **Prompts** filter tab at the top (it shows a colored border when active) to view prayer prompts. Type chips appear in a row below the main tabs; prompt cards list underneath.',
           },
           {
             subtitle: 'Filtering by Type',
-            text: 'Each prayer prompt has a type tag (such as Church, Family, Cities, Country, World, Bible etc.). Click on a type tag to filter and show only prompts of that type. Click the "All Types" button to view all prompts again.',
+            text: 'Each prompt has a type (such as Church, Family, Cities, Country, World, Bible, etc.). After you open **Prompts**, tap a **type chip** in the row below the main tabs to show only that type. Chips share each row when they fit and wrap to the next line when needed. Tap **All Types** to view every prompt again. You can also tap the type badge on a card to toggle that filter.',
           },
           {
             subtitle: 'Using Prompts in Presentation Mode',
@@ -320,7 +320,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'When can I use Pray For?',
-            text: 'Pray For appears on community prayer cards (Current and related views), on your **Personal** tab cards, on **Members** tab cards when you have a Planning Center list applied, on **Prompts** tab cards, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
+            text: 'Pray For appears on community prayer cards (**Public** tab, especially **Current**), on your **Personal** tab cards, on **Members** tab cards when you have a Planning Center list applied, on **Prompts** tab cards, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
           },
           {
             subtitle: 'Personal prayers',
@@ -398,7 +398,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Creating Personal Prayers',
-            text: 'Click the "Personal" filter button to view your personal prayers section. Click the "Add Request" button while in the Personal filter to create a new personal prayer. Fill in "Prayer For" (the subject of your prayer), add prayer details in the description field, and optionally assign a category. Your personal prayer is created instantly without waiting for approval.',
+            text: 'Tap the **Personal** filter tab (highlighted with a colored border when active) to view your personal prayers section. Tap **Request** (Add Request) while **Personal** is selected to create a new personal prayer. Fill in "Prayer For" (the subject of your prayer), add prayer details in the description field, and optionally assign a category. Your personal prayer is created instantly without waiting for approval.',
             examples: [
               'Example: Prayer For: "My Family", Details: "Pray for stronger relationships and more quality time together"',
               'Example: Prayer For: "Personal Growth", Details: "Help me develop patience and wisdom in my daily decisions"',
@@ -415,7 +415,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Filtering Personal Prayers by Category',
-            text: 'Once you have personal prayers, filter chips always appear: **Current** (everything except answered), **Answered**, and **Total** (all personal prayers), then any categories you created. Click a category chip to show only prayers in that category. Long-press a category chip (or right-click on desktop) to rename it. Re-tap a category chip to return to Current. This makes it easy to focus on prayers in specific areas of your life.',
+            text: 'Once you have personal prayers, filter chips always appear below the main tabs when **Personal** is active: **Current** (everything except answered), **Answered**, and **Total** (all personal prayers), then any categories you created. Category chips share each row when they fit and wrap to the next line when needed (same layout as prompt type chips). Click a category chip to show only prayers in that category. Long-press a category chip (or right-click on desktop) to rename it. Re-tap a category chip to return to Current.',
           },
           {
             subtitle: 'Editing Personal Prayers',
@@ -526,15 +526,15 @@ export class HelpContentService {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'Use the main filter buttons to view prayers by category: "Current" shows active community prayers, "Answered" shows prayers that have been answered, "Total" shows all community prayers including archived ones, "Prompts" displays prayer prompt cards, "Personal" shows your private personal prayers, and "Memorize" opens your personal scripture memory list.',
+            text: 'The main filter row has **Public**, **Personal**, **Prompts**, **Memorize**, and optionally **Members**. The active tab is highlighted with a colored border. Tap **Public** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below. **Personal**, **Prompts**, and **Memorize** each show their own sub-filter chips under the main row when selected.',
           },
           {
             subtitle: 'Personal Prayers Filter',
-            text: 'Click the "Personal" filter button to view only your private personal prayers. These prayers are visible only to you and are not shared with the prayer community. You can search, update, and manage your personal prayers just like community prayers, but they remain completely private.',
+            text: 'Tap the **Personal** filter tab (highlighted when active) to view only your private personal prayers. These prayers are visible only to you and are not shared with the prayer community. You can search, update, and manage your personal prayers just like community prayers, but they remain completely private.',
           },
           {
             subtitle: 'Finding Archived Prayers',
-            text: 'Archived prayers are still accessible and can be updated. Click on the "Total" filter button to see all community prayers including archived ones. You can find, edit, and update archived prayers just like active prayers.',
+            text: 'Archived prayers are still accessible and can be updated. Under the **Public** tab, tap the **Total** chip to see all community prayers including archived ones. You can find, edit, and update archived prayers just like active prayers.',
           },
           {
             subtitle: 'Search Across All Filters',
@@ -745,7 +745,7 @@ export class HelpContentService {
           },
           {
             subtitle: 'Notification Badges',
-            text: 'Badges appear on the prayer count cards and filter buttons to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge in the filter buttons to clear all badges for that specific prayer category at once.',
+            text: 'Badges appear on the main filter tabs and sub-filter chips to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge on a **Public**, **Prompts**, or community sub-chip to clear all badges for that category at once.',
           },
           {
             subtitle: 'Enabling Badges',

@@ -15,6 +15,7 @@ import { HelpContentService } from "../../services/help-content.service";
 import { HelpDriverTourService } from "../../services/help-driver-tour.service";
 import { ToastService } from "../../services/toast.service";
 import { HelpSection } from "../../types/help-content";
+import { formatHelpContentHtml } from "../../lib/help-content-html";
 import {
   Observable,
   BehaviorSubject,
@@ -264,9 +265,10 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
                     >
                       {{ content.subtitle }}
                     </h4>
-                    <p class="text-sm text-gray-700 dark:text-gray-200 mt-1">
-                      {{ content.text }}
-                    </p>
+                    <p
+                      class="text-sm text-gray-700 dark:text-gray-200 mt-1"
+                      [innerHTML]="getHelpContentHtml(content.text)"
+                    ></p>
 
                     <!-- Examples -->
                     @if (content.examples && content.examples.length > 0) {
@@ -781,6 +783,10 @@ export class HelpModalComponent implements OnInit {
 
   getSafeIcon(icon: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(icon);
+  }
+
+  getHelpContentHtml(text: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(formatHelpContentHtml(text));
   }
 
   toggleSection(sectionId: string): void {
