@@ -11,6 +11,9 @@ Major features and milestones for the Prayer App.
 ### Fix — Presentation page scroll and scrollbar
 - Presentation mode uses a fixed viewport shell so the document does not scroll behind slides; the outer slide column no longer scrolls when content fits, and scrollbars are hidden on both the slide column and inner `.presentation-card-scroll` surfaces ([`styles.css`](src/styles.css), [`presentation.component.html`](src/app/pages/presentation/presentation.component.html)).
 
+### Fix — iOS native Home header safe area
+- Restores top safe-area inset on Capacitor iOS after the Home shell refactor moved `sticky` from `<header>` to a wrapper `div`: native padding now targets [`.home-sticky-header-shell`](src/app/pages/home/home.component.html) / the inner header ([`styles.css`](src/styles.css)).
+
 ### Fix — Memorize tab-to-action-bar spacing
 - **Memorize** now uses the tighter `mb-1.5` gap between the main filter tabs and the action bar group, matching **Public**, **Personal**, and **Prompts** ([`homeHasSubFilterRowBelowTabs`](src/app/lib/home-community-filter.ts)).
 

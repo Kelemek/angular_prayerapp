@@ -663,6 +663,10 @@ html, body {
     top: 0;
     padding-top: env(safe-area-inset-top);
   }
+  /* Home shell: sticky wrapper holds header + search panel (header itself is not sticky). */
+  .native-app .home-sticky-header-shell > app-home-header header {
+    padding-top: env(safe-area-inset-top);
+  }
   /* Utility class for full-screen overlays/modals to respect safe area */
   .safe-area-overlay {
     padding-top: env(safe-area-inset-top);
@@ -676,6 +680,9 @@ html, body {
     -webkit-overflow-scrolling: touch;
   }
   .safe-area-viewport header.sticky {
+    top: 0;
+  }
+  .safe-area-viewport .home-sticky-header-shell {
     top: 0;
   }
 
@@ -694,7 +701,8 @@ html, body {
   .native-app .main-page-shell .safe-area-viewport {
     height: 100%;
   }
-  .native-app .safe-area-viewport > header {
+  .native-app .safe-area-viewport > header,
+  .native-app .safe-area-viewport > .home-sticky-header-shell {
     flex-shrink: 0;
   }
   .native-app .safe-area-viewport > main {
