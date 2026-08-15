@@ -71,6 +71,7 @@ export interface HomePageShell {
     readonly editingPrayer: PrayerRequest | null;
     readonly showRenamePersonalCategory: boolean;
     readonly renamingPersonalCategory: string | null;
+    readonly personalCategoryRenameDeferInputFocus: boolean;
     readonly isRenamingPersonalCategory: boolean;
     readonly showEditPersonalUpdate: boolean;
     readonly editingUpdate: PrayerUpdate | null;
@@ -150,6 +151,9 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
     },
     get renamingPersonalCategory() {
       return deps.personalCategory.renamingPersonalCategory;
+    },
+    get personalCategoryRenameDeferInputFocus() {
+      return deps.personalCategory.personalCategoryRenameDeferInputFocus;
     },
     get isRenamingPersonalCategory() {
       return deps.personalCategory.isRenamingPersonalCategory;

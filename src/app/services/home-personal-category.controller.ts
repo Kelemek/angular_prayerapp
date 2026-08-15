@@ -48,6 +48,7 @@ export class HomePersonalCategoryController {
   private swappingCategories = new Set<string>();
   showRenamePersonalCategory = false;
   renamingPersonalCategory: string | null = null;
+  personalCategoryRenameDeferInputFocus = false;
   isRenamingPersonalCategory = false;
   isReorderingPersonalPrayers = false;
 
@@ -373,6 +374,8 @@ export class HomePersonalCategoryController {
     if (this.personalCategoryLongPressTriggered) {
       this.installPersonalCategoryLongPressReleaseGuard();
     }
+    this.personalCategoryRenameDeferInputFocus =
+      this.personalCategoryLongPressTriggered;
     this.suppressPersonalCategoryClickFor = category;
     this.schedulePersonalCategoryClickSuppressClear();
     this.renamingPersonalCategory = category;
@@ -387,6 +390,7 @@ export class HomePersonalCategoryController {
     }
     this.personalCategoryLongPressTriggered = false;
     this.clearPersonalCategoryLongPressReleaseGuard();
+    this.personalCategoryRenameDeferInputFocus = false;
     this.showRenamePersonalCategory = false;
     this.renamingPersonalCategory = null;
     this.requireHost().markForCheck();

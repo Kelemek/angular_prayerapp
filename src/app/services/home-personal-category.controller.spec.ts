@@ -211,6 +211,7 @@ describe("HomePersonalCategoryController", () => {
 
       expect(controller.showRenamePersonalCategory).toBe(true);
       expect(controller.renamingPersonalCategory).toBe("Health");
+      expect(controller.personalCategoryRenameDeferInputFocus).toBe(true);
       expect(clearSelectionSpy).toHaveBeenCalled();
       expect(addListenerSpy).toHaveBeenCalledWith(
         "pointerup",

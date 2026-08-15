@@ -9,6 +9,7 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -31,12 +32,12 @@ import { clearBrowserTextSelection } from '../../lib/personal-category-long-pres
       <form
         #renameForm="ngForm"
         (ngSubmit)="renameForm.valid && !saving && onSubmit()"
-        class="p-6 space-y-4"
+        class="p-6 space-y-4 select-none [-webkit-touch-callout:none]"
       >
         <div>
           <label
             for="personal-category-rename-input"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 select-none [-webkit-touch-callout:none]"
           >
             Category name
           </label>
@@ -49,7 +50,7 @@ import { clearBrowserTextSelection } from '../../lib/personal-category-long-pres
             maxlength="50"
             required
             autocomplete="off"
-            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-inset-surface text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-inset-surface text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 select-text"
             aria-label="Category name"
           />
         </div>
@@ -76,11 +77,13 @@ import { clearBrowserTextSelection } from '../../lib/personal-category-long-pres
   `,
 })
 export class PersonalCategoryRenameModalComponent
-  implements OnChanges, AfterViewInit
+  implements OnChanges, AfterViewInit, OnDestroy
 {
   @Input() isOpen = false;
   @Input() categoryName = '';
   @Input() saving = false;
+  /** Wait for the long-press finger to lift before focusing the input. */
+  @Input() deferInputFocus = false;
 
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<string>();
@@ -90,20 +93,55 @@ export class PersonalCategoryRenameModalComponent
 
   draftName = '';
   private shouldFocusInput = false;
+  private clearDeferredInputFocus: (() => void) | null = null;
 
   ngAfterViewInit(): void {
     this.focusCategoryNameInputIfNeeded();
   }
 
+  ngOnDestroy(): void {
+    this.clearDeferredInputFocusListener();
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isOpen']?.currentValue === false) {
+      this.clearDeferredInputFocusListener();
+    }
     if (changes['isOpen']?.currentValue || changes['categoryName']) {
       this.draftName = this.categoryName;
     }
     if (changes['isOpen']?.currentValue) {
       clearBrowserTextSelection();
+      if (this.deferInputFocus) {
+        this.scheduleInputFocusAfterPointerRelease();
+        return;
+      }
       this.shouldFocusInput = true;
       this.focusCategoryNameInputIfNeeded();
     }
+  }
+
+  private scheduleInputFocusAfterPointerRelease(): void {
+    this.clearDeferredInputFocusListener();
+
+    const focusInput = () => {
+      clearBrowserTextSelection();
+      this.shouldFocusInput = true;
+      this.focusCategoryNameInputIfNeeded();
+      this.clearDeferredInputFocusListener();
+    };
+    const options: AddEventListenerOptions = { capture: true, passive: true };
+    document.addEventListener('pointerup', focusInput, options);
+    document.addEventListener('touchend', focusInput, options);
+    this.clearDeferredInputFocus = () => {
+      document.removeEventListener('pointerup', focusInput, options);
+      document.removeEventListener('touchend', focusInput, options);
+    };
+  }
+
+  private clearDeferredInputFocusListener(): void {
+    this.clearDeferredInputFocus?.();
+    this.clearDeferredInputFocus = null;
   }
 
   private focusCategoryNameInputIfNeeded(): void {
