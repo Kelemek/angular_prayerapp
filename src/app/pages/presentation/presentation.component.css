@@ -1,12 +1,7 @@
 :host {
   display: block;
-}
-.presentation-scroll {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.presentation-scroll::-webkit-scrollbar {
-  display: none;
+  height: 100%;
+  overflow: hidden;
 }
 .presentation-slide-fade {
   transition: opacity 400ms ease-in-out;
