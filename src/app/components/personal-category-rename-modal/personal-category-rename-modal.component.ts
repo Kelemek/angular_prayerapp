@@ -93,6 +93,7 @@ export class PersonalCategoryRenameModalComponent
 
   draftName = '';
   private shouldFocusInput = false;
+  private selectInputTextOnFocus = true;
   private clearDeferredInputFocus: (() => void) | null = null;
 
   ngAfterViewInit(): void {
@@ -106,6 +107,7 @@ export class PersonalCategoryRenameModalComponent
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue === false) {
       this.clearDeferredInputFocusListener();
+      this.selectInputTextOnFocus = true;
     }
     if (changes['isOpen']?.currentValue || changes['categoryName']) {
       this.draftName = this.categoryName;
@@ -113,9 +115,11 @@ export class PersonalCategoryRenameModalComponent
     if (changes['isOpen']?.currentValue) {
       clearBrowserTextSelection();
       if (this.deferInputFocus) {
+        this.selectInputTextOnFocus = false;
         this.scheduleInputFocusAfterPointerRelease();
         return;
       }
+      this.selectInputTextOnFocus = true;
       this.shouldFocusInput = true;
       this.focusCategoryNameInputIfNeeded();
     }
@@ -125,10 +129,14 @@ export class PersonalCategoryRenameModalComponent
     this.clearDeferredInputFocusListener();
 
     const focusInput = () => {
-      clearBrowserTextSelection();
-      this.shouldFocusInput = true;
-      this.focusCategoryNameInputIfNeeded();
       this.clearDeferredInputFocusListener();
+      clearBrowserTextSelection();
+      // Run after the long-press release guard so the touch gesture fully ends.
+      window.setTimeout(() => {
+        clearBrowserTextSelection();
+        this.shouldFocusInput = true;
+        this.focusCategoryNameInputIfNeeded();
+      }, 0);
     };
     const options: AddEventListenerOptions = { capture: true, passive: true };
     document.addEventListener('pointerup', focusInput, options);
@@ -156,7 +164,12 @@ export class PersonalCategoryRenameModalComponent
     requestAnimationFrame(() => {
       clearBrowserTextSelection();
       input.focus({ preventScroll: true });
-      input.select();
+      if (this.selectInputTextOnFocus) {
+        input.select();
+        return;
+      }
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
     });
   }
 
