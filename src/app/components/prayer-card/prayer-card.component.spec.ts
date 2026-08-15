@@ -1355,6 +1355,23 @@ describe('PrayerCardComponent', () => {
       // Badge click should trigger mark as read
       expect(component.prayer.id).toBe('1');
     });
+
+    it('shows community unread badges only on Current and Answered filters', () => {
+      component.activeFilter = 'current';
+      expect(component.showsCommunityUnreadBadges()).toBe(true);
+
+      component.activeFilter = 'answered';
+      expect(component.showsCommunityUnreadBadges()).toBe(true);
+
+      component.activeFilter = 'archived';
+      expect(component.showsCommunityUnreadBadges()).toBe(false);
+
+      component.activeFilter = 'total';
+      expect(component.showsCommunityUnreadBadges()).toBe(false);
+
+      component.activeFilter = 'planning_center_list';
+      expect(component.showsCommunityUnreadBadges()).toBe(false);
+    });
   });
 
   describe('PrayerCardComponent - Edge Cases', () => {

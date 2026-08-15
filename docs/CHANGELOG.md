@@ -26,6 +26,9 @@ Major features and milestones for the Prayer App.
 ### Fix — Public Archived Pray handoff
 - **Pray** from Home **Public → Archived** now opens Presentation with archived-only community prayers (`statusFilters.archived`), not the same all-status deck as **Total** ([`mapHomeTabToPresentationStatusFilters`](src/app/types/presentation.ts), [`presentation-content-filter.ts`](src/app/lib/presentation-content-filter.ts)). New-tab handoff uses `homeStatus=archived`.
 
+### Fix — Archived filter unread badges
+- Community prayer cards on the **Archived** (and **Total** / **Members**) Public filters no longer show corner unread badges; only **Current** and **Answered** lists keep them ([`prayer-card.component.ts`](src/app/components/prayer-card/prayer-card.component.ts)).
+
 ### UI — Folder-style Home filter tabs
 - Home main filters are **folder tabs**: the selected tab’s fill continues into a connected panel outlined with the same 2px accent as the old tab button (**Public** / **Memorize** `#0047AB`, **Personal** `#2F5F54`, **Prompts** `#988F83`). The selected tab uses top and side borders only, and the panel omits its top border (`border-t-0`), so there is no stroke across the join. **Current** / **Answered** / **Archived** / **Total** (and **Members** when a Planning Center list is mapped), prompt types, personal categories, and Memorize actions are **bordered chips** in that panel (selected = accent ring) ([`home-filter-tabs`](src/app/components/home-filter-tabs/home-filter-tabs.component.html), [`home-sub-filter-chip-classes.ts`](src/app/lib/home-sub-filter-chip-classes.ts)). Prayer cards stay on the page background below the panel. Empty **Prompts** keeps a fully rounded selected tab with no panel. The Info page mock matches this look ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)).
 

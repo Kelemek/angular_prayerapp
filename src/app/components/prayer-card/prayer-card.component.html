@@ -62,7 +62,7 @@
         </div>
       </div>
 
-      @if (variantLayout.showUnreadBadges && (prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && !isPersonal && !isMemberPrayer()) {
+      @if (variantLayout.showUnreadBadges && (prayerBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && showsCommunityUnreadBadges() && !isPersonal && !isMemberPrayer()) {
         <button
           (click)="markPrayerAsRead()"
           class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
@@ -188,7 +188,7 @@
               (delete)="handleDeleteUpdate(update.id)"
               (toggleAnswered)="toggleMemberUpdateAnswered(update)"
             />
-            @if (variantLayout.showUnreadBadges && (updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && activeFilter !== 'total' && isCommunityPrayer()) {
+            @if (variantLayout.showUnreadBadges && (updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && showsCommunityUnreadBadges() && isCommunityPrayer()) {
               <button
                 updateCorner
                 (click)="markUpdateAsRead(update.id)"

@@ -545,6 +545,11 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
     return this.isCommunityPrayer();
   }
 
+  /** Unread corner badges only on Current and Answered community lists (not Archived/Total/Members). */
+  showsCommunityUnreadBadges(): boolean {
+    return this.activeFilter === 'current' || this.activeFilter === 'answered';
+  }
+
   /** Personal and member cards use the user's personal cooldown setting. */
   usesPersonalCooldown(): boolean {
     return this.isPersonal || this.isMemberPrayer();
