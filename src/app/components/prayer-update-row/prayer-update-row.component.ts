@@ -9,7 +9,8 @@ import {
   getPrayerUpdateHeaderLabelClasses,
   type PrayerUpdateRecord,
 } from '../../lib/prayer-update-header';
-import { PRAYER_CARD_HEADER_BLEED_CLASSES, PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import { PRAYER_CARD_HEADER_BLEED_CLASSES, PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-classes';
 
 @Component({
   selector: 'app-prayer-update-row',
@@ -22,7 +23,9 @@ import { PRAYER_CARD_HEADER_BLEED_CLASSES, PRAYER_CARD_HEADER_INSET_CLASSES, PRA
   template: `
     <div
       [class]="
-        'bg-inset-surface-muted border border-gray-300 dark:border-gray-600 relative pb-6 pt-0 ' +
+        'bg-inset-surface-muted relative pb-6 pt-0 ' +
+        shellBorderClass +
+        ' ' +
         shellPaddingClasses +
         ' ' +
         shellClass
@@ -33,9 +36,8 @@ import { PRAYER_CARD_HEADER_BLEED_CLASSES, PRAYER_CARD_HEADER_INSET_CLASSES, PRA
         [centerTime]="displayDateParts.time"
         [bandSize]="size"
         [bleedClasses]="bandBleedClasses"
-        [compactActionsInset]="compactHeaderInset"
       >
-        <div cardMetaLeft [class]="'min-w-0 w-full ' + leftInsetClasses">
+        <div cardMetaLeft [class]="'min-w-0 w-full ' + headerInsetClasses">
           <span [class]="headerLabelClasses">{{ headerLabel }}</span>
         </div>
         <div cardMetaRight>
@@ -58,6 +60,7 @@ import { PRAYER_CARD_HEADER_BLEED_CLASSES, PRAYER_CARD_HEADER_INSET_CLASSES, PRA
 })
 export class PrayerUpdateRowComponent {
   readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
+  readonly shellBorderClass = CHURCH_GREEN_SHELL_BORDER_CLASS;
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
 
   @Input({ required: true }) update!: PrayerUpdateRecord;
@@ -66,22 +69,9 @@ export class PrayerUpdateRowComponent {
   @Input() shellClass = 'rounded-lg';
   @Input() contentClass = 'block text-sm text-gray-700 dark:text-gray-300';
   /**
-   * Tighter left/right meta header inset when there is no corner unread badge
-   * (personal / member updates).
-   */
-  @Input() compactHeaderInset = false;
-
-  /**
    * Bleed matches this row's shell padding (px-4 sm:px-6), not the outer presentation card.
    */
   readonly bandBleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
-
-  get leftInsetClasses(): string {
-    if (this.compactHeaderInset) {
-      return PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES;
-    }
-    return PRAYER_CARD_HEADER_INSET_CLASSES;
-  }
 
   get headerLabel(): string {
     return getPrayerUpdateHeaderLabel(this.update);

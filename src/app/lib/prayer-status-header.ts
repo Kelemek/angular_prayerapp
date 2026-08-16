@@ -9,6 +9,14 @@ export function getPrayerStatusHeaderTextClasses(status: string): string {
   return 'text-[#C9A961] dark:text-[#D4AF85]';
 }
 
+/** Personal prayer card outline — matches Personal folder tab `#2F5F54`. */
+export const PERSONAL_PRAYER_BORDER_CLASSES =
+  '!border-[#2F5F54] dark:!border-[#2F5F54]';
+
+/** Meta header band bottom edge — church green medium on all prayer/prompt/update cards. */
+export const META_HEADER_BORDER_BOTTOM_CLASSES =
+  'border-b border-[#2F5F54] dark:border-[#2F5F54]';
+
 /** Border classes for home prayer cards by status. */
 export function getPrayerStatusBorderClasses(status: string): string {
   if (status === 'current') {

@@ -122,7 +122,7 @@ export interface PrayerPrompt {
       </p>
 
       <!-- Pray For actions -->
-      <div [class]="'flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
+      <div [class]="'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
         @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
           @if (canPrayFor$ | async) {
             <button
@@ -169,8 +169,8 @@ export interface PrayerPrompt {
       <!-- Pray For explanation modal -->
       @if (showPrayForModal) {
       <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
+          <div class="px-6 py-4 modal-chrome-border-b">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Pray For This Prompt</h2>
           </div>
           <div class="px-6 py-4">
@@ -192,7 +192,7 @@ export interface PrayerPrompt {
               <span class="text-sm text-gray-700 dark:text-gray-300">Do not show this again</span>
             </label>
           </div>
-          <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+          <div class="px-6 py-4 modal-chrome-border-t flex gap-3 justify-end">
             <button
               type="button"
               (click)="showPrayForModal = false; prayForDoNotShowAgain = false"

@@ -16,6 +16,7 @@ import { HelpDriverTourService } from "../../services/help-driver-tour.service";
 import { ToastService } from "../../services/toast.service";
 import { HelpSection } from "../../types/help-content";
 import { formatHelpContentHtml } from "../../lib/help-content-html";
+import { CHURCH_GREEN_SHELL_BORDER_CLASS } from "../../lib/home-sub-filter-chip-classes";
 import {
   Observable,
   BehaviorSubject,
@@ -73,11 +74,11 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
       aria-labelledby="help-modal-title"
     >
       <div
-        class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col pointer-events-auto"
+        class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col pointer-events-auto modal-panel-edge"
       >
         <!-- Header (Sticky) -->
         <div
-          class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-t-lg z-10"
+          class="sticky top-0 bg-white dark:bg-gray-900 modal-chrome-border-b p-4 sm:p-6 rounded-t-lg z-10"
         >
           <div class="flex items-start justify-between mb-4">
             <div>
@@ -129,7 +130,10 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
               [(ngModel)]="searchQuery"
               (input)="onSearchChange()"
               placeholder="Search help topics..."
-              class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-inset-surface text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+              [class]="
+                'w-full pl-10 pr-4 py-2 rounded-lg bg-inset-surface text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors ' +
+                shellBorderClass
+              "
             />
           </div>
         </div>
@@ -139,7 +143,10 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
           @if (helpSections$ | async; as allHelpSections) { @if (!(isLoading$ |
           async) && allHelpSections.length > 0) {
           <div
-            class="mb-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+            [class]="
+              'mb-3 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors ' +
+              shellBorderClass
+            "
           >
             <button
               type="button"
@@ -208,7 +215,10 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
           <div class="space-y-3">
             @for (section of filteredSections; track section.id) {
             <div
-              class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+              [class]="
+                'rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors ' +
+                shellBorderClass
+              "
             >
               <!-- Section Header (Clickable) -->
               <button
@@ -254,7 +264,7 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
               @if (isSectionExpanded(section.id)) {
               <div
                 [id]="'section-content-' + section.id"
-                class="px-4 sm:px-6 py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
+                class="px-4 sm:px-6 py-4 bg-white dark:bg-gray-900 modal-chrome-border-t"
               >
                 <div class="space-y-4">
                   @for (content of section.content; track $index; let i =
@@ -491,6 +501,7 @@ const HELP_SECTION_ID_FILTERING = "help_filtering";
 })
 export class HelpModalComponent implements OnInit {
   @Input() isOpen = false;
+  readonly shellBorderClass = CHURCH_GREEN_SHELL_BORDER_CLASS;
   @Output() closeModal = new EventEmitter<void>();
   /** One live UI tour for the whole **Creating Prayers** section (`help_prayers`). */
   @Output() startCreatingPrayersHelpSectionUiTour =

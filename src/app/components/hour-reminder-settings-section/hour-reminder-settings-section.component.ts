@@ -34,7 +34,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
   template: `
     <div
       [id]="tourSectionId"
-      class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2"
+      class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-2"
     >
       <div class="font-medium text-gray-800 dark:text-gray-100 text-sm sm:text-base">
         {{ title }}
@@ -77,7 +77,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
         <ul class="flex flex-col gap-1.5 sm:gap-2" role="list">
           @for (slot of slots; track slot.id) {
             <li
-              class="flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all overflow-hidden"
+              class="flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-all overflow-hidden"
             >
               <span
                 class="flex-1 p-2 sm:p-3 text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
@@ -87,7 +87,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
                 type="button"
                 (click)="removeSlot(slot.id)"
                 [disabled]="saving"
-                class="self-stretch flex items-center justify-center px-3 border-l border-gray-200 dark:border-gray-700 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                class="self-stretch flex items-center justify-center px-3 border-l border-gray-200 dark:border-gray-700 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-blue-200/70 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                 [attr.aria-label]="'Remove reminder ' + formatSlotLabel(slot)"
               >
                 Remove
@@ -101,7 +101,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
         <div class="relative min-w-0">
           <div
             [ngClass]="{
-              'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+              'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                 showTimeDropdown,
               'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                 !showTimeDropdown
@@ -172,7 +172,7 @@ const LOAD_ERROR: Record<UserHourReminderKind, string> = {
           (click)="addSlot()"
           [disabled]="saving || !email.trim()"
           [title]="addButtonTitle"
-          class="w-full min-w-0 flex flex-row items-center justify-center gap-2 p-2 sm:p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full min-w-0 flex flex-row items-center justify-center gap-2 p-2 sm:p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           @if (saving) {
             <svg

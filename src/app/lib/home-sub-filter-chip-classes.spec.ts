@@ -6,17 +6,21 @@ import {
   HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
   HOME_PUBLIC_STATUS_CHIP_THEMES,
   HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
+  HOME_SHELL_FOOTER_BORDER_TOP_CLASS,
+  HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS,
+  MODAL_CHROME_BORDER_BOTTOM_CLASS,
+  MODAL_CHROME_BORDER_TOP_CLASS,
   homeFilterTabClass,
 } from "./home-sub-filter-chip-classes";
 
 describe("HOME_*_SUB_FILTER_GROUP_CLASS", () => {
   it("uses static folder-panel fills matching each tab (Tailwind must see full literals)", () => {
-    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain("bg-slate-100");
+    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain("bg-church-green-tint");
     expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain(
       "dark:bg-green-900/40"
     );
-    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain("bg-stone-100");
-    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("bg-blue-100");
+    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain("bg-stone-300");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("bg-blue-200");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("rounded-b-lg");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-[#0047AB]");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-t-0");
@@ -36,6 +40,23 @@ describe("HOME_*_SUB_FILTER_GROUP_CLASS", () => {
   });
 });
 
+describe("MODAL chrome borders", () => {
+  it("matches home shell church green medium edges", () => {
+    expect(MODAL_CHROME_BORDER_BOTTOM_CLASS).toBe(HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS);
+    expect(MODAL_CHROME_BORDER_TOP_CLASS).toBe(HOME_SHELL_FOOTER_BORDER_TOP_CLASS);
+    expect(MODAL_CHROME_BORDER_BOTTOM_CLASS).toContain("#2F5F54");
+  });
+});
+
+describe("HOME_SHELL chrome borders", () => {
+  it("uses church green medium on header bottom and footer top", () => {
+    expect(HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS).toContain("border-b");
+    expect(HOME_SHELL_FOOTER_BORDER_TOP_CLASS).toContain("border-t");
+    expect(HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS).toContain("#2F5F54");
+    expect(HOME_SHELL_FOOTER_BORDER_TOP_CLASS).toContain("#2F5F54");
+  });
+});
+
 describe("homeFilterTabClass", () => {
   it("connects the active tab to the panel when a sub-row is present", () => {
     const cls = homeFilterTabClass({
@@ -51,7 +72,7 @@ describe("homeFilterTabClass", () => {
     expect(cls).toContain("border-x-[2px]");
     expect(cls).toContain("border-b-0");
     expect(cls).not.toContain("-mb-[2px]");
-    expect(cls).toContain("bg-blue-100");
+    expect(cls).toContain("bg-blue-200");
     expect(cls).toContain("border-[#0047AB]");
     expect(tokens).not.toContain("border-[2px]");
   });
@@ -75,7 +96,9 @@ describe("homeFilterTabClass", () => {
       hasSubRow: true,
     });
     expect(cls).toContain("rounded-t-lg");
-    expect(cls).toContain("bg-white");
+    expect(cls).toContain("bg-church-surface-inactive");
+    expect(cls).toContain("border-church-surface-inactive-tab-border");
+    expect(cls).not.toContain("border-[2px]");
     expect(cls).not.toContain("z-10");
   });
 });
@@ -97,6 +120,22 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
     );
     expect(HOME_PUBLIC_STATUS_CHIP_THEMES.members.active).toContain(
       "border-[#0047AB]"
+    );
+  });
+
+  it("uses lighter light-mode fills than folder panels for selected chips", () => {
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.public).toContain("bg-blue-200");
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.personal).toContain("bg-church-green-tint");
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.prompts).toContain("bg-stone-300");
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.memorize).toContain("bg-blue-200");
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain(
+      "bg-home-panel-blue-chip-active"
+    );
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.answered.active).toContain(
+      "bg-home-panel-green-status-chip-active"
+    );
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.archived.active).toContain(
+      "bg-home-panel-amber-status-chip-active"
     );
   });
 });

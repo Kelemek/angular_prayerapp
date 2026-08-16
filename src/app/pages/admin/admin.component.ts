@@ -439,7 +439,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                   @if (!analyticsStats.loading) {
                     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-2">
                   <!-- Today -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#0047AB] dark:text-[#7BA3D9]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -453,7 +453,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">page views</div>
                   </div>
                   <!-- This Week -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#0047AB] dark:text-[#7BA3D9]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -469,7 +469,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">page views</div>
                   </div>
                   <!-- This Month -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#0047AB] dark:text-[#7BA3D9]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
@@ -483,7 +483,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">page views</div>
                   </div>
                   <!-- This Year -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#0047AB] dark:text-[#7BA3D9]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="9"></circle>
@@ -497,7 +497,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">page views</div>
                   </div>
                   <!-- All Time -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#0047AB]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#0047AB] dark:text-[#7BA3D9]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -513,7 +513,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">total page views</div>
                   </div>
                   <!-- Total Prayers -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#2F5F54] dark:text-[#8FB9A8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -526,7 +526,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">in database</div>
                   </div>
                   <!-- Current Prayers -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#2F5F54] dark:text-[#8FB9A8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 11l3 3L22 4"></path>
@@ -540,7 +540,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">active prayers</div>
                   </div>
                   <!-- Answered Prayers -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#2F5F54] dark:text-[#8FB9A8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
@@ -553,7 +553,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">answered prayers</div>
                   </div>
                   <!-- Archived Prayers -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#2F5F54]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#2F5F54] dark:text-[#8FB9A8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="5" width="18" height="16" rx="2"></rect>
@@ -568,7 +568,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">archived prayers</div>
                   </div>
                   <!-- Subscribers -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#C9A961]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#C9A961]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#6B6256] dark:text-[#D4AF85]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -583,7 +583,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">total subscribers</div>
                   </div>
                   <!-- Memorize Total -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#3E5266] dark:text-[#A8B8C8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -600,7 +600,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">memorized verses</div>
                   </div>
                   <!-- Memorize Learning -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#3E5266] dark:text-[#A8B8C8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -614,7 +614,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">memorized verses</div>
                   </div>
                   <!-- Memorize Practicing -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#3E5266] dark:text-[#A8B8C8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -628,7 +628,7 @@ type SettingsTab = 'analytics' | 'email' | 'content' | 'tools' | 'security';
                     <div class="text-[10px] leading-tight text-gray-500 dark:text-gray-400 mt-0.5">memorized verses</div>
                   </div>
                   <!-- Memorize Mastered -->
-                  <div class="bg-[#F8F7F5] dark:bg-gray-800/60 rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
+                  <div class="bg-inset-surface rounded-md p-2.5 border border-[#D1CCC4] dark:border-gray-600 border-l-[3px] border-l-[#3E5266]">
                     <div class="flex items-center gap-1.5 mb-1">
                       <svg class="text-[#3E5266] dark:text-[#A8B8C8]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>

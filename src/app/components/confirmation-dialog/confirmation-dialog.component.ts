@@ -8,9 +8,9 @@ import { CommonModule } from '@angular/common';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 modal-chrome-border-b">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {{ title }}
           </h2>
@@ -36,7 +36,7 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+        <div class="px-6 py-4 modal-chrome-border-t flex gap-3 justify-end">
           <button
             (click)="onCancel()"
             class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"

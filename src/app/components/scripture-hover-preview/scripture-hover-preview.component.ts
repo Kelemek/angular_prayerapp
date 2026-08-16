@@ -92,7 +92,7 @@ function isTouchOnlyDevice(): boolean {
   template: `
     <div
       #trigger
-      class="relative select-none [-webkit-touch-callout:none]"
+      class="relative h-full select-none [-webkit-touch-callout:none]"
       (mouseenter)="onMouseEnter($event)"
       (mouseleave)="onMouseLeave()"
       (click)="onTriggerActivate($event)"

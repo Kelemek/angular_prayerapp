@@ -29,7 +29,7 @@ type FeedbackType = "suggestion" | "feature" | "bug";
       </div>
 
       <!-- Divider -->
-      <div class="border-t border-gray-200 dark:border-gray-700"></div>
+      <div class="modal-chrome-border-t"></div>
 
       <!-- Form -->
       <form (ngSubmit)="onSubmit()" class="space-y-4">
@@ -285,9 +285,9 @@ export class GitHubFeedbackFormComponent implements OnDestroy {
 
   feedbackTypeTileClasses(selected: boolean): Record<string, boolean> {
     return {
-      "border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30":
+      "border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30":
         selected,
-      "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20":
+      "border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20":
         !selected,
     };
   }

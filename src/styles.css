@@ -9,8 +9,82 @@
   --color-church-green-dark: #004b3d;
   --color-church-green-medium: #2f5f54;
   --color-church-green: #39704d;
+  --color-church-green-tint: color-mix(
+    in srgb,
+    var(--color-church-green-medium) 30%,
+    var(--color-church-cream)
+  );
+  /* Selected sub-filter chips — slightly lighter than folder panel / tab fill. */
+  --color-home-panel-blue-chip-active: color-mix(in srgb, #bfdbfe 48%, white);
+  --color-home-panel-blue-chip-active-dark: color-mix(
+    in srgb,
+    rgb(30 58 138) 42%,
+    rgb(3 7 18)
+  );
+  --color-home-panel-personal-chip-active: color-mix(
+    in srgb,
+    var(--color-church-green-tint) 58%,
+    white
+  );
+  --color-home-panel-personal-chip-active-dark: color-mix(
+    in srgb,
+    rgb(20 83 45) 40%,
+    rgb(3 7 18)
+  );
+  --color-home-panel-stone-chip-active: color-mix(in srgb, #d6d3d1 58%, white);
+  --color-home-panel-stone-chip-active-dark: color-mix(
+    in srgb,
+    rgb(68 64 60) 40%,
+    rgb(3 7 18)
+  );
+  --color-home-panel-green-status-chip-active: color-mix(in srgb, #bbf7d0 52%, white);
+  --color-home-panel-green-status-chip-active-dark: color-mix(
+    in srgb,
+    rgb(20 83 45) 32%,
+    rgb(3 7 18)
+  );
+  --color-home-panel-amber-status-chip-active: color-mix(in srgb, #fde68a 52%, white);
+  --color-home-panel-amber-status-chip-active-dark: color-mix(
+    in srgb,
+    rgb(120 53 15) 32%,
+    rgb(3 7 18)
+  );
+  --color-home-panel-gray-status-chip-active: color-mix(in srgb, #f3f4f6 55%, white);
+  --color-home-panel-gray-status-chip-active-dark: color-mix(
+    in srgb,
+    rgb(55 65 81) 38%,
+    rgb(3 7 18)
+  );
+  /* Green action chips — light fill matches dark label hue; dark uses green-900 wash on gray. */
+  --color-church-green-chip-text: #39704d;
+  --color-church-green-chip-text-dark: #5fb876;
+  --color-church-green-chip-fill: rgb(95 184 118 / 0.22);
+  --color-church-green-chip-fill-hover: rgb(95 184 118 / 0.36);
+  --color-church-green-chip-fill-dark: rgb(20 83 45 / 0.2);
+  --color-church-green-chip-fill-dark-hover: rgb(20 83 45 / 0.33);
   --color-church-gray-warm: #988f83;
   --color-church-cream: #e8e5e1;
+  /* Inactive tab/chip fill — warm off-white, not pure white on cream canvas. */
+  --color-church-surface-inactive: color-mix(
+    in srgb,
+    var(--color-church-cream) 42%,
+    white
+  );
+  --color-church-surface-inactive-hover: color-mix(
+    in srgb,
+    var(--color-church-cream) 55%,
+    white
+  );
+  --color-church-surface-inactive-border: color-mix(
+    in srgb,
+    var(--color-church-gray-warm) 28%,
+    #9ca3af
+  );
+  --color-church-surface-inactive-tab-border: color-mix(
+    in srgb,
+    var(--color-church-green-medium) 90%,
+    black
+  );
   --color-church-blue: #0047ab;
   --color-church-blue-dark: #3e5266;
   --color-church-navy: #1f2937;
@@ -62,8 +136,8 @@
 }
 
 @utility bg-gray-50 {
-  /* Background colors - light theme */
-  @apply bg-[#F8F7F5]!;
+  /* Background colors - light theme (church cream so white cards have more contrast) */
+  @apply bg-[#E8E5E1]!;
 
   /* Background colors - dark theme */
   .dark & {
@@ -71,7 +145,7 @@
   }
 }
 @utility bg-gray-100 {
-  @apply bg-[#E8E5E1]!;
+  @apply bg-[#DDD8D2]!;
   .dark & {
     @apply bg-[#3E5266]!;
   }
@@ -101,33 +175,33 @@
   }
 }
 @utility bg-gray-900 {
-  @apply bg-[#F8F7F5]!;
+  @apply bg-[#E8E5E1]!;
   .dark & {
     @apply bg-[#2B2B2B]!;
   }
 }
-/* Inset field/panel fills: light gray on white cards; dark semi-transparent gray-700.
+/* Inset field/panel fills: cream wells on white cards; dark semi-transparent gray-700.
    Do not use bg-gray-50/100 with dark:bg-gray-700/* — those utilities force solid dark fills. */
 @utility bg-inset-surface {
-  background-color: #f8f7f5 !important;
+  background-color: #e8e5e1 !important;
   .dark & {
     background-color: rgb(55 65 81 / 0.6) !important;
   }
 }
 @utility bg-inset-surface-muted {
-  background-color: #e8e5e1 !important;
+  background-color: #ddd8d2 !important;
   .dark & {
     background-color: rgb(55 65 81 / 0.6) !important;
   }
 }
 /* Help topic rows: inset fill + hover lift (inputs use bg-inset-surface only). */
 @utility bg-inset-surface-interactive {
-  background-color: #f8f7f5 !important;
+  background-color: #e8e5e1 !important;
   .dark & {
     background-color: rgb(55 65 81 / 0.6) !important;
   }
   &:hover {
-    background-color: #e8e5e1 !important;
+    background-color: #ddd8d2 !important;
   }
   .dark &:hover {
     background-color: rgb(55 65 81 / 0.8) !important;
@@ -141,7 +215,21 @@
   @apply bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-600 dark:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:ring-blue-500;
 }
 .btn-chip-green {
-  @apply bg-green-50 dark:bg-green-900/20 text-[#39704D] dark:text-[#5FB876] border border-[#39704D] dark:border-[#39704D] hover:bg-green-100 dark:hover:bg-green-900/30 focus:ring-[#39704D];
+  color: var(--color-church-green-chip-text);
+  @apply border border-[#39704D] focus:ring-[#39704D];
+}
+html:not(.dark) .btn-chip-green {
+  background-color: var(--color-church-green-chip-fill);
+  &:hover {
+    background-color: var(--color-church-green-chip-fill-hover);
+  }
+}
+html.dark .btn-chip-green {
+  color: var(--color-church-green-chip-text-dark);
+  background-color: var(--color-church-green-chip-fill-dark);
+  &:hover {
+    background-color: var(--color-church-green-chip-fill-dark-hover);
+  }
 }
 .btn-chip-gray {
   @apply bg-white/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 border border-gray-500 dark:border-gray-500 hover:bg-white/70 dark:hover:bg-gray-800/70 focus:ring-gray-500;
@@ -150,7 +238,27 @@
   @apply bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-600 dark:border-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 focus:ring-red-500;
 }
 .btn-chip-green-elevated {
-  @apply bg-white dark:bg-gray-800 text-[#39704D] dark:text-[#5FB876] border border-[#39704D] dark:border-[#39704D] shadow-sm hover:bg-green-50 dark:hover:bg-green-900/30 focus:ring-[#39704D];
+  color: var(--color-church-green-chip-text);
+  @apply border border-[#39704D] shadow-sm focus:ring-[#39704D];
+}
+html.dark .btn-chip-green-elevated {
+  color: var(--color-church-green-chip-text-dark);
+}
+html:not(.dark) .btn-chip-green-elevated {
+  background-color: var(--color-church-green-chip-fill);
+  &:hover {
+    background-color: var(--color-church-green-chip-fill-hover);
+  }
+}
+html.dark .btn-chip-green-elevated {
+  @apply bg-gray-800;
+  &:hover {
+    background-color: var(--color-church-green-chip-fill-dark-hover);
+  }
+}
+/* Outlined chips on cream/white surfaces — darker fills (light mode only) */
+.contrast-chip-surface .btn-chip-blue {
+  @apply bg-blue-200 hover:bg-blue-300 dark:bg-blue-900/20 dark:hover:bg-blue-900/30;
 }
 /* Presentation slide card: larger symmetric shadow (replaces bottom-heavy shadow-2xl). */
 .presentation-card-elevation {
@@ -384,8 +492,8 @@ html.dark .personal-category-header-band {
 :root {
   --text-scale: 1;
   --bg-primary: #FFFFFF;
-  --bg-secondary: #F8F7F5;
-  --bg-tertiary: #E8E5E1;
+  --bg-secondary: #E8E5E1;
+  --bg-tertiary: #DDD8D2;
   --text-primary: #2B2B2B;
   --text-secondary: #6B6256;
   --text-muted: #988F83;
@@ -605,7 +713,7 @@ html, body {
     right: 0;
     height: env(safe-area-inset-top);
     /* Make safe-area strip opaque so content never shows through while scrolling */
-    background-color: #F8F7F5;
+    background-color: #E8E5E1;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     z-index: 9999;
@@ -624,7 +732,7 @@ html, body {
     right: 0;
     bottom: 0;
     height: env(safe-area-inset-bottom);
-    background-color: #F8F7F5;
+    background-color: #E8E5E1;
     z-index: 9999;
   }
   html.dark body::after {
@@ -735,6 +843,49 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+/* Light mode: cream scroll body + white section cards (matches Home page contrast) */
+.settings-modal-body {
+  background-color: #e8e5e1;
+}
+html.dark .settings-modal-body {
+  background-color: transparent;
+}
+
+.settings-modal-section-card {
+  background-color: #ffffff;
+  border: 1px solid #2F5F54;
+}
+html.dark .settings-modal-section-card {
+  background-color: transparent;
+  border-color: #2F5F54;
+}
+
+/* Modal and settings chrome edges — church green medium #2F5F54 */
+.modal-panel-edge,
+.modal-shell-panel,
+.settings-modal-panel {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--color-church-surface-inactive-tab-border);
+}
+html.dark .modal-panel-edge,
+html.dark .modal-shell-panel,
+html.dark .settings-modal-panel {
+  border-color: #2F5F54;
+}
+.modal-chrome-border-b {
+  border-bottom: 1px solid #2F5F54;
+}
+.modal-chrome-border-t {
+  border-top: 1px solid #2F5F54;
+}
+.settings-modal-header {
+  border-bottom: 1px solid #2F5F54;
+}
+.settings-modal-footer {
+  border-top: 1px solid #2F5F54;
 }
 
 /* Driver.js help tutorials: wider popover, scroll long copy; dark theme when html.dark */

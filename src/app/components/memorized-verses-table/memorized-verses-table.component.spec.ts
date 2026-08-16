@@ -130,6 +130,18 @@ describe('MemorizedVersesTableComponent', () => {
     });
   });
 
+  it('shows full Sessions label with sort arrow after toggling sessions sort', async () => {
+    const user = userEvent.setup();
+    await renderTable();
+
+    await user.click(screen.getByTitle('Click to sort by sessions'));
+    const sessionsHeader = screen.getByTitle('Click to sort by sessions');
+    expect(sessionsHeader.textContent).toMatch(/Sessions\s*↑/);
+
+    const headerRow = sessionsHeader.closest('.grid') as HTMLElement;
+    expect(headerRow.className).toContain('max-content');
+  });
+
   it('restores saved sort on init', async () => {
     localStorage.setItem(
       MEMORIZE_TABLE_SORT_KEY,
@@ -165,7 +177,7 @@ describe('MemorizedVersesTableComponent', () => {
     expect(root.className).not.toContain('overflow-x-auto');
     expect(screen.getByRole('button', { name: /Mastery/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Reference/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Sess/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Sessions/i })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Version/i })).toBeNull();
   });
 

@@ -34,13 +34,13 @@ import type { MemorizeListenSpeed } from '../../lib/memorization/memorizeListenS
       >
         <div
           [id]="dialogId"
-          class="relative w-full max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl"
+          class="relative w-full max-w-md rounded-lg modal-panel-edge bg-white dark:bg-gray-800 shadow-xl"
           role="dialog"
           aria-modal="true"
           [attr.aria-labelledby]="titleId"
           (click)="$event.stopPropagation()"
         >
-          <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 border-b border-gray-200 dark:border-gray-700 px-4 pt-3 pb-2">
+          <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 modal-chrome-border-b px-4 pt-3 pb-2">
             <h2 [id]="titleId" class="text-lg font-semibold text-gray-800 dark:text-gray-100 min-w-0">
               Listen
             </h2>

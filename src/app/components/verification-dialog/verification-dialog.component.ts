@@ -26,7 +26,7 @@ import { VerificationService } from "../../services/verification.service";
       (click)="onClose.emit()"
     >
       <div
-        class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6"
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 modal-panel-edge"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->

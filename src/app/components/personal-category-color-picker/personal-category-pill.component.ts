@@ -33,6 +33,7 @@ import {
 } from './personal-category-picker-placement';
 import {
   PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES,
+  PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES,
   getMetaHeaderBandLayoutClasses,
   type MetaHeaderBandSize,
 } from '../../lib/prayer-card-layout';
@@ -58,7 +59,7 @@ import {
         type="button"
         [class]="
           variant === 'header'
-            ? 'personal-category-header-band block h-full w-full min-w-0 max-w-full ' + layoutClasses.minHeightClasses + ' ' + headerInsetClasses + ' text-left font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden ' + layoutClasses.textSmClasses
+            ? 'personal-category-header-band block h-full w-full min-w-0 max-w-full ' + layoutClasses.minHeightClasses + ' ' + headerInsetClasses + ' text-left font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden ' + headerTextClasses
             : 'personal-category-pill px-2 py-1 text-xs font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500'
         "
         [title]="variant === 'header' ? category : null"
@@ -96,8 +97,9 @@ import {
   `,
 })
 export class PersonalCategoryPillComponent implements OnInit {
-  /** Match personal meta header action inset (no unread badge clearance). */
+  /** Same left inset as other card headers; compact right edge (no unread badge). */
   readonly headerInsetClasses = PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES;
+  readonly headerTextClasses = PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES;
 
   @Input({ required: true }) category!: string;
   @Input() variant: 'pill' | 'header' = 'pill';

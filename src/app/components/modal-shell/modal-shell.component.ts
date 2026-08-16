@@ -62,7 +62,7 @@ import { NgClass } from "@angular/common";
       >
         @if (showHeader) {
         <div
-          class="flex shrink-0 items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 touch-none"
+          class="flex shrink-0 items-center justify-between p-4 sm:p-6 modal-chrome-border-b touch-none"
         >
           <h2
             [id]="titleId"

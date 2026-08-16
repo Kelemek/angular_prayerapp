@@ -47,7 +47,7 @@ import {
   isMemberPrayerId,
 } from '../../lib/prayer-card-kind';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
-import { getPrayerStatusBorderClasses } from '../../lib/prayer-status-header';
+import { getPrayerStatusBorderClasses, PERSONAL_PRAYER_BORDER_CLASSES } from '../../lib/prayer-status-header';
 import {
   getPrayerCardVariantLayout,
   type PrayerCardVariant,
@@ -452,7 +452,7 @@ export class PrayerCardComponent implements OnInit, OnChanges, OnDestroy {
 
   getBorderClass(): string {
     if (this.isPersonal) {
-      return '!border-gray-300 dark:!border-gray-600';
+      return PERSONAL_PRAYER_BORDER_CLASSES;
     }
     if (isMemberPrayerId(this.prayer.id)) {
       return PLANNING_CENTER_MEMBER_BORDER_CLASS;

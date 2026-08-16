@@ -42,7 +42,7 @@ describe('EnabledDisabledToggleComponent', () => {
     fixture.detectChanges();
 
     expect(buttons()[0].className).toContain('border-blue-500');
-    expect(buttons()[1].className).toContain('border-gray-200');
+    expect(buttons()[1].className).toContain('border-church-surface-inactive-border');
   });
 
   it('applies selected styling to the disabled tile when value is false', () => {
@@ -50,7 +50,7 @@ describe('EnabledDisabledToggleComponent', () => {
     component.value = false;
     fixture.detectChanges();
 
-    expect(buttons()[0].className).toContain('border-gray-200');
+    expect(buttons()[0].className).toContain('border-church-surface-inactive-border');
     expect(buttons()[1].className).toContain('border-blue-500');
   });
 

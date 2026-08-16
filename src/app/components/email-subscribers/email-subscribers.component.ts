@@ -814,7 +814,7 @@ function escapeForIlikePattern(value: string): string {
       <!-- Edit Subscriber Dialog -->
       @if (showEditSubscriberDialog) {
       <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Subscriber</h2>
           </div>

@@ -9,7 +9,12 @@ import {
   masterLevelLabel,
 } from '../../lib/memorization/memorization-mastery';
 import type { MemorizedItem } from '../../types/memorization';
+import { MEMORIZE_CARD_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-classes';
 import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scripture-hover-preview.component';
+
+/** Outlined blue hover — ring inset so corners stay inside rounded card shells. */
+const MEMORIZE_CARD_CONTROL_HOVER =
+  'border border-transparent hover:!border-[#0047AB] hover:!bg-blue-100 hover:ring-inset hover:ring-1 hover:ring-[#0047AB] dark:hover:!border-[#0047AB] dark:hover:!bg-blue-950 dark:hover:ring-[#0047AB]';
 
 @Component({
   selector: 'app-memorized-verse-card',
@@ -19,10 +24,10 @@ import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scrip
   template: `
     <div
       [id]="tourMemorizeAnchors ? 'tour-memorize-sample-card' : null"
-      class="h-full flex bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden"
+      class="h-full flex bg-white dark:bg-gray-800 rounded-lg shadow-md {{ memorizeCardShellBorder }} overflow-hidden"
     >
       <app-scripture-hover-preview
-        class="min-w-0 flex-1"
+        class="min-w-0 flex-1 h-full"
         [reference]="item.reference"
         [translation]="item.translation"
         [disabled]="isBibleBooksMemorizationItem(item)"
@@ -31,7 +36,7 @@ import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scrip
           type="button"
           data-testid="memorize-card-practice"
           (click)="practice.emit(item)"
-          class="w-full h-full min-w-0 text-left px-4 py-3 transition-colors cursor-pointer border border-transparent hover:!border-[#0047AB] hover:!bg-blue-100 hover:ring hover:ring-[#0047AB] hover:ring-offset-0 dark:hover:!border-[#0047AB] dark:hover:!bg-blue-950 dark:hover:ring-[#0047AB]"
+          class="w-full h-full min-w-0 text-left px-4 py-3 rounded-l-lg transition-colors cursor-pointer {{ memorizeCardControlHover }}"
         >
           <span class="font-semibold text-gray-900 dark:text-gray-100 block truncate">
             {{ item.reference }}
@@ -55,7 +60,7 @@ import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scrip
         type="button"
         data-testid="memorize-card-remove"
         (click)="remove.emit(item)"
-        class="shrink-0 flex items-center justify-center px-3 border border-transparent text-gray-500 dark:text-gray-400 transition-colors cursor-pointer hover:!border-[#0047AB] hover:!bg-blue-100 hover:ring hover:ring-[#0047AB] hover:ring-offset-0 hover:text-red-600 dark:hover:!border-[#0047AB] dark:hover:!bg-blue-950 dark:hover:ring-[#0047AB] dark:hover:text-red-400"
+        class="shrink-0 flex items-center justify-center px-3 rounded-r-lg text-gray-500 dark:text-gray-400 transition-colors cursor-pointer {{ memorizeCardControlHover }} hover:text-red-600 dark:hover:text-red-400"
         [attr.aria-label]="'Remove ' + item.reference"
         title="Remove"
       >
@@ -71,6 +76,9 @@ export class MemorizedVerseCardComponent {
   @Input() tourMemorizeAnchors = false;
   @Output() practice = new EventEmitter<MemorizedItem>();
   @Output() remove = new EventEmitter<MemorizedItem>();
+
+  readonly memorizeCardControlHover = MEMORIZE_CARD_CONTROL_HOVER;
+  readonly memorizeCardShellBorder = MEMORIZE_CARD_SHELL_BORDER_CLASS;
 
   readonly isBibleBooksMemorizationItem = isBibleBooksMemorizationItem;
   readonly bibleBooksCountLabel = bibleBooksCountLabel;

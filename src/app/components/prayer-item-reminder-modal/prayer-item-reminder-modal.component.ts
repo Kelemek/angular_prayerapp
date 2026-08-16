@@ -81,7 +81,7 @@ const DATE_OPTIONS_DAYS = 90;
             </ul>
           }
 
-          <div class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div class="space-y-3 modal-chrome-border-t pt-4">
             <div class="flex flex-wrap gap-1.5 sm:gap-2" role="group" aria-label="Reminder type">
               @for (m of modes; track m.value) {
                 <button

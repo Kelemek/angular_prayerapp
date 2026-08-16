@@ -4,8 +4,8 @@
     (click)="themeChange.emit('light')"
     class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
     [ngClass]="{
-      'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'light',
-      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+      'border-blue-500 bg-blue-200 dark:bg-blue-900/20': theme === 'light',
+      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
         theme !== 'light'
     }"
   >
@@ -39,8 +39,8 @@
     (click)="themeChange.emit('dark')"
     class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
     [ngClass]="{
-      'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'dark',
-      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+      'border-blue-500 bg-blue-200 dark:bg-blue-900/20': theme === 'dark',
+      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
         theme !== 'dark'
     }"
   >
@@ -66,8 +66,8 @@
     (click)="themeChange.emit('system')"
     class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer"
     [ngClass]="{
-      'border-blue-500 bg-blue-50 dark:bg-blue-900/20': theme === 'system',
-      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+      'border-blue-500 bg-blue-200 dark:bg-blue-900/20': theme === 'system',
+      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
         theme !== 'system'
     }"
   >

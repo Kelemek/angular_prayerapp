@@ -83,7 +83,7 @@
 
       <!-- Action buttons - flex-nowrap, reduced padding so row fits without wrap or scroll -->
       @if (showAddUpdateButton()) {
-      <div [class]="'flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
+      <div [class]="'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
         <button
           type="button"
           (click)="toggleAddUpdate()"
@@ -176,7 +176,6 @@
             [shellClass]="variantLayout.updateShellClass"
             [contentClass]="variantLayout.updateContentClass"
             [showUpdatedBy]="isCommunityPrayer()"
-            [compactHeaderInset]="isPersonal || isMemberPrayer()"
           >
             <app-prayer-update-actions
               updateActions
@@ -252,8 +251,8 @@
       <!-- Pray For explanation modal -->
       @if (showPrayForModal) {
       <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
+          <div class="px-6 py-4 modal-chrome-border-b">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Pray For This Request</h2>
           </div>
           <div class="px-6 py-4">
@@ -287,7 +286,7 @@
               <span class="text-sm text-gray-700 dark:text-gray-300">Do not show this again</span>
             </label>
           </div>
-          <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+          <div class="px-6 py-4 modal-chrome-border-t flex gap-3 justify-end">
             <button
               (click)="showPrayForModal = false; prayForDoNotShowAgain = false"
               class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"

@@ -50,11 +50,11 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
       (touchmove)="onModalTouchMove($event)"
     >
       <div
-        class="w-full sm:max-w-lg max-h-[min(92vh,720px)] flex flex-col bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden touch-none"
+        class="w-full sm:max-w-lg max-h-[min(92vh,720px)] flex flex-col bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-lg shadow-xl modal-panel-edge overflow-hidden touch-none"
         (click)="$event.stopPropagation()"
         (touchmove)="onModalTouchMove($event)"
       >
-        <div class="shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 touch-none">
+        <div class="shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 modal-chrome-border-b touch-none">
           <h2 id="bible-passage-picker-title" class="text-lg font-semibold text-gray-800 dark:text-gray-200">
             {{ selectedChapterId ? 'Pick Verse Range' : 'Pick Chapter' }}
           </h2>
@@ -185,7 +185,7 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
           </div>
 
           <div
-            class="shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 bg-gray-50 dark:bg-gray-900/40 touch-none"
+            class="shrink-0 modal-chrome-border-t px-4 sm:px-6 py-3 bg-gray-50 dark:bg-gray-900/40 touch-none"
             style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
             (touchmove)="onModalTouchMove($event)"
           >

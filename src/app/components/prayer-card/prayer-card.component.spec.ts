@@ -154,12 +154,13 @@ describe('PrayerCardComponent', () => {
     });
   });
 
-  it('getBorderClass uses neutral border for personal prayers regardless of status', () => {
+  it('getBorderClass uses Personal tab green for personal prayers regardless of status', () => {
     component.isPersonal = true;
     (component.prayer as any).status = 'current';
 
-    expect(component.getBorderClass()).toContain('border-gray-300');
+    expect(component.getBorderClass()).toContain('2F5F54');
     expect(component.getBorderClass()).not.toContain('0047AB');
+    expect(component.getBorderClass()).not.toContain('border-gray-300');
   });
 
   it('getBorderClass matches Members tab for Planning Center list prayers', () => {

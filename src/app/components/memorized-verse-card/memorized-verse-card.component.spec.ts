@@ -77,10 +77,13 @@ describe('MemorizedVerseCardComponent', () => {
     expect(practice.className).toContain('hover:!border-[#0047AB]');
     expect(practice.className).toContain('hover:!bg-blue-100');
     expect(practice.className).toContain('dark:hover:!bg-blue-950');
+    expect(practice.className).toContain('rounded-l-lg');
+    expect(practice.className).toContain('ring-inset');
 
     expect(remove.className).toContain('hover:!border-[#0047AB]');
     expect(remove.className).toContain('hover:!bg-blue-100');
     expect(remove.className).toContain('dark:hover:!bg-blue-950');
+    expect(remove.className).toContain('rounded-r-lg');
     expect(remove.className).toContain('hover:text-red-600');
   });
 

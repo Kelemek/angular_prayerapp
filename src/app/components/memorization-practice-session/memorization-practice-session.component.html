@@ -9,7 +9,7 @@
     >
       <div
         data-tour="memorize-practice-dialog"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border modal-panel-edge"
       >
         <p class="text-gray-700 dark:text-gray-200">Loading passage…</p>
       </div>
@@ -23,7 +23,7 @@
     >
       <div
         data-tour="memorize-practice-dialog"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border modal-panel-edge"
       >
         <p class="text-gray-700 dark:text-gray-200">{{ passageLoadError }}</p>
         <button
@@ -44,7 +44,7 @@
     >
       <div
         data-tour="memorize-practice-dialog"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border modal-panel-edge"
       >
         <p class="text-gray-700 dark:text-gray-200">No passage text to practice for this item.</p>
         <button
@@ -68,9 +68,9 @@
     >
       <div
         data-tour="memorize-practice-dialog"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] border modal-panel-edge flex flex-col overflow-hidden"
       >
-        <div class="flex items-center justify-between gap-3 px-4 pt-4 pb-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <div class="flex items-center justify-between gap-3 px-4 pt-4 pb-2 modal-chrome-border-b shrink-0">
           @if (phase === 'done') {
             <h2
               id="memorize-practice-dialog-title"
@@ -130,7 +130,7 @@
                   type="button"
                   data-testid="memorize-hint-button"
                   tabindex="-1"
-                  class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border border-blue-200 dark:border-blue-700 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-900/60 hover:border-blue-300 dark:hover:border-blue-600 active:bg-blue-200 dark:active:bg-blue-900/70 select-none touch-manipulation cursor-pointer"
+                  class="px-3 py-1.5 {{ practiceBlueBtnHintClass }}"
                   [attr.aria-pressed]="hintActive"
                   [attr.aria-label]="
                     practiceMode === 'reorder'
@@ -245,7 +245,7 @@
               </div>
             </div>
             <div
-              class="shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3"
+              class="shrink-0 modal-chrome-border-t px-4 py-3"
               data-testid="memorize-intro-footer"
             >
               <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end">
@@ -253,7 +253,7 @@
                   type="button"
                   data-tour="memorize-start-practice"
                   (click)="openModePicker()"
-                  class="w-full sm:w-auto sm:shrink-0 px-4 py-3 text-center rounded-lg font-medium transition-colors cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 hover:border-blue-300 dark:hover:border-blue-600"
+                  class="w-full sm:w-auto sm:shrink-0 px-4 py-3 text-center {{ practiceBlueBtnClass }}"
                 >
                   Start practice
                 </button>
@@ -273,7 +273,7 @@
                         (click)="startRoundChoice = opt.value"
                         class="min-h-[50px] min-w-[2.75rem] flex-1 sm:flex-none px-2 py-2.5 text-sm rounded-lg font-medium transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900"
                         [class]="startRoundChoice === opt.value
-                          ? 'bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 hover:border-blue-300 dark:hover:border-blue-600'
+                          ? practiceBlueBtnFillClass
                           : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500'"
                       >
                         {{ opt.value }}
@@ -554,7 +554,7 @@
                   <button
                     type="button"
                     (click)="handleClose()"
-                    class="mt-6 px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
+                    class="mt-6 px-4 py-3 {{ practiceBlueBtnClass }}"
                   >
                     Done
                   </button>
@@ -564,7 +564,7 @@
 
             @if (phase === 'practicing' && practiceMode === 'recite' && !awaitingRoundAdvance) {
               <div
-                class="shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3"
+                class="shrink-0 modal-chrome-border-t px-4 py-3"
                 data-testid="memorize-recite-footer"
               >
                 <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
@@ -649,7 +649,7 @@
                         type="button"
                         data-testid="memorize-recite-next-round"
                         (click)="onReciteNextRound()"
-                        class="w-full sm:w-auto px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
+                        class="w-full sm:w-auto px-4 py-3 {{ practiceBlueBtnClass }}"
                       >
                         Next round
                       </button>
@@ -659,7 +659,7 @@
                         type="button"
                         data-testid="memorize-recite-finish"
                         (click)="onReciteFinishPractice()"
-                        class="w-full sm:w-auto px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
+                        class="w-full sm:w-auto px-4 py-3 {{ practiceBlueBtnClass }}"
                       >
                         Finish practice
                       </button>
@@ -679,7 +679,7 @@
 
             @if (phase === 'practicing' && awaitingRoundAdvance) {
               <div
-                class="shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3"
+                class="shrink-0 modal-chrome-border-t px-4 py-3"
                 data-testid="memorize-round-advance-footer"
               >
                 <p
@@ -701,7 +701,7 @@
                     type="button"
                     data-testid="memorize-next-round"
                     (click)="nextRound()"
-                    class="w-full sm:w-auto px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
+                    class="w-full sm:w-auto px-4 py-3 {{ practiceBlueBtnClass }}"
                   >
                     Next round
                   </button>
@@ -711,7 +711,7 @@
                     type="button"
                     data-testid="memorize-finish-practice"
                     (click)="finishPracticeSession()"
-                    class="w-full sm:w-auto px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
+                    class="w-full sm:w-auto px-4 py-3 {{ practiceBlueBtnClass }}"
                   >
                     Finish practice
                   </button>
@@ -735,7 +735,7 @@
           aria-modal="true"
           [attr.aria-labelledby]="modePickerTitle"
           data-tour="memorize-practice-mode-picker"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border modal-panel-edge"
           (click)="$event.stopPropagation()"
         >
           <div class="flex items-center justify-between gap-3 mb-4">
@@ -771,16 +771,16 @@
             </p>
           }
           <div class="flex flex-col gap-3">
-            <button type="button" data-testid="memorize-practice-mode-type" (click)="beginPracticeWithMode('type')" class="w-full px-4 py-3 rounded-lg font-medium cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
+            <button type="button" data-testid="memorize-practice-mode-type" (click)="beginPracticeWithMode('type')" class="w-full px-4 py-3 {{ practiceBlueBtnClass }}">
               Type mode
             </button>
-            <button type="button" data-testid="memorize-practice-mode-initials" (click)="beginPracticeWithMode('firstLetters')" class="w-full px-4 py-3 rounded-lg font-medium cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
+            <button type="button" data-testid="memorize-practice-mode-initials" (click)="beginPracticeWithMode('firstLetters')" class="w-full px-4 py-3 {{ practiceBlueBtnClass }}">
               Initials mode
             </button>
-            <button type="button" data-testid="memorize-practice-mode-word" (click)="beginPracticeWithMode('word')" class="w-full px-4 py-3 rounded-lg font-medium cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
+            <button type="button" data-testid="memorize-practice-mode-word" (click)="beginPracticeWithMode('word')" class="w-full px-4 py-3 {{ practiceBlueBtnClass }}">
               Word mode
             </button>
-            <button type="button" data-testid="memorize-practice-mode-reorder" (click)="beginPracticeWithMode('reorder')" class="w-full px-4 py-3 rounded-lg font-medium cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
+            <button type="button" data-testid="memorize-practice-mode-reorder" (click)="beginPracticeWithMode('reorder')" class="w-full px-4 py-3 {{ practiceBlueBtnClass }}">
               Reorder mode
             </button>
             @if (reciteModeVisible) {
@@ -788,7 +788,7 @@
                 type="button"
                 data-testid="memorize-practice-mode-recite"
                 (click)="beginPracticeWithMode('recite')"
-                class="w-full px-4 py-3 rounded-lg font-medium cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
+                class="w-full px-4 py-3 {{ practiceBlueBtnClass }}"
               >
                 <span class="inline-flex items-center justify-center gap-2">
                   Recite mode
@@ -816,7 +816,7 @@
           aria-modal="true"
           aria-labelledby="memorize-recite-feedback-help-title"
           data-testid="memorize-recite-feedback-help-dialog"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border modal-panel-edge"
           (click)="$event.stopPropagation()"
         >
           <h2
@@ -843,7 +843,7 @@
               type="button"
               data-testid="memorize-recite-feedback-help-settings"
               (click)="openSettingsForReciteFeedback()"
-              class="w-full sm:w-auto px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
+              class="w-full sm:w-auto px-4 py-3 {{ practiceBlueBtnClass }}"
             >
               Open Settings
             </button>

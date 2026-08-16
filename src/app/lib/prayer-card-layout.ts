@@ -24,9 +24,13 @@ export const PRAYER_CARD_HEADER_INSET_CLASSES = 'px-4 sm:px-6';
 export const PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES =
   'px-1 sm:px-3';
 
-/** Personal category label in meta header — compact right edge, slightly more left inset. */
+/** Personal category label in meta header — same left inset as other cards, compact right edge. */
 export const PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES =
-  'pl-2 pr-1 sm:px-3';
+  'pl-4 pr-1 sm:pl-6 sm:pr-3';
+
+/** Personal category label type — smaller on mobile so more of the name fits before truncate. */
+export const PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES =
+  'text-[12px] sm:text-[14px]';
 
 /** Uniform meta-header icon box (16px) so flex gaps look even between glyphs. */
 export const PRAYER_CARD_META_HEADER_ICON_SIZE_CLASSES = 'block size-[16px] shrink-0';
@@ -104,7 +108,7 @@ const HOME_CARD_CHROME: CardVariantChrome = {
   actionButtonClasses:
     'flex-shrink-0 px-2 py-1 text-xs font-medium whitespace-nowrap',
   prayedForBadgeClasses:
-    'flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
+    'flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-200 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
   showUnreadBadges: true,
 };
 
@@ -119,7 +123,7 @@ const PRESENTATION_CARD_CHROME: CardVariantChrome = {
   actionButtonClasses:
     'px-3 py-1.5 text-sm sm:px-4 sm:py-2 sm:text-base md:text-lg font-medium whitespace-nowrap',
   prayedForBadgeClasses:
-    'px-2 py-1.5 text-sm sm:px-3 sm:py-2 sm:text-base md:text-lg font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
+    'px-2 py-1.5 text-sm sm:px-3 sm:py-2 sm:text-base md:text-lg font-medium bg-blue-200 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
   showUnreadBadges: false,
 };
 

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
+  PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES,
+  PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES,
   getMetaHeaderBandLayoutClasses,
   getPrayerCardVariantLayout,
   getPromptCardVariantLayout,
@@ -52,5 +55,28 @@ describe('getMetaHeaderBandLayoutClasses', () => {
     const home = getMetaHeaderBandLayoutClasses();
     const presentation = getPrayerCardVariantLayout('presentation');
     expect(getMetaHeaderBandLayoutClasses(presentation.bandSize)).toEqual(home);
+  });
+});
+
+describe('PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES', () => {
+  it('uses the same left inset as other prayer card headers', () => {
+    const personalTokens = PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES.split(
+      /\s+/
+    );
+    const sharedTokens = PRAYER_CARD_HEADER_INSET_CLASSES.split(/\s+/);
+    expect(sharedTokens).toEqual(['px-4', 'sm:px-6']);
+    expect(personalTokens).toContain('pl-4');
+    expect(personalTokens).toContain('sm:pl-6');
+    expect(personalTokens).not.toContain('pl-2');
+    expect(personalTokens).not.toContain('sm:px-3');
+  });
+});
+
+describe('PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES', () => {
+  it('uses smaller type on mobile so more of the category name fits', () => {
+    const tokens = PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES.split(/\s+/);
+    expect(tokens).toContain('text-[12px]');
+    expect(tokens).toContain('sm:text-[14px]');
+    expect(tokens).not.toContain('text-[14px]');
   });
 });

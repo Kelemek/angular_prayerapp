@@ -129,6 +129,16 @@ function hiddenTypingTokenIndices(
   return new Set([...localHidden].map((li) => typableIndices[li]!));
 }
 
+/** Border matches header Request (`btn-chip-blue`). */
+const MEMORIZE_PRACTICE_BLUE_BTN_FILL_CLASS =
+  'bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-600 dark:border-blue-500';
+
+const MEMORIZE_PRACTICE_BLUE_BTN_CLASS =
+  `${MEMORIZE_PRACTICE_BLUE_BTN_FILL_CLASS} rounded-lg font-medium transition-colors cursor-pointer`;
+
+const MEMORIZE_PRACTICE_BLUE_BTN_HINT_CLASS =
+  `${MEMORIZE_PRACTICE_BLUE_BTN_FILL_CLASS} active:bg-blue-200 dark:active:bg-blue-900/70 text-sm rounded-lg transition-colors select-none touch-manipulation cursor-pointer font-medium`;
+
 @Component({
   selector: 'app-memorization-practice-session',
   standalone: true,
@@ -226,6 +236,9 @@ export class MemorizationPracticeSessionComponent
   readonly cueGlyphForTypableToken = cueGlyphForTypableToken;
   readonly isKeyboardPracticeMode = isKeyboardPracticeMode;
   readonly Math = Math;
+  readonly practiceBlueBtnFillClass = MEMORIZE_PRACTICE_BLUE_BTN_FILL_CLASS;
+  readonly practiceBlueBtnClass = MEMORIZE_PRACTICE_BLUE_BTN_CLASS;
+  readonly practiceBlueBtnHintClass = MEMORIZE_PRACTICE_BLUE_BTN_HINT_CLASS;
 
   phase: Phase = 'intro';
   practiceMode: MemorizationPracticeMode | null = null;

@@ -36,11 +36,11 @@ import type {
         (touchmove)="onModalTouchMove($event)"
       >
         <div
-          class="w-full max-w-lg max-h-[min(92vh,720px)] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700 touch-none"
+          class="w-full max-w-lg max-h-[min(92vh,720px)] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden modal-panel-edge touch-none"
           (click)="$event.stopPropagation()"
         >
           <div
-            class="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 touch-none"
+            class="shrink-0 flex items-center justify-between gap-3 px-4 py-3 modal-chrome-border-b touch-none"
           >
             <h2
               id="memorization-recommendations-title"

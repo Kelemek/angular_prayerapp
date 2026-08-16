@@ -50,7 +50,7 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
         aria-modal="true"
         aria-labelledby="admin-help-modal-title"
       >
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col pointer-events-auto">
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col pointer-events-auto modal-panel-edge">
           <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-t-lg z-10">
             <div class="flex items-start justify-between mb-4">
               <div>

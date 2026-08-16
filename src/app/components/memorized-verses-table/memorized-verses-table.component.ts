@@ -26,12 +26,13 @@ import {
 } from '../../lib/memorization/memorization-mastery';
 import { sortMemorizedItemsForTable } from '../../lib/memorization/memorization-table-sort';
 import { splitScriptureReferenceDisplay } from '../../lib/memorization/parse-scripture-reference';
+import { MEMORIZE_CARD_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-classes';
 import type { MemorizedItem } from '../../types/memorization';
 import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scripture-hover-preview.component';
 
-/** Fits phone width: flexible reference + compact sessions/mastery/actions. */
+/** Reference flexes; sessions column grows for "Sessions ↑/↓" on mobile. */
 const TABLE_COLS =
-  'grid-cols-[minmax(0,1fr)_2.75rem_minmax(0,5.25rem)_2rem] sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,7rem)_2.5rem]';
+  'grid-cols-[minmax(0,1fr)_minmax(3.5rem,max-content)_minmax(0,3.75rem)_1.75rem] sm:grid-cols-[minmax(0,1fr)_minmax(3.5rem,max-content)_minmax(0,4.5rem)_2.25rem]';
 
 @Component({
   selector: 'app-memorized-verses-table',
@@ -45,7 +46,7 @@ const TABLE_COLS =
       class="w-full min-w-0"
     >
       <div
-        class="mb-2 grid gap-1 rounded-lg border border-gray-200 bg-white px-2 py-2 text-[11px] font-semibold text-gray-700 shadow-md dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 sm:mb-3 sm:gap-2 sm:px-3 sm:text-xs ${TABLE_COLS}"
+        class="mb-2 grid gap-1 rounded-lg bg-white px-2 py-2 text-[11px] font-semibold text-gray-700 shadow-md dark:bg-gray-800 dark:text-gray-300 sm:mb-3 sm:gap-2 sm:px-3 sm:text-xs {{ memorizeCardShellBorder }} ${TABLE_COLS}"
       >
         <button
           type="button"
@@ -57,16 +58,15 @@ const TABLE_COLS =
         </button>
         <button
           type="button"
-          class="cursor-pointer text-left transition-colors hover:text-gray-900 dark:hover:text-gray-100"
+          class="whitespace-nowrap cursor-pointer text-end transition-colors hover:text-gray-900 dark:hover:text-gray-100"
           title="Click to sort by sessions"
           (click)="toggleSort('sessions')"
         >
-          <span class="sm:hidden">Sess.{{ getSortIndicator('sessions') }}</span>
-          <span class="hidden sm:inline">Sessions{{ getSortIndicator('sessions') }}</span>
+          Sessions{{ getSortIndicator('sessions') }}
         </button>
         <button
           type="button"
-          class="min-w-0 cursor-pointer truncate text-left transition-colors hover:text-gray-900 dark:hover:text-gray-100"
+          class="min-w-0 cursor-pointer truncate text-end transition-colors hover:text-gray-900 dark:hover:text-gray-100"
           title="Click to sort by mastery"
           (click)="toggleSort('mastery')"
         >
@@ -81,7 +81,7 @@ const TABLE_COLS =
         @for (item of sortedItems; track item.id) {
           <div
             role="listitem"
-            class="grid items-center gap-1 overflow-hidden rounded-lg border border-gray-200 bg-white px-2 py-2 shadow-md dark:border-gray-700 dark:bg-gray-800 sm:gap-2 sm:p-3 ${TABLE_COLS}"
+            class="grid items-center gap-1 overflow-hidden rounded-lg bg-white px-2 py-2 shadow-md dark:bg-gray-800 sm:gap-2 sm:p-3 {{ memorizeCardShellBorder }} ${TABLE_COLS}"
           >
             <div class="min-w-0">
               <app-scripture-hover-preview
@@ -121,13 +121,13 @@ const TABLE_COLS =
               </app-scripture-hover-preview>
             </div>
 
-            <div class="min-w-0 tabular-nums">
+            <div class="min-w-0 tabular-nums text-end">
               <p class="text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
                 {{ countCompletedSessions(item) }}
               </p>
             </div>
 
-            <div class="min-w-0">
+            <div class="min-w-0 text-end">
               <p
                 class="truncate text-xs text-gray-600 dark:text-gray-400 sm:text-sm"
                 [title]="masterLevelLabel(getMasterLevel(item))"
@@ -181,6 +181,7 @@ export class MemorizedVersesTableComponent implements OnInit {
   readonly getMasterLevel = getMasterLevel;
   readonly masterLevelLabel = masterLevelLabel;
   readonly splitReference = splitScriptureReferenceDisplay;
+  readonly memorizeCardShellBorder = MEMORIZE_CARD_SHELL_BORDER_CLASS;
 
   private readonly cdr = inject(ChangeDetectorRef);
 

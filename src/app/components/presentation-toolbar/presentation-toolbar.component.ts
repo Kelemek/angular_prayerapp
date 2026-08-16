@@ -8,6 +8,7 @@ import {
   OnChanges,
   SimpleChanges,
 } from "@angular/core";
+import { HOME_SHELL_FOOTER_BORDER_TOP_CLASS } from "../../lib/home-sub-filter-chip-classes";
 
 @Component({
   selector: "app-presentation-toolbar",
@@ -19,7 +20,9 @@ import {
       id="tour-presentation-toolbar"
       class="presentation-toolbar-bar"
       [class]="
-        'fixed bottom-0 left-0 right-0 z-40 flex items-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-md px-4 md:px-5 lg:px-6 pt-4 md:pt-5 lg:pt-6 border-t border-gray-200 dark:border-gray-700 transition-transform duration-300 ' +
+        'fixed bottom-0 left-0 right-0 z-40 flex items-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-md px-4 md:px-5 lg:px-6 pt-4 md:pt-5 lg:pt-6 ' +
+        footerBorderTopClass +
+        ' transition-transform duration-300 ' +
         (visible ? 'translate-y-0' : 'translate-y-full')
       "
     >
@@ -163,6 +166,8 @@ import {
   ],
 })
 export class PresentationToolbarComponent implements OnChanges {
+  readonly footerBorderTopClass = HOME_SHELL_FOOTER_BORDER_TOP_CLASS;
+
   @Input() visible = true;
   @Input() isPlaying = false;
   @Input() showTimer = true;

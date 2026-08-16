@@ -211,7 +211,7 @@ describe('PromptCardComponent - Core Logic', () => {
     it('should apply selected state to type badge', () => {
       const isTypeSelected = true;
       const selectedClass = isTypeSelected
-        ? 'border !border-[#988F83] bg-stone-100 ring ring-[#988F83]'
+        ? 'border !border-[#988F83] bg-stone-300 ring ring-[#988F83]'
         : 'bg-white border border-gray-300';
 
       expect(selectedClass).toContain('#988F83');

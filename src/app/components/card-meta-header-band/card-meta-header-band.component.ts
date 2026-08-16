@@ -8,6 +8,7 @@ import {
   getMetaHeaderBandLayoutClasses,
   type MetaHeaderBandSize,
 } from '../../lib/prayer-card-layout';
+import { META_HEADER_BORDER_BOTTOM_CLASSES } from '../../lib/prayer-status-header';
 
 @Component({
   selector: 'app-card-meta-header-band',
@@ -18,8 +19,8 @@ import {
     <div
       [class]="
         layout === 'two-column'
-          ? 'grid grid-cols-[minmax(0,1fr)_auto] items-stretch ' + bleedClasses + ' overflow-hidden rounded-t-lg border-b border-gray-200 dark:border-gray-700 ' + bandMarginClasses + ' ' + minHeightClasses
-          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden rounded-t-lg border-b border-gray-200 dark:border-gray-700 ' + bandMarginClasses + ' ' + minHeightClasses
+          ? 'grid grid-cols-[minmax(0,1fr)_auto] items-stretch ' + bleedClasses + ' overflow-hidden rounded-t-lg ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses
+          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden rounded-t-lg ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses
       "
     >
       <div [class]="'flex h-full min-w-0 w-full items-center self-stretch overflow-hidden ' + minHeightClasses">
@@ -73,6 +74,8 @@ export class CardMetaHeaderBandComponent {
 
   /** Override when the card shell uses non-standard horizontal padding (e.g. presentation p-8). */
   @Input() bleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
+  /** Bottom border under the meta header band (card accent or default gray). */
+  @Input() borderBottomClasses = META_HEADER_BORDER_BOTTOM_CLASSES;
   /** Controls band height, center date size, and vertical spacing below the band. */
   @Input() bandSize: MetaHeaderBandSize = 'sm';
 

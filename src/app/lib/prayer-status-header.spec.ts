@@ -4,6 +4,8 @@ import {
   getPrayerStatusHeaderTextClasses,
   getPrayerStatusLabel,
   getPrayerStatusPillClasses,
+  PERSONAL_PRAYER_BORDER_CLASSES,
+  META_HEADER_BORDER_BOTTOM_CLASSES,
 } from './prayer-status-header';
 
 describe('prayer-status-header', () => {
@@ -18,6 +20,14 @@ describe('prayer-status-header', () => {
 
   it('getPrayerStatusLabel capitalizes', () => {
     expect(getPrayerStatusLabel('answered')).toBe('Answered');
+  });
+
+  it('PERSONAL_PRAYER_BORDER_CLASSES matches Personal tab accent', () => {
+    expect(PERSONAL_PRAYER_BORDER_CLASSES).toContain('2F5F54');
+  });
+
+  it('META_HEADER_BORDER_BOTTOM_CLASSES matches Personal tab accent', () => {
+    expect(META_HEADER_BORDER_BOTTOM_CLASSES).toContain('2F5F54');
   });
 
   it('getPrayerStatusBorderClasses varies by status', () => {

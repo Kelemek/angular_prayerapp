@@ -2,8 +2,11 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { MemorizeListView } from '../../lib/memorization/memorization-list-prefs';
 import {
+  HOME_INACTIVE_SURFACE_BG_CLASS,
   HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
+  HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS,
   HOME_SUB_FILTER_CHIP_ROW_CLASS,
+  MEMORIZE_CARD_SHELL_BORDER_CLASS,
 } from '../../lib/home-sub-filter-chip-classes';
 import { HOME_SHELL_SECTION_GAP_CLASSES } from '../../lib/home-shell-spacing';
 
@@ -11,36 +14,40 @@ import { HOME_SHELL_SECTION_GAP_CLASSES } from '../../lib/home-shell-spacing';
 const ACTION_BTN_BASE =
   'flex flex-1 items-center justify-center whitespace-nowrap rounded-lg border px-2 py-2 text-[14px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer sm:flex-none sm:px-4';
 
-/** Outlined blue — matches active **Memorize** stat tab (`#tour-filter-memorize`). */
+/** Outlined blue — lighter fill than the Memorize panel (`bg-blue-200`). */
 const MEMORIZE_TAB_CHIP =
-  '!border-[#0047AB] bg-blue-100 text-gray-700 ring ring-[#0047AB] ring-offset-0 dark:!border-[#0047AB] dark:bg-blue-950 dark:text-gray-300 dark:ring-[#0047AB]';
+  `!border-[#0047AB] ${HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS} text-gray-700 ring ring-[#0047AB] ring-offset-0 dark:!border-[#0047AB] dark:text-gray-300 dark:ring-[#0047AB]`;
 
 const SOFT_BLUE_BTN = `border ${MEMORIZE_TAB_CHIP}`;
 
-/** Hover/active on inactive buttons — same outlined blue as Verses / active Memorize tab. */
+/** Hover/active on inactive buttons — same outlined blue as Add Verses. */
 const MEMORIZE_TAB_CHIP_HOVER =
-  'hover:border hover:!border-[#0047AB] hover:!bg-blue-100 hover:!text-gray-700 hover:ring hover:ring-[#0047AB] hover:ring-offset-0 dark:hover:!border-[#0047AB] dark:hover:!bg-blue-950 dark:hover:!text-gray-300 dark:hover:ring-[#0047AB]';
+  'hover:border hover:!border-[#0047AB] hover:!bg-home-panel-blue-chip-active hover:!text-gray-700 hover:ring hover:ring-[#0047AB] hover:ring-offset-0 dark:hover:!border-[#0047AB] dark:hover:!bg-home-panel-blue-chip-active-dark dark:hover:!text-gray-300 dark:hover:ring-[#0047AB]';
 
 const MEMORIZE_TAB_CHIP_ACTIVE =
-  'active:border active:!border-[#0047AB] active:!bg-blue-100 active:!text-gray-700 active:ring active:ring-[#0047AB] active:ring-offset-0 dark:active:!border-[#0047AB] dark:active:!bg-blue-950 dark:active:!text-gray-300 dark:active:ring-[#0047AB]';
+  'active:border active:!border-[#0047AB] active:!bg-home-panel-blue-chip-active active:!text-gray-700 active:ring active:ring-[#0047AB] active:ring-offset-0 dark:active:!border-[#0047AB] dark:active:!bg-home-panel-blue-chip-active-dark dark:active:!text-gray-300 dark:active:ring-[#0047AB]';
 
 /**
  * Neutral at rest; hover/active match Verses / active Memorize tab.
  * Dark hover uses `!` because theme `@utility` classes (e.g. bg-gray-800) set `!important`.
  */
 const SECONDARY_BTN =
-  `border-gray-300 bg-white text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 ${MEMORIZE_TAB_CHIP_HOVER} ${MEMORIZE_TAB_CHIP_ACTIVE}`;
+  `border-church-surface-inactive-border ${HOME_INACTIVE_SURFACE_BG_CLASS} text-gray-600 dark:border-gray-600 dark:text-gray-400 ${MEMORIZE_TAB_CHIP_HOVER} ${MEMORIZE_TAB_CHIP_ACTIVE}`;
+
+/** Divider between Cards / Table segments — same church green as card shells. */
+const VIEW_TOGGLE_DIVIDER_CLASS =
+  'border-r border-church-surface-inactive-tab-border dark:border-[#2F5F54]';
 
 const VIEW_BTN_BASE =
   'box-border px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 cursor-pointer';
 
 /** Selected segment — fill only; no ring (avoids hover/active size jump). */
 const VIEW_BTN_ACTIVE =
-  'border-transparent !bg-blue-100 !text-gray-700 dark:!bg-blue-950 dark:!text-gray-300';
+  'border-transparent !bg-blue-200 !text-gray-700 dark:!bg-blue-950 dark:!text-gray-300';
 
 /** Unselected segment — color change on hover only. */
 const VIEW_BTN_INACTIVE =
-  'border-transparent bg-white text-gray-600 hover:!bg-blue-50 hover:!text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:!bg-blue-950 dark:hover:!text-gray-300';
+  `border-transparent ${HOME_INACTIVE_SURFACE_BG_CLASS} text-gray-600 hover:!bg-blue-50 hover:!text-gray-700 dark:text-gray-400 dark:hover:!bg-blue-950 dark:hover:!text-gray-300`;
 
 @Component({
   selector: 'app-memorization-action-bar',
@@ -92,7 +99,7 @@ const VIEW_BTN_INACTIVE =
           View
         </span>
         <div
-          class="inline-flex overflow-hidden rounded-md border border-gray-300 dark:border-gray-600"
+          [class]="'inline-flex overflow-hidden rounded-md ' + viewToggleBorder"
           role="group"
           aria-labelledby="memorize-list-layout-label"
           data-testid="memorize-list-layout-toggle"
@@ -103,7 +110,9 @@ const VIEW_BTN_INACTIVE =
             [attr.aria-pressed]="listView === 'cards'"
             [class]="
               viewBtnBase +
-              ' border-r border-gray-300 dark:border-gray-600 ' +
+              ' ' +
+              viewToggleDivider +
+              ' ' +
               (listView === 'cards' ? viewBtnActive : viewBtnInactive)
             "
             (click)="setListView('cards')"
@@ -146,6 +155,8 @@ export class MemorizationActionBarComponent {
   protected readonly viewBtnBase = VIEW_BTN_BASE;
   protected readonly viewBtnActive = VIEW_BTN_ACTIVE;
   protected readonly viewBtnInactive = VIEW_BTN_INACTIVE;
+  protected readonly viewToggleBorder = MEMORIZE_CARD_SHELL_BORDER_CLASS;
+  protected readonly viewToggleDivider = VIEW_TOGGLE_DIVIDER_CLASS;
   protected readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
   protected readonly subFilterGroupClass = HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS;
 

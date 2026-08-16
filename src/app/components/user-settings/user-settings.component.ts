@@ -58,7 +58,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
       >
         <!-- Header -->
         <div
-          class="settings-modal-header flex shrink-0 items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+          class="settings-modal-header flex shrink-0 items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800"
         >
           <div class="flex items-center gap-2">
             <svg
@@ -106,7 +106,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
         <div class="settings-modal-body settings-modal-sections flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
           <!-- Print -->
           <div
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -126,9 +126,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
             <div class="relative flex-1 min-w-0">
               <div
                 [ngClass]="{
-                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                  'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                     showPrintDropdown || printRange !== 'week',
-                  'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                  'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                     !showPrintDropdown && printRange === 'week'
                 }"
                 class="flex w-full min-w-0 rounded-lg border-2 transition-all overflow-hidden"
@@ -201,7 +201,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="showPrintDropdown = !showPrintDropdown"
                   [disabled]="isPrinting"
                   title="Select time period for prayers to print"
-                  class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-200/70 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
                   <svg
                     width="18"
@@ -253,9 +253,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
             <div class="relative flex-1 min-w-0">
               <div
                 [ngClass]="{
-                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                  'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                     showPromptTypesDropdown || selectedPromptTypes.length > 0,
-                  'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                  'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                     !showPromptTypesDropdown && selectedPromptTypes.length === 0
                 }"
                 class="flex w-full min-w-0 rounded-lg border-2 transition-all overflow-hidden"
@@ -328,7 +328,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   (click)="showPromptTypesDropdown = !showPromptTypesDropdown"
                   [disabled]="isPrintingPrompts"
                   title="Select which types of prompts to print"
-                  class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-200/70 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
                   <svg
                     width="18"
@@ -390,10 +390,10 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
             <div class="relative flex-1 min-w-0">
               <div
                 [ngClass]="{
-                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                  'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                     showPrintPersonalDropdown ||
                     selectedPersonalCategories.length > 0,
-                  'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                  'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                     !showPrintPersonalDropdown &&
                     selectedPersonalCategories.length === 0
                 }"
@@ -469,7 +469,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   "
                   [disabled]="isPrintingPersonal"
                   title="Select which personal prayer categories to print"
-                  class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-200/70 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
                   <svg
                     width="18"
@@ -540,7 +540,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <!-- Theme Selector -->
           <div
             id="tour-settings-theme"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -553,9 +553,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <button
                     (click)="handleThemeChange('light')"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20':
                         theme === 'light',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
                         theme !== 'light'
                     }"
                     title="Use light theme for the application"
@@ -590,9 +590,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <button
                     (click)="handleThemeChange('dark')"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20':
                         theme === 'dark',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
                         theme !== 'dark'
                     }"
                     title="Use dark theme for the application"
@@ -621,9 +621,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <button
                     (click)="handleThemeChange('system')"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20':
                         theme === 'system',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
                         theme !== 'system'
                     }"
                     title="Use your operating system's theme preference"
@@ -669,7 +669,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <!-- Text size -->
           <div
             id="tour-settings-text-size"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -682,9 +682,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <button
                     (click)="handleTextSizeChange('normal')"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20':
                         textSize === 'normal',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
                         textSize !== 'normal'
                     }"
                     title="Default text size"
@@ -698,9 +698,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <button
                     (click)="handleTextSizeChange('large')"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20':
                         textSize === 'large',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
                         textSize !== 'large'
                     }"
                     title="Larger text"
@@ -714,9 +714,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                   <button
                     (click)="handleTextSizeChange('largest')"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20':
                         textSize === 'largest',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
                         textSize !== 'largest'
                     }"
                     title="Largest text"
@@ -740,7 +740,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <!-- Email Subscription Toggle -->
           <div
             id="tour-settings-email-subscription"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-2"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -834,7 +834,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           (capacitorService.isNative() || preferencesLoaded)) {
           <div
             id="tour-settings-push-notifications"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-2"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -927,7 +927,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <!-- Badge Functionality Toggle -->
           <div
             id="tour-settings-badges"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-2"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -1021,7 +1021,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           @if (prayerEncouragementEnabled$ | async) {
           <div
             id="tour-settings-prayer-encouragement"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-3"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-3"
           >
             <div
               class="font-medium text-gray-800 dark:text-gray-100 text-sm sm:text-base"
@@ -1078,9 +1078,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     savingShowPrayForButton || savingShowPrayingCount
                   "
                   [ngClass]="{
-                    'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                    'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                       showPrayForButton === true,
-                    'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                    'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                       showPrayForButton !== true
                   }"
                   title="Show Pray For button on prayer cards"
@@ -1098,9 +1098,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     savingShowPrayForButton || savingShowPrayingCount
                   "
                   [ngClass]="{
-                    'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                    'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                       showPrayForButton === false,
-                    'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                    'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                       showPrayForButton !== false
                   }"
                   title="Hide Pray For button on prayer cards"
@@ -1184,9 +1184,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     savingShowPrayForButton || savingShowPrayingCount
                   "
                   [ngClass]="{
-                    'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                    'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                       showPrayingCount === true,
-                    'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                    'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                       showPrayingCount !== true
                   }"
                   title="Show Praying # button on prayer cards"
@@ -1204,9 +1204,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     savingShowPrayForButton || savingShowPrayingCount
                   "
                   [ngClass]="{
-                    'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                    'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                       showPrayingCount === false,
-                    'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                    'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                       showPrayingCount !== false
                   }"
                   title="Hide Praying # button on prayer cards"
@@ -1353,7 +1353,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <!-- Default View Preference Control -->
           <div
             id="tour-settings-default-view"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-2"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -1398,9 +1398,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     (click)="selectDefaultPrayerView('current')"
                     [disabled]="savingDefaultView"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                         defaultPrayerView === 'current',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                         defaultPrayerView !== 'current'
                     }"
                     title="Open current prayers by default"
@@ -1416,9 +1416,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     (click)="selectDefaultPrayerView('personal')"
                     [disabled]="savingDefaultView"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                         defaultPrayerView === 'personal',
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                         defaultPrayerView !== 'personal'
                     }"
                     title="Open personal prayers by default"
@@ -1491,7 +1491,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
           <!-- Memorization strict mode -->
           <div
             id="tour-settings-memorization-strict-mode"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 space-y-2"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-2"
           >
             <div class="flex items-start gap-2 sm:gap-3">
               <div class="flex-1">
@@ -1536,9 +1536,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     (click)="setMemorizationStrictMode(false)"
                     [disabled]="savingMemorizationStrictMode"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                         memorizationStrictMode === false,
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                         memorizationStrictMode !== false
                     }"
                     title="Auto-reveal blanks after three wrong attempts"
@@ -1554,9 +1554,9 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     (click)="setMemorizationStrictMode(true)"
                     [disabled]="savingMemorizationStrictMode"
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                      'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
                         memorizationStrictMode === true,
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                      'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
                         memorizationStrictMode !== true
                     }"
                     title="Keep practicing until you get each blank right"
@@ -1686,7 +1686,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
                     <!-- Feedback (stable tour anchor; form when GitHub feedback is enabled) -->
           <div
             id="tour-settings-feedback-section"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4"
+            class="settings-modal-section-card rounded-lg p-3 sm:p-4"
           >
             @if (githubFeedbackEnabled) {
             <app-github-feedback-form></app-github-feedback-form>
@@ -1701,7 +1701,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
 
           <!-- Delete account -->
           <div
-            class="border border-red-200 dark:border-red-800 rounded-lg p-3 sm:p-4"
+            class="settings-modal-section-card border border-red-200 dark:border-red-800 rounded-lg p-3 sm:p-4"
           >
             <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
               Remove your account and sign out. You can choose to keep your
@@ -1720,7 +1720,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
 
           <!-- Footer -->
           <div
-            class="flex flex-row gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 -mx-4 sm:-mx-6 px-4 sm:px-6"
+            class="flex flex-row gap-2 sm:gap-3 p-4 sm:p-6 settings-modal-footer -mx-4 sm:-mx-6 px-4 sm:px-6"
           >
             <button
               (click)="logout()"
@@ -1755,10 +1755,10 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
         (click)="deletingAccount ? null : closeDeleteAccountVerification()"
       >
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge"
           (click)="$event.stopPropagation()"
         >
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div class="px-6 py-4 modal-chrome-border-b">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Delete your account?
             </h2>
@@ -1778,7 +1778,7 @@ type PrintRange = "week" | "twoweeks" | "month" | "year" | "all";
             </div>
           </div>
           <div
-            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-end"
+            class="px-6 py-4 modal-chrome-border-t flex flex-col sm:flex-row gap-3 justify-end"
           >
             <button
               type="button"
