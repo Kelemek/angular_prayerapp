@@ -1,0 +1,510 @@
+<div class="flex justify-end mb-4">
+  @if (!showAddForm) {
+  <button
+    type="button"
+    (click)="onShowAddForm()"
+    class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
+    title="Click to add a new administrator. You will be able to enter their email address and send them an invitation to join as an admin."
+  >
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="8.5" cy="7" r="4"></circle>
+      <line x1="20" y1="8" x2="20" y2="14"></line>
+      <line x1="23" y1="11" x2="17" y2="11"></line>
+    </svg>
+    Add Admin
+  </button>
+  }
+</div>
+
+        <!-- Success Message -->
+        @if (success) {
+        <div
+          class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <svg
+            class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <div class="flex-1">
+            <p class="text-green-800 dark:text-green-200 text-sm">
+              {{ success }}
+            </p>
+          </div>
+          <button
+            (click)="clearSuccess.emit()"
+            class="text-green-600 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md p-1"
+            aria-label="Close success message"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        }
+
+        <!-- Error Message -->
+        @if (error) {
+        <div
+          class="mb-4 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <svg
+            class="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <div class="flex-1">
+            <p class="text-red-800 dark:text-red-200 text-sm">{{ error }}</p>
+          </div>
+          <button
+            (click)="clearError.emit()"
+            class="text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md p-1"
+            aria-label="Close error message"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        }
+
+        <!-- Add Admin Form -->
+        @if (showAddForm) {
+        <div
+          class="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-700 rounded-lg"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
+              Add New Admin
+            </h4>
+            <button
+              (click)="onCancelAddFormClick()"
+              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label
+                for="adminName"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Name <span aria-label="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="adminName"
+                [ngModel]="newAdminName" (ngModelChange)="newAdminNameChange.emit($event)"
+                placeholder="Admin's full name"
+                aria-label="Admin's full name"
+                aria-required="true"
+                class="w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-700 focus:border-red-700 focus:ring-offset-0"
+              />
+            </div>
+
+            <div>
+              <label
+                for="adminEmail"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Email Address <span aria-label="required">*</span>
+              </label>
+              <input
+                type="email"
+                id="adminEmail"
+                [ngModel]="newAdminEmail" (ngModelChange)="newAdminEmailChange.emit($event)"
+                placeholder="admin@example.com"
+                aria-label="Admin's email address"
+                aria-required="true"
+                class="w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-red-700 focus:border-red-700 focus:ring-offset-0"
+              />
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                (click)="onAddAdminClick()"
+                [disabled]="adding"
+                class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Add new admin user"
+                title="Send an invitation email to the entered email address. The user will need to accept the invitation to become an administrator."
+              >
+                @if (adding) {
+                <div
+                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+                ></div>
+                } @if (!adding) {
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                  ></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                }
+                {{ adding ? "Adding..." : "Add & Send Invitation" }}
+              </button>
+              <button
+                (click)="onCancelAddFormClick()"
+                [disabled]="adding"
+                class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                aria-label="Cancel adding new admin"
+                title="Close the add admin form without making any changes."
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+        }
+        <!-- Admin List -->
+        @if (loading) {
+        <div class="text-center py-8">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"
+          ></div>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mt-2">
+            Loading admins...
+          </p>
+        </div>
+        } @if (!loading && admins.length === 0) {
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg
+            class="mx-auto mb-2 opacity-50"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <p>No admin users found</p>
+        </div>
+        } @if (!loading && admins.length > 0) {
+        <!-- Table header -->
+        <div
+          class="flex items-center justify-between p-4 pb-2 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600"
+        >
+          <div class="flex-1">
+            <div class="font-medium text-gray-700 dark:text-gray-300">
+              Admin
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-10 text-center" title="Email notifications"
+              >Email</span
+            >
+            <span class="w-10 text-center" title="Push notifications"
+              >Push</span
+            >
+            <span class="w-10 text-center">Actions</span>
+          </div>
+        </div>
+        <div class="space-y-3 mt-2">
+          @for (admin of admins; track admin.email) {
+          <div
+            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+          >
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <svg
+                  class="text-red-600 dark:text-red-400"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <h4 class="font-medium text-gray-900 dark:text-gray-100">
+                  {{ admin.name }}
+                </h4>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                {{ admin.email }}
+              </p>
+              <div
+                class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500"
+              >
+                <span> Added: {{ formatAdminDate(admin.created_at) }} </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <!-- Receive Admin Emails Toggle -->
+              <button
+                (click)="
+                  onToggleReceiveEmails(
+                    admin.email,
+                    admin.name,
+                    admin.receive_admin_emails
+                  )
+                "
+                [class]="
+                  'p-2 rounded-lg transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ' +
+                  (admin.receive_admin_emails
+                    ? 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 focus:ring-green-500'
+                    : 'text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-gray-500')
+                "
+                [attr.aria-label]="
+                  'Email notifications for ' +
+                  admin.name +
+                  ' are ' +
+                  (admin.receive_admin_emails ? 'enabled' : 'disabled')
+                "
+                [attr.aria-pressed]="admin.receive_admin_emails"
+                [title]="
+                  admin.receive_admin_emails
+                    ? 'Click to disable email notifications for ' +
+                      admin.name +
+                      '. They will no longer receive admin alerts and updates.'
+                    : 'Click to enable email notifications for ' +
+                      admin.name +
+                      '. They will receive admin alerts and updates about prayers and system events.'
+                "
+              >
+                @if (admin.receive_admin_emails) {
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                } @if (!admin.receive_admin_emails) {
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                }
+              </button>
+              <!-- Receive Admin Push Toggle -->
+              <button
+                (click)="
+                  onToggleReceivePush(
+                    admin.email,
+                    admin.name,
+                    admin.receive_admin_push
+                  )
+                "
+                [class]="
+                  'p-2 rounded-lg transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ' +
+                  (admin.receive_admin_push
+                    ? 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 focus:ring-green-500'
+                    : 'text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-gray-500')
+                "
+                [attr.aria-label]="
+                  'Push notifications for ' +
+                  admin.name +
+                  ' are ' +
+                  (admin.receive_admin_push ? 'enabled' : 'disabled')
+                "
+                [attr.aria-pressed]="admin.receive_admin_push"
+                [title]="
+                  admin.receive_admin_push
+                    ? 'Click to disable push notifications for ' +
+                      admin.name +
+                      '.'
+                    : 'Click to enable push notifications for ' +
+                      admin.name +
+                      '. They will receive admin alerts on their device.'
+                "
+              >
+                @if (admin.receive_admin_push) {
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                } @if (!admin.receive_admin_push) {
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                }
+              </button>
+              <!-- Delete Admin Button -->
+              <button
+                (click)="onDeleteAdmin(admin.email, admin.name)"
+                [disabled]="admins.length === 1"
+                class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer"
+                [attr.aria-label]="
+                  admins.length === 1
+                    ? 'Cannot delete, this is the last admin'
+                    : 'Remove admin access for ' + admin.name
+                "
+                [title]="
+                  admins.length === 1
+                    ? 'Cannot remove the last admin. At least one admin must be present to manage the application.'
+                    : 'Click to remove admin access for ' +
+                      admin.name +
+                      '. You will be asked to confirm this action.'
+                "
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Summary and Notes -->
+        @if (admins.length > 0) {
+        <div
+          class="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-md"
+        >
+          <p class="text-sm text-gray-700 dark:text-gray-300">
+            <strong>{{ receivingEmailsCount }}</strong> of
+            <strong>{{ admins.length }}</strong> admin{{
+              admins.length !== 1 ? "s" : ""
+            }}
+            receiving email notifications;
+            <strong>{{ receivingPushCount }}</strong> of
+            <strong>{{ admins.length }}</strong> receiving push notifications.
+          </p>
+        </div>
+        }
+
+        <div
+          class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md"
+        >
+          <p class="text-xs text-blue-800 dark:text-blue-200">
+            <strong>Note:</strong> Admin users can sign in using magic links
+            sent to their email. When you add a new admin, they'll receive an
+            invitation email with instructions. Click the green checkmarks to
+            enable/disable admin email and push notifications.
+          </p>
+        </div>

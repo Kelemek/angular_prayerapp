@@ -1,0 +1,32 @@
+<app-admin-user-management-section
+  [expanded]="sectionExpanded"
+  (toggle)="onSectionToggle()"
+>
+  <app-admin-user-management-panel
+    [showAddForm]="showAddForm"
+    [success]="success"
+    [error]="error"
+    [loading]="loading"
+    [admins]="admins"
+    [adding]="adding"
+    [newAdminEmail]="newAdminEmail"
+    [newAdminName]="newAdminName"
+    [receivingEmailsCount]="receivingEmailsCount"
+    [receivingPushCount]="receivingPushCount"
+    (showAddFormRequest)="onShowAddForm()"
+    (clearSuccess)="success = null"
+    (clearError)="error = null"
+    (newAdminEmailChange)="newAdminEmail = $event"
+    (newAdminNameChange)="newAdminName = $event"
+    (addAdmin)="addAdmin()"
+    (cancelAddForm)="cancelAddForm()"
+    (toggleReceiveEmails)="onToggleReceiveEmails($event)"
+    (toggleReceivePush)="onToggleReceivePush($event)"
+    (deleteAdmin)="onDeleteAdmin($event)"
+  ></app-admin-user-management-panel>
+</app-admin-user-management-section>
+
+<app-admin-user-management-dialogs
+  #dialogsRef
+  (confirmationConfirmed)="onConfirmationConfirmed($event)"
+></app-admin-user-management-dialogs>

@@ -48,3 +48,25 @@ export function prayerEditorManageTourAddUpdateState(
 ): { prayerId: string; expandedCards: Set<string> } | null {
   return buildManageTourAddUpdatePrep(displayPrayers);
 }
+
+export function prayerEditorManageTourSectionExpand(
+  gate: PrayerEditorSectionGate,
+): PrayerEditorSectionGate & { runInitialSearch: boolean } {
+  return prayerEditorTourExpandSection(gate);
+}
+
+export interface PrayerEditorManageTourAddUpdateOpenPrep {
+  prep: { prayerId: string; expandedCards: Set<string> } | null;
+  shouldCancelEdit: boolean;
+  shouldCancelEditUpdate: boolean;
+}
+
+export function prayerEditorManageTourAddUpdateOpenPrep(
+  displayPrayers: PrayerEditorPrayer[],
+): PrayerEditorManageTourAddUpdateOpenPrep {
+  return {
+    prep: prayerEditorManageTourAddUpdateState(displayPrayers),
+    shouldCancelEdit: true,
+    shouldCancelEditUpdate: true,
+  };
+}

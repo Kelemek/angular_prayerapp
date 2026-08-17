@@ -23,6 +23,7 @@ import {
   countActivePrayerTypes,
   type PrayerTypeConfirmationKind,
 } from '../../lib/admin-prayer-types-manager';
+import { toggleAdminSectionLazyLoad } from '../../lib/admin-section-lazy-load';
 
 @Component({
   selector: 'app-prayer-types-manager',
@@ -74,9 +75,13 @@ export class PrayerTypesManagerComponent {
   ) {}
 
   onSectionToggle(): void {
-    this.sectionExpanded = !this.sectionExpanded;
-    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
-      this.sectionInitialLoadDone = true;
+    const toggled = toggleAdminSectionLazyLoad({
+      sectionExpanded: this.sectionExpanded,
+      sectionInitialLoadDone: this.sectionInitialLoadDone,
+    });
+    this.sectionExpanded = toggled.gate.sectionExpanded;
+    this.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
+    if (toggled.shouldInitialLoad) {
       void this.fetchTypes();
     }
     this.cdr.markForCheck();

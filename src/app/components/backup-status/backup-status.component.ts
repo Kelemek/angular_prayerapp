@@ -27,6 +27,7 @@ import {
   runManualBackup,
 } from '../../lib/admin-backup-status-backup';
 import { runRestoreFromBackup } from '../../lib/admin-backup-status-restore';
+import { toggleAdminSectionLazyLoad } from '../../lib/admin-section-lazy-load';
 
 @Component({
   selector: 'app-backup-status',
@@ -69,9 +70,13 @@ export class BackupStatusComponent {
   }
 
   onBackupSectionToggle(): void {
-    this.sectionExpanded = !this.sectionExpanded;
-    if (this.sectionExpanded && !this.backupLogsInitialFetchDone) {
-      this.backupLogsInitialFetchDone = true;
+    const toggled = toggleAdminSectionLazyLoad({
+      sectionExpanded: this.sectionExpanded,
+      sectionInitialLoadDone: this.backupLogsInitialFetchDone,
+    });
+    this.sectionExpanded = toggled.gate.sectionExpanded;
+    this.backupLogsInitialFetchDone = toggled.gate.sectionInitialLoadDone;
+    if (toggled.shouldInitialLoad) {
       void this.fetchBackupLogs();
     }
     this.cdr.markForCheck();
@@ -233,10 +238,6 @@ export class BackupStatusComponent {
     this.cdr.markForCheck();
   }
 
-  toggleExpanded(backupId: string): void {
-    this.onToggleExpanded(backupId);
-  }
-
   onToggleShowFullLog(): void {
     const next = toggleBackupStatusShowFullLog(
       this.showFullLog,
@@ -245,10 +246,6 @@ export class BackupStatusComponent {
     this.showFullLog = next.showFullLog;
     this.expandedBackupId = next.expandedBackupId;
     this.cdr.markForCheck();
-  }
-
-  toggleShowFullLog(): void {
-    this.onToggleShowFullLog();
   }
 
   getTableEntries(backup: BackupLog): [string, number][] {

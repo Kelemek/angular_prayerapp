@@ -99,20 +99,20 @@ describe('BackupStatusComponent', () => {
     expect(component.formatDuration(90)).toBe('1m 30s');
   });
 
-  it('toggleExpanded toggles id', () => {
+  it('onToggleExpanded toggles id', () => {
     component.expandedBackupId = null;
-    component.toggleExpanded('a');
+    component.onToggleExpanded('a');
     expect(component.expandedBackupId).toBe('a');
-    component.toggleExpanded('a');
+    component.onToggleExpanded('a');
     expect(component.expandedBackupId).toBeNull();
   });
 
-  it('toggleShowFullLog toggles and clears expanded', () => {
+  it('onToggleShowFullLog toggles and clears expanded', () => {
     component.showFullLog = false;
     component.expandedBackupId = 'x';
-    component.toggleShowFullLog();
+    component.onToggleShowFullLog();
     expect(component.showFullLog).toBe(true);
-    component.toggleShowFullLog();
+    component.onToggleShowFullLog();
     expect(component.showFullLog).toBe(false);
     expect(component.expandedBackupId).toBeNull();
   });
@@ -609,32 +609,32 @@ describe('BackupStatusComponent', () => {
     });
   });
 
-  describe('toggleExpanded', () => {
+  describe('onToggleExpanded', () => {
     it('should expand backup', () => {
-      component.toggleExpanded('123');
+      component.onToggleExpanded('123');
       expect(component.expandedBackupId).toBe('123');
     });
 
     it('should collapse expanded backup', () => {
       component.expandedBackupId = '123';
-      component.toggleExpanded('123');
+      component.onToggleExpanded('123');
       expect(component.expandedBackupId).toBeNull();
     });
   });
 
-  describe('toggleShowFullLog', () => {
+  describe('onToggleShowFullLog', () => {
     it('should toggle showFullLog', () => {
       expect(component.showFullLog).toBe(false);
-      component.toggleShowFullLog();
+      component.onToggleShowFullLog();
       expect(component.showFullLog).toBe(true);
-      component.toggleShowFullLog();
+      component.onToggleShowFullLog();
       expect(component.showFullLog).toBe(false);
     });
 
     it('should reset expandedBackupId when hiding full log', () => {
       component.showFullLog = true;
       component.expandedBackupId = '123';
-      component.toggleShowFullLog();
+      component.onToggleShowFullLog();
       expect(component.expandedBackupId).toBeNull();
     });
   });

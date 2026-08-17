@@ -25,9 +25,10 @@ import {
 import { AdminPromptManagerCardComponent } from '../admin-prompt-manager-card/admin-prompt-manager-card.component';
 import type { PrayerPrompt, PrayerTypeRecord } from '../../types/prayer';
 import {
-  PROMPT_SEARCH_DEBOUNCE_MS,
-  PROMPT_SEARCH_MIN_CHARS,
-} from '../../lib/admin-prompt-manager';
+  PromptManagerSearchDebouncer,
+  PROMPT_MANAGER_SEARCH_CONFIG,
+} from '../../lib/admin-prompt-manager-search-debounce';
+import { toggleAdminSectionLazyLoad } from '../../lib/admin-section-lazy-load';
 
 @Component({
   selector: 'app-prompt-manager',
@@ -62,9 +63,12 @@ export class PromptManagerComponent implements OnDestroy {
   searchQuery = '';
   searching = false;
   hasSearched = false;
-  readonly promptSearchMinChars = PROMPT_SEARCH_MIN_CHARS;
-  readonly promptSearchDebounceMs = PROMPT_SEARCH_DEBOUNCE_MS;
-  private promptSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  readonly promptSearchMinChars = PROMPT_MANAGER_SEARCH_CONFIG.minChars;
+  readonly promptSearchDebounceMs = PROMPT_MANAGER_SEARCH_CONFIG.debounceMs;
+  private readonly promptSearchDebouncer = new PromptManagerSearchDebouncer(
+    PROMPT_MANAGER_SEARCH_CONFIG.debounceMs,
+    () => void this.handleSearch(),
+  );
   showAddForm = false;
   showCSVUpload = false;
   error: string | null = null;
@@ -85,9 +89,13 @@ export class PromptManagerComponent implements OnDestroy {
   ) {}
 
   onSectionToggle(): void {
-    this.sectionExpanded = !this.sectionExpanded;
-    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
-      this.sectionInitialLoadDone = true;
+    const toggled = toggleAdminSectionLazyLoad({
+      sectionExpanded: this.sectionExpanded,
+      sectionInitialLoadDone: this.sectionInitialLoadDone,
+    });
+    this.sectionExpanded = toggled.gate.sectionExpanded;
+    this.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
+    if (toggled.shouldInitialLoad) {
       void this.bootstrapPromptSection();
     }
     this.cdr.markForCheck();
@@ -99,10 +107,7 @@ export class PromptManagerComponent implements OnDestroy {
     this.showCSVUpload = false;
     this.createFormRef?.resetForm();
     this.csvPanelRef?.reset();
-    if (this.promptSearchDebounceTimer) {
-      clearTimeout(this.promptSearchDebounceTimer);
-      this.promptSearchDebounceTimer = null;
-    }
+    this.promptSearchDebouncer.clear();
     if (!this.sectionExpanded) {
       this.sectionExpanded = true;
       if (!this.sectionInitialLoadDone) {
@@ -125,35 +130,16 @@ export class PromptManagerComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.promptSearchDebounceTimer) {
-      clearTimeout(this.promptSearchDebounceTimer);
-      this.promptSearchDebounceTimer = null;
-    }
+    this.promptSearchDebouncer.destroy();
   }
 
   onPromptSearchQueryChange(value: string): void {
-    if (this.promptSearchDebounceTimer) {
-      clearTimeout(this.promptSearchDebounceTimer);
-      this.promptSearchDebounceTimer = null;
-    }
-
-    const trimmed = value.trim();
-    if (trimmed.length === 0) {
-      this.promptSearchDebounceTimer = setTimeout(() => {
-        this.promptSearchDebounceTimer = null;
-        void this.handleSearch();
-      }, this.promptSearchDebounceMs);
-      return;
-    }
-    if (trimmed.length < this.promptSearchMinChars) {
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.promptSearchDebounceTimer = setTimeout(() => {
-      this.promptSearchDebounceTimer = null;
-      void this.handleSearch();
-    }, this.promptSearchDebounceMs);
+    this.searchQuery = value;
+    this.promptSearchDebouncer.schedule(
+      value.trim(),
+      this.promptSearchMinChars,
+      () => this.cdr.markForCheck(),
+    );
   }
 
   onPromptSearchKeydown(event: KeyboardEvent): void {
@@ -164,23 +150,15 @@ export class PromptManagerComponent implements OnDestroy {
   }
 
   flushPromptSearchNow(): void {
-    if (this.promptSearchDebounceTimer) {
-      clearTimeout(this.promptSearchDebounceTimer);
-      this.promptSearchDebounceTimer = null;
-    }
-    const trimmed = this.searchQuery.trim();
-    if (trimmed.length > 0 && trimmed.length < this.promptSearchMinChars) {
-      this.cdr.markForCheck();
-      return;
-    }
-    void this.handleSearch();
+    this.promptSearchDebouncer.flush(
+      this.searchQuery.trim(),
+      this.promptSearchMinChars,
+      () => this.cdr.markForCheck(),
+    );
   }
 
   clearPromptSearch(): void {
-    if (this.promptSearchDebounceTimer) {
-      clearTimeout(this.promptSearchDebounceTimer);
-      this.promptSearchDebounceTimer = null;
-    }
+    this.promptSearchDebouncer.clear();
     this.searchQuery = '';
     void this.handleSearch();
   }

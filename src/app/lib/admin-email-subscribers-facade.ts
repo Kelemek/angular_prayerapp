@@ -13,32 +13,10 @@ import {
 } from './admin-email-subscribers-search-debounce';
 import {
   fetchEmailSubscriberList,
-  loadEmailSubscriberAdminFlag,
-  loadEmailSubscriberEmail,
 } from './admin-email-subscribers-fetch';
-import {
-  commandDeleteEmailSubscriber,
-  commandSetEmailSubscriberActive,
-  commandSetEmailSubscriberBlocked,
-  commandSetEmailSubscriberReceivePush,
-  commandUnsubscribeAdminEmailSubscriber,
-} from './admin-email-subscribers-commands';
-import {
-  buildEmailSubscriberActiveToggleConfirmation,
-  buildEmailSubscriberBlockedToggleConfirmation,
-  buildEmailSubscriberDeleteConfirmation,
-  buildEmailSubscriberPushToggleConfirmation,
-} from './admin-email-subscribers-confirmations';
 import { dispatchEmailSubscriberRowAction } from './admin-email-subscribers-row-dispatch';
+import { patchEmailSubscriberName } from './admin-email-subscribers-list-patches';
 import {
-  patchEmailSubscriberActive,
-  patchEmailSubscriberBlocked,
-  patchEmailSubscriberName,
-  patchEmailSubscriberReceivePush,
-  removeEmailSubscriberFromList,
-} from './admin-email-subscribers-list-patches';
-import {
-  emailSubscriberPageAfterDelete,
   emailSubscriberPaginationRange,
   emailSubscriberTotalPages,
   scrollEmailSubscribersSectionToTop,
@@ -49,6 +27,20 @@ import {
   nextEmailSubscriberSort,
   sortEmailSubscriberRows,
 } from './admin-email-subscribers-sort';
+import { toggleAdminSectionLazyLoad } from './admin-section-lazy-load';
+import {
+  applyEmailSubscriberConfirmation,
+  emailSubscriberConfirmationApplyErrorFeedback,
+} from './admin-email-subscribers-confirmation-apply';
+import {
+  prepareEmailSubscriberDeleteConfirmation,
+  prepareEmailSubscriberToggleConfirmation,
+} from './admin-email-subscribers-confirmation-prep';
+import {
+  emailSubscribersAddFormTourUi,
+  emailSubscribersOverviewTourListPrep,
+  emailSubscribersTourInitialUi,
+} from './admin-email-subscribers-tour-actions';
 
 export interface EmailSubscribersPanelHostRef {
   resetAddForm(): void;
@@ -186,15 +178,19 @@ export class EmailSubscribersFacade {
   }
 
   onSectionToggle(): void {
-    this.sectionExpanded = !this.sectionExpanded;
-    if (this.sectionExpanded && !this.sectionInitialLoadDone) {
-      this.sectionInitialLoadDone = true;
+    const toggled = toggleAdminSectionLazyLoad({
+      sectionExpanded: this.sectionExpanded,
+      sectionInitialLoadDone: this.sectionInitialLoadDone,
+    });
+    this.sectionExpanded = toggled.gate.sectionExpanded;
+    this.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
+    if (toggled.shouldInitialLoad) {
       void this.handleSearch();
     }
     this.markForCheck();
   }
 
-    onListSearchQueryChange(value: string): void {
+  onListSearchQueryChange(value: string): void {
     this.searchQuery = value;
     this.listSearchDebouncer.schedule(
       value.trim(),
@@ -283,9 +279,11 @@ export class EmailSubscribersFacade {
   }
 
   prepareTourInitialState(): void {
-    this.sectionExpanded = true;
-    this.showAddForm = false;
-    this.showCSVUpload = false;
+    const ui = emailSubscribersTourInitialUi();
+    this.sectionExpanded = ui.sectionExpanded;
+    this.showAddForm = ui.showAddForm;
+    this.showCSVUpload = ui.showCSVUpload;
+    this.error = ui.error;
     this.panelHost?.resetAddForm();
     this.markForCheck();
   }
@@ -300,20 +298,24 @@ export class EmailSubscribersFacade {
   }
 
   async prepareOverviewTourListState(): Promise<void> {
+    const prep = emailSubscribersOverviewTourListPrep({
+      sectionExpanded: this.sectionExpanded,
+      sectionInitialLoadDone: this.sectionInitialLoadDone,
+    });
     this.prepareTourInitialState();
-    if (!this.sectionInitialLoadDone) {
-      this.sectionInitialLoadDone = true;
-    }
-    this.searchQuery = 'app-test';
+    this.sectionExpanded = prep.gate.sectionExpanded;
+    this.sectionInitialLoadDone = prep.gate.sectionInitialLoadDone;
+    this.searchQuery = prep.searchQuery;
     this.listSearchDebouncer.clear();
     await this.handleSearch();
     this.markForCheck();
   }
 
   openAddFormForTour(): void {
-    this.showAddForm = true;
-    this.showCSVUpload = false;
-    this.error = null;
+    const ui = emailSubscribersAddFormTourUi();
+    this.showAddForm = ui.showAddForm;
+    this.showCSVUpload = ui.showCSVUpload;
+    this.error = ui.error;
     this.markForCheck();
   }
 
@@ -470,15 +472,13 @@ export class EmailSubscribersFacade {
 
   async handleToggleActive(id: string, currentStatus: boolean) {
     try {
-      const email = await loadEmailSubscriberEmail(this.supabase.client, id);
-      this.dialogsHost?.openConfirmation(
-        buildEmailSubscriberActiveToggleConfirmation(email, currentStatus),
-        {
-          kind: 'toggleActive',
-          id,
-          currentActive: currentStatus,
-        },
+      const prep = await prepareEmailSubscriberToggleConfirmation(
+        this.supabase.client,
+        'toggleActive',
+        id,
+        currentStatus,
       );
+      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
     } catch (err: unknown) {
       console.error('Error preparing status toggle action:', err);
       this.toast.error('Failed to prepare status toggle action');
@@ -487,15 +487,13 @@ export class EmailSubscribersFacade {
 
   async handleToggleReceivePush(id: string, currentReceivePush: boolean) {
     try {
-      const email = await loadEmailSubscriberEmail(this.supabase.client, id);
-      this.dialogsHost?.openConfirmation(
-        buildEmailSubscriberPushToggleConfirmation(email, currentReceivePush),
-        {
-          kind: 'toggleReceivePush',
-          id,
-          currentReceivePush,
-        },
+      const prep = await prepareEmailSubscriberToggleConfirmation(
+        this.supabase.client,
+        'toggleReceivePush',
+        id,
+        currentReceivePush,
       );
+      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
     } catch (err: unknown) {
       console.error('Error preparing push toggle action:', err);
       this.toast.error('Failed to prepare push toggle action');
@@ -504,15 +502,13 @@ export class EmailSubscribersFacade {
 
   async handleToggleBlocked(id: string, currentStatus: boolean) {
     try {
-      const email = await loadEmailSubscriberEmail(this.supabase.client, id);
-      this.dialogsHost?.openConfirmation(
-        buildEmailSubscriberBlockedToggleConfirmation(email, currentStatus),
-        {
-          kind: 'toggleBlocked',
-          id,
-          currentBlocked: currentStatus,
-        },
+      const prep = await prepareEmailSubscriberToggleConfirmation(
+        this.supabase.client,
+        'toggleBlocked',
+        id,
+        currentStatus,
       );
+      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
     } catch (err: unknown) {
       console.error('Error preparing block action:', err);
       this.toast.error('Failed to prepare block action');
@@ -521,19 +517,12 @@ export class EmailSubscribersFacade {
 
   async handleDelete(id: string, email: string) {
     try {
-      const isAdmin = await loadEmailSubscriberAdminFlag(
+      const prep = await prepareEmailSubscriberDeleteConfirmation(
         this.supabase.client,
         id,
+        email,
       );
-      this.dialogsHost?.openConfirmation(
-        buildEmailSubscriberDeleteConfirmation(email, isAdmin),
-        {
-          kind: 'delete',
-          id,
-          email,
-          isAdmin,
-        },
-      );
+      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
     } catch (err: unknown) {
       console.error('Error preparing delete:', err);
       this.error =
@@ -545,115 +534,38 @@ export class EmailSubscribersFacade {
   async onConfirmationConfirmed(
     action: EmailSubscriberConfirmationAction,
   ): Promise<void> {
-    const client = this.supabase.client;
     try {
-      switch (action.kind) {
-        case 'toggleActive': {
-          await commandSetEmailSubscriberActive(
-            client,
-            action.id,
-            !action.currentActive,
-          );
-          const activePatch = patchEmailSubscriberActive(
-            this.allSubscribers,
-            action.id,
-            !action.currentActive,
-          );
-          this.allSubscribers = activePatch.rows;
-          this.totalActiveCount = activePatch.totalActiveCount;
-          this.toast.success(
-            action.currentActive
-              ? 'Subscriber deactivated'
-              : 'Subscriber activated',
-          );
-          break;
-        }
-        case 'toggleReceivePush':
-          await commandSetEmailSubscriberReceivePush(
-            client,
-            action.id,
-            !action.currentReceivePush,
-          );
-          this.allSubscribers = patchEmailSubscriberReceivePush(
-            this.allSubscribers,
-            action.id,
-            !action.currentReceivePush,
-          );
-          this.toast.success(
-            action.currentReceivePush
-              ? 'Push notifications disabled'
-              : 'Push notifications enabled',
-          );
-          break;
-        case 'toggleBlocked':
-          await commandSetEmailSubscriberBlocked(
-            client,
-            action.id,
-            !action.currentBlocked,
-          );
-          this.allSubscribers = patchEmailSubscriberBlocked(
-            this.allSubscribers,
-            action.id,
-            !action.currentBlocked,
-          );
-          this.toast.success(
-            action.currentBlocked
-              ? 'User unblocked - login enabled'
-              : 'User blocked - login disabled',
-          );
-          break;
-        case 'delete': {
-          if (action.isAdmin) {
-            await commandUnsubscribeAdminEmailSubscriber(client, action.id);
-            const activePatch = patchEmailSubscriberActive(
-              this.allSubscribers,
-              action.id,
-              false,
-            );
-            this.allSubscribers = activePatch.rows;
-            this.totalActiveCount = activePatch.totalActiveCount;
-            this.csvSuccess = `Admin ${action.email} has been unsubscribed from emails but retains admin access to the portal.`;
-            this.loadPageData();
-          } else {
-            await commandDeleteEmailSubscriber(client, action.id);
-            this.allSubscribers = removeEmailSubscriberFromList(
-              this.allSubscribers,
-              action.id,
-            );
-            this.totalItems = this.allSubscribers.length;
-            this.currentPage = emailSubscriberPageAfterDelete(
-              this.currentPage,
-              this.pageSize,
-              this.allSubscribers.length,
-            );
-            this.totalActiveCount = countActiveEmailSubscribers(
-              this.allSubscribers,
-            );
-            this.loadPageData();
-            this.toast.success('Subscriber removed');
-          }
-          break;
-        }
-        default: {
-          const neverKind: never = action.kind;
-          return neverKind;
-        }
+      const result = await applyEmailSubscriberConfirmation(
+        this.supabase.client,
+        action,
+        {
+          allSubscribers: this.allSubscribers,
+          totalActiveCount: this.totalActiveCount,
+          totalItems: this.totalItems,
+          currentPage: this.currentPage,
+          pageSize: this.pageSize,
+          csvSuccess: this.csvSuccess,
+        },
+      );
+      this.allSubscribers = result.allSubscribers;
+      this.totalActiveCount = result.totalActiveCount;
+      this.totalItems = result.totalItems;
+      this.currentPage = result.currentPage;
+      this.csvSuccess = result.csvSuccess;
+      if (result.needsLoadPageData) {
+        this.loadPageData();
+      }
+      if (result.toastSuccess) {
+        this.toast.success(result.toastSuccess);
       }
       this.markForCheck();
     } catch (err: unknown) {
       console.error('Error applying subscriber confirmation:', err);
-      const message =
-        err instanceof Error ? err.message : 'Failed to update subscriber';
-      if (action.kind === 'delete') {
-        this.error = message;
-      } else if (action.kind === 'toggleActive') {
-        this.toast.error('Failed to update subscriber status');
-      } else if (action.kind === 'toggleReceivePush') {
-        this.toast.error('Failed to update push notification preference');
-      } else if (action.kind === 'toggleBlocked') {
-        this.toast.error('Failed to update user blocked status');
-      } else {
-        this.toast.error(message);
+      const feedback = emailSubscriberConfirmationApplyErrorFeedback(action, err);
+      if (feedback.error) {
+        this.error = feedback.error;
+      } else if (feedback.toastError) {
+        this.toast.error(feedback.toastError);
       }
       this.markForCheck();
     }

@@ -6,6 +6,17 @@ import { EmailNotificationService } from '../../services/email-notification.serv
 import { ChangeDetectorRef } from '@angular/core';
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 
+vi.mock('../../lib/admin-user-management-invitation', () => ({
+  sendAdminInvitationEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { sendAdminInvitationEmail } from '../../lib/admin-user-management-invitation';
+import {
+  adminUsersReceivingEmailsCount,
+  adminUsersReceivingPushCount,
+  formatAdminUserDate,
+} from '../../lib/admin-user-management-format';
+
 describe('AdminUserManagementComponent', () => {
   let component: AdminUserManagementComponent;
   let fixture: any;
@@ -46,7 +57,10 @@ describe('AdminUserManagementComponent', () => {
 
   beforeEach(() => {
     mockClient = createMockClient();
-    mockSupabase = { client: mockClient };
+    mockSupabase = {
+      client: mockClient,
+      getClient: () => mockSupabase.client,
+    };
 
     mockToast = {
       success: vi.fn()
@@ -150,8 +164,8 @@ describe('AdminUserManagementComponent', () => {
       { data: [{ email: 'ok@x.com', name: 'Ok', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false }], error: null }
     ]);
 
-    // spy on sendInvitationEmail and onSave.emit
-    const sendSpy = vi.spyOn(component as any, 'sendInvitationEmail').mockResolvedValue(undefined);
+    const sendSpy = vi.mocked(sendAdminInvitationEmail);
+    sendSpy.mockClear();
     const emitSpy = vi.spyOn(component.onSave, 'emit');
 
     await component.addAdmin();
@@ -176,8 +190,8 @@ describe('AdminUserManagementComponent', () => {
       { data: [{ email: 'f@x.com', name: 'FailEmail', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false }], error: null }
     ]);
 
-    // let sendInvitationEmail reject so the component's internal .catch runs
-    const sendSpy = vi.spyOn(component as any, 'sendInvitationEmail').mockRejectedValue(new Error('email fail'));
+    const sendSpy = vi.mocked(sendAdminInvitationEmail);
+    sendSpy.mockRejectedValueOnce(new Error('email fail'));
 
     await component.addAdmin();
 
@@ -186,43 +200,69 @@ describe('AdminUserManagementComponent', () => {
     expect(mockToast.success).toHaveBeenCalled();
   });
 
-  it('sendInvitationEmail throws when sendEmail fails', async () => {
-    mockEmailService.getTemplate.mockResolvedValue(null);
-    mockEmailService.sendEmail.mockRejectedValue(new Error('send fail'));
+  it('onToggleReceiveEmails opens confirmation when disabling and toggles immediately when enabling', () => {
+    const openConfirmation = vi.fn();
+    component.dialogsRef = { openConfirmation } as never;
 
-    await expect(component.sendInvitationEmail('x@y.com', 'Name')).rejects.toThrow('send fail');
+    component.onToggleReceiveEmails({
+      email: 'admin@example.com',
+      name: 'Admin User',
+      currentStatus: true,
+    });
+    expect(openConfirmation).toHaveBeenCalled();
+
+    const toggleSpy = vi.spyOn(component, 'toggleReceiveEmails').mockResolvedValue();
+
+    component.onToggleReceiveEmails({
+      email: 'admin@example.com',
+      name: 'Admin User',
+      currentStatus: false,
+    });
+    expect(toggleSpy).toHaveBeenCalledWith('admin@example.com', false);
   });
 
-  it('sendInvitationEmail uses template when available', async () => {
-    const template = { subject: 'S', html_body: 'H', text_body: 'T' };
-    mockEmailService.getTemplate.mockResolvedValue(template);
-    mockEmailService.applyTemplateVariables.mockImplementation((t: string) => `${t}-applied`);
+  it('onToggleReceivePush opens confirmation when disabling and toggles immediately when enabling', () => {
+    const openConfirmation = vi.fn();
+    component.dialogsRef = { openConfirmation } as never;
 
-    await component.sendInvitationEmail('x@y.com', 'Name');
+    component.onToggleReceivePush({
+      email: 'admin@example.com',
+      name: 'Admin User',
+      currentStatus: true,
+    });
+    expect(openConfirmation).toHaveBeenCalled();
 
-    expect(mockEmailService.getTemplate).toHaveBeenCalledWith('admin_invitation');
-    expect(mockEmailService.applyTemplateVariables).toHaveBeenCalled();
-    expect(mockEmailService.sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'x@y.com' }));
+    const toggleSpy = vi.spyOn(component, 'toggleReceivePush').mockResolvedValue();
+
+    component.onToggleReceivePush({
+      email: 'admin@example.com',
+      name: 'Admin User',
+      currentStatus: false,
+    });
+    expect(toggleSpy).toHaveBeenCalledWith('admin@example.com', false);
   });
 
-  it('sendInvitationEmail falls back when template missing', async () => {
-    mockEmailService.getTemplate.mockResolvedValue(null);
+  it('onDeleteAdmin opens danger confirmation and onConfirmationConfirmed runs delete', async () => {
+    component.admins = [
+      { email: 'a@x.com', name: 'A', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false },
+      { email: 'b@x.com', name: 'B', created_at: '2020-01-02', receive_admin_emails: false, receive_admin_push: false }
+    ];
 
-    await component.sendInvitationEmail('z@y.com', 'Zed');
+    const openConfirmation = vi.fn();
+    component.dialogsRef = { openConfirmation } as never;
+    const deleteSpy = vi.spyOn(component, 'deleteAdmin').mockResolvedValue();
 
-    expect(mockEmailService.sendEmail).toHaveBeenCalled();
-    const sent = mockEmailService.sendEmail.mock.calls[0][0];
-    expect(sent.to).toBe('z@y.com');
-    expect(sent.htmlBody).toContain('Zed');
-    expect(sent.textBody).toContain('Zed');
-  });
+    component.onDeleteAdmin({ email: 'a@x.com', name: 'Admin A' });
 
-  it('sendInvitationEmail rethrows when template lookup fails unexpectedly', async () => {
-    mockEmailService.getTemplate.mockRejectedValue(new Error('template fail'));
-    const sendSpy = mockEmailService.sendEmail;
+    expect(openConfirmation).toHaveBeenCalled();
 
-    await expect(component.sendInvitationEmail('z@y.com', 'Zed')).rejects.toThrow('template fail');
-    expect(sendSpy).not.toHaveBeenCalled();
+    await component.onConfirmationConfirmed({
+      kind: 'removeAdmin',
+      email: 'a@x.com',
+      name: 'Admin A',
+    });
+
+    expect(deleteSpy).toHaveBeenCalledWith('a@x.com');
   });
 
   it('deleteAdmin prevents deleting last admin', async () => {
@@ -266,56 +306,6 @@ describe('AdminUserManagementComponent', () => {
     expect(component.error).toBe('Failed to remove admin access');
   });
 
-  it('handleToggleReceiveEmails opens confirmation when disabling and toggles immediately when enabling', () => {
-    component.handleToggleReceiveEmails('admin@example.com', 'Admin User', true);
-    expect(component.showConfirmationDialog).toBe(true);
-    expect(component.confirmationTitle).toBe('Disable email notifications?');
-    expect(component.confirmationConfirmText).toBe('Disable');
-    expect(component.confirmationAction).toBeTruthy();
-
-    const toggleSpy = vi.spyOn(component, 'toggleReceiveEmails').mockResolvedValue();
-    component.onCancelDialog();
-
-    component.handleToggleReceiveEmails('admin@example.com', 'Admin User', false);
-    expect(toggleSpy).toHaveBeenCalledWith('admin@example.com', false);
-    expect(component.showConfirmationDialog).toBe(false);
-  });
-
-  it('handleToggleReceivePush opens confirmation when disabling and toggles immediately when enabling', () => {
-    component.handleToggleReceivePush('admin@example.com', 'Admin User', true);
-    expect(component.showConfirmationDialog).toBe(true);
-    expect(component.confirmationTitle).toBe('Disable push notifications?');
-    expect(component.confirmationConfirmText).toBe('Disable');
-    expect(component.confirmationAction).toBeTruthy();
-
-    const toggleSpy = vi.spyOn(component, 'toggleReceivePush').mockResolvedValue();
-    component.onCancelDialog();
-
-    component.handleToggleReceivePush('admin@example.com', 'Admin User', false);
-    expect(toggleSpy).toHaveBeenCalledWith('admin@example.com', false);
-    expect(component.showConfirmationDialog).toBe(false);
-  });
-
-  it('handleDeleteAdmin opens danger confirmation and onConfirmDialog runs queued action', async () => {
-    component.admins = [
-      { email: 'a@x.com', name: 'A', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false },
-      { email: 'b@x.com', name: 'B', created_at: '2020-01-02', receive_admin_emails: false, receive_admin_push: false }
-    ];
-
-    const deleteSpy = vi.spyOn(component, 'deleteAdmin').mockResolvedValue();
-    component.handleDeleteAdmin('a@x.com', 'Admin A');
-
-    expect(component.showConfirmationDialog).toBe(true);
-    expect(component.confirmationIsDangerous).toBe(true);
-    expect(component.confirmationTitle).toBe('Remove admin access?');
-
-    await component.onConfirmDialog();
-
-    expect(deleteSpy).toHaveBeenCalledWith('a@x.com');
-    expect(component.showConfirmationDialog).toBe(false);
-    expect(component.confirmationAction).toBeNull();
-  });
-
   it('deleteAdmin returns early when trying to remove the last admin', async () => {
     component.admins = [
       { email: 'only@x.com', name: 'Only', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false }
@@ -328,24 +318,12 @@ describe('AdminUserManagementComponent', () => {
     expect(component.error).toBe('Cannot delete the last admin user');
   });
 
-  it('onConfirmDialog clears dialog state without action', async () => {
-    component.showConfirmationDialog = true;
-    component.confirmationIsDangerous = true;
-    component.confirmationAction = null;
-
-    await component.onConfirmDialog();
-
-    expect(component.showConfirmationDialog).toBe(false);
-    expect(component.confirmationIsDangerous).toBe(false);
-  });
-
   it('deleteAdmin handles non-object error (primitive)', async () => {
     component.admins = [
       { email: 'a@x.com', name: 'A', created_at: '2020-01-01', receive_admin_emails: false, receive_admin_push: false },
       { email: 'b@x.com', name: 'B', created_at: '2020-01-02', receive_admin_emails: false, receive_admin_push: false }
     ];
 
-    // Simulate client that rejects with a primitive (string) to cover non-object error branch
     mockSupabase.client = {
       from: () => ({ update: () => ({ eq: () => Promise.reject('primitive error') }) })
     } as any;
@@ -356,7 +334,6 @@ describe('AdminUserManagementComponent', () => {
   });
 
   it('loadAdmins handles non-object error (primitive)', async () => {
-    // Simulate client that rejects with a primitive during order()
     mockSupabase.client = {
       from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.reject('load-prim') }) }) })
     } as any;
@@ -530,16 +507,18 @@ describe('AdminUserManagementComponent', () => {
     expect(component.error).toBeNull();
   });
 
-  it('formatDate and getReceivingEmailsCount and getReceivingPushCount', () => {
-    const fmt = component.formatDate('2020-01-01T00:00:00Z');
+  it('format helpers and receiving count getters', () => {
+    const fmt = formatAdminUserDate('2020-01-01T00:00:00Z');
     expect(typeof fmt).toBe('string');
 
     component.admins = [
       { email: 'a', name: 'A', created_at: '2020-01-01', receive_admin_emails: true, receive_admin_push: true },
       { email: 'b', name: 'B', created_at: '2020-01-02', receive_admin_emails: false, receive_admin_push: false }
     ];
-    expect(component.getReceivingEmailsCount()).toBe(1);
-    expect(component.getReceivingPushCount()).toBe(1);
+    expect(adminUsersReceivingEmailsCount(component.admins)).toBe(1);
+    expect(adminUsersReceivingPushCount(component.admins)).toBe(1);
+    expect(component.receivingEmailsCount).toBe(1);
+    expect(component.receivingPushCount).toBe(1);
   });
 
   it('onSectionToggle calls loadAdmins on first expand', async () => {
