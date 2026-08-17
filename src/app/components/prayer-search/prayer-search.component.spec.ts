@@ -130,35 +130,53 @@ describe('PrayerSearchComponent', () => {
       expect(component.totalItems).toBe(0);
       expect(component.allPrayers).toEqual([]);
       expect(component.displayPrayers).toEqual([]);
-      expect(component.userSearchQuery).toBe('');
-      expect(component.userSearchResults).toEqual([]);
-      expect(component.userSearchLoading).toBe(false);
-      expect(component.userSearchHasSearched).toBe(false);
     });
   });
 
-  describe('subscriber lookup (create prayer)', () => {
-    it('should fill create form when a subscriber is selected', () => {
+  describe('prayer creation shell', () => {
+    it('should start create prayer', () => {
+      const resetForm = vi.fn();
+      component.createFormRef = { resetForm } as never;
+      component.startCreatePrayer();
+      expect(component.creatingPrayer).toBe(true);
+    });
+
+    it('should cancel create prayer', () => {
+      const resetForm = vi.fn();
+      component.createFormRef = { resetForm } as never;
       component.creatingPrayer = true;
-      component.createForm = {
-        description: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        prayer_for: '',
-        status: 'current',
-        is_anonymous: false
-      };
+      component.cancelCreatePrayer();
+      expect(component.creatingPrayer).toBe(false);
+      expect(resetForm).toHaveBeenCalled();
+    });
 
-      component.selectSubscriberUser(
-        { name: 'Jane Marie Doe', email: 'jane@example.com' },
-        new Event('mousedown')
-      );
+    it('onPrayerCreated adds prayer and opens send dialog', () => {
+      const prayer = { ...mockPrayer, id: 'new-prayer' };
+      component.onPrayerCreated(prayer as never);
+      expect(component.allPrayers[0]?.id).toBe('new-prayer');
+      expect(component.showSendNotificationDialog).toBe(true);
+      expect(component.creatingPrayer).toBe(false);
+    });
 
-      expect(component.createForm.firstName).toBe('Jane');
-      expect(component.createForm.lastName).toBe('Marie Doe');
-      expect(component.createForm.email).toBe('jane@example.com');
-      expect(component.userSearchQuery).toBe('');
+    it('start create prayer clears error and resets child form', async () => {
+      const resetForm = vi.fn();
+      component.createFormRef = { resetForm } as never;
+      component.error = 'Previous error';
+
+      component.startCreatePrayer();
+
+      expect(component.creatingPrayer).toBe(true);
+      expect(component.error).toBeNull();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(resetForm).toHaveBeenCalled();
+    });
+  });
+
+  describe('onCardAction', () => {
+    it('toggleSelect updates selectedPrayers', () => {
+      const prayer = { ...mockPrayer, id: 'card-1' };
+      component.onCardAction(prayer as never, { type: 'toggleSelect' });
+      expect(component.selectedPrayers.has('card-1')).toBe(true);
     });
   });
 
@@ -349,88 +367,6 @@ describe('PrayerSearchComponent', () => {
       await component.handleSearch();
 
       expect(component.error).toContain('Query failed');
-    });
-  });
-
-  describe('prayer creation', () => {
-    it('should start create prayer', () => {
-      component.startCreatePrayer();
-      expect(component.creatingPrayer).toBe(true);
-      expect(component.createForm.status).toBe('current');
-    });
-
-    it('should cancel create prayer', () => {
-      component.creatingPrayer = true;
-      component.createForm.firstName = 'Test';
-      component.cancelCreatePrayer();
-      expect(component.creatingPrayer).toBe(false);
-      expect(component.createForm.firstName).toBe('');
-    });
-
-    it('should validate create form', () => {
-      expect(component.isCreateFormValid()).toBe(false);
-
-      component.createForm = {
-        description: 'Test',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: 'Jane',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      expect(component.isCreateFormValid()).toBe(true);
-    });
-
-    it('should create prayer successfully', async () => {
-      const mockEvent = { preventDefault: vi.fn() } as any;
-      component.createForm = {
-        description: 'Test',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: 'Jane',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      await component.createPrayer(mockEvent);
-
-      expect(mockToastService.success).toHaveBeenCalled();
-      expect(component.creatingPrayer).toBe(false);
-      expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
-    });
-
-    it('should not create prayer with invalid form', async () => {
-      const mockEvent = { preventDefault: vi.fn() } as any;
-      component.createForm.firstName = '';
-
-      await component.createPrayer(mockEvent);
-
-      expect(component.error).toBe('All fields are required');
-    });
-
-    it('should handle create prayer error', async () => {
-      const mockEvent = { preventDefault: vi.fn() } as any;
-      component.createForm = {
-        description: 'Test',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: 'Jane',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      mockSupabaseService.getClient().from().insert().select().single.mockResolvedValue({
-        data: null,
-        error: new Error('Insert failed')
-      });
-
-      await component.createPrayer(mockEvent);
-
-      expect(component.error).toContain('Failed to create prayer');
     });
   });
 
@@ -705,7 +641,6 @@ describe('PrayerSearchComponent', () => {
         lastName: 'B',
         author_email: 'a@b.com'
       };
-      component.addUpdateUserSearchQuery = 'jo';
       component.startAddUpdate('prayer-1');
       expect(component.addingUpdate).toBe('prayer-1');
       expect(component.newUpdate).toEqual({
@@ -714,19 +649,6 @@ describe('PrayerSearchComponent', () => {
         lastName: '',
         author_email: ''
       });
-      expect(component.addUpdateUserSearchQuery).toBe('');
-    });
-
-    it('should fill add-update fields when selecting a subscriber', () => {
-      const ev = new Event('mousedown');
-      vi.spyOn(ev, 'preventDefault');
-      vi.spyOn(ev, 'stopPropagation');
-      component.selectAddUpdateSubscriberUser({ name: 'Jane Q Public', email: 'jane@example.com' }, ev);
-      expect(component.newUpdate.firstName).toBe('Jane');
-      expect(component.newUpdate.lastName).toBe('Q Public');
-      expect(component.newUpdate.author_email).toBe('jane@example.com');
-      expect(component.addUpdateUserSearchQuery).toBe('');
-      expect(ev.preventDefault).toHaveBeenCalled();
     });
 
     it('should delete update successfully', async () => {
@@ -940,22 +862,6 @@ describe('PrayerSearchComponent', () => {
       expect(component.displayPrayers).toEqual([]);
       expect(component.selectedPrayers.size).toBe(0);
       expect(component.error).toBeNull();
-    });
-  });
-
-  describe('status color helpers', () => {
-    it('should return correct status color', () => {
-      expect(component.getStatusColor('current')).toContain('blue');
-      expect(component.getStatusColor('answered')).toContain('green');
-      expect(component.getStatusColor('archived')).toContain('slate');
-      expect(component.getStatusColor('unknown')).toContain('gray');
-    });
-
-    it('should return correct approval status color', () => {
-      expect(component.getApprovalStatusColor('approved')).toContain('green');
-      expect(component.getApprovalStatusColor('denied')).toContain('red');
-      expect(component.getApprovalStatusColor('pending')).toContain('yellow');
-      expect(component.getApprovalStatusColor('unknown')).toContain('gray');
     });
   });
 
@@ -1187,24 +1093,6 @@ describe('PrayerSearchComponent', () => {
       expect(component.selectedPrayers.has('1')).toBe(true);
     });
 
-    it('should handle create prayer rejects with empty email', async () => {
-      component.createForm = {
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: '',
-        prayer_for: 'Peace',
-        description: 'Testing',
-        status: 'current',
-        is_anonymous: false
-      };
-      component.allPrayers = [];
-
-      await component.createPrayer(new Event('submit'));
-
-      expect(component.error).toBe('All fields are required');
-      expect(mockToastService.error).toHaveBeenCalled();
-    });
-
     it('should handle start edit prayer with empty prayer_for', () => {
       const prayer = {
         ...mockPrayer,
@@ -1298,27 +1186,6 @@ describe('PrayerSearchComponent', () => {
       expect(component.error).toBeNull();
     });
 
-    it('should handle create prayer with leading/trailing whitespace', async () => {
-      component.createForm = {
-        firstName: '  John  ',
-        lastName: '  Doe  ',
-        email: '  john@example.com  ',
-        prayer_for: '  Guidance  ',
-        description: '  Test  ',
-        status: 'current',
-        is_anonymous: false
-      };
-      component.allPrayers = [];
-
-      await component.createPrayer(new Event('submit'));
-
-      expect(mockSupabaseService.getClient().from().insert).toHaveBeenCalled();
-      const insertCall = (mockSupabaseService.getClient().from().insert as any).mock.calls[0][0];
-      expect(insertCall.title).toBe('Prayer for Guidance');
-      expect(insertCall.approval_status).toBe('approved');
-      expect(insertCall.approved_at).toBeDefined();
-    });
-
     it('should handle save prayer with empty email', async () => {
       component.editingPrayer = '123';
       component.editForm = {
@@ -1336,23 +1203,6 @@ describe('PrayerSearchComponent', () => {
       expect(mockSupabaseService.getClient().from().update).toHaveBeenCalled();
       const updatePayload = mockSupabaseService.getClient().from().update.mock.calls[0][0];
       expect(updatePayload.approved_at).toBeDefined();
-    });
-
-    it('should handle createForm validation', () => {
-      component.createForm = {
-        firstName: 'John',
-        lastName: '',
-        email: 'john@example.com',
-        prayer_for: 'Peace',
-        description: 'Test',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      expect(component.isCreateFormValid()).toBe(false);
-
-      component.createForm.lastName = 'Doe';
-      expect(component.isCreateFormValid()).toBe(true);
     });
 
     it('should handle delete prayer confirmation cancel', async () => {
@@ -1393,23 +1243,25 @@ describe('PrayerSearchComponent', () => {
     });
 
     it('should handle error in cancel create prayer', () => {
+      const resetForm = vi.fn();
+      component.createFormRef = { resetForm } as never;
       component.creatingPrayer = true;
-      component.createForm.firstName = 'John';
 
       component.cancelCreatePrayer();
 
       expect(component.creatingPrayer).toBe(false);
-      expect(component.createForm.firstName).toBe('');
+      expect(resetForm).toHaveBeenCalled();
     });
 
     it('should test start create prayer resets form', () => {
+      const resetForm = vi.fn();
+      component.createFormRef = { resetForm } as never;
       component.error = 'Previous error';
-      
+
       component.startCreatePrayer();
-      
+
       expect(component.creatingPrayer).toBe(true);
       expect(component.error).toBeNull();
-      expect(component.createForm.firstName).toBe('');
     });
 
     it('should handle search with all filter combinations', async () => {
@@ -1661,22 +1513,6 @@ describe('PrayerSearchComponent', () => {
       expect(component.error).toContain('Failed to delete prayer updates');
     });
 
-    it('should handle create prayer error after successful insert', async () => {
-      component.createForm = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: 'Peace',
-        description: 'Test prayer',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      await component.createPrayer(new Event('submit'));
-
-      expect(mockSupabaseService.getClient().from().insert).toHaveBeenCalled();
-    });
-
     it('should return with no-op when no selectedPrayers in bulkStatusUpdate', async () => {
       component.selectedPrayers = new Set();
       component.bulkStatus = 'answered';
@@ -1694,112 +1530,6 @@ describe('PrayerSearchComponent', () => {
       await component.updateSelectedStatus();
 
       expect(component.updatingStatus).toBe(false);
-    });
-
-    it('should handle isCreateFormValid with missing firstName', () => {
-      component.createForm = {
-        firstName: '',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: 'Test',
-        description: 'Test',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      expect(component.isCreateFormValid()).toBe(false);
-    });
-
-    it('should handle isCreateFormValid with missing lastName', () => {
-      component.createForm = {
-        firstName: 'John',
-        lastName: '',
-        email: 'john@example.com',
-        prayer_for: 'Test',
-        description: 'Test',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      expect(component.isCreateFormValid()).toBe(false);
-    });
-
-    it('should handle isCreateFormValid with missing email', () => {
-      component.createForm = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: '',
-        prayer_for: 'Test',
-        description: 'Test',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      expect(component.isCreateFormValid()).toBe(false);
-    });
-
-    it('should handle isCreateFormValid with missing prayer_for', () => {
-      component.createForm = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: '',
-        description: 'Test',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      expect(component.isCreateFormValid()).toBe(false);
-    });
-
-    it('should handle isCreateFormValid with missing status field', () => {
-      component.createForm = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: 'Test',
-        description: 'Test',
-        status: '',
-        is_anonymous: false
-      };
-
-      // Status field is not validated in isCreateFormValid
-      expect(component.isCreateFormValid()).toBe(true);
-    });
-
-    it('should validate form with all create fields', () => {
-      component.createForm = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        prayer_for: 'Test',
-        description: 'Test',
-        status: 'current',
-        is_anonymous: false
-      };
-
-      expect(component.isCreateFormValid()).toBe(true);
-    });
-
-    it('should handle getStatusColor with pending status', () => {
-      const color = component.getStatusColor('pending');
-      expect(color).toBeDefined();
-      expect(typeof color).toBe('string');
-    });
-
-    it('should handle getStatusColor with unknown status', () => {
-      const color = component.getStatusColor('unknown');
-      expect(color).toBeDefined();
-    });
-
-    it('should get approval status color for approved', () => {
-      const color = component.getApprovalStatusColor('approved');
-      expect(color).toBeDefined();
-    });
-
-    it('should get approval status color for denied with reason', () => {
-      const color = component.getApprovalStatusColor('denied');
-      expect(color).toBeDefined();
     });
 
     it('should clear edit form on cancel', () => {
@@ -2455,7 +2185,6 @@ describe('PrayerSearchComponent', () => {
     it('ngOnDestroy clears pending debounce timers without throwing', () => {
       vi.useFakeTimers();
       component.onMainSearchTermChange('ab');
-      component.onUserSearchQueryChange('xy');
       expect(() => component.ngOnDestroy()).not.toThrow();
       vi.useRealTimers();
     });
@@ -2479,33 +2208,6 @@ describe('PrayerSearchComponent', () => {
       component.onMainSearchTermChange('needle');
       vi.advanceTimersByTime(350);
       expect(searchSpy).toHaveBeenCalled();
-      vi.useRealTimers();
-    });
-
-    it('onUserSearchQueryChange clears results when below min chars', () => {
-      component.userSearchResults = [
-        { email: 'a@b.com', first_name: 'A', last_name: 'B' },
-      ];
-      component.onUserSearchQueryChange('a');
-      expect(component.userSearchResults).toEqual([]);
-      expect(component.userSearchHasSearched).toBe(false);
-      expect(component.showUserSearchDropdown).toBe(false);
-    });
-
-    it('onUserSearchFocus shows dropdown when results exist', () => {
-      component.userSearchResults = [
-        { email: 'a@b.com', first_name: 'A', last_name: 'B' },
-      ];
-      component.onUserSearchFocus();
-      expect(component.showUserSearchDropdown).toBe(true);
-    });
-
-    it('onUserSearchBlur hides dropdown after delay', () => {
-      vi.useFakeTimers();
-      component.showUserSearchDropdown = true;
-      component.onUserSearchBlur();
-      vi.advanceTimersByTime(180);
-      expect(component.showUserSearchDropdown).toBe(false);
       vi.useRealTimers();
     });
 
@@ -2543,7 +2245,7 @@ describe('PrayerSearchComponent', () => {
       const { readFileSync } = await import('node:fs');
       const { join } = await import('node:path');
       const source = readFileSync(
-        join(__dirname, 'prayer-search.component.ts'),
+        join(__dirname, '../admin-prayer-editor-card/admin-prayer-editor-card.component.html'),
         'utf8'
       );
       const basicInfoBlock = source.slice(
@@ -2563,7 +2265,7 @@ describe('PrayerSearchComponent', () => {
       const { readFileSync } = await import('node:fs');
       const { join } = await import('node:path');
       const source = readFileSync(
-        join(__dirname, 'prayer-search.component.ts'),
+        join(__dirname, '../admin-prayer-editor-card/admin-prayer-editor-card.component.html'),
         'utf8'
       );
       const viewModeBlock = source.slice(
@@ -2583,7 +2285,7 @@ describe('PrayerSearchComponent', () => {
       const { readFileSync } = await import('node:fs');
       const { join } = await import('node:path');
       const source = readFileSync(
-        join(__dirname, 'prayer-search.component.ts'),
+        join(__dirname, '../admin-prayer-editor-card/admin-prayer-editor-card.component.html'),
         'utf8'
       );
       const expandedDetails = source.slice(

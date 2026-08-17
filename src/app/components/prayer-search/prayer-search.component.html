@@ -1,0 +1,599 @@
+    <div
+      #prayerEditorContainer
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+      [class.cursor-pointer]="!sectionExpanded"
+      (click)="!sectionExpanded && onSectionToggle()"
+    >
+      <button
+        type="button"
+        id="prayer-editor-settings-trigger"
+        class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+        (click)="onSectionToggle(); $event.stopPropagation()"
+        [attr.aria-expanded]="sectionExpanded"
+        aria-controls="prayer-editor-panel"
+      >
+        <span
+          class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0"
+        >
+          <svg
+            class="text-blue-600 dark:text-blue-400 shrink-0"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Prayer Editor
+        </span>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+          [class.rotate-180]="sectionExpanded"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      @if (sectionExpanded) {
+      <div
+        id="prayer-editor-panel"
+        role="region"
+        aria-labelledby="prayer-editor-settings-trigger"
+        class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Create New Prayer Button -->
+        <div class="mb-4 flex justify-end">
+          <button
+            type="button"
+            id="tour-prayer-editor-create-btn"
+            (click)="startCreatePrayer()"
+            class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create New Prayer
+          </button>
+        </div>
+
+        @if (creatingPrayer) {
+        <app-admin-prayer-editor-create-form
+          #createFormRef
+          (cancel)="cancelCreatePrayer()"
+          (created)="onPrayerCreated($event)"
+        ></app-admin-prayer-editor-create-form>
+        }
+        <!-- Search Input -->
+        <div class="mb-4">
+          <label
+            for="mainPrayerSearch"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Search Prayers
+          </label>
+          <div class="flex-1 relative">
+            <input
+              id="mainPrayerSearch"
+              type="text"
+              name="mainPrayerSearch"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="onMainSearchTermChange($event)"
+              (keydown)="onMainSearchKeydown($event)"
+              autocomplete="off"
+              placeholder="Search by title, requester, email, description, prayer updates, or denial reasons (min. {{
+                mainSearchMinChars
+              }} characters)…"
+              class="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            @if (searching) {
+            <div
+              class="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2"
+            >
+              <div
+                class="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"
+              ></div>
+            </div>
+            } @if (searchTerm) {
+            <button
+              type="button"
+              (click)="clearSearch()"
+              class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            }
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Debounced search ({{ mainSearchDebounceMs }}ms). Update matches use
+            a targeted query instead of loading the full list. Results capped at
+            {{ mainSearchResultLimit }} prayers.
+          </p>
+        </div>
+
+        <!-- Filter Dropdowns -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <!-- Prayer Status Filter -->
+          <div>
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Prayer Status
+            </label>
+            <div class="relative">
+              <select
+                [(ngModel)]="statusFilter"
+                (change)="onStatusFilterChange()"
+                class="w-full appearance-none px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
+              >
+                <option value="">Select status...</option>
+                <option value="all">All Statuses</option>
+                <option value="current">Current</option>
+                <option value="answered">Answered</option>
+                <option value="archived">Archived</option>
+              </select>
+              <svg
+                class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Approval Status Filter -->
+          <div>
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Approval Status
+            </label>
+            <div class="relative">
+              <select
+                [(ngModel)]="approvalFilter"
+                (change)="onApprovalFilterChange()"
+                class="w-full appearance-none px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
+              >
+                <option value="">Select approval...</option>
+                <option value="all">All Approvals</option>
+                <option value="approved">Approved</option>
+                <option value="pending">Pending</option>
+                <option value="denied">Denied</option>
+              </select>
+              <svg
+                class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        @if (error) {
+        <div
+          class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4"
+        >
+          <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+        </div>
+        }
+
+        <!-- Bulk Actions -->
+        @if (displayPrayers.length > 0) {
+        <div
+          class="flex flex-wrap items-start justify-between gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <label
+              class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                [checked]="
+                  selectedPrayers.size === displayPrayers.length &&
+                  displayPrayers.length > 0
+                "
+                (change)="toggleSelectAll()"
+                class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+              />
+              <span>Select All ({{ displayPrayers.length }})</span>
+            </label>
+            @if (selectedPrayers.size > 0) {
+            <span class="text-sm text-red-600 dark:text-red-400 font-medium">
+              {{ selectedPrayers.size }} selected
+            </span>
+            }
+          </div>
+          @if (selectedPrayers.size > 0) {
+          <div
+            class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full"
+          >
+            <!-- Bulk Status Change -->
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <label
+                class="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap sm:mr-2"
+              >
+                Change Status:
+              </label>
+              <div class="relative flex-1 sm:flex-none">
+                <select
+                  [(ngModel)]="bulkStatus"
+                  class="w-full appearance-none px-3 py-1.5 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 cursor-pointer"
+                >
+                  <option value="">Select...</option>
+                  <option value="current">Current</option>
+                  <option value="answered">Answered</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <svg
+                  class="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Buttons row -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                (click)="updateSelectedStatus()"
+                [disabled]="!bulkStatus || updatingStatus"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                @if (updatingStatus) {
+                <div
+                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+                ></div>
+                } @if (!updatingStatus) {
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                  ></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                }
+                {{
+                  updatingStatus
+                    ? "Updating..."
+                    : "Update (" + selectedPrayers.size + ")"
+                }}
+              </button>
+
+              <button
+                (click)="deleteSelected()"
+                [disabled]="deleting"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 transition-colors text-sm"
+              >
+                @if (deleting) {
+                <div
+                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+                ></div>
+                } @if (!deleting) {
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  ></path>
+                </svg>
+                }
+                {{
+                  deleting
+                    ? "Deleting..."
+                    : "Delete (" + selectedPrayers.size + ")"
+                }}
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Search Results -->
+        @if (searching) {
+        <div class="flex flex-col items-center justify-center py-12">
+          <div
+            class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 dark:border-red-400 mb-4"
+          ></div>
+          <p class="text-gray-600 dark:text-gray-400">Loading prayer data...</p>
+        </div>
+        } @if (!searching && displayPrayers.length > 0) {
+        <div class="space-y-1">
+          @for (prayer of displayPrayers; track prayer.id; let i = $index) {
+          <app-admin-prayer-editor-card
+            [prayer]="prayer"
+            [index]="i"
+            [selected]="selectedPrayers.has(prayer.id)"
+            [expanded]="expandedCards.has(prayer.id)"
+            [isEditing]="editingPrayer === prayer.id"
+            [isAddingUpdate]="addingUpdate === prayer.id"
+            [anyPrayerEditing]="!!editingPrayer"
+            [editForm]="editForm"
+            [newUpdate]="newUpdate"
+            [editUpdateForm]="editUpdateForm"
+            [editingUpdateId]="editingUpdateId"
+            [saving]="saving"
+            [savingUpdate]="savingUpdate"
+            [savingEditUpdate]="savingEditUpdate"
+            [deleting]="deleting"
+            (action)="onCardAction(prayer, $event)"
+          ></app-admin-prayer-editor-card>
+          }
+        </div>
+        }
+
+        <!-- Empty States -->
+        @if (!searching && allPrayers.length === 0 && searchTerm &&
+        !statusFilter && !approvalFilter) {
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg
+            class="mx-auto mb-2 opacity-50"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            ></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <p>No prayers found</p>
+          <p class="text-sm mt-1">Try a different search term</p>
+        </div>
+        } @if (!searching && allPrayers.length === 0 && !searchTerm &&
+        !statusFilter && !approvalFilter) {
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg
+            class="mx-auto mb-2 opacity-50"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <p>Search Prayers & Audit Log</p>
+          <div class="text-sm mt-2 space-y-1">
+            <p>
+              • Select a filter from the dropdowns to automatically load results
+            </p>
+            <p>
+              • Or search by title, requester, email, description, prayer
+              updates, or denial reasons
+            </p>
+            <p>• Select "Denied" to see all denied prayers and activities</p>
+          </div>
+        </div>
+        }
+
+        <!-- Results Summary -->
+        @if (allPrayers.length > 0) {
+        <div
+          class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4"
+        >
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-600 dark:text-gray-400">
+              Found:
+              <span class="font-semibold">{{ totalItems }}</span> prayer(s) |
+              Showing:
+              <span class="font-semibold"
+                >{{ (currentPage - 1) * pageSize + 1 }}-{{
+                  Math.min(currentPage * pageSize, totalItems)
+                }}</span
+              >
+            </span>
+            @if (selectedPrayers.size > 0) {
+            <span class="text-red-600 dark:text-red-400">
+              Selected:
+              <span class="font-semibold">{{ selectedPrayers.size }}</span>
+            </span>
+            }
+          </div>
+
+          <!-- Page Size Selector -->
+          <div class="flex items-center gap-2">
+            <label
+              for="pageSize"
+              class="text-sm text-gray-600 dark:text-gray-400"
+              >Items per page:</label
+            >
+            <select
+              id="pageSize"
+              [(ngModel)]="pageSize"
+              (change)="changePageSize()"
+              class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+            >
+              <option [value]="10">10</option>
+              <option [value]="50">50</option>
+              <option [value]="100">100</option>
+            </select>
+          </div>
+
+          <!-- Pagination Controls -->
+          @if (totalPages > 1) {
+          <div class="flex items-center justify-between">
+            <div class="flex gap-2">
+              <button
+                (click)="previousPage()"
+                [disabled]="isFirstPage"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <span class="hidden sm:inline">← Previous</span>
+                <span class="sm:hidden">←</span>
+              </button>
+              <button
+                (click)="nextPage()"
+                [disabled]="isLastPage"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <span class="hidden sm:inline">Next →</span>
+                <span class="sm:hidden">→</span>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="text-gray-600 dark:text-gray-400 text-sm">
+                Page <span class="font-semibold">{{ currentPage }}</span> of
+                <span class="font-semibold">{{ totalPages }}</span>
+              </span>
+
+              <div class="flex gap-1">
+                @for (page of getPaginationRange(); track $index) {
+                <button
+                  (click)="goToPage(page)"
+                  [class]="
+                    page === currentPage
+                      ? 'px-3 py-1 bg-red-600 text-white rounded-lg text-sm'
+                      : 'px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm'
+                  "
+                >
+                  {{ page }}
+                </button>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Warning Notice -->
+        <div
+          class="mt-4 flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+          >
+            <path
+              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            ></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <p class="text-sm text-amber-800 dark:text-amber-200">
+            <strong>Warning:</strong> Deleting prayers is permanent and cannot
+            be undone. All associated updates will also be deleted.
+          </p>
+        </div>
+      </div>
+      }
+    </div>
+
+    <!-- Send Notification Dialog -->
+    @if (showSendNotificationDialog) {
+    <app-send-notification-dialog
+      [notificationType]="sendDialogType"
+      [prayerTitle]="sendDialogPrayerTitle"
+      (confirm)="onConfirmSendNotification()"
+      (decline)="onDeclineSendNotification()"
+    ></app-send-notification-dialog>
+    }
+
+    <!-- Confirmation Dialog -->
+    @if (showConfirmationDialog) {
+    <app-confirmation-dialog
+      [title]="confirmationTitle"
+      [message]="confirmationMessage"
+      [isDangerous]="confirmationIsDangerous"
+      [confirmText]="confirmationButtonText"
+      (confirm)="onConfirmDelete()"
+      (cancel)="onCancelDelete()"
+    ></app-confirmation-dialog>
+    }

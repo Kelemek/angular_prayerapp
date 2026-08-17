@@ -1,0 +1,224 @@
+        <div
+          class="mb-4 p-4 border-2 border-green-300 dark:border-green-600 rounded-lg bg-gray-50 dark:bg-gray-900/50"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
+              Create New Prayer
+            </h4>
+            <button
+              type="button"
+              (click)="onCancelClick()"
+              class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <form (submit)="onCreateClick($event)" class="space-y-3">
+            <app-admin-subscriber-pick
+              #createSubscriberPick
+              domId="tour-prayer-editor-field-find-subscriber"
+              accent="green"
+              inputName="createSubscriberPickQuery"
+              (subscriberSelected)="onCreateSubscriberSelected($event)"
+            ></app-admin-subscriber-pick>
+
+            <div
+              id="tour-prayer-editor-field-names"
+              class="grid grid-cols-1 md:grid-cols-2 gap-3"
+            >
+              <div>
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  [(ngModel)]="createForm.firstName"
+                  name="firstName"
+                  required
+                  placeholder="First name"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  [(ngModel)]="createForm.lastName"
+                  name="lastName"
+                  required
+                  placeholder="Last name"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+
+            <div id="tour-prayer-editor-field-email">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Email *
+              </label>
+              <input
+                type="email"
+                [(ngModel)]="createForm.email"
+                name="email"
+                required
+                placeholder="email@example.com"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <div id="tour-prayer-editor-field-praying-for">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Praying For *
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="createForm.prayer_for"
+                name="prayer_for"
+                required
+                placeholder="e.g., healing, guidance, strength"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Title will be generated as "Prayer for [praying for]"
+              </p>
+            </div>
+
+            <div id="tour-prayer-editor-field-description">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Description *
+              </label>
+              <app-rich-text-editor
+                #createDescriptionEditor
+                [(ngModel)]="createForm.description"
+                name="description"
+                ngDefaultControl
+                required
+                ariaLabel="Prayer description"
+                placeholder="Describe the prayer request"
+                minHeight="5rem"
+              ></app-rich-text-editor>
+            </div>
+
+            <div
+              id="tour-prayer-editor-field-anonymous"
+              class="flex items-start"
+            >
+              <label
+                class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300 select-none"
+              >
+                <input
+                  type="checkbox"
+                  [(ngModel)]="createForm.is_anonymous"
+                  name="createPrayerIsAnonymous"
+                  id="create_is_anonymous"
+                  class="w-4 h-4 mt-0.5 shrink-0 text-green-600 border-gray-900 dark:border-white rounded focus:ring-green-500 bg-white dark:bg-gray-800"
+                />
+                <span
+                  >Submit anonymously (your name will not be shown
+                  publicly)</span
+                >
+              </label>
+            </div>
+
+            <div id="tour-prayer-editor-field-status">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Status *
+              </label>
+              <div class="relative">
+                <select
+                  [(ngModel)]="createForm.status"
+                  name="status"
+                  required
+                  class="w-full appearance-none px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 pr-10 cursor-pointer"
+                >
+                  <option value="current">Current</option>
+                  <option value="answered">Answered</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <svg
+                  class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600 dark:text-green-400"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                id="tour-prayer-editor-create-submit"
+                type="button"
+                [disabled]="saving"
+                (click)="onCreateClick($event)"
+                class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
+              >
+                @if (saving) {
+                <div
+                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+                ></div>
+                } @if (!saving) {
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                  ></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                }
+                {{ saving ? "Creating..." : "Create Prayer" }}
+              </button>
+
+              <button
+                type="button"
+                (click)="onCancelClick()"
+                class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>

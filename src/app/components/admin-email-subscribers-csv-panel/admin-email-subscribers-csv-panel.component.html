@@ -1,0 +1,84 @@
+      <div class="mb-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100 mb-3">Upload CSV File</h4>
+        
+        <div class="mb-4">
+          <div class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            <p class="mb-2"><strong>CSV Format:</strong> Name, Email (one per line)</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Example:</p>
+            <p class="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded border border-blue-200 dark:border-blue-700">
+              John Doe,john@example.com<br />
+              Jane Smith,jane@example.com
+            </p>
+          </div>
+        </div>
+
+        <!-- Upload Progress Bar -->
+        @if (uploadingCSV && csvImportTotal > 0) {
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+              Checking Planning Center: {{ csvImportProgress }}/{{ csvImportTotal }}
+            </span>
+            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+              {{ Math.round((csvImportProgress / csvImportTotal) * 100) }}%
+            </span>
+          </div>
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div 
+              class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+              [style.width.%]="(csvImportProgress / csvImportTotal) * 100"
+            ></div>
+          </div>
+        </div>
+        }
+
+        <input
+          type="file"
+          accept=".csv"
+          (change)="handleCSVUpload($event)"
+          [disabled]="uploadingCSV"
+          class="block w-full text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-800 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+
+        @if (csvData.length > 0) {
+        <div class="mb-4">
+          <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 mt-4">
+            Preview ({{ getValidRowsCount() }} valid, {{ getInvalidRowsCount() }} invalid)
+          </h5>
+          <div class="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-100 dark:bg-gray-700 sticky top-0">
+                <tr>
+                  <th class="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Name</th>
+                  <th class="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Email</th>
+                  <th class="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of csvData; track row.email) {
+                <tr [class.bg-red-50]="!row.valid" [class.dark:bg-red-900/20]="!row.valid">
+                  <td class="px-3 py-2 text-gray-900 dark:text-gray-100">{{ row.name }}</td>
+                  <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ row.email }}</td>
+                  <td class="px-3 py-2">
+                    @if (row.valid) {
+                    <span class="text-green-600 dark:text-green-400 text-xs">✓ Valid</span>
+                    }
+                    @if (!row.valid) {
+                    <span class="text-red-600 dark:text-red-400 text-xs">✗ {{ row.error }}</span>
+                    }
+                  </td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <button
+            (click)="uploadCSVData()"
+            [disabled]="uploadingCSV || getValidRowsCount() === 0"
+            class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer"
+          >
+            {{ uploadingCSV ? 'Uploading...' : 'Upload ' + getValidRowsCount() + ' Subscribers' }}
+          </button>
+        </div>
+        }
+      </div>

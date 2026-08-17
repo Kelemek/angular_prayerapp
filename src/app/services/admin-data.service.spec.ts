@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AdminDataService, type AdminData } from './admin-data.service';
+import { AdminDataReadService } from './admin-data-read.service';
+import { AdminDataCommandService } from './admin-data-command.service';
+import { AdminDataNotifyService } from './admin-data-notify.service';
 import { SupabaseService } from './supabase.service';
 import { PrayerService } from './prayer.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -112,10 +115,10 @@ describe('AdminDataService', () => {
     } as unknown as PushNotificationService;
 
     service = new AdminDataService(
-      mockSupabaseService,
+      new AdminDataReadService(mockSupabaseService),
+      new AdminDataCommandService(mockSupabaseService),
+      new AdminDataNotifyService(mockEmailNotificationService, mockPushNotificationService),
       mockPrayerService,
-      mockEmailNotificationService,
-      mockPushNotificationService
     );
   });
 

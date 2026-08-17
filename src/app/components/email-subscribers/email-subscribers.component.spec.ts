@@ -3,7 +3,7 @@ import { EmailSubscribersComponent } from './email-subscribers.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { AdminDataService } from '../../services/admin-data.service';
-import { ApplicationRef, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef } from '@angular/core';
 import * as planningCenter from '../../../lib/planning-center';
 
 vi.mock('../../../lib/planning-center', () => ({
@@ -90,18 +90,26 @@ describe('EmailSubscribersComponent', () => {
       })
     };
 
-    const mockApplicationRef = {
-      tick: vi.fn()
-    } as unknown as ApplicationRef;
-
     component = new EmailSubscribersComponent(
       mockSupabaseService,
       mockToastService,
       mockChangeDetectorRef,
-      mockApplicationRef,
       mockAdminDataService,
       mockBreakpointObserver
     );
+
+    component.addFormRef = {
+      resetForm: vi.fn(),
+      showPlanningCenterTab: vi.fn(),
+      runTourDemoSearch: vi.fn().mockResolvedValue(undefined),
+      selectTourDemoMatch: vi.fn(),
+      applyTourDemoPlanningCenterAdd: vi.fn(),
+      clearTourDemo: vi.fn(),
+    } as never;
+
+    component.csvPanelRef = {
+      reset: vi.fn(),
+    } as never;
   });
 
   afterEach(() => {
@@ -120,24 +128,13 @@ describe('EmailSubscribersComponent', () => {
       expect(component.hasSearched).toBe(false);
       expect(component.showAddForm).toBe(false);
       expect(component.showCSVUpload).toBe(false);
-      expect(component.csvData).toEqual([]);
-      expect(component.uploadingCSV).toBe(false);
-      expect(component.newName).toBe('');
-      expect(component.newEmail).toBe('');
-      expect(component.submitting).toBe(false);
       expect(component.error).toBeNull();
       expect(component.csvSuccess).toBeNull();
+      expect(component.editSubscriber).toBeNull();
       expect(component.currentPage).toBe(1);
       expect(component.pageSize).toBe(10);
       expect(component.totalItems).toBe(0);
       expect(component.allSubscribers).toEqual([]);
-      // Edit subscriber dialog defaults
-      expect((component as any).showEditSubscriberDialog).toBe(false);
-      expect((component as any).editSubscriberId).toBeNull();
-      expect((component as any).editName).toBe('');
-      expect((component as any).editEmail).toBe('');
-      expect((component as any).editSaving).toBe(false);
-      expect((component as any).editError).toBeNull();
     });
   });
 
@@ -194,12 +191,10 @@ describe('EmailSubscribersComponent', () => {
       expect(component.showCSVUpload).toBe(false);
     });
 
-    it('should reset form fields', () => {
-      component.newName = 'Test';
-      component.newEmail = 'test@example.com';
+    it('should reset add form when closing', () => {
+      component.showAddForm = true;
       component.toggleAddForm();
-      expect(component.newName).toBe('');
-      expect(component.newEmail).toBe('');
+      expect(component.addFormRef?.resetForm).toHaveBeenCalled();
     });
   });
 
@@ -218,10 +213,10 @@ describe('EmailSubscribersComponent', () => {
       expect(component.showAddForm).toBe(false);
     });
 
-    it('should reset CSV data', () => {
-      component.csvData = [{ name: 'Test', email: 'test@example.com', valid: true }];
+    it('should reset CSV panel when closing', () => {
+      component.showCSVUpload = true;
       component.toggleCSVUpload();
-      expect(component.csvData).toEqual([]);
+      expect(component.csvPanelRef?.reset).toHaveBeenCalled();
     });
   });
 
@@ -382,132 +377,6 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('handleAddSubscriber', () => {
-    it('should not add subscriber with empty fields', async () => {
-      component.newName = '';
-      component.newEmail = '';
-
-      await component.handleAddSubscriber();
-
-      expect(component.error).toBe('Name and email are required');
-    });
-
-    it('should not add existing subscriber', async () => {
-      component.newName = 'John Doe';
-      component.newEmail = 'john@example.com';
-
-      mockSupabaseService.client.from().select().eq().maybeSingle.mockResolvedValue({
-        data: mockSubscriber,
-        error: null
-      });
-
-      await component.handleAddSubscriber();
-
-      expect(component.error).toBe('This email address is already subscribed');
-    });
-
-    it('should add new subscriber successfully', async () => {
-      component.newName = 'Jane Doe';
-      component.newEmail = 'jane@example.com';
-
-      mockSupabaseService.client.from().select().eq().maybeSingle.mockResolvedValue({
-        data: null,
-        error: null
-      });
-
-      // Mock Planning Center lookup
-      vi.mocked(planningCenter.lookupPersonByEmail).mockResolvedValue({
-        people: [{
-          id: '123',
-          type: 'Person',
-          attributes: {
-            first_name: 'Jane',
-            last_name: 'Doe',
-            name: 'Jane Doe',
-            avatar: '',
-            status: 'active',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        }],
-        count: 1
-      });
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.handleAddSubscriber();
-
-      expect(component.csvSuccess).toBe('Subscriber added successfully!');
-      expect(component.showAddForm).toBe(false);
-      expect(searchSpy).toHaveBeenCalled();
-      expect(planningCenter.lookupPersonByEmail).toHaveBeenCalledWith(
-        'jane@example.com',
-        expect.any(String),
-        expect.any(String)
-      );
-      expect(insertSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Jane Doe',
-          email: 'jane@example.com',
-          is_active: true,
-          is_admin: false,
-          receive_admin_emails: false,
-          in_planning_center: true,
-          planning_center_checked_at: expect.any(String)
-        })
-      );
-    });
-
-    it('should handle add subscriber error', async () => {
-      component.newName = 'Jane Doe';
-      component.newEmail = 'jane@example.com';
-
-      mockSupabaseService.client.from().select().eq().maybeSingle.mockResolvedValue({
-        data: null,
-        error: null
-      });
-
-      mockSupabaseService.client.from().insert.mockResolvedValue({
-        error: new Error('Insert failed')
-      });
-
-      await component.handleAddSubscriber();
-
-      expect(component.error).toBe('Insert failed');
-    });
-
-    it('should handle Planning Center lookup failure gracefully', async () => {
-      component.newName = 'Jane Doe';
-      component.newEmail = 'jane@example.com';
-
-      mockSupabaseService.client.from().select().eq().maybeSingle.mockResolvedValue({
-        data: null,
-        error: null
-      });
-
-      // Mock Planning Center lookup to fail
-      vi.mocked(planningCenter.lookupPersonByEmail).mockRejectedValue(new Error('PC API down'));
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.handleAddSubscriber();
-
-      // Should still succeed with null Planning Center values
-      expect(component.csvSuccess).toBe('Subscriber added successfully!');
-      expect(insertSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          in_planning_center: null,
-          planning_center_checked_at: null
-        })
-      );
-    });
-  });
 
   describe('handleToggleActive', () => {
     it('should show confirmation dialog and toggle active status on confirm', async () => {
@@ -778,288 +647,6 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('CSV handling', () => {
-    it('should get valid rows count', () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true },
-        { name: 'Jane', email: 'invalid', valid: false }
-      ];
-
-      expect(component.getValidRowsCount()).toBe(1);
-    });
-
-    it('should get invalid rows count', () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true },
-        { name: 'Jane', email: 'invalid', valid: false },
-        { name: 'Bob', email: 'also-invalid', valid: false }
-      ];
-
-      expect(component.getInvalidRowsCount()).toBe(2);
-    });
-
-    it('should upload CSV data successfully', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true },
-        { name: 'Jane', email: 'jane@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      // Mock batched Planning Center lookups
-      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
-        {
-          email: 'john@example.com',
-          result: { people: [], count: 0 },
-          retries: 0,
-          failed: false
-        },
-        {
-          email: 'jane@example.com',
-          result: { people: [], count: 0 },
-          retries: 0,
-          failed: false
-        }
-      ]);
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.uploadCSVData();
-
-      expect(component.csvSuccess).toContain('Successfully added');
-      expect(searchSpy).toHaveBeenCalled();
-      expect(planningCenter.batchLookupPlanningCenter).toHaveBeenCalled();
-      expect(insertSpy).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            receive_admin_emails: false,
-            in_planning_center: false,
-            planning_center_checked_at: expect.any(String)
-          })
-        ])
-      );
-    });
-
-    it('should handle duplicate emails in CSV upload', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [{ email: 'john@example.com' }],
-        error: null
-      });
-
-      await component.uploadCSVData();
-
-      expect(component.error).toBe('All email addresses are already subscribed');
-    });
-
-    it('should handle CSV upload error', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      mockSupabaseService.client.from().insert.mockResolvedValue({
-        error: new Error('Insert failed')
-      });
-
-      await component.uploadCSVData();
-
-      expect(component.error).toBe('Insert failed');
-    });
-
-    it('should handle CSV upload with Planning Center lookup failures gracefully', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true },
-        { name: 'Jane', email: 'jane@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      // Mock Planning Center batch lookup to return some failures
-      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
-        {
-          email: 'john@example.com',
-          result: { people: [], count: 0, error: 'API timeout' },
-          retries: 3,
-          failed: true
-        },
-        {
-          email: 'jane@example.com',
-          result: { people: [], count: 0 },
-          retries: 0,
-          failed: false
-        }
-      ]);
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.uploadCSVData();
-
-      // Should still succeed despite Planning Center check failures
-      expect(component.csvSuccess).toContain('Successfully added');
-      expect(component.csvImportWarnings.length).toBeGreaterThan(0);
-      expect(insertSpy).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            in_planning_center: null,
-            planning_center_checked_at: null,
-            receive_admin_emails: false
-          })
-        ])
-      );
-    });
-
-    it('should show warning for failed Planning Center checks', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true },
-        { name: 'Jane', email: 'jane@example.com', valid: true },
-        { name: 'Bob', email: 'bob@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
-        {
-          email: 'john@example.com',
-          result: { people: [], count: 0 },
-          retries: 0,
-          failed: false
-        },
-        {
-          email: 'jane@example.com',
-          result: { people: [], count: 0, error: 'Network timeout' },
-          retries: 3,
-          failed: true
-        },
-        {
-          email: 'bob@example.com',
-          result: { people: [], count: 0, error: 'API error' },
-          retries: 2,
-          failed: true
-        }
-      ]);
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-      
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.uploadCSVData();
-
-      expect(component.csvImportWarnings.length).toBe(2);
-      expect(component.csvImportWarnings[0]).toContain('jane@example.com');
-      expect(component.csvImportWarnings[1]).toContain('bob@example.com');
-      expect(component.csvSuccess).toContain('Planning Center checks failed for 2');
-    });
-
-    it('should track progress during Planning Center batch lookup', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true },
-        { name: 'Jane', email: 'jane@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      let progressCallback: any;
-      vi.mocked(planningCenter.batchLookupPlanningCenter).mockImplementation(
-        async (emails, url, key, options) => {
-          progressCallback = options?.onProgress;
-          
-          // Simulate progress updates
-          if (progressCallback) {
-            progressCallback(1, 2);
-            progressCallback(2, 2);
-          }
-
-          return [
-            {
-              email: 'john@example.com',
-              result: { people: [], count: 0 },
-              retries: 0,
-              failed: false
-            },
-            {
-              email: 'jane@example.com',
-              result: { people: [], count: 0 },
-              retries: 0,
-              failed: false
-            }
-          ];
-        }
-      );
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.uploadCSVData();
-
-      expect(planningCenter.batchLookupPlanningCenter).toHaveBeenCalledWith(
-        expect.any(Array),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          concurrency: 5,
-          maxRetries: 3,
-          onProgress: expect.any(Function)
-        })
-      );
-    });
-
-    it('should reset progress tracking after upload', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
-        {
-          email: 'john@example.com',
-          result: { people: [], count: 0 },
-          retries: 0,
-          failed: false
-        }
-      ]);
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.uploadCSVData();
-
-      expect(component.csvImportProgress).toBe(0);
-      expect(component.csvImportTotal).toBe(0);
-    });
-  });
 
   describe('getActiveCount', () => {
     it('should count active subscribers', () => {
@@ -1090,78 +677,6 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('handleCSVUpload', () => {
-    it('should parse CSV file correctly', async () => {
-      const csvContent = 'John Doe,john@example.com\nJane Smith,jane@example.com';
-      const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
-      
-      const event = { target: { files: [file] } } as any;
-      component.handleCSVUpload(event);
-
-      // Wait for FileReader to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      expect(component.csvData.length).toBe(2);
-      expect(component.csvData[0]).toEqual({
-        name: 'John Doe',
-        email: 'john@example.com',
-        valid: true
-      });
-    });
-
-    it('should handle invalid email format in CSV', async () => {
-      const csvContent = 'John Doe,invalid-email';
-      const file = new File([csvContent], 'test.csv');
-      
-      const event = { target: { files: [file] } } as any;
-      component.handleCSVUpload(event);
-
-      // Wait for FileReader to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      expect(component.csvData[0].valid).toBe(false);
-      expect(component.csvData[0].error).toBe('Invalid email format');
-    });
-
-    it('should handle missing name or email in CSV', async () => {
-      const csvContent = 'John Doe,\n,jane@example.com';
-      const file = new File([csvContent], 'test.csv');
-      
-      const event = { target: { files: [file] } } as any;
-      component.handleCSVUpload(event);
-
-      // Wait for FileReader to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      expect(component.csvData[0].valid).toBe(false);
-      expect(component.csvData[0].error).toBe('Missing name or email');
-      expect(component.csvData[1].valid).toBe(false);
-    });
-
-    it('should handle empty file input', () => {
-      const event = { target: { files: [] } } as any;
-      component.handleCSVUpload(event);
-      expect(component.csvData).toEqual([]);
-    });
-
-    it('should handle null file', () => {
-      const event = { target: { files: null } } as any;
-      component.handleCSVUpload(event);
-      expect(component.csvData).toEqual([]);
-    });
-
-    it('should clear error when parsing CSV successfully', async () => {
-      component.error = 'Previous error';
-      const csvContent = 'John Doe,john@example.com';
-      const file = new File([csvContent], 'test.csv');
-      
-      const event = { target: { files: [file] } } as any;
-      component.handleCSVUpload(event);
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-      expect(component.error).toBeNull();
-    });
-  });
 
   describe('handleSearch with query', () => {
     it('should search with query string', async () => {
@@ -1205,66 +720,6 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('uploadCSVData with skipped duplicates and no failures', () => {
-    it('should include message about skipped duplicates', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true },
-        { name: 'Existing', email: 'existing@example.com', valid: true }
-      ];
-
-      // Mock existing email check to return one existing email
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [{ email: 'existing@example.com' }],
-        error: null
-      });
-
-      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
-        {
-          email: 'john@example.com',
-          result: { people: [], count: 0 },
-          retries: 0,
-          failed: false
-        }
-      ]);
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.uploadCSVData();
-
-      expect(component.csvSuccess).toContain('Skipped 1 duplicate(s)');
-    });
-
-    it('should add exclamation mark when no failures', async () => {
-      component.csvData = [
-        { name: 'John', email: 'john@example.com', valid: true }
-      ];
-
-      mockSupabaseService.client.from().select().in.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      vi.mocked(planningCenter.batchLookupPlanningCenter).mockResolvedValue([
-        {
-          email: 'john@example.com',
-          result: { people: [], count: 0 },
-          retries: 0,
-          failed: false
-        }
-      ]);
-
-      const insertSpy = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from().insert = insertSpy;
-      const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
-
-      await component.uploadCSVData();
-
-      expect(component.csvSuccess).toContain('!');
-      expect(component.csvSuccess).not.toContain('⚠️');
-    });
-  });
 
   describe('getPaginationRange with various scenarios', () => {
     beforeEach(() => {
@@ -1353,34 +808,6 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('saveEditSubscriber branches', () => {
-    it('returns early when editSubscriberId is null', async () => {
-      component.editSubscriberId = null;
-      await component.saveEditSubscriber();
-      expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
-    });
-
-    it('sets editError when editName is empty', async () => {
-      component.editSubscriberId = 'id-1';
-      component.editName = '   ';
-      await component.saveEditSubscriber();
-      expect(component.editError).toBe('Name is required');
-    });
-
-    it('sets editError when update fails', async () => {
-      component.editSubscriberId = 'id-1';
-      component.editName = 'New Name';
-      component.allSubscribers = [{ ...mockSubscriber, id: 'id-1', name: 'Old' }];
-      mockSupabaseService.client.from.mockReturnValue({
-        select: vi.fn(),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: { message: 'DB error' } })
-        })
-      });
-      await component.saveEditSubscriber();
-      expect(component.editError).toBeTruthy();
-    });
-  });
 
   describe('goToPage branches', () => {
     beforeEach(() => {
@@ -1463,286 +890,6 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('Additional Coverage - Email Subscribers Advanced Features', () => {
-    it('should have handleSearchPlanningCenter method', () => {
-      expect(typeof component.handleSearchPlanningCenter).toBe('function');
-    });
-
-    it('should have selectPlanningCenterPerson method', () => {
-      expect(typeof component.selectPlanningCenterPerson).toBe('function');
-    });
-
-    it('should have handleAddSelectedPlanningCenterPerson method', () => {
-      expect(typeof component.handleAddSelectedPlanningCenterPerson).toBe('function');
-    });
-
-    it('should have onConfirmSendWelcomeEmail method', () => {
-      expect(typeof component.onConfirmSendWelcomeEmail).toBe('function');
-    });
-
-    it('should have onDeclineSendWelcomeEmail method', () => {
-      expect(typeof component.onDeclineSendWelcomeEmail).toBe('function');
-    });
-
-    it('should have onConfirmDialog method', () => {
-      expect(typeof component.onConfirmDialog).toBe('function');
-    });
-
-    it('should have onCancelDialog method', () => {
-      expect(typeof component.onCancelDialog).toBe('function');
-    });
-
-    it('should return error for empty Planning Center search', async () => {
-      component.pcSearchQuery = '';
-
-      await component.handleSearchPlanningCenter();
-
-      expect(component.error).toBeTruthy();
-    });
-
-    it('should handle Planning Center search with whitespace', async () => {
-      component.pcSearchQuery = '   ';
-
-      await component.handleSearchPlanningCenter();
-
-      expect(component.error).toBeTruthy();
-    });
-
-    it('should select Planning Center person', () => {
-      const person = {
-        type: 'people',
-        id: '1',
-        attributes: {
-          name: 'Test Person',
-          first_name: 'Test',
-          last_name: 'Person',
-          primary_email_address: 'test@example.com'
-        }
-      } as any;
-
-      component.selectPlanningCenterPerson(person);
-
-      expect(component.pcSelectedPerson).toBe(person);
-      expect(component.newName).toBe('Test Person');
-    });
-
-    it('should handle Planning Center person without primary email', () => {
-      const person = {
-        type: 'people',
-        id: '1',
-        attributes: {
-          name: 'Test Person',
-          first_name: 'Test',
-          last_name: 'Person',
-          primary_email_address: null
-        }
-      } as any;
-
-      component.selectPlanningCenterPerson(person);
-
-      expect(component.pcSelectedPerson).toBe(person);
-    });
-
-    it('should decline welcome email confirmation', () => {
-      component.showSendWelcomeEmailDialog = true;
-      component.showAddForm = true;
-      component.pendingSubscriberEmail = 'test@example.com';
-
-      component.onDeclineSendWelcomeEmail();
-
-      expect(component.showSendWelcomeEmailDialog).toBe(false);
-      expect(component.showAddForm).toBe(false);
-      expect(component.pendingSubscriberEmail).toBe('');
-    });
-
-    it('should handle confirmation dialog cancel', () => {
-      component.showConfirmationDialog = true;
-      component.confirmationAction = vi.fn();
-
-      component.onCancelDialog();
-
-      expect(component.showConfirmationDialog).toBe(false);
-      expect(component.confirmationAction).toBeNull();
-    });
-
-    it('should track csvData as array', () => {
-      expect(Array.isArray(component.csvData)).toBe(true);
-    });
-
-    it('should track csvImportProgress value', () => {
-      expect(typeof component.csvImportProgress).toBe('number');
-      component.csvImportProgress = 5;
-      expect(component.csvImportProgress).toBe(5);
-    });
-
-    it('should track csvImportTotal value', () => {
-      expect(typeof component.csvImportTotal).toBe('number');
-      component.csvImportTotal = 10;
-      expect(component.csvImportTotal).toBe(10);
-    });
-
-    it('should track csvImportWarnings as array', () => {
-      expect(Array.isArray(component.csvImportWarnings)).toBe(true);
-    });
-
-    it('should track CSV upload state', () => {
-      expect(typeof component.uploadingCSV).toBe('boolean');
-      component.uploadingCSV = true;
-      expect(component.uploadingCSV).toBe(true);
-    });
-
-    it('should track CSV success message', () => {
-      component.csvSuccess = 'CSV import successful';
-      expect(component.csvSuccess).toBe('CSV import successful');
-
-      component.csvSuccess = null;
-      expect(component.csvSuccess).toBeNull();
-    });
-
-    it('should track Planning Center search state', () => {
-      expect(typeof component.pcSearching).toBe('boolean');
-      component.pcSearching = true;
-      expect(component.pcSearching).toBe(true);
-    });
-
-    it('should track Planning Center search results', () => {
-      expect(Array.isArray(component.pcSearchResults)).toBe(true);
-      component.pcSearchResults = [
-        { id: '1', attributes: { name: 'Person 1', first_name: 'Person', last_name: '1', primary_email_address: 'p1@test.com', avatar: '', status: 'active' } } as any,
-        { id: '2', attributes: { name: 'Person 2', first_name: 'Person', last_name: '2', primary_email_address: 'p2@test.com', avatar: '', status: 'active' } } as any
-      ];
-      expect(component.pcSearchResults).toHaveLength(2);
-    });
-
-    it('should track pcSearchTab visibility', () => {
-      expect(typeof component.pcSearchTab).toBe('boolean');
-      component.pcSearchTab = true;
-      expect(component.pcSearchTab).toBe(true);
-    });
-
-    it('should track pcSearchSearched state', () => {
-      expect(typeof component.pcSearchSearched).toBe('boolean');
-      component.pcSearchSearched = true;
-      expect(component.pcSearchSearched).toBe(true);
-    });
-
-    it('should track pcSearchQuery text', () => {
-      component.pcSearchQuery = 'John Doe';
-      expect(component.pcSearchQuery).toBe('John Doe');
-    });
-
-    it('should track pendingSubscriberEmail', () => {
-      component.pendingSubscriberEmail = 'test@example.com';
-      expect(component.pendingSubscriberEmail).toBe('test@example.com');
-
-      component.pendingSubscriberEmail = '';
-      expect(component.pendingSubscriberEmail).toBe('');
-    });
-
-    it('should track showSendWelcomeEmailDialog visibility', () => {
-      expect(typeof component.showSendWelcomeEmailDialog).toBe('boolean');
-      component.showSendWelcomeEmailDialog = true;
-      expect(component.showSendWelcomeEmailDialog).toBe(true);
-    });
-
-    it('should track showConfirmationDialog visibility', () => {
-      expect(typeof component.showConfirmationDialog).toBe('boolean');
-      component.showConfirmationDialog = true;
-      expect(component.showConfirmationDialog).toBe(true);
-    });
-
-    it('should track confirmationAction callback', () => {
-      const mockAction = vi.fn();
-      component.confirmationAction = mockAction;
-      expect(component.confirmationAction).toBe(mockAction);
-
-      component.confirmationAction = null;
-      expect(component.confirmationAction).toBeNull();
-    });
-
-    it('should track isDeleteConfirmation flag', () => {
-      expect(typeof component.isDeleteConfirmation).toBe('boolean');
-      component.isDeleteConfirmation = true;
-      expect(component.isDeleteConfirmation).toBe(true);
-    });
-
-    it('should track showCSVUpload visibility', () => {
-      expect(typeof component.showCSVUpload).toBe('boolean');
-      component.showCSVUpload = true;
-      expect(component.showCSVUpload).toBe(true);
-
-      component.showCSVUpload = false;
-      expect(component.showCSVUpload).toBe(false);
-    });
-
-    it('should have error property for tracking errors', () => {
-      component.error = 'Test error';
-      expect(component.error).toBe('Test error');
-
-      component.error = null;
-      expect(component.error).toBeNull();
-    });
-
-    it('should have toast service for notifications', () => {
-      expect(mockToastService).toBeDefined();
-      expect(typeof mockToastService.success).toBe('function');
-      expect(typeof mockToastService.error).toBe('function');
-    });
-
-    it('should track page loading state', () => {
-      // Loading state may be managed internally, just verify component is initialized
-      expect(component).toBeDefined();
-    });
-
-    it('should manage subscribers array', () => {
-      expect(Array.isArray(component.subscribers)).toBe(true);
-      expect(Array.isArray(component.allSubscribers)).toBe(true);
-    });
-
-    it('should track pagination properties', () => {
-      expect(typeof component.currentPage).toBe('number');
-      expect(typeof component.pageSize).toBe('number');
-      expect(typeof component.totalItems).toBe('number');
-    });
-
-    it('should track new subscriber form fields', () => {
-      component.newName = 'John Doe';
-      component.newEmail = 'john@example.com';
-      
-      expect(component.newName).toBe('John Doe');
-      expect(component.newEmail).toBe('john@example.com');
-    });
-
-    it('should track search query', () => {
-      component.searchQuery = 'test@example.com';
-      expect(component.searchQuery).toBe('test@example.com');
-    });
-
-    it('should have cdr for change detection', () => {
-      expect(component['cdr']).toBeDefined();
-      expect(typeof component['cdr'].markForCheck).toBe('function');
-    });
-
-    it('should have console logging for debugging', () => {
-      const consoleSpy = vi.spyOn(console, 'log');
-      console.log('[CSV Import] Test message');
-      expect(consoleSpy).toHaveBeenCalled();
-    });
-
-    it('should transition dialog visibility states', () => {
-      component.showConfirmationDialog = false;
-      component.isDeleteConfirmation = false;
-
-      component.showConfirmationDialog = true;
-      component.isDeleteConfirmation = true;
-
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.isDeleteConfirmation).toBe(true);
-
-      component.showConfirmationDialog = false;
-      expect(component.showConfirmationDialog).toBe(false);
-    });
-  });
 
   describe('Dialog handlers and confirmations', () => {
     it('should have onConfirmSendWelcomeEmail method', () => {
@@ -1807,7 +954,7 @@ describe('EmailSubscribersComponent', () => {
       expect(component.isDeleteConfirmation).toBe(false);
     });
 
-    it('should open edit subscriber modal with correct initial values', () => {
+    it('should open edit subscriber modal with subscriber reference', () => {
       const subscriber = {
         id: 'sub-1',
         name: 'Original Name',
@@ -1817,76 +964,35 @@ describe('EmailSubscribersComponent', () => {
         is_admin: false,
         created_at: '2024-01-01',
         last_activity_date: '2024-01-01',
-        in_planning_center: false
+        in_planning_center: false,
       } as any;
 
       component.openEditSubscriberModal(subscriber);
 
-      expect(component['editSubscriberId']).toBe('sub-1');
-      expect(component['editName']).toBe('Original Name');
-      expect(component['editEmail']).toBe('user@example.com');
-      expect(component['showEditSubscriberDialog']).toBe(true);
+      expect(component.editSubscriber).toBe(subscriber);
     });
 
-    it('should close edit subscriber modal and reset state', () => {
-      component['editSubscriberId'] = 'sub-1';
-      component['editName'] = 'Changed';
-      component['editEmail'] = 'user@example.com';
-      component['editError'] = 'Some error';
-      component['editSaving'] = true;
-      component['showEditSubscriberDialog'] = true;
-
+    it('should close edit subscriber modal', () => {
+      component.editSubscriber = { ...mockSubscriber } as any;
       component.closeEditSubscriberModal();
-
-      expect(component['editSubscriberId']).toBeNull();
-      expect(component['editName']).toBe('');
-      expect(component['editEmail']).toBe('');
-      expect(component['editError']).toBeNull();
-      expect(component['editSaving']).toBe(false);
-      expect(component['showEditSubscriberDialog']).toBe(false);
+      expect(component.editSubscriber).toBeNull();
     });
 
-    it('should validate name when saving edited subscriber', async () => {
-      component['editSubscriberId'] = 'sub-1';
-      component['editName'] = '   '; // only whitespace
-
-      await component.saveEditSubscriber();
-
-      expect(component['editError']).toBe('Name is required');
-    });
-
-    it('should update subscriber name via Supabase when saving edit', async () => {
-      const mockUpdate = vi.fn().mockResolvedValue({ error: null });
-      mockSupabaseService.client.from.mockReturnValue({
-        update: () => ({ eq: mockUpdate })
-      } as any);
-
+    it('onEditSaved updates local list and closes modal', () => {
       const existing = {
+        ...mockSubscriber,
         id: 'sub-1',
         name: 'Old Name',
-        email: 'user@example.com',
-        is_active: true,
-        is_blocked: false,
-        is_admin: false,
-        created_at: '2024-01-01',
-        last_activity_date: '2024-01-01',
-        in_planning_center: false
-      } as any;
+      };
+      component.allSubscribers = [existing as any];
+      component.editSubscriber = existing as any;
+      const loadSpy = vi.spyOn(component, 'loadPageData').mockImplementation(() => {});
 
-      component.allSubscribers = [existing];
-      component['editSubscriberId'] = 'sub-1';
-      component['editName'] = 'New Name';
+      component.onEditSaved({ id: 'sub-1', name: 'New Name' });
 
-      const loadPageDataSpy = vi.spyOn(component as any, 'loadPageData').mockImplementation(() => {});
-      const closeSpy = vi.spyOn(component as any, 'closeEditSubscriberModal').mockImplementation(() => {});
-
-      await component.saveEditSubscriber();
-
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('email_subscribers');
-      expect(mockUpdate).toHaveBeenCalledWith('id', 'sub-1');
       expect(existing.name).toBe('New Name');
-      expect(loadPageDataSpy).toHaveBeenCalled();
-      expect(closeSpy).toHaveBeenCalled();
+      expect(loadSpy).toHaveBeenCalled();
+      expect(component.editSubscriber).toBeNull();
     });
 
     // Tests for non-existent component property sortOrder - commented out
@@ -1940,258 +1046,8 @@ describe('EmailSubscribersComponent', () => {
 
       expect(component.sortBy).toBe('last_activity_date');
     });
-
-    it('should handle Planning Center search', () => {
-      component.pcSearchQuery = 'test name';
-      
-      // Just verify the method exists and is callable
-      expect(component.handleSearchPlanningCenter).toBeDefined();
-    });
-
-    it('should have empty Planning Center search results by default', () => {
-      expect(component.pcSearchResults).toBeDefined();
-    });
-
-    it('should have handleSearchPlanningCenter method', () => {
-      expect(typeof component.handleSearchPlanningCenter).toBe('function');
-    });
-
-    it('should return if no pcSelectedPerson in handleAddSelectedPlanningCenterPerson', async () => {
-      component.pcSelectedPerson = null;
-      
-      // Should set error message
-      await component.handleAddSelectedPlanningCenterPerson();
-      
-      expect(component.error).toBe('Please select a person from Planning Center');
-    });
-
-    it('should add selected Planning Center person attributes to form', () => {
-      const selectedPerson = {
-        type: 'people',
-        id: '1',
-        attributes: {
-          name: 'PC Person',
-          primary_email_address: 'pcperson@example.com',
-          first_name: 'PC',
-          last_name: 'Person'
-        }
-      } as any;
-
-      component.selectPlanningCenterPerson(selectedPerson);
-
-      expect(component.pcSelectedPerson).toBe(selectedPerson);
-      expect(component.newName).toBe('PC Person');
-    });
-
-    it('should handle Planning Center person without primary_email_address', () => {
-      const selectedPerson = {
-        type: 'people',
-        id: '1',
-        attributes: {
-          name: '',
-          primary_email_address: '',
-          first_name: 'John',
-          last_name: 'Doe'
-        }
-      } as any;
-
-      component.selectPlanningCenterPerson(selectedPerson);
-
-      expect(component.newName).toBe('John Doe');
-    });
-
-    it('should handle Planning Center person selection and verify cdr.markForCheck is called', () => {
-      const cdrSpy = vi.spyOn(mockChangeDetectorRef, 'markForCheck');
-      const person = {
-        type: 'people',
-        id: '1',
-        attributes: {
-          name: 'Selected Person',
-          primary_email_address: 'selected@example.com',
-          first_name: 'Selected',
-          last_name: 'Person'
-        }
-      } as any;
-
-      component.selectPlanningCenterPerson(person);
-
-      expect(cdrSpy).toHaveBeenCalled();
-    });
   });
 
-  describe('Branch coverage - selectPlanningCenterPerson conditional paths', () => {
-    it('should show info toast when both name and email are filled', async () => {
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'John Doe',
-          primary_email_address: 'john@example.com',
-          first_name: 'John',
-          last_name: 'Doe'
-        }
-      } as any;
-
-      const toastSpy = vi.spyOn(mockToastService, 'info');
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      // Should show info toast about name and email filled in
-      expect(toastSpy).toHaveBeenCalledWith('Name and email filled in! Click "Add Subscriber" to complete.');
-    });
-
-    it('should show info toast when only name is filled (no email)', async () => {
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'Jane Smith',
-          primary_email_address: '',  // No email
-          first_name: 'Jane',
-          last_name: 'Smith'
-        }
-      } as any;
-
-      const toastSpy = vi.spyOn(mockToastService, 'info');
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      // Should show different info toast asking for email
-      expect(toastSpy).toHaveBeenCalledWith('Name filled in! Please enter the email address for this contact.');
-    });
-
-    it('should set pcSearchTab to false when both name and email present', async () => {
-      component.pcSearchTab = true;
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'Test User',
-          primary_email_address: 'test@example.com',
-          first_name: 'Test',
-          last_name: 'User'
-        }
-      } as any;
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      expect(component.pcSearchTab).toBe(false);
-    });
-
-    it('should set pcSearchTab to false when only name present', async () => {
-      component.pcSearchTab = true;
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'Mark Check',
-          primary_email_address: '',  // No email
-          first_name: 'Mark',
-          last_name: 'Check'
-        }
-      } as any;
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      expect(component.pcSearchTab).toBe(false);
-    });
-
-    it('should not modify pcSearchTab when neither name nor email present', async () => {
-      component.pcSearchTab = true;
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: '',
-          primary_email_address: '',
-          first_name: '',
-          last_name: ''
-        }
-      } as any;
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      // pcSearchTab should remain true since conditions not met
-      expect(component.pcSearchTab).toBe(true);
-    });
-
-    it('should call markForCheck on change detector', async () => {
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'Mark Check',
-          primary_email_address: 'mark@example.com',
-          first_name: 'Mark',
-          last_name: 'Check'
-        }
-      } as any;
-
-      const cdrSpy = vi.spyOn(mockChangeDetectorRef, 'markForCheck');
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      expect(cdrSpy).toHaveBeenCalled();
-    });
-
-    it('should handle person with first_name and last_name fallback', async () => {
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: '',  // Empty name, should use first_name + last_name
-          primary_email_address: 'fallback@example.com',
-          first_name: 'FirstName',
-          last_name: 'LastName'
-        }
-      } as any;
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      expect(component.newName).toBe('FirstName LastName');
-    });
-
-    it('should prefer name over first_name + last_name', async () => {
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'Full Name',
-          primary_email_address: 'test@example.com',
-          first_name: 'First',
-          last_name: 'Last'
-        }
-      } as any;
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      expect(component.newName).toBe('Full Name');
-    });
-
-    it('should set newEmail from primary_email_address', async () => {
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'Test User',
-          primary_email_address: 'test@example.com',
-          first_name: 'Test',
-          last_name: 'User'
-        }
-      } as any;
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      expect(component.newEmail).toBe('test@example.com');
-    });
-
-    it('should set empty newEmail when no primary_email_address', async () => {
-      component.pcSelectedPerson = {
-        id: '1',
-        attributes: {
-          name: 'Test User',
-          primary_email_address: '',
-          first_name: 'Test',
-          last_name: 'User'
-        }
-      } as any;
-
-      await component.handleAddSelectedPlanningCenterPerson();
-
-      expect(component.newEmail).toBe('');
-    });
-  });
 
   describe('Branch coverage - welcome email dialog handlers', () => {
     it('should return early if no pending subscriber email in onConfirmSendWelcomeEmail', async () => {
@@ -2411,101 +1267,5 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('Planning Center search debounce', () => {
-    it('Enter runs Planning Center search via flushPcSearchNow', () => {
-      const spy = vi.spyOn(component, 'handleSearchPlanningCenter').mockResolvedValue();
-      component.pcSearchQuery = 'Jane';
-      const ev = { key: 'Enter', preventDefault: vi.fn() } as unknown as KeyboardEvent;
-      component.onPcSearchKeydown(ev);
-      expect(ev.preventDefault).toHaveBeenCalled();
-      expect(spy).toHaveBeenCalled();
-    });
 
-    it('ngOnDestroy cancels pending Planning Center debounced search', () => {
-      vi.useFakeTimers();
-      const spy = vi.spyOn(component, 'handleSearchPlanningCenter').mockResolvedValue();
-      component.onPcSearchQueryChange('Jane');
-      vi.advanceTimersByTime(200);
-      component.ngOnDestroy();
-      vi.advanceTimersByTime(600);
-      expect(spy).not.toHaveBeenCalled();
-      vi.useRealTimers();
-    });
-
-    it('handleSearchPlanningCenter rejects a single character', async () => {
-      component.pcSearchQuery = 'J';
-      await component.handleSearchPlanningCenter();
-      expect(component.error).toContain('at least 2 characters');
-      expect(planningCenter.searchPlanningCenterByName).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Planning Center search flows', () => {
-    it('populates results when the search succeeds', async () => {
-      component.pcSearchQuery = 'Jane';
-      const mockResult = {
-        people: [{
-          id: 'pc-1',
-          attributes: { name: 'Jane Doe', primary_email_address: 'jane@example.com', avatar: '', status: 'active' }
-        }],
-        count: 1
-      };
-      vi.mocked(planningCenter.searchPlanningCenterByName).mockResolvedValue(mockResult as any);
-
-      await component.handleSearchPlanningCenter();
-
-      expect(component.pcSearchResults).toEqual(mockResult.people);
-      expect(component.error).toBeNull();
-      expect(component.pcSearching).toBe(false);
-    });
-
-    it('handles search failures gracefully', async () => {
-      component.pcSearchQuery = 'Error';
-      vi.mocked(planningCenter.searchPlanningCenterByName).mockRejectedValue(new Error('Network'));
-
-      await component.handleSearchPlanningCenter();
-
-      expect(component.error).toContain('Network');
-      expect(component.pcSearchResults).toEqual([]);
-      expect(component.pcSearching).toBe(false);
-    });
-
-    it('returns early when pcSearchQuery is empty', async () => {
-      component.pcSearchQuery = '   ';
-      component.error = null;
-      await component.handleSearchPlanningCenter();
-      expect(component.error).toBe('Please enter a name to search');
-      expect(planningCenter.searchPlanningCenterByName).not.toHaveBeenCalled();
-    });
-
-    it('sets error and empty results when result.error is returned', async () => {
-      component.pcSearchQuery = 'Jane';
-      vi.mocked(planningCenter.searchPlanningCenterByName).mockResolvedValue({
-        error: 'Planning Center API unavailable',
-        people: [],
-        count: 0
-      } as any);
-
-      await component.handleSearchPlanningCenter();
-
-      expect(component.error).toBe('Planning Center API unavailable');
-      expect(component.pcSearchResults).toEqual([]);
-      expect(component.pcSearching).toBe(false);
-    });
-
-    it('clears error when result.count is 0', async () => {
-      component.pcSearchQuery = 'Nobody';
-      component.error = 'previous error';
-      vi.mocked(planningCenter.searchPlanningCenterByName).mockResolvedValue({
-        people: [],
-        count: 0
-      } as any);
-
-      await component.handleSearchPlanningCenter();
-
-      expect(component.pcSearchResults).toEqual([]);
-      expect(component.error).toBeNull();
-      expect(component.pcSearching).toBe(false);
-    });
-  });
 });

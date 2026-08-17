@@ -9,7 +9,7 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { PrayerRequest } from "../../services/prayer.service";
+import type { PrayerRequest } from "../../types/prayer";
 import { AdminDataService } from "../../services/admin-data.service";
 import { ToastService } from "../../services/toast.service";
 import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";

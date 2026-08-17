@@ -18,6 +18,8 @@ export interface PrayerRequest {
   approved_at?: string | null;
   denied_at?: string | null;
   display_order?: number;
+  /** Present on Admin queue rows after a Planning Center email lookup. */
+  in_planning_center?: boolean | null;
 }
 
 export interface PrayerUpdate {
@@ -41,6 +43,8 @@ export interface PrayerUpdate {
     requester?: string;
     prayer_for?: string;
     status?: PrayerStatus;
+    email?: string;
+    in_planning_center?: boolean | null;
   };
 }
 

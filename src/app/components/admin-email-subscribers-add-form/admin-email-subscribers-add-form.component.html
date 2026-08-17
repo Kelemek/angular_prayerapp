@@ -1,0 +1,187 @@
+      <div
+        id="tour-email-add-subscriber-form-shell"
+        class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700"
+      >
+        <!-- Search Planning Center Tab -->
+        <div class="mb-4">
+          <div id="tour-email-add-mode-tabs" class="flex gap-2 border-b border-gray-300 dark:border-gray-600">
+            <button
+              type="button"
+              (click)="pcSearchTab = false"
+              [class]="!pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium cursor-pointer' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer'"
+              class="focus:outline-none"
+            >
+              Manual Entry
+            </button>
+            <button
+              id="tour-email-pc-search-tab"
+              type="button"
+              (click)="pcSearchTab = true"
+              [class]="pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium cursor-pointer' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer'"
+              class="focus:outline-none"
+            >
+              Search Planning Center
+            </button>
+          </div>
+        </div>
+
+        <!-- Manual Entry Tab -->
+        @if (!pcSearchTab) {
+        <div id="tour-email-manual-entry-form">
+        <form novalidate class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+              <input
+                type="text"
+                [(ngModel)]="newName"
+                name="newName"
+                (keydown.enter)="onManualAddFieldEnter($event)"
+                placeholder="John Doe"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input
+                type="email"
+                [(ngModel)]="newEmail"
+                name="newEmail"
+                (keydown.enter)="onManualAddFieldEnter($event)"
+                placeholder="john@example.com"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+          @if (submitting) {
+          <div
+            class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300"
+            role="status"
+            aria-live="polite"
+          >
+            <span
+              class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-600 border-t-transparent dark:border-blue-400 dark:border-t-transparent"
+              aria-hidden="true"
+            ></span>
+            <span>Adding…</span>
+          </div>
+          }
+          <div class="flex gap-2">
+            <button
+              id="tour-email-manual-add-subscriber-btn"
+              type="button"
+              (click)="handleAddSubscriber()"
+              [disabled]="submitting"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer"
+            >
+              {{ submitting ? 'Adding…' : 'Add Subscriber' }}
+            </button>
+            <button
+              type="button"
+              (click)="onCancelClick()"
+              [disabled]="submitting"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:pointer-events-none transition-colors text-sm cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+        </div>
+        }
+
+        <!-- Planning Center Search Tab -->
+        @if (pcSearchTab) {
+        <div class="space-y-3">
+          <div>
+            <label for="pcSearchNameInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Name</label>
+            <div class="relative max-w-full min-w-0">
+              <input
+                id="pcSearchNameInput"
+                type="search"
+                name="pcSearchName"
+                [(ngModel)]="pcSearchQuery"
+                (ngModelChange)="onPcSearchQueryChange($event)"
+                (keydown)="onPcSearchKeydown($event)"
+                autocomplete="off"
+                placeholder="Type a name (min. {{ pcSearchMinChars }} characters) — searches Planning Center after you pause…"
+                class="w-full min-w-0 px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              @if (pcSearching) {
+              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+              </div>
+              }
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Debounced ({{ pcSearchDebounceMs }}ms) to limit Planning Center API calls. Press Enter to search immediately.
+            </p>
+          </div>
+
+          <!-- Search Results -->
+          @if (pcSearching) {
+          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Searching Planning Center...</p>
+          </div>
+          }
+
+          @if (!pcSearching && pcSearchResults.length > 0) {
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Found {{ pcSearchResults.length }} result(s):</p>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              @for (person of pcSearchResults; track person.id; let i = $index) {
+              <div
+                [attr.id]="i === 0 ? 'tour-email-pc-search-result-mark' : null"
+                (click)="selectPlanningCenterPerson(person)"
+                class="p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              >
+                <p class="font-medium text-gray-900 dark:text-gray-100">{{ person.attributes.name }}</p>
+                @if (person.attributes.primary_email_address) {
+                <p class="text-sm text-blue-600 dark:text-blue-400">{{ person.attributes.primary_email_address }}</p>
+                }
+                @if (person.attributes.first_name && person.attributes.last_name) {
+                <p class="text-xs text-gray-600 dark:text-gray-400">{{ person.attributes.first_name }} {{ person.attributes.last_name }}</p>
+                }
+              </div>
+              }
+            </div>
+          </div>
+          }
+
+          @if (!pcSearching && pcSearchSearched && pcSearchResults.length === 0) {
+          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">No results found</p>
+          </div>
+          }
+
+          <!-- Selected Person Info -->
+          @if (pcSelectedPerson) {
+          <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <p class="text-sm font-medium text-green-900 dark:text-green-200">Selected:</p>
+            <p class="text-sm text-green-800 dark:text-green-300">{{ pcSelectedPerson.attributes.name }}</p>
+            @if (pcSelectedPerson.attributes.primary_email_address) {
+            <p class="text-sm text-green-700 dark:text-green-400">{{ pcSelectedPerson.attributes.primary_email_address }}</p>
+            }
+          </div>
+          }
+
+          <div class="flex gap-2">
+            <button
+              id="tour-email-add-selected-pc-btn"
+              (click)="handleAddSelectedPlanningCenterPerson()"
+              [disabled]="submitting || !pcSelectedPerson"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors text-sm cursor-pointer"
+            >
+              {{ submitting ? 'Adding...' : 'Add Selected Subscriber' }}
+            </button>
+            <button
+              (click)="onCancelClick()"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        }
+      </div>

@@ -1,8 +1,11 @@
 import type { HelpContent } from './help-content';
 
-/** Admin portal help section (static content + optional one embed per section). */
+export type AdminHelpSectionKind = 'tour' | 'article';
+
+/** Admin portal help section (static catalog + optional one embed per article). */
 export interface AdminHelpSection {
   id: string;
+  kind: AdminHelpSectionKind;
   title: string;
   description: string;
   icon: string;
@@ -11,7 +14,4 @@ export interface AdminHelpSection {
   isActive: boolean;
   /** YouTube/Vimeo embed URL, e.g. https://www.youtube-nocookie.com/embed/VIDEO_ID */
   videoEmbedUrl?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string;
 }

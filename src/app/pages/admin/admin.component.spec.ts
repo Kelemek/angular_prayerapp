@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Subject, of } from 'rxjs';
 import { AdminComponent } from './admin.component';
+import { AdminHelpTourLauncher } from '../../services/admin-help-tour.launcher';
+import { ADMIN_HELP_TOUR_IDS } from '../../lib/admin-help-sections';
 
 describe('AdminComponent', () => {
   let component: AdminComponent;
@@ -27,10 +29,8 @@ describe('AdminComponent', () => {
       refresh: vi.fn(),
       approvePrayer: vi.fn().mockResolvedValue(undefined),
       denyPrayer: vi.fn().mockResolvedValue(undefined),
-      editPrayer: vi.fn().mockResolvedValue(undefined),
       approveUpdate: vi.fn().mockResolvedValue(undefined),
       denyUpdate: vi.fn().mockResolvedValue(undefined),
-      editUpdate: vi.fn().mockResolvedValue(undefined),
       approveDeletionRequest: vi.fn().mockResolvedValue(undefined),
       denyDeletionRequest: vi.fn().mockResolvedValue(undefined),
       approveUpdateDeletionRequest: vi.fn().mockResolvedValue(undefined),
@@ -84,7 +84,7 @@ describe('AdminComponent', () => {
       adminAuthService,
       ngZone,
       cdr,
-      adminHelpDriverTour as never
+      new AdminHelpTourLauncher(adminHelpDriverTour as never),
     );
   });
 
@@ -219,22 +219,6 @@ describe('AdminComponent', () => {
     expect(loadSpy).toHaveBeenCalled();
   });
 
-  it('totalPendingCount returns correct sum', () => {
-    component['adminData'] = {
-      pendingPrayers: [1, 2],
-      pendingUpdates: [1],
-      pendingDeletionRequests: [1, 2, 3],
-      pendingUpdateDeletionRequests: [],
-      pendingAccountRequests: [1]
-    };
-    // Build consolidated approvals based on the data (2 prayers + 1 prayer with update = 3 consolidated items if updates merged)
-    // But since the test uses simple numbers instead of prayer objects, we need to mock consolidatedApprovals
-    component.consolidatedApprovals = [1, 2, 3]; // 2 pending prayers + 1 prayer with update = 3 consolidated
-    
-    // Total: 3 consolidated + 3 deletion requests + 0 update deletion requests + 1 account request = 7
-    expect(component.totalPendingCount).toBe(7);
-  });
-
   it('goToHome navigates to root', () => {
     component.goToHome();
     expect(router.navigate).toHaveBeenCalledWith(['/']);
@@ -254,13 +238,6 @@ describe('AdminComponent', () => {
     await component.denyPrayer('p2', 'reason');
     expect(adminDataService.denyPrayer).toHaveBeenCalledWith('p2', 'reason');
     expect(autoSpy).toHaveBeenCalled();
-  });
-
-  it('trackBy functions return ids', () => {
-    expect(component.trackByPrayerId(0, { id: 'a' })).toBe('a');
-    expect(component.trackByUpdateId(0, { id: 'b' })).toBe('b');
-    expect(component.trackByDeletionRequestId(0, { id: 'c' })).toBe('c');
-    expect(component.trackByAccountRequestId(0, { id: 'd' })).toBe('d');
   });
 
   it('approveAccountRequest and denyAccountRequest call service and markForCheck', async () => {
@@ -300,10 +277,6 @@ describe('AdminComponent', () => {
     await component.denyPrayer('pY', 'r');
     expect(adminDataService.denyPrayer).toHaveBeenCalledWith('pY', 'r');
 
-    adminDataService.editPrayer = vi.fn().mockRejectedValue(error);
-    await component.editPrayer('pZ', { foo: 'bar' });
-    expect(adminDataService.editPrayer).toHaveBeenCalledWith('pZ', { foo: 'bar' });
-
     adminDataService.approveUpdate = vi.fn().mockRejectedValue(error);
     await component.approveUpdate('uX');
     expect(adminDataService.approveUpdate).toHaveBeenCalledWith('uX');
@@ -311,10 +284,6 @@ describe('AdminComponent', () => {
     adminDataService.denyUpdate = vi.fn().mockRejectedValue(error);
     await component.denyUpdate('uY', 'r');
     expect(adminDataService.denyUpdate).toHaveBeenCalledWith('uY', 'r');
-
-    adminDataService.editUpdate = vi.fn().mockRejectedValue(error);
-    await component.editUpdate('uZ', { up: 1 });
-    expect(adminDataService.editUpdate).toHaveBeenCalledWith('uZ', { up: 1 });
 
     adminDataService.approveDeletionRequest = vi.fn().mockRejectedValue(error);
     await component.approveDeletionRequest('dX');
@@ -404,14 +373,6 @@ describe('AdminComponent', () => {
     expect(tabSpy).toHaveBeenCalledWith('deletions');
   });
 
-  it('totalPendingCount returns 0 when adminData is null or missing fields', () => {
-    (component as any).adminData = null;
-    expect(component.totalPendingCount).toBe(0);
-
-    component['adminData'] = {};
-    expect(component.totalPendingCount).toBe(0);
-  });
-
   it('onTabChange does not call loadAnalytics when settings selected but not analytics tab', () => {
     const loadSpy = vi.spyOn(component, 'loadAnalytics');
     component.activeSettingsTab = 'email';
@@ -424,12 +385,6 @@ describe('AdminComponent', () => {
     const tabSpy = vi.spyOn(component, 'onTabChange');
     component.activeTab = 'prayers';
     component['adminData'] = { pendingPrayers: [], pendingUpdates: [], pendingDeletionRequests: [] };
-    component['autoProgressTabs']();
-    expect(tabSpy).toHaveBeenCalledWith('settings');
-
-    tabSpy.mockClear();
-    component.activeTab = 'updates';
-    component['adminData'] = { pendingUpdates: [], pendingDeletionRequests: [], pendingPrayers: [] };
     component['autoProgressTabs']();
     expect(tabSpy).toHaveBeenCalledWith('settings');
 
@@ -449,12 +404,6 @@ describe('AdminComponent', () => {
     expect(tabSpy).toHaveBeenCalledWith('settings');
 
     tabSpy.mockClear();
-    component.activeTab = 'updates';
-    component['adminData'] = { pendingUpdates: undefined, pendingDeletionRequests: undefined, pendingPrayers: undefined };
-    component['autoProgressTabs']();
-    expect(tabSpy).toHaveBeenCalledWith('settings');
-
-    tabSpy.mockClear();
     component.activeTab = 'deletions';
     component['adminData'] = { pendingDeletionRequests: undefined, pendingPrayers: undefined, pendingUpdates: undefined };
     component['autoProgressTabs']();
@@ -469,9 +418,9 @@ describe('AdminComponent', () => {
     expect(tabSpy).not.toHaveBeenCalled();
   });
 
-  it('autoProgressTabs does not change tabs when pending lists are non-empty (updates)', () => {
+  it('autoProgressTabs does not change tabs when pending lists are non-empty (updates on prayers tab)', () => {
     const tabSpy = vi.spyOn(component, 'onTabChange');
-    component.activeTab = 'updates';
+    component.activeTab = 'prayers';
     component['adminData'] = { pendingUpdates: [{ id: 'u1' }], pendingDeletionRequests: [], pendingPrayers: [] };
     component['autoProgressTabs']();
     expect(tabSpy).not.toHaveBeenCalled();
@@ -497,10 +446,6 @@ describe('AdminComponent', () => {
     await component.denyUpdate('u2', 'r');
     expect(adminDataService.denyUpdate).toHaveBeenCalledWith('u2', 'r');
     expect(autoSpy).toHaveBeenCalled();
-
-    adminDataService.editUpdate = vi.fn().mockResolvedValue(undefined);
-    await component.editUpdate('u3', { a: 1 });
-    expect(adminDataService.editUpdate).toHaveBeenCalledWith('u3', { a: 1 });
 
     adminDataService.approveDeletionRequest = vi.fn().mockResolvedValue(undefined);
     await component.approveDeletionRequest('d1');
@@ -545,24 +490,11 @@ describe('AdminComponent', () => {
     });
   });
 
-  describe('editPrayer', () => {
-    it('should call adminDataService.editPrayer with data', async () => {
-      const prayerData = { title: 'Updated Prayer', description: 'Updated description' };
-      adminDataService.editPrayer = vi.fn().mockResolvedValue(undefined);
-
-      await component.editPrayer('p1', prayerData);
-
-      expect(adminDataService.editPrayer).toHaveBeenCalledWith('p1', prayerData);
-    });
-
-    it('should refresh admin data after editing prayer', async () => {
-      component['adminData'] = {
-        pendingPrayers: [{ id: 'p1', title: 'Test Prayer', approval_status: 'pending' }]
-      };
-      adminDataService.editPrayer = vi.fn().mockResolvedValue(undefined);
+  describe('refresh after inline edit', () => {
+    it('should refresh admin data after a prayer is edited', () => {
       adminDataService.refresh = vi.fn();
 
-      await component.editPrayer('p1', { title: 'Updated' });
+      component.refresh();
 
       expect(adminDataService.refresh).toHaveBeenCalled();
     });
@@ -725,10 +657,6 @@ describe('AdminComponent', () => {
       expect(component.analyticsStats.loading).toBe(false);
     });
 
-    it('should have correct initial counts', () => {
-      expect(component.totalPendingCount).toBe(0);
-    });
-
     it('should initialize with default active tabs', () => {
       expect(component.activeTab).toBe('prayers');
       expect(component.activeSettingsTab).toBe('analytics');
@@ -771,16 +699,6 @@ describe('AdminComponent', () => {
       expect(consoleSpy).toHaveBeenCalledWith('Error approving prayer:', expect.any(Error));
       consoleSpy.mockRestore();
     });
-
-    it('should handle editUpdate errors', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      adminDataService.editUpdate = vi.fn().mockRejectedValue(new Error('API error'));
-
-      await component.editUpdate('u1', {});
-
-      expect(consoleSpy).toHaveBeenCalledWith('Error editing update:', expect.any(Error));
-      consoleSpy.mockRestore();
-    });
   });
 
   describe('UI State management', () => {
@@ -796,9 +714,8 @@ describe('AdminComponent', () => {
     });
 
     it('should track active tabs correctly', () => {
-      const tabs: Array<'prayers' | 'updates' | 'deletions' | 'accounts' | 'settings'> = [
+      const tabs: Array<'prayers' | 'deletions' | 'accounts' | 'settings'> = [
         'prayers',
-        'updates',
         'deletions',
         'accounts',
         'settings'
@@ -1028,12 +945,14 @@ describe('AdminComponent', () => {
   });
 
   describe('Admin help — Email Subscribers overview tour', () => {
-    it('onEmailSubscribersOverviewTourFromHelp navigates to email settings and starts tour after prepare', async () => {
+    it('onStartAdminHelpTour navigates to email settings and starts overview tour after prepare', async () => {
       const prepare = vi.fn().mockResolvedValue(undefined);
-      (component as { emailSettingsRef?: { prepareEmailSubscribersOverviewTour: () => Promise<void> } }).emailSettingsRef =
-        { prepareEmailSubscribersOverviewTour: prepare };
+      (component as { settingsPanelRef?: { emailSettingsRef?: { prepareEmailSubscribersOverviewTour: () => Promise<void> } } })
+        .settingsPanelRef = {
+        emailSettingsRef: { prepareEmailSubscribersOverviewTour: prepare },
+      };
       component.showAdminHelp = true;
-      component.onEmailSubscribersOverviewTourFromHelp();
+      component.onStartAdminHelpTour(ADMIN_HELP_TOUR_IDS.emailSubscribersOverview);
       expect(component.showAdminHelp).toBe(false);
       expect(component.activeTab).toBe('settings');
       expect(component.activeSettingsTab).toBe('email');
@@ -1042,16 +961,18 @@ describe('AdminComponent', () => {
       expect(adminHelpDriverTour.startEmailSubscribersOverviewTour).toHaveBeenCalled();
     });
 
-    it('onEmailSubscribersOverviewTourFromHelp still starts overview tour when emailSettingsRef is missing', async () => {
-      (component as { emailSettingsRef?: unknown }).emailSettingsRef = undefined;
-      component.onEmailSubscribersOverviewTourFromHelp();
+    it('onStartAdminHelpTour still starts overview tour when email settings ref is missing', async () => {
+      (component as { settingsPanelRef?: { emailSettingsRef?: unknown } }).settingsPanelRef = {
+        emailSettingsRef: undefined,
+      };
+      component.onStartAdminHelpTour(ADMIN_HELP_TOUR_IDS.emailSubscribersOverview);
       await new Promise<void>((resolve) => setTimeout(resolve, 300));
       expect(adminHelpDriverTour.startEmailSubscribersOverviewTour).toHaveBeenCalled();
     });
   });
 
   describe('Admin help — other guided tours', () => {
-    it('onEmailSubscribersTourFromHelp opens add form tour hooks', async () => {
+    it('onStartAdminHelpTour opens add form tour hooks', async () => {
       const emailRef = {
         prepareEmailSubscribersTour: vi.fn(),
         openAddSubscriberFormForTour: vi.fn(),
@@ -1061,9 +982,11 @@ describe('AdminComponent', () => {
         applyTourDemoPlanningCenterAdd: vi.fn(),
         clearEmailSubscribersTourDemoForm: vi.fn(),
       };
-      (component as { emailSettingsRef?: typeof emailRef }).emailSettingsRef = emailRef;
+      (component as { settingsPanelRef?: { emailSettingsRef?: typeof emailRef } }).settingsPanelRef = {
+        emailSettingsRef: emailRef,
+      };
       component.showAdminHelp = true;
-      component.onEmailSubscribersTourFromHelp();
+      component.onStartAdminHelpTour(ADMIN_HELP_TOUR_IDS.emailSubscribers);
       expect(component.showAdminHelp).toBe(false);
       expect(component.activeSettingsTab).toBe('email');
       await new Promise<void>((resolve) => setTimeout(resolve, 200));
@@ -1071,43 +994,54 @@ describe('AdminComponent', () => {
       expect(adminHelpDriverTour.startEmailSubscribersTour).toHaveBeenCalled();
     });
 
-    it('onPrayerPromptsTypesTourFromHelp prepares managers and starts tour', async () => {
+    it('onStartAdminHelpTour prepares managers and starts prompts tour', async () => {
       const promptManagerRef = {
         prepareTourInitialState: vi.fn().mockResolvedValue(undefined),
       };
       const prayerTypesManagerRef = {
         prepareTourInitialState: vi.fn().mockResolvedValue(undefined),
       };
-      (component as { promptManagerRef?: typeof promptManagerRef }).promptManagerRef = promptManagerRef;
-      (component as { prayerTypesManagerRef?: typeof prayerTypesManagerRef }).prayerTypesManagerRef =
-        prayerTypesManagerRef;
-      component.onPrayerPromptsTypesTourFromHelp();
+      (component as {
+        settingsPanelRef?: {
+          promptManagerRef?: typeof promptManagerRef;
+          prayerTypesManagerRef?: typeof prayerTypesManagerRef;
+        };
+      }).settingsPanelRef = {
+        promptManagerRef,
+        prayerTypesManagerRef,
+      };
+      component.onStartAdminHelpTour(ADMIN_HELP_TOUR_IDS.promptsAndTypes);
       await new Promise<void>((resolve) => setTimeout(resolve, 400));
       expect(promptManagerRef.prepareTourInitialState).toHaveBeenCalled();
       expect(prayerTypesManagerRef.prepareTourInitialState).toHaveBeenCalled();
       expect(adminHelpDriverTour.startPrayerPromptsAndTypesTour).toHaveBeenCalled();
     });
 
-    it('onMemorizeRecommendationsTourFromHelp prepares manager and starts tour', async () => {
+    it('onStartAdminHelpTour prepares memorize manager and starts tour', async () => {
       const memorizeRecommendationsManagerRef = {
         prepareTourInitialState: vi.fn().mockResolvedValue(true),
       };
-      (component as { memorizeRecommendationsManagerRef?: typeof memorizeRecommendationsManagerRef })
-        .memorizeRecommendationsManagerRef = memorizeRecommendationsManagerRef;
-      component.onMemorizeRecommendationsTourFromHelp();
+      (component as {
+        settingsPanelRef?: { memorizeRecommendationsManagerRef?: typeof memorizeRecommendationsManagerRef };
+      }).settingsPanelRef = {
+        memorizeRecommendationsManagerRef,
+      };
+      component.onStartAdminHelpTour(ADMIN_HELP_TOUR_IDS.memorizeRecommendations);
       expect(component.activeSettingsTab).toBe('content');
       await new Promise<void>((resolve) => setTimeout(resolve, 400));
       expect(memorizeRecommendationsManagerRef.prepareTourInitialState).toHaveBeenCalled();
       expect(adminHelpDriverTour.startMemorizeRecommendationsTour).toHaveBeenCalledWith(true);
     });
 
-    it('onPrayerEditorTourFromHelp prepares prayer editor and starts create tour', async () => {
+    it('onStartAdminHelpTour prepares prayer editor and starts create tour', async () => {
       const prayerSearchRef = {
         preparePrayerEditorTourInitialState: vi.fn(),
         openCreatePrayerFormForTour: vi.fn(),
       };
-      (component as { prayerSearchRef?: typeof prayerSearchRef }).prayerSearchRef = prayerSearchRef;
-      component.onPrayerEditorTourFromHelp();
+      (component as { settingsPanelRef?: { prayerSearchRef?: typeof prayerSearchRef } }).settingsPanelRef = {
+        prayerSearchRef,
+      };
+      component.onStartAdminHelpTour(ADMIN_HELP_TOUR_IDS.prayerEditorCreate);
       expect(component.activeSettingsTab).toBe('tools');
       await new Promise<void>((resolve) => setTimeout(resolve, 250));
       expect(prayerSearchRef.preparePrayerEditorTourInitialState).toHaveBeenCalled();

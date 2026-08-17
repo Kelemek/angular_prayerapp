@@ -1,0 +1,22 @@
+/* Safe area support for notched/dynamic island devices */
+    :host {
+      --safe-area-inset-top: env(safe-area-inset-top, 0px);
+      --safe-area-inset-right: env(safe-area-inset-right, 0px);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    }
+
+    .safe-area-container {
+      padding-top: var(--safe-area-inset-top);
+      padding-bottom: max(1.5rem, var(--safe-area-inset-bottom));
+    }
+
+    .safe-area-horizontal {
+      padding-left: max(1rem, var(--safe-area-inset-left));
+      padding-right: max(1rem, var(--safe-area-inset-right));
+    }
+
+    .safe-area-header {
+      padding-left: max(1rem, var(--safe-area-inset-left));
+      padding-right: max(1rem, var(--safe-area-inset-right));
+    }

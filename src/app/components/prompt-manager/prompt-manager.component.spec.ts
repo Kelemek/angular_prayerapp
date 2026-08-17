@@ -118,7 +118,6 @@ describe('PromptManagerComponent', () => {
       await component.fetchPrayerTypes();
 
       expect(component.prayerTypes).toEqual(mockTypes);
-      expect(component.type).toBe('Prayer');
     });
 
     it('should handle single object response', async () => {
@@ -159,22 +158,6 @@ describe('PromptManagerComponent', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should not update type if type is already set', async () => {
-      component.type = 'ExistingType';
-      
-      const mockTypes = [
-        { name: 'Type1', display_order: 1, is_active: true }
-      ];
-
-      mockSupabaseService.directQuery.mockResolvedValue({
-        data: mockTypes,
-        error: null
-      });
-
-      await component.fetchPrayerTypes();
-
-      expect(component.type).toBe('ExistingType');
-    });
   });
 
   describe('prompt search debounce', () => {
@@ -347,16 +330,14 @@ describe('PromptManagerComponent', () => {
       expect(component.showCSVUpload).toBe(true);
     });
 
-    it('should clear messages and csv data', () => {
+    it('should clear messages when toggling CSV upload', () => {
       component.error = 'Error';
       component.success = 'Success';
-      component.csvData = [{ title: 'test', type: 'test', description: 'test', valid: true }];
-      
+
       component.toggleCSVUpload();
-      
+
       expect(component.error).toBeNull();
       expect(component.success).toBeNull();
-      expect(component.csvData).toEqual([]);
     });
   });
 
@@ -379,381 +360,21 @@ describe('PromptManagerComponent', () => {
       expect(component.showAddForm).toBe(true);
     });
 
-    it('should reset form fields', () => {
-      component.title = 'Old title';
-      component.description = 'Old description';
+    it('should clear editing state when opening add form', () => {
       component.editingId = 'some-id';
-      component.prayerTypes = [{ id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }];
-      
+
       component.toggleAddForm();
-      
-      expect(component.title).toBe('');
-      expect(component.description).toBe('');
+
       expect(component.editingId).toBeNull();
-      expect(component.type).toBe('Prayer');
+      expect(component.showAddForm).toBe(true);
     });
   });
 
-  describe('handleCSVUpload', () => {
-    it('should parse valid CSV file', () => {
-      const csvContent = 'title,type,description\nPrayer1,Prayer,Desc1\nPrayer2,Praise,Desc2';
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const file = new File([blob], 'test.csv', { type: 'text/csv' });
-      
-      component.prayerTypes = [
-        { id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
-        { id: '2', name: 'Praise', display_order: 2, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }
-      ];
 
-      const event = {
-        target: {
-          files: [file]
-        }
-      } as any;
 
-      component.handleCSVUpload(event);
 
-      // Wait for FileReader to complete
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(component.csvData).toHaveLength(2);
-          expect(component.csvData[0].valid).toBe(true);
-          expect(component.csvData[1].valid).toBe(true);
-          resolve();
-        }, 100);
-      });
-    });
 
-    it('should validate CSV data and mark invalid rows', () => {
-      const csvContent = 'title,type,description\nPrayer1,Prayer,Desc1\n,Prayer,Desc2\nPrayer3,InvalidType,Desc3';
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const file = new File([blob], 'test.csv', { type: 'text/csv' });
-      
-      component.prayerTypes = [
-        { id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }
-      ];
 
-      const event = {
-        target: {
-          files: [file]
-        }
-      } as any;
-
-      component.handleCSVUpload(event);
-
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(component.csvData).toHaveLength(3);
-          expect(component.csvData[0].valid).toBe(true);
-          expect(component.csvData[1].valid).toBe(false);
-          expect(component.csvData[1].error).toBe('Missing title');
-          expect(component.csvData[2].valid).toBe(false);
-          expect(component.csvData[2].error).toContain('Invalid type');
-          resolve();
-        }, 100);
-      });
-    });
-
-    it('should handle CSV with missing columns', () => {
-      const csvContent = 'title,description\nPrayer1,Desc1';
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const file = new File([blob], 'test.csv', { type: 'text/csv' });
-
-      const event = {
-        target: {
-          files: [file]
-        }
-      } as any;
-
-      component.handleCSVUpload(event);
-
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(component.error).toBe('CSV must have columns: title, type, description');
-          resolve();
-        }, 100);
-      });
-    });
-
-    it('should handle empty CSV file', () => {
-      const csvContent = 'title,type,description';
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const file = new File([blob], 'test.csv', { type: 'text/csv' });
-
-      const event = {
-        target: {
-          files: [file]
-        }
-      } as any;
-
-      component.handleCSVUpload(event);
-
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(component.error).toBe('CSV file must have at least a header row and one data row');
-          resolve();
-        }, 100);
-      });
-    });
-
-    it('should return early if no file is selected', () => {
-      const event = {
-        target: {
-          files: []
-        }
-      } as any;
-
-      component.handleCSVUpload(event);
-
-      expect(component.csvData).toEqual([]);
-    });
-
-    it('should mark row as invalid when type is missing', () => {
-      const csvContent = 'title,type,description\nPrayer1,,Desc1';
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const file = new File([blob], 'test.csv', { type: 'text/csv' });
-      
-      component.prayerTypes = [
-        { id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }
-      ];
-
-      const event = {
-        target: {
-          files: [file]
-        }
-      } as any;
-
-      component.handleCSVUpload(event);
-
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(component.csvData).toHaveLength(1);
-          expect(component.csvData[0].valid).toBe(false);
-          expect(component.csvData[0].error).toBe('Missing type');
-          resolve();
-        }, 100);
-      });
-    });
-
-    it('should mark row as invalid when description is missing', () => {
-      const csvContent = 'title,type,description\nPrayer1,Prayer,';
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const file = new File([blob], 'test.csv', { type: 'text/csv' });
-      
-      component.prayerTypes = [
-        { id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }
-      ];
-
-      const event = {
-        target: {
-          files: [file]
-        }
-      } as any;
-
-      component.handleCSVUpload(event);
-
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(component.csvData).toHaveLength(1);
-          expect(component.csvData[0].valid).toBe(false);
-          expect(component.csvData[0].error).toBe('Missing description');
-          resolve();
-        }, 100);
-      });
-    });
-  });
-
-  describe('uploadCSVData', () => {
-    it('should upload valid CSV rows', async () => {
-      component.csvData = [
-        { title: 'Prayer1', type: 'Prayer', description: 'Desc1', valid: true },
-        { title: 'Prayer2', type: 'Praise', description: 'Desc2', valid: true },
-        { title: '', type: 'Prayer', description: 'Desc3', valid: false }
-      ];
-
-      await component.uploadCSVData();
-
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('prayer_prompts');
-      expect(component.success).toContain('Successfully uploaded 2 prompt(s)');
-      expect(component.csvData).toEqual([]);
-      expect(component.showCSVUpload).toBe(false);
-    });
-
-    it('should return early if no valid rows', async () => {
-      component.csvData = [
-        { title: '', type: 'Prayer', description: 'Desc1', valid: false }
-      ];
-
-      await component.uploadCSVData();
-
-      expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
-    });
-
-    it('should handle upload errors', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      component.csvData = [
-        { title: 'Prayer1', type: 'Prayer', description: 'Desc1', valid: true }
-      ];
-
-      mockSupabaseService.client.from.mockReturnValue({
-        insert: vi.fn(() => Promise.resolve({ data: null, error: new Error('Upload failed') }))
-      });
-
-      await component.uploadCSVData();
-
-      expect(component.error).toContain('Failed to upload CSV');
-      expect(component.uploadingCSV).toBe(false);
-      consoleSpy.mockRestore();
-    });
-
-    it('should refresh search results if already searched', async () => {
-      component.hasSearched = true;
-      component.csvData = [
-        { title: 'Prayer1', type: 'Prayer', description: 'Desc1', valid: true }
-      ];
-
-      mockSupabaseService.directQuery.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      await component.uploadCSVData();
-
-      expect(mockSupabaseService.directQuery).toHaveBeenCalled();
-    });
-
-    it('should emit onSave event', async () => {
-      const emitSpy = vi.spyOn(component.onSave, 'emit');
-      
-      component.csvData = [
-        { title: 'Prayer1', type: 'Prayer', description: 'Desc1', valid: true }
-      ];
-
-      await component.uploadCSVData();
-
-      expect(emitSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('savePrompt', () => {
-    it('should add new prompt', async () => {
-      component.title = 'New Prayer';
-      component.type = 'Prayer';
-      component.description = 'New description';
-
-      await component.savePrompt(new Event('submit'));
-
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('prayer_prompts');
-      expect(component.success).toBe('Prayer prompt added successfully!');
-      expect(component.showAddForm).toBe(false);
-      expect(mockToastService.success).toHaveBeenCalledWith('Prompt added.');
-    });
-
-    it('should update existing prompt', async () => {
-      component.editingId = 'prompt-123';
-      component.title = 'Updated Prayer';
-      component.type = 'Prayer';
-      component.description = 'Updated description';
-
-      await component.savePrompt(new Event('submit'));
-
-      expect(component.success).toBe('Prayer prompt updated successfully!');
-      expect(component.editingId).toBeNull();
-      expect(mockToastService.success).toHaveBeenCalledWith('Prompt updated.');
-    });
-
-    it('should validate required fields', async () => {
-      component.title = '';
-      component.type = 'Prayer';
-      component.description = 'Description';
-
-      await component.savePrompt(new Event('submit'));
-
-      expect(component.error).toBe('All fields are required');
-      expect(mockToastService.warning).toHaveBeenCalledWith('All fields are required.');
-    });
-
-    it('should trim whitespace from fields', async () => {
-      component.title = '  Prayer Title  ';
-      component.type = 'Prayer';
-      component.description = '  Description  ';
-
-      let insertData: any;
-      mockSupabaseService.client.from.mockReturnValue({
-        insert: vi.fn((data: any) => {
-          insertData = data;
-          return Promise.resolve({ data: null, error: null });
-        })
-      });
-
-      await component.savePrompt(new Event('submit'));
-
-      expect(insertData.title).toBe('Prayer Title');
-      expect(insertData.description).toBe('Description');
-    });
-
-    it('should handle submit errors', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      component.title = 'Prayer';
-      component.type = 'Prayer';
-      component.description = 'Description';
-
-      mockSupabaseService.client.from.mockReturnValue({
-        insert: vi.fn(() => Promise.resolve({ data: null, error: new Error('Insert failed') }))
-      });
-
-      await component.savePrompt(new Event('submit'));
-
-      expect(component.error).toContain('Failed to save prayer prompt');
-      expect(component.submitting).toBe(false);
-      expect(mockToastService.error).toHaveBeenCalled();
-      consoleSpy.mockRestore();
-    });
-
-    it('should reset form after successful submission', async () => {
-      component.prayerTypes = [{ id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }];
-      component.title = 'Prayer';
-      component.type = 'Prayer';
-      component.description = 'Description';
-
-      await component.savePrompt(new Event('submit'));
-
-      expect(component.title).toBe('');
-      expect(component.description).toBe('');
-      expect(component.type).toBe('Prayer');
-    });
-
-    it('should emit onSave event after submission', async () => {
-      const emitSpy = vi.spyOn(component.onSave, 'emit');
-      
-      component.title = 'Prayer';
-      component.type = 'Prayer';
-      component.description = 'Description';
-
-      await component.savePrompt(new Event('submit'));
-
-      expect(emitSpy).toHaveBeenCalled();
-    });
-
-    it('should refresh search results after submission if user has searched', async () => {
-      component.title = 'Prayer';
-      component.type = 'Prayer';
-      component.description = 'Description';
-      component.hasSearched = true;
-
-      mockSupabaseService.directQuery.mockResolvedValue({
-        data: [],
-        error: null
-      });
-
-      await component.savePrompt(new Event('submit'));
-
-      // Check that directQuery was called (for handleSearch)
-      expect(mockSupabaseService.directQuery).toHaveBeenCalled();
-    });
-  });
 
   describe('handleEdit', () => {
     it('should populate form with prompt data', () => {
@@ -768,9 +389,6 @@ describe('PromptManagerComponent', () => {
 
       component.handleEdit(prompt);
 
-      expect(component.title).toBe('Test Prayer');
-      expect(component.type).toBe('Guidance');
-      expect(component.description).toBe('Test description');
       expect(component.editingId).toBe('prompt-123');
       expect(component.showAddForm).toBe(false);
       expect(component.showCSVUpload).toBe(false);
@@ -832,7 +450,7 @@ describe('PromptManagerComponent', () => {
       await component.handleDelete('prompt-123', 'Test Prayer');
       await component.onConfirmDelete();
 
-      expect(component.error).toContain('Failed to delete prompt');
+      expect(component.error).toContain('Failed to delete prayer prompt');
       
       consoleSpy.mockRestore();
     });
@@ -853,146 +471,14 @@ describe('PromptManagerComponent', () => {
   });
 
   describe('cancelEdit', () => {
-    it('should reset form state', () => {
-      component.prayerTypes = [{ id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }];
-      component.showAddForm = true;
+    it('should reset editing state', () => {
       component.editingId = 'prompt-123';
-      component.title = 'Test';
-      component.description = 'Desc';
       component.error = 'Error';
 
       component.cancelEdit();
 
-      expect(component.showAddForm).toBe(false);
       expect(component.editingId).toBeNull();
-      expect(component.title).toBe('');
-      expect(component.description).toBe('');
-      expect(component.type).toBe('Prayer');
       expect(component.error).toBeNull();
-    });
-  });
-
-  describe('formatDate', () => {
-    it('should format date string to locale date', () => {
-      const dateString = '2024-01-15T10:30:00Z';
-      const result = component.formatDate(dateString);
-      
-      expect(result).toBeTruthy();
-      expect(typeof result).toBe('string');
-    });
-  });
-
-  describe('getValidTypeNames', () => {
-    it('should return comma-separated type names', () => {
-      component.prayerTypes = [
-        { id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
-        { id: '2', name: 'Praise', display_order: 2, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
-        { id: '3', name: 'Thanks', display_order: 3, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }
-      ];
-
-      const result = component.getValidTypeNames();
-
-      expect(result).toBe('Prayer, Praise, Thanks');
-    });
-
-    it('should return "Loading..." if no types', () => {
-      component.prayerTypes = [];
-      
-      const result = component.getValidTypeNames();
-      
-      expect(result).toBe('Loading...');
-    });
-  });
-
-  describe('getValidRowCount', () => {
-    it('should count valid CSV rows', () => {
-      component.csvData = [
-        { title: 'P1', type: 'Prayer', description: 'D1', valid: true },
-        { title: '', type: 'Prayer', description: 'D2', valid: false },
-        { title: 'P3', type: 'Praise', description: 'D3', valid: true }
-      ];
-
-      const count = component.getValidRowCount();
-
-      expect(count).toBe(2);
-    });
-
-    it('should return 0 if no valid rows', () => {
-      component.csvData = [
-        { title: '', type: 'Prayer', description: 'D1', valid: false }
-      ];
-
-      const count = component.getValidRowCount();
-
-      expect(count).toBe(0);
-    });
-  });
-
-  describe('getInvalidRowCount', () => {
-    it('should count invalid CSV rows', () => {
-      component.csvData = [
-        { title: 'P1', type: 'Prayer', description: 'D1', valid: true },
-        { title: '', type: 'Prayer', description: 'D2', valid: false },
-        { title: '', type: 'Praise', description: 'D3', valid: false }
-      ];
-
-      const count = component.getInvalidRowCount();
-
-      expect(count).toBe(2);
-    });
-
-    it('should return 0 if no invalid rows', () => {
-      component.csvData = [
-        { title: 'P1', type: 'Prayer', description: 'D1', valid: true }
-      ];
-
-      const count = component.getInvalidRowCount();
-
-      expect(count).toBe(0);
-    });
-  });
-
-  describe('handleCSVUpload', () => {
-    it('should handle CSV parsing errors gracefully', async () => {
-      // Set up prayer types for parsing
-      component.prayerTypes = [{ id: '1', name: 'Prayer', display_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01' }];
-      
-      const file = new File(['title,type,description\nTest,Prayer,Desc'], 'test.csv', { type: 'text/csv' });
-      const event = {
-        target: {
-          files: [file]
-        }
-      } as any;
-      
-      // Spy on console.error to verify error logging
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      // Mock the FileReader to cause an error during parsing
-      const originalFileReader = global.FileReader;
-      global.FileReader = class MockFileReader {
-        onload: any;
-        readAsText() {
-          // Provide a non-string result so `text.split` in the component throws
-          setTimeout(() => {
-            if (this.onload) {
-              const mockEvent = { target: { result: {} } } as any;
-              this.onload(mockEvent);
-            }
-          }, 10);
-        }
-      } as any;
-      
-      component.handleCSVUpload(event);
-      
-      // Wait for processing with proper async handling
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      expect(component.error).toBe('Failed to parse CSV file');
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      
-      // Restore
-      global.FileReader = originalFileReader;
-      consoleErrorSpy.mockRestore();
     });
   });
 });

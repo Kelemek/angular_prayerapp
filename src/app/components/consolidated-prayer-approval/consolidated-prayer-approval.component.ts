@@ -5,7 +5,7 @@ import { AdminPrayerEditModalComponent } from '../admin-prayer-edit-modal/admin-
 import { AdminUpdateEditModalComponent } from '../admin-update-edit-modal/admin-update-edit-modal.component';
 import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
 import { RichTextViewComponent } from '../rich-text-view/rich-text-view.component';
-import type { PrayerRequest } from '../../services/prayer.service';
+import type { PrayerRequest } from '../../types/prayer';
 import { AdminDataService } from '../../services/admin-data.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -326,7 +326,6 @@ import { ToastService } from '../../services/toast.service';
 export class ConsolidatedPrayerApprovalComponent {
   @Input() prayer!: PrayerRequest;
   @Input() pendingUpdates: any[] = [];
-  @Input() hasAnyPendingUpdates = false;
 
   @Output() onApprovePrayer = new EventEmitter<string>();
   @Output() onDenyPrayer = new EventEmitter<{ id: string; reason: string | null }>();

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ConsolidatedPrayerApprovalComponent } from './consolidated-prayer-approval.component';
-import type { PrayerRequest } from '../../services/prayer.service';
+import type { PrayerRequest } from '../../types/prayer';
 
 describe('ConsolidatedPrayerApprovalComponent', () => {
   let component: ConsolidatedPrayerApprovalComponent;
@@ -12,10 +12,10 @@ describe('ConsolidatedPrayerApprovalComponent', () => {
     status: 'current',
     requester: 'John Doe',
     prayer_for: 'Health',
+    email: 'john@example.com',
     date_requested: new Date().toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    updates: [],
     ...overrides
   });
 
@@ -34,7 +34,6 @@ describe('ConsolidatedPrayerApprovalComponent', () => {
     component = new ConsolidatedPrayerApprovalComponent(mockAdminDataService, mockToast, mockCdr);
     component.prayer = makePrayer();
     component.pendingUpdates = [];
-    component.hasAnyPendingUpdates = false;
   });
 
   describe('Component Initialization', () => {

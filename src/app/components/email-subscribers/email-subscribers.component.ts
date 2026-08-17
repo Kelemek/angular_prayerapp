@@ -1,5 +1,4 @@
 import {
-  ApplicationRef,
   Component,
   OnInit,
   OnDestroy,
@@ -17,925 +16,67 @@ import { ToastService } from '../../services/toast.service';
 import { AdminDataService } from '../../services/admin-data.service';
 import { SendNotificationDialogComponent } from '../send-notification-dialog/send-notification-dialog.component';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
-import { EmailSubscriberTimestampComponent } from '../email-subscriber-timestamp/email-subscriber-timestamp.component';
-import { lookupPersonByEmail, batchLookupPlanningCenter, searchPlanningCenterByName, PlanningCenterPerson } from '../../../lib/planning-center';
-import { environment } from '../../../environments/environment';
-
-interface EmailSubscriber {
-  id: string;
-  name: string;
-  email: string;
-  is_active: boolean;
-  is_blocked: boolean;
-  receive_push?: boolean;
-  is_admin?: boolean;
-  created_at: string;
-  last_activity_date?: string | null;
-  in_planning_center?: boolean | null;
-  planning_center_checked_at?: string | null;
-}
-
-interface CSVRow {
-  name: string;
-  email: string;
-  valid: boolean;
-  error?: string;
-}
-
-function escapeForIlikePattern(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
-}
+import { AdminEmailSubscribersCsvPanelComponent } from '../admin-email-subscribers-csv-panel/admin-email-subscribers-csv-panel.component';
+import { AdminEmailSubscribersAddFormComponent } from '../admin-email-subscribers-add-form/admin-email-subscribers-add-form.component';
+import { AdminEmailSubscriberEditModalComponent } from '../admin-email-subscriber-edit-modal/admin-email-subscriber-edit-modal.component';
+import { AdminEmailSubscriberRowComponent } from '../admin-email-subscriber-row/admin-email-subscriber-row.component';
+import {
+  escapeEmailSubscriberIlikePattern,
+  EMAIL_SUBSCRIBER_LIST_SEARCH_DEBOUNCE_MS,
+  EMAIL_SUBSCRIBER_LIST_SEARCH_MIN_CHARS,
+  type EmailSubscriberRow,
+  type EmailSubscriberRowAction,
+  type EmailSubscriberSortColumn,
+} from '../../lib/admin-email-subscribers';
 
 @Component({
   selector: 'app-email-subscribers',
   standalone: true,
-  imports: [CommonModule, FormsModule, SendNotificationDialogComponent, ConfirmationDialogComponent, EmailSubscriberTimestampComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    SendNotificationDialogComponent,
+    ConfirmationDialogComponent,
+    AdminEmailSubscribersCsvPanelComponent,
+    AdminEmailSubscribersAddFormComponent,
+    AdminEmailSubscriberEditModalComponent,
+    AdminEmailSubscriberRowComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div #emailSubscribersContainer class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
-      <button
-        type="button"
-        id="email-subscribers-trigger"
-        class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="onSectionToggle(); $event.stopPropagation()"
-        [attr.aria-expanded]="sectionExpanded"
-        aria-controls="email-subscribers-panel"
-      >
-        <span class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0">
-          <svg class="text-blue-600 dark:text-blue-400 shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          Email Subscribers
-        </span>
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
-          [class.rotate-180]="sectionExpanded"
-          aria-hidden="true"
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-
-      @if (sectionExpanded) {
-      <div
-        id="email-subscribers-panel"
-        role="region"
-        aria-labelledby="email-subscribers-trigger"
-        class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
-      >
-      <div id="tour-email-subscribers-toolbar" class="flex gap-2 mb-4 justify-end">
-        <button
-          type="button"
-          (click)="toggleCSVUpload()"
-          title="Toggle CSV upload"
-          class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm cursor-pointer"
-        >
-          @if (!showCSVUpload) {
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          }
-          @if (showCSVUpload) {
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-          }
-          {{ showCSVUpload ? 'Cancel CSV' : 'Upload CSV' }}
-        </button>
-        <button
-          type="button"
-          id="tour-email-add-subscriber-btn"
-          (click)="toggleAddForm()"
-          title="Add new subscriber"
-          class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm cursor-pointer"
-        >
-          @if (!showAddForm) {
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          }
-          @if (showAddForm) {
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-          }
-          {{ showAddForm ? 'Cancel' : 'Add Subscriber' }}
-        </button>
-      </div>
-
-      <!-- Error Message -->
-      @if (error) {
-      <div class="mb-4 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-        <svg class="text-red-600 dark:text-red-400 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span class="text-red-800 dark:text-red-200 text-sm">{{ error }}</span>
-      </div>
-      }
-
-      <!-- Success Message -->
-      @if (csvSuccess) {
-      <div class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-        <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <div class="flex-1">
-          <span class="text-green-800 dark:text-green-200 text-sm">{{ csvSuccess }}</span>
-          <!-- Planning Center Check Warnings -->
-          @if (csvImportWarnings.length > 0) {
-          <div class="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
-            <p class="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-1">⚠️ Planning Center Lookup Issues:</p>
-            <ul class="space-y-1">
-              @for (warning of csvImportWarnings; track warning) {
-              <li class="text-xs text-orange-700 dark:text-orange-300">• {{ warning }}</li>
-              }
-            </ul>
-          </div>
-          }
-        </div>
-      </div>
-      }
-
-      <!-- CSV Upload Form -->
-      @if (showCSVUpload) {
-      <div class="mb-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100 mb-3">Upload CSV File</h4>
-        
-        <div class="mb-4">
-          <div class="text-sm text-gray-700 dark:text-gray-300 mb-2">
-            <p class="mb-2"><strong>CSV Format:</strong> Name, Email (one per line)</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Example:</p>
-            <p class="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded border border-blue-200 dark:border-blue-700">
-              John Doe,john@example.com<br />
-              Jane Smith,jane@example.com
-            </p>
-          </div>
-        </div>
-
-        <!-- Upload Progress Bar -->
-        @if (uploadingCSV && csvImportTotal > 0) {
-        <div class="mb-4">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
-              Checking Planning Center: {{ csvImportProgress }}/{{ csvImportTotal }}
-            </span>
-            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
-              {{ Math.round((csvImportProgress / csvImportTotal) * 100) }}%
-            </span>
-          </div>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
-              class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
-              [style.width.%]="(csvImportProgress / csvImportTotal) * 100"
-            ></div>
-          </div>
-        </div>
-        }
-
-        <input
-          type="file"
-          accept=".csv"
-          (change)="handleCSVUpload($event)"
-          [disabled]="uploadingCSV"
-          class="block w-full text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-800 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-
-        @if (csvData.length > 0) {
-        <div class="mb-4">
-          <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 mt-4">
-            Preview ({{ getValidRowsCount() }} valid, {{ getInvalidRowsCount() }} invalid)
-          </h5>
-          <div class="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg">
-            <table class="min-w-full text-sm">
-              <thead class="bg-gray-100 dark:bg-gray-700 sticky top-0">
-                <tr>
-                  <th class="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Name</th>
-                  <th class="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Email</th>
-                  <th class="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of csvData; track row.email) {
-                <tr [class.bg-red-50]="!row.valid" [class.dark:bg-red-900/20]="!row.valid">
-                  <td class="px-3 py-2 text-gray-900 dark:text-gray-100">{{ row.name }}</td>
-                  <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ row.email }}</td>
-                  <td class="px-3 py-2">
-                    @if (row.valid) {
-                    <span class="text-green-600 dark:text-green-400 text-xs">✓ Valid</span>
-                    }
-                    @if (!row.valid) {
-                    <span class="text-red-600 dark:text-red-400 text-xs">✗ {{ row.error }}</span>
-                    }
-                  </td>
-                </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <button
-            (click)="uploadCSVData()"
-            [disabled]="uploadingCSV || getValidRowsCount() === 0"
-            class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer"
-          >
-            {{ uploadingCSV ? 'Uploading...' : 'Upload ' + getValidRowsCount() + ' Subscribers' }}
-          </button>
-        </div>
-        }
-      </div>
-      }
-
-      <!-- Add Subscriber Form -->
-      @if (showAddForm) {
-      <div
-        id="tour-email-add-subscriber-form-shell"
-        class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700"
-      >
-        <!-- Search Planning Center Tab -->
-        <div class="mb-4">
-          <div id="tour-email-add-mode-tabs" class="flex gap-2 border-b border-gray-300 dark:border-gray-600">
-            <button
-              type="button"
-              (click)="pcSearchTab = false"
-              [class]="!pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium cursor-pointer' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer'"
-              class="focus:outline-none"
-            >
-              Manual Entry
-            </button>
-            <button
-              id="tour-email-pc-search-tab"
-              type="button"
-              (click)="pcSearchTab = true"
-              [class]="pcSearchTab ? 'px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium cursor-pointer' : 'px-4 py-2 border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer'"
-              class="focus:outline-none"
-            >
-              Search Planning Center
-            </button>
-          </div>
-        </div>
-
-        <!-- Manual Entry Tab -->
-        @if (!pcSearchTab) {
-        <div id="tour-email-manual-entry-form">
-        <form novalidate class="space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-              <input
-                type="text"
-                [(ngModel)]="newName"
-                name="newName"
-                (keydown.enter)="onManualAddFieldEnter($event)"
-                placeholder="John Doe"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-              <input
-                type="email"
-                [(ngModel)]="newEmail"
-                name="newEmail"
-                (keydown.enter)="onManualAddFieldEnter($event)"
-                placeholder="john@example.com"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
-          @if (submitting) {
-          <div
-            class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300"
-            role="status"
-            aria-live="polite"
-          >
-            <span
-              class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-600 border-t-transparent dark:border-blue-400 dark:border-t-transparent"
-              aria-hidden="true"
-            ></span>
-            <span>Adding…</span>
-          </div>
-          }
-          <div class="flex gap-2">
-            <button
-              id="tour-email-manual-add-subscriber-btn"
-              type="button"
-              (click)="handleAddSubscriber()"
-              [disabled]="submitting"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm cursor-pointer"
-            >
-              {{ submitting ? 'Adding…' : 'Add Subscriber' }}
-            </button>
-            <button
-              type="button"
-              (click)="toggleAddForm()"
-              [disabled]="submitting"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:pointer-events-none transition-colors text-sm cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-        </div>
-        }
-
-        <!-- Planning Center Search Tab -->
-        @if (pcSearchTab) {
-        <div class="space-y-3">
-          <div>
-            <label for="pcSearchNameInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Name</label>
-            <div class="relative max-w-full min-w-0">
-              <input
-                id="pcSearchNameInput"
-                type="search"
-                name="pcSearchName"
-                [(ngModel)]="pcSearchQuery"
-                (ngModelChange)="onPcSearchQueryChange($event)"
-                (keydown)="onPcSearchKeydown($event)"
-                autocomplete="off"
-                placeholder="Type a name (min. {{ pcSearchMinChars }} characters) — searches Planning Center after you pause…"
-                class="w-full min-w-0 px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              @if (pcSearching) {
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-              </div>
-              }
-            </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Debounced ({{ pcSearchDebounceMs }}ms) to limit Planning Center API calls. Press Enter to search immediately.
-            </p>
-          </div>
-
-          <!-- Search Results -->
-          @if (pcSearching) {
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
-            <p class="text-gray-500 dark:text-gray-400 text-sm">Searching Planning Center...</p>
-          </div>
-          }
-
-          @if (!pcSearching && pcSearchResults.length > 0) {
-          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Found {{ pcSearchResults.length }} result(s):</p>
-            <div class="space-y-2 max-h-64 overflow-y-auto">
-              @for (person of pcSearchResults; track person.id; let i = $index) {
-              <div
-                [attr.id]="i === 0 ? 'tour-email-pc-search-result-mark' : null"
-                (click)="selectPlanningCenterPerson(person)"
-                class="p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-              >
-                <p class="font-medium text-gray-900 dark:text-gray-100">{{ person.attributes.name }}</p>
-                @if (person.attributes.primary_email_address) {
-                <p class="text-sm text-blue-600 dark:text-blue-400">{{ person.attributes.primary_email_address }}</p>
-                }
-                @if (person.attributes.first_name && person.attributes.last_name) {
-                <p class="text-xs text-gray-600 dark:text-gray-400">{{ person.attributes.first_name }} {{ person.attributes.last_name }}</p>
-                }
-              </div>
-              }
-            </div>
-          </div>
-          }
-
-          @if (!pcSearching && pcSearchSearched && pcSearchResults.length === 0) {
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
-            <p class="text-gray-500 dark:text-gray-400 text-sm">No results found</p>
-          </div>
-          }
-
-          <!-- Selected Person Info -->
-          @if (pcSelectedPerson) {
-          <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-            <p class="text-sm font-medium text-green-900 dark:text-green-200">Selected:</p>
-            <p class="text-sm text-green-800 dark:text-green-300">{{ pcSelectedPerson.attributes.name }}</p>
-            @if (pcSelectedPerson.attributes.primary_email_address) {
-            <p class="text-sm text-green-700 dark:text-green-400">{{ pcSelectedPerson.attributes.primary_email_address }}</p>
-            }
-          </div>
-          }
-
-          <div class="flex gap-2">
-            <button
-              id="tour-email-add-selected-pc-btn"
-              (click)="handleAddSelectedPlanningCenterPerson()"
-              [disabled]="submitting || !pcSelectedPerson"
-              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors text-sm cursor-pointer"
-            >
-              {{ submitting ? 'Adding...' : 'Add Selected Subscriber' }}
-            </button>
-            <button
-              (click)="toggleAddForm()"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-        }
-      </div>
-      }
-
-      <!-- Search Form -->
-      <div id="tour-email-subscribers-search" class="mb-4 max-w-full">
-        <label for="subscriberListSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Search subscribers
-        </label>
-        <div class="relative min-w-0 w-full">
-          <input
-            id="subscriberListSearch"
-            type="text"
-            name="subscriberListSearch"
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="onListSearchQueryChange($event)"
-            (keydown)="onListSearchKeydown($event)"
-            autocomplete="off"
-            placeholder="Search by email or name (min. {{ listSearchMinChars }} characters)…"
-            class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
-          />
-          @if (searching) {
-          <div class="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2">
-            <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-          </div>
-          }
-          @if (searchQuery) {
-          <button
-            type="button"
-            (click)="clearListSearch()"
-            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            title="Clear search"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-          }
-        </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Debounced ({{ listSearchDebounceMs }}ms). Leave empty to show all subscribers after a short pause.
-        </p>
-      </div>
-
-      <!-- Results (tour: list, empty states, pagination) -->
-      <div id="tour-email-subscribers-list-area">
-      @if (searching) {
-      <div class="text-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="text-gray-500 dark:text-gray-400 text-sm mt-2">Searching...</p>
-      </div>
-      }
-
-      @if (!searching && !hasSearched) {
-      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-        <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
-        <p>Could not load subscribers</p>
-        <p class="text-sm mt-1">Use the refresh button above to try again.</p>
-      </div>
-      }
-
-      @if (!searching && hasSearched && subscribers.length === 0) {
-      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-        <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-          <polyline points="22,6 12,13 2,6"></polyline>
-        </svg>
-        <p>No subscribers found</p>
-        <p class="text-sm mt-1">Try a different search term</p>
-      </div>
-      }
-
-      @if (!searching && hasSearched && subscribers.length > 0) {
-      <div>
-        <div class="hidden mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 sm:grid sm:grid-cols-[repeat(16,minmax(0,1fr))]">
-          <button (click)="toggleSort('name')" class="col-span-4 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by name">Name{{ getSortIndicator('name') }}</button>
-          <button (click)="toggleSort('email')" class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by email">Email{{ getSortIndicator('email') }}</button>
-          <button (click)="toggleSort('created_at')" class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by join date">Added{{ getSortIndicator('created_at') }}</button>
-          <button (click)="toggleSort('last_activity_date')" class="col-span-2 text-left whitespace-nowrap hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by last activity">Activity{{ getSortIndicator('last_activity_date') }}</button>
-          <button (click)="toggleSort('is_active')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by email">Email{{ getSortIndicator('is_active') }}</button>
-          <button (click)="toggleSort('receive_push')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by push">Push{{ getSortIndicator('receive_push') }}</button>
-          <button (click)="toggleSort('in_planning_center')" class="col-span-1 text-center hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by PC status">PC{{ getSortIndicator('in_planning_center') }}</button>
-          <button (click)="toggleSort('is_blocked')" class="col-span-1 text-center hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by block status">Block{{ getSortIndicator('is_blocked') }}</button>
-          <span class="col-span-2 text-left text-gray-700 dark:text-gray-300">Actions</span>
-        </div>
-        <div class="space-y-2">
-          @for (subscriber of subscribers; track subscriber.id) {
-          <div class="grid gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 grid-cols-2 sm:grid-cols-[repeat(16,minmax(0,1fr))] sm:items-center">
-            <!-- Name column -->
-            <div
-              class="text-left col-span-1 sm:col-span-4"
-              [attr.id]="$first ? 'tour-email-overview-name' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Name</p>
-              <h4 class="font-medium text-gray-900 dark:text-gray-100 truncate" [title]="subscriber.name">{{ subscriber.name }}</h4>
-            </div>
-            
-            <!-- Email column: full width on mobile so full email can wrap; on desktop truncate -->
-            <div
-              class="text-left col-span-2 sm:col-span-2 min-w-0"
-              [attr.id]="$first ? 'tour-email-overview-email' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Email</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 break-all sm:truncate" [title]="subscriber.email">{{ subscriber.email }}</p>
-            </div>
-            
-            <!-- Added column -->
-            <div
-              class="col-span-1 sm:col-span-2 min-w-0"
-              [attr.id]="$first ? 'tour-email-overview-added' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Added</p>
-              <app-email-subscriber-timestamp
-                [value]="subscriber.created_at"
-                titlePrefix="Joined: "
-                emptyLabel="Unknown"
-                emptyTitle="Subscriber join date is not available"
-              />
-            </div>
-            
-            <!-- Activity column -->
-            <div
-              class="col-span-1 sm:col-span-2 min-w-0"
-              [attr.id]="$first ? 'tour-email-overview-activity' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Activity</p>
-              <app-email-subscriber-timestamp
-                [value]="subscriber.last_activity_date"
-                titlePrefix="Last active: "
-              />
-            </div>
-            
-            <!-- Email (is_active) column — mass-email subscription -->
-            <div
-              class="col-span-1 sm:col-span-1 flex items-center gap-1"
-              [attr.id]="$first ? 'tour-email-overview-email-toggle' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Email</p>
-              <button
-                (click)="handleToggleActive(subscriber.id, subscriber.is_active)"
-                [class]="subscriber.is_active ? 
-                  'p-2 rounded-lg transition-colors cursor-pointer text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30' : 
-                  'p-2 rounded-lg transition-colors cursor-pointer text-gray-400 dark:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'"
-                [title]="subscriber.is_active ? 'Stop sending email notifications to this user' : 'Start sending email notifications to this user'"
-              >
-                @if (subscriber.is_active) {
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                } @else {
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="15" y1="9" x2="9" y2="15"></line>
-                  <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                }
-              </button>
-            </div>
-
-            <!-- Push (receive_push) column -->
-            <div
-              class="col-span-1 sm:col-span-1 flex items-center gap-1"
-              [attr.id]="$first ? 'tour-email-overview-push' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Push</p>
-              <button
-                (click)="handleToggleReceivePush(subscriber.id, (subscriber.receive_push ?? false))"
-                [class]="(subscriber.receive_push ?? false) ? 
-                  'p-2 rounded-lg transition-colors cursor-pointer text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30' : 
-                  'p-2 rounded-lg transition-colors cursor-pointer text-gray-400 dark:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'"
-                [title]="(subscriber.receive_push ?? false) ? 'Stop sending push notifications to this user' : 'Start sending push notifications to this user'"
-              >
-                @if (subscriber.receive_push ?? false) {
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                } @else {
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="15" y1="9" x2="9" y2="15"></line>
-                  <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                }
-              </button>
-            </div>
-
-            <!-- PC column -->
-            <div
-              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center gap-1"
-              [attr.id]="$first ? 'tour-email-overview-pc' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">PC</p>
-              @if (subscriber.in_planning_center === true) {
-              <span class="text-lg text-green-600 dark:text-green-400" title="This person is verified in Planning Center">✓</span>
-              } @else if (subscriber.in_planning_center === false) {
-              <span class="text-lg text-gray-400 dark:text-gray-600" title="This person is not verified in Planning Center">✓</span>
-              } @else {
-              <span class="text-lg text-gray-400 dark:text-gray-600" title="Planning Center status unknown">✓</span>
-              }
-            </div>
-
-            <!-- Blocked column -->
-            <div
-              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center gap-1"
-              [attr.id]="$first ? 'tour-email-overview-block' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Blocked</p>
-              <button
-                (click)="handleToggleBlocked(subscriber.id, subscriber.is_blocked)"
-                [class]="subscriber.is_blocked ? 
-                  'p-2 rounded-lg transition-colors cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30' : 
-                  'p-2 rounded-lg transition-colors cursor-pointer text-gray-400 dark:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'"
-                [title]="subscriber.is_blocked ? 'Allow this user to log in to the site' : 'Prevent this user from logging in to the site'"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                </svg>
-              </button>
-            </div>
-
-            <!-- Edit column -->
-            <div
-              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center"
-              [attr.id]="$first ? 'tour-email-overview-edit' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Edit</p>
-              <button
-                (click)="openEditSubscriberModal(subscriber)"
-                class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                title="Edit subscriber name"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-            </div>
-
-            <!-- Delete column -->
-            <div
-              class="col-span-1 sm:col-span-1 flex items-center justify-start sm:justify-center"
-              [attr.id]="$first ? 'tour-email-overview-delete' : null"
-            >
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 sm:hidden">Delete</p>
-              <button
-                (click)="handleDelete(subscriber.id, subscriber.email)"
-                class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer"
-                [title]="subscriber.is_admin ? 'Remove this admin from email list (they keep their admin login access)' : 'Permanently delete this subscriber from the list'"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-          }
-        </div>
-
-        <div id="tour-email-subscribers-pagination" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-600 dark:text-gray-400">
-              Found: <span class="font-semibold">{{ totalItems }}</span> subscriber(s) | 
-              Showing: <span class="font-semibold">{{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }}</span>
-            </span>
-            <span class="text-gray-600 dark:text-gray-400">
-              Active: <span class="font-semibold text-green-600 dark:text-green-400">
-                {{ getActiveCount() }}
-              </span>
-            </span>
-          </div>
-
-          <!-- Page Size Selector -->
-          <div class="flex items-center gap-2">
-            <label for="pageSize" class="text-sm text-gray-600 dark:text-gray-400">Items per page:</label>
-            <select
-              id="pageSize"
-              [(ngModel)]="pageSize"
-              (change)="changePageSize()"
-              class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
-            >
-              <option [value]="10">10</option>
-              <option [value]="50">50</option>
-              <option [value]="100">100</option>
-            </select>
-          </div>
-
-          <!-- Pagination Controls: fewer page buttons on small screens to avoid overflow -->
-          @if (totalPages > 1) {
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex gap-2">
-              <button
-                (click)="previousPage()"
-                [disabled]="isFirstPage"
-                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
-              >
-                ← Previous
-              </button>
-              <button
-                (click)="nextPage()"
-                [disabled]="isLastPage"
-                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
-              >
-                Next →
-              </button>
-            </div>
-            
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-gray-600 dark:text-gray-400 text-sm">
-                Page <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
-              </span>
-              
-              <div class="flex gap-1">
-                @for (page of getPaginationRange(); track page) {
-                <button
-                  (click)="goToPage(page)"
-                  [class]="page === currentPage ? 
-                    'px-3 py-1 bg-blue-600 text-white rounded-lg text-sm cursor-pointer' :
-                    'px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm cursor-pointer'"
-                >
-                  {{ page }}
-                </button>
-                }
-              </div>
-            </div>
-          </div>
-          }
-        </div>
-      </div>
-      <!-- end @if (!searching && hasSearched && subscribers.length > 0) -->
-      }
-      </div>
-      </div>
-      }
-
-      <!-- Send Welcome Email Dialog -->
-      @if (showSendWelcomeEmailDialog) {
-      <app-send-notification-dialog
-        [notificationType]="'subscriber'"
-        (confirm)="onConfirmSendWelcomeEmail()"
-        (decline)="onDeclineSendWelcomeEmail()">
-      </app-send-notification-dialog>
-      }
-
-      <!-- Confirmation Dialog -->
-      @if (showConfirmationDialog) {
-      <app-confirmation-dialog
-        [title]="confirmationTitle"
-        [message]="confirmationMessage"
-        [details]="confirmationDetails"
-        [isDangerous]="isDeleteConfirmation"
-        [confirmText]="confirmationConfirmText"
-        (confirm)="onConfirmDialog()"
-        (cancel)="onCancelDialog()">
-      </app-confirmation-dialog>
-      }
-
-      <!-- Edit Subscriber Dialog -->
-      @if (showEditSubscriberDialog) {
-      <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Subscriber</h2>
-          </div>
-          <div class="px-6 py-4 space-y-4">
-            @if (editError) {
-            <div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded text-sm text-red-700 dark:text-red-200">
-              {{ editError }}
-            </div>
-            }
-            <div>
-              <label for="editName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-              <input
-                id="editName"
-                type="text"
-                [(ngModel)]="editName"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label for="editEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email (read-only)</label>
-              <input
-                id="editEmail"
-                type="email"
-                [ngModel]="editEmail"
-                disabled
-                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-              />
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Email address cannot be changed. To use a different email, create a new subscriber with the new address.
-              </p>
-            </div>
-          </div>
-          <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-            <button
-              type="button"
-              (click)="closeEditSubscriberModal()"
-              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              (click)="saveEditSubscriber()"
-              [disabled]="editSaving"
-              class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-sm font-medium cursor-pointer"
-            >
-              {{ editSaving ? 'Saving...' : 'Save Changes' }}
-            </button>
-          </div>
-        </div>
-      </div>
-      }
-    </div>
-  `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `]
+  templateUrl: './email-subscribers.component.html',
+  styles: [`:host { display: block; }`],
 })
 export class EmailSubscribersComponent implements OnInit, OnDestroy {
-  subscribers: EmailSubscriber[] = [];
+  subscribers: EmailSubscriberRow[] = [];
   searchQuery = '';
   searching = false;
   hasSearched = false;
 
-  /** List filter — debounced; min length before querying (empty reloads all). */
-  readonly listSearchMinChars = 2;
-  readonly listSearchDebounceMs = 350;
+  readonly listSearchMinChars = EMAIL_SUBSCRIBER_LIST_SEARCH_MIN_CHARS;
+  readonly listSearchDebounceMs = EMAIL_SUBSCRIBER_LIST_SEARCH_DEBOUNCE_MS;
   private listSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   showAddForm = false;
   showCSVUpload = false;
-  csvData: CSVRow[] = [];
-  uploadingCSV = false;
-  newName = '';
-  newEmail = '';
-  submitting = false;
   sectionExpanded = false;
   private sectionInitialLoadDone = false;
   error: string | null = null;
   csvSuccess: string | null = null;
-  
-  // CSV import progress tracking
-  csvImportProgress = 0;
-  csvImportTotal = 0;
   csvImportWarnings: string[] = [];
 
-  // Pagination properties
   currentPage = 1;
   pageSize = 10;
   totalItems = 0;
   totalActiveCount = 0;
-  allSubscribers: EmailSubscriber[] = [];
-  /** Max page number buttons to show; 3 on narrow screens to avoid overflow, 5 on larger. */
+  allSubscribers: EmailSubscriberRow[] = [];
   maxPaginationButtons = 3;
   private breakpointSub: Subscription | null = null;
 
-  // Sorting properties
-  sortBy: 'name' | 'email' | 'created_at' | 'last_activity_date' | 'is_active' | 'receive_push' | 'is_blocked' | 'in_planning_center' = 'last_activity_date';
+  sortBy: EmailSubscriberSortColumn = 'last_activity_date';
   sortDirection: 'asc' | 'desc' = 'desc';
 
-  // Planning Center search properties
-  pcSearchTab = false;
-  pcSearchQuery = '';
-  pcSearching = false;
-  pcSearchSearched = false;
-  pcSearchResults: PlanningCenterPerson[] = [];
-  pcSelectedPerson: PlanningCenterPerson | null = null;
-  /** Debounced name search — external API; slightly longer delay than list search. */
-  readonly pcSearchMinChars = 2;
-  readonly pcSearchDebounceMs = 500;
-  private pcSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Admin tour: Planning Center demo — preview only; blocks real `handleAddSubscriber` while true. */
-  private pcSearchTourDemoActive = false;
-  private pcSearchTourDemoBlockManualSubmit = false;
-
-  // Send notification dialog properties
   showSendWelcomeEmailDialog = false;
   pendingSubscriberEmail = '';
 
-  // Confirmation dialog properties
   showConfirmationDialog = false;
   confirmationTitle = '';
   confirmationMessage = '';
@@ -944,29 +85,22 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   isDeleteConfirmation = false;
   confirmationConfirmText = 'Confirm';
 
-  // Edit subscriber dialog properties (name-only edit)
-  showEditSubscriberDialog = false;
-  editSubscriberId: string | null = null;
-  editName = '';
-  editEmail = '';
-  editSaving = false;
-  editError: string | null = null;
+  editSubscriber: EmailSubscriberRow | null = null;
 
-  // Landscape/Portrait detection
   isLandscape = false;
   private orientationChangeListener: (() => void) | null = null;
   private resizeListener: (() => void) | null = null;
 
-  // Template references
   @ViewChild('emailSubscribersContainer') emailSubscribersContainer!: ElementRef;
+  @ViewChild('addFormRef') addFormRef?: AdminEmailSubscribersAddFormComponent;
+  @ViewChild('csvPanelRef') csvPanelRef?: AdminEmailSubscribersCsvPanelComponent;
 
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
-    private appRef: ApplicationRef,
     private adminDataService: AdminDataService,
-    private breakpointObserver: BreakpointObserver
+    private breakpointObserver: BreakpointObserver,
   ) {}
 
   ngOnInit() {
@@ -1005,10 +139,6 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     if (this.listSearchDebounceTimer) {
       clearTimeout(this.listSearchDebounceTimer);
       this.listSearchDebounceTimer = null;
-    }
-    if (this.pcSearchDebounceTimer) {
-      clearTimeout(this.pcSearchDebounceTimer);
-      this.pcSearchDebounceTimer = null;
     }
     if (this.orientationChangeListener) {
       window.removeEventListener('orientationchange', this.orientationChangeListener);
@@ -1072,94 +202,70 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     void this.handleSearch();
   }
 
-  onPcSearchQueryChange(value: string): void {
-    if (this.pcSearchDebounceTimer) {
-      clearTimeout(this.pcSearchDebounceTimer);
-      this.pcSearchDebounceTimer = null;
-    }
-
-    const trimmed = value.trim();
-    if (trimmed.length === 0) {
-      this.pcSearchDebounceTimer = setTimeout(() => {
-        this.pcSearchDebounceTimer = null;
-        this.pcSearchResults = [];
-        this.pcSearchSearched = false;
-        this.pcSelectedPerson = null;
-        this.error = null;
-        this.cdr.markForCheck();
-      }, this.pcSearchDebounceMs);
-      return;
-    }
-    if (trimmed.length < this.pcSearchMinChars) {
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.pcSearchDebounceTimer = setTimeout(() => {
-      this.pcSearchDebounceTimer = null;
-      void this.handleSearchPlanningCenter();
-    }, this.pcSearchDebounceMs);
-  }
-
-  onPcSearchKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      this.flushPcSearchNow();
-    }
-  }
-
-  flushPcSearchNow(): void {
-    if (this.pcSearchDebounceTimer) {
-      clearTimeout(this.pcSearchDebounceTimer);
-      this.pcSearchDebounceTimer = null;
-    }
-    const trimmed = this.pcSearchQuery.trim();
-    if (!trimmed) {
-      this.error = 'Please enter a name to search';
-      this.cdr.markForCheck();
-      return;
-    }
-    if (trimmed.length < this.pcSearchMinChars) {
-      this.error = `Enter at least ${this.pcSearchMinChars} characters to search Planning Center`;
-      this.cdr.markForCheck();
-      return;
-    }
-    void this.handleSearchPlanningCenter();
-  }
-
-  private onOrientationChange() {
-    // Wait a moment for the layout to settle after orientation change
-    setTimeout(() => {
-      this.updateOrientationMode();
-    }, 100);
-  }
-
-  private updateOrientationMode() {
-    // Detect landscape mode: window width > height
-    this.isLandscape = window.innerWidth > window.innerHeight;
-    this.cdr.markForCheck();
-  }
-
-  toggleAddForm() {
+  toggleAddForm(): void {
     this.showAddForm = !this.showAddForm;
     this.showCSVUpload = false;
     this.error = null;
     this.csvSuccess = null;
-    this.newName = '';
-    this.newEmail = '';
-    if (this.pcSearchDebounceTimer) {
-      clearTimeout(this.pcSearchDebounceTimer);
-      this.pcSearchDebounceTimer = null;
+    if (!this.showAddForm) {
+      this.addFormRef?.resetForm();
     }
-    // Reset Planning Center search
-    this.pcSearchTab = false;
-    this.pcSearchQuery = '';
-    this.pcSearchResults = [];
-    this.pcSelectedPerson = null;
-    this.pcSearchSearched = false;
-    this.pcSearchTourDemoActive = false;
-    this.pcSearchTourDemoBlockManualSubmit = false;
     this.cdr.markForCheck();
+  }
+
+  onChildError(message: string): void {
+    this.error = message || null;
+    this.cdr.markForCheck();
+  }
+
+  onCsvUploaded(result: { successMessage: string; warnings: string[] }): void {
+    this.csvSuccess = result.successMessage;
+    this.csvImportWarnings = result.warnings;
+    this.showCSVUpload = false;
+    void this.handleSearch({ preserveCsvSuccess: true });
+    this.cdr.markForCheck();
+  }
+
+  onSubscriberAdded(event: { email: string; successMessage: string }): void {
+    this.csvSuccess = event.successMessage;
+    this.pendingSubscriberEmail = event.email;
+    this.showSendWelcomeEmailDialog = true;
+    this.showAddForm = false;
+    void this.handleSearch({ preserveCsvSuccess: true });
+    this.cdr.markForCheck();
+  }
+
+  onRowAction(subscriber: EmailSubscriberRow, action: EmailSubscriberRowAction): void {
+    switch (action.type) {
+      case 'toggleActive':
+        void this.handleToggleActive(subscriber.id, subscriber.is_active);
+        break;
+      case 'toggleReceivePush':
+        void this.handleToggleReceivePush(subscriber.id, subscriber.receive_push ?? false);
+        break;
+      case 'toggleBlocked':
+        void this.handleToggleBlocked(subscriber.id, subscriber.is_blocked);
+        break;
+      case 'edit':
+        this.openEditSubscriberModal(subscriber);
+        break;
+      case 'delete':
+        void this.handleDelete(subscriber.id, subscriber.email);
+        break;
+      default: {
+        const _exhaustive: never = action;
+        return _exhaustive;
+      }
+    }
+  }
+
+  onEditSaved(event: { id: string; name: string }): void {
+    const sub = this.allSubscribers.find((s) => s.id === event.id);
+    if (sub) {
+      sub.name = event.name;
+    }
+    this.loadPageData();
+    this.closeEditSubscriberModal();
   }
 
   /** Admin help tour: expand section and close add form so driver steps match the DOM. */
@@ -1167,20 +273,21 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     this.sectionExpanded = true;
     this.showAddForm = false;
     this.showCSVUpload = false;
-    this.pcSearchTab = false;
-    this.pcSearchQuery = '';
-    this.pcSearchResults = [];
-    this.pcSelectedPerson = null;
-    this.pcSearchSearched = false;
-    this.pcSearchTourDemoActive = false;
-    this.pcSearchTourDemoBlockManualSubmit = false;
+    this.addFormRef?.resetForm();
     this.cdr.markForCheck();
   }
 
-  /**
-   * Overview tour: expand section, set list search to `app-test`, and load rows so column highlights exist
-   * (e.g. App-Test Account in dev). Safe to call when the Email Subscribers panel is off-screen.
-   */
+  private onOrientationChange(): void {
+    setTimeout(() => {
+      this.updateOrientationMode();
+    }, 100);
+  }
+
+  private updateOrientationMode(): void {
+    this.isLandscape = window.innerWidth > window.innerHeight;
+    this.cdr.markForCheck();
+  }
+
   async prepareOverviewTourListState(): Promise<void> {
     this.prepareTourInitialState();
     if (!this.sectionInitialLoadDone) {
@@ -1203,156 +310,46 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   }
 
   showPlanningCenterTabForTour(): void {
-    this.pcSearchTab = true;
-    this.cdr.markForCheck();
+    this.addFormRef?.showPlanningCenterTab();
   }
 
-  /** Admin tour: fill “Mark Larson”, search Planning Center, select a matching person (no add). */
   runPlanningCenterSearchTourDemo(): Promise<void> {
-    this.pcSearchTourDemoActive = true;
-    this.pcSearchQuery = 'Mark Larson';
-    this.cdr.markForCheck();
-    return this.runTourDemoPlanningCenterSearchOnly();
+    return this.addFormRef?.runTourDemoSearch() ?? Promise.resolve();
   }
 
-  /** Admin tour: select Mark Larson (or first result) after search results appear. */
   selectTourPlanningCenterMatchFromDemoResults(): void {
-    const match = this.findMarkLarsonTourDemoMatch() ?? (this.pcSearchResults.length > 0 ? this.pcSearchResults[0] : null);
-    if (match) {
-      this.selectPlanningCenterPerson(match);
-    } else {
-      this.toast.info('Tour: No Planning Center results to select.');
-    }
-    this.cdr.markForCheck();
+    this.addFormRef?.selectTourDemoMatch();
   }
 
-  /** Admin tour: same as clicking Add Selected Subscriber; tour mode does not persist. */
   applyTourDemoPlanningCenterAdd(): void {
-    if (!this.pcSelectedPerson) {
-      this.toast.info('Tour: No person selected — search may have had no match for “Mark Larson”.');
-      return;
-    }
-    void this.handleAddSelectedPlanningCenterPerson();
+    this.addFormRef?.applyTourDemoPlanningCenterAdd();
   }
 
-  /** Admin tour: clear demo PC state and manual fields when the tour ends (no name/email left on the form). */
   clearEmailSubscribersTourDemoForm(): void {
-    this.newName = '';
-    this.newEmail = '';
-    this.pcSearchTourDemoActive = false;
-    this.pcSearchTourDemoBlockManualSubmit = false;
-    this.pcSearchTab = false;
-    this.pcSearchQuery = '';
-    this.pcSearchResults = [];
-    this.pcSelectedPerson = null;
-    this.pcSearchSearched = false;
+    this.addFormRef?.clearTourDemo();
     this.error = null;
-    if (this.pcSearchDebounceTimer) {
-      clearTimeout(this.pcSearchDebounceTimer);
-      this.pcSearchDebounceTimer = null;
-    }
     this.cdr.markForCheck();
   }
 
-  private async runTourDemoPlanningCenterSearchOnly(): Promise<void> {
-    if (this.pcSearchDebounceTimer) {
-      clearTimeout(this.pcSearchDebounceTimer);
-      this.pcSearchDebounceTimer = null;
-    }
-    await this.handleSearchPlanningCenter();
-    if (!this.pcSearchTourDemoActive) {
-      return;
-    }
-    if (this.pcSearchResults.length === 0) {
-      this.pcSearchTourDemoActive = false;
-      this.toast.info(
-        'Tour: No Planning Center results for “Mark Larson” in this environment. Try your own search.'
-      );
-    }
-    this.cdr.markForCheck();
-  }
-
-  private findMarkLarsonTourDemoMatch(): PlanningCenterPerson | null {
-    for (const p of this.pcSearchResults) {
-      const attrs = p.attributes;
-      const name = (attrs.name || `${attrs.first_name || ''} ${attrs.last_name || ''}`).trim().toLowerCase();
-      if (name.includes('mark larson') || (name.includes('mark') && name.includes('larson'))) {
-        return p;
-      }
-    }
-    return null;
-  }
-
-  toggleCSVUpload() {
+  toggleCSVUpload(): void {
     this.showCSVUpload = !this.showCSVUpload;
     this.showAddForm = false;
     this.error = null;
     this.csvSuccess = null;
-    this.csvData = [];
+    if (!this.showCSVUpload) {
+      this.csvPanelRef?.reset();
+    }
     this.cdr.markForCheck();
   }
 
-  openEditSubscriberModal(subscriber: EmailSubscriber) {
-    this.editSubscriberId = subscriber.id;
-    this.editName = subscriber.name || '';
-    this.editEmail = subscriber.email;
-    this.editError = null;
-    this.showEditSubscriberDialog = true;
+  openEditSubscriberModal(subscriber: EmailSubscriberRow): void {
+    this.editSubscriber = subscriber;
     this.cdr.markForCheck();
   }
 
-  closeEditSubscriberModal() {
-    this.showEditSubscriberDialog = false;
-    this.editSubscriberId = null;
-    this.editName = '';
-    this.editEmail = '';
-    this.editError = null;
-    this.editSaving = false;
+  closeEditSubscriberModal(): void {
+    this.editSubscriber = null;
     this.cdr.markForCheck();
-  }
-
-  async saveEditSubscriber() {
-    if (!this.editSubscriberId) {
-      return;
-    }
-
-    const trimmedName = this.editName.trim();
-    if (!trimmedName) {
-      this.editError = 'Name is required';
-      this.cdr.markForCheck();
-      return;
-    }
-
-    try {
-      this.editSaving = true;
-      this.editError = null;
-      this.cdr.markForCheck();
-
-      const { error } = await this.supabase.client
-        .from('email_subscribers')
-        .update({ name: trimmedName })
-        .eq('id', this.editSubscriberId);
-
-      if (error) {
-        throw error;
-      }
-
-      // Update local data so the grid reflects the new name
-      const sub = this.allSubscribers.find(s => s.id === this.editSubscriberId);
-      if (sub) {
-        sub.name = trimmedName;
-      }
-      this.loadPageData();
-      this.toast.success('Subscriber updated');
-      this.closeEditSubscriberModal();
-    } catch (err: any) {
-      console.error('Error updating subscriber:', err);
-      this.editError = err?.message || 'Failed to update subscriber';
-      this.cdr.markForCheck();
-    } finally {
-      this.editSaving = false;
-      this.cdr.markForCheck();
-    }
   }
 
   async handleSearch(options?: { preserveCsvSuccess?: boolean }) {
@@ -1373,7 +370,7 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
 
       const trimmedQuery = this.searchQuery.trim();
       if (trimmedQuery) {
-        const escaped = escapeForIlikePattern(trimmedQuery);
+        const escaped = escapeEmailSubscriberIlikePattern(trimmedQuery);
         const pattern = `%${escaped}%`;
         query = query.or(`email.ilike.${pattern},name.ilike.${pattern}`);
       }
@@ -1406,7 +403,7 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleSort(column: 'name' | 'email' | 'created_at' | 'last_activity_date' | 'is_active' | 'receive_push' | 'is_blocked' | 'in_planning_center') {
+  toggleSort(column: EmailSubscriberSortColumn) {
     // If clicking the same column, toggle direction; otherwise set new column
     if (this.sortBy === column) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -1559,108 +556,6 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
   readonly Math = Math;
 
   /** Enter in manual name/email fields submits (same as Add Subscriber). */
-  onManualAddFieldEnter(event: Event): void {
-    const ke = event as KeyboardEvent;
-    if (ke.key !== 'Enter') return;
-    ke.preventDefault();
-    void this.handleAddSubscriber();
-  }
-
-  async handleAddSubscriber() {
-    if (!this.newName.trim() || !this.newEmail.trim()) {
-      this.error = 'Name and email are required';
-      this.cdr.markForCheck();
-      this.cdr.detectChanges();
-      this.appRef.tick();
-      return;
-    }
-
-    if (this.pcSearchTourDemoBlockManualSubmit) {
-      this.toast.info('Tour preview: close and reopen Add Subscriber, or refresh the page, to add a real subscriber.');
-      this.cdr.markForCheck();
-      this.cdr.detectChanges();
-      this.appRef.tick();
-      return;
-    }
-
-    try {
-      this.submitting = true;
-      this.error = null;
-      this.csvSuccess = null;
-      this.cdr.markForCheck();
-      this.cdr.detectChanges();
-      this.appRef.tick();
-      await Promise.resolve();
-
-      const { data: existing } = await this.supabase.client
-        .from('email_subscribers')
-        .select('email')
-        .eq('email', this.newEmail.toLowerCase().trim())
-        .maybeSingle();
-
-      if (existing) {
-        this.error = 'This email address is already subscribed';
-        this.submitting = false;
-        this.cdr.markForCheck();
-        this.cdr.detectChanges();
-        this.appRef.tick();
-        return;
-      }
-
-      // Check Planning Center status
-      let inPlanningCenter: boolean | null = null;
-      let planningCenterCheckedAt: string | null = null;
-      
-      try {
-        const pcResult = await lookupPersonByEmail(
-          this.newEmail.toLowerCase().trim(),
-          environment.supabaseUrl,
-          environment.supabaseAnonKey
-        );
-        inPlanningCenter = pcResult.count > 0;
-        planningCenterCheckedAt = new Date().toISOString();
-        console.log(`[Email Subscribers] Planning Center check for ${this.newEmail}: ${inPlanningCenter}`);
-      } catch (pcError) {
-        console.error('[Email Subscribers] Planning Center check failed:', pcError);
-        // Continue with null values if check fails
-      }
-
-      const { error } = await this.supabase.client
-        .from('email_subscribers')
-        .insert({
-          name: this.newName.trim(),
-          email: this.newEmail.toLowerCase().trim(),
-          is_active: true,
-          is_admin: false,
-          receive_admin_emails: false,
-          in_planning_center: inPlanningCenter,
-          planning_center_checked_at: planningCenterCheckedAt
-        });
-
-      if (error) throw error;
-
-      this.csvSuccess = 'Subscriber added successfully!';
-      // Store the email for the welcome dialog
-      this.pendingSubscriberEmail = this.newEmail.toLowerCase().trim();
-      this.newName = '';
-      this.newEmail = '';
-      // Show the send welcome email dialog
-      this.showSendWelcomeEmailDialog = true;
-      this.cdr.markForCheck();
-      // Refresh the list without clearing csvSuccess (banner + welcome dialog should stay visible).
-      await this.handleSearch({ preserveCsvSuccess: true });
-    } catch (err: any) {
-      console.error('Error adding subscriber:', err);
-      this.error = err.message || 'Failed to add subscriber';
-      this.cdr.markForCheck();
-    } finally {
-      this.submitting = false;
-      this.cdr.markForCheck();
-      this.cdr.detectChanges();
-      this.appRef.tick();
-    }
-  }
-
   async handleToggleActive(id: string, currentStatus: boolean) {
     try {
       // Fetch subscriber to get their email for the confirmation dialog
@@ -1907,282 +802,8 @@ export class EmailSubscribersComponent implements OnInit, OnDestroy {
     }
   }
 
-  handleCSVUpload(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const rows = text.split('\n').map(line => line.trim()).filter(line => line);
-        
-        const parsed: CSVRow[] = rows.map(row => {
-          const [name, email] = row.split(',').map(s => s.trim());
-          
-          if (!name || !email) {
-            return { name: name || '', email: email || '', valid: false, error: 'Missing name or email' };
-          }
-          
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(email)) {
-            return { name, email, valid: false, error: 'Invalid email format' };
-          }
-          
-          return { name, email, valid: true };
-        });
-        
-        this.csvData = parsed;
-        this.error = null;
-        this.cdr.markForCheck();
-      } catch (err: any) {
-        console.error('Error parsing CSV:', err);
-        this.error = 'Failed to parse CSV file';
-        this.cdr.markForCheck();
-      }
-    };
-    
-    reader.readAsText(file);
-  }
-
-  getValidRowsCount(): number {
-    return this.csvData.filter(r => r.valid).length;
-  }
-
-  getInvalidRowsCount(): number {
-    return this.csvData.filter(r => !r.valid).length;
-  }
-
   getActiveCount(): number {
     return this.totalActiveCount;
-  }
-
-  async uploadCSVData() {
-    const validRows = this.csvData.filter(r => r.valid);
-    
-    if (validRows.length === 0) {
-      this.error = 'No valid rows to upload';
-      this.cdr.markForCheck();
-      return;
-    }
-
-    try {
-      this.uploadingCSV = true;
-      this.error = null;
-      this.csvSuccess = null;
-      this.csvImportWarnings = [];
-      this.csvImportProgress = 0;
-      this.csvImportTotal = validRows.length;
-      this.cdr.markForCheck();
-
-      // Check for existing emails
-      const emails = validRows.map(r => r.email.toLowerCase());
-      const { data: existing } = await this.supabase.client
-        .from('email_subscribers')
-        .select('email')
-        .in('email', emails);
-
-      const existingEmails = new Set((existing || []).map((e: any) => e.email));
-      const newRows = validRows.filter(r => !existingEmails.has(r.email.toLowerCase()));
-
-      if (newRows.length === 0) {
-        this.error = 'All email addresses are already subscribed';
-        this.uploadingCSV = false;
-        this.cdr.markForCheck();
-        return;
-      }
-
-      // Batch Planning Center lookups with progress tracking
-      console.log(`[CSV Import] Starting batched Planning Center lookups for ${newRows.length} new subscribers...`);
-      const newEmails = newRows.map(r => r.email.toLowerCase());
-      
-      const batchResults = await batchLookupPlanningCenter(
-        newEmails,
-        environment.supabaseUrl,
-        environment.supabaseAnonKey,
-        {
-          concurrency: 5, // Max 5 concurrent requests at a time
-          maxRetries: 3,
-          retryDelayMs: 500,
-          onProgress: (completed, total) => {
-            this.csvImportProgress = completed;
-            this.csvImportTotal = total;
-            this.cdr.markForCheck();
-          }
-        }
-      );
-
-      // Create lookup map for easy access
-      const resultMap = new Map(batchResults.map(r => [r.email, r]));
-
-      // Track failures and warnings
-      let failedLookups = 0;
-      const subscribersToInsert = newRows.map((r) => {
-        const result = resultMap.get(r.email.toLowerCase());
-        let inPlanningCenter: boolean | null = null;
-        let planningCenterCheckedAt: string | null = null;
-
-        if (result) {
-          if (result.failed) {
-            failedLookups++;
-            const warning = `Planning Center check failed for ${r.email} (retried ${result.retries} times)`;
-            this.csvImportWarnings.push(warning);
-            console.warn(`[CSV Import] ${warning}`);
-          } else {
-            inPlanningCenter = result.result.count > 0;
-            planningCenterCheckedAt = new Date().toISOString();
-            console.log(`[CSV Import] Planning Center check for ${r.email}: ${inPlanningCenter}`);
-          }
-        }
-
-        return {
-          name: r.name,
-          email: r.email.toLowerCase(),
-          is_active: true,
-          is_admin: false,
-          receive_admin_emails: false,
-          in_planning_center: inPlanningCenter,
-          planning_center_checked_at: planningCenterCheckedAt
-        };
-      });
-
-      // Insert all subscribers
-      const { error } = await this.supabase.client
-        .from('email_subscribers')
-        .insert(subscribersToInsert);
-
-      if (error) throw error;
-
-      const skipped = validRows.length - newRows.length;
-      let successMessage = `Successfully added ${newRows.length} subscriber(s)`;
-      
-      if (skipped > 0) {
-        successMessage += `. Skipped ${skipped} duplicate(s)`;
-      }
-      
-      if (failedLookups > 0) {
-        successMessage += `. ⚠️ Planning Center checks failed for ${failedLookups} email(s) (see details below)`;
-      } else {
-        successMessage += '!';
-      }
-
-      this.csvSuccess = successMessage;
-      this.csvData = [];
-      this.showCSVUpload = false;
-
-      await this.handleSearch({ preserveCsvSuccess: true });
-      this.cdr.markForCheck();
-    } catch (err: any) {
-      console.error('Error uploading CSV:', err);
-      this.error = err.message || 'An error occurred';
-      this.cdr.markForCheck();
-    } finally {
-      this.uploadingCSV = false;
-      this.csvImportProgress = 0;
-      this.csvImportTotal = 0;
-      this.cdr.markForCheck();
-    }
-  }
-
-  async handleSearchPlanningCenter() {
-    const trimmed = this.pcSearchQuery.trim();
-    if (!trimmed) {
-      this.error = 'Please enter a name to search';
-      this.cdr.markForCheck();
-      return;
-    }
-    if (trimmed.length < this.pcSearchMinChars) {
-      this.error = `Enter at least ${this.pcSearchMinChars} characters to search Planning Center`;
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.pcSearching = true;
-    this.pcSearchSearched = true;
-    this.pcSearchResults = [];
-    this.pcSelectedPerson = null;
-    this.error = null;
-    this.cdr.markForCheck();
-
-    try {
-      const result = await searchPlanningCenterByName(
-        trimmed,
-        environment.supabaseUrl,
-        environment.supabaseAnonKey
-      );
-
-      if (result.error) {
-        this.error = result.error;
-        this.pcSearchResults = [];
-      } else {
-        this.pcSearchResults = result.people;
-        if (result.count === 0) {
-          this.error = null;
-        }
-      }
-    } catch (err: any) {
-      console.error('Error searching Planning Center:', err);
-      this.error = err.message || 'An error occurred while searching Planning Center';
-      this.pcSearchResults = [];
-    } finally {
-      this.pcSearching = false;
-      this.cdr.markForCheck();
-    }
-  }
-
-  selectPlanningCenterPerson(person: PlanningCenterPerson) {
-    this.pcSelectedPerson = person;
-    // Pre-fill the name field with the selected person's name
-    this.newName = person.attributes.name || `${person.attributes.first_name} ${person.attributes.last_name}`;
-    this.cdr.markForCheck();
-  }
-
-  async handleAddSelectedPlanningCenterPerson() {
-    const tourDemo = this.pcSearchTourDemoActive;
-
-    if (!this.pcSelectedPerson) {
-      this.error = 'Please select a person from Planning Center';
-      this.cdr.markForCheck();
-      return;
-    }
-
-    // Fill in name and email from selected Planning Center person
-    const selectedName = this.pcSelectedPerson.attributes.name || 
-      `${this.pcSelectedPerson.attributes.first_name} ${this.pcSelectedPerson.attributes.last_name}`.trim();
-    
-    this.newName = selectedName;
-    this.newEmail = this.pcSelectedPerson.attributes.primary_email_address || '';
-    
-    this.error = null;
-    
-    // If we have both name and email, show success message and reset tab
-    if (this.newName && this.newEmail) {
-      if (tourDemo) {
-        this.pcSearchTourDemoActive = false;
-        this.pcSearchTourDemoBlockManualSubmit = true;
-        this.toast.info(
-          'Tour: Name and email are filled in below. No subscriber was saved — this is a preview.'
-        );
-      } else {
-        this.toast.info('Name and email filled in! Click "Add Subscriber" to complete.');
-      }
-      this.pcSearchTab = false;
-    } else if (this.newName && !this.newEmail) {
-      if (tourDemo) {
-        this.pcSearchTourDemoActive = false;
-        this.pcSearchTourDemoBlockManualSubmit = true;
-        this.toast.info(
-          'Tour: Name is filled in; add an email if needed. This tour does not save subscribers.'
-        );
-      } else {
-        this.toast.info('Name filled in! Please enter the email address for this contact.');
-      }
-      this.pcSearchTab = false;
-    }
-    
-    this.cdr.markForCheck();
   }
 
   /**

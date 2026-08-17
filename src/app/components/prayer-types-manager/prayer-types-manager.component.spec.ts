@@ -94,11 +94,7 @@ describe('PrayerTypesManagerComponent', () => {
     expect(component.showAddForm).toBe(false);
     expect(component.error).toBeNull();
     expect(component.success).toBeNull();
-    expect(component.editingId).toBeNull();
-    expect(component.name).toBe('');
-    expect(component.displayOrder).toBe(0);
-    expect(component.isActive).toBe(true);
-    expect(component.includeInBooklet).toBe(false);
+    expect(component.editingType).toBeNull();
   });
 
   describe('onSectionToggle', () => {
@@ -176,188 +172,35 @@ describe('PrayerTypesManagerComponent', () => {
       expect(component.showAddForm).toBe(false);
     });
 
-    it('should reset form fields', () => {
-      component.editingId = 'some-id';
-      component.name = 'Test Name';
-      component.displayOrder = 5;
-      component.isActive = false;
+    it('should clear editing state and messages when opening add form', () => {
+      component.editingType = createMockPrayerType({ id: 'some-id' });
       component.error = 'Some error';
       component.success = 'Some success';
 
       component.toggleAddForm();
 
-      expect(component.editingId).toBeNull();
-      expect(component.name).toBe('');
-      expect(component.displayOrder).toBe(0);
-      expect(component.isActive).toBe(true);
+      expect(component.editingType).toBeNull();
       expect(component.error).toBeNull();
       expect(component.success).toBeNull();
-    });
-  });
-
-  describe('saveType', () => {
-    it('should show error if name is empty', async () => {
-      const event = new Event('submit');
-      component.name = '';
-
-      await component.saveType(event);
-
-      expect(component.error).toBe('Please enter a type name');
-      expect(mockToastService.warning).toHaveBeenCalledWith('Please enter a type name.');
-    });
-
-    it('should show error if name is only whitespace', async () => {
-      const event = new Event('submit');
-      component.name = '   ';
-
-      await component.saveType(event);
-
-      expect(component.error).toBe('Please enter a type name');
-      expect(mockToastService.warning).toHaveBeenCalledWith('Please enter a type name.');
-    });
-
-    it('should add new prayer type successfully', async () => {
-      const event = new Event('submit');
-      component.name = 'New Type';
-      component.displayOrder = 5;
-      component.isActive = true;
-
-      mockSupabaseClient.from = vi.fn(() => ({
-        insert: vi.fn(() => Promise.resolve({ error: null }))
-      }));
-
-      mockSupabaseService.directQuery = vi.fn(() => Promise.resolve({ data: [], error: null }));
-
-      await component.saveType(event);
-
-      expect(component.success).toBe('Prayer type added successfully!');
-      expect(component.showAddForm).toBe(false);
-      expect(component.name).toBe('');
-      expect(mockPromptService.loadPrompts).toHaveBeenCalled();
-      expect(mockToastService.success).toHaveBeenCalledWith('Prayer type added.');
-    });
-
-    it('should update existing prayer type successfully', async () => {
-      const event = new Event('submit');
-      component.editingId = 'type-1';
-      component.name = 'Updated Type';
-      component.displayOrder = 3;
-      component.isActive = false;
-
-      mockSupabaseClient.from = vi.fn(() => ({
-        update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error: null }))
-        }))
-      }));
-
-      mockSupabaseService.directQuery = vi.fn(() => Promise.resolve({ data: [], error: null }));
-
-      await component.saveType(event);
-
-      expect(component.success).toBe('Prayer type updated successfully!');
-      expect(component.showAddForm).toBe(false);
-      expect(component.editingId).toBeNull();
-      expect(mockPromptService.loadPrompts).toHaveBeenCalled();
-      expect(mockToastService.success).toHaveBeenCalledWith('Prayer type updated.');
-    });
-
-    it('should handle insert error', async () => {
-      const event = new Event('submit');
-      component.showAddForm = true;
-      component.name = 'New Type';
-      const error = new Error('Insert failed');
-
-      mockSupabaseClient.from = vi.fn(() => ({
-        insert: vi.fn(() => Promise.resolve({ error }))
-      }));
-
-      await component.saveType(event);
-
-      expect(component.error).toBe('Failed to save prayer type: Insert failed');
       expect(component.showAddForm).toBe(true);
-      expect(mockToastService.error).toHaveBeenCalled();
-    });
-
-    it('should handle update error', async () => {
-      const event = new Event('submit');
-      component.showAddForm = true;
-      component.editingId = 'type-1';
-      component.name = 'Updated Type';
-      const error = new Error('Update failed');
-
-      mockSupabaseClient.from = vi.fn(() => ({
-        update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error }))
-        }))
-      }));
-
-      await component.saveType(event);
-
-      expect(component.error).toBe('Failed to save prayer type: Update failed');
-      expect(mockToastService.error).toHaveBeenCalled();
-    });
-
-    it('should trim whitespace from name', async () => {
-      const event = new Event('submit');
-      component.name = '  Trimmed Name  ';
-      
-      const insertSpy = vi.fn(() => Promise.resolve({ error: null }));
-      mockSupabaseClient.from = vi.fn(() => ({
-        insert: insertSpy
-      }));
-
-      mockSupabaseService.directQuery = vi.fn(() => Promise.resolve({ data: [], error: null }));
-
-      await component.saveType(event);
-
-      expect(insertSpy).toHaveBeenCalledWith({
-        name: 'Trimmed Name',
-        display_order: 0,
-        is_active: true,
-        include_in_booklet: false
-      });
-    });
-
-    it('should emit onSave event', async () => {
-      const event = new Event('submit');
-      component.name = 'New Type';
-      const emitSpy = vi.spyOn(component.onSave, 'emit');
-
-      mockSupabaseClient.from = vi.fn(() => ({
-        insert: vi.fn(() => Promise.resolve({ error: null }))
-      }));
-
-      mockSupabaseService.directQuery = vi.fn(() => Promise.resolve({ data: [], error: null }));
-
-      await component.saveType(event);
-
-      expect(emitSpy).toHaveBeenCalled();
     });
   });
+
+
 
   describe('handleEdit', () => {
-    it('should populate form fields with type data', () => {
+    it('should set editing type and open form', () => {
       const type = createMockPrayerType({
         id: 'type-1',
         name: 'Test Type',
         display_order: 5,
-        is_active: false
+        is_active: false,
       });
 
       component.handleEdit(type);
 
-      expect(component.name).toBe('Test Type');
-      expect(component.displayOrder).toBe(5);
-      expect(component.isActive).toBe(false);
-      expect(component.includeInBooklet).toBe(false);
-      expect(component.editingId).toBe('type-1');
+      expect(component.editingType).toEqual(type);
       expect(component.showAddForm).toBe(true);
-    });
-
-    it('should populate includeInBooklet when type is included in booklet', () => {
-      const type = createMockPrayerType({ include_in_booklet: true });
-      component.handleEdit(type);
-      expect(component.includeInBooklet).toBe(true);
     });
 
     it('should clear error and success messages', () => {
@@ -647,42 +490,21 @@ describe('PrayerTypesManagerComponent', () => {
     });
   });
 
-  describe('cancelEdit', () => {
-    it('should reset form state', () => {
+  describe('closeTypeForm', () => {
+    it('should reset editing state', () => {
       component.showAddForm = true;
-      component.editingId = 'type-1';
-      component.name = 'Test';
-      component.displayOrder = 5;
-      component.isActive = false;
+      component.editingType = createMockPrayerType({ id: 'type-1' });
       component.error = 'Error';
 
-      component.cancelEdit();
+      component.closeTypeForm();
 
       expect(component.showAddForm).toBe(false);
-      expect(component.editingId).toBeNull();
-      expect(component.name).toBe('');
-      expect(component.displayOrder).toBe(0);
-      expect(component.isActive).toBe(true);
+      expect(component.editingType).toBeNull();
       expect(component.error).toBeNull();
     });
   });
 
-  describe('formatDate', () => {
-    it('should format date string', () => {
-      const dateString = '2024-01-15T10:30:00Z';
-      const formatted = component.formatDate(dateString);
-      
-      expect(formatted).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/); // MM/DD/YYYY or similar
-    });
 
-    it('should handle different date formats', () => {
-      const dateString = '2024-12-25';
-      const formatted = component.formatDate(dateString);
-      
-      expect(formatted).toBeTruthy();
-      expect(typeof formatted).toBe('string');
-    });
-  });
 
   describe('getActiveCount', () => {
     it('should return count of active types', () => {

@@ -1,0 +1,340 @@
+    <div #emailSubscribersContainer class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
+      <button
+        type="button"
+        id="email-subscribers-trigger"
+        class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+        (click)="onSectionToggle(); $event.stopPropagation()"
+        [attr.aria-expanded]="sectionExpanded"
+        aria-controls="email-subscribers-panel"
+      >
+        <span class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0">
+          <svg class="text-blue-600 dark:text-blue-400 shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Email Subscribers
+        </span>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+          [class.rotate-180]="sectionExpanded"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      @if (sectionExpanded) {
+      <div
+        id="email-subscribers-panel"
+        role="region"
+        aria-labelledby="email-subscribers-trigger"
+        class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+      >
+      <div id="tour-email-subscribers-toolbar" class="flex gap-2 mb-4 justify-end">
+        <button
+          type="button"
+          (click)="toggleCSVUpload()"
+          title="Toggle CSV upload"
+          class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm cursor-pointer"
+        >
+          @if (!showCSVUpload) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          }
+          @if (showCSVUpload) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          }
+          {{ showCSVUpload ? 'Cancel CSV' : 'Upload CSV' }}
+        </button>
+        <button
+          type="button"
+          id="tour-email-add-subscriber-btn"
+          (click)="toggleAddForm()"
+          title="Add new subscriber"
+          class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm cursor-pointer"
+        >
+          @if (!showAddForm) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          }
+          @if (showAddForm) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          }
+          {{ showAddForm ? 'Cancel' : 'Add Subscriber' }}
+        </button>
+      </div>
+
+      <!-- Error Message -->
+      @if (error) {
+      <div class="mb-4 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+        <svg class="text-red-600 dark:text-red-400 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span class="text-red-800 dark:text-red-200 text-sm">{{ error }}</span>
+      </div>
+      }
+
+      <!-- Success Message -->
+      @if (csvSuccess) {
+      <div class="mb-4 flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+        <svg class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <div class="flex-1">
+          <span class="text-green-800 dark:text-green-200 text-sm">{{ csvSuccess }}</span>
+          <!-- Planning Center Check Warnings -->
+          @if (csvImportWarnings.length > 0) {
+          <div class="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+            <p class="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-1">⚠️ Planning Center Lookup Issues:</p>
+            <ul class="space-y-1">
+              @for (warning of csvImportWarnings; track warning) {
+              <li class="text-xs text-orange-700 dark:text-orange-300">• {{ warning }}</li>
+              }
+            </ul>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- CSV Upload Form -->
+      @if (showCSVUpload) {
+      <app-admin-email-subscribers-csv-panel
+        #csvPanelRef
+        (uploaded)="onCsvUploaded($event)"
+        (error)="onChildError($event)"
+      />
+      }
+
+      <!-- Add Subscriber Form -->
+      @if (showAddForm) {
+      <app-admin-email-subscribers-add-form
+        #addFormRef
+        (subscriberAdded)="onSubscriberAdded($event)"
+        (cancel)="toggleAddForm()"
+        (reportError)="onChildError($event)"
+      />
+      }
+
+      <!-- Search Form -->
+      <div id="tour-email-subscribers-search" class="mb-4 max-w-full">
+        <label for="subscriberListSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Search subscribers
+        </label>
+        <div class="relative min-w-0 w-full">
+          <input
+            id="subscriberListSearch"
+            type="text"
+            name="subscriberListSearch"
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="onListSearchQueryChange($event)"
+            (keydown)="onListSearchKeydown($event)"
+            autocomplete="off"
+            placeholder="Search by email or name (min. {{ listSearchMinChars }} characters)…"
+            class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+          />
+          @if (searching) {
+          <div class="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2">
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+          </div>
+          }
+          @if (searchQuery) {
+          <button
+            type="button"
+            (click)="clearListSearch()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            title="Clear search"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          }
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Debounced ({{ listSearchDebounceMs }}ms). Leave empty to show all subscribers after a short pause.
+        </p>
+      </div>
+
+      <!-- Results (tour: list, empty states, pagination) -->
+      <div id="tour-email-subscribers-list-area">
+      @if (searching) {
+      <div class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mt-2">Searching...</p>
+      </div>
+      }
+
+      @if (!searching && !hasSearched) {
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+        <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <p>Could not load subscribers</p>
+        <p class="text-sm mt-1">Use the refresh button above to try again.</p>
+      </div>
+      }
+
+      @if (!searching && hasSearched && subscribers.length === 0) {
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+        <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+        <p>No subscribers found</p>
+        <p class="text-sm mt-1">Try a different search term</p>
+      </div>
+      }
+
+      @if (!searching && hasSearched && subscribers.length > 0) {
+      <div>
+        <div class="hidden mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 sm:grid sm:grid-cols-[repeat(16,minmax(0,1fr))]">
+          <button (click)="toggleSort('name')" class="col-span-4 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by name">Name{{ getSortIndicator('name') }}</button>
+          <button (click)="toggleSort('email')" class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by email">Email{{ getSortIndicator('email') }}</button>
+          <button (click)="toggleSort('created_at')" class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by join date">Added{{ getSortIndicator('created_at') }}</button>
+          <button (click)="toggleSort('last_activity_date')" class="col-span-2 text-left whitespace-nowrap hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by last activity">Activity{{ getSortIndicator('last_activity_date') }}</button>
+          <button (click)="toggleSort('is_active')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by email">Email{{ getSortIndicator('is_active') }}</button>
+          <button (click)="toggleSort('receive_push')" class="col-span-1 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by push">Push{{ getSortIndicator('receive_push') }}</button>
+          <button (click)="toggleSort('in_planning_center')" class="col-span-1 text-center hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by PC status">PC{{ getSortIndicator('in_planning_center') }}</button>
+          <button (click)="toggleSort('is_blocked')" class="col-span-1 text-center hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer" title="Click to sort by block status">Block{{ getSortIndicator('is_blocked') }}</button>
+          <span class="col-span-2 text-left text-gray-700 dark:text-gray-300">Actions</span>
+        </div>
+        <div class="space-y-2">
+          @for (subscriber of subscribers; track subscriber.id; let isFirst = $first) {
+          <app-admin-email-subscriber-row
+            [subscriber]="subscriber"
+            [isFirst]="isFirst"
+            (action)="onRowAction(subscriber, $event)"
+          />
+          }
+        </div>
+
+        <div id="tour-email-subscribers-pagination" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-600 dark:text-gray-400">
+              Found: <span class="font-semibold">{{ totalItems }}</span> subscriber(s) | 
+              Showing: <span class="font-semibold">{{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }}</span>
+            </span>
+            <span class="text-gray-600 dark:text-gray-400">
+              Active: <span class="font-semibold text-green-600 dark:text-green-400">
+                {{ getActiveCount() }}
+              </span>
+            </span>
+          </div>
+
+          <!-- Page Size Selector -->
+          <div class="flex items-center gap-2">
+            <label for="pageSize" class="text-sm text-gray-600 dark:text-gray-400">Items per page:</label>
+            <select
+              id="pageSize"
+              [(ngModel)]="pageSize"
+              (change)="changePageSize()"
+              class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+            >
+              <option [value]="10">10</option>
+              <option [value]="50">50</option>
+              <option [value]="100">100</option>
+            </select>
+          </div>
+
+          <!-- Pagination Controls: fewer page buttons on small screens to avoid overflow -->
+          @if (totalPages > 1) {
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex gap-2">
+              <button
+                (click)="previousPage()"
+                [disabled]="isFirstPage"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
+              >
+                ← Previous
+              </button>
+              <button
+                (click)="nextPage()"
+                [disabled]="isLastPage"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
+              >
+                Next →
+              </button>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-gray-600 dark:text-gray-400 text-sm">
+                Page <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
+              </span>
+              
+              <div class="flex gap-1">
+                @for (page of getPaginationRange(); track page) {
+                <button
+                  (click)="goToPage(page)"
+                  [class]="page === currentPage ? 
+                    'px-3 py-1 bg-blue-600 text-white rounded-lg text-sm cursor-pointer' :
+                    'px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm cursor-pointer'"
+                >
+                  {{ page }}
+                </button>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      <!-- end @if (!searching && hasSearched && subscribers.length > 0) -->
+      }
+      </div>
+      </div>
+      }
+
+      <!-- Send Welcome Email Dialog -->
+      @if (showSendWelcomeEmailDialog) {
+      <app-send-notification-dialog
+        [notificationType]="'subscriber'"
+        (confirm)="onConfirmSendWelcomeEmail()"
+        (decline)="onDeclineSendWelcomeEmail()">
+      </app-send-notification-dialog>
+      }
+
+      <!-- Confirmation Dialog -->
+      @if (showConfirmationDialog) {
+      <app-confirmation-dialog
+        [title]="confirmationTitle"
+        [message]="confirmationMessage"
+        [details]="confirmationDetails"
+        [isDangerous]="isDeleteConfirmation"
+        [confirmText]="confirmationConfirmText"
+        (confirm)="onConfirmDialog()"
+        (cancel)="onCancelDialog()">
+      </app-confirmation-dialog>
+      }
+
+      @if (editSubscriber) {
+      <app-admin-email-subscriber-edit-modal
+        [subscriber]="editSubscriber"
+        (saved)="onEditSaved($event)"
+        (closed)="closeEditSubscriberModal()"
+      />
+      }
+    </div>

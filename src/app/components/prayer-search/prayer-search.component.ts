@@ -3,6 +3,7 @@ import {
   OnDestroy,
   ChangeDetectorRef,
   ViewChild,
+  ViewChildren,
   ElementRef,
   ChangeDetectionStrategy,
 } from "@angular/core";
@@ -17,75 +18,20 @@ import {
   type NotificationType,
 } from "../send-notification-dialog/send-notification-dialog.component";
 import { ConfirmationDialogComponent } from "../confirmation-dialog/confirmation-dialog.component";
-import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";
-import { RichTextViewComponent } from "../rich-text-view/rich-text-view.component";
-
-interface PrayerUpdate {
-  id: string;
-  content: string;
-  author: string;
-  author_email?: string;
-  created_at: string;
-  denial_reason?: string | null;
-  approval_status?: string;
-  is_anonymous?: boolean;
-}
-
-interface Prayer {
-  id: string;
-  title: string;
-  requester: string;
-  email: string | null;
-  status: string;
-  created_at: string;
-  denial_reason?: string | null;
-  description?: string | null;
-  approval_status?: string;
-  prayer_for?: string;
-  prayer_updates?: PrayerUpdate[];
-}
-
-interface EditForm {
-  title: string;
-  description: string;
-  requester: string;
-  email: string;
-  prayer_for: string;
-  status: string;
-}
-
-interface CreateForm {
-  description: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  prayer_for: string;
-  status: string;
-  is_anonymous: boolean;
-}
-
-interface NewUpdate {
-  content: string;
-  firstName: string;
-  lastName: string;
-  author_email: string;
-}
-
-interface EditUpdateForm {
-  content: string;
-  author: string;
-  author_email: string;
-}
-
-/** Row from email_subscribers for admin create-prayer lookup (minimal columns). */
-interface SubscriberPickRow {
-  email: string;
-  name: string;
-}
-
-function escapeForIlikePattern(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-}
+import { AdminPrayerEditorCreateFormComponent } from "../admin-prayer-editor-create-form/admin-prayer-editor-create-form.component";
+import { AdminPrayerEditorCardComponent } from "../admin-prayer-editor-card/admin-prayer-editor-card.component";
+import { escapeForIlikePattern } from "../../lib/admin-subscriber-pick";
+import {
+  EMPTY_PRAYER_EDITOR_EDIT_FORM,
+  EMPTY_PRAYER_EDITOR_EDIT_UPDATE_FORM,
+  EMPTY_PRAYER_EDITOR_NEW_UPDATE,
+  type PrayerEditorCardAction,
+  type PrayerEditorEditForm,
+  type PrayerEditorNewUpdate,
+  type PrayerEditorEditUpdateForm,
+  type PrayerEditorPrayer,
+  type PrayerEditorUpdate,
+} from "../../lib/admin-prayer-editor-types";
 
 @Component({
   selector: "app-prayer-search",
@@ -95,1950 +41,18 @@ function escapeForIlikePattern(value: string): string {
     FormsModule,
     SendNotificationDialogComponent,
     ConfirmationDialogComponent,
-    RichTextEditorComponent,
-    RichTextViewComponent,
+    AdminPrayerEditorCreateFormComponent,
+    AdminPrayerEditorCardComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
-  template: `
-    <div
-      #prayerEditorContainer
-      class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
-      [class.cursor-pointer]="!sectionExpanded"
-      (click)="!sectionExpanded && onSectionToggle()"
-    >
-      <button
-        type="button"
-        id="prayer-editor-settings-trigger"
-        class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="onSectionToggle(); $event.stopPropagation()"
-        [attr.aria-expanded]="sectionExpanded"
-        aria-controls="prayer-editor-panel"
-      >
-        <span
-          class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0"
-        >
-          <svg
-            class="text-blue-600 dark:text-blue-400 shrink-0"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.35-4.35"></path>
-          </svg>
-          Prayer Editor
-        </span>
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
-          [class.rotate-180]="sectionExpanded"
-          aria-hidden="true"
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-
-      @if (sectionExpanded) {
-      <div
-        id="prayer-editor-panel"
-        role="region"
-        aria-labelledby="prayer-editor-settings-trigger"
-        class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
-        (click)="$event.stopPropagation()"
-      >
-        <!-- Create New Prayer Button -->
-        <div class="mb-4 flex justify-end">
-          <button
-            type="button"
-            id="tour-prayer-editor-create-btn"
-            (click)="startCreatePrayer()"
-            class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Create New Prayer
-          </button>
-        </div>
-
-        <!-- Create Prayer Form -->
-        @if (creatingPrayer) {
-        <div
-          class="mb-4 p-4 border-2 border-green-300 dark:border-green-600 rounded-lg bg-gray-50 dark:bg-gray-900/50"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">
-              Create New Prayer
-            </h4>
-            <button
-              type="button"
-              (click)="cancelCreatePrayer()"
-              class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-
-          <form (submit)="createPrayer($event)" class="space-y-3">
-            <div id="tour-prayer-editor-field-find-subscriber" class="relative">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Find subscriber
-              </label>
-              <input
-                type="search"
-                [(ngModel)]="userSearchQuery"
-                name="userSearchQuery"
-                (ngModelChange)="onUserSearchQueryChange($event)"
-                (focus)="onUserSearchFocus()"
-                (blur)="onUserSearchBlur()"
-                autocomplete="off"
-                placeholder="Search by name or email (min. 2 characters)…"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              @if (userSearchLoading) {
-              <div class="pointer-events-none absolute right-3 top-9">
-                <div
-                  class="animate-spin rounded-full h-4 w-4 border-2 border-green-600 border-t-transparent"
-                ></div>
-              </div>
-              } @if (showUserSearchDropdown && userSearchResults.length > 0) {
-              <ul
-                class="absolute z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg"
-                role="listbox"
-              >
-                @for (row of userSearchResults; track row.email) {
-                <li>
-                  <button
-                    type="button"
-                    class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700/80 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                    (mousedown)="selectSubscriberUser(row, $event)"
-                  >
-                    <div class="font-medium text-gray-900 dark:text-gray-100">
-                      {{ row.name }}
-                    </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                      {{ row.email }}
-                    </div>
-                  </button>
-                </li>
-                }
-              </ul>
-              } @if (userSearchQuery.trim().length >= userSearchMinChars &&
-              !userSearchLoading && userSearchHasSearched &&
-              userSearchResults.length === 0) {
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                No matching subscribers
-              </p>
-              }
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Debounced search; only name and email are loaded (limited to
-                {{ userSearchResultLimit }} matches).
-              </p>
-            </div>
-
-            <div
-              id="tour-prayer-editor-field-names"
-              class="grid grid-cols-1 md:grid-cols-2 gap-3"
-            >
-              <div>
-                <label
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  First Name *
-                </label>
-                <input
-                  type="text"
-                  [(ngModel)]="createForm.firstName"
-                  name="firstName"
-                  required
-                  placeholder="First name"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Last Name *
-                </label>
-                <input
-                  type="text"
-                  [(ngModel)]="createForm.lastName"
-                  name="lastName"
-                  required
-                  placeholder="Last name"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-            </div>
-
-            <div id="tour-prayer-editor-field-email">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Email *
-              </label>
-              <input
-                type="email"
-                [(ngModel)]="createForm.email"
-                name="email"
-                required
-                placeholder="email@example.com"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-
-            <div id="tour-prayer-editor-field-praying-for">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Praying For *
-              </label>
-              <input
-                type="text"
-                [(ngModel)]="createForm.prayer_for"
-                name="prayer_for"
-                required
-                placeholder="e.g., healing, guidance, strength"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Title will be generated as "Prayer for [praying for]"
-              </p>
-            </div>
-
-            <div id="tour-prayer-editor-field-description">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Description *
-              </label>
-              <app-rich-text-editor
-                #createDescriptionEditor
-                [(ngModel)]="createForm.description"
-                name="description"
-                ngDefaultControl
-                required
-                ariaLabel="Prayer description"
-                placeholder="Describe the prayer request"
-                minHeight="5rem"
-              ></app-rich-text-editor>
-            </div>
-
-            <div
-              id="tour-prayer-editor-field-anonymous"
-              class="flex items-start"
-            >
-              <label
-                class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300 select-none"
-              >
-                <input
-                  type="checkbox"
-                  [(ngModel)]="createForm.is_anonymous"
-                  name="createPrayerIsAnonymous"
-                  id="create_is_anonymous"
-                  class="w-4 h-4 mt-0.5 shrink-0 text-green-600 border-gray-900 dark:border-white rounded focus:ring-green-500 bg-white dark:bg-gray-800"
-                />
-                <span
-                  >Submit anonymously (your name will not be shown
-                  publicly)</span
-                >
-              </label>
-            </div>
-
-            <div id="tour-prayer-editor-field-status">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Status *
-              </label>
-              <div class="relative">
-                <select
-                  [(ngModel)]="createForm.status"
-                  name="status"
-                  required
-                  class="w-full appearance-none px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 pr-10 cursor-pointer"
-                >
-                  <option value="current">Current</option>
-                  <option value="answered">Answered</option>
-                  <option value="archived">Archived</option>
-                </select>
-                <svg
-                  class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600 dark:text-green-400"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </div>
-            </div>
-
-            <div class="flex gap-3">
-              <button
-                id="tour-prayer-editor-create-submit"
-                type="button"
-                [disabled]="saving"
-                (click)="createPrayer($event)"
-                class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
-              >
-                @if (saving) {
-                <div
-                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
-                ></div>
-                } @if (!saving) {
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
-                  ></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                }
-                {{ saving ? "Creating..." : "Create Prayer" }}
-              </button>
-
-              <button
-                type="button"
-                (click)="cancelCreatePrayer()"
-                class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-        }
-
-        <!-- Search Input -->
-        <div class="mb-4">
-          <label
-            for="mainPrayerSearch"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Search Prayers
-          </label>
-          <div class="flex-1 relative">
-            <input
-              id="mainPrayerSearch"
-              type="text"
-              name="mainPrayerSearch"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="onMainSearchTermChange($event)"
-              (keydown)="onMainSearchKeydown($event)"
-              autocomplete="off"
-              placeholder="Search by title, requester, email, description, prayer updates, or denial reasons (min. {{
-                mainSearchMinChars
-              }} characters)…"
-              class="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-            @if (searching) {
-            <div
-              class="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2"
-            >
-              <div
-                class="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"
-              ></div>
-            </div>
-            } @if (searchTerm) {
-            <button
-              type="button"
-              (click)="clearSearch()"
-              class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-            }
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Debounced search ({{ mainSearchDebounceMs }}ms). Update matches use
-            a targeted query instead of loading the full list. Results capped at
-            {{ mainSearchResultLimit }} prayers.
-          </p>
-        </div>
-
-        <!-- Filter Dropdowns -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          <!-- Prayer Status Filter -->
-          <div>
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Prayer Status
-            </label>
-            <div class="relative">
-              <select
-                [(ngModel)]="statusFilter"
-                (change)="onStatusFilterChange()"
-                class="w-full appearance-none px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
-              >
-                <option value="">Select status...</option>
-                <option value="all">All Statuses</option>
-                <option value="current">Current</option>
-                <option value="answered">Answered</option>
-                <option value="archived">Archived</option>
-              </select>
-              <svg
-                class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
-          </div>
-
-          <!-- Approval Status Filter -->
-          <div>
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Approval Status
-            </label>
-            <div class="relative">
-              <select
-                [(ngModel)]="approvalFilter"
-                (change)="onApprovalFilterChange()"
-                class="w-full appearance-none px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
-              >
-                <option value="">Select approval...</option>
-                <option value="all">All Approvals</option>
-                <option value="approved">Approved</option>
-                <option value="pending">Pending</option>
-                <option value="denied">Denied</option>
-              </select>
-              <svg
-                class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- Error Message -->
-        @if (error) {
-        <div
-          class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4"
-        >
-          <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
-        </div>
-        }
-
-        <!-- Bulk Actions -->
-        @if (displayPrayers.length > 0) {
-        <div
-          class="flex flex-wrap items-start justify-between gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex items-center gap-3 w-full sm:w-auto">
-            <label
-              class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                [checked]="
-                  selectedPrayers.size === displayPrayers.length &&
-                  displayPrayers.length > 0
-                "
-                (change)="toggleSelectAll()"
-                class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-              />
-              <span>Select All ({{ displayPrayers.length }})</span>
-            </label>
-            @if (selectedPrayers.size > 0) {
-            <span class="text-sm text-red-600 dark:text-red-400 font-medium">
-              {{ selectedPrayers.size }} selected
-            </span>
-            }
-          </div>
-          @if (selectedPrayers.size > 0) {
-          <div
-            class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full"
-          >
-            <!-- Bulk Status Change -->
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-              <label
-                class="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap sm:mr-2"
-              >
-                Change Status:
-              </label>
-              <div class="relative flex-1 sm:flex-none">
-                <select
-                  [(ngModel)]="bulkStatus"
-                  class="w-full appearance-none px-3 py-1.5 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 cursor-pointer"
-                >
-                  <option value="">Select...</option>
-                  <option value="current">Current</option>
-                  <option value="answered">Answered</option>
-                  <option value="archived">Archived</option>
-                </select>
-                <svg
-                  class="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </div>
-            </div>
-
-            <!-- Buttons row -->
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-              <button
-                (click)="updateSelectedStatus()"
-                [disabled]="!bulkStatus || updatingStatus"
-                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm"
-              >
-                @if (updatingStatus) {
-                <div
-                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
-                ></div>
-                } @if (!updatingStatus) {
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
-                  ></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                }
-                {{
-                  updatingStatus
-                    ? "Updating..."
-                    : "Update (" + selectedPrayers.size + ")"
-                }}
-              </button>
-
-              <button
-                (click)="deleteSelected()"
-                [disabled]="deleting"
-                class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 transition-colors text-sm"
-              >
-                @if (deleting) {
-                <div
-                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
-                ></div>
-                } @if (!deleting) {
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path
-                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                  ></path>
-                </svg>
-                }
-                {{
-                  deleting
-                    ? "Deleting..."
-                    : "Delete (" + selectedPrayers.size + ")"
-                }}
-              </button>
-            </div>
-          </div>
-          }
-        </div>
-        }
-
-        <!-- Search Results -->
-        @if (searching) {
-        <div class="flex flex-col items-center justify-center py-12">
-          <div
-            class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 dark:border-red-400 mb-4"
-          ></div>
-          <p class="text-gray-600 dark:text-gray-400">Loading prayer data...</p>
-        </div>
-        } @if (!searching && displayPrayers.length > 0) {
-        <div class="space-y-1">
-          @for (prayer of displayPrayers; track prayer.id; let i = $index) {
-          <div
-            [attr.id]="i === 0 ? 'tour-prayer-editor-first-card' : null"
-            [class]="
-              'border rounded-lg transition-all duration-200 ' +
-              (selectedPrayers.has(prayer.id)
-                ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
-                : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')
-            "
-          >
-            <!-- Compact Header - Always Visible -->
-            <div
-              class="flex items-center gap-3 px-3 py-2 cursor-pointer"
-              [attr.id]="i === 0 ? 'tour-prayer-editor-first-row' : null"
-              (click)="toggleExpandCard(prayer.id)"
-            >
-              <input
-                type="checkbox"
-                [checked]="selectedPrayers.has(prayer.id)"
-                (change)="toggleSelectPrayer(prayer.id)"
-                (click)="$event.stopPropagation()"
-                class="w-4 h-4 text-red-600 border-gray-800 dark:border-gray-600 rounded focus:ring-red-500 cursor-pointer"
-              />
-
-              <div class="flex-1 flex flex-col gap-0.5 text-left min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h4 class="font-medium text-gray-900 dark:text-gray-100">
-                    {{ prayer.title }}
-                  </h4>
-                  <span
-                    [class]="
-                      'px-2 py-0.5 text-xs rounded-full capitalize flex-shrink-0 ' +
-                      getStatusColor(prayer.status)
-                    "
-                  >
-                    {{ prayer.status }}
-                  </span>
-                  @if (prayer.approval_status) {
-                  <span
-                    [class]="
-                      'px-2 py-0.5 text-xs rounded-full capitalize flex-shrink-0 ' +
-                      getApprovalStatusColor(prayer.approval_status)
-                    "
-                  >
-                    {{ prayer.approval_status }}
-                  </span>
-                  } @if (prayer.denial_reason) {
-                  <span
-                    class="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex-shrink-0"
-                  >
-                    Has Denial
-                  </span>
-                  }
-                </div>
-
-                <div
-                  class="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400"
-                >
-                  <div>
-                    <span class="font-medium">Requester:</span>
-                    {{ prayer.requester }}
-                  </div>
-                  <div>
-                    <span class="font-medium">Created:</span>
-                    {{ prayer.created_at | date : "shortDate" }}
-                  </div>
-                </div>
-              </div>
-
-              <div
-                class="flex flex-col gap-2 flex-shrink-0 pointer-events-none"
-              >
-                @if (expandedCards.has(prayer.id)) {
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="text-gray-400"
-                >
-                  <polyline points="18 15 12 9 6 15"></polyline>
-                </svg>
-                } @if (!expandedCards.has(prayer.id)) {
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="text-gray-400"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-                }
-              </div>
-
-              <div
-                class="flex flex-col gap-2 flex-shrink-0 pointer-events-auto"
-              >
-                <button
-                  type="button"
-                  [attr.id]="i === 0 ? 'tour-prayer-editor-edit-first' : null"
-                  (click)="$event.stopPropagation(); startEditPrayer(prayer)"
-                  [disabled]="saving"
-                  class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Edit this prayer"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                    ></path>
-                    <path
-                      d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                    ></path>
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  [attr.id]="i === 0 ? 'tour-prayer-editor-delete-first' : null"
-                  (click)="$event.stopPropagation(); deletePrayer(prayer)"
-                  [disabled]="deleting"
-                  class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Delete this prayer"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path
-                      d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- Expanded Details - Only Visible When Expanded -->
-            @if (expandedCards.has(prayer.id)) {
-            <div
-              class="px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-w-0"
-            >
-              <div class="space-y-2 min-w-0">
-                <div class="flex items-center justify-between mb-3">
-                  <h5
-                    class="text-sm font-semibold text-gray-900 dark:text-gray-100"
-                  >
-                    {{
-                      editingPrayer === prayer.id
-                        ? "Edit Prayer Details"
-                        : "Complete Prayer Details"
-                    }}
-                  </h5>
-                  @if (editingPrayer === prayer.id) {
-                  <div class="flex gap-2">
-                    <button
-                      type="button"
-                      (click)="savePrayer(prayer.id)"
-                      [disabled]="saving"
-                      class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <path
-                          d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
-                        ></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                      </svg>
-                      {{ saving ? "Saving..." : "Save" }}
-                    </button>
-                    <button
-                      type="button"
-                      [attr.id]="
-                        i === 0 ? 'tour-prayer-editor-edit-cancel-first' : null
-                      "
-                      (click)="cancelEdit()"
-                      [disabled]="saving"
-                      class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="15" y1="9" x2="9" y2="15"></line>
-                        <line x1="9" y1="9" x2="15" y2="15"></line>
-                      </svg>
-                      Cancel
-                    </button>
-                  </div>
-                  }
-                </div>
-
-                <!-- Edit Mode Form -->
-                @if (editingPrayer === prayer.id) {
-                <div
-                  class="space-y-4"
-                  [attr.id]="i === 0 ? 'tour-prayer-editor-edit-form' : null"
-                >
-                  <div
-                    [attr.id]="
-                      i === 0 ? 'tour-prayer-editor-edit-field-title' : null
-                    "
-                  >
-                    <label
-                      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      [(ngModel)]="editForm.title"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                      placeholder="Prayer title"
-                    />
-                  </div>
-
-                  <div
-                    [attr.id]="
-                      i === 0
-                        ? 'tour-prayer-editor-edit-field-description'
-                        : null
-                    "
-                  >
-                    <label
-                      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Description *
-                    </label>
-                    <app-rich-text-editor
-                      #editPrayerDescriptionEditor
-                      [(ngModel)]="editForm.description"
-                      [name]="'editPrayerDescription-' + i"
-                      ngDefaultControl
-                      ariaLabel="Prayer description"
-                      placeholder="Prayer description"
-                      minHeight="6rem"
-                    ></app-rich-text-editor>
-                  </div>
-
-                  <div
-                    class="grid grid-cols-1 md:grid-cols-2 gap-4"
-                    [attr.id]="
-                      i === 0
-                        ? 'tour-prayer-editor-edit-field-requester-email'
-                        : null
-                    "
-                  >
-                    <div>
-                      <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >
-                        Requester *
-                      </label>
-                      <input
-                        type="text"
-                        [(ngModel)]="editForm.requester"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                        placeholder="Requester name"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        [(ngModel)]="editForm.email"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                        placeholder="Email address"
-                      />
-                    </div>
-                  </div>
-
-                  <div
-                    [attr.id]="
-                      i === 0
-                        ? 'tour-prayer-editor-edit-field-praying-for'
-                        : null
-                    "
-                  >
-                    <label
-                      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Praying For
-                    </label>
-                    <input
-                      type="text"
-                      [(ngModel)]="editForm.prayer_for"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                      placeholder="Person being prayed for"
-                    />
-                  </div>
-
-                  <div
-                    [attr.id]="
-                      i === 0 ? 'tour-prayer-editor-edit-field-status' : null
-                    "
-                  >
-                    <label
-                      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Status *
-                    </label>
-                    <div class="relative">
-                      <select
-                        [(ngModel)]="editForm.status"
-                        class="w-full appearance-none px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
-                      >
-                        <option value="current">Current</option>
-                        <option value="answered">Answered</option>
-                        <option value="archived">Archived</option>
-                      </select>
-                      <svg
-                        class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                }
-
-                <!-- View Mode -->
-                @if (editingPrayer !== prayer.id) {
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 min-w-0">
-                  <!-- Basic Information -->
-                  <div class="min-w-0">
-                    <div
-                      class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 min-w-0 overflow-hidden"
-                    >
-                      <h6
-                        class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-2"
-                      >
-                        Basic Information
-                      </h6>
-
-                      <div class="space-y-2 text-sm min-w-0">
-                        <div class="flex min-w-0 items-baseline gap-2">
-                          <span
-                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
-                            >Title:</span
-                          >
-                          <span
-                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="prayer.title"
-                            >{{ prayer.title }}</span
-                          >
-                        </div>
-
-                        <div class="flex min-w-0 items-baseline gap-2">
-                          <span
-                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
-                            >Requester:</span
-                          >
-                          <span
-                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="prayer.requester"
-                            >{{ prayer.requester }}</span
-                          >
-                        </div>
-
-                        @if (prayer.email) {
-                        <div class="flex min-w-0 items-baseline gap-2">
-                          <span
-                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
-                            >Email:</span
-                          >
-                          <span
-                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="prayer.email"
-                            >{{ prayer.email }}</span
-                          >
-                        </div>
-                        } @if (prayer.prayer_for) {
-                        <div class="flex min-w-0 items-baseline gap-2">
-                          <span
-                            class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
-                            >Praying For:</span
-                          >
-                          <span
-                            class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="prayer.prayer_for"
-                            >{{ prayer.prayer_for }}</span
-                          >
-                        </div>
-                        }
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Status Information -->
-                  <div class="min-w-0">
-                    <div
-                      class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 min-w-0 overflow-hidden"
-                    >
-                      <h6
-                        class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-2"
-                      >
-                        Status Information
-                      </h6>
-
-                      <div class="space-y-2 text-sm">
-                        <div>
-                          <span
-                            class="font-medium text-gray-700 dark:text-gray-300"
-                            >Prayer Status:</span
-                          >
-                          <span
-                            [class]="
-                              'ml-2 px-2 py-0.5 text-xs rounded-full capitalize ' +
-                              getStatusColor(prayer.status)
-                            "
-                          >
-                            {{ prayer.status }}
-                          </span>
-                        </div>
-
-                        @if (prayer.approval_status) {
-                        <div>
-                          <span
-                            class="font-medium text-gray-700 dark:text-gray-300"
-                            >Approval Status:</span
-                          >
-                          <span
-                            [class]="
-                              'ml-2 px-2 py-0.5 text-xs rounded-full capitalize ' +
-                              getApprovalStatusColor(prayer.approval_status)
-                            "
-                          >
-                            {{ prayer.approval_status }}
-                          </span>
-                        </div>
-                        }
-
-                        <div>
-                          <span
-                            class="font-medium text-gray-700 dark:text-gray-300"
-                            >Created:</span
-                          >
-                          <div class="ml-2 text-gray-600 dark:text-gray-400">
-                            <div>
-                              {{ prayer.created_at | date : "fullDate" }}
-                            </div>
-                            <div class="text-xs">
-                              {{ prayer.created_at | date : "mediumTime" }}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Description -->
-                @if (prayer.description) {
-                <div
-                  class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
-                >
-                  <h6
-                    class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-2"
-                  >
-                    Prayer Description
-                  </h6>
-                  <app-rich-text-view
-                    class="block text-sm text-gray-600 dark:text-gray-400 leading-relaxed"
-                    [text]="prayer.description"
-                  ></app-rich-text-view>
-                </div>
-                }
-
-                <!-- Denial Reason - Highlighted if present -->
-                @if (prayer.denial_reason) {
-                <div
-                  class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800"
-                >
-                  <h6
-                    class="text-xs font-semibold text-red-700 dark:text-red-300 uppercase mb-2 flex items-center gap-2"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path
-                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                      ></path>
-                      <line x1="12" y1="9" x2="12" y2="13"></line>
-                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                    Denial Reason
-                  </h6>
-                  <p
-                    class="text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap leading-relaxed"
-                  >
-                    {{ prayer.denial_reason }}
-                  </p>
-                </div>
-                }
-
-                <!-- Prayer Updates Section -->
-                @if (prayer.prayer_updates && prayer.prayer_updates.length > 0)
-                {
-                <div
-                  class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
-                >
-                  <h6
-                    class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-3"
-                  >
-                    Prayer Updates ({{ prayer.prayer_updates.length }})
-                  </h6>
-                  <div class="space-y-3">
-                    @for (update of prayer.prayer_updates; track update.id; let
-                    i = $index) {
-                    <div
-                      [class]="
-                        'p-3 rounded border ' +
-                        (update.denial_reason
-                          ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
-                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')
-                      "
-                    >
-                      <!-- Edit Mode Form -->
-                      @if (editingUpdateId === update.id) {
-                      <div class="space-y-3">
-                        <div class="flex items-center justify-between mb-2">
-                          <h6
-                            class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase"
-                          >
-                            Edit Update #{{ prayer.prayer_updates!.length - i }}
-                          </h6>
-                          <div class="flex gap-2">
-                            <button
-                              (click)="saveEditUpdate(prayer.id, update.id)"
-                              [disabled]="
-                                !isEditUpdateFormValid() || savingEditUpdate
-                              "
-                              class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                              >
-                                <path
-                                  d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
-                                ></path>
-                                <polyline
-                                  points="17 21 17 13 7 13 7 21"
-                                ></polyline>
-                                <polyline points="7 3 7 8 15 8"></polyline>
-                              </svg>
-                              {{ savingEditUpdate ? "Saving..." : "Save" }}
-                            </button>
-                            <button
-                              (click)="cancelEditUpdate()"
-                              [disabled]="savingEditUpdate"
-                              class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                              >
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                              </svg>
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label
-                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                          >
-                            Update Content *
-                          </label>
-                          <app-rich-text-editor
-                            [(ngModel)]="editUpdateForm.content"
-                            [name]="'editUpdateContent-' + update.id"
-                            ngDefaultControl
-                            required
-                            ariaLabel="Update content"
-                            placeholder="Update details…"
-                            minHeight="5rem"
-                          ></app-rich-text-editor>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <label
-                              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                            >
-                              Author Name *
-                            </label>
-                            <input
-                              type="text"
-                              [(ngModel)]="editUpdateForm.author"
-                              required
-                              placeholder="Author name"
-                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label
-                              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                            >
-                              Author Email *
-                            </label>
-                            <input
-                              type="email"
-                              [(ngModel)]="editUpdateForm.author_email"
-                              required
-                              placeholder="email@example.com"
-                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      }
-
-                      <!-- View Mode -->
-                      @if (editingUpdateId !== update.id) {
-                      <div class="flex justify-between items-start mb-2">
-                        <div class="flex items-center gap-2">
-                          <span
-                            class="text-xs font-medium text-gray-700 dark:text-gray-300"
-                          >
-                            Update #{{ prayer.prayer_updates!.length - i }}
-                          </span>
-                          @if (update.approval_status) {
-                          <span
-                            [class]="
-                              'px-2 py-0.5 text-xs rounded-full capitalize ' +
-                              getApprovalStatusColor(update.approval_status)
-                            "
-                          >
-                            {{ update.approval_status }}
-                          </span>
-                          }
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <span
-                            class="text-xs text-gray-500 dark:text-gray-500"
-                          >
-                            {{ update.created_at | date : "shortDate" }}
-                          </span>
-                          <button
-                            (click)="startEditUpdate(prayer.id, update)"
-                            [disabled]="deleting || savingEditUpdate"
-                            class="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors disabled:opacity-50"
-                            title="Edit this update"
-                          >
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            >
-                              <path
-                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                              ></path>
-                              <path
-                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                              ></path>
-                            </svg>
-                          </button>
-                          <button
-                            (click)="
-                              deleteUpdate(prayer.id, update.id, update.content)
-                            "
-                            [disabled]="deleting"
-                            class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
-                            title="Delete this update"
-                          >
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            >
-                              <polyline points="3 6 5 6 21 6"></polyline>
-                              <path
-                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                              ></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                      <app-rich-text-view
-                        class="block text-sm text-gray-600 dark:text-gray-400 mb-2"
-                        [text]="update.content"
-                      ></app-rich-text-view>
-                      } @if (update.denial_reason) {
-                      <div
-                        class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded border-l-2 border-red-500"
-                      >
-                        <div class="flex items-start gap-2">
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0"
-                          >
-                            <path
-                              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                            ></path>
-                            <line x1="12" y1="9" x2="12" y2="13"></line>
-                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                          </svg>
-                          <div>
-                            <p
-                              class="text-xs font-semibold text-red-700 dark:text-red-300 mb-1"
-                            >
-                              Denial Reason:
-                            </p>
-                            <p class="text-xs text-red-600 dark:text-red-400">
-                              {{ update.denial_reason }}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      }
-                      <div
-                        class="text-xs text-gray-500 dark:text-gray-500 mt-2"
-                      >
-                        <span class="font-medium">By:</span>
-                        {{ update.is_anonymous ? "Anonymous" : update.author }}
-                      </div>
-                    </div>
-                    }
-                  </div>
-                </div>
-                }
-
-                <!-- Add Update Section -->
-                @if (!editingPrayer) {
-                <div
-                  class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
-                  [attr.id]="
-                    i === 0 ? 'tour-prayer-editor-add-update-section' : null
-                  "
-                >
-                  @if (addingUpdate === prayer.id) {
-                  <div
-                    class="space-y-3"
-                    [attr.id]="
-                      i === 0 ? 'tour-prayer-editor-add-update-form' : null
-                    "
-                  >
-                    <div class="flex items-center justify-between mb-2">
-                      <h6
-                        class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase"
-                      >
-                        Add New Update
-                      </h6>
-                      <div class="flex gap-2">
-                        <button
-                          type="button"
-                          (click)="saveNewUpdate(prayer.id)"
-                          [disabled]="!isUpdateFormValid() || savingUpdate"
-                          class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path
-                              d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
-                            ></path>
-                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                            <polyline points="7 3 7 8 15 8"></polyline>
-                          </svg>
-                          {{ savingUpdate ? "Saving..." : "Save Update" }}
-                        </button>
-                        <button
-                          type="button"
-                          [attr.id]="
-                            i === 0
-                              ? 'tour-prayer-editor-add-update-cancel-first'
-                              : null
-                          "
-                          (click)="cancelAddUpdate()"
-                          [disabled]="savingUpdate"
-                          class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="15" y1="9" x2="9" y2="15"></line>
-                            <line x1="9" y1="9" x2="15" y2="15"></line>
-                          </svg>
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-
-                    <div
-                      class="relative"
-                      [attr.id]="
-                        i === 0
-                          ? 'tour-prayer-editor-add-update-find-subscriber'
-                          : null
-                      "
-                    >
-                      <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >
-                        Find subscriber
-                      </label>
-                      <input
-                        type="search"
-                        [(ngModel)]="addUpdateUserSearchQuery"
-                        name="addUpdateUserSearchQuery"
-                        (ngModelChange)="
-                          onAddUpdateUserSearchQueryChange($event)
-                        "
-                        (focus)="onAddUpdateUserSearchFocus()"
-                        (blur)="onAddUpdateUserSearchBlur()"
-                        autocomplete="off"
-                        placeholder="Search by name or email (min. 2 characters)…"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      @if (addUpdateUserSearchLoading) {
-                      <div class="pointer-events-none absolute right-3 top-9">
-                        <div
-                          class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"
-                        ></div>
-                      </div>
-                      } @if (showAddUpdateUserSearchDropdown &&
-                      addUpdateUserSearchResults.length > 0) {
-                      <ul
-                        class="absolute z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg"
-                        role="listbox"
-                      >
-                        @for (row of addUpdateUserSearchResults; track
-                        row.email) {
-                        <li>
-                          <button
-                            type="button"
-                            class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700/80 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                            (mousedown)="
-                              selectAddUpdateSubscriberUser(row, $event)
-                            "
-                          >
-                            <div
-                              class="font-medium text-gray-900 dark:text-gray-100"
-                            >
-                              {{ row.name }}
-                            </div>
-                            <div
-                              class="text-sm text-gray-600 dark:text-gray-400"
-                            >
-                              {{ row.email }}
-                            </div>
-                          </button>
-                        </li>
-                        }
-                      </ul>
-                      } @if (addUpdateUserSearchQuery.trim().length >=
-                      userSearchMinChars && !addUpdateUserSearchLoading &&
-                      addUpdateUserSearchHasSearched &&
-                      addUpdateUserSearchResults.length === 0) {
-                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        No matching subscribers
-                      </p>
-                      }
-                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Debounced search; only name and email are loaded
-                        (limited to {{ userSearchResultLimit }} matches).
-                      </p>
-                    </div>
-
-                    <div
-                      class="grid grid-cols-2 gap-3"
-                      [attr.id]="
-                        i === 0
-                          ? 'tour-prayer-editor-add-update-field-names'
-                          : null
-                      "
-                    >
-                      <div>
-                        <label
-                          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                        >
-                          First Name *
-                        </label>
-                        <input
-                          type="text"
-                          [(ngModel)]="newUpdate.firstName"
-                          required
-                          placeholder="First name"
-                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                        >
-                          Last Name *
-                        </label>
-                        <input
-                          type="text"
-                          [(ngModel)]="newUpdate.lastName"
-                          required
-                          placeholder="Last name"
-                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div
-                      [attr.id]="
-                        i === 0
-                          ? 'tour-prayer-editor-add-update-field-author-email'
-                          : null
-                      "
-                    >
-                      <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >
-                        Author Email *
-                      </label>
-                      <input
-                        type="email"
-                        [(ngModel)]="newUpdate.author_email"
-                        required
-                        placeholder="email@example.com"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div
-                      [attr.id]="
-                        i === 0
-                          ? 'tour-prayer-editor-add-update-field-content'
-                          : null
-                      "
-                    >
-                      <label
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >
-                        Update Content *
-                      </label>
-                      <app-rich-text-editor
-                        [(ngModel)]="newUpdate.content"
-                        [name]="'newUpdateContent-' + prayer.id"
-                        ngDefaultControl
-                        required
-                        ariaLabel="Update content"
-                        placeholder="Enter the update content…"
-                        minHeight="6rem"
-                      ></app-rich-text-editor>
-                    </div>
-                  </div>
-                  } @if (addingUpdate !== prayer.id) {
-                  <button
-                    type="button"
-                    [attr.id]="
-                      i === 0 ? 'tour-prayer-editor-add-update-btn' : null
-                    "
-                    (click)="startAddUpdate(prayer.id)"
-                    class="ml-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Add Update
-                  </button>
-                  }
-                </div>
-                } }
-              </div>
-            </div>
-            }
-          </div>
-          }
-        </div>
-        }
-
-        <!-- Empty States -->
-        @if (!searching && allPrayers.length === 0 && searchTerm &&
-        !statusFilter && !approvalFilter) {
-        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-          <svg
-            class="mx-auto mb-2 opacity-50"
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path
-              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-            ></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <p>No prayers found</p>
-          <p class="text-sm mt-1">Try a different search term</p>
-        </div>
-        } @if (!searching && allPrayers.length === 0 && !searchTerm &&
-        !statusFilter && !approvalFilter) {
-        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-          <svg
-            class="mx-auto mb-2 opacity-50"
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.35-4.35"></path>
-          </svg>
-          <p>Search Prayers & Audit Log</p>
-          <div class="text-sm mt-2 space-y-1">
-            <p>
-              • Select a filter from the dropdowns to automatically load results
-            </p>
-            <p>
-              • Or search by title, requester, email, description, prayer
-              updates, or denial reasons
-            </p>
-            <p>• Select "Denied" to see all denied prayers and activities</p>
-          </div>
-        </div>
-        }
-
-        <!-- Results Summary -->
-        @if (allPrayers.length > 0) {
-        <div
-          class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4"
-        >
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-600 dark:text-gray-400">
-              Found:
-              <span class="font-semibold">{{ totalItems }}</span> prayer(s) |
-              Showing:
-              <span class="font-semibold"
-                >{{ (currentPage - 1) * pageSize + 1 }}-{{
-                  Math.min(currentPage * pageSize, totalItems)
-                }}</span
-              >
-            </span>
-            @if (selectedPrayers.size > 0) {
-            <span class="text-red-600 dark:text-red-400">
-              Selected:
-              <span class="font-semibold">{{ selectedPrayers.size }}</span>
-            </span>
-            }
-          </div>
-
-          <!-- Page Size Selector -->
-          <div class="flex items-center gap-2">
-            <label
-              for="pageSize"
-              class="text-sm text-gray-600 dark:text-gray-400"
-              >Items per page:</label
-            >
-            <select
-              id="pageSize"
-              [(ngModel)]="pageSize"
-              (change)="changePageSize()"
-              class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
-            >
-              <option [value]="10">10</option>
-              <option [value]="50">50</option>
-              <option [value]="100">100</option>
-            </select>
-          </div>
-
-          <!-- Pagination Controls -->
-          @if (totalPages > 1) {
-          <div class="flex items-center justify-between">
-            <div class="flex gap-2">
-              <button
-                (click)="previousPage()"
-                [disabled]="isFirstPage"
-                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-              >
-                <span class="hidden sm:inline">← Previous</span>
-                <span class="sm:hidden">←</span>
-              </button>
-              <button
-                (click)="nextPage()"
-                [disabled]="isLastPage"
-                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-              >
-                <span class="hidden sm:inline">Next →</span>
-                <span class="sm:hidden">→</span>
-              </button>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-gray-600 dark:text-gray-400 text-sm">
-                Page <span class="font-semibold">{{ currentPage }}</span> of
-                <span class="font-semibold">{{ totalPages }}</span>
-              </span>
-
-              <div class="flex gap-1">
-                @for (page of getPaginationRange(); track $index) {
-                <button
-                  (click)="goToPage(page)"
-                  [class]="
-                    page === currentPage
-                      ? 'px-3 py-1 bg-red-600 text-white rounded-lg text-sm'
-                      : 'px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm'
-                  "
-                >
-                  {{ page }}
-                </button>
-                }
-              </div>
-            </div>
-          </div>
-          }
-        </div>
-        }
-
-        <!-- Warning Notice -->
-        <div
-          class="mt-4 flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
-          >
-            <path
-              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-            ></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <p class="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Warning:</strong> Deleting prayers is permanent and cannot
-            be undone. All associated updates will also be deleted.
-          </p>
-        </div>
-      </div>
-      }
-    </div>
-
-    <!-- Send Notification Dialog -->
-    @if (showSendNotificationDialog) {
-    <app-send-notification-dialog
-      [notificationType]="sendDialogType"
-      [prayerTitle]="sendDialogPrayerTitle"
-      (confirm)="onConfirmSendNotification()"
-      (decline)="onDeclineSendNotification()"
-    ></app-send-notification-dialog>
-    }
-
-    <!-- Confirmation Dialog -->
-    @if (showConfirmationDialog) {
-    <app-confirmation-dialog
-      [title]="confirmationTitle"
-      [message]="confirmationMessage"
-      [isDangerous]="confirmationIsDangerous"
-      [confirmText]="confirmationButtonText"
-      (confirm)="onConfirmDelete()"
-      (cancel)="onCancelDelete()"
-    ></app-confirmation-dialog>
-    }
-  `,
+  templateUrl: "./prayer-search.component.html",
 })
 export class PrayerSearchComponent implements OnDestroy {
   Math = Math;
   searchTerm = "";
   statusFilter = "";
   approvalFilter = "";
-  searchResults: Prayer[] = [];
+  searchResults: PrayerEditorPrayer[] = [];
   searching = false;
   deleting = false;
   error: string | null = null;
@@ -2047,39 +61,8 @@ export class PrayerSearchComponent implements OnDestroy {
   selectedPrayers = new Set<string>();
   expandedCards = new Set<string>();
   editingPrayer: string | null = null;
-  editForm: EditForm = {
-    title: "",
-    description: "",
-    requester: "",
-    email: "",
-    prayer_for: "",
-    status: "",
-  };
+  editForm: PrayerEditorEditForm = { ...EMPTY_PRAYER_EDITOR_EDIT_FORM };
   creatingPrayer = false;
-  /** Subscriber lookup for create form — debounced, minimal columns, capped rows (low egress). */
-  userSearchQuery = "";
-  userSearchResults: SubscriberPickRow[] = [];
-  userSearchLoading = false;
-  userSearchHasSearched = false;
-  showUserSearchDropdown = false;
-  readonly userSearchMinChars = 2;
-  readonly userSearchResultLimit = 20;
-  private userSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-  private userSearchBlurTimer: ReturnType<typeof setTimeout> | null = null;
-  private userSearchRequestSeq = 0;
-
-  /** Subscriber lookup for Add New Update — same behavior as create form, separate state. */
-  addUpdateUserSearchQuery = "";
-  addUpdateUserSearchResults: SubscriberPickRow[] = [];
-  addUpdateUserSearchLoading = false;
-  addUpdateUserSearchHasSearched = false;
-  showAddUpdateUserSearchDropdown = false;
-  private addUpdateUserSearchDebounceTimer: ReturnType<
-    typeof setTimeout
-  > | null = null;
-  private addUpdateUserSearchBlurTimer: ReturnType<typeof setTimeout> | null =
-    null;
-  private addUpdateUserSearchRequestSeq = 0;
 
   /** Main prayer list text search — debounced like subscriber lookup. */
   readonly mainSearchMinChars = 2;
@@ -2087,36 +70,17 @@ export class PrayerSearchComponent implements OnDestroy {
   readonly mainSearchResultLimit = 100;
   private mainSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  createForm: CreateForm = {
-    description: "",
-    firstName: "",
-    lastName: "",
-    email: "",
-    prayer_for: "",
-    status: "current",
-    is_anonymous: false,
-  };
-
   saving = false;
   bulkStatus = "";
   updatingStatus = false;
   addingUpdate: string | null = null;
-  newUpdate: NewUpdate = {
-    content: "",
-    firstName: "",
-    lastName: "",
-    author_email: "",
-  };
+  newUpdate: PrayerEditorNewUpdate = { ...EMPTY_PRAYER_EDITOR_NEW_UPDATE };
   savingUpdate = false;
 
   // Edit update properties
   editingUpdateId: string | null = null;
   editingUpdatePrayerId: string | null = null;
-  editUpdateForm: EditUpdateForm = {
-    content: "",
-    author: "",
-    author_email: "",
-  };
+  editUpdateForm: PrayerEditorEditUpdateForm = { ...EMPTY_PRAYER_EDITOR_EDIT_UPDATE_FORM };
   savingEditUpdate = false;
 
   // Dialog state for send notification
@@ -2140,16 +104,13 @@ export class PrayerSearchComponent implements OnDestroy {
   currentPage = 1;
   pageSize = 10;
   totalItems = 0;
-  allPrayers: Prayer[] = [];
-  displayPrayers: Prayer[] = [];
+  allPrayers: PrayerEditorPrayer[] = [];
+  displayPrayers: PrayerEditorPrayer[] = [];
 
-  // Template references
   @ViewChild("prayerEditorContainer") prayerEditorContainer!: ElementRef;
-
-  @ViewChild("createDescriptionEditor")
-  createDescriptionEditor?: RichTextEditorComponent;
-  @ViewChild("editPrayerDescriptionEditor")
-  editPrayerDescriptionEditor?: RichTextEditorComponent;
+  @ViewChild("createFormRef") createFormRef?: AdminPrayerEditorCreateFormComponent;
+  @ViewChildren(AdminPrayerEditorCardComponent)
+  cardRefs?: AdminPrayerEditorCardComponent[];
 
   constructor(
     private supabaseService: SupabaseService,
@@ -2181,183 +142,95 @@ export class PrayerSearchComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.userSearchDebounceTimer) {
-      clearTimeout(this.userSearchDebounceTimer);
-      this.userSearchDebounceTimer = null;
-    }
-    if (this.userSearchBlurTimer) {
-      clearTimeout(this.userSearchBlurTimer);
-      this.userSearchBlurTimer = null;
-    }
-    if (this.addUpdateUserSearchDebounceTimer) {
-      clearTimeout(this.addUpdateUserSearchDebounceTimer);
-      this.addUpdateUserSearchDebounceTimer = null;
-    }
-    if (this.addUpdateUserSearchBlurTimer) {
-      clearTimeout(this.addUpdateUserSearchBlurTimer);
-      this.addUpdateUserSearchBlurTimer = null;
-    }
     if (this.mainSearchDebounceTimer) {
       clearTimeout(this.mainSearchDebounceTimer);
       this.mainSearchDebounceTimer = null;
     }
-    this.userSearchRequestSeq++;
-    this.addUpdateUserSearchRequestSeq++;
   }
 
-  private resetUserSearchState(): void {
-    this.userSearchQuery = "";
-    this.userSearchResults = [];
-    this.userSearchHasSearched = false;
-    this.userSearchLoading = false;
-    this.showUserSearchDropdown = false;
-    if (this.userSearchDebounceTimer) {
-      clearTimeout(this.userSearchDebounceTimer);
-      this.userSearchDebounceTimer = null;
-    }
-    if (this.userSearchBlurTimer) {
-      clearTimeout(this.userSearchBlurTimer);
-      this.userSearchBlurTimer = null;
-    }
-    this.userSearchRequestSeq++;
-  }
-
-  private resetAddUpdateUserSearchState(): void {
-    this.addUpdateUserSearchQuery = "";
-    this.addUpdateUserSearchResults = [];
-    this.addUpdateUserSearchHasSearched = false;
-    this.addUpdateUserSearchLoading = false;
-    this.showAddUpdateUserSearchDropdown = false;
-    if (this.addUpdateUserSearchDebounceTimer) {
-      clearTimeout(this.addUpdateUserSearchDebounceTimer);
-      this.addUpdateUserSearchDebounceTimer = null;
-    }
-    if (this.addUpdateUserSearchBlurTimer) {
-      clearTimeout(this.addUpdateUserSearchBlurTimer);
-      this.addUpdateUserSearchBlurTimer = null;
-    }
-    this.addUpdateUserSearchRequestSeq++;
-  }
-
-  onAddUpdateUserSearchQueryChange(value: string): void {
-    this.addUpdateUserSearchQuery = value;
-    if (this.addUpdateUserSearchDebounceTimer) {
-      clearTimeout(this.addUpdateUserSearchDebounceTimer);
-      this.addUpdateUserSearchDebounceTimer = null;
-    }
-
-    const trimmed = value.trim();
-    if (trimmed.length < this.userSearchMinChars) {
-      this.addUpdateUserSearchResults = [];
-      this.addUpdateUserSearchHasSearched = false;
-      this.addUpdateUserSearchLoading = false;
-      this.showAddUpdateUserSearchDropdown = false;
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.addUpdateUserSearchDebounceTimer = setTimeout(() => {
-      this.addUpdateUserSearchDebounceTimer = null;
-      void this.runAddUpdateSubscriberSearch(trimmed);
-    }, 350);
-  }
-
-  onAddUpdateUserSearchFocus(): void {
-    if (this.addUpdateUserSearchResults.length > 0) {
-      this.showAddUpdateUserSearchDropdown = true;
-    }
-  }
-
-  onAddUpdateUserSearchBlur(): void {
-    if (this.addUpdateUserSearchBlurTimer) {
-      clearTimeout(this.addUpdateUserSearchBlurTimer);
-      this.addUpdateUserSearchBlurTimer = null;
-    }
-    this.addUpdateUserSearchBlurTimer = setTimeout(() => {
-      this.addUpdateUserSearchBlurTimer = null;
-      this.showAddUpdateUserSearchDropdown = false;
-      this.cdr.markForCheck();
-    }, 180);
-  }
-
-  /** Loads matching rows from `email_subscribers` (shared by create-prayer and add-update lookups). */
-  private async fetchSubscriberRows(
-    trimmed: string
-  ): Promise<SubscriberPickRow[]> {
-    const escaped = escapeForIlikePattern(trimmed);
-    const pattern = `%${escaped}%`;
-
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from("email_subscribers")
-      .select("email,name")
-      .or(`email.ilike.${pattern},name.ilike.${pattern}`)
-      .order("name", { ascending: true })
-      .limit(this.userSearchResultLimit);
-
-    if (error) {
-      throw error;
-    }
-    return (data ?? []) as SubscriberPickRow[];
-  }
-
-  private async runAddUpdateSubscriberSearch(trimmed: string): Promise<void> {
-    const seq = ++this.addUpdateUserSearchRequestSeq;
-    this.addUpdateUserSearchLoading = true;
-    this.addUpdateUserSearchHasSearched = false;
+  onPrayerCreated(prayer: PrayerEditorPrayer): void {
+    this.searchResults = [prayer, ...this.searchResults];
+    this.allPrayers = [prayer, ...this.allPrayers];
+    this.totalItems = this.allPrayers.length;
+    this.currentPage = 1;
+    this.loadPageData();
+    this.creatingPrayer = false;
+    this.sendDialogPrayerId = prayer.id;
+    this.sendDialogPrayerTitle = prayer.title;
+    this.sendDialogType = "prayer";
+    this.showSendNotificationDialog = true;
     this.cdr.markForCheck();
+  }
 
-    try {
-      const rows = await this.fetchSubscriberRows(trimmed);
-      if (seq !== this.addUpdateUserSearchRequestSeq) {
-        return;
-      }
-      this.addUpdateUserSearchResults = rows;
-      this.addUpdateUserSearchHasSearched = true;
-      this.showAddUpdateUserSearchDropdown = rows.length > 0;
-    } catch (err: unknown) {
-      if (seq !== this.addUpdateUserSearchRequestSeq) {
-        return;
-      }
-      console.error("Add-update subscriber search error:", err);
-      this.addUpdateUserSearchResults = [];
-      this.addUpdateUserSearchHasSearched = true;
-      const msg =
-        err && typeof err === "object" && "message" in err
-          ? String((err as { message?: string }).message)
-          : "";
-      this.toast.error(msg || "Failed to search subscribers");
-    } finally {
-      if (seq === this.addUpdateUserSearchRequestSeq) {
-        this.addUpdateUserSearchLoading = false;
-        this.cdr.markForCheck();
+  async onCardAction(
+    prayer: PrayerEditorPrayer,
+    action: PrayerEditorCardAction,
+  ): Promise<void> {
+    switch (action.type) {
+      case "toggleSelect":
+        this.toggleSelectPrayer(prayer.id);
+        break;
+      case "toggleExpand":
+        this.toggleExpandCard(prayer.id);
+        break;
+      case "startEdit":
+        this.startEditPrayer(prayer);
+        break;
+      case "cancelEdit":
+        this.cancelEdit();
+        break;
+      case "saveEdit":
+        this.cardForPrayer(prayer.id)?.flushEditDescriptionEditor();
+        await this.savePrayer(prayer.id);
+        break;
+      case "delete":
+        await this.deletePrayer(prayer);
+        break;
+      case "startAddUpdate":
+        this.startAddUpdate(prayer.id);
+        break;
+      case "cancelAddUpdate":
+        this.cancelAddUpdate();
+        break;
+      case "saveNewUpdate":
+        await this.saveNewUpdate(prayer.id);
+        break;
+      case "deleteUpdate":
+        await this.deleteUpdate(prayer.id, action.updateId, action.content);
+        break;
+      case "startEditUpdate":
+        this.startEditUpdate(prayer.id, action.update);
+        break;
+      case "cancelEditUpdate":
+        this.cancelEditUpdate();
+        break;
+      case "saveEditUpdate":
+        await this.saveEditUpdate(prayer.id, action.updateId);
+        break;
+      case "addUpdateSubscriberSelected":
+        break;
+      default: {
+        const neverAction: never = action;
+        return neverAction;
       }
     }
   }
 
-  selectAddUpdateSubscriberUser(row: SubscriberPickRow, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
+  private cardForPrayer(prayerId: string): AdminPrayerEditorCardComponent | undefined {
+    return this.cardRefs?.find((card) => card.prayer.id === prayerId);
+  }
 
-    const name = row.name.trim();
-    const parts = name.split(/\s+/).filter(Boolean);
-    this.newUpdate.firstName = parts[0] ?? "";
-    this.newUpdate.lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
-    this.newUpdate.author_email = row.email.trim();
-    this.resetAddUpdateUserSearchState();
-    this.cdr.markForCheck();
+  private resetAddUpdateSubscriberPick(): void {
+    if (this.addingUpdate) {
+      this.cardForPrayer(this.addingUpdate)?.resetAddUpdateSubscriberPick();
+    }
   }
 
   /** Opens the add-update form with a clean draft and lookup field. */
   startAddUpdate(prayerId: string): void {
     this.addingUpdate = prayerId;
-    this.newUpdate = {
-      content: "",
-      firstName: "",
-      lastName: "",
-      author_email: "",
-    };
-    this.resetAddUpdateUserSearchState();
+    this.newUpdate = { ...EMPTY_PRAYER_EDITOR_NEW_UPDATE };
+    this.resetAddUpdateSubscriberPick();
   }
 
   onMainSearchTermChange(value: string): void {
@@ -2418,95 +291,6 @@ export class PrayerSearchComponent implements OnDestroy {
     ) {
       params.set("approval_status", `eq.${this.approvalFilter}`);
     }
-  }
-
-  onUserSearchQueryChange(value: string): void {
-    this.userSearchQuery = value;
-    if (this.userSearchDebounceTimer) {
-      clearTimeout(this.userSearchDebounceTimer);
-      this.userSearchDebounceTimer = null;
-    }
-
-    const trimmed = value.trim();
-    if (trimmed.length < this.userSearchMinChars) {
-      this.userSearchResults = [];
-      this.userSearchHasSearched = false;
-      this.userSearchLoading = false;
-      this.showUserSearchDropdown = false;
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.userSearchDebounceTimer = setTimeout(() => {
-      this.userSearchDebounceTimer = null;
-      void this.runSubscriberSearch(trimmed);
-    }, 350);
-  }
-
-  onUserSearchFocus(): void {
-    if (this.userSearchResults.length > 0) {
-      this.showUserSearchDropdown = true;
-    }
-  }
-
-  onUserSearchBlur(): void {
-    if (this.userSearchBlurTimer) {
-      clearTimeout(this.userSearchBlurTimer);
-      this.userSearchBlurTimer = null;
-    }
-    this.userSearchBlurTimer = setTimeout(() => {
-      this.userSearchBlurTimer = null;
-      this.showUserSearchDropdown = false;
-      this.cdr.markForCheck();
-    }, 180);
-  }
-
-  private async runSubscriberSearch(trimmed: string): Promise<void> {
-    const seq = ++this.userSearchRequestSeq;
-    this.userSearchLoading = true;
-    this.userSearchHasSearched = false;
-    this.cdr.markForCheck();
-
-    try {
-      const rows = await this.fetchSubscriberRows(trimmed);
-      if (seq !== this.userSearchRequestSeq) {
-        return;
-      }
-      this.userSearchResults = rows;
-      this.userSearchHasSearched = true;
-      this.showUserSearchDropdown = rows.length > 0;
-    } catch (err: unknown) {
-      if (seq !== this.userSearchRequestSeq) {
-        return;
-      }
-      console.error("Subscriber search error:", err);
-      this.userSearchResults = [];
-      this.userSearchHasSearched = true;
-      const msg =
-        err && typeof err === "object" && "message" in err
-          ? String((err as { message?: string }).message)
-          : "";
-      this.toast.error(msg || "Failed to search subscribers");
-    } finally {
-      if (seq === this.userSearchRequestSeq) {
-        this.userSearchLoading = false;
-        this.cdr.markForCheck();
-      }
-    }
-  }
-
-  selectSubscriberUser(row: SubscriberPickRow, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const name = row.name.trim();
-    const parts = name.split(/\s+/).filter(Boolean);
-    this.createForm.firstName = parts[0] ?? "";
-    this.createForm.lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
-
-    this.createForm.email = row.email.trim();
-    this.resetUserSearchState();
-    this.cdr.markForCheck();
   }
 
   async handleSearch(): Promise<void> {
@@ -2588,7 +372,7 @@ export class PrayerSearchComponent implements OnDestroy {
 
         if (idResponse.ok) {
           const idRows: { id: string }[] = await idResponse.json();
-          const resultIds = new Set(results.map((p: Prayer) => p.id));
+          const resultIds = new Set(results.map((p: PrayerEditorPrayer) => p.id));
           const missingIds = [
             ...new Set((idRows || []).map((r) => r.id).filter(Boolean)),
           ].filter((id) => !resultIds.has(id));
@@ -2611,7 +395,7 @@ export class PrayerSearchComponent implements OnDestroy {
             });
 
             if (fullResponse.ok) {
-              const fullData: Prayer[] = await fullResponse.json();
+              const fullData: PrayerEditorPrayer[] = await fullResponse.json();
               for (const row of fullData || []) {
                 results.push(row);
               }
@@ -2621,7 +405,7 @@ export class PrayerSearchComponent implements OnDestroy {
       }
 
       if (this.approvalFilter === "denied") {
-        results = results.filter((prayer: Prayer) => {
+        results = results.filter((prayer: PrayerEditorPrayer) => {
           if (prayer.denial_reason) return true;
           if (prayer.prayer_updates && prayer.prayer_updates.length > 0) {
             return prayer.prayer_updates.some(
@@ -2636,7 +420,7 @@ export class PrayerSearchComponent implements OnDestroy {
       }
 
       if (this.approvalFilter === "pending") {
-        results = results.filter((prayer: Prayer) => {
+        results = results.filter((prayer: PrayerEditorPrayer) => {
           const isPrayerPending =
             prayer.approval_status === "pending" ||
             prayer.approval_status === null ||
@@ -2775,7 +559,7 @@ export class PrayerSearchComponent implements OnDestroy {
     this.expandedCards = newExpanded;
   }
 
-  async deletePrayer(prayer: Prayer): Promise<void> {
+  async deletePrayer(prayer: PrayerEditorPrayer): Promise<void> {
     this.confirmationTitle = "Delete Prayer";
     this.confirmationMessage = `Are you sure you want to delete the prayer "${prayer.title}"? This action cannot be undone.`;
     this.confirmationButtonText = "Delete";
@@ -2947,7 +731,7 @@ export class PrayerSearchComponent implements OnDestroy {
     this.isStatusUpdateConfirmation = false;
   }
 
-  startEditPrayer(prayer: Prayer): void {
+  startEditPrayer(prayer: PrayerEditorPrayer): void {
     this.editForm = {
       title: prayer.title,
       description: prayer.description || "",
@@ -3061,125 +845,17 @@ export class PrayerSearchComponent implements OnDestroy {
 
   startCreatePrayer(): void {
     this.creatingPrayer = true;
-    this.resetUserSearchState();
-    this.createForm = {
-      description: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      prayer_for: "",
-      status: "current",
-      is_anonymous: false,
-    };
     this.error = null;
+    this.cdr.markForCheck();
+    setTimeout(() => this.createFormRef?.resetForm(), 0);
   }
 
   cancelCreatePrayer(): void {
     this.creatingPrayer = false;
-    this.resetUserSearchState();
-    this.createForm = {
-      description: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      prayer_for: "",
-      status: "current",
-      is_anonymous: false,
-    };
-  }
-
-  isCreateFormValid(): boolean {
-    return !!(
-      this.createForm.firstName.trim() &&
-      this.createForm.lastName.trim() &&
-      this.createForm.email.trim() &&
-      this.createForm.prayer_for.trim() &&
-      this.createForm.description.trim()
-    );
-  }
-
-  async createPrayer(event: Event): Promise<void> {
-    event.preventDefault();
-
-    // Sync TipTap → ngModel before validation (last keystroke / lists may not have fired onUpdate yet)
-    this.createDescriptionEditor?.flushMarkdownToForm();
-    this.cdr.markForCheck();
-
-    if (!this.isCreateFormValid()) {
-      this.error = "All fields are required";
-      this.sectionExpanded = true;
-      this.toast.error(this.error);
-      return;
-    }
-
-    try {
-      this.saving = true;
-      this.cdr.markForCheck();
-      this.error = null;
-
-      // Combine first and last name
-      const fullName = `${this.createForm.firstName.trim()} ${this.createForm.lastName.trim()}`;
-
-      // Generate title from prayer_for field, matching the pattern used in prayer-form
-      const generatedTitle = `Prayer for ${this.createForm.prayer_for.trim()}`;
-
-      // Admin creation is an implicit approval — match AdminDataService.approvePrayer DB fields
-      const approvedAt = new Date().toISOString();
-
-      const { data, error: insertError } = await this.supabaseService
-        .getClient()
-        .from("prayers")
-        .insert({
-          title: generatedTitle,
-          description: this.createForm.description.trim(),
-          requester: fullName,
-          email: this.createForm.email.trim() || null,
-          prayer_for: this.createForm.prayer_for.trim(),
-          status: this.createForm.status,
-          is_anonymous: this.createForm.is_anonymous,
-          approval_status: "approved",
-          approved_at: approvedAt,
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        throw new Error(`Failed to create prayer: ${insertError.message}`);
-      }
-
-      this.searchResults = [data, ...this.searchResults];
-      this.allPrayers = [data, ...this.allPrayers];
-      this.totalItems = this.allPrayers.length;
-      this.currentPage = 1;
-      this.loadPageData();
-      this.cancelCreatePrayer();
-      this.toast.success("Prayer created successfully");
-
-      // Show dialog asking if they want to send notification
-      this.sendDialogPrayerId = data.id;
-      this.sendDialogPrayerTitle = data.title;
-      this.sendDialogType = "prayer";
-      this.showSendNotificationDialog = true;
-
-      // Trigger reload on main site
-      await this.prayerService.loadPrayers();
-
-      this.saving = false;
-      this.cdr.markForCheck();
-    } catch (err: unknown) {
-      console.error("Error creating prayer:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to create prayer";
-      this.error = errorMessage;
-      this.sectionExpanded = true;
-      this.toast.error(errorMessage);
-    } finally {
-      this.saving = false;
-    }
+    this.createFormRef?.resetForm();
   }
 
   async savePrayer(prayerId: string): Promise<void> {
-    this.editPrayerDescriptionEditor?.flushMarkdownToForm();
     this.cdr.markForCheck();
 
     if (
@@ -3230,7 +906,7 @@ export class PrayerSearchComponent implements OnDestroy {
               prayer_for: this.editForm.prayer_for.trim() || undefined,
               status: this.editForm.status,
               approved_at: approvedAt,
-            } as Prayer)
+            } as PrayerEditorPrayer)
           : p
       );
 
@@ -3245,7 +921,7 @@ export class PrayerSearchComponent implements OnDestroy {
               prayer_for: this.editForm.prayer_for.trim() || undefined,
               status: this.editForm.status,
               approved_at: approvedAt,
-            } as Prayer)
+            } as PrayerEditorPrayer)
           : p
       );
       this.loadPageData();
@@ -3361,7 +1037,7 @@ export class PrayerSearchComponent implements OnDestroy {
         author_email: "",
       };
       this.addingUpdate = null;
-      this.resetAddUpdateUserSearchState();
+      this.resetAddUpdateSubscriberPick();
       this.toast.success("Update added successfully");
 
       // Show dialog asking if they want to send notification
@@ -3396,7 +1072,7 @@ export class PrayerSearchComponent implements OnDestroy {
       lastName: "",
       author_email: "",
     };
-    this.resetAddUpdateUserSearchState();
+    this.resetAddUpdateSubscriberPick();
   }
 
   isUpdateFormValid(): boolean {
@@ -3469,7 +1145,7 @@ export class PrayerSearchComponent implements OnDestroy {
     }
   }
 
-  startEditUpdate(prayerId: string, update: PrayerUpdate): void {
+  startEditUpdate(prayerId: string, update: PrayerEditorUpdate): void {
     this.editingUpdateId = update.id;
     this.editingUpdatePrayerId = prayerId;
     this.editUpdateForm = {
@@ -3587,31 +1263,6 @@ export class PrayerSearchComponent implements OnDestroy {
     void this.handleSearch();
   }
 
-  getStatusColor(status: string): string {
-    switch (status) {
-      case "current":
-        return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20";
-      case "answered":
-        return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20";
-      case "archived":
-        return "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20";
-      default:
-        return "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20";
-    }
-  }
-
-  getApprovalStatusColor(status: string): string {
-    switch (status) {
-      case "approved":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
-      case "denied":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-      case "pending":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
-    }
-  }
 
   async onConfirmSendNotification() {
     try {
@@ -3646,7 +1297,7 @@ export class PrayerSearchComponent implements OnDestroy {
    * Sort prayers by most recent activity (creation or update)
    * This matches the sorting logic used on the main site
    */
-  sortPrayersByLatestActivity(prayers: Prayer[]): Prayer[] {
+  sortPrayersByLatestActivity(prayers: PrayerEditorPrayer[]): PrayerEditorPrayer[] {
     return prayers
       .map((prayer) => {
         // First sort the updates within each prayer from newest to oldest

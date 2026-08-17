@@ -6,40 +6,23 @@ import {
   Inject,
   Input,
   OnChanges,
-  OnInit,
   Output,
   SimpleChanges,
   ViewChild,
   ElementRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
-import { AdminHelpContentService } from '../../services/admin-help-content.service';
 import type { AdminHelpSection } from '../../types/admin-help-content';
 import { normalizeAdminHelpVideoEmbedUrl } from '../../lib/admin-help-video-url';
+import { ADMIN_HELP_SECTIONS, filterAdminHelpSections } from '../../lib/admin-help-sections';
 import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tour.service';
-
-/** Matches `admin_help_email_subscribers_overview` in AdminHelpContentService defaults. */
-const ADMIN_HELP_SECTION_EMAIL_SUBSCRIBERS_OVERVIEW = 'admin_help_email_subscribers_overview';
-/** Matches `admin_help_email_subscribers` in AdminHelpContentService defaults. */
-const ADMIN_HELP_SECTION_EMAIL_SUBSCRIBERS = 'admin_help_email_subscribers';
-/** Matches `admin_help_prayer_editor` in AdminHelpContentService defaults. */
-const ADMIN_HELP_SECTION_PRAYER_EDITOR = 'admin_help_prayer_editor';
-/** Matches `admin_help_prayer_editor_manage` in AdminHelpContentService defaults. */
-const ADMIN_HELP_SECTION_PRAYER_EDITOR_MANAGE = 'admin_help_prayer_editor_manage';
-/** Matches `admin_help_prompts_and_types` in AdminHelpContentService defaults. */
-const ADMIN_HELP_SECTION_PRAYER_PROMPTS_AND_TYPES = 'admin_help_prompts_and_types';
-/** Matches `admin_help_memorize_recommendations` in AdminHelpContentService defaults. */
-const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recommendations';
 
 @Component({
   selector: 'app-admin-help-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     @if (isOpen) {
       <div class="fixed inset-0 bg-gray-900/50 z-40" (click)="onClose()" aria-hidden="true"></div>
@@ -92,213 +75,50 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
           </div>
 
           <div class="overflow-y-auto flex-1 p-4 sm:p-6" #contentArea>
-            @if (isLoading$ | async) {
-              <div class="flex items-center justify-center py-12">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            @if (allSections.length === 0) {
+              <div class="flex flex-col items-center justify-center py-12 text-center px-2">
+                <p class="text-gray-600 dark:text-gray-400">No tutorial topics yet.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-500 mt-2 max-w-sm">
+                  Topics and videos will appear here when they are added.
+                </p>
               </div>
             }
-
-            @if (helpSections$ | async; as allHelpSections) {
-              @if (!(isLoading$ | async) && allHelpSections.length === 0) {
-                <div class="flex flex-col items-center justify-center py-12 text-center px-2">
-                  <p class="text-gray-600 dark:text-gray-400">No tutorial topics yet.</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-500 mt-2 max-w-sm">
-                    Topics and videos will appear here when they are added.
-                  </p>
-                </div>
-              }
-              @if (!(isLoading$ | async) && allHelpSections.length > 0) {
-                @if ((filteredSections$ | async); as filteredSections) {
-                  @if (filteredSections.length > 0) {
-                    <div class="space-y-3">
-                      @for (section of filteredSections; track section.id) {
-                        @if (section.id === helpSectionIdEmailSubscribersOverview) {
-                          <div
-                            class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
-                          >
-                            <button
-                              type="button"
-                              (click)="onStartEmailSubscribersOverviewTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
-                              [attr.aria-label]="'Start guided tour: ' + section.title"
-                            >
-                              <div class="flex items-start gap-3 flex-1 min-w-0">
-                                <div
-                                  class="text-lg mt-1 flex-shrink-0 w-6 h-6"
-                                  [innerHTML]="getSafeIcon(section.icon)"
-                                  aria-hidden="true"
-                                ></div>
-                                <div class="min-w-0">
-                                  <h3 class="font-semibold not-dark:text-gray-900 dark:text-white">{{ section.title }}</h3>
-                                  <p class="text-sm text-gray-600 dark:text-gray-200">{{ section.description }}</p>
-                                </div>
-                              </div>
-                              <span
-                                class="flex-shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-600 text-white"
-                                aria-hidden="true"
-                              >
-                                <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </span>
-                            </button>
+            @if (allSections.length > 0) {
+              @if (filteredSections.length > 0) {
+                <div class="space-y-3">
+                  @for (section of filteredSections; track section.id) {
+                    @if (section.kind === 'tour') {
+                      <div
+                        class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                      >
+                        <button
+                          type="button"
+                          (click)="onStartSectionTour(section.id, $event)"
+                          class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                          [attr.aria-label]="'Start guided tour: ' + section.title"
+                        >
+                          <div class="flex items-start gap-3 flex-1 min-w-0">
+                            <div
+                              class="text-lg mt-1 flex-shrink-0 w-6 h-6"
+                              [innerHTML]="getSafeIcon(section.icon)"
+                              aria-hidden="true"
+                            ></div>
+                            <div class="min-w-0">
+                              <h3 class="font-semibold not-dark:text-gray-900 dark:text-white">{{ section.title }}</h3>
+                              <p class="text-sm text-gray-600 dark:text-gray-200">{{ section.description }}</p>
+                            </div>
                           </div>
-                        } @else if (section.id === helpSectionIdEmailSubscribers) {
-                          <div
-                            class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                          <span
+                            class="flex-shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-600 text-white"
+                            aria-hidden="true"
                           >
-                            <button
-                              type="button"
-                              (click)="onStartEmailSubscribersTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
-                              [attr.aria-label]="'Start guided tour: ' + section.title"
-                            >
-                              <div class="flex items-start gap-3 flex-1 min-w-0">
-                                <div
-                                  class="text-lg mt-1 flex-shrink-0 w-6 h-6"
-                                  [innerHTML]="getSafeIcon(section.icon)"
-                                  aria-hidden="true"
-                                ></div>
-                                <div class="min-w-0">
-                                  <h3 class="font-semibold not-dark:text-gray-900 dark:text-white">{{ section.title }}</h3>
-                                  <p class="text-sm text-gray-600 dark:text-gray-200">{{ section.description }}</p>
-                                </div>
-                              </div>
-                              <span
-                                class="flex-shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-600 text-white"
-                                aria-hidden="true"
-                              >
-                                <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </span>
-                            </button>
-                          </div>
-                        } @else if (section.id === helpSectionIdPrayerEditor) {
-                          <div
-                            class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
-                          >
-                            <button
-                              type="button"
-                              (click)="onStartPrayerEditorTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
-                              [attr.aria-label]="'Start guided tour: ' + section.title"
-                            >
-                              <div class="flex items-start gap-3 flex-1 min-w-0">
-                                <div
-                                  class="text-lg mt-1 flex-shrink-0 w-6 h-6"
-                                  [innerHTML]="getSafeIcon(section.icon)"
-                                  aria-hidden="true"
-                                ></div>
-                                <div class="min-w-0">
-                                  <h3 class="font-semibold not-dark:text-gray-900 dark:text-white">{{ section.title }}</h3>
-                                  <p class="text-sm text-gray-600 dark:text-gray-200">{{ section.description }}</p>
-                                </div>
-                              </div>
-                              <span
-                                class="flex-shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-600 text-white"
-                                aria-hidden="true"
-                              >
-                                <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </span>
-                            </button>
-                          </div>
-                        } @else if (section.id === helpSectionIdPrayerEditorManage) {
-                          <div
-                            class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
-                          >
-                            <button
-                              type="button"
-                              (click)="onStartPrayerEditorManageTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
-                              [attr.aria-label]="'Start guided tour: ' + section.title"
-                            >
-                              <div class="flex items-start gap-3 flex-1 min-w-0">
-                                <div
-                                  class="text-lg mt-1 flex-shrink-0 w-6 h-6"
-                                  [innerHTML]="getSafeIcon(section.icon)"
-                                  aria-hidden="true"
-                                ></div>
-                                <div class="min-w-0">
-                                  <h3 class="font-semibold not-dark:text-gray-900 dark:text-white">{{ section.title }}</h3>
-                                  <p class="text-sm text-gray-600 dark:text-gray-200">{{ section.description }}</p>
-                                </div>
-                              </div>
-                              <span
-                                class="flex-shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-600 text-white"
-                                aria-hidden="true"
-                              >
-                                <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </span>
-                            </button>
-                          </div>
-                        } @else if (section.id === helpSectionIdPrayerPromptsAndTypes) {
-                          <div
-                            class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
-                          >
-                            <button
-                              type="button"
-                              (click)="onStartPrayerPromptsTypesTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
-                              [attr.aria-label]="'Start guided tour: ' + section.title"
-                            >
-                              <div class="flex items-start gap-3 flex-1 min-w-0">
-                                <div
-                                  class="text-lg mt-1 flex-shrink-0 w-6 h-6"
-                                  [innerHTML]="getSafeIcon(section.icon)"
-                                  aria-hidden="true"
-                                ></div>
-                                <div class="min-w-0">
-                                  <h3 class="font-semibold not-dark:text-gray-900 dark:text-white">{{ section.title }}</h3>
-                                  <p class="text-sm text-gray-600 dark:text-gray-200">{{ section.description }}</p>
-                                </div>
-                              </div>
-                              <span
-                                class="flex-shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-600 text-white"
-                                aria-hidden="true"
-                              >
-                                <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </span>
-                            </button>
-                          </div>
-                        } @else if (section.id === helpSectionIdMemorizeRecommendations) {
-                          <div
-                            class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
-                          >
-                            <button
-                              type="button"
-                              (click)="onStartMemorizeRecommendationsTour($event)"
-                              class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
-                              [attr.aria-label]="'Start guided tour: ' + section.title"
-                            >
-                              <div class="flex items-start gap-3 flex-1 min-w-0">
-                                <div
-                                  class="text-lg mt-1 flex-shrink-0 w-6 h-6"
-                                  [innerHTML]="getSafeIcon(section.icon)"
-                                  aria-hidden="true"
-                                ></div>
-                                <div class="min-w-0">
-                                  <h3 class="font-semibold not-dark:text-gray-900 dark:text-white">{{ section.title }}</h3>
-                                  <p class="text-sm text-gray-600 dark:text-gray-200">{{ section.description }}</p>
-                                </div>
-                              </div>
-                              <span
-                                class="flex-shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-600 text-white"
-                                aria-hidden="true"
-                              >
-                                <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </span>
-                            </button>
-                          </div>
-                        } @else {
+                            <svg class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
+                    } @else {
                         <div
                           class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                         >
@@ -405,8 +225,6 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
                       </div>
                     </div>
                   }
-                }
-              }
             }
           </div>
 
@@ -423,85 +241,38 @@ const ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS = 'admin_help_memorize_recomme
     }
   `,
 })
-export class AdminHelpModalComponent implements OnInit, OnChanges {
+export class AdminHelpModalComponent implements OnChanges {
   @Input() isOpen = false;
   @Output() closeModal = new EventEmitter<void>();
-  @Output() startEmailSubscribersTour = new EventEmitter<void>();
-  @Output() startEmailSubscribersOverviewTour = new EventEmitter<void>();
-  @Output() startPrayerEditorTour = new EventEmitter<void>();
-  @Output() startPrayerEditorManageTour = new EventEmitter<void>();
-  @Output() startPrayerPromptsTypesTour = new EventEmitter<void>();
-  @Output() startMemorizeRecommendationsTour = new EventEmitter<void>();
+  @Output() startSectionTour = new EventEmitter<string>();
   @ViewChild('contentArea') contentArea!: ElementRef<HTMLElement>;
 
-  readonly helpSectionIdEmailSubscribersOverview = ADMIN_HELP_SECTION_EMAIL_SUBSCRIBERS_OVERVIEW;
-  readonly helpSectionIdEmailSubscribers = ADMIN_HELP_SECTION_EMAIL_SUBSCRIBERS;
-  readonly helpSectionIdPrayerEditor = ADMIN_HELP_SECTION_PRAYER_EDITOR;
-  readonly helpSectionIdPrayerEditorManage = ADMIN_HELP_SECTION_PRAYER_EDITOR_MANAGE;
-  readonly helpSectionIdPrayerPromptsAndTypes = ADMIN_HELP_SECTION_PRAYER_PROMPTS_AND_TYPES;
-  readonly helpSectionIdMemorizeRecommendations = ADMIN_HELP_SECTION_MEMORIZE_RECOMMENDATIONS;
-
-  helpSections$!: Observable<AdminHelpSection[]>;
-  filteredSections$!: Observable<AdminHelpSection[]>;
-  isLoading$!: Observable<boolean>;
+  readonly allSections = ADMIN_HELP_SECTIONS;
+  filteredSections: AdminHelpSection[] = filterAdminHelpSections(ADMIN_HELP_SECTIONS, '');
 
   expandedSection: string | null = null;
   searchQuery = '';
-  private searchQuerySubject = new BehaviorSubject<string>('');
   /** Whether the embed panel is visible per section id. */
   private videoOpen: Record<string, boolean> = {};
 
   constructor(
-    private adminHelpContentService: AdminHelpContentService,
     @Inject(DomSanitizer) private sanitizer: DomSanitizer,
     @Inject(ChangeDetectorRef) private cdr: ChangeDetectorRef,
     private adminHelpDriverTour: AdminHelpDriverTourService
   ) {}
-
-  ngOnInit(): void {
-    this.helpSections$ = this.adminHelpContentService.getSections();
-    this.isLoading$ = this.adminHelpContentService.isLoading$;
-
-    this.filteredSections$ = this.searchQuerySubject.pipe(
-      switchMap((query) =>
-        this.adminHelpContentService.getSections().pipe(map((sections) => this.filterSections(sections, query)))
-      )
-    );
-  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen'] && !this.isOpen) {
       this.expandedSection = null;
       this.videoOpen = {};
       this.searchQuery = '';
-      this.searchQuerySubject.next('');
+      this.filteredSections = filterAdminHelpSections(ADMIN_HELP_SECTIONS, '');
       this.cdr.markForCheck();
     }
   }
 
   onSearchChange(): void {
-    this.searchQuerySubject.next(this.searchQuery);
-  }
-
-  private filterSections(sections: AdminHelpSection[], query: string): AdminHelpSection[] {
-    if (!query.trim()) {
-      return sections.filter((s) => s.isActive);
-    }
-    const lowerQuery = query.toLowerCase();
-    return sections.filter((section) => {
-      if (!section.isActive) {
-        return false;
-      }
-      if (section.title.toLowerCase().includes(lowerQuery) || section.description.toLowerCase().includes(lowerQuery)) {
-        return true;
-      }
-      return section.content.some(
-        (c) =>
-          c.subtitle.toLowerCase().includes(lowerQuery) ||
-          c.text.toLowerCase().includes(lowerQuery) ||
-          (c.examples && c.examples.some((e) => e.toLowerCase().includes(lowerQuery)))
-      );
-    });
+    this.filteredSections = filterAdminHelpSections(ADMIN_HELP_SECTIONS, this.searchQuery);
   }
 
   onClose(): void {
@@ -509,34 +280,9 @@ export class AdminHelpModalComponent implements OnInit, OnChanges {
     this.closeModal.emit();
   }
 
-  onStartEmailSubscribersTour(event: Event): void {
+  onStartSectionTour(sectionId: string, event: Event): void {
     event.stopPropagation();
-    this.startEmailSubscribersTour.emit();
-  }
-
-  onStartEmailSubscribersOverviewTour(event: Event): void {
-    event.stopPropagation();
-    this.startEmailSubscribersOverviewTour.emit();
-  }
-
-  onStartPrayerEditorTour(event: Event): void {
-    event.stopPropagation();
-    this.startPrayerEditorTour.emit();
-  }
-
-  onStartPrayerEditorManageTour(event: Event): void {
-    event.stopPropagation();
-    this.startPrayerEditorManageTour.emit();
-  }
-
-  onStartPrayerPromptsTypesTour(event: Event): void {
-    event.stopPropagation();
-    this.startPrayerPromptsTypesTour.emit();
-  }
-
-  onStartMemorizeRecommendationsTour(event: Event): void {
-    event.stopPropagation();
-    this.startMemorizeRecommendationsTour.emit();
+    this.startSectionTour.emit(sectionId);
   }
 
   getSafeIcon(icon: string): SafeHtml {

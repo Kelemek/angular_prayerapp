@@ -1,0 +1,138 @@
+<div class="w-full min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col safe-area-container">
+  <header class="w-full bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
+    <div class="max-w-6xl mx-auto w-full safe-area-header py-6">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <svg
+            class="text-red-600 dark:text-red-400"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Admin Portal</h1>
+          </div>
+        </div>
+
+        <div class="flex flex-row items-center gap-2">
+          <button
+            type="button"
+            (click)="showAdminHelp = true"
+            class="flex items-center justify-center h-10 gap-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer"
+            title="Help & Guidance"
+            aria-label="Open admin help"
+          >
+            <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle>
+              <text x="12" y="16" text-anchor="middle" fill="currentColor" font-size="14" font-weight="bold">?</text>
+            </svg>
+          </button>
+          <button
+            type="button"
+            (click)="goToHome()"
+            class="flex items-center justify-center h-10 gap-1 px-3 bg-blue-600 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm cursor-pointer"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Main Site
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="w-full max-w-6xl mx-auto safe-area-horizontal py-6">
+    <app-admin-nav-tiles
+      [activeTab]="activeTab"
+      [adminData]="adminData"
+      [consolidatedApprovalsCount]="consolidatedApprovals.length"
+      (tabSelect)="onTabChange($event)"
+    ></app-admin-nav-tiles>
+
+    @if (adminData?.loading) {
+      <div class="text-center py-12">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+          role="status"
+          aria-label="Loading admin data"
+        ></div>
+        <p class="text-gray-600 dark:text-gray-400 mt-4">Loading admin data...</p>
+      </div>
+    }
+
+    @if (adminData?.error) {
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+        <p class="text-red-800 dark:text-red-200">{{ adminData?.error }}</p>
+        <button
+          type="button"
+          (click)="refresh()"
+          class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
+        >
+          Try Again
+        </button>
+      </div>
+    }
+
+    @if (!adminData?.loading && !adminData?.error) {
+      @switch (activeTab) {
+        @case ('prayers') {
+          <app-admin-approvals-panel
+            [approvals]="consolidatedApprovals"
+            (approvePrayer)="approvePrayer($event)"
+            (denyPrayer)="denyPrayer($event.id, $event.reason || '')"
+            (approveUpdate)="approveUpdate($event)"
+            (denyUpdate)="denyUpdate($event.id, $event.reason || '')"
+            (prayerEdited)="refresh()"
+            (updateEdited)="refresh()"
+          ></app-admin-approvals-panel>
+        }
+        @case ('deletions') {
+          <app-admin-deletions-panel
+            [adminData]="adminData"
+            (approveDeletion)="approveDeletionRequest($event)"
+            (denyDeletion)="denyDeletionRequest($event.id, $event.reason)"
+            (approveUpdateDeletion)="approveUpdateDeletionRequest($event)"
+            (denyUpdateDeletion)="denyUpdateDeletionRequest($event.id, $event.reason)"
+          ></app-admin-deletions-panel>
+        }
+        @case ('accounts') {
+          <app-admin-accounts-panel
+            [adminData]="adminData"
+            (approveAccount)="approveAccountRequest($event)"
+            (denyAccount)="denyAccountRequest($event.id, $event.reason)"
+          ></app-admin-accounts-panel>
+        }
+        @case ('settings') {
+          <app-admin-settings-panel
+            [activeSettingsTab]="activeSettingsTab"
+            [analyticsStats]="analyticsStats"
+            (settingsTabChange)="onSettingsTabChange($event)"
+          ></app-admin-settings-panel>
+        }
+      }
+    }
+  </main>
+
+  @if (showSendNotificationDialog) {
+    <app-send-notification-dialog
+      [notificationType]="sendDialogType"
+      [prayerTitle]="sendDialogPrayerTitle"
+      (confirm)="onConfirmSendNotification()"
+      (decline)="onDeclineSendNotification()"
+    ></app-send-notification-dialog>
+  }
+
+  <app-admin-help-modal
+    [isOpen]="showAdminHelp"
+    (closeModal)="showAdminHelp = false"
+    (startSectionTour)="onStartAdminHelpTour($event)"
+  ></app-admin-help-modal>
+</div>

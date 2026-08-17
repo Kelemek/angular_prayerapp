@@ -1,0 +1,154 @@
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
+      <button
+        type="button"
+        id="prayer-types-manager-trigger"
+        class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+        (click)="onSectionToggle(); $event.stopPropagation()"
+        [attr.aria-expanded]="sectionExpanded"
+        aria-controls="prayer-types-manager-panel"
+      >
+        <span class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0">
+          <svg class="text-blue-600 dark:text-blue-400 shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+          Prayer Types
+        </span>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+          [class.rotate-180]="sectionExpanded"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      @if (sectionExpanded) {
+      <div
+        id="prayer-types-manager-panel"
+        role="region"
+        aria-labelledby="prayer-types-manager-trigger"
+        class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+      >
+      <div id="tour-prayer-types-toolbar" class="flex justify-end mb-4">
+        <button
+          type="button"
+          (click)="toggleAddForm()"
+          title="Add new prayer type"
+          class="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap cursor-pointer"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Type
+        </button>
+      </div>
+
+      <p id="tour-prayer-types-intro" class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+        Manage the available types for prayer prompts. You can reorder, activate/deactivate, or delete types.
+      </p>
+
+      <!-- Error Message -->
+      @if (error) {
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
+        <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+      </div>
+      }
+
+      <!-- Success Message -->
+      @if (success) {
+      <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-4">
+        <p class="text-sm text-green-800 dark:text-green-200">{{ success }}</p>
+      </div>
+      }
+
+      @if (showAddForm) {
+      <app-admin-prayer-type-form
+        #typeFormRef
+        [editingType]="editingType"
+        (saved)="onTypeSaved($event)"
+        (cancel)="closeTypeForm()"
+        (reportError)="onChildError($event)"
+      />
+      }
+
+      <div id="tour-prayer-types-list-area">
+      <!-- Loading State -->
+      @if (loading) {
+      <div class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">Loading types...</p>
+      </div>
+      }
+
+      <!-- Empty State -->
+      @if (!loading && types.length === 0) {
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+        <svg class="mx-auto mb-2 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+          <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </svg>
+        <p>No prayer types found</p>
+        <p class="text-sm mt-1">Add your first type to get started</p>
+      </div>
+      }
+
+      <!-- Types List with Drag & Drop -->
+      @if (!loading && types.length > 0) {
+      <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="space-y-2">
+                @for (type of types; track type.id) {
+        <app-admin-prayer-type-row
+          [type]="type"
+          (edit)="handleEdit(type)"
+          (delete)="handleDelete(type.id, type.name)"
+          (toggleBooklet)="beginIncludeInBookletToggle(type)"
+          (toggleActive)="beginActiveToggle(type)"
+        />
+        }
+      </div>
+      }
+
+      <!-- Footer Stats -->
+      @if (!loading && types.length > 0) {
+      <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-600 dark:text-gray-400">
+            Total: <span class="font-semibold">{{ types.length }}</span> type(s)
+            @if (getActiveCount() < types.length) {
+            <span class="ml-2">
+              (<span class="font-semibold">{{ getActiveCount() }}</span> active)
+            </span>
+            }
+          </span>
+        </div>
+      </div>
+      }
+      </div>
+      <!-- end tour-prayer-types-list-area -->
+
+      </div>
+      }
+
+      <!-- Confirmation Dialog -->
+      @if (showConfirmationDialog) {
+      <app-confirmation-dialog
+        [title]="confirmationTitle"
+        [message]="confirmationMessage"
+        [isDangerous]="confirmationIsDangerous"
+        [confirmText]="confirmationConfirmText"
+        (confirm)="onConfirmationConfirm()"
+        (cancel)="onConfirmationCancel()">
+      </app-confirmation-dialog>
+      }
+    </div>
+  
