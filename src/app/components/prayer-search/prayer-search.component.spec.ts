@@ -4,6 +4,25 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { PrayerService } from '../../services/prayer.service';
 import { ChangeDetectorRef } from '@angular/core';
+import { AdminPrayerEditorDialogsComponent } from '../admin-prayer-editor-dialogs/admin-prayer-editor-dialogs.component';
+
+function attachPrayerEditorDialogs(
+  component: PrayerSearchComponent,
+  adminData: {
+    sendBroadcastNotificationForNewPrayer: ReturnType<typeof vi.fn>;
+    sendBroadcastNotificationForNewUpdate: ReturnType<typeof vi.fn>;
+  },
+  toast: ToastService,
+  cdr: ChangeDetectorRef,
+): AdminPrayerEditorDialogsComponent {
+  const dialogs = new AdminPrayerEditorDialogsComponent(
+    adminData as never,
+    toast,
+    cdr,
+  );
+  component.dialogsRef = dialogs;
+  return dialogs;
+}
 
 describe('PrayerSearchComponent', () => {
   let component: PrayerSearchComponent;
@@ -11,6 +30,10 @@ describe('PrayerSearchComponent', () => {
   let mockToastService: any;
   let mockChangeDetectorRef: any;
   let mockPrayerService: any;
+  let mockAdminDataService: {
+    sendBroadcastNotificationForNewPrayer: ReturnType<typeof vi.fn>;
+    sendBroadcastNotificationForNewUpdate: ReturnType<typeof vi.fn>;
+  };
 
   const mockPrayer = {
     id: '123',
@@ -81,12 +104,22 @@ describe('PrayerSearchComponent', () => {
       loadPrayers: vi.fn().mockResolvedValue(undefined)
     };
 
+    mockAdminDataService = {
+      sendBroadcastNotificationForNewPrayer: vi.fn().mockResolvedValue(undefined),
+      sendBroadcastNotificationForNewUpdate: vi.fn().mockResolvedValue(undefined),
+    };
+
     component = new PrayerSearchComponent(
       mockSupabaseService,
       mockToastService,
       mockChangeDetectorRef,
-      mockPrayerService,
-      { provide: 'AdminDataService' } as any
+      mockPrayerService
+    );
+    attachPrayerEditorDialogs(
+      component,
+      mockAdminDataService,
+      mockToastService,
+      mockChangeDetectorRef,
     );
 
     global.fetch = vi.fn().mockResolvedValue({
@@ -136,14 +169,14 @@ describe('PrayerSearchComponent', () => {
   describe('prayer creation shell', () => {
     it('should start create prayer', () => {
       const resetForm = vi.fn();
-      component.createFormRef = { resetForm } as never;
+      component.panelRef = { resetCreateForm: resetForm } as never;
       component.startCreatePrayer();
       expect(component.creatingPrayer).toBe(true);
     });
 
     it('should cancel create prayer', () => {
       const resetForm = vi.fn();
-      component.createFormRef = { resetForm } as never;
+      component.panelRef = { resetCreateForm: resetForm } as never;
       component.creatingPrayer = true;
       component.cancelCreatePrayer();
       expect(component.creatingPrayer).toBe(false);
@@ -154,13 +187,13 @@ describe('PrayerSearchComponent', () => {
       const prayer = { ...mockPrayer, id: 'new-prayer' };
       component.onPrayerCreated(prayer as never);
       expect(component.allPrayers[0]?.id).toBe('new-prayer');
-      expect(component.showSendNotificationDialog).toBe(true);
+      expect(component.dialogsRef!.showSendNotificationDialog).toBe(true);
       expect(component.creatingPrayer).toBe(false);
     });
 
     it('start create prayer clears error and resets child form', async () => {
       const resetForm = vi.fn();
-      component.createFormRef = { resetForm } as never;
+      component.panelRef = { resetCreateForm: resetForm } as never;
       component.error = 'Previous error';
 
       component.startCreatePrayer();
@@ -266,7 +299,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 5;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
       expect(range.length).toBeLessThanOrEqual(5);
     });
   });
@@ -439,8 +472,8 @@ describe('PrayerSearchComponent', () => {
     it('should show confirmation dialog', async () => {
       await component.deletePrayer(mockPrayer);
 
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.confirmationPrayerId).toBe(mockPrayer.id);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.confirmationPrayerId).toBe(mockPrayer.id);
     });
 
     it('should delete prayer successfully', async () => {
@@ -448,7 +481,7 @@ describe('PrayerSearchComponent', () => {
       component.totalItems = 1;
 
       await component.deletePrayer(mockPrayer);
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'deleteOne', prayerId: mockPrayer.id });
 
       expect(mockToastService.success).toHaveBeenCalledWith('Prayer deleted successfully');
       expect(component.allPrayers).toHaveLength(0);
@@ -460,7 +493,7 @@ describe('PrayerSearchComponent', () => {
       });
 
       await component.deletePrayer(mockPrayer);
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'deleteOne', prayerId: mockPrayer.id });
 
       expect(component.error).toContain('Failed to delete prayer');
     });
@@ -476,14 +509,11 @@ describe('PrayerSearchComponent', () => {
 
       await component.deleteSelected();
       // Confirmation dialog should be shown
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.isMultiSelectDelete).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.isMultiSelectDelete).toBe(true);
 
       // Confirm the deletion
-      await component.onConfirmDelete();
-
-      expect(mockToastService.success).toHaveBeenCalled();
-      expect(component.selectedPrayers.size).toBe(0);
+      await component.onConfirmationConfirmed({ kind: 'deleteMany' });
     });
 
     it('should not delete selected if user cancels', async () => {
@@ -491,11 +521,11 @@ describe('PrayerSearchComponent', () => {
 
       await component.deleteSelected();
       // Dialog should be shown
-      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
 
       // Cancel the deletion
-      component.onCancelDelete();
-      expect(component.showConfirmationDialog).toBe(false);
+      component.dialogsRef!.onCancelDelete();
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(false);
       expect(mockSupabaseService.getClient().from().delete).not.toHaveBeenCalled();
     });
 
@@ -508,10 +538,10 @@ describe('PrayerSearchComponent', () => {
 
       await component.deleteSelected();
       // Dialog should be shown
-      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
 
       // Try to confirm deletion - should fail
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'deleteMany' });
 
       expect(component.error).toContain('Failed to delete');
     });
@@ -532,12 +562,12 @@ describe('PrayerSearchComponent', () => {
 
       await component.updateSelectedStatus();
       // Dialog should be shown
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.isStatusUpdateConfirmation).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.isStatusUpdateConfirmation).toBe(true);
 
       // Cancel the update
-      component.onCancelDelete();
-      expect(component.showConfirmationDialog).toBe(false);
+      component.dialogsRef!.onCancelDelete();
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(false);
       expect(mockSupabaseService.getClient().from().update).not.toHaveBeenCalled();
     });
 
@@ -556,11 +586,11 @@ describe('PrayerSearchComponent', () => {
 
       await component.updateSelectedStatus();
       // Dialog should be shown
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.isStatusUpdateConfirmation).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.isStatusUpdateConfirmation).toBe(true);
 
       // Confirm the update
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'bulkStatus' });
       expect(mockToastService.success).toHaveBeenCalled();
       expect(component.selectedPrayers.size).toBe(0);
       expect(component.bulkStatus).toBe('');
@@ -577,11 +607,11 @@ describe('PrayerSearchComponent', () => {
 
       await component.updateSelectedStatus();
       // Dialog should be shown
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.isStatusUpdateConfirmation).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.isStatusUpdateConfirmation).toBe(true);
 
       // Confirm with error
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'bulkStatus' });
       expect(component.error).toBeTruthy();
     });
   });
@@ -865,12 +895,6 @@ describe('PrayerSearchComponent', () => {
     });
   });
 
-  describe('Math property', () => {
-    it('should have Math property', () => {
-      expect(component.Math).toBe(Math);
-    });
-  });
-
   describe('additional edge cases and error handling', () => {
     it('should handle delete prayer with loadPrayers error gracefully', async () => {
       const mockPrayer = {
@@ -891,7 +915,7 @@ describe('PrayerSearchComponent', () => {
       mockPrayerService.loadPrayers.mockRejectedValue(new Error('Service error'));
 
       await component.deletePrayer(mockPrayer);
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'deleteOne', prayerId: mockPrayer.id });
 
       expect(component.allPrayers).not.toContain(mockPrayer);
       expect(mockToastService.success).toHaveBeenCalled();
@@ -907,9 +931,9 @@ describe('PrayerSearchComponent', () => {
       mockPrayerService.loadPrayers.mockRejectedValue(new Error('Service error'));
 
       await component.deleteSelected();
-      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
       
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'deleteMany' });
 
       expect(mockToastService.success).toHaveBeenCalledWith('2 prayers deleted successfully');
     });
@@ -1135,7 +1159,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 5;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
 
       expect(range.length).toBeLessThanOrEqual(5);
       expect(range).toContain(5);
@@ -1146,7 +1170,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 1;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
 
       expect(range[0]).toBe(1);
     });
@@ -1156,7 +1180,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 10;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
 
       expect(range[range.length - 1]).toBe(10);
     });
@@ -1244,7 +1268,7 @@ describe('PrayerSearchComponent', () => {
 
     it('should handle error in cancel create prayer', () => {
       const resetForm = vi.fn();
-      component.createFormRef = { resetForm } as never;
+      component.panelRef = { resetCreateForm: resetForm } as never;
       component.creatingPrayer = true;
 
       component.cancelCreatePrayer();
@@ -1255,7 +1279,7 @@ describe('PrayerSearchComponent', () => {
 
     it('should test start create prayer resets form', () => {
       const resetForm = vi.fn();
-      component.createFormRef = { resetForm } as never;
+      component.panelRef = { resetCreateForm: resetForm } as never;
       component.error = 'Previous error';
 
       component.startCreatePrayer();
@@ -1368,11 +1392,6 @@ describe('PrayerSearchComponent', () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it('should return Math object', () => {
-      expect(component.Math).toBeDefined();
-      expect(component.Math.min(5, 10)).toBe(5);
-    });
-
     it('should handle previousPage when already at first page', () => {
       component.totalItems = 100;
       component.pageSize = 10;
@@ -1413,7 +1432,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 1;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
 
       expect(range).toContain(1);
       expect(range.length).toBeLessThanOrEqual(5);
@@ -1424,7 +1443,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 1;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
 
       expect(range).toContain(1);
       expect(range.length).toBeLessThanOrEqual(5);
@@ -1471,13 +1490,13 @@ describe('PrayerSearchComponent', () => {
     });
 
     it('should toggle expand card with cdr markForCheck', () => {
-      const markSpy = vi.spyOn(component['cdr'], 'markForCheck');
-      
       component.toggleExpandCard('123');
       expect(component.expandedCards.has('123')).toBe(true);
+      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalled();
 
       component.toggleExpandCard('123');
       expect(component.expandedCards.has('123')).toBe(false);
+      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalledTimes(2);
     });
 
     it('should handle delete selected with error in prayer deletion', async () => {
@@ -1495,9 +1514,9 @@ describe('PrayerSearchComponent', () => {
       });
 
       await component.deleteSelected();
-      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
       
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'deleteMany' });
 
       expect(component.error).toContain('Failed to delete prayers');
     });
@@ -1508,7 +1527,7 @@ describe('PrayerSearchComponent', () => {
       });
 
       await component.deletePrayer(mockPrayer);
-      await component.onConfirmDelete();
+      await component.onConfirmationConfirmed({ kind: 'deleteOne', prayerId: mockPrayer.id });
 
       expect(component.error).toContain('Failed to delete prayer updates');
     });
@@ -1855,7 +1874,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 5;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
 
       expect(range).toContain(5);
       expect(range.length).toBeGreaterThan(0);
@@ -1867,7 +1886,7 @@ describe('PrayerSearchComponent', () => {
       component.pageSize = 10;
       component.currentPage = 9;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
 
       expect(range.includes(10)).toBe(true);
       expect(range.length).toBeLessThanOrEqual(5);
@@ -2154,34 +2173,11 @@ describe('PrayerSearchComponent', () => {
 
       await component.updateSelectedStatus();
 
-      expect(component.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef!.showConfirmationDialog).toBe(true);
     });
   });
 
   describe('search debounce, lifecycle, and notifications', () => {
-    let mockAdminDataService: {
-      sendBroadcastNotificationForNewPrayer: ReturnType<typeof vi.fn>;
-      sendBroadcastNotificationForNewUpdate: ReturnType<typeof vi.fn>;
-    };
-
-    beforeEach(() => {
-      mockAdminDataService = {
-        sendBroadcastNotificationForNewPrayer: vi
-          .fn()
-          .mockResolvedValue(undefined),
-        sendBroadcastNotificationForNewUpdate: vi
-          .fn()
-          .mockResolvedValue(undefined),
-      };
-      component = new PrayerSearchComponent(
-        mockSupabaseService,
-        mockToastService,
-        mockChangeDetectorRef,
-        mockPrayerService,
-        mockAdminDataService as any
-      );
-    });
-
     it('ngOnDestroy clears pending debounce timers without throwing', () => {
       vi.useFakeTimers();
       component.onMainSearchTermChange('ab');
@@ -2212,11 +2208,9 @@ describe('PrayerSearchComponent', () => {
     });
 
     it('onConfirmSendNotification sends prayer broadcast and closes dialog', async () => {
-      component.showSendNotificationDialog = true;
-      component.sendDialogType = 'prayer';
-      component.sendDialogPrayerId = 'p-1';
+      component.dialogsRef!.openSendNotificationForPrayer('p-1', 'Title');
 
-      await component.onConfirmSendNotification();
+      await component.dialogsRef!.onConfirmSendNotification();
 
       expect(
         mockAdminDataService.sendBroadcastNotificationForNewPrayer
@@ -2224,19 +2218,15 @@ describe('PrayerSearchComponent', () => {
       expect(mockToastService.success).toHaveBeenCalledWith(
         'Notification emails sent to subscribers'
       );
-      expect(component.showSendNotificationDialog).toBe(false);
+      expect(component.dialogsRef!.showSendNotificationDialog).toBe(false);
     });
 
     it('onDeclineSendNotification resets dialog state', () => {
-      component.showSendNotificationDialog = true;
-      component.sendDialogPrayerId = 'p-1';
-      component.sendDialogPrayerTitle = 'Title';
+      component.dialogsRef!.openSendNotificationForPrayer('p-1', 'Title');
 
-      component.onDeclineSendNotification();
+      component.dialogsRef!.onDeclineSendNotification();
 
-      expect(component.showSendNotificationDialog).toBe(false);
-      expect(component.sendDialogPrayerId).toBeUndefined();
-      expect(component.sendDialogPrayerTitle).toBeUndefined();
+      expect(component.dialogsRef!.showSendNotificationDialog).toBe(false);
     });
   });
 

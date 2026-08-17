@@ -1,0 +1,217 @@
+<div>
+  <h4 class="text-sm font-semibold text-gray-900 dark:!text-white mb-3">
+    Recent Backups
+  </h4>
+  <div class="space-y-2">
+    @for (backup of backups; track backup.id) {
+      <div>
+        <div
+          (click)="toggleExpanded.emit(backup.id)"
+          class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg mb-4 border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer hover:border-gray-300 dark:hover:border-gray-600"
+        >
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            @if (backup.status === 'success') {
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-green-500 flex-shrink-0"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            }
+            @if (backup.status !== 'success') {
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-red-500 flex-shrink-0"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            }
+            <div class="flex-1 min-w-0">
+              <div class="text-gray-900 dark:text-gray-100 truncate">
+                {{ formatDate(backup.backup_date) }}
+              </div>
+              @if (backup.error_message) {
+                <div class="text-xs text-red-600 dark:text-red-400 truncate">
+                  {{ backup.error_message }}
+                </div>
+              }
+            </div>
+          </div>
+          <div
+            class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400"
+          >
+            <span>{{ backup.total_records.toLocaleString() }} records</span>
+            <span>{{ formatDuration(backup.duration_seconds) }}</span>
+            <span class="text-indigo-600 dark:text-indigo-400">
+              {{ expandedBackupId === backup.id ? '▼' : '▶' }}
+            </span>
+          </div>
+        </div>
+
+        @if (expandedBackupId === backup.id) {
+          <div
+            class="mt-2 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+          >
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <div class="text-xs text-gray-500 dark:text-gray-300">
+                  Backup ID
+                </div>
+                <div
+                  class="text-sm font-mono text-gray-900 dark:text-gray-100 truncate"
+                >
+                  {{ backup.id }}
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-gray-500 dark:text-gray-300">
+                  Status
+                </div>
+                <div class="text-sm">
+                  <span
+                    [class]="
+                      'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' +
+                      (backup.status === 'success'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : backup.status === 'failed'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400')
+                    "
+                  >
+                    {{ backup.status.toUpperCase() }}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-gray-500 dark:text-gray-300">
+                  Backup Date
+                </div>
+                <div class="text-sm text-gray-900 dark:text-gray-100">
+                  {{ formatDate(backup.backup_date) }}
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-gray-500 dark:text-gray-300">
+                  Created At
+                </div>
+                <div class="text-sm text-gray-900 dark:text-gray-100">
+                  {{ formatDate(backup.created_at) }}
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-gray-500 dark:text-gray-300">
+                  Total Records
+                </div>
+                <div
+                  class="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                >
+                  {{ backup.total_records.toLocaleString() }}
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-gray-500 dark:text-gray-300">
+                  Duration
+                </div>
+                <div
+                  class="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                >
+                  {{ formatDuration(backup.duration_seconds) }}
+                </div>
+              </div>
+            </div>
+
+            @if (backup.error_message) {
+              <div
+                class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800"
+              >
+                <div
+                  class="text-xs font-semibold text-red-800 dark:text-red-300 mb-1"
+                >
+                  Error Message
+                </div>
+                <div class="text-sm text-red-700 dark:text-red-400 font-mono">
+                  {{ backup.error_message }}
+                </div>
+              </div>
+            }
+            @if (backup.tables_backed_up && getTableEntries(backup).length > 0) {
+              <div>
+                <div
+                  class="text-xs font-semibold text-gray-700 dark:text-gray-100 mb-2"
+                >
+                  Tables Backed Up ({{ getTableEntries(backup).length }})
+                </div>
+                <div
+                  class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2"
+                >
+                  @for (entry of getTableEntries(backup); track entry[0]) {
+                    <div
+                      class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-900/50 rounded text-xs border border-gray-200 dark:border-gray-700"
+                    >
+                      <span
+                        class="text-gray-700 dark:text-gray-100 truncate mr-2"
+                      >
+                        {{ entry[0] }}
+                      </span>
+                      <span
+                        class="font-semibold text-indigo-600 dark:text-indigo-400 flex-shrink-0"
+                      >
+                        {{ entry[1] }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (!showFullLog && totalBackupCount > visibleLimit) {
+    <div class="mt-4 text-center">
+      <button
+        type="button"
+        (click)="toggleShowFullLog.emit()"
+        class="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors cursor-pointer"
+      >
+        Show More ({{ totalBackupCount - visibleLimit }} older backups)
+      </button>
+    </div>
+  }
+
+  @if (showFullLog && totalBackupCount > visibleLimit) {
+    <div class="mt-4 text-center">
+      <button
+        type="button"
+        (click)="toggleShowFullLog.emit()"
+        class="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors cursor-pointer"
+      >
+        Show Less
+      </button>
+    </div>
+  }
+</div>

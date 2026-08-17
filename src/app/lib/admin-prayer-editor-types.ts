@@ -9,6 +9,7 @@ export interface PrayerEditorUpdate {
   denial_reason?: string | null;
   approval_status?: string;
   is_anonymous?: boolean;
+  approved_at?: string;
 }
 
 export interface PrayerEditorPrayer {
@@ -23,6 +24,7 @@ export interface PrayerEditorPrayer {
   approval_status?: string;
   prayer_for?: string;
   prayer_updates?: PrayerEditorUpdate[];
+  approved_at?: string;
 }
 
 export interface PrayerEditorEditForm {

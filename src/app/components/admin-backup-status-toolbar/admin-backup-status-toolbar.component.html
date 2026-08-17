@@ -1,0 +1,60 @@
+<div class="flex flex-wrap items-center justify-end gap-3 mb-6">
+  <button
+    type="button"
+    (click)="manualBackup.emit()"
+    [disabled]="backingUp"
+    class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+  >
+    @if (backingUp) {
+      <div
+        class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+      ></div>
+    }
+    @if (!backingUp) {
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+    }
+    {{ backingUp ? 'Backing up...' : 'Manual Backup' }}
+  </button>
+  <button
+    type="button"
+    (click)="openRestoreDialog.emit()"
+    [disabled]="restoring"
+    class="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+  >
+    @if (restoring) {
+      <div
+        class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+      ></div>
+    }
+    @if (!restoring) {
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+    }
+    {{ restoring ? 'Restoring...' : 'Restore' }}
+  </button>
+</div>

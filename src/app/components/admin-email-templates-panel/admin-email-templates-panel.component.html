@@ -1,0 +1,49 @@
+@if (error && templates.length > 0) {
+  <div
+    class="mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded p-3"
+  >
+    <p class="text-yellow-800 dark:text-yellow-200 text-sm">{{ error }}</p>
+  </div>
+}
+
+@if (loading) {
+  <div class="text-center py-8">
+    <p class="text-gray-600 dark:text-gray-400">Loading templates...</p>
+  </div>
+}
+
+@if (!loading && error && templates.length === 0) {
+  <div
+    class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded p-4"
+  >
+    <p class="text-red-800 dark:text-red-200">
+      <strong>Error:</strong> {{ error }}
+    </p>
+    <p class="mt-2 text-sm text-red-700 dark:text-red-300">
+      Please execute the database migration in Supabase SQL Editor to enable
+      email templates.
+    </p>
+  </div>
+}
+
+@if (!loading && templates.length > 0) {
+  <app-admin-email-templates-list
+    [templates]="templates"
+    [selectedId]="selectedTemplate?.id ?? null"
+    [editedTemplate]="editedTemplate"
+    [showPreview]="showPreview"
+    [saving]="saving"
+    [error]="error"
+    [success]="success"
+    (select)="selectTemplate.emit($event)"
+    (togglePreview)="togglePreview.emit()"
+    (save)="save.emit()"
+    (revert)="revert.emit()"
+  ></app-admin-email-templates-list>
+}
+
+@if (!loading && templates.length === 0 && !error) {
+  <div class="text-center py-8">
+    <p class="text-gray-600 dark:text-gray-400 text-sm">No templates available</p>
+  </div>
+}

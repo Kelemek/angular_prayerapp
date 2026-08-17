@@ -1,0 +1,51 @@
+@if (loading) {
+  <div class="flex items-center justify-center py-8">
+    <div
+      class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+    ></div>
+  </div>
+}
+@if (!loading && !latestBackup) {
+  <div class="text-center py-8">
+    <svg
+      width="48"
+      height="48"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="text-gray-400 mx-auto mb-3"
+    >
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <p class="text-gray-600 dark:text-gray-400">No backup logs found</p>
+    <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">
+      Backups will appear here once the first automated backup runs
+    </p>
+  </div>
+}
+@if (!loading && latestBackup) {
+  <app-admin-backup-status-toolbar
+    [backingUp]="backingUp"
+    [restoring]="restoring"
+    (manualBackup)="manualBackup.emit()"
+    (openRestoreDialog)="openRestoreDialog.emit()"
+  ></app-admin-backup-status-toolbar>
+
+  <div class="space-y-4 mb-6">
+    <app-admin-backup-status-info></app-admin-backup-status-info>
+
+    <app-admin-backup-status-list
+      [backups]="visibleBackups"
+      [expandedBackupId]="expandedBackupId"
+      [showFullLog]="showFullLog"
+      [totalBackupCount]="totalBackupCount"
+      (toggleExpanded)="toggleExpanded.emit($event)"
+      (toggleShowFullLog)="toggleShowFullLog.emit()"
+    ></app-admin-backup-status-list>
+  </div>
+}

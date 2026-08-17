@@ -1,0 +1,111 @@
+<div class="space-y-6">
+  @if (error) {
+    <div class="mb-4">
+      <div
+        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+      </div>
+    </div>
+  }
+
+  <div class="mb-4">
+    <app-email-subscribers></app-email-subscribers>
+  </div>
+
+  <div class="mb-4">
+    <app-admin-subscriber-email-broadcast></app-admin-subscriber-email-broadcast>
+  </div>
+
+  <app-admin-email-prayer-reminders-section
+    (saved)="onSave.emit()"
+    (settingsError)="error = $event"
+  ></app-admin-email-prayer-reminders-section>
+
+  <app-hourly-reminder-template-section
+    sectionTitle="Hourly user prayer reminder email"
+    descriptionHtml="Users opt in under <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>Settings → Prayer reminders</strong>. This controls which template the hourly job sends. The <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>random recent prayer</strong> option picks a different prayer when possible: <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>every</strong> approved <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>current</strong> community prayer on the church list, plus <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>all</strong> of your personal prayers that are not <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>Answered</strong>."
+    settingsColumn="user_hourly_prayer_reminder_template_key"
+    [templateOptions]="hourlyReminderTemplateOptions"
+    [allowedKeys]="hourlyPrayerAllowedKeys"
+    defaultKey="user_hourly_prayer_reminder"
+    helpText="Push notifications use the same spotlight title when that option is selected and a prayer is available."
+    loadingMessage="Loading hourly reminder template…"
+    successMessage="Hourly reminder template saved."
+    saveToastMessage="Hourly prayer reminder template saved."
+    saveErrorToastMessage="Failed to save hourly reminder template"
+    loadErrorPrefix="Failed to load hourly reminder template"
+    saveErrorPrefix="Failed to save hourly reminder template"
+    triggerId="email-hourly-reminder-settings-trigger"
+    panelId="email-hourly-reminder-panel"
+    templateLabelId="user-hourly-reminder-template-label"
+    templateSelectId="user-hourly-reminder-template"
+    helpTextId="userHourlyReminderTemplateHelp"
+    (saved)="onSave.emit()"
+    (loadFailed)="error = $event"
+  >
+    <svg
+      sectionIcon
+      class="text-blue-600 dark:text-blue-400 shrink-0"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+    </svg>
+  </app-hourly-reminder-template-section>
+
+  <app-hourly-reminder-template-section
+    sectionTitle="Hourly user memorization reminder email"
+    descriptionHtml="Users opt in under <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>Settings → Memorization reminders</strong>. This controls which template the hourly job sends. The <strong class=&quot;text-gray-800 dark:text-gray-200&quot;>spotlight</strong> option highlights the item on the user's memorization list that needs the most practice (learning tier and least recently practiced first)."
+    settingsColumn="user_hourly_memorization_reminder_template_key"
+    [templateOptions]="hourlyMemorizationReminderTemplateOptions"
+    [allowedKeys]="hourlyMemorizationAllowedKeys"
+    defaultKey="user_hourly_memorization_reminder"
+    helpText="Push notifications use the spotlight reference when that option is selected and the user has memorized items."
+    loadingMessage="Loading memorization reminder template…"
+    successMessage="Memorization reminder template saved."
+    saveToastMessage="Hourly memorization reminder template saved."
+    saveErrorToastMessage="Failed to save memorization reminder template"
+    loadErrorPrefix="Failed to load memorization hourly reminder template"
+    saveErrorPrefix="Failed to save memorization hourly reminder template"
+    triggerId="email-hourly-memorization-reminder-settings-trigger"
+    panelId="email-hourly-memorization-reminder-panel"
+    templateLabelId="user-hourly-memorization-reminder-template-label"
+    templateSelectId="user-hourly-memorization-reminder-template"
+    helpTextId="userHourlyMemorizationReminderTemplateHelp"
+    (saved)="onSave.emit()"
+    (loadFailed)="error = $event"
+  >
+    <svg
+      sectionIcon
+      class="text-blue-600 dark:text-blue-400 shrink-0"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+    </svg>
+  </app-hourly-reminder-template-section>
+
+  <div class="mb-4">
+    <app-email-templates-manager></app-email-templates-manager>
+  </div>
+</div>

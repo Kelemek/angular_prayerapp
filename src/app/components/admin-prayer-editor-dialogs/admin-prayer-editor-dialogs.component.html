@@ -1,0 +1,19 @@
+@if (showSendNotificationDialog) {
+<app-send-notification-dialog
+  [notificationType]="sendDialogType"
+  [prayerTitle]="sendDialogPrayerTitle"
+  (confirm)="onConfirmSendNotification()"
+  (decline)="onDeclineSendNotification()"
+></app-send-notification-dialog>
+}
+
+@if (showConfirmationDialog) {
+<app-confirmation-dialog
+  [title]="confirmationTitle"
+  [message]="confirmationMessage"
+  [isDangerous]="confirmationIsDangerous"
+  [confirmText]="confirmationButtonText"
+  (confirm)="onConfirmDelete()"
+  (cancel)="onCancelDelete()"
+></app-confirmation-dialog>
+}

@@ -1,0 +1,63 @@
+<div
+  #sectionContainer
+  class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+  [class.cursor-pointer]="!expanded"
+  (click)="onShellClick()"
+>
+  <button
+    type="button"
+    id="email-subscribers-trigger"
+    class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+    (click)="onTriggerClick($event)"
+    [attr.aria-expanded]="expanded"
+    aria-controls="email-subscribers-panel"
+  >
+    <span
+      class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0"
+    >
+      <svg
+        class="text-blue-600 dark:text-blue-400 shrink-0"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      Email Subscribers
+    </span>
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+      [class.rotate-180]="expanded"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+
+  @if (expanded) {
+    <div
+      id="email-subscribers-panel"
+      role="region"
+      aria-labelledby="email-subscribers-trigger"
+      class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+      (click)="stopPanelClick($event)"
+    >
+      <ng-content></ng-content>
+    </div>
+  }
+</div>

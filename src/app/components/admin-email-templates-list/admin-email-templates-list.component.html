@@ -1,0 +1,40 @@
+<label
+  class="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3"
+  >Available Templates</label
+>
+<div class="space-y-3">
+  @for (template of templates; track template.id) {
+    <div>
+      <button
+        type="button"
+        (click)="select.emit(template)"
+        [class]="
+          'w-full text-left p-3 rounded-lg border transition-colors cursor-pointer ' +
+          (selectedId === template.id
+            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600'
+            : 'bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700')
+        "
+      >
+        <div class="font-semibold text-gray-900 dark:text-gray-100">
+          {{ template.name }}
+        </div>
+        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          {{ template.template_key }}
+        </div>
+      </button>
+
+      @if (selectedId === template.id && editedTemplate) {
+        <app-admin-email-templates-editor
+          [editedTemplate]="editedTemplate"
+          [showPreview]="showPreview"
+          [saving]="saving"
+          [error]="error"
+          [success]="success"
+          (togglePreview)="togglePreview.emit()"
+          (save)="save.emit()"
+          (revert)="revert.emit()"
+        ></app-admin-email-templates-editor>
+      }
+    </div>
+  }
+</div>

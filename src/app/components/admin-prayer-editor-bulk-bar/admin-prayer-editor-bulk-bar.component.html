@@ -1,0 +1,131 @@
+<div
+  class="flex flex-wrap items-start justify-between gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
+>
+  <div class="flex items-center gap-3 w-full sm:w-auto">
+    <label
+      class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+    >
+      <input
+        type="checkbox"
+        [checked]="allSelected"
+        (change)="toggleSelectAll.emit()"
+        class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+      />
+      <span>Select All ({{ displayCount }})</span>
+    </label>
+    @if (selectedCount > 0) {
+      <span class="text-sm text-red-600 dark:text-red-400 font-medium">
+        {{ selectedCount }} selected
+      </span>
+    }
+  </div>
+  @if (selectedCount > 0) {
+    <div
+      class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full"
+    >
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <label
+          class="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap sm:mr-2"
+        >
+          Change Status:
+        </label>
+        <div class="relative flex-1 sm:flex-none">
+          <select
+            [ngModel]="bulkStatus"
+            (ngModelChange)="bulkStatusChange.emit($event)"
+            class="w-full appearance-none px-3 py-1.5 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 cursor-pointer"
+          >
+            <option value="">Select...</option>
+            <option value="current">Current</option>
+            <option value="answered">Answered</option>
+            <option value="archived">Archived</option>
+          </select>
+          <svg
+            class="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <button
+          type="button"
+          (click)="updateSelected.emit()"
+          [disabled]="!bulkStatus || updatingStatus"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          @if (updatingStatus) {
+            <div
+              class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+            ></div>
+          }
+          @if (!updatingStatus) {
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+              ></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+          }
+          {{
+            updatingStatus
+              ? 'Updating...'
+              : 'Update (' + selectedCount + ')'
+          }}
+        </button>
+
+        <button
+          type="button"
+          (click)="deleteSelected.emit()"
+          [disabled]="deleting"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 transition-colors text-sm"
+        >
+          @if (deleting) {
+            <div
+              class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
+            ></div>
+          }
+          @if (!deleting) {
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path
+                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+              ></path>
+            </svg>
+          }
+          {{
+            deleting ? 'Deleting...' : 'Delete (' + selectedCount + ')'
+          }}
+        </button>
+      </div>
+    </div>
+  }
+</div>

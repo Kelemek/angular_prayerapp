@@ -1,0 +1,26 @@
+<app-admin-backup-status-section
+  [expanded]="sectionExpanded"
+  (toggle)="onBackupSectionToggle()"
+>
+  <app-admin-backup-status-panel
+    [loading]="loading"
+    [latestBackup]="latestBackup"
+    [visibleBackups]="visibleBackups"
+    [showFullLog]="showFullLog"
+    [totalBackupCount]="allBackups.length"
+    [expandedBackupId]="expandedBackupId"
+    [backingUp]="backingUp"
+    [restoring]="restoring"
+    (manualBackup)="handleManualBackup()"
+    (openRestoreDialog)="openRestoreDialog()"
+    (toggleExpanded)="onToggleExpanded($event)"
+    (toggleShowFullLog)="onToggleShowFullLog()"
+  ></app-admin-backup-status-panel>
+</app-admin-backup-status-section>
+
+<app-admin-backup-status-dialogs
+  #dialogsRef
+  (backupConfirmed)="onConfirmBackup()"
+  (restoreConfirmed)="onConfirmRestore()"
+  (restoreFileChosen)="onRestoreFileChosen($event)"
+></app-admin-backup-status-dialogs>

@@ -1,0 +1,80 @@
+<app-admin-prayer-editor-create-bar (create)="createPrayer.emit()"></app-admin-prayer-editor-create-bar>
+
+@if (creatingPrayer) {
+  <app-admin-prayer-editor-create-form
+    #createFormRef
+    (cancel)="cancelCreate.emit()"
+    (created)="prayerCreated.emit($event)"
+  ></app-admin-prayer-editor-create-form>
+}
+
+<app-admin-prayer-editor-toolbar
+  [searchTerm]="searchTerm"
+  [searching]="searching"
+  [statusFilter]="statusFilter"
+  [approvalFilter]="approvalFilter"
+  (searchTermChange)="searchTermChange.emit($event)"
+  (searchKeydown)="searchKeydown.emit($event)"
+  (clearSearch)="clearSearch.emit()"
+  (statusFilterChange)="statusFilterChange.emit($event)"
+  (approvalFilterChange)="approvalFilterChange.emit($event)"
+></app-admin-prayer-editor-toolbar>
+
+<app-admin-prayer-editor-error-banner [message]="error"></app-admin-prayer-editor-error-banner>
+
+@if (displayPrayers.length > 0) {
+  <app-admin-prayer-editor-bulk-bar
+    [displayCount]="displayPrayers.length"
+    [selectedCount]="selectedPrayers.size"
+    [allSelected]="allDisplaySelected"
+    [bulkStatus]="bulkStatus"
+    [updatingStatus]="updatingStatus"
+    [deleting]="deleting"
+    (toggleSelectAll)="toggleSelectAll.emit()"
+    (bulkStatusChange)="bulkStatusChange.emit($event)"
+    (updateSelected)="updateSelected.emit()"
+    (deleteSelected)="deleteSelected.emit()"
+  ></app-admin-prayer-editor-bulk-bar>
+}
+
+<app-admin-prayer-editor-results
+  #resultsRef
+  [searching]="searching"
+  [displayPrayers]="displayPrayers"
+  [allPrayersCount]="allPrayersCount"
+  [searchTerm]="searchTerm"
+  [statusFilter]="statusFilter"
+  [approvalFilter]="approvalFilter"
+  [selectedPrayers]="selectedPrayers"
+  [expandedCards]="expandedCards"
+  [editingPrayer]="editingPrayer"
+  [addingUpdate]="addingUpdate"
+  [editForm]="editForm"
+  [newUpdate]="newUpdate"
+  [editUpdateForm]="editUpdateForm"
+  [editingUpdateId]="editingUpdateId"
+  [saving]="saving"
+  [savingUpdate]="savingUpdate"
+  [savingEditUpdate]="savingEditUpdate"
+  [deleting]="deleting"
+  (cardAction)="cardAction.emit($event)"
+></app-admin-prayer-editor-results>
+
+@if (allPrayersCount > 0) {
+  <app-admin-prayer-editor-pagination
+    [totalItems]="totalItems"
+    [currentPage]="currentPage"
+    [pageSize]="pageSize"
+    [totalPages]="totalPages"
+    [isFirstPage]="isFirstPage"
+    [isLastPage]="isLastPage"
+    [paginationRange]="paginationRange"
+    [selectedCount]="selectedPrayers.size"
+    (pageSizeChange)="pageSizeChange.emit($event)"
+    (previousPage)="previousPage.emit()"
+    (nextPage)="nextPage.emit()"
+    (goToPage)="goToPage.emit($event)"
+  ></app-admin-prayer-editor-pagination>
+}
+
+<app-admin-prayer-editor-delete-warning></app-admin-prayer-editor-delete-warning>

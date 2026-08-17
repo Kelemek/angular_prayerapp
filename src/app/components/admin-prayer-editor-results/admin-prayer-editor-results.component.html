@@ -1,0 +1,83 @@
+@if (searching) {
+<div class="flex flex-col items-center justify-center py-12">
+  <div
+    class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 dark:border-red-400 mb-4"
+  ></div>
+  <p class="text-gray-600 dark:text-gray-400">Loading prayer data...</p>
+</div>
+}
+@if (!searching && displayPrayers.length > 0) {
+<div class="space-y-1">
+  @for (prayer of displayPrayers; track prayer.id; let i = $index) {
+  <app-admin-prayer-editor-card
+    [prayer]="prayer"
+    [index]="i"
+    [selected]="selectedPrayers.has(prayer.id)"
+    [expanded]="expandedCards.has(prayer.id)"
+    [isEditing]="editingPrayer === prayer.id"
+    [isAddingUpdate]="addingUpdate === prayer.id"
+    [anyPrayerEditing]="!!editingPrayer"
+    [editForm]="editForm"
+    [newUpdate]="newUpdate"
+    [editUpdateForm]="editUpdateForm"
+    [editingUpdateId]="editingUpdateId"
+    [saving]="saving"
+    [savingUpdate]="savingUpdate"
+    [savingEditUpdate]="savingEditUpdate"
+    [deleting]="deleting"
+    (action)="cardAction.emit({ prayer, action: $event })"
+  ></app-admin-prayer-editor-card>
+  }
+</div>
+}
+
+@if (showNoSearchResultsEmpty) {
+<div class="text-center py-8 text-gray-500 dark:text-gray-400">
+  <svg
+    class="mx-auto mb-2 opacity-50"
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path
+      d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+    ></path>
+    <line x1="12" y1="9" x2="12" y2="13"></line>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+  <p>No prayers found</p>
+  <p class="text-sm mt-1">Try a different search term</p>
+</div>
+}
+@if (showInitialEmpty) {
+<div class="text-center py-8 text-gray-500 dark:text-gray-400">
+  <svg
+    class="mx-auto mb-2 opacity-50"
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <path d="m21 21-4.35-4.35"></path>
+  </svg>
+  <p>Search Prayers & Audit Log</p>
+  <div class="text-sm mt-2 space-y-1">
+    <p>• Select a filter from the dropdowns to automatically load results</p>
+    <p>
+      • Or search by title, requester, email, description, prayer updates, or
+      denial reasons
+    </p>
+    <p>• Select "Denied" to see all denied prayers and activities</p>
+  </div>
+</div>
+}

@@ -1,0 +1,19 @@
+@if (showSendWelcomeEmailDialog) {
+  <app-send-notification-dialog
+    [notificationType]="'subscriber'"
+    (confirm)="onConfirmWelcomeEmail()"
+    (decline)="onDeclineWelcomeEmail()"
+  ></app-send-notification-dialog>
+}
+
+@if (showConfirmationDialog) {
+  <app-confirmation-dialog
+    [title]="confirmationTitle"
+    [message]="confirmationMessage"
+    [details]="confirmationDetails"
+    [isDangerous]="isDeleteConfirmation"
+    [confirmText]="confirmationConfirmText"
+    (confirm)="onConfirmDialog()"
+    (cancel)="onCancelDialog()"
+  ></app-confirmation-dialog>
+}

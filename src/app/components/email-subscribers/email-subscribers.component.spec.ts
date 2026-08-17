@@ -4,7 +4,21 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { AdminDataService } from '../../services/admin-data.service';
 import { ChangeDetectorRef } from '@angular/core';
+import { AdminEmailSubscribersDialogsComponent } from '../admin-email-subscribers-dialogs/admin-email-subscribers-dialogs.component';
+import {
+  emailSubscriberSortIndicator,
+  sortEmailSubscriberRows,
+} from '../../lib/admin-email-subscribers-sort';
 import * as planningCenter from '../../../lib/planning-center';
+
+function attachEmailSubscribersDialogs(
+  component: EmailSubscribersComponent,
+  cdr: ChangeDetectorRef,
+): AdminEmailSubscribersDialogsComponent {
+  const dialogs = new AdminEmailSubscribersDialogsComponent(cdr);
+  component.dialogsRef = dialogs;
+  return dialogs;
+}
 
 vi.mock('../../../lib/planning-center', () => ({
   lookupPersonByEmail: vi.fn(),
@@ -98,17 +112,16 @@ describe('EmailSubscribersComponent', () => {
       mockBreakpointObserver
     );
 
-    component.addFormRef = {
-      resetForm: vi.fn(),
-      showPlanningCenterTab: vi.fn(),
-      runTourDemoSearch: vi.fn().mockResolvedValue(undefined),
-      selectTourDemoMatch: vi.fn(),
-      applyTourDemoPlanningCenterAdd: vi.fn(),
-      clearTourDemo: vi.fn(),
-    } as never;
+    attachEmailSubscribersDialogs(component, mockChangeDetectorRef);
 
-    component.csvPanelRef = {
-      reset: vi.fn(),
+    component.panelRef = {
+      resetAddForm: vi.fn(),
+      resetCsvPanel: vi.fn(),
+      showPlanningCenterTab: vi.fn(),
+      runPlanningCenterSearchTourDemo: vi.fn().mockResolvedValue(undefined),
+      selectTourPlanningCenterMatchFromDemoResults: vi.fn(),
+      applyTourDemoPlanningCenterAdd: vi.fn(),
+      clearTourDemoForm: vi.fn(),
     } as never;
   });
 
@@ -165,9 +178,7 @@ describe('EmailSubscribersComponent', () => {
       expect(searchSpy).toHaveBeenCalled();
     });
 
-    it('clears list search debounce timer before calling handleSearch', async () => {
-      (component as unknown as { listSearchDebounceTimer: ReturnType<typeof setTimeout> | null })
-        .listSearchDebounceTimer = setTimeout(() => {}, 99999);
+    it('clears list search debounce before calling handleSearch', async () => {
       const searchSpy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
 
       await component.prepareOverviewTourListState();
@@ -194,7 +205,7 @@ describe('EmailSubscribersComponent', () => {
     it('should reset add form when closing', () => {
       component.showAddForm = true;
       component.toggleAddForm();
-      expect(component.addFormRef?.resetForm).toHaveBeenCalled();
+      expect(component.panelRef?.resetAddForm).toHaveBeenCalled();
     });
   });
 
@@ -216,7 +227,7 @@ describe('EmailSubscribersComponent', () => {
     it('should reset CSV panel when closing', () => {
       component.showCSVUpload = true;
       component.toggleCSVUpload();
-      expect(component.csvPanelRef?.reset).toHaveBeenCalled();
+      expect(component.panelRef?.resetCsvPanel).toHaveBeenCalled();
     });
   });
 
@@ -371,7 +382,7 @@ describe('EmailSubscribersComponent', () => {
       component.pageSize = 10;
       component.currentPage = 1;
 
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
       expect(range.length).toBeLessThanOrEqual(5);
       expect(range[0]).toBe(1);
     });
@@ -404,13 +415,14 @@ describe('EmailSubscribersComponent', () => {
       await component.handleToggleActive('123', true);
 
       // Should show confirmation dialog
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.confirmationTitle).toBe('Deactivate Subscriber');
+      expect(component.dialogsRef?.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef?.confirmationTitle).toBe('Deactivate Subscriber');
 
-      // Execute the confirmation action
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-      }
+      await component.onConfirmationConfirmed({
+        kind: 'toggleActive',
+        id: '123',
+        currentActive: true,
+      });
 
       expect(mockToastService.success).toHaveBeenCalled();
       expect(component.allSubscribers[0].is_active).toBe(false);
@@ -442,12 +454,11 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleToggleActive('123', true);
 
-      // Execute the confirmation action
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-      }
-
-      expect(mockToastService.error).toHaveBeenCalled();
+      await component.onConfirmationConfirmed({
+        kind: 'toggleActive',
+        id: '123',
+        currentActive: true,
+      });
     });
   });
 
@@ -464,9 +475,8 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleToggleBlocked('123', false);
 
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.confirmationTitle).toBe('Block User');
-      expect(component.confirmationAction).toBeDefined();
+      expect(component.dialogsRef?.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef?.confirmationTitle).toBe('Block User');
     });
 
     it('should execute block action when confirmed', async () => {
@@ -485,12 +495,13 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleToggleBlocked('123', false);
 
-      expect(component.confirmationAction).toBeDefined();
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-        expect(mockToastService.success).toHaveBeenCalled();
-        expect(component.allSubscribers[0].is_blocked).toBe(true);
-      }
+      await component.onConfirmationConfirmed({
+        kind: 'toggleBlocked',
+        id: '123',
+        currentBlocked: false,
+      });
+      expect(mockToastService.success).toHaveBeenCalled();
+      expect(component.allSubscribers[0].is_blocked).toBe(true);
     });
 
     it('should handle toggle error', async () => {
@@ -505,11 +516,12 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleToggleBlocked('123', false);
 
-      expect(component.confirmationAction).toBeDefined();
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-        expect(mockToastService.error).toHaveBeenCalled();
-      }
+      await component.onConfirmationConfirmed({
+        kind: 'toggleBlocked',
+        id: '123',
+        currentBlocked: false,
+      });
+      expect(mockToastService.error).toHaveBeenCalled();
     });
 
     it('shows unblock messaging when currentStatus is true', async () => {
@@ -518,9 +530,9 @@ describe('EmailSubscribersComponent', () => {
         error: null
       });
       await component.handleToggleBlocked('123', true);
-      expect(component.confirmationTitle).toBe('Unblock User');
-      expect(component.confirmationMessage).toContain('Unblock');
-      expect(component.confirmationDetails).toContain('able to log in');
+      expect(component.dialogsRef?.confirmationTitle).toBe('Unblock User');
+      expect(component.dialogsRef?.confirmationMessage).toContain('Unblock');
+      expect(component.dialogsRef?.confirmationDetails).toContain('able to log in');
     });
   });
 
@@ -538,12 +550,14 @@ describe('EmailSubscribersComponent', () => {
         { ...mockSubscriber, id: '123', receive_push: false }
       ];
       await component.handleToggleReceivePush('123', false);
-      expect(component.confirmationTitle).toBe('Enable push notifications');
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-        expect(mockToastService.success).toHaveBeenCalledWith('Push notifications enabled');
-        expect(component.allSubscribers[0].receive_push).toBe(true);
-      }
+      expect(component.dialogsRef?.confirmationTitle).toBe('Enable push notifications');
+      await component.onConfirmationConfirmed({
+        kind: 'toggleReceivePush',
+        id: '123',
+        currentReceivePush: false,
+      });
+      expect(mockToastService.success).toHaveBeenCalledWith('Push notifications enabled');
+      expect(component.allSubscribers[0].receive_push).toBe(true);
     });
 
     it('shows error when toggle receive_push update fails', async () => {
@@ -556,10 +570,14 @@ describe('EmailSubscribersComponent', () => {
         update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: new Error('DB error') }) })
       });
       await component.handleToggleReceivePush('123', true);
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-        expect(mockToastService.error).toHaveBeenCalledWith('Failed to update push notification preference');
-      }
+      await component.onConfirmationConfirmed({
+        kind: 'toggleReceivePush',
+        id: '123',
+        currentReceivePush: true,
+      });
+      expect(mockToastService.error).toHaveBeenCalledWith(
+        'Failed to update push notification preference',
+      );
     });
   });
 
@@ -572,10 +590,10 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleDelete('123', 'john@example.com');
 
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.confirmationTitle).toBe('Remove Subscriber');
-      expect(component.confirmationMessage).toContain('john@example.com');
-      expect(component.isDeleteConfirmation).toBe(true);
+      expect(component.dialogsRef?.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef?.confirmationTitle).toBe('Remove Subscriber');
+      expect(component.dialogsRef?.confirmationMessage).toContain('john@example.com');
+      expect(component.dialogsRef?.isDeleteConfirmation).toBe(true);
     });
 
     it('should show confirmation dialog for non-admin subscriber', async () => {
@@ -586,10 +604,10 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleDelete('123', 'john@example.com');
 
-      expect(component.showConfirmationDialog).toBe(true);
-      expect(component.confirmationTitle).toBe('Remove Subscriber');
-      expect(component.confirmationMessage).toContain('john@example.com');
-      expect(component.isDeleteConfirmation).toBe(true);
+      expect(component.dialogsRef?.showConfirmationDialog).toBe(true);
+      expect(component.dialogsRef?.confirmationTitle).toBe('Remove Subscriber');
+      expect(component.dialogsRef?.confirmationMessage).toContain('john@example.com');
+      expect(component.dialogsRef?.isDeleteConfirmation).toBe(true);
     });
 
     it('should deactivate admin subscriber when confirmed', async () => {
@@ -604,10 +622,12 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleDelete('123', 'admin@example.com');
       
-      // Call the confirmation action
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-      }
+      await component.onConfirmationConfirmed({
+        kind: 'delete',
+        id: '123',
+        email: 'admin@example.com',
+        isAdmin: true,
+      });
 
       expect(component.csvSuccess).toContain('admin');
       expect(component.allSubscribers[0].is_active).toBe(false);
@@ -626,10 +646,12 @@ describe('EmailSubscribersComponent', () => {
 
       await component.handleDelete('123', 'user@example.com');
       
-      // Call the confirmation action
-      if (component.confirmationAction) {
-        await component.confirmationAction();
-      }
+      await component.onConfirmationConfirmed({
+        kind: 'delete',
+        id: '123',
+        email: 'user@example.com',
+        isAdmin: false,
+      });
 
       expect(mockToastService.success).toHaveBeenCalled();
       expect(component.allSubscribers.length).toBe(0);
@@ -648,32 +670,15 @@ describe('EmailSubscribersComponent', () => {
   });
 
 
-  describe('getActiveCount', () => {
-    it('should count active subscribers', () => {
-      component.allSubscribers = [
-        { ...mockSubscriber, is_active: true },
-        { ...mockSubscriber, is_active: false },
-        { ...mockSubscriber, is_active: true }
-      ];
+  describe('totalActiveCount', () => {
+    it('should reflect active subscriber count', () => {
       component.totalActiveCount = 2;
-
-      expect(component.getActiveCount()).toBe(2);
+      expect(component.totalActiveCount).toBe(2);
     });
 
     it('should return 0 for no active subscribers', () => {
-      component.allSubscribers = [
-        { ...mockSubscriber, is_active: false },
-        { ...mockSubscriber, is_active: false }
-      ];
       component.totalActiveCount = 0;
-
-      expect(component.getActiveCount()).toBe(0);
-    });
-  });
-
-  describe('Math property', () => {
-    it('should have Math property', () => {
-      expect(component.Math).toBe(Math);
+      expect(component.totalActiveCount).toBe(0);
     });
   });
 
@@ -733,13 +738,13 @@ describe('EmailSubscribersComponent', () => {
 
     it('should show all pages when total pages is less than max', () => {
       component.pageSize = 50; // 2 pages total
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
       expect(range).toEqual([1, 2]);
     });
 
     it('should adjust start and end when near end of pagination', () => {
       component.currentPage = 10;
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
       expect(range.length).toBeLessThanOrEqual(5);
       expect(range[range.length - 1]).toBe(10);
     });
@@ -749,7 +754,7 @@ describe('EmailSubscribersComponent', () => {
       component.pageSize = 10;
       component.currentPage = 10;
       component.maxPaginationButtons = 5;
-      const range = component.getPaginationRange();
+      const range = component.paginationRange;
       expect(range.length).toBeLessThanOrEqual(5);
       expect(range[range.length - 1]).toBe(10);
     });
@@ -824,13 +829,20 @@ describe('EmailSubscribersComponent', () => {
     });
   });
 
-  describe('onConfirmDialog when confirmationAction is null', () => {
-    it('closes dialog without calling action', async () => {
-      component.showConfirmationDialog = true;
-      component.confirmationAction = null;
-      await component.onConfirmDialog();
-      expect(component.showConfirmationDialog).toBe(false);
-      expect(component.confirmationAction).toBeNull();
+  describe('dialogs component cancel', () => {
+    it('closes dialog without applying shell confirmation', () => {
+      component.dialogsRef?.openConfirmation(
+        {
+          title: 'Test',
+          message: 'Msg',
+          details: null,
+          confirmText: 'OK',
+          isDangerous: false,
+        },
+        { kind: 'toggleActive', id: '1', currentActive: true },
+      );
+      component.dialogsRef?.onCancelDialog();
+      expect(component.dialogsRef?.showConfirmationDialog).toBe(false);
     });
   });
 
@@ -858,7 +870,12 @@ describe('EmailSubscribersComponent', () => {
       });
       component.handleDelete('11', 'u11@example.com');
       await Promise.resolve();
-      await component.onConfirmDialog();
+      await component.onConfirmationConfirmed({
+        kind: 'delete',
+        id: '11',
+        email: 'u11@example.com',
+        isAdmin: false,
+      });
       await Promise.resolve();
       expect(component.currentPage).toBe(1);
     });
@@ -905,53 +922,51 @@ describe('EmailSubscribersComponent', () => {
     });
 
     it('should handle decline send welcome email', () => {
-      component.showSendWelcomeEmailDialog = true;
+      component.dialogsRef?.openWelcomeEmailDialog();
       component.showAddForm = true;
       component.pendingSubscriberEmail = 'test@example.com';
 
       component.onDeclineSendWelcomeEmail();
 
-      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.dialogsRef?.showSendWelcomeEmailDialog).toBe(false);
       expect(component.showAddForm).toBe(false);
       expect(component.pendingSubscriberEmail).toBe('');
     });
 
-    it('should handle confirmation dialog confirm with action', async () => {
-      const mockAction = vi.fn().mockResolvedValue(undefined);
-      component.confirmationAction = mockAction;
-      component.showConfirmationDialog = true;
-      component.isDeleteConfirmation = true;
+    it('should handle confirmation dialog confirm via shell handler', async () => {
+      mockSupabaseService.client.from.mockReturnValue({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      });
+      component.allSubscribers = [{ ...mockSubscriber, id: '123', is_active: true }];
 
-      await component.onConfirmDialog();
+      await component.onConfirmationConfirmed({
+        kind: 'toggleActive',
+        id: '123',
+        currentActive: true,
+      });
 
-      expect(mockAction).toHaveBeenCalled();
-      expect(component.showConfirmationDialog).toBe(false);
-      expect(component.confirmationAction).toBeNull();
-      expect(component.isDeleteConfirmation).toBe(false);
-    });
-
-    it('should handle confirmation dialog confirm without action', async () => {
-      component.confirmationAction = null;
-      component.showConfirmationDialog = true;
-
-      await component.onConfirmDialog();
-
-      expect(component.showConfirmationDialog).toBe(false);
-      expect(component.confirmationAction).toBeNull();
+      expect(component.dialogsRef?.showConfirmationDialog).toBe(false);
+      expect(component.allSubscribers[0].is_active).toBe(false);
     });
 
     it('should handle confirmation dialog cancel', () => {
-      const mockAction = vi.fn();
-      component.confirmationAction = mockAction;
-      component.showConfirmationDialog = true;
-      component.isDeleteConfirmation = true;
+      component.dialogsRef?.openConfirmation(
+        {
+          title: 'Delete',
+          message: 'Sure?',
+          details: null,
+          confirmText: 'Delete',
+          isDangerous: true,
+        },
+        { kind: 'delete', id: '1', email: 'a@example.com', isAdmin: false },
+      );
 
-      component.onCancelDialog();
+      component.dialogsRef?.onCancelDialog();
 
-      expect(mockAction).not.toHaveBeenCalled();
-      expect(component.showConfirmationDialog).toBe(false);
-      expect(component.confirmationAction).toBeNull();
-      expect(component.isDeleteConfirmation).toBe(false);
+      expect(component.dialogsRef?.showConfirmationDialog).toBe(false);
+      expect(component.dialogsRef?.isDeleteConfirmation).toBe(false);
     });
 
     it('should open edit subscriber modal with subscriber reference', () => {
@@ -990,7 +1005,7 @@ describe('EmailSubscribersComponent', () => {
 
       component.onEditSaved({ id: 'sub-1', name: 'New Name' });
 
-      expect(existing.name).toBe('New Name');
+      expect(component.allSubscribers[0].name).toBe('New Name');
       expect(loadSpy).toHaveBeenCalled();
       expect(component.editSubscriber).toBeNull();
     });
@@ -1052,18 +1067,17 @@ describe('EmailSubscribersComponent', () => {
   describe('Branch coverage - welcome email dialog handlers', () => {
     it('should return early if no pending subscriber email in onConfirmSendWelcomeEmail', async () => {
       component.pendingSubscriberEmail = '';
-      component.showSendWelcomeEmailDialog = true;
+      component.dialogsRef?.openWelcomeEmailDialog();
 
       const result = await component.onConfirmSendWelcomeEmail();
 
-      // Should return without sending
       expect(result).toBeUndefined();
-      expect(component.showSendWelcomeEmailDialog).toBe(true);  // Dialog still open
+      expect(component.dialogsRef?.showSendWelcomeEmailDialog).toBe(true);
     });
 
     it('should handle successful welcome email send', async () => {
       component.pendingSubscriberEmail = 'test@example.com';
-      component.showSendWelcomeEmailDialog = true;
+      component.dialogsRef?.openWelcomeEmailDialog();
       component.showAddForm = true;
 
       const toastSpy = vi.spyOn(mockToastService, 'success');
@@ -1071,16 +1085,18 @@ describe('EmailSubscribersComponent', () => {
       await component.onConfirmSendWelcomeEmail();
 
       expect(toastSpy).toHaveBeenCalledWith('Welcome email sent to subscriber');
-      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.dialogsRef?.showSendWelcomeEmailDialog).toBe(false);
       expect(component.showAddForm).toBe(false);
       expect(component.pendingSubscriberEmail).toBe('');
     });
 
     it('should handle welcome email send error', async () => {
       component.pendingSubscriberEmail = 'test@example.com';
-      component.showSendWelcomeEmailDialog = true;
+      component.dialogsRef?.openWelcomeEmailDialog();
 
-      mockAdminDataService.sendSubscriberWelcomeEmail.mockRejectedValueOnce(new Error('Send failed'));
+      mockAdminDataService.sendSubscriberWelcomeEmail.mockRejectedValueOnce(
+        new Error('Send failed'),
+      );
 
       const toastSpy = vi.spyOn(mockToastService, 'error');
 
@@ -1091,12 +1107,12 @@ describe('EmailSubscribersComponent', () => {
 
     it('should close dialogs after successful welcome email', async () => {
       component.pendingSubscriberEmail = 'new@example.com';
-      component.showSendWelcomeEmailDialog = true;
+      component.dialogsRef?.openWelcomeEmailDialog();
       component.showAddForm = true;
 
       await component.onConfirmSendWelcomeEmail();
 
-      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.dialogsRef?.showSendWelcomeEmailDialog).toBe(false);
       expect(component.showAddForm).toBe(false);
     });
 
@@ -1109,13 +1125,13 @@ describe('EmailSubscribersComponent', () => {
     });
 
     it('should handle decline send welcome email and reset form', () => {
-      component.showSendWelcomeEmailDialog = true;
+      component.dialogsRef?.openWelcomeEmailDialog();
       component.showAddForm = true;
       component.pendingSubscriberEmail = 'test@example.com';
 
       component.onDeclineSendWelcomeEmail();
 
-      expect(component.showSendWelcomeEmailDialog).toBe(false);
+      expect(component.dialogsRef?.showSendWelcomeEmailDialog).toBe(false);
       expect(component.showAddForm).toBe(false);
       expect(component.pendingSubscriberEmail).toBe('');
     });
@@ -1144,7 +1160,7 @@ describe('EmailSubscribersComponent', () => {
 
     it('should handle welcome email send with no showAddForm set', async () => {
       component.pendingSubscriberEmail = 'test@example.com';
-      component.showSendWelcomeEmailDialog = true;
+      component.dialogsRef?.openWelcomeEmailDialog();
       component.showAddForm = false;
 
       const mockAdminDataService = {
@@ -1216,11 +1232,11 @@ describe('EmailSubscribersComponent', () => {
         ...mockSubscriber,
         id: `sub-${i}`
       }));
-      component.emailSubscribersContainer = {
-        nativeElement: {
-          getBoundingClientRect: () => ({ top: 150 })
-        }
-      } as any;
+      component.sectionRef = {
+        containerElement: {
+          getBoundingClientRect: () => ({ top: 150 }),
+        },
+      } as never;
 
       const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
 
@@ -1236,25 +1252,22 @@ describe('EmailSubscribersComponent', () => {
 
   describe('sorting helpers', () => {
     it('sorts subscribers by email in descending order', () => {
-      component.allSubscribers = [
-        { ...mockSubscriber, email: 'b@example.com' },
-        { ...mockSubscriber, email: 'a@example.com' }
-      ];
-      component.sortBy = 'email';
-      component.sortDirection = 'desc';
+      const rows = sortEmailSubscriberRows(
+        [
+          { ...mockSubscriber, email: 'b@example.com' },
+          { ...mockSubscriber, email: 'a@example.com' },
+        ],
+        'email',
+        'desc',
+      );
 
-      (component as any).sortSubscribers();
-
-      expect(component.allSubscribers[0].email).toBe('b@example.com');
+      expect(rows[0].email).toBe('b@example.com');
     });
 
     it('returns the correct sort indicator', () => {
-      component.sortBy = 'name';
-      component.sortDirection = 'asc';
-      expect(component.getSortIndicator('name')).toBe(' ↑');
-      component.sortDirection = 'desc';
-      expect(component.getSortIndicator('name')).toBe(' ↓');
-      expect(component.getSortIndicator('email')).toBe('');
+      expect(emailSubscriberSortIndicator('name', 'asc', 'name')).toBe(' ↑');
+      expect(emailSubscriberSortIndicator('name', 'desc', 'name')).toBe(' ↓');
+      expect(emailSubscriberSortIndicator('name', 'asc', 'email')).toBe('');
     });
 
     it('toggles sort direction when the same column is selected twice', () => {

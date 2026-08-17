@@ -1,0 +1,19 @@
+<app-admin-email-templates-section
+  [expanded]="sectionExpanded"
+  (toggle)="onSectionToggle()"
+>
+  <app-admin-email-templates-panel
+    [loading]="loading"
+    [error]="error"
+    [templates]="templates"
+    [selectedTemplate]="selectedTemplate"
+    [editedTemplate]="editedTemplate"
+    [showPreview]="showPreview"
+    [saving]="saving"
+    [success]="success"
+    (selectTemplate)="handleSelectTemplate($event)"
+    (togglePreview)="onTogglePreview()"
+    (save)="handleSave()"
+    (revert)="handleRevert()"
+  ></app-admin-email-templates-panel>
+</app-admin-email-templates-section>

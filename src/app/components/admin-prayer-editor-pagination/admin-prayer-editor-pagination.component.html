@@ -1,0 +1,81 @@
+<div
+  class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4"
+>
+  <div class="flex items-center justify-between text-sm">
+    <span class="text-gray-600 dark:text-gray-400">
+      Found:
+      <span class="font-semibold">{{ totalItems }}</span> prayer(s) | Showing:
+      <span class="font-semibold">{{ showingStart }}-{{ showingEnd }}</span>
+    </span>
+    @if (selectedCount > 0) {
+      <span class="text-red-600 dark:text-red-400">
+        Selected:
+        <span class="font-semibold">{{ selectedCount }}</span>
+      </span>
+    }
+  </div>
+
+  <div class="flex items-center gap-2">
+    <label for="pageSize" class="text-sm text-gray-600 dark:text-gray-400"
+      >Items per page:</label
+    >
+    <select
+      id="pageSize"
+      [ngModel]="pageSize"
+      (ngModelChange)="pageSizeChange.emit($event)"
+      class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+    >
+      <option [ngValue]="10">10</option>
+      <option [ngValue]="50">50</option>
+      <option [ngValue]="100">100</option>
+    </select>
+  </div>
+
+  @if (totalPages > 1) {
+    <div class="flex items-center justify-between">
+      <div class="flex gap-2">
+        <button
+          type="button"
+          (click)="previousPage.emit()"
+          [disabled]="isFirstPage"
+          class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          <span class="hidden sm:inline">← Previous</span>
+          <span class="sm:hidden">←</span>
+        </button>
+        <button
+          type="button"
+          (click)="nextPage.emit()"
+          [disabled]="isLastPage"
+          class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          <span class="hidden sm:inline">Next →</span>
+          <span class="sm:hidden">→</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-gray-600 dark:text-gray-400 text-sm">
+          Page <span class="font-semibold">{{ currentPage }}</span> of
+          <span class="font-semibold">{{ totalPages }}</span>
+        </span>
+
+        <div class="flex gap-1">
+          @for (page of paginationRange; track page) {
+            <button
+              type="button"
+              (click)="goToPage.emit(page)"
+              [class]="
+                page === currentPage
+                  ? 'px-3 py-1 bg-red-600 text-white rounded-lg text-sm'
+                  : 'px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm'
+              "
+            >
+              {{ page }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

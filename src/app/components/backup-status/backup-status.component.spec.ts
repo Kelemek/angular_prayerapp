@@ -1,5 +1,25 @@
 import { vi, describe, it, beforeEach, expect, afterEach } from 'vitest';
 import { BackupStatusComponent } from './backup-status.component';
+import { AdminBackupStatusDialogsComponent } from '../admin-backup-status-dialogs/admin-backup-status-dialogs.component';
+
+function makeMockCdr() {
+  return { markForCheck: vi.fn() };
+}
+
+function createBackupStatusComponent(
+  supabaseService: unknown,
+  toast: unknown,
+): BackupStatusComponent {
+  const component = new BackupStatusComponent(
+    supabaseService as never,
+    toast as never,
+    makeMockCdr() as never,
+  );
+  component.dialogsRef = new AdminBackupStatusDialogsComponent(
+    makeMockCdr() as never,
+  );
+  return component;
+}
 
 // Helper function to create File objects with text() method for testing
 const createMockFile = (content: string | object, filename: string = 'backup.json'): File => {
@@ -56,7 +76,7 @@ describe('BackupStatusComponent', () => {
       warning: vi.fn(),
     };
 
-    component = new BackupStatusComponent(supabaseService as any, toast as any);
+    component = createBackupStatusComponent(supabaseService, toast);
 
     originalConfirm = window.confirm;
     fetchSpy = vi.spyOn(globalThis, 'fetch');
@@ -136,9 +156,11 @@ describe('BackupStatusComponent', () => {
     expect(toast.error).toHaveBeenCalledWith('Failed to load backup logs');
   });
 
-  it('handleManualBackup returns early when confirm false', async () => {
-    window.confirm = vi.fn().mockReturnValue(false);
+  it('handleManualBackup cancel does not start backup', async () => {
     await component.handleManualBackup();
+    expect(component.dialogsRef!.showBackupConfirmDialog).toBe(true);
+    component.onCancelBackup();
+    expect(component.dialogsRef!.showBackupConfirmDialog).toBe(false);
     expect(component.backingUp).toBe(false);
   });
 
@@ -173,8 +195,8 @@ describe('BackupStatusComponent', () => {
 
     await component.handleManualBackup();
 
-    expect(component.showBackupConfirmDialog).toBe(true);
-    expect(component.backupConfirmTitle).toBe('Create Manual Backup');
+    expect(component.dialogsRef!.showBackupConfirmDialog).toBe(true);
+    expect(component.dialogsRef!.backupConfirmTitle).toBe('Create Manual Backup');
   });
 
   it('onConfirmBackup successfully creates a backup', async () => {
@@ -216,7 +238,7 @@ describe('BackupStatusComponent', () => {
     const evt: any = { target: input };
 
     await component.handleManualRestore(evt as Event);
-    expect(component.showRestoreConfirmDialog).toBe(true);
+    expect(component.dialogsRef!.showRestoreConfirmDialog).toBe(true);
     expect(component.restoreFileName).toBe('b.json');
   });
 
@@ -321,7 +343,7 @@ describe('BackupStatusComponent - extra branches', () => {
 
     toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn() };
 
-    component = new BackupStatusComponent(supabaseService as any, toast as any);
+    component = createBackupStatusComponent(supabaseService, toast);
   });
 
   it('handleManualBackup calls supabase insert with success on normal flow', async () => {
@@ -462,8 +484,8 @@ describe('BackupStatusComponent', () => {
       warning: vi.fn()
     };
 
-    component = new BackupStatusComponent(mockSupabaseService, mockToastService);
-    
+    component = createBackupStatusComponent(mockSupabaseService, mockToastService);
+
     global.fetch = vi.fn();
     global.confirm = vi.fn().mockReturnValue(true);
     global.URL.createObjectURL = vi.fn().mockReturnValue('blob:test');
@@ -487,7 +509,7 @@ describe('BackupStatusComponent', () => {
       expect(component.loading).toBe(false);
       expect(component.backingUp).toBe(false);
       expect(component.restoring).toBe(false);
-      expect(component.showRestoreDialog).toBe(false);
+      expect(component.dialogsRef!.showRestoreDialog).toBe(false);
     });
   });
 
@@ -768,11 +790,11 @@ describe('BackupStatusComponent', () => {
 
       await component.handleManualRestore(mockEvent);
       
-      expect(component.showRestoreConfirmDialog).toBe(true);
+      expect(component.dialogsRef!.showRestoreConfirmDialog).toBe(true);
       expect(component.restoreFileName).toBe('backup.json');
 
       component.onCancelRestore();
-      expect(component.showRestoreConfirmDialog).toBe(false);
+      expect(component.dialogsRef!.showRestoreConfirmDialog).toBe(false);
     });
 
     it('should handle invalid backup format', async () => {

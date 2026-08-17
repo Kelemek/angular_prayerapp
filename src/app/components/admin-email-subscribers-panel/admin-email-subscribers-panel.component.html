@@ -1,0 +1,73 @@
+<app-admin-email-subscribers-toolbar
+  [showCSVUpload]="showCSVUpload"
+  [showAddForm]="showAddForm"
+  (toggleCsv)="toggleCsv.emit()"
+  (toggleAdd)="toggleAdd.emit()"
+></app-admin-email-subscribers-toolbar>
+
+<app-admin-email-subscribers-error-banner [message]="error"></app-admin-email-subscribers-error-banner>
+
+<app-admin-email-subscribers-success-banner
+  [message]="csvSuccess"
+  [warnings]="csvImportWarnings"
+></app-admin-email-subscribers-success-banner>
+
+@if (showCSVUpload) {
+  <app-admin-email-subscribers-csv-panel
+    #csvPanelRef
+    (uploaded)="csvUploaded.emit($event)"
+    (error)="csvError.emit($event)"
+  />
+}
+
+@if (showAddForm) {
+  <app-admin-email-subscribers-add-form
+    #addFormRef
+    (subscriberAdded)="subscriberAdded.emit($event)"
+    (cancel)="addFormCancel.emit()"
+    (reportError)="addFormError.emit($event)"
+  />
+}
+
+<app-admin-email-subscribers-list-search
+  [searchQuery]="searchQuery"
+  [searching]="searching"
+  (searchQueryChange)="searchQueryChange.emit($event)"
+  (searchKeydown)="searchKeydown.emit($event)"
+  (clearSearch)="clearSearch.emit()"
+></app-admin-email-subscribers-list-search>
+
+<app-admin-email-subscribers-list
+  [searching]="searching"
+  [hasSearched]="hasSearched"
+  [subscribers]="subscribers"
+  [sortBy]="sortBy"
+  [sortDirection]="sortDirection"
+  (sortColumn)="sortColumn.emit($event)"
+  (rowAction)="rowAction.emit($event)"
+></app-admin-email-subscribers-list>
+
+@if (showListPagination) {
+  <app-admin-email-subscribers-pagination
+    [totalItems]="totalItems"
+    [currentPage]="currentPage"
+    [pageSize]="pageSize"
+    [totalPages]="totalPages"
+    [isFirstPage]="isFirstPage"
+    [isLastPage]="isLastPage"
+    [paginationRange]="paginationRange"
+    [activeCount]="activeCount"
+    (pageSizeChange)="pageSizeChange.emit($event)"
+    (previousPage)="previousPage.emit()"
+    (nextPage)="nextPage.emit()"
+    (goToPage)="goToPage.emit($event)"
+  ></app-admin-email-subscribers-pagination>
+}
+
+@if (editSubscriber) {
+  <app-admin-email-subscriber-edit-modal
+    [subscriber]="editSubscriber"
+    (saved)="editSaved.emit($event)"
+    (closed)="editClosed.emit()"
+  />
+}
