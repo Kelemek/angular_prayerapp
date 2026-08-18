@@ -21,7 +21,7 @@
                       "
                     >
                       <!-- Edit Mode Form -->
-                      @if (card.editingUpdateId === update.id) {
+                      @if (editingUpdateId === update.id) {
                       <div class="space-y-3">
                         <div class="flex items-center justify-between mb-2">
                           <h6
@@ -33,7 +33,7 @@
                             <button
                               (click)="card.onSaveEditUpdateClick(update.id)"
                               [disabled]="
-                                !card.isEditUpdateFormValid() || card.savingEditUpdate
+                                !card.isEditUpdateFormValid() || savingEditUpdate
                               "
                               class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
@@ -55,11 +55,11 @@
                                 ></polyline>
                                 <polyline points="7 3 7 8 15 8"></polyline>
                               </svg>
-                              {{ card.savingEditUpdate ? "Saving..." : "Save" }}
+                              {{ savingEditUpdate ? "Saving..." : "Save" }}
                             </button>
                             <button
                               (click)="card.onCancelEditUpdateClick()"
-                              [disabled]="card.savingEditUpdate"
+                              [disabled]="savingEditUpdate"
                               class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
                             >
                               <svg
@@ -133,7 +133,7 @@
                       }
 
                       <!-- View Mode -->
-                      @if (card.editingUpdateId !== update.id) {
+                      @if (editingUpdateId !== update.id) {
                       <div class="flex justify-between items-start mb-2">
                         <div class="flex items-center gap-2">
                           <span
@@ -160,7 +160,7 @@
                           </span>
                           <button
                             (click)="card.onStartEditUpdateClick(update)"
-                            [disabled]="card.deleting || card.savingEditUpdate"
+                            [disabled]="deleting || savingEditUpdate"
                             class="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors disabled:opacity-50"
                             title="Edit this update"
                           >
@@ -186,7 +186,7 @@
                             (click)="
                               card.onDeleteUpdateClick(update.id, update.content)
                             "
-                            [disabled]="card.deleting"
+                            [disabled]="deleting"
                             class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
                             title="Delete this update"
                           >

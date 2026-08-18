@@ -1,0 +1,94 @@
+<div class="flex items-center justify-between gap-3 px-4 pt-4 pb-2 modal-chrome-border-b shrink-0">
+  @if (phase === 'done') {
+    <h2
+      id="memorize-practice-dialog-title"
+      class="min-w-0 flex-1 text-lg font-semibold text-gray-900 dark:text-gray-100"
+      data-testid="memorize-done-title"
+    >
+      Finished
+    </h2>
+  } @else {
+    <div class="flex min-w-0 flex-1 items-center gap-2">
+      @if (session.showListenOpeners) {
+        <button
+          type="button"
+          data-tour="memorize-listen-open"
+          data-testid="memorize-listen-open"
+          (click)="session.openListenPanel()"
+          [attr.aria-expanded]="listenPanelOpen"
+          [attr.aria-controls]="session.MEMORIZE_LISTEN_CONTROLS_DIALOG_ID"
+          aria-label="Open Listen controls for this verse"
+          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-inset-surface cursor-pointer"
+        >
+          Listen
+        </button>
+      }
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      @if (phase === 'practicing' && displayPracticeErrors > 0) {
+        <span
+          data-testid="memorize-error-count"
+          class="text-sm text-red-600 dark:text-red-400 font-medium tabular-nums"
+          aria-live="polite"
+        >
+          Errors: {{ displayPracticeErrors }}
+        </span>
+      }
+      @if (session.showStartOver) {
+        <button
+          type="button"
+          data-testid="memorize-start-over"
+          (click)="session.handleStartOver()"
+          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-inset-surface cursor-pointer"
+        >
+          Start over
+        </button>
+      }
+      @if (
+        phase === 'practicing' &&
+        !awaitingRoundAdvance &&
+        (practiceMode === 'type' ||
+          practiceMode === 'firstLetters' ||
+          practiceMode === 'word' ||
+          practiceMode === 'reorder' ||
+          (practiceMode === 'recite' && recitePhase === 'ready'))
+      ) {
+        <button
+          #hintButton
+          type="button"
+          data-testid="memorize-hint-button"
+          tabindex="-1"
+          class="px-3 py-1.5 {{ session.practiceBlueBtnHintClass }}"
+          [attr.aria-pressed]="hintActive"
+          [attr.aria-label]="
+            practiceMode === 'reorder'
+              ? 'Hold to peek at the correct phrase for the first section still out of order'
+              : 'Hold to peek at hidden words; adds the next word every second'
+          "
+          [title]="
+            practiceMode === 'reorder'
+              ? 'Hold to peek at the first wrong section'
+              : 'Hold to peek; next blank every 1s while held'
+          "
+          (pointerdown)="session.onHintPointerDown($event)"
+          (pointerup)="session.onHintPointerUp($event)"
+          (pointerleave)="session.onHintPointerLeave($event)"
+          (pointercancel)="session.onHintPointerUp($event)"
+        >
+          Hint
+        </button>
+      }
+    </div>
+  }
+  <button
+    type="button"
+    data-tour="memorize-practice-close"
+    (click)="session.handleClose()"
+    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1 cursor-pointer shrink-0"
+    aria-label="Close"
+  >
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+</div>

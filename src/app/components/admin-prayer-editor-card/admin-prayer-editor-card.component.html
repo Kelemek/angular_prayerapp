@@ -7,8 +7,24 @@
                 : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800')
             "
           >
-            <app-admin-prayer-editor-card-header [card]="this" />
+            <app-admin-prayer-editor-card-header
+              [card]="this"
+              [selected]="selected"
+              [expanded]="expanded"
+              [saving]="saving"
+              [deleting]="deleting"
+            />
             @if (expanded) {
-            <app-admin-prayer-editor-card-expanded [card]="this" />
+            <app-admin-prayer-editor-card-expanded
+              [card]="this"
+              [isEditing]="isEditing"
+              [saving]="saving"
+              [anyPrayerEditing]="anyPrayerEditing"
+              [editingUpdateId]="editingUpdateId"
+              [deleting]="deleting"
+              [isAddingUpdate]="isAddingUpdate"
+              [savingUpdate]="savingUpdate"
+              [savingEditUpdate]="savingEditUpdate"
+            />
             }
           </div>

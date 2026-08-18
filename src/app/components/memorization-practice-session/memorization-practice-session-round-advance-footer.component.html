@@ -1,0 +1,37 @@
+<div class="shrink-0 modal-chrome-border-t px-4 py-3" data-testid="memorize-round-advance-footer">
+  <p
+    class="text-sm font-medium text-emerald-900 dark:text-emerald-100 text-center sm:text-left mb-3"
+    data-testid="memorize-round-affirmation"
+  >
+    {{ roundAffirmation }}
+  </p>
+  <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
+    <button
+      type="button"
+      (click)="session.repeatRound()"
+      class="w-full sm:w-auto px-4 py-3 rounded-lg font-medium border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+    >
+      Repeat this round
+    </button>
+    @if (showNextRoundOption) {
+      <button
+        type="button"
+        data-testid="memorize-next-round"
+        (click)="session.nextRound()"
+        class="w-full sm:w-auto px-4 py-3 {{ session.practiceBlueBtnClass }}"
+      >
+        Next round
+      </button>
+    }
+    @if (showFinishPracticeOption) {
+      <button
+        type="button"
+        data-testid="memorize-finish-practice"
+        (click)="session.finishPracticeSession()"
+        class="w-full sm:w-auto px-4 py-3 {{ session.practiceBlueBtnClass }}"
+      >
+        Finish practice
+      </button>
+    }
+  </div>
+</div>

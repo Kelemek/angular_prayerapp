@@ -5,7 +5,7 @@
                     card.index === 0 ? 'tour-prayer-editor-add-update-section' : null
                   "
                 >
-                  @if (card.isAddingUpdate) {
+                  @if (isAddingUpdate) {
                   <div
                     class="space-y-3"
                     [attr.id]="
@@ -22,7 +22,7 @@
                         <button
                           type="button"
                           (click)="card.onSaveNewUpdateClick()"
-                          [disabled]="!card.isUpdateFormValid() || card.savingUpdate"
+                          [disabled]="!card.isUpdateFormValid() || savingUpdate"
                           class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           <svg
@@ -41,7 +41,7 @@
                             <polyline points="17 21 17 13 7 13 7 21"></polyline>
                             <polyline points="7 3 7 8 15 8"></polyline>
                           </svg>
-                          {{ card.savingUpdate ? "Saving..." : "Save Update" }}
+                          {{ savingUpdate ? "Saving..." : "Save Update" }}
                         </button>
                         <button
                           type="button"
@@ -51,7 +51,7 @@
                               : null
                           "
                           (click)="card.onCancelAddUpdateClick()"
-                          [disabled]="card.savingUpdate"
+                          [disabled]="savingUpdate"
                           class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
                         >
                           <svg
@@ -168,7 +168,7 @@
                       ></app-rich-text-editor>
                     </div>
                   </div>
-                  } @if (!card.isAddingUpdate) {
+                  } @if (!isAddingUpdate) {
                   <button
                     type="button"
                     [attr.id]="

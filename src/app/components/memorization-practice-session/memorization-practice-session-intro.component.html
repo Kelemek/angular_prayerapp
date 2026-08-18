@@ -1,0 +1,19 @@
+<div>
+  <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+    <strong>Start practice</strong> when you're ready; <strong>Round</strong> sets where you begin in the
+    five-round run (1 is easiest).
+  </p>
+  @if (session.isBibleBooks) {
+    <div data-testid="memorize-intro-bible-books">
+      <app-bible-books-memorization-list [scope]="session.item.bibleBooksScope!" />
+    </div>
+  } @else {
+    <p
+      class="text-base leading-relaxed text-gray-800 dark:text-gray-100 font-serif"
+      data-testid="memorize-intro-text"
+    >
+      {{ session.formatMemorizationTokensPlain(session.tokens) }}
+    </p>
+    <app-scripture-attribution [translation]="session.item.translation" />
+  }
+</div>

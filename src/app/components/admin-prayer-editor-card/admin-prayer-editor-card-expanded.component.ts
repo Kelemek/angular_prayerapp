@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { Component, Input, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AdminPrayerEditorCardComponent } from './admin-prayer-editor-card.component';
 import { AdminPrayerEditorCardEditFormComponent } from './admin-prayer-editor-card-edit-form.component';
@@ -16,9 +16,29 @@ import { AdminPrayerEditorCardAddUpdateComponent } from './admin-prayer-editor-c
     AdminPrayerEditorCardUpdatesComponent,
     AdminPrayerEditorCardAddUpdateComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-prayer-editor-card-expanded.component.html',
 })
 export class AdminPrayerEditorCardExpandedComponent {
   @Input({ required: true }) card!: AdminPrayerEditorCardComponent;
+  @Input() isEditing = false;
+  @Input() saving = false;
+  @Input() anyPrayerEditing = false;
+  @Input() editingUpdateId: string | null = null;
+  @Input() deleting = false;
+  @Input() isAddingUpdate = false;
+  @Input() savingUpdate = false;
+  @Input() savingEditUpdate = false;
+
+  @ViewChild(AdminPrayerEditorCardEditFormComponent)
+  editFormPanel?: AdminPrayerEditorCardEditFormComponent;
+  @ViewChild(AdminPrayerEditorCardAddUpdateComponent)
+  addUpdatePanel?: AdminPrayerEditorCardAddUpdateComponent;
+
+  flushEditDescriptionEditor(): void {
+    this.editFormPanel?.flushDescriptionEditor();
+  }
+
+  resetAddUpdateSubscriberPick(): void {
+    this.addUpdatePanel?.resetSubscriberPick();
+  }
 }

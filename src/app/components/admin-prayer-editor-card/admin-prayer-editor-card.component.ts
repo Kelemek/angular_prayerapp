@@ -20,8 +20,6 @@ import {
 } from '../../lib/admin-prayer-editor-types';
 import { AdminPrayerEditorCardHeaderComponent } from './admin-prayer-editor-card-header.component';
 import { AdminPrayerEditorCardExpandedComponent } from './admin-prayer-editor-card-expanded.component';
-import { AdminPrayerEditorCardEditFormComponent } from './admin-prayer-editor-card-edit-form.component';
-import { AdminPrayerEditorCardAddUpdateComponent } from './admin-prayer-editor-card-add-update.component';
 
 @Component({
   selector: 'app-admin-prayer-editor-card',
@@ -53,10 +51,8 @@ export class AdminPrayerEditorCardComponent {
 
   @Output() action = new EventEmitter<PrayerEditorCardAction>();
 
-  @ViewChild(AdminPrayerEditorCardEditFormComponent)
-  editFormPanel?: AdminPrayerEditorCardEditFormComponent;
-  @ViewChild(AdminPrayerEditorCardAddUpdateComponent)
-  addUpdatePanel?: AdminPrayerEditorCardAddUpdateComponent;
+  @ViewChild(AdminPrayerEditorCardExpandedComponent)
+  expandedPanel?: AdminPrayerEditorCardExpandedComponent;
 
   getStatusColor(status: string): string {
     return prayerEditorStatusColor(status);
@@ -84,11 +80,11 @@ export class AdminPrayerEditorCardComponent {
   }
 
   resetAddUpdateSubscriberPick(): void {
-    this.addUpdatePanel?.resetSubscriberPick();
+    this.expandedPanel?.resetAddUpdateSubscriberPick();
   }
 
   flushEditDescriptionEditor(): void {
-    this.editFormPanel?.flushDescriptionEditor();
+    this.expandedPanel?.flushEditDescriptionEditor();
   }
 
   onExpandClick(): void {

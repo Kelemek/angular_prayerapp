@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   Input,
   ViewChild,
@@ -19,11 +18,12 @@ import { AdminPrayerEditorCardComponent } from './admin-prayer-editor-card.compo
     AdminSubscriberPickComponent,
     RichTextEditorComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-prayer-editor-card-add-update.component.html',
 })
 export class AdminPrayerEditorCardAddUpdateComponent {
   @Input({ required: true }) card!: AdminPrayerEditorCardComponent;
+  @Input() isAddingUpdate = false;
+  @Input() savingUpdate = false;
 
   @ViewChild('addUpdateSubscriberPick')
   addUpdateSubscriberPick?: AdminSubscriberPickComponent;

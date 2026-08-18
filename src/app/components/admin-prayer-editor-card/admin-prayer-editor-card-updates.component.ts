@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
@@ -14,9 +14,11 @@ import { AdminPrayerEditorCardComponent } from './admin-prayer-editor-card.compo
     RichTextEditorComponent,
     RichTextViewComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-prayer-editor-card-updates.component.html',
 })
 export class AdminPrayerEditorCardUpdatesComponent {
   @Input({ required: true }) card!: AdminPrayerEditorCardComponent;
+  @Input() editingUpdateId: string | null = null;
+  @Input() savingEditUpdate = false;
+  @Input() deleting = false;
 }

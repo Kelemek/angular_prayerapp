@@ -1,0 +1,43 @@
+<div
+  class="fixed inset-0 z-[115] flex items-center justify-center bg-gray-900/50 p-4"
+  role="presentation"
+  (click)="session.closeReciteFeedbackHelp()"
+>
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="memorize-recite-feedback-help-title"
+    data-testid="memorize-recite-feedback-help-dialog"
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border modal-panel-edge"
+    (click)="$event.stopPropagation()"
+  >
+    <h2
+      id="memorize-recite-feedback-help-title"
+      class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3"
+    >
+      How did Recite mode go?
+    </h2>
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+      Thanks for trying Recite mode (beta). How did it go for you? If something felt off, or you have ideas to make it
+      better, share your thoughts in <strong>Settings → Send Feedback</strong>.
+    </p>
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+      <button
+        type="button"
+        data-testid="memorize-recite-feedback-help-close"
+        (click)="session.closeReciteFeedbackHelp()"
+        class="w-full sm:w-auto px-4 py-3 rounded-lg font-medium border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+      >
+        Close
+      </button>
+      <button
+        type="button"
+        data-testid="memorize-recite-feedback-help-settings"
+        (click)="session.openSettingsForReciteFeedback()"
+        class="w-full sm:w-auto px-4 py-3 {{ session.practiceBlueBtnClass }}"
+      >
+        Open Settings
+      </button>
+    </div>
+  </div>
+</div>

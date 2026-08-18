@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   Input,
   ViewChild,
@@ -13,7 +12,6 @@ import { AdminPrayerEditorCardComponent } from './admin-prayer-editor-card.compo
   selector: 'app-admin-prayer-editor-card-edit-form',
   standalone: true,
   imports: [CommonModule, FormsModule, RichTextEditorComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-prayer-editor-card-edit-form.component.html',
 })
 export class AdminPrayerEditorCardEditFormComponent {

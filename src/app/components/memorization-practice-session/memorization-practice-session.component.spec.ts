@@ -6,6 +6,7 @@ import { render, screen } from '@testing-library/angular';
 import { BehaviorSubject } from 'rxjs';
 import { ElementRef, SimpleChange, ɵresolveComponentResources as resolveComponentResources } from '@angular/core';
 import { MemorizationPracticeSessionComponent } from './memorization-practice-session.component';
+import { MemorizationPracticeSessionHeaderComponent } from './memorization-practice-session-header.component';
 import { ScriptureService } from '../../services/scripture.service';
 import { UserSessionService } from '../../services/user-session.service';
 import { MemorizationReciteService } from '../../services/memorization-recite.service';
@@ -772,7 +773,9 @@ describe('MemorizationPracticeSessionComponent', () => {
       vi.useFakeTimers();
       component.beginPracticeWithMode('type');
       const btn = document.createElement('button');
-      component.hintButtonRef = { nativeElement: btn } as ElementRef<HTMLButtonElement>;
+      component.headerPanelRef = {
+        hintButtonRef: { nativeElement: btn },
+      } as MemorizationPracticeSessionHeaderComponent;
 
       component.onHintPointerDown(makePointerEvent('down', btn));
       expect(component.hintHeld).toBe(true);
@@ -1029,7 +1032,7 @@ describe('MemorizationPracticeSessionComponent', () => {
 
     it('keeps the capture input WebKit-keyboard-eligible (not opacity 0 / pointer-events none)', () => {
       const source = readFileSync(
-        join(componentDir, 'memorization-practice-session.component.ts'),
+        join(componentDir, 'memorization-practice-session.component.css'),
         'utf-8'
       );
       const stylesMatch = source.match(/\.memorize-practice-input-hidden\s*\{([\s\S]*?)\n\s*\}/);
@@ -1749,11 +1752,11 @@ describe('MemorizationPracticeSessionComponent', () => {
       component.beginPracticeWithMode('firstLetters');
       const blankSpy = vi.spyOn(
         component as unknown as { scrollCurrentBlankIntoView: () => void },
-        'scrollCurrentBlankIntoView'
+        'scrollCurrentBlankIntoView',
       );
       const cueSpy = vi.spyOn(
         component as unknown as { scrollActiveFirstLetterCueIntoView: () => void },
-        'scrollActiveFirstLetterCueIntoView'
+        'scrollActiveFirstLetterCueIntoView',
       );
       vi.useFakeTimers();
       component['hasTypedInRound'] = true;

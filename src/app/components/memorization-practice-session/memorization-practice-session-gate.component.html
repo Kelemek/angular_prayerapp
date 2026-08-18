@@ -1,0 +1,38 @@
+<div
+  class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/50 p-4"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="'Memorize practice'"
+  [attr.aria-busy]="kind === 'loading' ? true : null"
+>
+  <div
+    data-tour="memorize-practice-dialog"
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border modal-panel-edge"
+  >
+    @switch (kind) {
+      @case ('loading') {
+        <p class="text-gray-700 dark:text-gray-200">Loading passage…</p>
+      }
+      @case ('error') {
+        <p class="text-gray-700 dark:text-gray-200">{{ errorMessage }}</p>
+        <button
+          type="button"
+          (click)="close.emit()"
+          class="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-lg cursor-pointer"
+        >
+          Close
+        </button>
+      }
+      @case ('empty') {
+        <p class="text-gray-700 dark:text-gray-200">No passage text to practice for this item.</p>
+        <button
+          type="button"
+          (click)="close.emit()"
+          class="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-lg cursor-pointer"
+        >
+          Close
+        </button>
+      }
+    }
+  </div>
+</div>

@@ -5,15 +5,15 @@
     <div class="flex items-center justify-between mb-3">
       <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
         {{
-          card.isEditing ? 'Edit Prayer Details' : 'Complete Prayer Details'
+          isEditing ? 'Edit Prayer Details' : 'Complete Prayer Details'
         }}
       </h5>
-      @if (card.isEditing) {
+      @if (isEditing) {
         <div class="flex gap-2">
           <button
             type="button"
             (click)="card.onSaveEditClick()"
-            [disabled]="card.saving"
+            [disabled]="saving"
             class="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
           >
             <svg
@@ -32,7 +32,7 @@
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
               <polyline points="7 3 7 8 15 8"></polyline>
             </svg>
-            {{ card.saving ? 'Saving...' : 'Save' }}
+            {{ saving ? 'Saving...' : 'Save' }}
           </button>
           <button
             type="button"
@@ -40,7 +40,7 @@
               card.index === 0 ? 'tour-prayer-editor-edit-cancel-first' : null
             "
             (click)="card.onCancelEditClick()"
-            [disabled]="card.saving"
+            [disabled]="saving"
             class="flex items-center gap-1 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
           >
             <svg
@@ -63,17 +63,26 @@
       }
     </div>
 
-    @if (card.isEditing) {
+    @if (isEditing) {
       <app-admin-prayer-editor-card-edit-form [card]="card" />
     }
-    @if (!card.isEditing) {
+    @if (!isEditing) {
       <app-admin-prayer-editor-card-view-details [card]="card" />
     }
 
-    <app-admin-prayer-editor-card-updates [card]="card" />
+    <app-admin-prayer-editor-card-updates
+      [card]="card"
+      [editingUpdateId]="editingUpdateId"
+      [savingEditUpdate]="savingEditUpdate"
+      [deleting]="deleting"
+    />
 
-    @if (!card.anyPrayerEditing) {
-      <app-admin-prayer-editor-card-add-update [card]="card" />
+    @if (!anyPrayerEditing) {
+      <app-admin-prayer-editor-card-add-update
+        [card]="card"
+        [isAddingUpdate]="isAddingUpdate"
+        [savingUpdate]="savingUpdate"
+      />
     }
   </div>
 </div>
