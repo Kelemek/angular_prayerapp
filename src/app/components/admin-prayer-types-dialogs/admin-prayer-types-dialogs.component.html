@@ -1,0 +1,11 @@
+@if (showConfirmationDialog) {
+  <app-confirmation-dialog
+    [title]="confirmationTitle"
+    [message]="confirmationMessage"
+    [isDangerous]="confirmationIsDangerous"
+    [confirmText]="confirmationConfirmText"
+    (confirm)="onConfirmationConfirm()"
+    (cancel)="onConfirmationCancel()"
+  >
+  </app-confirmation-dialog>
+}

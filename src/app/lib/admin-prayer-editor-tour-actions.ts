@@ -70,3 +70,25 @@ export function prayerEditorManageTourAddUpdateOpenPrep(
     shouldCancelEditUpdate: true,
   };
 }
+
+export async function prayerEditorManageTourInitialPrep(
+  gate: PrayerEditorSectionGate,
+  displayPrayers: PrayerEditorPrayer[],
+  runSearch: () => Promise<void>,
+): Promise<{
+  gate: PrayerEditorSectionGate;
+  expandedCards: Set<string>;
+  hasPrayers: boolean;
+}> {
+  const expand = prayerEditorManageTourSectionExpand(gate);
+  await runSearch();
+  const afterSearch = prayerEditorManageTourAfterSearch(displayPrayers);
+  return {
+    gate: {
+      sectionExpanded: expand.sectionExpanded,
+      sectionInitialLoadDone: expand.sectionInitialLoadDone,
+    },
+    expandedCards: afterSearch.expandedCards,
+    hasPrayers: afterSearch.hasPrayers,
+  };
+}

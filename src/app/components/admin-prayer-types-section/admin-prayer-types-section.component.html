@@ -1,0 +1,64 @@
+<div
+  class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+  [class.cursor-pointer]="!expanded"
+  (click)="onShellClick()"
+>
+  <button
+    type="button"
+    id="prayer-types-manager-trigger"
+    class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+    (click)="onTriggerClick($event)"
+    [attr.aria-expanded]="expanded"
+    aria-controls="prayer-types-manager-panel"
+  >
+    <span
+      class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 min-w-0"
+    >
+      <svg
+        class="text-blue-600 dark:text-blue-400 shrink-0"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path
+          d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
+        ></path>
+        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+      </svg>
+      Prayer Types
+    </span>
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+      [class.rotate-180]="expanded"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+
+  @if (expanded) {
+    <div
+      id="prayer-types-manager-panel"
+      role="region"
+      aria-labelledby="prayer-types-manager-trigger"
+      class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+      (click)="stopPanelClick($event)"
+    >
+      <ng-content></ng-content>
+    </div>
+  }
+</div>

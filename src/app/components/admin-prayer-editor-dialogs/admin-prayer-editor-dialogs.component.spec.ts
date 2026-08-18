@@ -47,6 +47,23 @@ describe('AdminPrayerEditorDialogsComponent', () => {
     expect(component.showConfirmationDialog).toBe(false);
   });
 
+  it('opens delete update confirmation and emits on confirm', () => {
+    const confirmed = vi.fn();
+    component.confirmationConfirmed.subscribe(confirmed);
+
+    component.openDeleteUpdateConfirmation('p1', 'u1', 'Update body text');
+
+    expect(component.showConfirmationDialog).toBe(true);
+    expect(component.isDeleteUpdateConfirmation).toBe(true);
+
+    component.onConfirmDelete();
+    expect(confirmed).toHaveBeenCalledWith({
+      kind: 'deleteUpdate',
+      prayerId: 'p1',
+      updateId: 'u1',
+    });
+  });
+
   it('sends prayer notification broadcast on confirm', async () => {
     component.openSendNotificationForPrayer('p-1', 'Title');
     await component.onConfirmSendNotification();

@@ -1,7 +1,7 @@
-import type { SupabaseService } from '../services/supabase.service';
-import type { ToastService } from '../services/toast.service';
-import type { AdminDataService } from '../services/admin-data.service';
-import type { EmailSubscriberConfirmationAction, EmailSubscriberConfirmationDialogState } from './admin-email-subscribers-confirmations';
+import type {
+  EmailSubscriberConfirmationAction,
+  EmailSubscriberConfirmationDialogState,
+} from './admin-email-subscribers-confirmations';
 import type {
   EmailSubscriberRow,
   EmailSubscriberRowAction,
@@ -11,9 +11,6 @@ import {
   EmailSubscriberListSearchDebouncer,
   EMAIL_SUBSCRIBER_LIST_SEARCH_CONFIG,
 } from './admin-email-subscribers-search-debounce';
-import {
-  fetchEmailSubscriberList,
-} from './admin-email-subscribers-fetch';
 import { dispatchEmailSubscriberRowAction } from './admin-email-subscribers-row-dispatch';
 import { patchEmailSubscriberName } from './admin-email-subscribers-list-patches';
 import {
@@ -23,54 +20,41 @@ import {
   sliceEmailSubscriberPage,
 } from './admin-email-subscribers-pagination';
 import {
-  countActiveEmailSubscribers,
   nextEmailSubscriberSort,
   sortEmailSubscriberRows,
 } from './admin-email-subscribers-sort';
 import { toggleAdminSectionLazyLoad } from './admin-section-lazy-load';
 import {
-  applyEmailSubscriberConfirmation,
-  emailSubscriberConfirmationApplyErrorFeedback,
-} from './admin-email-subscribers-confirmation-apply';
+  openEmailSubscriberDeleteConfirmation,
+  openEmailSubscriberToggleConfirmation,
+} from './admin-email-subscribers-confirmation-open';
+import { EmailSubscriberOrientationTracker } from './admin-email-subscribers-orientation';
 import {
-  prepareEmailSubscriberDeleteConfirmation,
-  prepareEmailSubscriberToggleConfirmation,
-} from './admin-email-subscribers-confirmation-prep';
+  runEmailSubscriberFacadeConfirmation,
+  runEmailSubscriberFacadeSearch,
+} from './admin-email-subscribers-facade-run';
 import {
-  emailSubscribersAddFormTourUi,
-  emailSubscribersOverviewTourListPrep,
-  emailSubscribersTourInitialUi,
-} from './admin-email-subscribers-tour-actions';
+  runEmailSubscribersAddFormTourOpen,
+  runEmailSubscribersOverviewTourListState,
+  runEmailSubscribersTourInitialState,
+} from './admin-email-subscribers-facade-tour';
+import {
+  declineEmailSubscriberWelcomeEmail,
+  sendEmailSubscriberWelcomeEmail,
+} from './admin-email-subscribers-welcome-email';
+import type {
+  EmailSubscribersDialogsHostRef,
+  EmailSubscribersFacadeDeps,
+  EmailSubscribersPanelHostRef,
+  EmailSubscribersSectionHostRef,
+} from './admin-email-subscribers-facade-host';
 
-export interface EmailSubscribersPanelHostRef {
-  resetAddForm(): void;
-  resetCsvPanel(): void;
-  showPlanningCenterTab(): void;
-  runPlanningCenterSearchTourDemo(): Promise<void>;
-  selectTourPlanningCenterMatchFromDemoResults(): void;
-  applyTourDemoPlanningCenterAdd(): void;
-  clearTourDemoForm(): void;
-}
-
-export interface EmailSubscribersDialogsHostRef {
-  openWelcomeEmailDialog(): void;
-  closeWelcomeEmailDialog(): void;
-  openConfirmation(
-    state: EmailSubscriberConfirmationDialogState,
-    action: EmailSubscriberConfirmationAction,
-  ): void;
-}
-
-export interface EmailSubscribersSectionHostRef {
-  containerElement?: HTMLElement;
-}
-
-export interface EmailSubscribersFacadeDeps {
-  supabase: SupabaseService;
-  toast: ToastService;
-  adminDataService: AdminDataService;
-  markForCheck: () => void;
-}
+export type {
+  EmailSubscribersDialogsHostRef,
+  EmailSubscribersFacadeDeps,
+  EmailSubscribersPanelHostRef,
+  EmailSubscribersSectionHostRef,
+} from './admin-email-subscribers-facade-host';
 
 export class EmailSubscribersFacade {
   subscribers: EmailSubscriberRow[] = [];
@@ -88,7 +72,7 @@ export class EmailSubscribersFacade {
   showAddForm = false;
   showCSVUpload = false;
   sectionExpanded = false;
-  private sectionInitialLoadDone = false;
+  sectionInitialLoadDone = false;
   error: string | null = null;
   csvSuccess: string | null = null;
   csvImportWarnings: string[] = [];
@@ -106,13 +90,17 @@ export class EmailSubscribersFacade {
   editSubscriber: EmailSubscriberRow | null = null;
 
   isLandscape = false;
-  private orientationChangeListener: (() => void) | null = null;
-  private resizeListener: (() => void) | null = null;
+  protected readonly orientationTracker = new EmailSubscriberOrientationTracker(
+    (isLandscape) => {
+      this.isLandscape = isLandscape;
+      this.markForCheck();
+    },
+  );
 
-  protected readonly supabase: SupabaseService;
-  protected readonly toast: ToastService;
-  protected readonly adminDataService: AdminDataService;
-  protected readonly markForCheck: () => void;
+  public readonly supabase: EmailSubscribersFacadeDeps['supabase'];
+  public readonly toast: EmailSubscribersFacadeDeps['toast'];
+  public readonly adminDataService: EmailSubscribersFacadeDeps['adminDataService'];
+  public readonly markForCheck: () => void;
 
   constructor(deps: EmailSubscribersFacadeDeps) {
     this.supabase = deps.supabase;
@@ -134,30 +122,18 @@ export class EmailSubscribersFacade {
   }
 
   initOrientationTracking(): void {
-    this.updateOrientationMode();
-    this.orientationChangeListener = () => this.onOrientationChange();
-    this.resizeListener = () => this.updateOrientationMode();
-    window.addEventListener('orientationchange', this.orientationChangeListener);
-    window.addEventListener('resize', this.resizeListener);
+    this.orientationTracker.init();
   }
 
   destroyOrientationTracking(): void {
-    if (this.orientationChangeListener) {
-      window.removeEventListener(
-        'orientationchange',
-        this.orientationChangeListener,
-      );
-    }
-    if (this.resizeListener) {
-      window.removeEventListener('resize', this.resizeListener);
-    }
+    this.orientationTracker.destroy();
   }
 
   destroySearchDebouncer(): void {
     this.listSearchDebouncer.destroy();
   }
 
-        get totalPages(): number {
+  get totalPages(): number {
     return emailSubscriberTotalPages(this.totalItems, this.pageSize);
   }
 
@@ -279,44 +255,22 @@ export class EmailSubscribersFacade {
   }
 
   prepareTourInitialState(): void {
-    const ui = emailSubscribersTourInitialUi();
-    this.sectionExpanded = ui.sectionExpanded;
-    this.showAddForm = ui.showAddForm;
-    this.showCSVUpload = ui.showCSVUpload;
-    this.error = ui.error;
-    this.panelHost?.resetAddForm();
-    this.markForCheck();
-  }
-
-  private onOrientationChange(): void {
-    setTimeout(() => this.updateOrientationMode(), 100);
-  }
-
-  private updateOrientationMode(): void {
-    this.isLandscape = window.innerWidth > window.innerHeight;
-    this.markForCheck();
+    runEmailSubscribersTourInitialState({
+      sectionExpanded: this.sectionExpanded,
+      showAddForm: this.showAddForm,
+      showCSVUpload: this.showCSVUpload,
+      error: this.error,
+      markForCheck: () => this.markForCheck(),
+      resetAddForm: () => this.panelHost?.resetAddForm(),
+    });
   }
 
   async prepareOverviewTourListState(): Promise<void> {
-    const prep = emailSubscribersOverviewTourListPrep({
-      sectionExpanded: this.sectionExpanded,
-      sectionInitialLoadDone: this.sectionInitialLoadDone,
-    });
-    this.prepareTourInitialState();
-    this.sectionExpanded = prep.gate.sectionExpanded;
-    this.sectionInitialLoadDone = prep.gate.sectionInitialLoadDone;
-    this.searchQuery = prep.searchQuery;
-    this.listSearchDebouncer.clear();
-    await this.handleSearch();
-    this.markForCheck();
+    await runEmailSubscribersOverviewTourListState(this);
   }
 
   openAddFormForTour(): void {
-    const ui = emailSubscribersAddFormTourUi();
-    this.showAddForm = ui.showAddForm;
-    this.showCSVUpload = ui.showCSVUpload;
-    this.error = ui.error;
-    this.markForCheck();
+    runEmailSubscribersAddFormTourOpen(this);
   }
 
   showPlanningCenterTabForTour(): void {
@@ -363,47 +317,7 @@ export class EmailSubscribersFacade {
   }
 
   async handleSearch(options?: { preserveCsvSuccess?: boolean }) {
-    try {
-      this.searching = true;
-      this.error = null;
-      if (!options?.preserveCsvSuccess) {
-        this.csvSuccess = null;
-      }
-      this.currentPage = 1;
-      this.markForCheck();
-
-      const { rows, count } = await fetchEmailSubscriberList(
-        this.supabase.client,
-        {
-          searchQuery: this.searchQuery,
-          sortBy: this.sortBy,
-          sortDirection: this.sortDirection,
-        },
-      );
-
-      this.allSubscribers = sortEmailSubscriberRows(
-        rows,
-        this.sortBy,
-        this.sortDirection,
-      );
-      this.totalItems = count;
-      this.totalActiveCount = countActiveEmailSubscribers(this.allSubscribers);
-      this.hasSearched = true;
-      this.loadPageData();
-      this.markForCheck();
-    } catch (error) {
-      console.error('Error:', error);
-      this.error =
-        error instanceof Error ? error.message : 'Failed to fetch subscribers';
-      this.sectionExpanded = true;
-      this.subscribers = [];
-      this.totalItems = 0;
-      this.totalActiveCount = 0;
-      this.markForCheck();
-    } finally {
-      this.searching = false;
-      this.markForCheck();
-    }
+    await runEmailSubscriberFacadeSearch(this, () => this.loadPageData(), options);
   }
 
   toggleSort(column: EmailSubscriberSortColumn) {
@@ -471,128 +385,94 @@ export class EmailSubscribersFacade {
   }
 
   async handleToggleActive(id: string, currentStatus: boolean) {
-    try {
-      const prep = await prepareEmailSubscriberToggleConfirmation(
-        this.supabase.client,
-        'toggleActive',
-        id,
-        currentStatus,
-      );
-      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
-    } catch (err: unknown) {
-      console.error('Error preparing status toggle action:', err);
-      this.toast.error('Failed to prepare status toggle action');
-    }
+    await openEmailSubscriberToggleConfirmation(
+      this.supabase.client,
+      this.dialogsHost,
+      'toggleActive',
+      id,
+      currentStatus,
+      (message) => this.toast.error(message),
+    );
   }
 
   async handleToggleReceivePush(id: string, currentReceivePush: boolean) {
-    try {
-      const prep = await prepareEmailSubscriberToggleConfirmation(
-        this.supabase.client,
-        'toggleReceivePush',
-        id,
-        currentReceivePush,
-      );
-      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
-    } catch (err: unknown) {
-      console.error('Error preparing push toggle action:', err);
-      this.toast.error('Failed to prepare push toggle action');
-    }
+    await openEmailSubscriberToggleConfirmation(
+      this.supabase.client,
+      this.dialogsHost,
+      'toggleReceivePush',
+      id,
+      currentReceivePush,
+      (message) => this.toast.error(message),
+    );
   }
 
   async handleToggleBlocked(id: string, currentStatus: boolean) {
-    try {
-      const prep = await prepareEmailSubscriberToggleConfirmation(
-        this.supabase.client,
-        'toggleBlocked',
-        id,
-        currentStatus,
-      );
-      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
-    } catch (err: unknown) {
-      console.error('Error preparing block action:', err);
-      this.toast.error('Failed to prepare block action');
-    }
+    await openEmailSubscriberToggleConfirmation(
+      this.supabase.client,
+      this.dialogsHost,
+      'toggleBlocked',
+      id,
+      currentStatus,
+      (message) => this.toast.error(message),
+    );
   }
 
   async handleDelete(id: string, email: string) {
-    try {
-      const prep = await prepareEmailSubscriberDeleteConfirmation(
-        this.supabase.client,
-        id,
-        email,
-      );
-      this.dialogsHost?.openConfirmation(prep.dialog, prep.action);
-    } catch (err: unknown) {
-      console.error('Error preparing delete:', err);
-      this.error =
-        err instanceof Error ? err.message : 'Failed to prepare deletion';
-      this.markForCheck();
-    }
+    await openEmailSubscriberDeleteConfirmation(
+      this.supabase.client,
+      this.dialogsHost,
+      id,
+      email,
+      (message) => {
+        this.error = message;
+        this.markForCheck();
+      },
+    );
   }
 
   async onConfirmationConfirmed(
     action: EmailSubscriberConfirmationAction,
   ): Promise<void> {
-    try {
-      const result = await applyEmailSubscriberConfirmation(
-        this.supabase.client,
-        action,
-        {
-          allSubscribers: this.allSubscribers,
-          totalActiveCount: this.totalActiveCount,
-          totalItems: this.totalItems,
-          currentPage: this.currentPage,
-          pageSize: this.pageSize,
-          csvSuccess: this.csvSuccess,
-        },
-      );
-      this.allSubscribers = result.allSubscribers;
-      this.totalActiveCount = result.totalActiveCount;
-      this.totalItems = result.totalItems;
-      this.currentPage = result.currentPage;
-      this.csvSuccess = result.csvSuccess;
-      if (result.needsLoadPageData) {
-        this.loadPageData();
-      }
-      if (result.toastSuccess) {
-        this.toast.success(result.toastSuccess);
-      }
-      this.markForCheck();
-    } catch (err: unknown) {
-      console.error('Error applying subscriber confirmation:', err);
-      const feedback = emailSubscriberConfirmationApplyErrorFeedback(action, err);
-      if (feedback.error) {
-        this.error = feedback.error;
-      } else if (feedback.toastError) {
-        this.toast.error(feedback.toastError);
-      }
-      this.markForCheck();
-    }
+    await runEmailSubscriberFacadeConfirmation(this, action, {
+      supabase: this.supabase,
+      toast: this.toast,
+      getApplyInput: () => ({
+        allSubscribers: this.allSubscribers,
+        totalActiveCount: this.totalActiveCount,
+        totalItems: this.totalItems,
+        currentPage: this.currentPage,
+        pageSize: this.pageSize,
+        csvSuccess: this.csvSuccess,
+      }),
+      loadPageData: () => this.loadPageData(),
+    });
+  }
+
+  clearListSearchDebouncer(): void {
+    this.listSearchDebouncer.clear();
   }
 
   async onConfirmSendWelcomeEmail() {
-    try {
-      if (!this.pendingSubscriberEmail) {
-        return;
-      }
-      await this.adminDataService.sendSubscriberWelcomeEmail(
-        this.pendingSubscriberEmail,
-      );
-      this.toast.success('Welcome email sent to subscriber');
-      this.dialogsHost?.closeWelcomeEmailDialog();
+    const outcome = await sendEmailSubscriberWelcomeEmail(
+      this.adminDataService,
+      this.toast,
+      this.dialogsHost,
+      this.pendingSubscriberEmail,
+    );
+    if (outcome.hideAddForm) {
       this.showAddForm = false;
-      this.pendingSubscriberEmail = '';
-      this.markForCheck();
-    } catch (error: unknown) {
-      console.error('Error sending welcome email:', error);
-      this.toast.error('Failed to send welcome email');
     }
+    if (outcome.clearPending) {
+      this.pendingSubscriberEmail = '';
+    }
+    this.markForCheck();
   }
 
   onDeclineSendWelcomeEmail() {
-    this.dialogsHost?.closeWelcomeEmailDialog();
-    this.showAddForm = false;
+    const outcome = declineEmailSubscriberWelcomeEmail(this.dialogsHost);
+    if (outcome.hideAddForm) {
+      this.showAddForm = false;
+    }
     this.pendingSubscriberEmail = '';
     this.markForCheck();
   }

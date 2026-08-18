@@ -4,16 +4,19 @@ import { prayerEditorBulkStatusLabel } from './admin-prayer-editor-commands';
 export type PrayerEditorConfirmationKind =
   | 'deleteOne'
   | 'deleteMany'
-  | 'bulkStatus';
+  | 'bulkStatus'
+  | 'deleteUpdate';
 
 export interface PrayerEditorConfirmationAction {
   kind: PrayerEditorConfirmationKind;
   prayerId?: string;
+  updateId?: string;
 }
 
 export interface PrayerEditorConfirmationDialogState {
   title: string;
   message: string;
+  details?: string | null;
   buttonText: string;
   isDangerous: boolean;
 }
@@ -50,5 +53,19 @@ export function buildBulkStatusPrayerEditorConfirmation(
     message: `Are you sure you want to change ${count} prayer(s) to "${statusLabel}" status?`,
     buttonText: 'Update',
     isDangerous: false,
+  };
+}
+
+export function buildDeletePrayerEditorUpdateConfirmation(
+  content: string,
+): PrayerEditorConfirmationDialogState {
+  const preview =
+    content.substring(0, 50) + (content.length > 50 ? '...' : '');
+  return {
+    title: 'Delete Update',
+    message: 'Are you sure you want to delete this prayer update?',
+    details: `"${preview}"\n\nThis action cannot be undone.`,
+    buttonText: 'Delete',
+    isDangerous: true,
   };
 }

@@ -4,6 +4,7 @@ export interface PrayerEditorConfirmationHandlers {
   bulkStatus: () => Promise<void>;
   deleteMany: () => Promise<void>;
   deleteOne: (prayerId: string) => Promise<void>;
+  deleteUpdate: (prayerId: string, updateId: string) => Promise<void>;
 }
 
 export async function dispatchPrayerEditorConfirmation(
@@ -20,6 +21,11 @@ export async function dispatchPrayerEditorConfirmation(
     case 'deleteOne':
       if (action.prayerId) {
         await handlers.deleteOne(action.prayerId);
+      }
+      break;
+    case 'deleteUpdate':
+      if (action.prayerId && action.updateId) {
+        await handlers.deleteUpdate(action.prayerId, action.updateId);
       }
       break;
     default: {

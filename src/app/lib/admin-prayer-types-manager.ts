@@ -1,7 +1,5 @@
 import type { PrayerTypeRecord } from '../types/prayer';
 
-export type PrayerTypeConfirmationKind = 'delete' | 'toggleBooklet' | 'toggleActive';
-
 export type PrayerTypeRowAction =
   | { type: 'edit' }
   | { type: 'delete' }

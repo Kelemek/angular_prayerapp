@@ -35,4 +35,20 @@ describe('AdminPrayerEditorCardComponent', () => {
       row: { name: 'Jane Q Public', email: 'jane@example.com' },
     });
   });
+
+  describe('template layout', () => {
+    it('truncates long Basic Information values instead of overflowing the card', async () => {
+      const { readFileSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const source = readFileSync(join(__dirname, 'admin-prayer-editor-card.component.html'), 'utf8');
+      const basicInfoBlock = source.slice(
+        source.indexOf('<!-- Basic Information -->'),
+        source.indexOf('<!-- Status Information -->'),
+      );
+
+      expect(basicInfoBlock).toContain('min-w-0 truncate');
+      expect(basicInfoBlock).toContain('[title]="prayer.email"');
+      expect(basicInfoBlock).toContain('overflow-hidden');
+    });
+  });
 });

@@ -16,6 +16,7 @@ import { ToastService } from '../../services/toast.service';
 import {
   buildBulkStatusPrayerEditorConfirmation,
   buildDeletePrayerEditorPrayerConfirmation,
+  buildDeletePrayerEditorUpdateConfirmation,
   buildDeleteSelectedPrayerEditorConfirmation,
   type PrayerEditorConfirmationAction,
 } from '../../lib/admin-prayer-editor-confirmations';
@@ -43,11 +44,14 @@ export class AdminPrayerEditorDialogsComponent {
   showConfirmationDialog = false;
   confirmationTitle = '';
   confirmationMessage = '';
+  confirmationDetails: string | null = null;
   confirmationButtonText = 'Delete';
   confirmationIsDangerous = true;
   confirmationPrayerId: string | null = null;
+  confirmationUpdateId: string | null = null;
   isMultiSelectDelete = false;
   isStatusUpdateConfirmation = false;
+  isDeleteUpdateConfirmation = false;
 
   constructor(
     private readonly adminDataService: AdminDataService,
@@ -81,8 +85,10 @@ export class AdminPrayerEditorDialogsComponent {
     const config = buildDeletePrayerEditorPrayerConfirmation(prayer);
     this.applyConfirmationConfig(config);
     this.confirmationPrayerId = prayer.id;
+    this.confirmationUpdateId = null;
     this.isMultiSelectDelete = false;
     this.isStatusUpdateConfirmation = false;
+    this.isDeleteUpdateConfirmation = false;
     this.showConfirmationDialog = true;
     this.cdr.markForCheck();
   }
@@ -91,8 +97,10 @@ export class AdminPrayerEditorDialogsComponent {
     const config = buildDeleteSelectedPrayerEditorConfirmation(count);
     this.applyConfirmationConfig(config);
     this.confirmationPrayerId = null;
+    this.confirmationUpdateId = null;
     this.isMultiSelectDelete = true;
     this.isStatusUpdateConfirmation = false;
+    this.isDeleteUpdateConfirmation = false;
     this.showConfirmationDialog = true;
     this.cdr.markForCheck();
   }
@@ -101,8 +109,26 @@ export class AdminPrayerEditorDialogsComponent {
     const config = buildBulkStatusPrayerEditorConfirmation(count, status);
     this.applyConfirmationConfig(config);
     this.confirmationPrayerId = null;
+    this.confirmationUpdateId = null;
     this.isMultiSelectDelete = false;
     this.isStatusUpdateConfirmation = true;
+    this.isDeleteUpdateConfirmation = false;
+    this.showConfirmationDialog = true;
+    this.cdr.markForCheck();
+  }
+
+  openDeleteUpdateConfirmation(
+    prayerId: string,
+    updateId: string,
+    content: string,
+  ): void {
+    const config = buildDeletePrayerEditorUpdateConfirmation(content);
+    this.applyConfirmationConfig(config);
+    this.confirmationPrayerId = prayerId;
+    this.confirmationUpdateId = updateId;
+    this.isMultiSelectDelete = false;
+    this.isStatusUpdateConfirmation = false;
+    this.isDeleteUpdateConfirmation = true;
     this.showConfirmationDialog = true;
     this.cdr.markForCheck();
   }
@@ -142,6 +168,16 @@ export class AdminPrayerEditorDialogsComponent {
       action = { kind: 'bulkStatus' };
     } else if (this.isMultiSelectDelete) {
       action = { kind: 'deleteMany' };
+    } else if (
+      this.isDeleteUpdateConfirmation &&
+      this.confirmationPrayerId &&
+      this.confirmationUpdateId
+    ) {
+      action = {
+        kind: 'deleteUpdate',
+        prayerId: this.confirmationPrayerId,
+        updateId: this.confirmationUpdateId,
+      };
     } else if (this.confirmationPrayerId) {
       action = { kind: 'deleteOne', prayerId: this.confirmationPrayerId };
     } else {
@@ -162,11 +198,13 @@ export class AdminPrayerEditorDialogsComponent {
   private applyConfirmationConfig(config: {
     title: string;
     message: string;
+    details?: string | null;
     buttonText: string;
     isDangerous: boolean;
   }): void {
     this.confirmationTitle = config.title;
     this.confirmationMessage = config.message;
+    this.confirmationDetails = config.details ?? null;
     this.confirmationButtonText = config.buttonText;
     this.confirmationIsDangerous = config.isDangerous;
   }
@@ -174,7 +212,10 @@ export class AdminPrayerEditorDialogsComponent {
   private resetConfirmationState(): void {
     this.showConfirmationDialog = false;
     this.confirmationPrayerId = null;
+    this.confirmationUpdateId = null;
+    this.confirmationDetails = null;
     this.isMultiSelectDelete = false;
     this.isStatusUpdateConfirmation = false;
+    this.isDeleteUpdateConfirmation = false;
   }
 }
