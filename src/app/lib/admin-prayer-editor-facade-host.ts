@@ -1,6 +1,10 @@
 import type { SupabaseService } from '../services/supabase.service';
 import type { ToastService } from '../services/toast.service';
 import type { PrayerService } from '../services/prayer.service';
+import type {
+  PrayerEditorConfirmationAction,
+  PrayerEditorConfirmationDialogState,
+} from './admin-prayer-editor-confirmations';
 import type { PrayerEditorPrayer } from './admin-prayer-editor-types';
 
 export interface PrayerEditorPanelHostRef {
@@ -15,6 +19,10 @@ export interface PrayerEditorDialogsHostRef {
     prayerId: string,
     updateId: string,
     title: string,
+  ): void;
+  openConfirmation(
+    state: PrayerEditorConfirmationDialogState,
+    action: PrayerEditorConfirmationAction,
   ): void;
   openDeletePrayerConfirmation(prayer: PrayerEditorPrayer): void;
   openDeleteSelectedConfirmation(count: number): void;

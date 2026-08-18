@@ -9,7 +9,7 @@ import {
   buildPrayerTypeBookletToggleConfirmation,
   buildPrayerTypeDeleteConfirmation,
 } from './admin-prayer-types-confirmations';
-import { toggleAdminSectionLazyLoad } from './admin-section-lazy-load';
+import { applyAdminSectionToggle } from './admin-section-lazy-load';
 import {
   buildPrayerTypesFacadeMutationCallbacks,
   runPrayerTypesFacadeConfirmation,
@@ -42,6 +42,9 @@ export class PrayerTypesFacade {
   editingType: PrayerTypeRecord | null = null;
   reordering = false;
 
+  panelRef?: PrayerTypesPanelHostRef;
+  dialogsRef?: PrayerTypesDialogsHostRef;
+
   protected readonly supabase: PrayerTypesFacadeDeps['supabase'];
   public readonly toast: PrayerTypesFacadeDeps['toast'];
   public readonly promptService: PrayerTypesFacadeDeps['promptService'];
@@ -56,27 +59,10 @@ export class PrayerTypesFacade {
     this.afterBookletUiRefresh = deps.afterBookletUiRefresh;
   }
 
-  protected get panelHost(): PrayerTypesPanelHostRef | undefined {
-    return (this as { panelRef?: PrayerTypesPanelHostRef }).panelRef;
-  }
-
-  protected get dialogsHost(): PrayerTypesDialogsHostRef | undefined {
-    return (this as { dialogsRef?: PrayerTypesDialogsHostRef }).dialogsRef;
-  }
-
   protected notifySaved(): void {}
 
   onSectionToggle(): void {
-    const toggled = toggleAdminSectionLazyLoad({
-      sectionExpanded: this.sectionExpanded,
-      sectionInitialLoadDone: this.sectionInitialLoadDone,
-    });
-    this.sectionExpanded = toggled.gate.sectionExpanded;
-    this.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
-    if (toggled.shouldInitialLoad) {
-      void this.fetchTypes();
-    }
-    this.markForCheck();
+    applyAdminSectionToggle(this, () => void this.fetchTypes());
   }
 
   async prepareTourInitialState(): Promise<void> {
@@ -96,7 +82,7 @@ export class PrayerTypesFacade {
     this.showAddForm = true;
     this.error = null;
     this.success = null;
-    this.panelHost?.resetTypeFormForAdd();
+    this.panelRef?.resetTypeFormForAdd();
     this.markForCheck();
   }
 
@@ -104,7 +90,7 @@ export class PrayerTypesFacade {
     this.showAddForm = false;
     this.editingType = null;
     this.error = null;
-    this.panelHost?.resetTypeFormForAdd();
+    this.panelRef?.resetTypeFormForAdd();
     this.markForCheck();
   }
 
@@ -133,21 +119,21 @@ export class PrayerTypesFacade {
   }
 
   handleDelete(id: string, name: string): void {
-    this.dialogsHost?.openConfirmation(
+    this.dialogsRef?.openConfirmation(
       buildPrayerTypeDeleteConfirmation(name),
       { kind: 'delete', deleteId: id },
     );
   }
 
   beginIncludeInBookletToggle(type: PrayerTypeRecord): void {
-    this.dialogsHost?.openConfirmation(
+    this.dialogsRef?.openConfirmation(
       buildPrayerTypeBookletToggleConfirmation(type),
       { kind: 'toggleBooklet', type },
     );
   }
 
   beginActiveToggle(type: PrayerTypeRecord): void {
-    this.dialogsHost?.openConfirmation(
+    this.dialogsRef?.openConfirmation(
       buildPrayerTypeActiveToggleConfirmation(type),
       { kind: 'toggleActive', type },
     );

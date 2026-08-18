@@ -34,10 +34,10 @@ export class EmailSubscribersComponent
   extends EmailSubscribersFacade
   implements OnInit, OnDestroy
 {
-  @ViewChild('sectionRef') sectionRef?: AdminEmailSubscribersSectionComponent;
-  @ViewChild('panelRef') panelRef?: AdminEmailSubscribersPanelComponent;
+  @ViewChild('sectionRef') override sectionRef?: AdminEmailSubscribersSectionComponent;
+  @ViewChild('panelRef') override panelRef?: AdminEmailSubscribersPanelComponent;
   @ViewChild(AdminEmailSubscribersDialogsComponent)
-  dialogsRef?: AdminEmailSubscribersDialogsComponent;
+  override dialogsRef?: AdminEmailSubscribersDialogsComponent;
 
   private breakpointSub: Subscription | null = null;
 

@@ -130,6 +130,16 @@ describe('PrayerTypesFacade', () => {
       expect(facade.error).toBe('Fetch failed');
       expect(facade.sectionExpanded).toBe(true);
     });
+
+    it('wraps a single returned row as one type', async () => {
+      const { facade, mockSupabase } = createTestContext();
+      const singleType = createMockPrayerType({ id: 'solo', name: 'Solo' });
+      mockSupabase.directQuery.mockResolvedValue({ data: singleType, error: null });
+
+      await facade.fetchTypes();
+
+      expect(facade.types).toEqual([singleType]);
+    });
   });
 
   describe('toggleAddForm', () => {

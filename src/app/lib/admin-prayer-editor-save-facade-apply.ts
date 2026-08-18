@@ -15,6 +15,27 @@ export interface PrayerEditorSaveOutcomeCallbacks {
   refreshMainSite: () => void;
 }
 
+interface PrayerEditorSaveOutcomeBase {
+  needsLoadPageData: boolean;
+  toastSuccess: string;
+  refreshMainSite: boolean;
+}
+
+function applyPrayerEditorSaveOutcomeSideEffects(
+  result: PrayerEditorSaveOutcomeBase,
+  callbacks: PrayerEditorSaveOutcomeCallbacks,
+  afterToast?: () => void,
+): void {
+  if (result.needsLoadPageData) {
+    callbacks.loadPageData();
+  }
+  callbacks.toastSuccess(result.toastSuccess);
+  afterToast?.();
+  if (result.refreshMainSite) {
+    callbacks.refreshMainSite();
+  }
+}
+
 export function finishPrayerEditorPrayerSaveApply(
   target: {
     searchResults: PrayerEditorPrayer[];
@@ -28,18 +49,13 @@ export function finishPrayerEditorPrayerSaveApply(
 ): void {
   target.searchResults = result.searchResults;
   target.allPrayers = result.allPrayers;
-  if (result.needsLoadPageData) {
-    callbacks.loadPageData();
-  }
-  callbacks.toastSuccess(result.toastSuccess);
-  callbacks.cancelEdit();
-  callbacks.openSendNotificationForPrayer(
-    result.notifyPrayer.prayerId,
-    result.notifyPrayer.title,
-  );
-  if (result.refreshMainSite) {
-    callbacks.refreshMainSite();
-  }
+  applyPrayerEditorSaveOutcomeSideEffects(result, callbacks, () => {
+    callbacks.cancelEdit();
+    callbacks.openSendNotificationForPrayer(
+      result.notifyPrayer.prayerId,
+      result.notifyPrayer.title,
+    );
+  });
 }
 
 export function finishPrayerEditorNewUpdateSaveApply(
@@ -59,21 +75,16 @@ export function finishPrayerEditorNewUpdateSaveApply(
   },
 ): void {
   target.allPrayers = result.allPrayers;
-  if (result.needsLoadPageData) {
-    callbacks.loadPageData();
-  }
   target.newUpdate = result.clearAddUpdate.newUpdate;
   target.addingUpdate = result.clearAddUpdate.addingUpdate;
-  callbacks.resetAddUpdateSubscriberPick();
-  callbacks.toastSuccess(result.toastSuccess);
-  callbacks.openSendNotificationForUpdate(
-    result.notifyUpdate.prayerId,
-    result.notifyUpdate.updateId,
-    result.notifyUpdate.title,
-  );
-  if (result.refreshMainSite) {
-    callbacks.refreshMainSite();
-  }
+  applyPrayerEditorSaveOutcomeSideEffects(result, callbacks, () => {
+    callbacks.resetAddUpdateSubscriberPick();
+    callbacks.openSendNotificationForUpdate(
+      result.notifyUpdate.prayerId,
+      result.notifyUpdate.updateId,
+      result.notifyUpdate.title,
+    );
+  });
 }
 
 export function finishPrayerEditorEditUpdateSaveApply(
@@ -91,19 +102,14 @@ export function finishPrayerEditorEditUpdateSaveApply(
   },
 ): void {
   target.allPrayers = result.allPrayers;
-  if (result.needsLoadPageData) {
-    callbacks.loadPageData();
-  }
-  callbacks.toastSuccess(result.toastSuccess);
-  callbacks.cancelEditUpdate();
-  callbacks.openSendNotificationForUpdate(
-    result.notifyUpdate.prayerId,
-    result.notifyUpdate.updateId,
-    result.notifyUpdate.title,
-  );
-  if (result.refreshMainSite) {
-    callbacks.refreshMainSite();
-  }
+  applyPrayerEditorSaveOutcomeSideEffects(result, callbacks, () => {
+    callbacks.cancelEditUpdate();
+    callbacks.openSendNotificationForUpdate(
+      result.notifyUpdate.prayerId,
+      result.notifyUpdate.updateId,
+      result.notifyUpdate.title,
+    );
+  });
 }
 
 export function finishPrayerEditorDeleteUpdateApply(
@@ -114,11 +120,5 @@ export function finishPrayerEditorDeleteUpdateApply(
   callbacks: PrayerEditorSaveOutcomeCallbacks,
 ): void {
   target.allPrayers = result.allPrayers;
-  if (result.needsLoadPageData) {
-    callbacks.loadPageData();
-  }
-  callbacks.toastSuccess(result.toastSuccess);
-  if (result.refreshMainSite) {
-    callbacks.refreshMainSite();
-  }
+  applyPrayerEditorSaveOutcomeSideEffects(result, callbacks);
 }

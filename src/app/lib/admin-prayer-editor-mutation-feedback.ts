@@ -4,7 +4,7 @@ import {
   type PrayerEditorConfirmationApplyResult,
   type PrayerEditorConfirmationListState,
 } from './admin-prayer-editor-confirmation-apply';
-import { prayerEditorErrorMessage } from './admin-prayer-editor-errors';
+import { adminErrorMessage } from './admin-error-message';
 
 export interface PrayerEditorMutationErrorState {
   error: string;
@@ -16,7 +16,7 @@ export function prayerEditorMutationErrorState(
   fallback: string,
 ): PrayerEditorMutationErrorState {
   return {
-    error: prayerEditorErrorMessage(err, fallback),
+    error: adminErrorMessage(err, fallback),
     sectionExpanded: true,
   };
 }

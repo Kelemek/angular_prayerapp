@@ -35,10 +35,10 @@ export class PromptManagerComponent
   @Output() onSave = new EventEmitter<void>();
 
   @ViewChild('panelRef')
-  panelRef?: AdminPromptManagerPanelComponent;
+  override panelRef?: AdminPromptManagerPanelComponent;
 
   @ViewChild('dialogsRef')
-  dialogsRef?: AdminPromptManagerDialogsComponent;
+  override dialogsRef?: AdminPromptManagerDialogsComponent;
 
   constructor(
     supabase: SupabaseService,

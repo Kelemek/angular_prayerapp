@@ -19,6 +19,7 @@ import {
   buildDeletePrayerEditorUpdateConfirmation,
   buildDeleteSelectedPrayerEditorConfirmation,
   type PrayerEditorConfirmationAction,
+  type PrayerEditorConfirmationDialogState,
 } from '../../lib/admin-prayer-editor-confirmations';
 import type { PrayerEditorPrayer } from '../../lib/admin-prayer-editor-types';
 
@@ -47,11 +48,7 @@ export class AdminPrayerEditorDialogsComponent {
   confirmationDetails: string | null = null;
   confirmationButtonText = 'Delete';
   confirmationIsDangerous = true;
-  confirmationPrayerId: string | null = null;
-  confirmationUpdateId: string | null = null;
-  isMultiSelectDelete = false;
-  isStatusUpdateConfirmation = false;
-  isDeleteUpdateConfirmation = false;
+  private pendingConfirmation: PrayerEditorConfirmationAction | null = null;
 
   constructor(
     private readonly adminDataService: AdminDataService,
@@ -81,40 +78,35 @@ export class AdminPrayerEditorDialogsComponent {
     this.cdr.markForCheck();
   }
 
-  openDeletePrayerConfirmation(prayer: PrayerEditorPrayer): void {
-    const config = buildDeletePrayerEditorPrayerConfirmation(prayer);
-    this.applyConfirmationConfig(config);
-    this.confirmationPrayerId = prayer.id;
-    this.confirmationUpdateId = null;
-    this.isMultiSelectDelete = false;
-    this.isStatusUpdateConfirmation = false;
-    this.isDeleteUpdateConfirmation = false;
+  openConfirmation(
+    state: PrayerEditorConfirmationDialogState,
+    action: PrayerEditorConfirmationAction,
+  ): void {
+    this.applyConfirmationConfig(state);
+    this.pendingConfirmation = action;
     this.showConfirmationDialog = true;
     this.cdr.markForCheck();
+  }
+
+  openDeletePrayerConfirmation(prayer: PrayerEditorPrayer): void {
+    this.openConfirmation(
+      buildDeletePrayerEditorPrayerConfirmation(prayer),
+      { kind: 'deleteOne', prayerId: prayer.id },
+    );
   }
 
   openDeleteSelectedConfirmation(count: number): void {
-    const config = buildDeleteSelectedPrayerEditorConfirmation(count);
-    this.applyConfirmationConfig(config);
-    this.confirmationPrayerId = null;
-    this.confirmationUpdateId = null;
-    this.isMultiSelectDelete = true;
-    this.isStatusUpdateConfirmation = false;
-    this.isDeleteUpdateConfirmation = false;
-    this.showConfirmationDialog = true;
-    this.cdr.markForCheck();
+    this.openConfirmation(
+      buildDeleteSelectedPrayerEditorConfirmation(count),
+      { kind: 'deleteMany' },
+    );
   }
 
   openBulkStatusConfirmation(count: number, status: string): void {
-    const config = buildBulkStatusPrayerEditorConfirmation(count, status);
-    this.applyConfirmationConfig(config);
-    this.confirmationPrayerId = null;
-    this.confirmationUpdateId = null;
-    this.isMultiSelectDelete = false;
-    this.isStatusUpdateConfirmation = true;
-    this.isDeleteUpdateConfirmation = false;
-    this.showConfirmationDialog = true;
-    this.cdr.markForCheck();
+    this.openConfirmation(
+      buildBulkStatusPrayerEditorConfirmation(count, status),
+      { kind: 'bulkStatus' },
+    );
   }
 
   openDeleteUpdateConfirmation(
@@ -122,15 +114,10 @@ export class AdminPrayerEditorDialogsComponent {
     updateId: string,
     content: string,
   ): void {
-    const config = buildDeletePrayerEditorUpdateConfirmation(content);
-    this.applyConfirmationConfig(config);
-    this.confirmationPrayerId = prayerId;
-    this.confirmationUpdateId = updateId;
-    this.isMultiSelectDelete = false;
-    this.isStatusUpdateConfirmation = false;
-    this.isDeleteUpdateConfirmation = true;
-    this.showConfirmationDialog = true;
-    this.cdr.markForCheck();
+    this.openConfirmation(
+      buildDeletePrayerEditorUpdateConfirmation(content),
+      { kind: 'deleteUpdate', prayerId, updateId },
+    );
   }
 
   async onConfirmSendNotification(): Promise<void> {
@@ -163,45 +150,18 @@ export class AdminPrayerEditorDialogsComponent {
   }
 
   onConfirmDelete(): void {
-    let action: PrayerEditorConfirmationAction;
-    if (this.isStatusUpdateConfirmation) {
-      action = { kind: 'bulkStatus' };
-    } else if (this.isMultiSelectDelete) {
-      action = { kind: 'deleteMany' };
-    } else if (
-      this.isDeleteUpdateConfirmation &&
-      this.confirmationPrayerId &&
-      this.confirmationUpdateId
-    ) {
-      action = {
-        kind: 'deleteUpdate',
-        prayerId: this.confirmationPrayerId,
-        updateId: this.confirmationUpdateId,
-      };
-    } else if (this.confirmationPrayerId) {
-      action = { kind: 'deleteOne', prayerId: this.confirmationPrayerId };
-    } else {
-      return;
+    if (this.pendingConfirmation) {
+      this.confirmationConfirmed.emit(this.pendingConfirmation);
     }
-
-    this.resetConfirmationState();
-    this.confirmationConfirmed.emit(action);
-    this.cdr.markForCheck();
+    this.closeConfirmation();
   }
 
   onCancelDelete(): void {
-    this.resetConfirmationState();
+    this.closeConfirmation();
     this.confirmationCancelled.emit();
-    this.cdr.markForCheck();
   }
 
-  private applyConfirmationConfig(config: {
-    title: string;
-    message: string;
-    details?: string | null;
-    buttonText: string;
-    isDangerous: boolean;
-  }): void {
+  private applyConfirmationConfig(config: PrayerEditorConfirmationDialogState): void {
     this.confirmationTitle = config.title;
     this.confirmationMessage = config.message;
     this.confirmationDetails = config.details ?? null;
@@ -209,13 +169,10 @@ export class AdminPrayerEditorDialogsComponent {
     this.confirmationIsDangerous = config.isDangerous;
   }
 
-  private resetConfirmationState(): void {
+  private closeConfirmation(): void {
     this.showConfirmationDialog = false;
-    this.confirmationPrayerId = null;
-    this.confirmationUpdateId = null;
+    this.pendingConfirmation = null;
     this.confirmationDetails = null;
-    this.isMultiSelectDelete = false;
-    this.isStatusUpdateConfirmation = false;
-    this.isDeleteUpdateConfirmation = false;
+    this.cdr.markForCheck();
   }
 }

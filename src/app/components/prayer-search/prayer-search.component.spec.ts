@@ -31,8 +31,8 @@ describe('PrayerSearchComponent', () => {
     component = new PrayerSearchComponent(
       mockSupabaseService as never,
       { success: vi.fn(), error: vi.fn(), warning: vi.fn() } as never,
-      { loadPrayers: vi.fn().mockResolvedValue(undefined) } as never,
       mockChangeDetectorRef,
+      { loadPrayers: vi.fn().mockResolvedValue(undefined) } as never,
     );
   });
 
@@ -53,5 +53,12 @@ describe('PrayerSearchComponent', () => {
     vi.advanceTimersByTime(400);
     expect(spy).not.toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it('preparePrayerEditorTourInitialState expands section', () => {
+    const spy = vi.spyOn(component, 'handleSearch').mockResolvedValue();
+    component.preparePrayerEditorTourInitialState();
+    expect(component.sectionExpanded).toBe(true);
+    expect(spy).toHaveBeenCalled();
   });
 });

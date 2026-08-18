@@ -211,7 +211,8 @@ export async function fetchPrayerEditorPrayers(
   applyPrayerEditorListFilters(params, statusFilter, approvalFilter);
 
   const url = `${supabaseUrl}/rest/v1/prayers?${params.toString()}`;
-  let results: PrayerEditorPrayer[] = await restGetJson(url, supabaseKey, abortSignal);
+  let results: PrayerEditorPrayer[] =
+    (await restGetJson<PrayerEditorPrayer[]>(url, supabaseKey, abortSignal)) ?? [];
 
   if (trimmedSearch) {
     const escaped = escapeForIlikePattern(trimmedSearch);

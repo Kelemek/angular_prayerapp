@@ -50,4 +50,29 @@ describe('runPrayerEditorSearchWithOutcome', () => {
       expect(outcome.error).toBeInstanceOf(Error);
     }
   });
+
+  it('treats null JSON body as empty results', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => null,
+      }),
+    );
+
+    const outcome = await runPrayerEditorSearchWithOutcome({
+      supabaseUrl: 'https://test.supabase.co',
+      supabaseKey: 'key',
+      searchTerm: '',
+      statusFilter: '',
+      approvalFilter: '',
+      resultLimit: 50,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.allPrayers).toEqual([]);
+      expect(outcome.totalItems).toBe(0);
+    }
+  });
 });

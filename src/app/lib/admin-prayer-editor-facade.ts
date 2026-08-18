@@ -22,21 +22,12 @@ import {
 import { PrayerEditorSearchDebouncer } from './admin-prayer-editor-search-debounce';
 import { dispatchPrayerEditorCardAction } from './admin-prayer-editor-card-dispatch';
 import {
-  runPrayerEditorDeleteUpdateAction,
-  runPrayerEditorEditUpdateSaveAction,
-  runPrayerEditorNewUpdateSaveAction,
-  runPrayerEditorPrayerSaveAction,
-} from './admin-prayer-editor-save-runner';
-import {
-  finishPrayerEditorDeleteUpdateApply,
-  finishPrayerEditorEditUpdateSaveApply,
-  finishPrayerEditorNewUpdateSaveApply,
-  finishPrayerEditorPrayerSaveApply,
-} from './admin-prayer-editor-save-facade-apply';
-import {
-  buildPrayerEditorFacadeSaveOutcomeCallbacks,
-  buildPrayerEditorFacadeSaveRunnerCallbacks,
+  runPrayerEditorFacadeClearSearch,
   runPrayerEditorFacadeConfirmation,
+  runPrayerEditorFacadeDeleteUpdateSave,
+  runPrayerEditorFacadeEditUpdateSave,
+  runPrayerEditorFacadeNewUpdateSave,
+  runPrayerEditorFacadePrayerSave,
   runPrayerEditorFacadeSearch,
 } from './admin-prayer-editor-facade-run';
 import {
@@ -48,7 +39,6 @@ import {
   prayerEditorCancelAddUpdateState,
   prayerEditorCancelEditState,
   prayerEditorCancelEditUpdateState,
-  prayerEditorClearListState,
   prayerEditorPrependPrayer,
   prayerEditorStartAddUpdateState,
   prayerEditorStartEditState,
@@ -61,14 +51,7 @@ import {
   isPrayerEditorEditUpdateFormValid,
   isPrayerEditorNewUpdateValid,
 } from './admin-prayer-editor-commands';
-import {
-  runPrayerEditorManageTourInitialState,
-  runPrayerEditorManageTourOpenAddUpdate,
-  runPrayerEditorManageTourOpenEdit,
-  runPrayerEditorManageTourResetUi,
-  runPrayerEditorOverviewTourInitialState,
-} from './admin-prayer-editor-facade-tour';
-import { toggleAdminSectionLazyLoad } from './admin-section-lazy-load';
+import { applyAdminSectionToggle } from './admin-section-lazy-load';
 import type {
   PrayerEditorDialogsHostRef,
   PrayerEditorFacadeDeps,
@@ -130,6 +113,10 @@ export class PrayerEditorFacade {
   allPrayers: PrayerEditorPrayer[] = [];
   displayPrayers: PrayerEditorPrayer[] = [];
 
+  sectionRef?: PrayerEditorSectionHostRef;
+  panelRef?: PrayerEditorPanelHostRef;
+  dialogsRef?: PrayerEditorDialogsHostRef;
+
   constructor(deps: PrayerEditorFacadeDeps) {
     this.supabaseService = deps.supabase;
     this.toast = deps.toast;
@@ -137,16 +124,8 @@ export class PrayerEditorFacade {
     this.markForCheck = deps.markForCheck;
   }
 
-  protected get sectionHost(): PrayerEditorSectionHostRef | undefined {
-    return (this as { sectionRef?: PrayerEditorSectionHostRef }).sectionRef;
-  }
-
-  protected get panelHost(): PrayerEditorPanelHostRef | undefined {
-    return (this as { panelRef?: PrayerEditorPanelHostRef }).panelRef;
-  }
-
-  protected get dialogsHost(): PrayerEditorDialogsHostRef | undefined {
-    return (this as { dialogsRef?: PrayerEditorDialogsHostRef }).dialogsRef;
+  onSectionToggle(): void {
+    applyAdminSectionToggle(this, () => void this.handleSearch());
   }
 
   get totalPages(): number {
@@ -176,19 +155,6 @@ export class PrayerEditorFacade {
     );
   }
 
-  onSectionToggle(): void {
-    const toggled = toggleAdminSectionLazyLoad({
-      sectionExpanded: this.sectionExpanded,
-      sectionInitialLoadDone: this.sectionInitialLoadDone,
-    });
-    this.sectionExpanded = toggled.gate.sectionExpanded;
-    this.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
-    if (toggled.shouldInitialLoad) {
-      void this.handleSearch();
-    }
-    this.markForCheck();
-  }
-
   destroySearchDebouncer(): void {
     this.searchDebouncer.destroy();
   }
@@ -200,7 +166,7 @@ export class PrayerEditorFacade {
     this.currentPage = 1;
     this.loadPageData();
     this.creatingPrayer = false;
-    this.dialogsHost?.openSendNotificationForPrayer(prayer.id, prayer.title);
+    this.dialogsRef?.openSendNotificationForPrayer(prayer.id, prayer.title);
     this.markForCheck();
   }
 
@@ -227,13 +193,13 @@ export class PrayerEditorFacade {
       saveEditUpdate: (prayerId, updateId) =>
         this.saveEditUpdate(prayerId, updateId),
       flushEditDescription: (prayerId) =>
-        this.panelHost?.flushEditDescriptionForPrayer(prayerId),
+        this.panelRef?.flushEditDescriptionForPrayer(prayerId),
     });
   }
 
-  private resetAddUpdateSubscriberPick(): void {
+  resetAddUpdateSubscriberPick(): void {
     if (this.addingUpdate) {
-      this.panelHost?.resetAddUpdateSubscriberPickForPrayer(this.addingUpdate);
+      this.panelRef?.resetAddUpdateSubscriberPickForPrayer(this.addingUpdate);
     }
   }
 
@@ -242,26 +208,6 @@ export class PrayerEditorFacade {
     this.addingUpdate = state.addingUpdate;
     this.newUpdate = state.newUpdate;
     this.resetAddUpdateSubscriberPick();
-  }
-
-  onToolbarSearchTermChange(value: string): void {
-    this.searchTerm = value;
-    this.onMainSearchTermChange(value);
-  }
-
-  onToolbarStatusFilterChange(value: string): void {
-    this.statusFilter = value;
-    this.onStatusFilterChange();
-  }
-
-  onToolbarApprovalFilterChange(value: string): void {
-    this.approvalFilter = value;
-    this.onApprovalFilterChange();
-  }
-
-  onToolbarPageSizeChange(size: number): void {
-    this.pageSize = size;
-    this.changePageSize();
   }
 
   onMainSearchTermChange(value: string): void {
@@ -303,7 +249,7 @@ export class PrayerEditorFacade {
     );
     this.loadPageData();
 
-    const container = this.sectionHost?.containerElement;
+    const container = this.sectionRef?.containerElement;
     if (container) {
       scrollPrayerEditorSectionToTop(container);
     }
@@ -361,31 +307,15 @@ export class PrayerEditorFacade {
   }
 
   async deletePrayer(prayer: PrayerEditorPrayer): Promise<void> {
-    this.dialogsHost?.openDeletePrayerConfirmation(prayer);
+    this.dialogsRef?.openDeletePrayerConfirmation(prayer);
   }
 
   onConfirmationConfirmed(action: PrayerEditorConfirmationAction): Promise<void> {
-    return this.handleConfirmationConfirmed(action);
-  }
-
-  private async handleConfirmationConfirmed(
-    action: PrayerEditorConfirmationAction,
-  ): Promise<void> {
-    await runPrayerEditorFacadeConfirmation(this, action, {
+    return runPrayerEditorFacadeConfirmation(this, action, {
       loadPageData: () => this.loadPageData(),
       executeDeleteUpdate: (prayerId, updateId) =>
         this.executeDeleteUpdate(prayerId, updateId),
     });
-  }
-
-  private saveRunnerCallbacks() {
-    return buildPrayerEditorFacadeSaveRunnerCallbacks(this, this);
-  }
-
-  private saveOutcomeCallbacks() {
-    return buildPrayerEditorFacadeSaveOutcomeCallbacks(this, () =>
-      this.loadPageData(),
-    );
   }
 
   startEditPrayer(prayer: PrayerEditorPrayer): void {
@@ -402,113 +332,37 @@ export class PrayerEditorFacade {
     this.editForm = state.editForm;
   }
 
-  preparePrayerEditorTourInitialState(): void {
-    runPrayerEditorOverviewTourInitialState(this);
-  }
-
-  openCreatePrayerFormForTour(): void {
-    this.startCreatePrayer();
-    this.markForCheck();
-  }
-
-  async preparePrayerEditorManageTourInitialState(): Promise<boolean> {
-    return runPrayerEditorManageTourInitialState(this);
-  }
-
-  openEditFormForTour(): void {
-    runPrayerEditorManageTourOpenEdit(this);
-  }
-
-  cancelEditForTour(): void {
-    this.cancelEdit();
-    this.markForCheck();
-  }
-
-  openAddUpdateFormForTour(): void {
-    runPrayerEditorManageTourOpenAddUpdate(this);
-  }
-
-  cancelAddUpdateForTour(): void {
-    this.cancelAddUpdate();
-    this.markForCheck();
-  }
-
-  resetPrayerEditorManageTourUi(): void {
-    runPrayerEditorManageTourResetUi(this);
-  }
-
   startCreatePrayer(): void {
     this.creatingPrayer = true;
     this.error = null;
     this.markForCheck();
-    setTimeout(() => this.panelHost?.resetCreateForm(), 0);
+    setTimeout(() => this.panelRef?.resetCreateForm(), 0);
   }
 
   cancelCreatePrayer(): void {
     this.creatingPrayer = false;
-    this.panelHost?.resetCreateForm();
+    this.panelRef?.resetCreateForm();
   }
 
   async savePrayer(prayerId: string): Promise<void> {
-    await runPrayerEditorPrayerSaveAction(
-      prayerId,
-      {
-        searchResults: this.searchResults,
-        allPrayers: this.allPrayers,
-        editForm: this.editForm,
-      },
-      {
-        ...this.saveRunnerCallbacks(),
-        setSaving: (value) => {
-          this.saving = value;
-        },
-        applyResult: (result) => {
-          finishPrayerEditorPrayerSaveApply(this, result, {
-            ...this.saveOutcomeCallbacks(),
-            cancelEdit: () => this.cancelEdit(),
-            openSendNotificationForPrayer: (id, title) =>
-              this.dialogsHost?.openSendNotificationForPrayer(id, title),
-          });
-        },
-      },
-    );
+    await runPrayerEditorFacadePrayerSave(this, prayerId);
   }
 
   async deleteSelected(): Promise<void> {
     if (this.selectedPrayers.size === 0) return;
-    this.dialogsHost?.openDeleteSelectedConfirmation(this.selectedPrayers.size);
+    this.dialogsRef?.openDeleteSelectedConfirmation(this.selectedPrayers.size);
   }
 
   async updateSelectedStatus(): Promise<void> {
     if (this.selectedPrayers.size === 0 || !this.bulkStatus) return;
-    this.dialogsHost?.openBulkStatusConfirmation(
+    this.dialogsRef?.openBulkStatusConfirmation(
       this.selectedPrayers.size,
       this.bulkStatus,
     );
   }
 
   async saveNewUpdate(prayerId: string): Promise<void> {
-    await runPrayerEditorNewUpdateSaveAction(
-      prayerId,
-      {
-        allPrayers: this.allPrayers,
-        newUpdate: this.newUpdate,
-      },
-      {
-        ...this.saveRunnerCallbacks(),
-        setSavingUpdate: (value) => {
-          this.savingUpdate = value;
-        },
-        applyResult: (result) => {
-          finishPrayerEditorNewUpdateSaveApply(this, result, {
-            ...this.saveOutcomeCallbacks(),
-            resetAddUpdateSubscriberPick: () => this.resetAddUpdateSubscriberPick(),
-            openSendNotificationForUpdate: (id, updateId, title) =>
-              this.dialogsHost?.openSendNotificationForUpdate(id, updateId, title),
-          });
-        },
-      },
-    );
+    await runPrayerEditorFacadeNewUpdateSave(this, prayerId);
   }
 
   cancelAddUpdate(): void {
@@ -523,7 +377,7 @@ export class PrayerEditorFacade {
   }
 
   deleteUpdate(prayerId: string, updateId: string, updateContent: string): void {
-    this.dialogsHost?.openDeleteUpdateConfirmation(
+    this.dialogsRef?.openDeleteUpdateConfirmation(
       prayerId,
       updateId,
       updateContent,
@@ -531,20 +385,7 @@ export class PrayerEditorFacade {
   }
 
   async executeDeleteUpdate(prayerId: string, updateId: string): Promise<void> {
-    await runPrayerEditorDeleteUpdateAction(
-      prayerId,
-      updateId,
-      { allPrayers: this.allPrayers },
-      {
-        ...this.saveRunnerCallbacks(),
-        applyResult: (result) => {
-          finishPrayerEditorDeleteUpdateApply(this, result, {
-            ...this.saveOutcomeCallbacks(),
-            refreshMainSite: () => void this.prayerService.loadPrayers(),
-          });
-        },
-      },
-    );
+    await runPrayerEditorFacadeDeleteUpdateSave(this, prayerId, updateId);
   }
 
   startEditUpdate(prayerId: string, update: PrayerEditorUpdate): void {
@@ -566,40 +407,10 @@ export class PrayerEditorFacade {
   }
 
   async saveEditUpdate(prayerId: string, updateId: string): Promise<void> {
-    await runPrayerEditorEditUpdateSaveAction(
-      prayerId,
-      updateId,
-      {
-        allPrayers: this.allPrayers,
-        editUpdateForm: this.editUpdateForm,
-      },
-      {
-        ...this.saveRunnerCallbacks(),
-        setSavingEditUpdate: (value) => {
-          this.savingEditUpdate = value;
-        },
-        applyResult: (result) => {
-          finishPrayerEditorEditUpdateSaveApply(this, result, {
-            ...this.saveOutcomeCallbacks(),
-            cancelEditUpdate: () => this.cancelEditUpdate(),
-            openSendNotificationForUpdate: (id, updId, title) =>
-              this.dialogsHost?.openSendNotificationForUpdate(id, updId, title),
-          });
-        },
-      },
-    );
+    await runPrayerEditorFacadeEditUpdateSave(this, prayerId, updateId);
   }
 
   clearSearch(): void {
-    this.searchDebouncer.clear();
-    const cleared = prayerEditorClearListState();
-    this.searchTerm = "";
-    this.allPrayers = cleared.allPrayers;
-    this.displayPrayers = cleared.displayPrayers;
-    this.selectedPrayers = cleared.selectedPrayers;
-    this.error = null;
-    this.currentPage = cleared.currentPage;
-    this.totalItems = cleared.totalItems;
-    void this.handleSearch();
+    runPrayerEditorFacadeClearSearch(this, () => this.searchDebouncer.clear());
   }
 }

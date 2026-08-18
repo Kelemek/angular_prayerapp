@@ -3,7 +3,25 @@ import type { ToastService } from '../services/toast.service';
 import type { PrayerService } from '../services/prayer.service';
 import type { PrayerEditorConfirmationAction } from './admin-prayer-editor-confirmations';
 import type { PrayerEditorConfirmationApplyResult } from './admin-prayer-editor-confirmation-apply';
-import type { PrayerEditorPrayer } from './admin-prayer-editor-types';
+import type {
+  PrayerEditorEditForm,
+  PrayerEditorEditUpdateForm,
+  PrayerEditorNewUpdate,
+  PrayerEditorPrayer,
+} from './admin-prayer-editor-types';
+import {
+  finishPrayerEditorDeleteUpdateApply,
+  finishPrayerEditorEditUpdateSaveApply,
+  finishPrayerEditorNewUpdateSaveApply,
+  finishPrayerEditorPrayerSaveApply,
+} from './admin-prayer-editor-save-facade-apply';
+import {
+  runPrayerEditorDeleteUpdateAction,
+  runPrayerEditorEditUpdateSaveAction,
+  runPrayerEditorNewUpdateSaveAction,
+  runPrayerEditorPrayerSaveAction,
+} from './admin-prayer-editor-save-runner';
+import type { PrayerEditorDialogsHostRef } from './admin-prayer-editor-facade-host';
 import { runPrayerEditorSearchWithOutcome } from './admin-prayer-editor-search-orchestration';
 import {
   finishPrayerEditorConfirmationApply,
@@ -11,6 +29,7 @@ import {
   refreshPrayerEditorMainSitePrayers,
 } from './admin-prayer-editor-mutation-feedback';
 import { runPrayerEditorConfirmationAction } from './admin-prayer-editor-confirmation-runner';
+import { prayerEditorClearListState } from './admin-prayer-editor-ui-state';
 
 export interface PrayerEditorFacadeErrorTarget {
   error: string | null;
@@ -201,4 +220,155 @@ export async function runPrayerEditorFacadeConfirmation(
     },
     executeDeleteUpdate: callbacks.executeDeleteUpdate,
   });
+}
+
+export interface PrayerEditorFacadeSaveHost
+  extends PrayerEditorFacadeDepsHost,
+    PrayerEditorFacadeErrorTarget {
+  searchResults: PrayerEditorPrayer[];
+  allPrayers: PrayerEditorPrayer[];
+  editForm: PrayerEditorEditForm;
+  newUpdate: PrayerEditorNewUpdate;
+  editUpdateForm: PrayerEditorEditUpdateForm;
+  addingUpdate: string | null;
+  saving: boolean;
+  savingUpdate: boolean;
+  savingEditUpdate: boolean;
+  loadPageData: () => void;
+  cancelEdit: () => void;
+  cancelEditUpdate: () => void;
+  resetAddUpdateSubscriberPick: () => void;
+  dialogsRef?: PrayerEditorDialogsHostRef;
+}
+
+export async function runPrayerEditorFacadePrayerSave(
+  host: PrayerEditorFacadeSaveHost,
+  prayerId: string,
+): Promise<void> {
+  await runPrayerEditorPrayerSaveAction(
+    prayerId,
+    {
+      searchResults: host.searchResults,
+      allPrayers: host.allPrayers,
+      editForm: host.editForm,
+    },
+    {
+      ...buildPrayerEditorFacadeSaveRunnerCallbacks(host, host),
+      setSaving: (value) => {
+        host.saving = value;
+      },
+      applyResult: (result) => {
+        finishPrayerEditorPrayerSaveApply(host, result, {
+          ...buildPrayerEditorFacadeSaveOutcomeCallbacks(host, () => host.loadPageData()),
+          cancelEdit: () => host.cancelEdit(),
+          openSendNotificationForPrayer: (id, title) =>
+            host.dialogsRef?.openSendNotificationForPrayer(id, title),
+        });
+      },
+    },
+  );
+}
+
+export async function runPrayerEditorFacadeNewUpdateSave(
+  host: PrayerEditorFacadeSaveHost,
+  prayerId: string,
+): Promise<void> {
+  await runPrayerEditorNewUpdateSaveAction(
+    prayerId,
+    {
+      allPrayers: host.allPrayers,
+      newUpdate: host.newUpdate,
+    },
+    {
+      ...buildPrayerEditorFacadeSaveRunnerCallbacks(host, host),
+      setSavingUpdate: (value) => {
+        host.savingUpdate = value;
+      },
+      applyResult: (result) => {
+        finishPrayerEditorNewUpdateSaveApply(host, result, {
+          ...buildPrayerEditorFacadeSaveOutcomeCallbacks(host, () => host.loadPageData()),
+          resetAddUpdateSubscriberPick: () => host.resetAddUpdateSubscriberPick(),
+          openSendNotificationForUpdate: (id, updateId, title) =>
+            host.dialogsRef?.openSendNotificationForUpdate(id, updateId, title),
+        });
+      },
+    },
+  );
+}
+
+export async function runPrayerEditorFacadeEditUpdateSave(
+  host: PrayerEditorFacadeSaveHost,
+  prayerId: string,
+  updateId: string,
+): Promise<void> {
+  await runPrayerEditorEditUpdateSaveAction(
+    prayerId,
+    updateId,
+    {
+      allPrayers: host.allPrayers,
+      editUpdateForm: host.editUpdateForm,
+    },
+    {
+      ...buildPrayerEditorFacadeSaveRunnerCallbacks(host, host),
+      setSavingEditUpdate: (value) => {
+        host.savingEditUpdate = value;
+      },
+      applyResult: (result) => {
+        finishPrayerEditorEditUpdateSaveApply(host, result, {
+          ...buildPrayerEditorFacadeSaveOutcomeCallbacks(host, () => host.loadPageData()),
+          cancelEditUpdate: () => host.cancelEditUpdate(),
+          openSendNotificationForUpdate: (id, updId, title) =>
+            host.dialogsRef?.openSendNotificationForUpdate(id, updId, title),
+        });
+      },
+    },
+  );
+}
+
+export async function runPrayerEditorFacadeDeleteUpdateSave(
+  host: PrayerEditorFacadeSaveHost,
+  prayerId: string,
+  updateId: string,
+): Promise<void> {
+  await runPrayerEditorDeleteUpdateAction(
+    prayerId,
+    updateId,
+    { allPrayers: host.allPrayers },
+    {
+      ...buildPrayerEditorFacadeSaveRunnerCallbacks(host, host),
+      applyResult: (result) => {
+        finishPrayerEditorDeleteUpdateApply(host, result, {
+          ...buildPrayerEditorFacadeSaveOutcomeCallbacks(host, () => host.loadPageData()),
+          refreshMainSite: () => void host.prayerService.loadPrayers(),
+        });
+      },
+    },
+  );
+}
+
+export interface PrayerEditorFacadeClearSearchHost {
+  searchTerm: string;
+  allPrayers: PrayerEditorPrayer[];
+  displayPrayers: PrayerEditorPrayer[];
+  selectedPrayers: Set<string>;
+  error: string | null;
+  currentPage: number;
+  totalItems: number;
+  handleSearch: () => Promise<void>;
+}
+
+export function runPrayerEditorFacadeClearSearch(
+  host: PrayerEditorFacadeClearSearchHost,
+  clearDebouncer: () => void,
+): void {
+  clearDebouncer();
+  const cleared = prayerEditorClearListState();
+  host.searchTerm = '';
+  host.allPrayers = cleared.allPrayers;
+  host.displayPrayers = cleared.displayPrayers;
+  host.selectedPrayers = cleared.selectedPrayers;
+  host.error = null;
+  host.currentPage = cleared.currentPage;
+  host.totalItems = cleared.totalItems;
+  void host.handleSearch();
 }

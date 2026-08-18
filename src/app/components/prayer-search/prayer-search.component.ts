@@ -13,6 +13,16 @@ import { AdminPrayerEditorSectionComponent } from '../admin-prayer-editor-sectio
 import { AdminPrayerEditorPanelComponent } from '../admin-prayer-editor-panel/admin-prayer-editor-panel.component';
 import { AdminPrayerEditorDialogsComponent } from '../admin-prayer-editor-dialogs/admin-prayer-editor-dialogs.component';
 import { PrayerEditorFacade } from '../../lib/admin-prayer-editor-facade';
+import {
+  runPrayerEditorCreateTourOpenForm,
+  runPrayerEditorManageTourInitialState,
+  runPrayerEditorManageTourOpenAddUpdate,
+  runPrayerEditorManageTourOpenEdit,
+  runPrayerEditorManageTourResetUi,
+  runPrayerEditorOverviewTourInitialState,
+  runPrayerEditorTourCancelAddUpdate,
+  runPrayerEditorTourCancelEdit,
+} from '../../lib/admin-prayer-editor-facade-tour';
 
 @Component({
   selector: 'app-prayer-search',
@@ -31,10 +41,10 @@ export class PrayerSearchComponent
   extends PrayerEditorFacade
   implements OnDestroy
 {
-  @ViewChild('sectionRef') sectionRef?: AdminPrayerEditorSectionComponent;
-  @ViewChild('panelRef') panelRef?: AdminPrayerEditorPanelComponent;
+  @ViewChild('sectionRef') override sectionRef?: AdminPrayerEditorSectionComponent;
+  @ViewChild('panelRef') override panelRef?: AdminPrayerEditorPanelComponent;
   @ViewChild(AdminPrayerEditorDialogsComponent)
-  dialogsRef?: AdminPrayerEditorDialogsComponent;
+  override dialogsRef?: AdminPrayerEditorDialogsComponent;
 
   constructor(
     supabaseService: SupabaseService,
@@ -52,5 +62,37 @@ export class PrayerSearchComponent
 
   ngOnDestroy(): void {
     this.destroySearchDebouncer();
+  }
+
+  preparePrayerEditorTourInitialState(): void {
+    runPrayerEditorOverviewTourInitialState(this);
+  }
+
+  openCreatePrayerFormForTour(): void {
+    runPrayerEditorCreateTourOpenForm(this);
+  }
+
+  async preparePrayerEditorManageTourInitialState(): Promise<boolean> {
+    return runPrayerEditorManageTourInitialState(this);
+  }
+
+  openEditFormForTour(): void {
+    runPrayerEditorManageTourOpenEdit(this);
+  }
+
+  cancelEditForTour(): void {
+    runPrayerEditorTourCancelEdit(this);
+  }
+
+  openAddUpdateFormForTour(): void {
+    runPrayerEditorManageTourOpenAddUpdate(this);
+  }
+
+  cancelAddUpdateForTour(): void {
+    runPrayerEditorTourCancelAddUpdate(this);
+  }
+
+  resetPrayerEditorManageTourUi(): void {
+    runPrayerEditorManageTourResetUi(this);
   }
 }

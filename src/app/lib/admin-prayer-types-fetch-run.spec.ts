@@ -30,4 +30,12 @@ describe('runPrayerTypesListFetch', () => {
 
     expect(outcome).toEqual({ ok: false, error: 'fetch failed' });
   });
+
+  it('uses fallback when rejection has no message', async () => {
+    vi.mocked(fetchPrayerTypesList).mockRejectedValue({});
+
+    const outcome = await runPrayerTypesListFetch(supabase);
+
+    expect(outcome).toEqual({ ok: false, error: 'Unknown error' });
+  });
 });

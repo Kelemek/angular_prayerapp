@@ -35,10 +35,10 @@ export class PrayerTypesManagerComponent extends PrayerTypesFacade {
   @Output() onSave = new EventEmitter<void>();
 
   @ViewChild('panelRef')
-  panelRef?: AdminPrayerTypesPanelComponent;
+  override panelRef?: AdminPrayerTypesPanelComponent;
 
   @ViewChild('dialogsRef')
-  dialogsRef?: AdminPrayerTypesDialogsComponent;
+  override dialogsRef?: AdminPrayerTypesDialogsComponent;
 
   constructor(
     supabase: SupabaseService,

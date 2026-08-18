@@ -112,3 +112,24 @@ export function runPrayerEditorManageTourResetUi(
   host.cancelAddUpdate();
   host.markForCheck();
 }
+
+export function runPrayerEditorCreateTourOpenForm(
+  host: Pick<PrayerEditorManageTourHost, 'markForCheck' | 'startCreatePrayer'>,
+): void {
+  host.startCreatePrayer();
+  host.markForCheck();
+}
+
+export function runPrayerEditorTourCancelEdit(
+  host: Pick<PrayerEditorManageTourHost, 'markForCheck' | 'cancelEdit'>,
+): void {
+  host.cancelEdit();
+  host.markForCheck();
+}
+
+export function runPrayerEditorTourCancelAddUpdate(
+  host: Pick<PrayerEditorManageTourHost, 'markForCheck' | 'cancelAddUpdate'>,
+): void {
+  host.cancelAddUpdate();
+  host.markForCheck();
+}

@@ -14,7 +14,7 @@ import {
   runPromptManagerFetchPrayerTypes,
 } from './admin-prompt-manager-facade-run';
 import { runPromptManagerTourInitialState } from './admin-prompt-manager-facade-tour';
-import { toggleAdminSectionLazyLoad } from './admin-section-lazy-load';
+import { applyAdminSectionToggle } from './admin-section-lazy-load';
 import type {
   PromptManagerDialogsHostRef,
   PromptManagerFacadeDeps,
@@ -50,6 +50,9 @@ export class PromptManagerFacade {
 
   editingId: string | null = null;
 
+  panelRef?: PromptManagerPanelHostRef;
+  dialogsRef?: PromptManagerDialogsHostRef;
+
   public readonly supabase: PromptManagerFacadeDeps['supabase'];
   public readonly toast: PromptManagerFacadeDeps['toast'];
   public readonly markForCheck: () => void;
@@ -58,14 +61,6 @@ export class PromptManagerFacade {
     this.supabase = deps.supabase;
     this.toast = deps.toast;
     this.markForCheck = deps.markForCheck;
-  }
-
-  protected get panelHost(): PromptManagerPanelHostRef | undefined {
-    return (this as { panelRef?: PromptManagerPanelHostRef }).panelRef;
-  }
-
-  protected get dialogsHost(): PromptManagerDialogsHostRef | undefined {
-    return (this as { dialogsRef?: PromptManagerDialogsHostRef }).dialogsRef;
   }
 
   protected notifySaved(): void {}
@@ -79,16 +74,7 @@ export class PromptManagerFacade {
   }
 
   onSectionToggle(): void {
-    const toggled = toggleAdminSectionLazyLoad({
-      sectionExpanded: this.sectionExpanded,
-      sectionInitialLoadDone: this.sectionInitialLoadDone,
-    });
-    this.sectionExpanded = toggled.gate.sectionExpanded;
-    this.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
-    if (toggled.shouldInitialLoad) {
-      void this.bootstrapPromptSection();
-    }
-    this.markForCheck();
+    applyAdminSectionToggle(this, () => void this.bootstrapPromptSection());
   }
 
   async prepareTourInitialState(): Promise<void> {
@@ -135,7 +121,7 @@ export class PromptManagerFacade {
   async fetchPrayerTypes(): Promise<void> {
     this.prayerTypes = await runPromptManagerFetchPrayerTypes(
       this.supabase,
-      (typeName) => this.panelHost?.setCreateFormDefaultType(typeName),
+      (typeName) => this.panelRef?.setCreateFormDefaultType(typeName),
     );
   }
 
@@ -149,14 +135,14 @@ export class PromptManagerFacade {
     this.error = null;
     this.success = null;
     if (!this.showCSVUpload) {
-      this.panelHost?.resetCsvPanel();
+      this.panelRef?.resetCsvPanel();
     }
     this.markForCheck();
   }
 
   closeCsvUpload(): void {
     this.showCSVUpload = false;
-    this.panelHost?.resetCsvPanel();
+    this.panelRef?.resetCsvPanel();
     this.markForCheck();
   }
 
@@ -167,9 +153,9 @@ export class PromptManagerFacade {
     this.error = null;
     this.success = null;
     if (this.showAddForm) {
-      this.panelHost?.resetCreateForm();
+      this.panelRef?.resetCreateForm();
       if (this.prayerTypes.length > 0) {
-        this.panelHost?.setCreateFormDefaultType(this.prayerTypes[0].name);
+        this.panelRef?.setCreateFormDefaultType(this.prayerTypes[0].name);
       }
     }
     this.markForCheck();
@@ -177,7 +163,7 @@ export class PromptManagerFacade {
 
   closeAddForm(): void {
     this.showAddForm = false;
-    this.panelHost?.resetCreateForm();
+    this.panelRef?.resetCreateForm();
     this.markForCheck();
   }
 
@@ -230,7 +216,7 @@ export class PromptManagerFacade {
   }
 
   handleDelete(id: string, title: string): void {
-    this.dialogsHost?.openDeleteConfirmation(
+    this.dialogsRef?.openDeleteConfirmation(
       buildPromptManagerDeleteConfirmation(title),
       { kind: 'delete', id, title },
     );
@@ -256,10 +242,10 @@ export class PromptManagerFacade {
   }
 
   resetCreateForm(): void {
-    this.panelHost?.resetCreateForm();
+    this.panelRef?.resetCreateForm();
   }
 
   resetCsvPanel(): void {
-    this.panelHost?.resetCsvPanel();
+    this.panelRef?.resetCsvPanel();
   }
 }

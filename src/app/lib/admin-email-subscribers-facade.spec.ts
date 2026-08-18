@@ -324,6 +324,47 @@ describe('EmailSubscribersFacade', () => {
     });
   });
 
+  describe('handleToggleReceivePush', () => {
+    it('opens confirmation and toggles receive_push on confirm', async () => {
+      const { facade, mockToast, client, dialogs } = createTestContext();
+      facade.allSubscribers = [
+        {
+          ...mockSubscriber,
+          email: 'push@example.com',
+          receive_push: true,
+        },
+      ] as never;
+
+      client.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { email: 'push@example.com' },
+              error: null,
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      });
+
+      await facade.handleToggleReceivePush('123', true);
+
+      expect(dialogs.showConfirmationDialog).toBe(true);
+      expect(dialogs.confirmationTitle).toBe('Disable push notifications');
+
+      await facade.onConfirmationConfirmed({
+        kind: 'toggleReceivePush',
+        id: '123',
+        currentReceivePush: true,
+      });
+
+      expect(mockToast.success).toHaveBeenCalled();
+      expect(facade.allSubscribers[0]?.receive_push).toBe(false);
+    });
+  });
+
   describe('handleToggleBlocked', () => {
     it('shows unblock messaging when currently blocked', async () => {
       const { facade, client, dialogs } = createTestContext();

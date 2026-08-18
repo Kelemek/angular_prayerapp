@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { toggleAdminSectionLazyLoad } from './admin-section-lazy-load';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  applyAdminSectionToggle,
+  toggleAdminSectionLazyLoad,
+} from './admin-section-lazy-load';
 
 describe('toggleAdminSectionLazyLoad', () => {
   it('expands collapsed section without initial load when already loaded', () => {
@@ -30,5 +33,23 @@ describe('toggleAdminSectionLazyLoad', () => {
     expect(result.gate.sectionExpanded).toBe(false);
     expect(result.gate.sectionInitialLoadDone).toBe(true);
     expect(result.shouldInitialLoad).toBe(false);
+  });
+});
+
+describe('applyAdminSectionToggle', () => {
+  it('runs initial load callback on first expand', () => {
+    const host = {
+      sectionExpanded: false,
+      sectionInitialLoadDone: false,
+      markForCheck: vi.fn(),
+    };
+    const onInitialLoad = vi.fn();
+
+    applyAdminSectionToggle(host, onInitialLoad);
+
+    expect(host.sectionExpanded).toBe(true);
+    expect(host.sectionInitialLoadDone).toBe(true);
+    expect(onInitialLoad).toHaveBeenCalled();
+    expect(host.markForCheck).toHaveBeenCalled();
   });
 });

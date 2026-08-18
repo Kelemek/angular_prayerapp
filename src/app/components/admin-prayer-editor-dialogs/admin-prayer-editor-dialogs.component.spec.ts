@@ -40,7 +40,7 @@ describe('AdminPrayerEditorDialogsComponent', () => {
     });
 
     expect(component.showConfirmationDialog).toBe(true);
-    expect(component.confirmationPrayerId).toBe('p1');
+    expect(component.confirmationTitle).toBe('Delete Prayer');
 
     component.onConfirmDelete();
     expect(confirmed).toHaveBeenCalledWith({ kind: 'deleteOne', prayerId: 'p1' });
@@ -54,7 +54,7 @@ describe('AdminPrayerEditorDialogsComponent', () => {
     component.openDeleteUpdateConfirmation('p1', 'u1', 'Update body text');
 
     expect(component.showConfirmationDialog).toBe(true);
-    expect(component.isDeleteUpdateConfirmation).toBe(true);
+    expect(component.confirmationButtonText).toBe('Delete');
 
     component.onConfirmDelete();
     expect(confirmed).toHaveBeenCalledWith({

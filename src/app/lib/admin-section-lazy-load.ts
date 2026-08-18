@@ -23,3 +23,23 @@ export function toggleAdminSectionLazyLoad(
     shouldInitialLoad,
   };
 }
+
+export interface AdminSectionLazyHost extends AdminSectionLazyGate {
+  markForCheck: () => void;
+}
+
+export function applyAdminSectionToggle(
+  host: AdminSectionLazyHost,
+  onInitialLoad: () => void,
+): void {
+  const toggled = toggleAdminSectionLazyLoad({
+    sectionExpanded: host.sectionExpanded,
+    sectionInitialLoadDone: host.sectionInitialLoadDone,
+  });
+  host.sectionExpanded = toggled.gate.sectionExpanded;
+  host.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
+  if (toggled.shouldInitialLoad) {
+    onInitialLoad();
+  }
+  host.markForCheck();
+}

@@ -23,7 +23,7 @@ import {
   nextEmailSubscriberSort,
   sortEmailSubscriberRows,
 } from './admin-email-subscribers-sort';
-import { toggleAdminSectionLazyLoad } from './admin-section-lazy-load';
+import { applyAdminSectionToggle } from './admin-section-lazy-load';
 import {
   openEmailSubscriberDeleteConfirmation,
   openEmailSubscriberToggleConfirmation,
@@ -86,6 +86,10 @@ export class EmailSubscribersFacade {
   sortBy: EmailSubscriberSortColumn = 'last_activity_date';
   sortDirection: 'asc' | 'desc' = 'desc';
 
+  sectionRef?: EmailSubscribersSectionHostRef;
+  panelRef?: EmailSubscribersPanelHostRef;
+  dialogsRef?: EmailSubscribersDialogsHostRef;
+
   pendingSubscriberEmail = '';
   editSubscriber: EmailSubscriberRow | null = null;
 
@@ -107,18 +111,6 @@ export class EmailSubscribersFacade {
     this.toast = deps.toast;
     this.adminDataService = deps.adminDataService;
     this.markForCheck = deps.markForCheck;
-  }
-
-  protected get sectionHost(): EmailSubscribersSectionHostRef | undefined {
-    return (this as { sectionRef?: EmailSubscribersSectionHostRef }).sectionRef;
-  }
-
-  protected get panelHost(): EmailSubscribersPanelHostRef | undefined {
-    return (this as { panelRef?: EmailSubscribersPanelHostRef }).panelRef;
-  }
-
-  protected get dialogsHost(): EmailSubscribersDialogsHostRef | undefined {
-    return (this as { dialogsRef?: EmailSubscribersDialogsHostRef }).dialogsRef;
   }
 
   initOrientationTracking(): void {
@@ -154,16 +146,7 @@ export class EmailSubscribersFacade {
   }
 
   onSectionToggle(): void {
-    const toggled = toggleAdminSectionLazyLoad({
-      sectionExpanded: this.sectionExpanded,
-      sectionInitialLoadDone: this.sectionInitialLoadDone,
-    });
-    this.sectionExpanded = toggled.gate.sectionExpanded;
-    this.sectionInitialLoadDone = toggled.gate.sectionInitialLoadDone;
-    if (toggled.shouldInitialLoad) {
-      void this.handleSearch();
-    }
-    this.markForCheck();
+    applyAdminSectionToggle(this, () => void this.handleSearch());
   }
 
   onListSearchQueryChange(value: string): void {
@@ -202,7 +185,7 @@ export class EmailSubscribersFacade {
     this.error = null;
     this.csvSuccess = null;
     if (!this.showAddForm) {
-      this.panelHost?.resetAddForm();
+      this.panelRef?.resetAddForm();
     }
     this.markForCheck();
   }
@@ -223,7 +206,7 @@ export class EmailSubscribersFacade {
   onSubscriberAdded(event: { email: string; successMessage: string }): void {
     this.csvSuccess = event.successMessage;
     this.pendingSubscriberEmail = event.email;
-    this.dialogsHost?.openWelcomeEmailDialog();
+    this.dialogsRef?.openWelcomeEmailDialog();
     this.showAddForm = false;
     void this.handleSearch({ preserveCsvSuccess: true });
     this.markForCheck();
@@ -261,7 +244,7 @@ export class EmailSubscribersFacade {
       showCSVUpload: this.showCSVUpload,
       error: this.error,
       markForCheck: () => this.markForCheck(),
-      resetAddForm: () => this.panelHost?.resetAddForm(),
+      resetAddForm: () => this.panelRef?.resetAddForm(),
     });
   }
 
@@ -274,23 +257,23 @@ export class EmailSubscribersFacade {
   }
 
   showPlanningCenterTabForTour(): void {
-    this.panelHost?.showPlanningCenterTab();
+    this.panelRef?.showPlanningCenterTab();
   }
 
   runPlanningCenterSearchTourDemo(): Promise<void> {
-    return this.panelHost?.runPlanningCenterSearchTourDemo() ?? Promise.resolve();
+    return this.panelRef?.runPlanningCenterSearchTourDemo() ?? Promise.resolve();
   }
 
   selectTourPlanningCenterMatchFromDemoResults(): void {
-    this.panelHost?.selectTourPlanningCenterMatchFromDemoResults();
+    this.panelRef?.selectTourPlanningCenterMatchFromDemoResults();
   }
 
   applyTourDemoPlanningCenterAdd(): void {
-    this.panelHost?.applyTourDemoPlanningCenterAdd();
+    this.panelRef?.applyTourDemoPlanningCenterAdd();
   }
 
   clearEmailSubscribersTourDemoForm(): void {
-    this.panelHost?.clearTourDemoForm();
+    this.panelRef?.clearTourDemoForm();
     this.error = null;
     this.markForCheck();
   }
@@ -301,7 +284,7 @@ export class EmailSubscribersFacade {
     this.error = null;
     this.csvSuccess = null;
     if (!this.showCSVUpload) {
-      this.panelHost?.resetCsvPanel();
+      this.panelRef?.resetCsvPanel();
     }
     this.markForCheck();
   }
@@ -355,7 +338,7 @@ export class EmailSubscribersFacade {
     this.currentPage = page;
     this.loadPageData();
 
-    const container = this.sectionHost?.containerElement;
+    const container = this.sectionRef?.containerElement;
     if (container) {
       scrollEmailSubscribersSectionToTop(container);
     }
@@ -387,7 +370,7 @@ export class EmailSubscribersFacade {
   async handleToggleActive(id: string, currentStatus: boolean) {
     await openEmailSubscriberToggleConfirmation(
       this.supabase.client,
-      this.dialogsHost,
+      this.dialogsRef,
       'toggleActive',
       id,
       currentStatus,
@@ -398,7 +381,7 @@ export class EmailSubscribersFacade {
   async handleToggleReceivePush(id: string, currentReceivePush: boolean) {
     await openEmailSubscriberToggleConfirmation(
       this.supabase.client,
-      this.dialogsHost,
+      this.dialogsRef,
       'toggleReceivePush',
       id,
       currentReceivePush,
@@ -409,7 +392,7 @@ export class EmailSubscribersFacade {
   async handleToggleBlocked(id: string, currentStatus: boolean) {
     await openEmailSubscriberToggleConfirmation(
       this.supabase.client,
-      this.dialogsHost,
+      this.dialogsRef,
       'toggleBlocked',
       id,
       currentStatus,
@@ -420,7 +403,7 @@ export class EmailSubscribersFacade {
   async handleDelete(id: string, email: string) {
     await openEmailSubscriberDeleteConfirmation(
       this.supabase.client,
-      this.dialogsHost,
+      this.dialogsRef,
       id,
       email,
       (message) => {
@@ -456,7 +439,7 @@ export class EmailSubscribersFacade {
     const outcome = await sendEmailSubscriberWelcomeEmail(
       this.adminDataService,
       this.toast,
-      this.dialogsHost,
+      this.dialogsRef,
       this.pendingSubscriberEmail,
     );
     if (outcome.hideAddForm) {
@@ -469,7 +452,7 @@ export class EmailSubscribersFacade {
   }
 
   onDeclineSendWelcomeEmail() {
-    const outcome = declineEmailSubscriberWelcomeEmail(this.dialogsHost);
+    const outcome = declineEmailSubscriberWelcomeEmail(this.dialogsRef);
     if (outcome.hideAddForm) {
       this.showAddForm = false;
     }
