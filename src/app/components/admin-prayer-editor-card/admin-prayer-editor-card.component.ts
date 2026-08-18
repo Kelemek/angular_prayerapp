@@ -7,10 +7,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AdminSubscriberPickComponent } from '../admin-subscriber-pick/admin-subscriber-pick.component';
-import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
-import { RichTextViewComponent } from '../rich-text-view/rich-text-view.component';
 import { splitSubscriberName, type SubscriberPickRow } from '../../lib/admin-subscriber-pick';
 import {
   prayerEditorApprovalStatusColor,
@@ -22,16 +18,18 @@ import {
   type PrayerEditorPrayer,
   type PrayerEditorUpdate,
 } from '../../lib/admin-prayer-editor-types';
+import { AdminPrayerEditorCardHeaderComponent } from './admin-prayer-editor-card-header.component';
+import { AdminPrayerEditorCardExpandedComponent } from './admin-prayer-editor-card-expanded.component';
+import { AdminPrayerEditorCardEditFormComponent } from './admin-prayer-editor-card-edit-form.component';
+import { AdminPrayerEditorCardAddUpdateComponent } from './admin-prayer-editor-card-add-update.component';
 
 @Component({
   selector: 'app-admin-prayer-editor-card',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    AdminSubscriberPickComponent,
-    RichTextEditorComponent,
-    RichTextViewComponent,
+    AdminPrayerEditorCardHeaderComponent,
+    AdminPrayerEditorCardExpandedComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-prayer-editor-card.component.html',
@@ -55,10 +53,10 @@ export class AdminPrayerEditorCardComponent {
 
   @Output() action = new EventEmitter<PrayerEditorCardAction>();
 
-  @ViewChild('addUpdateSubscriberPick')
-  addUpdateSubscriberPick?: AdminSubscriberPickComponent;
-  @ViewChild('editPrayerDescriptionEditor')
-  editPrayerDescriptionEditor?: RichTextEditorComponent;
+  @ViewChild(AdminPrayerEditorCardEditFormComponent)
+  editFormPanel?: AdminPrayerEditorCardEditFormComponent;
+  @ViewChild(AdminPrayerEditorCardAddUpdateComponent)
+  addUpdatePanel?: AdminPrayerEditorCardAddUpdateComponent;
 
   getStatusColor(status: string): string {
     return prayerEditorStatusColor(status);
@@ -86,11 +84,11 @@ export class AdminPrayerEditorCardComponent {
   }
 
   resetAddUpdateSubscriberPick(): void {
-    this.addUpdateSubscriberPick?.reset();
+    this.addUpdatePanel?.resetSubscriberPick();
   }
 
   flushEditDescriptionEditor(): void {
-    this.editPrayerDescriptionEditor?.flushMarkdownToForm();
+    this.editFormPanel?.flushDescriptionEditor();
   }
 
   onExpandClick(): void {

@@ -1,0 +1,15 @@
+<!-- Feedback (stable tour anchor; form when GitHub feedback is enabled) -->
+      <div
+        id="tour-settings-feedback-section"
+        class="settings-modal-section-card rounded-lg p-3 sm:p-4"
+      >
+        @if (host.githubFeedbackEnabled) {
+        <app-github-feedback-form></app-github-feedback-form>
+        } @else {
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          In-app feedback isn’t turned on for this app. Your church can
+          enable it in admin configuration if they want suggestions and bug
+          reports here.
+        </p>
+        }
+      </div>

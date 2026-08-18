@@ -1,0 +1,62 @@
+<!-- Delete account verification dialog -->
+  @if (host.showDeleteAccountVerification) {
+  <div
+    class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-[60] p-4"
+    (click)="host.deletingAccount ? null : host.closeDeleteAccountVerification()"
+  >
+    <div
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="px-6 py-4 modal-chrome-border-b">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Delete your account?
+        </h2>
+      </div>
+      <div class="px-6 py-4">
+        <p class="text-gray-600 dark:text-gray-300 mb-4">
+          You will be signed out and will need to be re-approved to use the
+          app again.
+        </p>
+        <div
+          class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4"
+        >
+          <p class="text-sm text-red-700 dark:text-red-300">
+            Choose whether to keep your prayers so they can still be lifted
+            up by others, or remove them. This cannot be undone.
+          </p>
+        </div>
+      </div>
+      <div
+        class="px-6 py-4 modal-chrome-border-t flex flex-col sm:flex-row gap-3 justify-end"
+      >
+        <button
+          type="button"
+          (click)="host.closeDeleteAccountVerification()"
+          [disabled]="host.deletingAccount"
+          class="order-2 sm:order-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="host.deleteAccountKeepPrayers()"
+          [disabled]="host.deletingAccount"
+          class="order-1 sm:order-2 px-4 py-2 rounded-md btn-chip btn-chip-green disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          @if (host.deletingAccount) { Deleting… } @else { Delete account but
+          keep my prayers }
+        </button>
+        <button
+          type="button"
+          (click)="host.deleteAccountAndPrayers()"
+          [disabled]="host.deletingAccount"
+          class="px-4 py-2 rounded-md btn-chip btn-chip-red disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          @if (host.deletingAccount) { Deleting… } @else { Delete my account and
+          all my prayers }
+        </button>
+      </div>
+    </div>
+  </div>
+  }

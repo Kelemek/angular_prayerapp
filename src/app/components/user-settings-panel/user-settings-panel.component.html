@@ -1,0 +1,39 @@
+<div class="settings-modal-body settings-modal-sections flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+  <app-user-settings-print-section [host]="host" />
+  <app-user-settings-appearance-section [host]="host" />
+  <app-user-settings-notifications-section [host]="host" />
+  <app-user-settings-prayer-encouragement-section [host]="host" />
+  <app-user-settings-default-view-section [host]="host" />
+  <app-user-settings-memorization-practice-section [host]="host" />
+
+  <app-hour-reminder-settings-section
+    kind="memorization"
+    title="Memorization reminders"
+    description="Pick times (15-minute steps) for a short memorization nudge. Delivers by email and/or push when those are on."
+    [email]="host.email"
+    [isOpen]="host.isOpen"
+    tourSectionId="tour-settings-memorization-reminders"
+    tourControlsId="tour-settings-memorization-reminder-controls"
+    hourSelectId="memorization-reminder-hour-select"
+    hourSelectLabel="Memorization reminder time"
+    addButtonTitle="Add a memorization reminder for the selected time"
+  />
+
+  <app-user-settings-error-banner [host]="host" />
+
+  <app-hour-reminder-settings-section
+    kind="prayer"
+    title="Prayer reminders"
+    description="Pick times (15-minute steps) for a short prayer nudge. Delivers by email and/or push when those are on. Use the bell on a prayer card for a reminder on a specific prayer."
+    [email]="host.email"
+    [isOpen]="host.isOpen"
+    tourSectionId="tour-settings-prayer-reminders"
+    tourControlsId="tour-settings-prayer-reminder-controls"
+    hourSelectId="reminder-hour-select"
+    hourSelectLabel="Reminder time"
+    addButtonTitle="Add a prayer reminder for the selected time"
+  />
+
+  <app-user-settings-feedback-section [host]="host" />
+  <app-user-settings-account-section [host]="host" />
+</div>

@@ -1095,7 +1095,8 @@ describe('UserSettingsComponent', () => {
         getGitHubConfig: vi.fn(() => Promise.resolve({ enabled: true }))
       };
 
-      component['githubFeedbackService'] = mockGitHubFeedbackService as any;
+      component['deps'].githubFeedbackService =
+        mockGitHubFeedbackService as any;
 
       await component['loadGitHubFeedbackStatus']();
 
@@ -1108,7 +1109,8 @@ describe('UserSettingsComponent', () => {
         getGitHubConfig: vi.fn(() => Promise.resolve(null))
       };
 
-      component['githubFeedbackService'] = mockGitHubFeedbackService as any;
+      component['deps'].githubFeedbackService =
+        mockGitHubFeedbackService as any;
 
       await component['loadGitHubFeedbackStatus']();
 
@@ -1122,7 +1124,8 @@ describe('UserSettingsComponent', () => {
         getGitHubConfig: vi.fn(() => Promise.reject(new Error('Network error')))
       };
 
-      component['githubFeedbackService'] = mockGitHubFeedbackService as any;
+      component['deps'].githubFeedbackService =
+        mockGitHubFeedbackService as any;
 
       await component['loadGitHubFeedbackStatus']();
 
@@ -1812,7 +1815,7 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should support marking for check', () => {
-      expect(component['cdr'].markForCheck).toBeDefined();
+      expect(component['deps'].cdr.markForCheck).toBeDefined();
     });
 
     it('should handle promise resolution in async methods', async () => {

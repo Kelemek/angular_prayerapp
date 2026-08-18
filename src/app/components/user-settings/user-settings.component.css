@@ -1,0 +1,23 @@
+
+      :host {
+        display: contents;
+      }
+
+      .settings-modal-panel {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .settings-modal-panel::-webkit-scrollbar {
+        display: none;
+      }
+
+      .settings-modal-body {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .settings-modal-body::-webkit-scrollbar {
+        display: none;
+      }
+    

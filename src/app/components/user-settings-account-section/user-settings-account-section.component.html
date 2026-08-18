@@ -1,0 +1,46 @@
+<!-- Delete account -->
+      <div
+        class="settings-modal-section-card border border-red-200 dark:border-red-800 rounded-lg p-3 sm:p-4"
+      >
+        <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+          Remove your account and sign out. You can choose to keep your
+          prayers so they continue to be lifted up.
+        </p>
+        <button
+          type="button"
+          (click)="host.showDeleteAccountVerification = true"
+          title="Delete your account"
+          class="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline cursor-pointer"
+          aria-label="Delete your account"
+        >
+          Delete your account
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div
+        class="flex flex-row gap-2 sm:gap-3 p-4 sm:p-6 settings-modal-footer -mx-4 sm:-mx-6 px-4 sm:px-6"
+      >
+        <button
+          (click)="host.logout()"
+          title="Sign out of your account"
+          class="flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 btn-chip btn-chip-gray text-sm sm:text-base"
+          aria-label="Logout"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Logout</span>
+        </button>
+      </div>

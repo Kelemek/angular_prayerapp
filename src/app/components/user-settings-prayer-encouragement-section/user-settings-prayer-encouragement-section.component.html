@@ -1,0 +1,332 @@
+<!-- Prayer encouragement on cards (viewer-only; hidden when admin disables feature) -->
+      @if (host.prayerEncouragementEnabled$ | async) {
+      <div
+        id="tour-settings-prayer-encouragement"
+        class="settings-modal-section-card rounded-lg p-3 sm:p-4 space-y-3"
+      >
+        <div
+          class="font-medium text-gray-800 dark:text-gray-100 text-sm sm:text-base"
+        >
+          @if (host.prayerEncouragementUiLoaded) { Prayer encouragement on cards
+          } @else {
+          <span
+            class="inline-block h-5 w-56 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+          ></span>
+          }
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <div
+              class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+            >
+              @if (host.prayerEncouragementUiLoaded) { Show &quot;Pray For&quot;
+              button } @else {
+              <span
+                class="inline-block h-4 w-40 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+              ></span>
+              }
+            </div>
+            @if (host.savingShowPrayForButton) {
+            <svg
+              class="animate-spin h-4 w-4 text-blue-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            }
+          </div>
+          @if (host.prayerEncouragementUiLoaded) {
+          <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              (click)="host.setShowPrayForButton(true)"
+              [disabled]="
+                host.savingShowPrayForButton || host.savingShowPrayingCount
+              "
+              [ngClass]="{
+                'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                  host.showPrayForButton === true,
+                'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                  host.showPrayForButton !== true
+              }"
+              title="Show Pray For button on prayer cards"
+              class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span
+                class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >Show</span
+              >
+            </button>
+            <button
+              type="button"
+              (click)="host.setShowPrayForButton(false)"
+              [disabled]="
+                host.savingShowPrayForButton || host.savingShowPrayingCount
+              "
+              [ngClass]="{
+                'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                  host.showPrayForButton === false,
+                'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                  host.showPrayForButton !== false
+              }"
+              title="Hide Pray For button on prayer cards"
+              class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span
+                class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >Hide</span
+              >
+            </button>
+          </div>
+          } @else {
+          <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
+            <div
+              class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+            ></div>
+            <div
+              class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+            ></div>
+          </div>
+          }
+          <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            @if (host.prayerEncouragementUiLoaded && host.showPrayForButton !== null)
+            {
+            {{
+              host.savingShowPrayForButton
+                ? "Saving..."
+                : host.showPrayForButton
+                ? "You can record that you prayed for community requests."
+                : "The Pray For button is hidden on cards for you."
+            }}
+            } @else if (host.prayerEncouragementUiLoaded) {
+            <span
+              class="inline-block h-4 w-64 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+            ></span>
+            }
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <div
+              class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+            >
+              @if (host.prayerEncouragementUiLoaded) { Show &quot;Praying
+              #&quot; button } @else {
+              <span
+                class="inline-block h-4 w-36 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+              ></span>
+              }
+            </div>
+            @if (host.savingShowPrayingCount) {
+            <svg
+              class="animate-spin h-4 w-4 text-blue-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            }
+          </div>
+          @if (host.prayerEncouragementUiLoaded) {
+          <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              (click)="host.setShowPrayingCount(true)"
+              [disabled]="
+                host.savingShowPrayForButton || host.savingShowPrayingCount
+              "
+              [ngClass]="{
+                'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                  host.showPrayingCount === true,
+                'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                  host.showPrayingCount !== true
+              }"
+              title="Show Praying # button on prayer cards"
+              class="flex h-9 sm:h-12 flex-col items-center justify-center px-2 sm:px-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span
+                class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >Show</span
+              >
+            </button>
+            <button
+              type="button"
+              (click)="host.setShowPrayingCount(false)"
+              [disabled]="
+                host.savingShowPrayForButton || host.savingShowPrayingCount
+              "
+              [ngClass]="{
+                'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                  host.showPrayingCount === false,
+                'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                  host.showPrayingCount !== false
+              }"
+              title="Hide Praying # button on prayer cards"
+              class="flex h-9 sm:h-12 flex-col items-center justify-center px-2 sm:px-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span
+                class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >Hide</span
+              >
+            </button>
+          </div>
+          } @else {
+          <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
+            <div
+              class="h-9 sm:h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+            ></div>
+            <div
+              class="h-9 sm:h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+            ></div>
+          </div>
+          }
+          <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            @if (host.prayerEncouragementUiLoaded && host.showPrayingCount !== null) {
+            {{
+              host.savingShowPrayingCount
+                ? "Saving..."
+                : host.showPrayingCount
+                ? "When you may see it, the number of people praying is shown."
+                : "The Praying count button is hidden on cards for you."
+            }}
+            } @else if (host.prayerEncouragementUiLoaded) {
+            <span
+              class="inline-block h-4 w-64 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+            ></span>
+            }
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <div
+              class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+            >
+              @if (host.prayerEncouragementUiLoaded) { Personal / member / prompt cooldown
+              (hours) } @else {
+              <span
+                class="inline-block h-4 w-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+              ></span>
+              }
+            </div>
+            @if (host.savingPersonalPrayerCooldown) {
+            <svg
+              class="animate-spin h-4 w-4 text-blue-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            }
+          </div>
+          @if (host.prayerEncouragementUiLoaded) {
+          <input
+            type="number"
+            id="host.personalPrayerCooldownHours"
+            [(ngModel)]="host.personalPrayerCooldownHours"
+            host.name="host.personalPrayerCooldownHours"
+            min="1"
+            max="168"
+            step="1"
+            [disabled]="
+              host.savingPersonalPrayerCooldown ||
+              host.savingShowPrayForButton ||
+              host.savingShowPrayingCount
+            "
+            (blur)="host.savePersonalPrayerCooldownHours()"
+            (input)="host.personalPrayerCooldownEdited = true"
+            (keydown.enter)="$any($event.target).blur()"
+            class="box-border h-9 sm:h-12 min-h-9 sm:min-h-12 w-24 px-3 py-0 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs sm:text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          } @else {
+          <div
+            class="h-9 sm:h-12 w-24 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+          ></div>
+          }
+          <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            @if (host.prayerEncouragementUiLoaded) {
+            {{
+              host.savingPersonalPrayerCooldown
+                ? "Saving..."
+                : "How long before you can tap Pray For again on the same personal, member, or prompt card (1–168 hours). Community prayers still use the church cooldown set by admins."
+            }}
+            } @else {
+            <span
+              class="inline-block h-4 w-64 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"
+            ></span>
+            }
+          </p>
+        </div>
+        @if (host.successPrayerEncouragementUi) {
+        <div
+          class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <div class="flex items-start gap-2">
+            <svg
+              class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <p
+              class="text-xs sm:text-sm text-green-800 dark:text-green-200"
+            >
+              {{ host.successPrayerEncouragementUi }}
+            </p>
+          </div>
+        </div>
+        }
+      </div>
+      }

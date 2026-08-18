@@ -1,0 +1,432 @@
+<!-- Print -->
+      <div
+        class="settings-modal-section-card rounded-lg p-3 sm:p-4"
+      >
+        <div class="flex items-start gap-2 sm:gap-3">
+          <div class="flex-1">
+            <div
+              class="font-medium text-gray-800 dark:text-gray-100 mb-3 text-sm sm:text-base"
+            >
+              Print
+            </div>
+            <div
+              id="tour-settings-print-buttons"
+              data-testid="settings-print-buttons"
+              class="grid gap-1.5 sm:grid-cols-3 sm:gap-2"
+              [class.grid-cols-3]="host.textSize === 'normal'"
+              [class.grid-cols-1]="host.textSize !== 'normal'"
+            >
+        <!-- Print Prayer List -->
+        <div class="relative flex-1 min-w-0">
+          <div
+            [ngClass]="{
+              'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                host.showPrintDropdown || host.printRange !== 'week',
+              'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                !host.showPrintDropdown && host.printRange === 'week'
+            }"
+            class="flex w-full min-w-0 rounded-lg border-2 transition-all overflow-hidden"
+          >
+            <button
+              id="tour-settings-print-prayers"
+              (click)="host.handlePrint()"
+              title="Print prayers for the selected time period"
+              [disabled]="host.isPrinting"
+              class="flex-1 flex items-center justify-center gap-2 p-2 sm:flex-col sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              [class.flex-col]="host.textSize === 'normal'"
+              [class.flex-row]="host.textSize !== 'normal'"
+            >
+              @if (!host.isPrinting) {
+              <svg
+                width="18"
+                height="18"
+                class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path
+                  d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                ></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              } @else {
+              <svg
+                width="18"
+                height="18"
+                class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="transform-origin: center"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  opacity="0.3"
+                ></circle>
+                <path
+                  d="M12 3a9 9 0 0 1 9 9"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  fill="none"
+                ></path>
+              </svg>
+              }
+              <span
+                class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >{{
+                  host.isPrinting ? "Generating..." : "Prayers"
+                }}</span
+              >
+            </button>
+            <button
+              (click)="host.showPrintDropdown = !host.showPrintDropdown"
+              [disabled]="host.isPrinting"
+              title="Select time period for prayers to print"
+              class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-200/70 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                [class.rotate-180]="host.showPrintDropdown"
+                class="transition-transform"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Print Range Dropdown -->
+          @if (host.showPrintDropdown) {
+          <div>
+            <div
+              class="fixed inset-0 z-10"
+              (click)="host.showPrintDropdown = false"
+            ></div>
+            <div
+              class="absolute left-0 z-20 mt-1 max-h-60 min-w-[14rem] w-max max-w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            >
+              @for (option of host.printRangeOptions; track option.value) {
+              <button
+                (click)="
+                  host.setPrintRange(option.value); host.showPrintDropdown = false
+                "
+                class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                [title]="'Print prayers from the last ' + option.label"
+              >
+                <span class="whitespace-nowrap">{{ option.label }}</span>
+                @if (host.printRange === option.value) {
+                <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
+                }
+              </button>
+              }
+            </div>
+          </div>
+          }
+        </div>
+
+        <!-- Print Prompts -->
+        <div class="relative flex-1 min-w-0">
+          <div
+            [ngClass]="{
+              'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                host.showPromptTypesDropdown || host.selectedPromptTypes.length > 0,
+              'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                !host.showPromptTypesDropdown && host.selectedPromptTypes.length === 0
+            }"
+            class="flex w-full min-w-0 rounded-lg border-2 transition-all overflow-hidden"
+          >
+            <button
+              id="tour-settings-print-prompts"
+              (click)="host.handlePrintPrompts()"
+              [disabled]="host.isPrintingPrompts"
+              title="Print prayer prompts for the selected time period"
+              class="flex-1 flex items-center justify-center gap-2 p-2 sm:flex-col sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              [class.flex-col]="host.textSize === 'normal'"
+              [class.flex-row]="host.textSize !== 'normal'"
+            >
+              @if (!host.isPrintingPrompts) {
+              <svg
+                width="18"
+                height="18"
+                class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path
+                  d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                ></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              } @else {
+              <svg
+                width="18"
+                height="18"
+                class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="transform-origin: center"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  opacity="0.3"
+                ></circle>
+                <path
+                  d="M12 3a9 9 0 0 1 9 9"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  fill="none"
+                ></path>
+              </svg>
+              }
+              <span
+                class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >{{
+                  host.isPrintingPrompts ? "Generating..." : "Prompts"
+                }}</span
+              >
+            </button>
+            <button
+              (click)="host.showPromptTypesDropdown = !host.showPromptTypesDropdown"
+              [disabled]="host.isPrintingPrompts"
+              title="Select which types of prompts to print"
+              class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-200/70 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                [class.rotate-180]="host.showPromptTypesDropdown"
+                class="transition-transform"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Prompt Types Dropdown -->
+          @if (host.showPromptTypesDropdown) {
+          <div>
+            <div
+              class="fixed inset-0 z-10"
+              (click)="host.showPromptTypesDropdown = false"
+            ></div>
+            <div
+              class="absolute left-1/2 z-20 mt-1 max-h-60 min-w-[14rem] w-max max-w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            >
+              <button
+                (click)="
+                  host.selectedPromptTypes = []; host.showPromptTypesDropdown = false
+                "
+                class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                title="Print all prompt types"
+              >
+                <span class="whitespace-nowrap">All Types</span>
+                @if (host.selectedPromptTypes.length === 0) {
+                <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
+                }
+              </button>
+              @for (type of host.promptTypes; track type) {
+              <button
+                (click)="host.togglePromptType(type)"
+                class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                [title]="'Toggle ' + type + ' prompts for printing'"
+              >
+                <span class="whitespace-nowrap">{{ type }}</span>
+                @if (host.selectedPromptTypes.includes(type)) {
+                <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
+                }
+              </button>
+              }
+            </div>
+          </div>
+          }
+        </div>
+
+        <!-- Print Personal Prayers -->
+        <div class="relative flex-1 min-w-0">
+          <div
+            [ngClass]="{
+              'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                host.showPrintPersonalDropdown ||
+                host.selectedPersonalCategories.length > 0,
+              'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                !host.showPrintPersonalDropdown &&
+                host.selectedPersonalCategories.length === 0
+            }"
+            class="flex w-full min-w-0 rounded-lg border-2 transition-all overflow-hidden"
+          >
+            <button
+              id="tour-settings-print-personal"
+              (click)="host.handlePrintPersonalPrayers()"
+              title="Print personal prayers for the selected categories"
+              [disabled]="host.isPrintingPersonal"
+              class="flex-1 flex items-center justify-center gap-2 p-2 sm:flex-col sm:p-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              [class.flex-col]="host.textSize === 'normal'"
+              [class.flex-row]="host.textSize !== 'normal'"
+            >
+              @if (!host.isPrintingPersonal) {
+              <svg
+                width="18"
+                height="18"
+                class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path
+                  d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                ></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              } @else {
+              <svg
+                width="18"
+                height="18"
+                class="text-gray-600 dark:text-gray-400 sm:w-5 sm:h-5 shrink-0 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="transform-origin: center"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  opacity="0.3"
+                ></circle>
+                <path
+                  d="M12 3a9 9 0 0 1 9 9"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  fill="none"
+                ></path>
+              </svg>
+              }
+              <span
+                class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100"
+                >{{
+                  host.isPrintingPersonal ? "Generating..." : "Personal"
+                }}</span
+              >
+            </button>
+            <button
+              (click)="
+                host.showPrintPersonalDropdown = !host.showPrintPersonalDropdown
+              "
+              [disabled]="host.isPrintingPersonal"
+              title="Select which personal prayer categories to print"
+              class="flex items-center justify-center px-2 border-l border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-200/70 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                [class.rotate-180]="host.showPrintPersonalDropdown"
+                class="transition-transform"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Print Personal Categories Dropdown -->
+          @if (host.showPrintPersonalDropdown) {
+          <div>
+            <div
+              class="fixed inset-0 z-10"
+              (click)="host.showPrintPersonalDropdown = false"
+            ></div>
+            <div
+              class="absolute right-0 z-20 mt-1 max-h-60 min-w-[14rem] w-max max-w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            >
+              <button
+                (click)="
+                  host.selectedPersonalCategories = [];
+                  host.showPrintPersonalDropdown = false
+                "
+                class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                title="Print all personal prayer categories"
+              >
+                <span class="whitespace-nowrap">All Categories</span>
+                @if (host.selectedPersonalCategories.length === 0) {
+                <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
+                }
+              </button>
+              @for (category of host.personalCategories; track category) {
+              <button
+                (click)="host.togglePersonalCategory(category)"
+                class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                [title]="'Toggle ' + category + ' category for printing'"
+              >
+                <span class="whitespace-nowrap">{{ category }}</span>
+                @if (host.selectedPersonalCategories.includes(category)) {
+                <span class="shrink-0 text-blue-600 dark:text-blue-400">✓</span>
+                }
+              </button>
+              }
+            </div>
+          </div>
+          }
+        </div>
+            </div>
+            <p
+              class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2"
+            >
+              Export prayers, prompts, or personal prayers as a PDF
+            </p>
+          </div>
+        </div>
+      </div>
