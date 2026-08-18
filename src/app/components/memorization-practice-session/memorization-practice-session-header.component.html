@@ -9,7 +9,7 @@
     </h2>
   } @else {
     <div class="flex min-w-0 flex-1 items-center gap-2">
-      @if (session.showListenOpeners) {
+      @if (showListenOpeners) {
         <button
           type="button"
           data-tour="memorize-listen-open"
@@ -34,7 +34,7 @@
           Errors: {{ displayPracticeErrors }}
         </span>
       }
-      @if (session.showStartOver) {
+      @if (showStartOver) {
         <button
           type="button"
           data-testid="memorize-start-over"

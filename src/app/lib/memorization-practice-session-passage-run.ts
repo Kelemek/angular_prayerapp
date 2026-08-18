@@ -1,4 +1,7 @@
-import { isRecitePracticeMode } from '../memorization-recite/integration';
+import {
+  MEMORIZATION_RECITE_PRACTICE_MODE,
+  isRecitePracticeMode,
+} from '../memorization-recite/integration';
 import {
   isMemorizationListenTranslation,
   type MemorizationInProgress,
@@ -19,6 +22,7 @@ import {
   runPracticeSessionAttachStrictModeSessionSubscription,
   runPracticeSessionDetachStrictModeSessionSubscription,
   runPracticeSessionResolveHydratedWrongAttemptsInRound,
+  runPracticeSessionStartRound,
   runPracticeSessionSyncMetricRefs,
   runPracticeSessionSyncStrictModeFromSession,
 } from './memorization-practice-session-round-run';
@@ -31,14 +35,16 @@ import {
   runPracticeSessionScheduleKeyboardPracticeFocus,
   runPracticeSessionSchedulePracticeEffects,
 } from './memorization-practice-session-scroll-run';
-import type { MemorizationPracticeSessionFacade } from './memorization-practice-session-facade';
+import type { MemorizationPracticeSessionFacadeBase } from './memorization-practice-session-facade-base';
 import { pickRandomRoundAffirmation } from './memorization/memorizationEncouragementMessages';
 import {
   buildBibleBooksReorderChunks,
   buildInitialReorderSlotAssignment,
   buildMemorizationReorderChunks,
   buildMemorizationTokens,
+  generateMemorizationSessionSeed,
   getTypableTokenIndices,
+  MEMORIZATION_FULL_HIDE_ROUND,
   pickReorderMovableIndices,
   reorderReferenceColonAfterSlotIndex,
   seedRandom,
@@ -46,7 +52,7 @@ import {
 } from './memorization/memorizationPracticeUtils';
 import { readMemorizeListenSpeedFromStorage } from './memorization/memorizeListenSpeedStorage';
 
-export function runPracticeSessionOnOpen(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionOnOpen(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.memorizeAndroidHost = isMemorizeAndroidWebHost();
     host.listenPlaybackRate = readMemorizeListenSpeedFromStorage();
@@ -71,7 +77,7 @@ export function runPracticeSessionOnOpen(host: MemorizationPracticeSessionFacade
     }
     runPracticeSessionLoadAudioUrl(host);
     host.reciteSettingsLoaded = false;
-    host.loadReciteSettings();
+    void runPracticeSessionFetchReciteSettings(host);
     runPracticeSessionAttachViewportListeners(host);
     runPracticeSessionAttachStrictModeSessionSubscription(host);
     if (host.isBibleBooks) {
@@ -81,7 +87,7 @@ export function runPracticeSessionOnOpen(host: MemorizationPracticeSessionFacade
   
 }
 
-export function runPracticeSessionPrimeKeyboardFocusForResume(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionPrimeKeyboardFocusForResume(host: MemorizationPracticeSessionFacadeBase): void {
 
     const ip = host.item.inProgressPractice;
     if (!ip || ip.phase.kind !== 'inRound') {
@@ -107,7 +113,7 @@ export function runPracticeSessionPrimeKeyboardFocusForResume(host: Memorization
   
 }
 
-export function runPracticeSessionOnCloseCleanup(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionOnCloseCleanup(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.flashErrorTimer) {
       clearTimeout(host.flashErrorTimer);
@@ -131,7 +137,7 @@ export function runPracticeSessionOnCloseCleanup(host: MemorizationPracticeSessi
   
 }
 
-export function runPracticeSessionRecomputeDerivedFromItem(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionRecomputeDerivedFromItem(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.isBibleBooks = isBibleBooksMemorizationItem(host.item);
     const body = host.isBibleBooks ? host.item.text : host.passageText;
@@ -149,7 +155,7 @@ export function runPracticeSessionRecomputeDerivedFromItem(host: MemorizationPra
   
 }
 
-export async function runPracticeSessionLoadPassageText(host: MemorizationPracticeSessionFacade): Promise<void> {
+export async function runPracticeSessionLoadPassageText(host: MemorizationPracticeSessionFacadeBase): Promise<void> {
 
     const seq = ++host.passageLoadSeq;
     host.passageLoading = true;
@@ -185,7 +191,7 @@ export async function runPracticeSessionLoadPassageText(host: MemorizationPracti
   
 }
 
-export async function runPracticeSessionLoadAudioUrl(host: MemorizationPracticeSessionFacade): Promise<void> {
+export async function runPracticeSessionLoadAudioUrl(host: MemorizationPracticeSessionFacadeBase): Promise<void> {
 
     if (host.isBibleBooks) {
       host.passageAudioUrl = null;
@@ -215,7 +221,7 @@ export async function runPracticeSessionLoadAudioUrl(host: MemorizationPracticeS
   
 }
 
-export function runPracticeSessionHandleItemIdChange(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionHandleItemIdChange(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.lastAudioResetVerseId !== null && host.lastAudioResetVerseId !== host.item.id) {
       runPracticeSessionStopPassageAudio(host);
@@ -239,7 +245,7 @@ export function runPracticeSessionHandleItemIdChange(host: MemorizationPracticeS
   
 }
 
-export function runPracticeSessionResetToIntro(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionResetToIntro(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.phase = 'intro';
     host.startRoundChoice = 1;
@@ -263,7 +269,7 @@ export function runPracticeSessionResetToIntro(host: MemorizationPracticeSession
   
 }
 
-export function runPracticeSessionHydrateInProgressOnce(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionHydrateInProgressOnce(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.lastVerseIdForLayout !== host.item.id) {
       host.lastVerseIdForLayout = host.item.id;
@@ -379,4 +385,48 @@ export function runPracticeSessionHydrateInProgressOnce(host: MemorizationPracti
       });
     }
   
+}
+
+export async function runPracticeSessionFetchReciteSettings(
+  host: MemorizationPracticeSessionFacadeBase,
+): Promise<void> {
+  const settings = await host.reciteSettingsService.getSettingsFromServer();
+  host.ngZone.run(() => {
+    host.reciteEnabled = settings.enabled;
+    host.reciteSettingsLoaded = true;
+    host.cdr.markForCheck();
+  });
+}
+
+export function runPracticeSessionBeginRecitePractice(host: MemorizationPracticeSessionFacadeBase): void {
+  runPracticeSessionSyncStrictModeFromSession(host);
+  runPracticeSessionStopPassageAudio(host);
+  host.modePickerOpen = false;
+  host.practiceCompleted = false;
+  host.wrongAttemptsTotal = 0;
+  host.wrongAttemptsInRound = 0;
+  host.correctKeystrokesTotal = 0;
+  runPracticeSessionSyncMetricRefs(host);
+  host.sessionSeed = generateMemorizationSessionSeed();
+  trackMemorizationPracticeSessionStart(
+    host.sessionSeed,
+    host.item,
+    MEMORIZATION_RECITE_PRACTICE_MODE,
+  );
+  host.practiceModeRef = MEMORIZATION_RECITE_PRACTICE_MODE;
+  host.practiceMode = MEMORIZATION_RECITE_PRACTICE_MODE;
+  const r = Math.min(MEMORIZATION_FULL_HIDE_ROUND, Math.max(1, Math.floor(host.startRoundChoice)));
+  runPracticeSessionStartRound(host, r);
+  if (host.practiceScrollRef?.nativeElement) {
+    host.practiceScrollRef.nativeElement.scrollTop = 0;
+  }
+  void host.recitePractice?.refreshSettings();
+  host.persistInProgress.emit({
+    sessionSeed: host.sessionSeed,
+    wrongAttempts: host.wrongAttemptsRef,
+    correctKeystrokes: host.correctKeystrokesRef,
+    phase: { kind: 'inRound', roundIndex: r },
+    practiceMode: MEMORIZATION_RECITE_PRACTICE_MODE,
+  });
+  host.cdr.markForCheck();
 }

@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { splitSubscriberName, type SubscriberPickRow } from '../../lib/admin-subscriber-pick';
+import type { AdminPrayerEditorCardPanelContext } from '../../lib/admin-prayer-editor-card-panel-context';
 import {
   prayerEditorApprovalStatusColor,
   prayerEditorStatusColor,
@@ -32,7 +33,7 @@ import { AdminPrayerEditorCardExpandedComponent } from './admin-prayer-editor-ca
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-prayer-editor-card.component.html',
 })
-export class AdminPrayerEditorCardComponent {
+export class AdminPrayerEditorCardComponent implements AdminPrayerEditorCardPanelContext {
   @Input({ required: true }) prayer!: PrayerEditorPrayer;
   @Input({ required: true }) index!: number;
   @Input() selected = false;

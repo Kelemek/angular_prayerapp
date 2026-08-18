@@ -1,13 +1,13 @@
             <!-- Compact Header - Always Visible -->
             <div
               class="flex items-center gap-3 px-3 py-2 cursor-pointer"
-              [attr.id]="card.index === 0 ? 'tour-prayer-editor-first-row' : null"
-              (click)="card.onExpandClick()"
+              [attr.id]="ctx.index === 0 ? 'tour-prayer-editor-first-row' : null"
+              (click)="ctx.onExpandClick()"
             >
               <input
                 type="checkbox"
                 [checked]="selected"
-                (change)="card.onSelectClick()"
+                (change)="ctx.onSelectClick()"
                 (click)="$event.stopPropagation()"
                 class="w-4 h-4 text-red-600 border-gray-800 dark:border-gray-600 rounded focus:ring-red-500 cursor-pointer"
               />
@@ -15,26 +15,26 @@
               <div class="flex-1 flex flex-col gap-0.5 text-left min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <h4 class="font-medium text-gray-900 dark:text-gray-100">
-                    {{ card.prayer.title }}
+                    {{ ctx.prayer.title }}
                   </h4>
                   <span
                     [class]="
                       'px-2 py-0.5 text-xs rounded-full capitalize flex-shrink-0 ' +
-                      card.getStatusColor(card.prayer.status)
+                      ctx.getStatusColor(ctx.prayer.status)
                     "
                   >
-                    {{ card.prayer.status }}
+                    {{ ctx.prayer.status }}
                   </span>
-                  @if (card.prayer.approval_status) {
+                  @if (ctx.prayer.approval_status) {
                   <span
                     [class]="
                       'px-2 py-0.5 text-xs rounded-full capitalize flex-shrink-0 ' +
-                      card.getApprovalStatusColor(card.prayer.approval_status)
+                      ctx.getApprovalStatusColor(ctx.prayer.approval_status)
                     "
                   >
-                    {{ card.prayer.approval_status }}
+                    {{ ctx.prayer.approval_status }}
                   </span>
-                  } @if (card.prayer.denial_reason) {
+                  } @if (ctx.prayer.denial_reason) {
                   <span
                     class="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex-shrink-0"
                   >
@@ -48,11 +48,11 @@
                 >
                   <div>
                     <span class="font-medium">Requester:</span>
-                    {{ card.prayer.requester }}
+                    {{ ctx.prayer.requester }}
                   </div>
                   <div>
                     <span class="font-medium">Created:</span>
-                    {{ card.prayer.created_at | date : "shortDate" }}
+                    {{ ctx.prayer.created_at | date : "shortDate" }}
                   </div>
                 </div>
               </div>
@@ -96,8 +96,8 @@
               >
                 <button
                   type="button"
-                  [attr.id]="card.index === 0 ? 'tour-prayer-editor-edit-first' : null"
-                  (click)="$event.stopPropagation(); card.onEditClick()"
+                  [attr.id]="ctx.index === 0 ? 'tour-prayer-editor-edit-first' : null"
+                  (click)="$event.stopPropagation(); ctx.onEditClick()"
                   [disabled]="saving"
                   class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                   title="Edit this prayer"
@@ -122,8 +122,8 @@
                 </button>
                 <button
                   type="button"
-                  [attr.id]="card.index === 0 ? 'tour-prayer-editor-delete-first' : null"
-                  (click)="$event.stopPropagation(); card.onDeleteClick()"
+                  [attr.id]="ctx.index === 0 ? 'tour-prayer-editor-delete-first' : null"
+                  (click)="$event.stopPropagation(); ctx.onDeleteClick()"
                   [disabled]="deleting"
                   class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                   title="Delete this prayer"

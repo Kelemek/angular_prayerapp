@@ -14,7 +14,7 @@ import {
 } from './memorization-practice-session-ui';
 import { runPracticeSessionStopPassageAudio } from './memorization-practice-session-listen-run';
 import { runPracticeSessionScheduleScrollToBlank } from './memorization-practice-session-scroll-run';
-import type { MemorizationPracticeSessionFacade } from './memorization-practice-session-facade';
+import type { MemorizationPracticeSessionFacadeBase } from './memorization-practice-session-facade-base';
 import {
   buildInitialReorderSlotAssignment,
   firstLetterOfWord,
@@ -23,7 +23,7 @@ import {
   stringToSeed,
 } from './memorization/memorizationPracticeUtils';
 
-export function runPracticeSessionStartRound(host: MemorizationPracticeSessionFacade, r: number): void {
+export function runPracticeSessionStartRound(host: MemorizationPracticeSessionFacadeBase, r: number): void {
 
     host.roundAdvanceHandled = null;
     host.consecutiveWrong = 0;
@@ -70,7 +70,7 @@ export function runPracticeSessionStartRound(host: MemorizationPracticeSessionFa
   
 }
 
-export function runPracticeSessionRevealFirstLetterCueForToken(host: MemorizationPracticeSessionFacade, tokenIndex: number): void {
+export function runPracticeSessionRevealFirstLetterCueForToken(host: MemorizationPracticeSessionFacadeBase, tokenIndex: number): void {
 
     if (host.practiceModeRef !== 'firstLetters') return;
     const slot = host.typableIndices.indexOf(tokenIndex);
@@ -83,7 +83,7 @@ export function runPracticeSessionRevealFirstLetterCueForToken(host: Memorizatio
   
 }
 
-export function runPracticeSessionProcessKeystroke(host: MemorizationPracticeSessionFacade, key: string): void {
+export function runPracticeSessionProcessKeystroke(host: MemorizationPracticeSessionFacadeBase, key: string): void {
 
     if (host.hintActive || host.phase !== 'practicing' || host.currentTargetIndex === null) return;
     if (key.length !== 1) return;
@@ -131,7 +131,7 @@ export function runPracticeSessionProcessKeystroke(host: MemorizationPracticeSes
   
 }
 
-export function runPracticeSessionHandleWrongKeystroke(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionHandleWrongKeystroke(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionRecordWrongAttempt(host);
     host.consecutiveWrong += 1;
@@ -141,20 +141,20 @@ export function runPracticeSessionHandleWrongKeystroke(host: MemorizationPractic
   
 }
 
-export function runPracticeSessionRecordWrongAttempt(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionRecordWrongAttempt(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.wrongAttemptsTotal += 1;
     host.wrongAttemptsInRound += 1;
   
 }
 
-export function runPracticeSessionSyncStrictModeFromSession(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionSyncStrictModeFromSession(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionRefreshStrictModeFromSession(host);
   
 }
 
-export function runPracticeSessionRefreshStrictModeFromSession(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionRefreshStrictModeFromSession(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (!host.userSessionService.isSessionInitialized()) return;
     const strict = host.userSessionService.getCurrentSession()?.memorizationStrictMode ?? false;
@@ -165,7 +165,7 @@ export function runPracticeSessionRefreshStrictModeFromSession(host: Memorizatio
   
 }
 
-export function runPracticeSessionAttachStrictModeSessionSubscription(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionAttachStrictModeSessionSubscription(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionDetachStrictModeSessionSubscription(host);
     host.strictModeSessionSub = combineLatest([
@@ -177,14 +177,14 @@ export function runPracticeSessionAttachStrictModeSessionSubscription(host: Memo
   
 }
 
-export function runPracticeSessionDetachStrictModeSessionSubscription(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionDetachStrictModeSessionSubscription(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.strictModeSessionSub?.unsubscribe();
     host.strictModeSessionSub = null;
   
 }
 
-export function runPracticeSessionApplyStrictModeFromSession(host: MemorizationPracticeSessionFacade, strict: boolean): void {
+export function runPracticeSessionApplyStrictModeFromSession(host: MemorizationPracticeSessionFacadeBase, strict: boolean): void {
 
     if (host.strictModeEnabled === strict) return;
     host.strictModeEnabled = strict;
@@ -195,13 +195,13 @@ export function runPracticeSessionApplyStrictModeFromSession(host: MemorizationP
   
 }
 
-export function runPracticeSessionIsAutoRevealBlocked(host: MemorizationPracticeSessionFacade): boolean {
+export function runPracticeSessionIsAutoRevealBlocked(host: MemorizationPracticeSessionFacadeBase): boolean {
 
     return host.strictModeEnabled || !host.userSessionService.isSessionInitialized();
   
 }
 
-export function runPracticeSessionResolveHydratedWrongAttemptsInRound(host: MemorizationPracticeSessionFacade, ip: MemorizationInProgress): number {
+export function runPracticeSessionResolveHydratedWrongAttemptsInRound(host: MemorizationPracticeSessionFacadeBase, ip: MemorizationInProgress): number {
 
     if (ip.wrongAttemptsInRound !== undefined) {
       return ip.wrongAttemptsInRound;
@@ -213,7 +213,7 @@ export function runPracticeSessionResolveHydratedWrongAttemptsInRound(host: Memo
   
 }
 
-export function runPracticeSessionMustRepeatDueToErrors(host: MemorizationPracticeSessionFacade): boolean {
+export function runPracticeSessionMustRepeatDueToErrors(host: MemorizationPracticeSessionFacadeBase): boolean {
 
     if (host.wrongAttemptsInRound <= 0) return false;
     if (!host.userSessionService.isSessionInitialized()) return true;
@@ -221,7 +221,7 @@ export function runPracticeSessionMustRepeatDueToErrors(host: MemorizationPracti
   
 }
 
-export function runPracticeSessionMustRepeatFinalRound(host: MemorizationPracticeSessionFacade): boolean {
+export function runPracticeSessionMustRepeatFinalRound(host: MemorizationPracticeSessionFacadeBase): boolean {
 
     if (!host.isFinalRound || host.wrongAttemptsInRound <= 0) return false;
     if (!host.userSessionService.isSessionInitialized()) return true;
@@ -229,7 +229,7 @@ export function runPracticeSessionMustRepeatFinalRound(host: MemorizationPractic
   
 }
 
-export function runPracticeSessionReconcileFinalRoundAfterSessionLoad(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionReconcileFinalRoundAfterSessionLoad(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (!host.deferFinalRoundUntilSessionInit) return;
     host.deferFinalRoundUntilSessionInit = false;
@@ -245,7 +245,7 @@ export function runPracticeSessionReconcileFinalRoundAfterSessionLoad(host: Memo
   
 }
 
-export function runPracticeSessionTryAutoRevealAfterWrong(host: MemorizationPracticeSessionFacade, revealFirstLetterCue = false): void {
+export function runPracticeSessionTryAutoRevealAfterWrong(host: MemorizationPracticeSessionFacadeBase, revealFirstLetterCue = false): void {
 
     if (runPracticeSessionIsAutoRevealBlocked(host) || host.currentTargetIndex === null) return;
     if (host.consecutiveWrong < MAX_WRONG_BEFORE_REVEAL) return;
@@ -261,7 +261,7 @@ export function runPracticeSessionTryAutoRevealAfterWrong(host: MemorizationPrac
   
 }
 
-export function runPracticeSessionCheckRoundCompletion(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionCheckRoundCompletion(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.phase !== 'practicing' || host.awaitingRoundAdvance) return;
 
@@ -280,7 +280,7 @@ export function runPracticeSessionCheckRoundCompletion(host: MemorizationPractic
   
 }
 
-export function runPracticeSessionOnRoundComplete(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionOnRoundComplete(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionSyncMetricRefs(host);
     const mustRepeatFinalRound = runPracticeSessionMustRepeatFinalRound(host);
@@ -309,7 +309,7 @@ export function runPracticeSessionOnRoundComplete(host: MemorizationPracticeSess
   
 }
 
-export function runPracticeSessionPersistPracticeSnapshot(host: MemorizationPracticeSessionFacade, phasePayload: MemorizationInProgressSavePayload['phase']): void {
+export function runPracticeSessionPersistPracticeSnapshot(host: MemorizationPracticeSessionFacadeBase, phasePayload: MemorizationInProgressSavePayload['phase']): void {
 
     if (!host.sessionSeed) return;
     runPracticeSessionSyncMetricRefs(host);
@@ -328,7 +328,7 @@ export function runPracticeSessionPersistPracticeSnapshot(host: MemorizationPrac
   
 }
 
-export function runPracticeSessionSyncMetricRefs(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionSyncMetricRefs(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.wrongAttemptsRef = host.wrongAttemptsTotal;
     host.correctKeystrokesRef = host.correctKeystrokesTotal;
@@ -337,7 +337,7 @@ export function runPracticeSessionSyncMetricRefs(host: MemorizationPracticeSessi
   
 }
 
-export function runPracticeSessionFlashErrorBriefly(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionFlashErrorBriefly(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.flashError = true;
     if (host.flashErrorTimer) clearTimeout(host.flashErrorTimer);
@@ -353,7 +353,7 @@ export function runPracticeSessionFlashErrorBriefly(host: MemorizationPracticeSe
   
 }
 
-export function runPracticeSessionClearFlashError(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionClearFlashError(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.flashErrorTimer) {
       clearTimeout(host.flashErrorTimer);
@@ -365,7 +365,7 @@ export function runPracticeSessionClearFlashError(host: MemorizationPracticeSess
   
 }
 
-export function runPracticeSessionSyncFlashErrorView(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionSyncFlashErrorView(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.cdr.markForCheck();
     try {
@@ -374,4 +374,82 @@ export function runPracticeSessionSyncFlashErrorView(host: MemorizationPracticeS
       // jsdom / test environments may not support full CD
     }
   
+}
+
+export function runPracticeSessionProcessWordGuess(
+  host: MemorizationPracticeSessionFacadeBase,
+  label: string,
+): void {
+  if (host.hintActive || host.phase !== 'practicing' || host.currentTargetIndex === null) return;
+  const token = host.tokens[host.currentTargetIndex];
+  if (!token || token.kind === 'punct') return;
+  host.hasTypedInRound = true;
+  const correct = label === token.text;
+  if (correct) {
+    runPracticeSessionClearFlashError(host);
+    const idx = host.currentTargetIndex;
+    const next = new Set(host.revealed);
+    next.add(idx);
+    host.revealed = next;
+    host.consecutiveWrong = 0;
+    host.correctKeystrokesTotal += 1;
+    runPracticeSessionSyncMetricRefs(host);
+  } else {
+    runPracticeSessionRecordWrongAttempt(host);
+    host.consecutiveWrong += 1;
+    runPracticeSessionTryAutoRevealAfterWrong(host);
+    runPracticeSessionSyncMetricRefs(host);
+    runPracticeSessionFlashErrorBriefly(host);
+  }
+  runPracticeSessionCheckRoundCompletion(host);
+  runPracticeSessionScheduleScrollToBlank(host);
+  host.cdr.markForCheck();
+}
+
+export function runPracticeSessionOnPracticeInputKeyDown(
+  host: MemorizationPracticeSessionFacadeBase,
+  event: KeyboardEvent,
+): void {
+  if (host.hintActive || host.phase !== 'practicing' || host.currentTargetIndex === null) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  const key = event.key;
+  if (key.length !== 1) return;
+  const token = host.tokens[host.currentTargetIndex];
+  if (!token || token.kind === 'punct') return;
+  const allow = token.kind === 'digit' ? /^[0-9]$/.test(key) : /^[a-zA-Z]$/.test(key);
+  if (!allow) return;
+  event.preventDefault();
+  host.suppressInputFromKeydown = true;
+  runPracticeSessionProcessKeystroke(host, key);
+  setTimeout(() => {
+    host.suppressInputFromKeydown = false;
+  }, 0);
+}
+
+export function runPracticeSessionOnPracticeInput(
+  host: MemorizationPracticeSessionFacadeBase,
+  event: Event,
+): void {
+  const el = event.target as HTMLInputElement;
+  if (host.suppressInputFromKeydown) {
+    el.value = '';
+    return;
+  }
+  if (host.hintActive) {
+    el.value = '';
+    return;
+  }
+  if (host.phase !== 'practicing' || host.currentTargetIndex === null) {
+    el.value = '';
+    return;
+  }
+  const v = el.value;
+  if (v.length === 0) return;
+  const last = v.slice(-1);
+  el.value = '';
+  const token = host.tokens[host.currentTargetIndex];
+  if (!token || token.kind === 'punct') return;
+  const ok = token.kind === 'digit' ? /^[0-9]$/.test(last) : /^[a-zA-Z]$/.test(last);
+  if (!ok) return;
+  runPracticeSessionProcessKeystroke(host, last);
 }

@@ -1,6 +1,6 @@
 import { Component, Input, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AdminPrayerEditorCardComponent } from './admin-prayer-editor-card.component';
+import type { AdminPrayerEditorCardPanelContext } from '../../lib/admin-prayer-editor-card-panel-context';
 import { AdminPrayerEditorCardEditFormComponent } from './admin-prayer-editor-card-edit-form.component';
 import { AdminPrayerEditorCardViewDetailsComponent } from './admin-prayer-editor-card-view-details.component';
 import { AdminPrayerEditorCardUpdatesComponent } from './admin-prayer-editor-card-updates.component';
@@ -19,7 +19,7 @@ import { AdminPrayerEditorCardAddUpdateComponent } from './admin-prayer-editor-c
   templateUrl: './admin-prayer-editor-card-expanded.component.html',
 })
 export class AdminPrayerEditorCardExpandedComponent {
-  @Input({ required: true }) card!: AdminPrayerEditorCardComponent;
+  @Input({ required: true }) ctx!: AdminPrayerEditorCardPanelContext;
   @Input() isEditing = false;
   @Input() saving = false;
   @Input() anyPrayerEditing = false;

@@ -8,7 +8,7 @@
             "
           >
             <app-admin-prayer-editor-card-header
-              [card]="this"
+              [ctx]="this"
               [selected]="selected"
               [expanded]="expanded"
               [saving]="saving"
@@ -16,7 +16,7 @@
             />
             @if (expanded) {
             <app-admin-prayer-editor-card-expanded
-              [card]="this"
+              [ctx]="this"
               [isEditing]="isEditing"
               [saving]="saving"
               [anyPrayerEditing]="anyPrayerEditing"

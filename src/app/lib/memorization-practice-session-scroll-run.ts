@@ -10,9 +10,9 @@ import {
   MEMORIZE_HINT_EXTRA_PEEK_INTERVAL_MS,
 } from './memorization-practice-session-ui';
 import { runPracticeSessionStopPassageAudio } from './memorization-practice-session-listen-run';
-import type { MemorizationPracticeSessionFacade } from './memorization-practice-session-facade';
+import type { MemorizationPracticeSessionFacadeBase } from './memorization-practice-session-facade-base';
 
-export function runPracticeSessionResolvePracticeInputEl(host: MemorizationPracticeSessionFacade): HTMLInputElement | null {
+export function runPracticeSessionResolvePracticeInputEl(host: MemorizationPracticeSessionFacadeBase): HTMLInputElement | null {
 
     const fromRef = host.practiceInputRef?.nativeElement ?? null;
     if (fromRef?.isConnected) return fromRef;
@@ -22,7 +22,7 @@ export function runPracticeSessionResolvePracticeInputEl(host: MemorizationPract
   
 }
 
-export function runPracticeSessionFocusPracticeInput(host: MemorizationPracticeSessionFacade): boolean {
+export function runPracticeSessionFocusPracticeInput(host: MemorizationPracticeSessionFacadeBase): boolean {
 
     const input = runPracticeSessionResolvePracticeInputEl(host);
     if (!input || input.disabled) return false;
@@ -46,7 +46,7 @@ export function runPracticeSessionFocusPracticeInput(host: MemorizationPracticeS
   
 }
 
-export function runPracticeSessionScheduleKeyboardPracticeFocus(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionScheduleKeyboardPracticeFocus(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (!isKeyboardPracticeMode(host.practiceModeRef)) return;
 
@@ -90,7 +90,7 @@ export function runPracticeSessionScheduleKeyboardPracticeFocus(host: Memorizati
   
 }
 
-export function runPracticeSessionRestorePracticeInputFocusAfterHint(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionRestorePracticeInputFocusAfterHint(host: MemorizationPracticeSessionFacadeBase): void {
 
     requestAnimationFrame(() => {
       if (host.awaitingRoundAdvanceRef || host.phase !== 'practicing') return;
@@ -100,7 +100,7 @@ export function runPracticeSessionRestorePracticeInputFocusAfterHint(host: Memor
   
 }
 
-export function runPracticeSessionStartHintInterval(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionStartHintInterval(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionClearHintInterval(host);
     if (!host.hintActive || host.practiceMode === 'reorder') return;
@@ -111,7 +111,7 @@ export function runPracticeSessionStartHintInterval(host: MemorizationPracticeSe
   
 }
 
-export function runPracticeSessionSchedulePracticeEffects(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionSchedulePracticeEffects(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.awaitingRoundAdvance || host.phase !== 'intro') {
       runPracticeSessionStopPassageAudio(host);
@@ -161,7 +161,7 @@ export function runPracticeSessionSchedulePracticeEffects(host: MemorizationPrac
   
 }
 
-export function runPracticeSessionScheduleScrollToBlank(host: MemorizationPracticeSessionFacade, options?: { force?: boolean }): void {
+export function runPracticeSessionScheduleScrollToBlank(host: MemorizationPracticeSessionFacadeBase, options?: { force?: boolean }): void {
 
     if (!options?.force && !host.hasTypedInRound) return;
     if (host.scrollBlankTimer) clearTimeout(host.scrollBlankTimer);
@@ -176,7 +176,7 @@ export function runPracticeSessionScheduleScrollToBlank(host: MemorizationPracti
   
 }
 
-export function runPracticeSessionScrollCurrentBlankIntoView(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionScrollCurrentBlankIntoView(host: MemorizationPracticeSessionFacadeBase): void {
 
     requestAnimationFrame(() => {
       const root =
@@ -243,7 +243,7 @@ export function runPracticeSessionScrollCurrentBlankIntoView(host: MemorizationP
   
 }
 
-export function runPracticeSessionScrollActiveFirstLetterCueIntoView(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionScrollActiveFirstLetterCueIntoView(host: MemorizationPracticeSessionFacadeBase): void {
 
     const root = host.firstLetterCuesViewportRef?.nativeElement;
     if (!root) return;
@@ -267,7 +267,7 @@ export function runPracticeSessionScrollActiveFirstLetterCueIntoView(host: Memor
   
 }
 
-export function runPracticeSessionAttachViewportListeners(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionAttachViewportListeners(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.viewportListenersAttached || typeof window === 'undefined') return;
     host.viewportListenersAttached = true;
@@ -297,7 +297,7 @@ export function runPracticeSessionAttachViewportListeners(host: MemorizationPrac
   
 }
 
-export function runPracticeSessionAttachPracticeListeners(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionAttachPracticeListeners(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionAttachAndroidScrollClamp(host);
     runPracticeSessionAttachTypeModeCapture(host);
@@ -306,7 +306,7 @@ export function runPracticeSessionAttachPracticeListeners(host: MemorizationPrac
   
 }
 
-export function runPracticeSessionAttachAndroidScrollClamp(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionAttachAndroidScrollClamp(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (!host.memorizeAndroidHost || host.androidScrollListener) return;
     const scrollEl = host.practiceScrollRef?.nativeElement;
@@ -320,13 +320,13 @@ export function runPracticeSessionAttachAndroidScrollClamp(host: MemorizationPra
   
 }
 
-export function runPracticeSessionAttachTypeModeCapture(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionAttachTypeModeCapture(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionEnsureTypeModeCaptureAttached(host);
   
 }
 
-export function runPracticeSessionEnsureTypeModeCaptureAttached(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionEnsureTypeModeCaptureAttached(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.typeCaptureListenersAttached) return;
     const el = host.practiceWordsTypeRef?.nativeElement;
@@ -347,13 +347,13 @@ export function runPracticeSessionEnsureTypeModeCaptureAttached(host: Memorizati
   
 }
 
-export function runPracticeSessionAttachHintCapture(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionAttachHintCapture(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionEnsureHintCaptureAttached(host);
   
 }
 
-export function runPracticeSessionEnsureHintCaptureAttached(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionEnsureHintCaptureAttached(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.hintCaptureListenersAttached) return;
     const el = host.hintButtonRef?.nativeElement;
@@ -365,7 +365,7 @@ export function runPracticeSessionEnsureHintCaptureAttached(host: MemorizationPr
   
 }
 
-export function runPracticeSessionKeepPracticeInputOnPointerCapture(host: MemorizationPracticeSessionFacade, e: PointerEvent | TouchEvent): void {
+export function runPracticeSessionKeepPracticeInputOnPointerCapture(host: MemorizationPracticeSessionFacadeBase, e: PointerEvent | TouchEvent): void {
 
     if (host.awaitingRoundAdvanceRef) return;
     if (!isKeyboardPracticeMode(host.practiceModeRef)) return;
@@ -381,7 +381,7 @@ export function runPracticeSessionKeepPracticeInputOnPointerCapture(host: Memori
   
 }
 
-export function runPracticeSessionAttachFirstLetterResizeObserver(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionAttachFirstLetterResizeObserver(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (typeof ResizeObserver === 'undefined') return;
     if (host.practiceMode !== 'firstLetters' || host.phase !== 'practicing' || host.awaitingRoundAdvance) {
@@ -404,7 +404,7 @@ export function runPracticeSessionAttachFirstLetterResizeObserver(host: Memoriza
   
 }
 
-export function runPracticeSessionDetachAllListeners(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionDetachAllListeners(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionClearHintInterval(host);
     if (host.scrollBlankTimer) {
@@ -423,7 +423,7 @@ export function runPracticeSessionDetachAllListeners(host: MemorizationPracticeS
   
 }
 
-export function runPracticeSessionClearHintInterval(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionClearHintInterval(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.hintIntervalId) {
       clearInterval(host.hintIntervalId);

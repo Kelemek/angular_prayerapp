@@ -1,11 +1,11 @@
                 <!-- Edit Mode Form -->
                 <div
                   class="space-y-4"
-                  [attr.id]="card.index === 0 ? 'tour-prayer-editor-edit-form' : null"
+                  [attr.id]="ctx.index === 0 ? 'tour-prayer-editor-edit-form' : null"
                 >
                   <div
                     [attr.id]="
-                      card.index === 0 ? 'tour-prayer-editor-edit-field-title' : null
+                      ctx.index === 0 ? 'tour-prayer-editor-edit-field-title' : null
                     "
                   >
                     <label
@@ -15,7 +15,7 @@
                     </label>
                     <input
                       type="text"
-                      [(ngModel)]="card.editForm.title"
+                      [(ngModel)]="ctx.editForm.title"
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                       placeholder="Prayer title"
                     />
@@ -23,7 +23,7 @@
 
                   <div
                     [attr.id]="
-                      card.index === 0
+                      ctx.index === 0
                         ? 'tour-prayer-editor-edit-field-description'
                         : null
                     "
@@ -35,8 +35,8 @@
                     </label>
                     <app-rich-text-editor
                       #editPrayerDescriptionEditor
-                      [(ngModel)]="card.editForm.description"
-                      [name]="'editPrayerDescription-' + card.index"
+                      [(ngModel)]="ctx.editForm.description"
+                      [name]="'editPrayerDescription-' + ctx.index"
                       ngDefaultControl
                       ariaLabel="Prayer description"
                       placeholder="Prayer description"
@@ -47,7 +47,7 @@
                   <div
                     class="grid grid-cols-1 md:grid-cols-2 gap-4"
                     [attr.id]="
-                      card.index === 0
+                      ctx.index === 0
                         ? 'tour-prayer-editor-edit-field-requester-email'
                         : null
                     "
@@ -60,7 +60,7 @@
                       </label>
                       <input
                         type="text"
-                        [(ngModel)]="card.editForm.requester"
+                        [(ngModel)]="ctx.editForm.requester"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                         placeholder="Requester name"
                       />
@@ -74,7 +74,7 @@
                       </label>
                       <input
                         type="email"
-                        [(ngModel)]="card.editForm.email"
+                        [(ngModel)]="ctx.editForm.email"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                         placeholder="Email address"
                       />
@@ -83,7 +83,7 @@
 
                   <div
                     [attr.id]="
-                      card.index === 0
+                      ctx.index === 0
                         ? 'tour-prayer-editor-edit-field-praying-for'
                         : null
                     "
@@ -95,7 +95,7 @@
                     </label>
                     <input
                       type="text"
-                      [(ngModel)]="card.editForm.prayer_for"
+                      [(ngModel)]="ctx.editForm.prayer_for"
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                       placeholder="Person being prayed for"
                     />
@@ -103,7 +103,7 @@
 
                   <div
                     [attr.id]="
-                      card.index === 0 ? 'tour-prayer-editor-edit-field-status' : null
+                      ctx.index === 0 ? 'tour-prayer-editor-edit-field-status' : null
                     "
                   >
                     <label
@@ -113,7 +113,7 @@
                     </label>
                     <div class="relative">
                       <select
-                        [(ngModel)]="card.editForm.status"
+                        [(ngModel)]="ctx.editForm.status"
                         class="w-full appearance-none px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
                       >
                         <option value="current">Current</option>

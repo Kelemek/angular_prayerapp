@@ -1,23 +1,23 @@
-@if (session.practiceMode === 'recite') {
+@if (practiceMode === 'recite') {
   <!-- @removal-recite -->
   <app-memorization-recite-practice
-    [active]="session.phase === 'practicing' && session.practiceMode === 'recite'"
-    [tokens]="session.tokens"
-    [typableIndices]="session.typableIndices"
-    [reference]="session.item.reference"
-    [translation]="session.item.translation"
-    [itemId]="session.item.id"
-    [roundIndex]="session.roundIndex"
-    [awaitingRoundAdvance]="session.awaitingRoundAdvance"
-    [roundAdvanceHeaderCopy]="session.roundAdvanceHeaderCopy"
-    [isBibleBooks]="session.isBibleBooks"
-    [wrongAttemptsInRound]="session.wrongAttemptsInRound"
-    [roundCompletedWithErrors]="session.roundCompletedWithErrors"
-    [strictModeEnabled]="session.strictModeEnabled"
-    [isFinalRound]="session.isFinalRound"
-    [hiddenIndices]="session.hiddenIndices"
-    [revealed]="session.revealed"
-    [hintPeekIndices]="session.hintPeekIndices"
+    [active]="phase === 'practicing' && practiceMode === 'recite'"
+    [tokens]="tokens"
+    [typableIndices]="typableIndices"
+    [reference]="reference"
+    [translation]="translation"
+    [itemId]="itemId"
+    [roundIndex]="roundIndex"
+    [awaitingRoundAdvance]="awaitingRoundAdvance"
+    [roundAdvanceHeaderCopy]="roundAdvanceHeaderCopy"
+    [isBibleBooks]="isBibleBooks"
+    [wrongAttemptsInRound]="wrongAttemptsInRound"
+    [roundCompletedWithErrors]="roundCompletedWithErrors"
+    [strictModeEnabled]="strictModeEnabled"
+    [isFinalRound]="isFinalRound"
+    [hiddenIndices]="hiddenIndices"
+    [revealed]="revealed"
+    [hintPeekIndices]="hintPeekIndices"
     (clearHint)="onReciteClearHint()"
     (attemptMetrics)="onReciteAttemptMetrics($event)"
     (repeatRound)="onReciteRepeatRound()"
@@ -29,7 +29,7 @@
     <div
       data-testid="memorize-practice-round-header"
       [class]="
-        session.practiceMode === 'firstLetters' && !awaitingRoundAdvance
+        practiceMode === 'firstLetters' && !awaitingRoundAdvance
           ? 'sticky top-0 z-20 -mx-4 mb-2 border-b border-gray-200 bg-white px-4 pt-4 pb-2 shadow-[0_6px_12px_-8px_rgba(15,23,42,0.35)] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[0_8px_16px_-10px_rgba(0,0,0,0.65)]'
           : 'pt-4 mb-2'
       "
@@ -37,25 +37,25 @@
       <p class="text-sm text-gray-600 dark:text-gray-400">
         @if (awaitingRoundAdvance) {
           {{ roundAdvanceHeaderCopy }}
-        } @else if (session.practiceMode === 'reorder') {
-          Round {{ session.roundIndex }} of {{ session.MEMORIZATION_FULL_HIDE_ROUND }} — reorder about
-          {{ session.reorderMovableCountForRound(session.roundIndex, session.reorderChunks.length) }} of
-          {{ session.reorderChunks.length }} parts.
-        } @else if (session.practiceMode === 'firstLetters') {
-          Round {{ session.roundIndex }} of {{ session.MEMORIZATION_FULL_HIDE_ROUND }} — initials:
-          {{ session.firstLetterCueHiddenSlots.size }} of {{ session.typableIndices.length }} hidden.
+        } @else if (practiceMode === 'reorder') {
+          Round {{ roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — reorder about
+          {{ reorderMovableCountForRound(roundIndex, reorderChunks.length) }} of
+          {{ reorderChunks.length }} parts.
+        } @else if (practiceMode === 'firstLetters') {
+          Round {{ roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — initials:
+          {{ firstLetterCueHiddenSlots.size }} of {{ typableIndices.length }} hidden.
         } @else {
-          Round {{ session.roundIndex }} of {{ session.MEMORIZATION_FULL_HIDE_ROUND }} — about
-          {{ session.Math.round(session.hiddenFractionForRound(session.roundIndex) * 100) }}% hidden
+          Round {{ roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — about
+          {{ Math.round(hiddenFractionForRound(roundIndex) * 100) }}% hidden
         }
       </p>
 
-      @if (session.practiceMode === 'firstLetters' && !awaitingRoundAdvance) {
+      @if (practiceMode === 'firstLetters' && !awaitingRoundAdvance) {
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Cues below line up with blanks in order; dots hide cues until you type the right key.
-          @if (session.currentTargetIndex !== null) {
+          @if (currentTargetIndex !== null) {
             {{
-              session.currentTargetToken?.kind === 'digit'
+              currentTargetToken?.kind === 'digit'
                 ? 'Type digits only; colons and dashes are not typed.'
                 : 'Type first letters. Hold Hint to peek (one more blank each second).'
             }}
@@ -65,21 +65,19 @@
         <div
           #firstLetterCuesViewport
           class="min-h-0 max-h-[calc(3*1.625*1em)] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y rounded-sm px-2 font-mono text-base sm:text-lg font-bold leading-relaxed tracking-wide text-gray-800 dark:text-gray-100"
-          [class.ring-2]="session.flashError"
-          [class.ring-inset]="session.flashError"
-          [class.ring-red-400]="session.flashError"
-          [class.dark:ring-red-500]="session.flashError"
+          [class.ring-2]="flashError"
+          [class.ring-inset]="flashError"
+          [class.ring-red-400]="flashError"
+          [class.dark:ring-red-500]="flashError"
           aria-label="Initials cues"
         >
           <p class="mb-0 break-all" data-testid="memorize-first-letter-cues">
-            @for (tokenIndex of session.typableIndices; track tokenIndex; let slot = $index) {
-              @let t = session.tokens[tokenIndex];
-              @let isActiveCue =
-                session.currentTargetIndex !== null && tokenIndex === session.currentTargetIndex;
+            @for (tokenIndex of typableIndices; track tokenIndex; let slot = $index) {
+              @let t = tokens[tokenIndex];
+              @let isActiveCue = currentTargetIndex !== null && tokenIndex === currentTargetIndex;
               @let hiddenSlot =
-                session.firstLetterCueHiddenSlots.has(slot) &&
-                !session.firstLetterCueRevealedSlots.has(slot);
-              @let glyph = session.cueGlyphForTypableToken(t);
+                firstLetterCueHiddenSlots.has(slot) && !firstLetterCueRevealedSlots.has(slot);
+              @let glyph = cueGlyphForTypableToken(t);
               <span [attr.data-memorize-cue-slot]="slot">
                 <span
                   class="inline-block px-1 tracking-normal"
@@ -96,7 +94,7 @@
                   {{ hiddenSlot ? '·' : glyph }}
                 </span>
               </span>
-              @if (slot < session.typableIndices.length - 1) {
+              @if (slot < typableIndices.length - 1) {
                 <span aria-hidden="true"> </span>
               }
             }
@@ -106,22 +104,22 @@
     </div>
 
     <div class="relative z-0 min-w-0">
-      @if (!awaitingRoundAdvance && session.practiceMode !== 'firstLetters') {
+      @if (!awaitingRoundAdvance && practiceMode !== 'firstLetters') {
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          @if (session.practiceMode === 'reorder') {
+          @if (practiceMode === 'reorder') {
             Drag the <strong>highlighted</strong> parts into reading order. Hold <strong>Hint</strong> to peek
             at the first wrong slot.
-          } @else if (session.practiceMode === 'word') {
-            @if (session.currentTargetIndex !== null) {
+          } @else if (practiceMode === 'word') {
+            @if (currentTargetIndex !== null) {
               {{
-                session.currentTargetToken?.kind === 'digit'
+                currentTargetToken?.kind === 'digit'
                   ? 'Tap the digit in the choice bar at the bottom.'
                   : 'Tap the word in the bottom choice bar. Hold Hint to peek.'
               }}
             }
-          } @else if (session.currentTargetIndex !== null) {
+          } @else if (currentTargetIndex !== null) {
             {{
-              session.currentTargetToken?.kind === 'digit'
+              currentTargetToken?.kind === 'digit'
                 ? 'Type the next digit (left to right).'
                 : 'Type the first letter of the next blank. Hold Hint to peek.'
             }}
@@ -130,64 +128,64 @@
         </p>
       }
 
-      @if (session.practiceMode === 'reorder') {
+      @if (practiceMode === 'reorder') {
         <app-memorization-reorder-panel
-          [chunks]="session.reorderChunks"
-          [slotChunkIds]="session.reorderSlotChunkIds"
-          [roundMovableIndices]="session.reorderRoundMovableIndices"
-          [listFlashError]="session.flashError"
-          [holdHintPeekFirstWrong]="session.practiceMode === 'reorder' && session.hintActive"
+          [chunks]="reorderChunks"
+          [slotChunkIds]="reorderSlotChunkIds"
+          [roundMovableIndices]="reorderRoundMovableIndices"
+          [listFlashError]="flashError"
+          [holdHintPeekFirstWrong]="practiceMode === 'reorder' && hintActive"
           [scrollParentRef]="scrollParentRef"
-          [colonAfterSlotIndex]="session.reorderColonAfterSlotIndex"
-          [extraFixedSlotSpacing]="session.isBibleBooks"
+          [colonAfterSlotIndex]="reorderColonAfterSlotIndex"
+          [extraFixedSlotSpacing]="isBibleBooks"
           (slotChunkIdsChange)="onReorderSlotChunkIdsChange($event)"
           (invalidDrop)="onReorderInvalidDrop()"
           (slotsBecameCorrect)="onReorderSlotsBecameCorrect($event)"
           (wrongSwap)="onReorderWrongSwap()"
         />
-      } @else if (session.practiceMode === 'word') {
+      } @else if (practiceMode === 'word') {
         <div
           #practiceWordsWord
           role="group"
           aria-label="Verse practice area"
           class="touch-manipulation text-base leading-relaxed font-serif flex flex-wrap gap-x-0 gap-y-1.5 sm:gap-y-1 items-baseline rounded-md p-1"
-          [class.ring-2]="session.flashError"
-          [class.ring-inset]="session.flashError"
-          [class.ring-red-400]="session.flashError"
-          [class.dark:ring-red-500]="session.flashError"
+          [class.ring-2]="flashError"
+          [class.ring-inset]="flashError"
+          [class.ring-red-400]="flashError"
+          [class.dark:ring-red-500]="flashError"
           data-testid="memorize-practice-words"
         >
-          @for (token of session.tokens; track $index; let i = $index) {
+          @for (token of tokens; track $index; let i = $index) {
             @if (token.kind === 'punct') {
               <span class="inline text-gray-800 dark:text-gray-100 whitespace-pre">{{ token.text }}</span>
             } @else {
               <span
-                [attr.data-memorize-current-blank]="session.isCurrentBlank(i) ? 'true' : null"
+                [attr.data-memorize-current-blank]="isCurrentBlank(i) ? 'true' : null"
                 class="inline-flex items-baseline border-b-2 box-border px-0.5 sm:px-0 min-h-[1.5em] min-w-[0.6em] justify-center"
-                [class.border-gray-400]="session.isTokenHidden(i) && !session.isTokenRevealed(i)"
-                [class.dark:border-gray-500]="session.isTokenHidden(i) && !session.isTokenRevealed(i)"
-                [class.border-transparent]="!session.isTokenHidden(i) || session.isTokenRevealed(i)"
-                [class.bg-blue-100/80]="session.isCurrentBlank(i)"
-                [class.dark:bg-blue-900/40]="session.isCurrentBlank(i)"
-                [attr.aria-current]="session.isCurrentBlank(i) ? 'true' : null"
+                [class.border-gray-400]="isTokenHidden(i) && !isTokenRevealed(i)"
+                [class.dark:border-gray-500]="isTokenHidden(i) && !isTokenRevealed(i)"
+                [class.border-transparent]="!isTokenHidden(i) || isTokenRevealed(i)"
+                [class.bg-blue-100/80]="isCurrentBlank(i)"
+                [class.dark:bg-blue-900/40]="isCurrentBlank(i)"
+                [attr.aria-current]="isCurrentBlank(i) ? 'true' : null"
               >
                 <span
-                  [class.text-gray-800]="!session.isTokenHidden(i) || session.isTokenRevealed(i)"
-                  [class.dark:text-gray-100]="!session.isTokenHidden(i) || session.isTokenRevealed(i)"
-                  [class.text-blue-800]="session.showViaHint(i)"
-                  [class.dark:text-blue-200]="session.showViaHint(i)"
-                  [class.italic]="session.showViaHint(i)"
+                  [class.text-gray-800]="!isTokenHidden(i) || isTokenRevealed(i)"
+                  [class.dark:text-gray-100]="!isTokenHidden(i) || isTokenRevealed(i)"
+                  [class.text-blue-800]="showViaHint(i)"
+                  [class.dark:text-blue-200]="showViaHint(i)"
+                  [class.italic]="showViaHint(i)"
                   [class.text-transparent]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                   [class.select-none]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                   [class.pointer-events-none]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                   [attr.aria-hidden]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                 >
                   {{ token.text }}
@@ -199,50 +197,50 @@
       } @else {
         <label
           #practiceWordsType
-          [attr.for]="session.practiceInputId"
+          [attr.for]="practiceInputId"
           aria-label="Verse practice area; tap to show the keyboard again"
           class="touch-manipulation cursor-text text-base leading-relaxed font-serif flex flex-wrap gap-x-0 gap-y-1.5 sm:gap-y-1 items-baseline rounded-md p-1"
-          [class.ring-2]="session.flashError"
-          [class.ring-inset]="session.flashError"
-          [class.ring-red-400]="session.flashError"
-          [class.dark:ring-red-500]="session.flashError"
+          [class.ring-2]="flashError"
+          [class.ring-inset]="flashError"
+          [class.ring-red-400]="flashError"
+          [class.dark:ring-red-500]="flashError"
           data-testid="memorize-practice-words"
-          (touchstart)="session.onVerseTouchStart($event)"
-          (touchmove)="session.onVerseTouchMove($event)"
-          (touchcancel)="session.onVerseTouchCancel()"
-          (touchend)="session.onVerseTouchEnd()"
+          (touchstart)="onVerseTouchStart($event)"
+          (touchmove)="onVerseTouchMove($event)"
+          (touchcancel)="onVerseTouchCancel()"
+          (touchend)="onVerseTouchEnd()"
         >
-          @for (token of session.tokens; track $index; let i = $index) {
+          @for (token of tokens; track $index; let i = $index) {
             @if (token.kind === 'punct') {
               <span class="inline text-gray-800 dark:text-gray-100 whitespace-pre">{{ token.text }}</span>
             } @else {
               <span
-                [attr.data-memorize-current-blank]="session.isCurrentBlank(i) ? 'true' : null"
+                [attr.data-memorize-current-blank]="isCurrentBlank(i) ? 'true' : null"
                 class="inline-flex items-baseline border-b-2 box-border px-0.5 sm:px-0 min-h-[1.5em] min-w-[0.6em] justify-center"
-                [class.border-gray-400]="session.isTokenHidden(i) && !session.isTokenRevealed(i)"
-                [class.dark:border-gray-500]="session.isTokenHidden(i) && !session.isTokenRevealed(i)"
-                [class.border-transparent]="!session.isTokenHidden(i) || session.isTokenRevealed(i)"
-                [class.bg-blue-100/80]="session.isCurrentBlank(i)"
-                [class.dark:bg-blue-900/40]="session.isCurrentBlank(i)"
-                [attr.aria-current]="session.isCurrentBlank(i) ? 'true' : null"
+                [class.border-gray-400]="isTokenHidden(i) && !isTokenRevealed(i)"
+                [class.dark:border-gray-500]="isTokenHidden(i) && !isTokenRevealed(i)"
+                [class.border-transparent]="!isTokenHidden(i) || isTokenRevealed(i)"
+                [class.bg-blue-100/80]="isCurrentBlank(i)"
+                [class.dark:bg-blue-900/40]="isCurrentBlank(i)"
+                [attr.aria-current]="isCurrentBlank(i) ? 'true' : null"
               >
                 <span
-                  [class.text-gray-800]="!session.isTokenHidden(i) || session.isTokenRevealed(i)"
-                  [class.dark:text-gray-100]="!session.isTokenHidden(i) || session.isTokenRevealed(i)"
-                  [class.text-blue-800]="session.showViaHint(i)"
-                  [class.dark:text-blue-200]="session.showViaHint(i)"
-                  [class.italic]="session.showViaHint(i)"
+                  [class.text-gray-800]="!isTokenHidden(i) || isTokenRevealed(i)"
+                  [class.dark:text-gray-100]="!isTokenHidden(i) || isTokenRevealed(i)"
+                  [class.text-blue-800]="showViaHint(i)"
+                  [class.dark:text-blue-200]="showViaHint(i)"
+                  [class.italic]="showViaHint(i)"
                   [class.text-transparent]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                   [class.select-none]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                   [class.pointer-events-none]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                   [attr.aria-hidden]="
-                    session.isTokenHidden(i) && !session.isTokenRevealed(i) && !session.showViaHint(i)
+                    isTokenHidden(i) && !isTokenRevealed(i) && !showViaHint(i)
                   "
                 >
                   {{ token.text }}

@@ -7,9 +7,9 @@ import {
 } from './memorization/memorizeListenSpeedStorage';
 import { getMemorizationListenUtteranceText } from './memorization/memorizationListenUtteranceText';
 import { isMemorizeIosWebHost } from './memorization/memorizationViewportPlatform';
-import type { MemorizationPracticeSessionFacade } from './memorization-practice-session-facade';
+import type { MemorizationPracticeSessionFacadeBase } from './memorization-practice-session-facade-base';
 
-export function runPracticeSessionPassageAudioPlay(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionPassageAudioPlay(host: MemorizationPracticeSessionFacadeBase): void {
 
     const el = host.passageAudioRef?.nativeElement;
     if (el) applyMemorizeListenPlaybackRateToMediaElement(el, host.listenPlaybackRateRef);
@@ -18,14 +18,14 @@ export function runPracticeSessionPassageAudioPlay(host: MemorizationPracticeSes
   
 }
 
-export function runPracticeSessionPassageAudioPause(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionPassageAudioPause(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.passageAudioPlaying = false;
     host.cdr.markForCheck();
   
 }
 
-export function runPracticeSessionPassageAudioEnded(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionPassageAudioEnded(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.passageAudioPlaying = false;
     runPracticeSessionBumpListenUi(host);
@@ -47,14 +47,14 @@ export function runPracticeSessionPassageAudioEnded(host: MemorizationPracticeSe
   
 }
 
-export function runPracticeSessionPassageAudioError(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionPassageAudioError(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.passageAudioPlaying = false;
     host.cdr.markForCheck();
   
 }
 
-export function runPracticeSessionOpenListenPanel(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionOpenListenPanel(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.listenPanelOpen = true;
     runPracticeSessionBumpListenUi(host);
@@ -62,14 +62,14 @@ export function runPracticeSessionOpenListenPanel(host: MemorizationPracticeSess
   
 }
 
-export function runPracticeSessionCloseListenPanel(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionCloseListenPanel(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.listenPanelOpen = false;
     host.cdr.markForCheck();
   
 }
 
-export function runPracticeSessionSelectListenSpeed(host: MemorizationPracticeSessionFacade, rate: MemorizeListenSpeed): void {
+export function runPracticeSessionSelectListenSpeed(host: MemorizationPracticeSessionFacadeBase, rate: MemorizeListenSpeed): void {
 
     host.listenPlaybackRate = rate;
     host.listenPlaybackRateRef = rate;
@@ -81,7 +81,7 @@ export function runPracticeSessionSelectListenSpeed(host: MemorizationPracticeSe
   
 }
 
-export function runPracticeSessionHandleListenPassageClick(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionHandleListenPassageClick(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (!host.listenInteractionAllowed) return;
     if (host.listenViaStreamingAudio) {
@@ -101,7 +101,7 @@ export function runPracticeSessionHandleListenPassageClick(host: MemorizationPra
   
 }
 
-export function runPracticeSessionHandleRepeatListenToggle(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionHandleRepeatListenToggle(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (!host.listenInteractionAllowed) return;
     const next = !host.repeatListenOnRef;
@@ -132,13 +132,13 @@ export function runPracticeSessionHandleRepeatListenToggle(host: MemorizationPra
   
 }
 
-export function runPracticeSessionBumpListenUi(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionBumpListenUi(host: MemorizationPracticeSessionFacadeBase): void {
 
     host.listenUiTick += 1;
   
 }
 
-export function runPracticeSessionStopPassageAudio(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionStopPassageAudio(host: MemorizationPracticeSessionFacadeBase): void {
 
     runPracticeSessionClearListenRepeatGapTimer(host);
     host.repeatListenOnRef = false;
@@ -160,7 +160,7 @@ export function runPracticeSessionStopPassageAudio(host: MemorizationPracticeSes
   
 }
 
-export function runPracticeSessionClearListenRepeatGapTimer(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionClearListenRepeatGapTimer(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.listenRepeatGapTimer != null) {
       clearTimeout(host.listenRepeatGapTimer);
@@ -169,7 +169,7 @@ export function runPracticeSessionClearListenRepeatGapTimer(host: MemorizationPr
   
 }
 
-export async function runPracticeSessionPlayStreamingAudio(host: MemorizationPracticeSessionFacade, el: HTMLAudioElement, fromStart = false): Promise<void> {
+export async function runPracticeSessionPlayStreamingAudio(host: MemorizationPracticeSessionFacadeBase, el: HTMLAudioElement, fromStart = false): Promise<void> {
 
     try {
       if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) {
@@ -192,7 +192,7 @@ export async function runPracticeSessionPlayStreamingAudio(host: MemorizationPra
   
 }
 
-export function runPracticeSessionHandleTtsListenClick(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionHandleTtsListenClick(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     const syn = window.speechSynthesis;
@@ -231,7 +231,7 @@ export function runPracticeSessionHandleTtsListenClick(host: MemorizationPractic
   
 }
 
-export function runPracticeSessionBeginTtsUtterance(host: MemorizationPracticeSessionFacade): void {
+export function runPracticeSessionBeginTtsUtterance(host: MemorizationPracticeSessionFacadeBase): void {
 
     if (host.memorizeAndroidHost) return;
     if (typeof window === 'undefined' || !window.speechSynthesis) return;

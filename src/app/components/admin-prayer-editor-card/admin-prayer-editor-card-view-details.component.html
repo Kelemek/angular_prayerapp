@@ -19,8 +19,8 @@
                           >
                           <span
                             class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="card.prayer.title"
-                            >{{ card.prayer.title }}</span
+                            [title]="ctx.prayer.title"
+                            >{{ ctx.prayer.title }}</span
                           >
                         </div>
 
@@ -31,12 +31,12 @@
                           >
                           <span
                             class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="card.prayer.requester"
-                            >{{ card.prayer.requester }}</span
+                            [title]="ctx.prayer.requester"
+                            >{{ ctx.prayer.requester }}</span
                           >
                         </div>
 
-                        @if (card.prayer.email) {
+                        @if (ctx.prayer.email) {
                         <div class="flex min-w-0 items-baseline gap-2">
                           <span
                             class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
@@ -44,11 +44,11 @@
                           >
                           <span
                             class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="card.prayer.email"
-                            >{{ card.prayer.email }}</span
+                            [title]="ctx.prayer.email"
+                            >{{ ctx.prayer.email }}</span
                           >
                         </div>
-                        } @if (card.prayer.prayer_for) {
+                        } @if (ctx.prayer.prayer_for) {
                         <div class="flex min-w-0 items-baseline gap-2">
                           <span
                             class="shrink-0 font-medium text-gray-700 dark:text-gray-300"
@@ -56,8 +56,8 @@
                           >
                           <span
                             class="min-w-0 truncate text-gray-600 dark:text-gray-400"
-                            [title]="card.prayer.prayer_for"
-                            >{{ card.prayer.prayer_for }}</span
+                            [title]="ctx.prayer.prayer_for"
+                            >{{ ctx.prayer.prayer_for }}</span
                           >
                         </div>
                         }
@@ -85,14 +85,14 @@
                           <span
                             [class]="
                               'ml-2 px-2 py-0.5 text-xs rounded-full capitalize ' +
-                              card.getStatusColor(card.prayer.status)
+                              ctx.getStatusColor(ctx.prayer.status)
                             "
                           >
-                            {{ card.prayer.status }}
+                            {{ ctx.prayer.status }}
                           </span>
                         </div>
 
-                        @if (card.prayer.approval_status) {
+                        @if (ctx.prayer.approval_status) {
                         <div>
                           <span
                             class="font-medium text-gray-700 dark:text-gray-300"
@@ -101,10 +101,10 @@
                           <span
                             [class]="
                               'ml-2 px-2 py-0.5 text-xs rounded-full capitalize ' +
-                              card.getApprovalStatusColor(card.prayer.approval_status)
+                              ctx.getApprovalStatusColor(ctx.prayer.approval_status)
                             "
                           >
-                            {{ card.prayer.approval_status }}
+                            {{ ctx.prayer.approval_status }}
                           </span>
                         </div>
                         }
@@ -116,10 +116,10 @@
                           >
                           <div class="ml-2 text-gray-600 dark:text-gray-400">
                             <div>
-                              {{ card.prayer.created_at | date : "fullDate" }}
+                              {{ ctx.prayer.created_at | date : "fullDate" }}
                             </div>
                             <div class="text-xs">
-                              {{ card.prayer.created_at | date : "mediumTime" }}
+                              {{ ctx.prayer.created_at | date : "mediumTime" }}
                             </div>
                           </div>
                         </div>
@@ -129,7 +129,7 @@
                 </div>
 
                 <!-- Description -->
-                @if (card.prayer.description) {
+                @if (ctx.prayer.description) {
                 <div
                   class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
                 >
@@ -140,13 +140,13 @@
                   </h6>
                   <app-rich-text-view
                     class="block text-sm text-gray-600 dark:text-gray-400 leading-relaxed"
-                    [text]="card.prayer.description"
+                    [text]="ctx.prayer.description"
                   ></app-rich-text-view>
                 </div>
                 }
 
                 <!-- Denial Reason - Highlighted if present -->
-                @if (card.prayer.denial_reason) {
+                @if (ctx.prayer.denial_reason) {
                 <div
                   class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800"
                 >
@@ -174,7 +174,7 @@
                   <p
                     class="text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap leading-relaxed"
                   >
-                    {{ card.prayer.denial_reason }}
+                    {{ ctx.prayer.denial_reason }}
                   </p>
                 </div>
                 }

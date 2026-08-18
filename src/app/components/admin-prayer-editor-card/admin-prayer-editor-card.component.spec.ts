@@ -122,7 +122,7 @@ describe('AdminPrayerEditorCardComponent', () => {
       );
 
       expect(basicInfoBlock).toContain('min-w-0 truncate');
-      expect(basicInfoBlock).toContain('[title]="card.prayer.email"');
+      expect(basicInfoBlock).toContain('[title]="ctx.prayer.email"');
       expect(basicInfoBlock).toContain('overflow-hidden');
     });
   });

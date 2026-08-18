@@ -33,7 +33,7 @@
     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
       <strong>Type mode:</strong> keyboard — first letter of each blank. <strong>Initials mode:</strong> same typing
       with cue row. <strong>Word mode:</strong> tap choices. <strong>Reorder mode:</strong> drag chunks into order.
-      @if (session.reciteModeVisible) {
+      @if (reciteModeVisible) {
         <strong> Recite mode (beta):</strong> record the verse, then see word-by-word accuracy.
       }
     </p>
@@ -79,7 +79,7 @@
       >
         Reorder mode
       </button>
-      @if (session.reciteModeVisible) {
+      @if (reciteModeVisible) {
         <button
           type="button"
           data-testid="memorize-practice-mode-recite"

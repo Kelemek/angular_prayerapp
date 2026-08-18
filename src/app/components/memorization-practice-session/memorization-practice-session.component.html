@@ -32,6 +32,8 @@
           [recitePhase]="recitePhase"
           [hintActive]="hintActive"
           [listenPanelOpen]="listenPanelOpen"
+          [showListenOpeners]="showListenOpeners"
+          [showStartOver]="showStartOver"
         />
 
         <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -89,7 +91,10 @@
             >
               <app-memorization-practice-session-intro [session]="this" />
             </div>
-            <app-memorization-practice-session-intro-footer [session]="this" />
+            <app-memorization-practice-session-intro-footer
+              [session]="this"
+              [startRoundChoice]="startRoundChoice"
+            />
           } @else {
             <div
               #practiceScroll
@@ -108,6 +113,33 @@
                   [scrollParentRef]="practiceScrollElement"
                   [awaitingRoundAdvance]="awaitingRoundAdvance"
                   [roundAdvanceHeaderCopy]="roundAdvanceHeaderCopy"
+                  [practiceMode]="practiceMode"
+                  [phase]="phase"
+                  [flashError]="flashError"
+                  [roundIndex]="roundIndex"
+                  [hintActive]="hintActive"
+                  [tokens]="tokens"
+                  [typableIndices]="typableIndices"
+                  [hiddenIndices]="hiddenIndices"
+                  [revealed]="revealed"
+                  [hintPeekIndices]="hintPeekIndices"
+                  [firstLetterCueHiddenSlots]="firstLetterCueHiddenSlots"
+                  [firstLetterCueRevealedSlots]="firstLetterCueRevealedSlots"
+                  [currentTargetIndex]="currentTargetIndex"
+                  [currentTargetToken]="currentTargetToken"
+                  [reorderChunks]="reorderChunks"
+                  [reorderSlotChunkIds]="reorderSlotChunkIds"
+                  [reorderRoundMovableIndices]="reorderRoundMovableIndices"
+                  [reorderColonAfterSlotIndex]="reorderColonAfterSlotIndex"
+                  [isBibleBooks]="isBibleBooks"
+                  [reference]="item.reference"
+                  [translation]="item.translation"
+                  [itemId]="item.id"
+                  [practiceInputId]="practiceInputId"
+                  [wrongAttemptsInRound]="wrongAttemptsInRound"
+                  [roundCompletedWithErrors]="roundCompletedWithErrors"
+                  [strictModeEnabled]="strictModeEnabled"
+                  [isFinalRound]="isFinalRound"
                 />
               }
 
@@ -166,6 +198,7 @@
       <app-memorization-practice-session-mode-picker
         [session]="this"
         [reciteModeBlockedMessage]="reciteModeBlockedMessage"
+        [reciteModeVisible]="reciteModeVisible"
       />
     }
 
