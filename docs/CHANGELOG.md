@@ -4,6 +4,12 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Print service — phase 2 HTML generators
+- Printable document HTML moved from [`print.service.ts`](src/app/services/print.service.ts) (~593 lines, orchestration + data loading only) into [`src/app/lib/print-*-html.ts`](src/app/lib/): prayer/prompt/personal list documents, prayer/prompt card fragments, saddle-stitch [`print-booklet-html.ts`](src/app/lib/print-booklet-html.ts), booklet packing [`print-booklet-pack.ts`](src/app/lib/print-booklet-pack.ts), chrome [`print-booklet-chrome.ts`](src/app/lib/print-booklet-chrome.ts), markdown render [`print-render-markdown.ts`](src/app/lib/print-render-markdown.ts). Service keeps thin test-facing delegates (`generatePrintableHTML`, etc.) and download flows. Fixed unclosed `@media` blocks in extracted printable CSS ([`print-html-media-queries.spec.ts`](src/app/lib/print-html-media-queries.spec.ts)).
+
+### Print service — phase 1 lib extraction
+- Shared print helpers moved out of [`print.service.ts`](src/app/services/print.service.ts) (~2.8k lines, down from ~3.2k): types ([`print-types.ts`](src/app/lib/print-types.ts)), time-range labels/dates ([`print-time-range.ts`](src/app/lib/print-time-range.ts)), booklet constants ([`print-booklet-constants.ts`](src/app/lib/print-booklet-constants.ts)), HTML escape ([`print-html.ts`](src/app/lib/print-html.ts)), native Capacitor print ([`print-native.ts`](src/app/lib/print-native.ts)), prompt layout/weights ([`print-prompt-layout.ts`](src/app/lib/print-prompt-layout.ts)), info footer + QR embed ([`print-info-footer.ts`](src/app/lib/print-info-footer.ts)). [`user-settings-print.ts`](src/app/lib/user-settings-print.ts) reuses `isPrintNativeApp` from `print-native`. HTML generators and booklet assembly remain in the service (phase 2).
+
 ### Memorize practice session — phase 1 split
 - [`memorization-practice-session`](src/app/components/memorization-practice-session/memorization-practice-session.component.ts) phase 1: loading/error/empty gates, intro body + footer, mode picker, and recite feedback help moved to child components; shared UI constants in [`memorization-practice-session-ui.ts`](src/app/lib/memorization-practice-session-ui.ts); hidden capture-input styles in [`memorization-practice-session.component.css`](src/app/components/memorization-practice-session/memorization-practice-session.component.css). Mode picker binds `reciteModeBlockedMessage` as its own input so recite-limit warnings refresh under OnPush.
 

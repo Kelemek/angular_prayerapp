@@ -1,28 +1,9 @@
 import type { UserSettingsFacade } from './user-settings-facade';
-
-export function userSettingsIsNativeApp(): boolean {
-  try {
-    const hasCapacitor = typeof (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor !== 'undefined';
-    let platform: string | null = null;
-
-    if (hasCapacitor) {
-      try {
-        platform = (window as unknown as { Capacitor: { getPlatform: () => string } }).Capacitor.getPlatform();
-      } catch (e) {
-        console.debug('[UserSettings] Error getting platform:', e);
-      }
-    }
-
-    return hasCapacitor && (platform === 'ios' || platform === 'android');
-  } catch (e) {
-    console.error('[UserSettings] Error checking native app:', e);
-    return false;
-  }
-}
+import { isPrintNativeApp } from './print-native';
 
 export async function runUserSettingsHandlePrint(host: UserSettingsFacade): Promise<void> {
   host.isPrinting = true;
-  const isNative = userSettingsIsNativeApp();
+  const isNative = isPrintNativeApp();
   const newWindow = !isNative ? window.open('', '_blank') : null;
 
   try {
@@ -45,7 +26,7 @@ export async function runUserSettingsHandlePrintPrompts(
   host: UserSettingsFacade,
 ): Promise<void> {
   host.isPrintingPrompts = true;
-  const isNative = userSettingsIsNativeApp();
+  const isNative = isPrintNativeApp();
   const newWindow = !isNative ? window.open('', '_blank') : null;
 
   try {
@@ -68,7 +49,7 @@ export async function runUserSettingsHandlePrintPersonalPrayers(
   host: UserSettingsFacade,
 ): Promise<void> {
   host.isPrintingPersonal = true;
-  const isNative = userSettingsIsNativeApp();
+  const isNative = isPrintNativeApp();
   const newWindow = !isNative ? window.open('', '_blank') : null;
 
   try {

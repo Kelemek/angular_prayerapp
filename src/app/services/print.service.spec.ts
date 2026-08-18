@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PrintService, Prayer, TimeRange } from './print.service';
 import type { EmailNotificationService } from './email-notification.service';
 import { SupabaseService } from './supabase.service';
+import { getPrintRangeFileLabel } from '../lib/print-time-range';
 
 const mockEmailNotificationService = {
   getEmailBaseUrl: vi.fn().mockReturnValue('https://example.com')
@@ -385,14 +386,13 @@ describe('PrintService', () => {
       expect(mockWindow.close).toHaveBeenCalled();
     });
 
-    it('getRangeFileLabel returns download slugs for every time range', () => {
-      const label = (service as any).getRangeFileLabel.bind(service);
-      expect(label('week')).toBe('week');
-      expect(label('twoweeks')).toBe('2weeks');
-      expect(label('month')).toBe('month');
-      expect(label('twomonths')).toBe('2months');
-      expect(label('year')).toBe('year');
-      expect(label('all')).toBe('all');
+    it('getPrintRangeFileLabel returns download slugs for every time range', () => {
+      expect(getPrintRangeFileLabel('week')).toBe('week');
+      expect(getPrintRangeFileLabel('twoweeks')).toBe('2weeks');
+      expect(getPrintRangeFileLabel('month')).toBe('month');
+      expect(getPrintRangeFileLabel('twomonths')).toBe('2months');
+      expect(getPrintRangeFileLabel('year')).toBe('year');
+      expect(getPrintRangeFileLabel('all')).toBe('all');
     });
 
     it('should open new window with HTML content when window.open succeeds', { timeout: 10000 }, async () => {
