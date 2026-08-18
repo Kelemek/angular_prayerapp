@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { runPrayerEditorPrayerSaveAction } from './admin-prayer-editor-save-runner';
+import {
+  runPrayerEditorDeleteUpdateAction,
+  runPrayerEditorPrayerSaveAction,
+} from './admin-prayer-editor-save-runner';
 
 vi.mock('./admin-prayer-editor-save-apply', () => ({
   applyPrayerEditorPrayerSave: vi.fn().mockResolvedValue({
@@ -9,6 +12,12 @@ vi.mock('./admin-prayer-editor-save-apply', () => ({
     needsLoadPageData: true,
     refreshMainSite: true,
     notifyPrayer: { prayerId: '1', title: 'Title' },
+  }),
+  applyPrayerEditorDeleteUpdate: vi.fn().mockResolvedValue({
+    allPrayers: [],
+    toastSuccess: 'Update deleted',
+    needsLoadPageData: true,
+    refreshMainSite: true,
   }),
 }));
 
@@ -93,5 +102,27 @@ describe('runPrayerEditorPrayerSaveAction', () => {
     expect(applyResult).toHaveBeenCalled();
     expect(setSaving).toHaveBeenCalledWith(true);
     expect(setSaving).toHaveBeenCalledWith(false);
+  });
+
+  it('marks for check after delete update save', async () => {
+    const markForCheck = vi.fn();
+    const applyResult = vi.fn();
+
+    await runPrayerEditorDeleteUpdateAction(
+      'p1',
+      'u1',
+      { allPrayers: [{ id: 'p1', prayer_updates: [] }] as never },
+      {
+        getClient: () => client,
+        clearError: vi.fn(),
+        onValidationError: vi.fn(),
+        onMutationError: vi.fn(),
+        markForCheck,
+        applyResult,
+      },
+    );
+
+    expect(applyResult).toHaveBeenCalled();
+    expect(markForCheck).toHaveBeenCalledTimes(2);
   });
 });

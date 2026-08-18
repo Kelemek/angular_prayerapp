@@ -119,4 +119,40 @@ describe('runPrayerEditorFacadeConfirmation', () => {
     expect(mockToast.success).toHaveBeenCalled();
     expect(host.allPrayers).toHaveLength(0);
   });
+
+  it('marks for check after confirmed delete update', async () => {
+    const markForCheck = vi.fn();
+    const executeDeleteUpdate = vi.fn().mockImplementation(async () => {
+      markForCheck();
+    });
+    const host = {
+      supabaseService: { getClient: () => ({}) as never },
+      toast: { success: vi.fn(), error: vi.fn() },
+      prayerService: { loadPrayers: vi.fn().mockResolvedValue(undefined) },
+      markForCheck,
+      searchResults: [] as never[],
+      allPrayers: [{ id: '1', prayer_updates: [{ id: 'u1' }] }] as never[],
+      selectedPrayers: new Set<string>(),
+      bulkStatus: '',
+      totalItems: 1,
+      currentPage: 1,
+      deleting: false,
+      updatingStatus: false,
+      error: null,
+      sectionExpanded: false,
+    };
+
+    await runPrayerEditorFacadeConfirmation(host as never, {
+      kind: 'deleteUpdate',
+      prayerId: '1',
+      updateId: 'u1',
+    }, {
+      loadPageData: vi.fn(),
+      executeDeleteUpdate,
+    });
+
+    expect(executeDeleteUpdate).toHaveBeenCalledWith('1', 'u1');
+    expect(host.deleting).toBe(false);
+    expect(markForCheck).toHaveBeenCalled();
+  });
 });

@@ -220,6 +220,7 @@ export async function runPrayerEditorFacadeConfirmation(
     },
     executeDeleteUpdate: callbacks.executeDeleteUpdate,
   });
+  host.markForCheck();
 }
 
 export interface PrayerEditorFacadeSaveHost

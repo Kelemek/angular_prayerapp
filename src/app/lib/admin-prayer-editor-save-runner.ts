@@ -156,6 +156,7 @@ export async function runPrayerEditorDeleteUpdateAction(
 ): Promise<void> {
   try {
     callbacks.clearError();
+    callbacks.markForCheck();
 
     const result = await applyPrayerEditorDeleteUpdate(
       callbacks.getClient(),
@@ -167,5 +168,7 @@ export async function runPrayerEditorDeleteUpdateAction(
   } catch (err: unknown) {
     console.error('Error deleting update:', err);
     callbacks.onMutationError(err, 'Failed to delete update');
+  } finally {
+    callbacks.markForCheck();
   }
 }
