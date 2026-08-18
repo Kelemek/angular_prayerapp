@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, Input, ViewChild } from
 import { CommonModule } from '@angular/common';
 import type { MemorizationPracticeMode } from '../../types/memorization';
 import type { RecitePhase } from '../../memorization-recite/memorization-recite-practice.component';
-import { MemorizationPracticeSessionComponent } from './memorization-practice-session.component';
+import type { MemorizationPracticeSessionPanelContext } from '../../lib/memorization-practice-session-panel-context';
 
 @Component({
   selector: 'app-memorization-practice-session-header',
@@ -12,7 +12,7 @@ import { MemorizationPracticeSessionComponent } from './memorization-practice-se
   templateUrl: './memorization-practice-session-header.component.html',
 })
 export class MemorizationPracticeSessionHeaderComponent {
-  @Input({ required: true }) session!: MemorizationPracticeSessionComponent;
+  @Input({ required: true }) ctx!: MemorizationPracticeSessionPanelContext;
   @Input() phase: 'intro' | 'practicing' | 'done' = 'intro';
   @Input() displayPracticeErrors = 0;
   @Input() awaitingRoundAdvance = false;

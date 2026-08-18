@@ -14,6 +14,7 @@ import {
 import { CommonModule } from '@angular/common';
 import type { MemorizationInProgressSavePayload, MemorizedItem } from '../../types/memorization';
 import type { PracticeSessionResult } from '../../services/memorization.service';
+import type { MemorizationPracticeSessionPanelContext } from '../../lib/memorization-practice-session-panel-context';
 import { MemorizationPracticeSessionFacade } from '../../lib/memorization-practice-session-facade';
 import { MemorizationWordChoicesFooterComponent } from '../memorization-word-choices-footer/memorization-word-choices-footer.component';
 import { MemorizeListenControlsDialogComponent } from '../memorize-listen-controls-dialog/memorize-listen-controls-dialog.component';
@@ -56,7 +57,7 @@ export type { PracticeSessionResult };
 })
 export class MemorizationPracticeSessionComponent
   extends MemorizationPracticeSessionFacade
-  implements OnChanges, OnDestroy, AfterViewInit
+  implements OnChanges, OnDestroy, AfterViewInit, MemorizationPracticeSessionPanelContext
 {
   @Input({ required: true }) override item!: MemorizedItem;
   @Input() override isOpen = false;

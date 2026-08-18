@@ -1,61 +1,61 @@
-@if (practiceMode === 'recite') {
+@if (view.practiceMode === 'recite') {
   <!-- @removal-recite -->
   <app-memorization-recite-practice
-    [active]="phase === 'practicing' && practiceMode === 'recite'"
-    [tokens]="tokens"
-    [typableIndices]="typableIndices"
-    [reference]="reference"
-    [translation]="translation"
-    [itemId]="itemId"
-    [roundIndex]="roundIndex"
-    [awaitingRoundAdvance]="awaitingRoundAdvance"
-    [roundAdvanceHeaderCopy]="roundAdvanceHeaderCopy"
-    [isBibleBooks]="isBibleBooks"
-    [wrongAttemptsInRound]="wrongAttemptsInRound"
-    [roundCompletedWithErrors]="roundCompletedWithErrors"
-    [strictModeEnabled]="strictModeEnabled"
-    [isFinalRound]="isFinalRound"
-    [hiddenIndices]="hiddenIndices"
-    [revealed]="revealed"
-    [hintPeekIndices]="hintPeekIndices"
-    (clearHint)="onReciteClearHint()"
-    (attemptMetrics)="onReciteAttemptMetrics($event)"
-    (repeatRound)="onReciteRepeatRound()"
-    (nextRound)="onReciteNextRound()"
-    (finishPractice)="onReciteFinishPractice()"
+    [active]="view.phase === 'practicing' && view.practiceMode === 'recite'"
+    [tokens]="view.tokens"
+    [typableIndices]="view.typableIndices"
+    [reference]="view.reference"
+    [translation]="view.translation"
+    [itemId]="view.itemId"
+    [roundIndex]="view.roundIndex"
+    [awaitingRoundAdvance]="view.awaitingRoundAdvance"
+    [roundAdvanceHeaderCopy]="view.roundAdvanceHeaderCopy"
+    [isBibleBooks]="view.isBibleBooks"
+    [wrongAttemptsInRound]="view.wrongAttemptsInRound"
+    [roundCompletedWithErrors]="view.roundCompletedWithErrors"
+    [strictModeEnabled]="view.strictModeEnabled"
+    [isFinalRound]="view.isFinalRound"
+    [hiddenIndices]="view.hiddenIndices"
+    [revealed]="view.revealed"
+    [hintPeekIndices]="view.hintPeekIndices"
+    (clearHint)="ctx.onReciteClearHint()"
+    (attemptMetrics)="ctx.onReciteAttemptMetrics($event)"
+    (repeatRound)="ctx.onReciteRepeatRound()"
+    (nextRound)="ctx.onReciteNextRound()"
+    (finishPractice)="ctx.onReciteFinishPractice()"
   />
 } @else {
   <div>
     <div
       data-testid="memorize-practice-round-header"
       [class]="
-        practiceMode === 'firstLetters' && !awaitingRoundAdvance
+        view.practiceMode === 'firstLetters' && !view.awaitingRoundAdvance
           ? 'sticky top-0 z-20 -mx-4 mb-2 border-b border-gray-200 bg-white px-4 pt-4 pb-2 shadow-[0_6px_12px_-8px_rgba(15,23,42,0.35)] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[0_8px_16px_-10px_rgba(0,0,0,0.65)]'
           : 'pt-4 mb-2'
       "
     >
       <p class="text-sm text-gray-600 dark:text-gray-400">
-        @if (awaitingRoundAdvance) {
-          {{ roundAdvanceHeaderCopy }}
-        } @else if (practiceMode === 'reorder') {
-          Round {{ roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — reorder about
-          {{ reorderMovableCountForRound(roundIndex, reorderChunks.length) }} of
-          {{ reorderChunks.length }} parts.
-        } @else if (practiceMode === 'firstLetters') {
-          Round {{ roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — initials:
-          {{ firstLetterCueHiddenSlots.size }} of {{ typableIndices.length }} hidden.
+        @if (view.awaitingRoundAdvance) {
+          {{ view.roundAdvanceHeaderCopy }}
+        } @else if (view.practiceMode === 'reorder') {
+          Round {{ view.roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — reorder about
+          {{ reorderMovableCountForRound(view.roundIndex, view.reorderChunks.length) }} of
+          {{ view.reorderChunks.length }} parts.
+        } @else if (view.practiceMode === 'firstLetters') {
+          Round {{ view.roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — initials:
+          {{ view.firstLetterCueHiddenSlots.size }} of {{ view.typableIndices.length }} hidden.
         } @else {
-          Round {{ roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — about
-          {{ Math.round(hiddenFractionForRound(roundIndex) * 100) }}% hidden
+          Round {{ view.roundIndex }} of {{ MEMORIZATION_FULL_HIDE_ROUND }} — about
+          {{ Math.round(hiddenFractionForRound(view.roundIndex) * 100) }}% hidden
         }
       </p>
 
-      @if (practiceMode === 'firstLetters' && !awaitingRoundAdvance) {
+      @if (view.practiceMode === 'firstLetters' && !view.awaitingRoundAdvance) {
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Cues below line up with blanks in order; dots hide cues until you type the right key.
-          @if (currentTargetIndex !== null) {
+          @if (view.currentTargetIndex !== null) {
             {{
-              currentTargetToken?.kind === 'digit'
+              view.currentTargetToken?.kind === 'digit'
                 ? 'Type digits only; colons and dashes are not typed.'
                 : 'Type first letters. Hold Hint to peek (one more blank each second).'
             }}
@@ -65,18 +65,18 @@
         <div
           #firstLetterCuesViewport
           class="min-h-0 max-h-[calc(3*1.625*1em)] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y rounded-sm px-2 font-mono text-base sm:text-lg font-bold leading-relaxed tracking-wide text-gray-800 dark:text-gray-100"
-          [class.ring-2]="flashError"
-          [class.ring-inset]="flashError"
-          [class.ring-red-400]="flashError"
-          [class.dark:ring-red-500]="flashError"
+          [class.ring-2]="view.flashError"
+          [class.ring-inset]="view.flashError"
+          [class.ring-red-400]="view.flashError"
+          [class.dark:ring-red-500]="view.flashError"
           aria-label="Initials cues"
         >
           <p class="mb-0 break-all" data-testid="memorize-first-letter-cues">
-            @for (tokenIndex of typableIndices; track tokenIndex; let slot = $index) {
-              @let t = tokens[tokenIndex];
-              @let isActiveCue = currentTargetIndex !== null && tokenIndex === currentTargetIndex;
+            @for (tokenIndex of view.typableIndices; track tokenIndex; let slot = $index) {
+              @let t = view.tokens[tokenIndex];
+              @let isActiveCue = view.currentTargetIndex !== null && tokenIndex === view.currentTargetIndex;
               @let hiddenSlot =
-                firstLetterCueHiddenSlots.has(slot) && !firstLetterCueRevealedSlots.has(slot);
+                view.firstLetterCueHiddenSlots.has(slot) && !view.firstLetterCueRevealedSlots.has(slot);
               @let glyph = cueGlyphForTypableToken(t);
               <span [attr.data-memorize-cue-slot]="slot">
                 <span
@@ -94,7 +94,7 @@
                   {{ hiddenSlot ? '·' : glyph }}
                 </span>
               </span>
-              @if (slot < typableIndices.length - 1) {
+              @if (slot < view.typableIndices.length - 1) {
                 <span aria-hidden="true"> </span>
               }
             }
@@ -104,22 +104,22 @@
     </div>
 
     <div class="relative z-0 min-w-0">
-      @if (!awaitingRoundAdvance && practiceMode !== 'firstLetters') {
+      @if (!view.awaitingRoundAdvance && view.practiceMode !== 'firstLetters') {
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          @if (practiceMode === 'reorder') {
+          @if (view.practiceMode === 'reorder') {
             Drag the <strong>highlighted</strong> parts into reading order. Hold <strong>Hint</strong> to peek
             at the first wrong slot.
-          } @else if (practiceMode === 'word') {
-            @if (currentTargetIndex !== null) {
+          } @else if (view.practiceMode === 'word') {
+            @if (view.currentTargetIndex !== null) {
               {{
-                currentTargetToken?.kind === 'digit'
+                view.currentTargetToken?.kind === 'digit'
                   ? 'Tap the digit in the choice bar at the bottom.'
                   : 'Tap the word in the bottom choice bar. Hold Hint to peek.'
               }}
             }
-          } @else if (currentTargetIndex !== null) {
+          } @else if (view.currentTargetIndex !== null) {
             {{
-              currentTargetToken?.kind === 'digit'
+              view.currentTargetToken?.kind === 'digit'
                 ? 'Type the next digit (left to right).'
                 : 'Type the first letter of the next blank. Hold Hint to peek.'
             }}
@@ -128,34 +128,34 @@
         </p>
       }
 
-      @if (practiceMode === 'reorder') {
+      @if (view.practiceMode === 'reorder') {
         <app-memorization-reorder-panel
-          [chunks]="reorderChunks"
-          [slotChunkIds]="reorderSlotChunkIds"
-          [roundMovableIndices]="reorderRoundMovableIndices"
-          [listFlashError]="flashError"
-          [holdHintPeekFirstWrong]="practiceMode === 'reorder' && hintActive"
+          [chunks]="view.reorderChunks"
+          [slotChunkIds]="view.reorderSlotChunkIds"
+          [roundMovableIndices]="view.reorderRoundMovableIndices"
+          [listFlashError]="view.flashError"
+          [holdHintPeekFirstWrong]="view.practiceMode === 'reorder' && view.hintActive"
           [scrollParentRef]="scrollParentRef"
-          [colonAfterSlotIndex]="reorderColonAfterSlotIndex"
-          [extraFixedSlotSpacing]="isBibleBooks"
-          (slotChunkIdsChange)="onReorderSlotChunkIdsChange($event)"
-          (invalidDrop)="onReorderInvalidDrop()"
-          (slotsBecameCorrect)="onReorderSlotsBecameCorrect($event)"
-          (wrongSwap)="onReorderWrongSwap()"
+          [colonAfterSlotIndex]="view.reorderColonAfterSlotIndex"
+          [extraFixedSlotSpacing]="view.isBibleBooks"
+          (slotChunkIdsChange)="ctx.onReorderSlotChunkIdsChange($event)"
+          (invalidDrop)="ctx.onReorderInvalidDrop()"
+          (slotsBecameCorrect)="ctx.onReorderSlotsBecameCorrect($event)"
+          (wrongSwap)="ctx.onReorderWrongSwap()"
         />
-      } @else if (practiceMode === 'word') {
+      } @else if (view.practiceMode === 'word') {
         <div
           #practiceWordsWord
           role="group"
           aria-label="Verse practice area"
           class="touch-manipulation text-base leading-relaxed font-serif flex flex-wrap gap-x-0 gap-y-1.5 sm:gap-y-1 items-baseline rounded-md p-1"
-          [class.ring-2]="flashError"
-          [class.ring-inset]="flashError"
-          [class.ring-red-400]="flashError"
-          [class.dark:ring-red-500]="flashError"
+          [class.ring-2]="view.flashError"
+          [class.ring-inset]="view.flashError"
+          [class.ring-red-400]="view.flashError"
+          [class.dark:ring-red-500]="view.flashError"
           data-testid="memorize-practice-words"
         >
-          @for (token of tokens; track $index; let i = $index) {
+          @for (token of view.tokens; track $index; let i = $index) {
             @if (token.kind === 'punct') {
               <span class="inline text-gray-800 dark:text-gray-100 whitespace-pre">{{ token.text }}</span>
             } @else {
@@ -197,20 +197,20 @@
       } @else {
         <label
           #practiceWordsType
-          [attr.for]="practiceInputId"
+          [attr.for]="view.practiceInputId"
           aria-label="Verse practice area; tap to show the keyboard again"
           class="touch-manipulation cursor-text text-base leading-relaxed font-serif flex flex-wrap gap-x-0 gap-y-1.5 sm:gap-y-1 items-baseline rounded-md p-1"
-          [class.ring-2]="flashError"
-          [class.ring-inset]="flashError"
-          [class.ring-red-400]="flashError"
-          [class.dark:ring-red-500]="flashError"
+          [class.ring-2]="view.flashError"
+          [class.ring-inset]="view.flashError"
+          [class.ring-red-400]="view.flashError"
+          [class.dark:ring-red-500]="view.flashError"
           data-testid="memorize-practice-words"
-          (touchstart)="onVerseTouchStart($event)"
-          (touchmove)="onVerseTouchMove($event)"
-          (touchcancel)="onVerseTouchCancel()"
-          (touchend)="onVerseTouchEnd()"
+          (touchstart)="ctx.onVerseTouchStart($event)"
+          (touchmove)="ctx.onVerseTouchMove($event)"
+          (touchcancel)="ctx.onVerseTouchCancel()"
+          (touchend)="ctx.onVerseTouchEnd()"
         >
-          @for (token of tokens; track $index; let i = $index) {
+          @for (token of view.tokens; track $index; let i = $index) {
             @if (token.kind === 'punct') {
               <span class="inline text-gray-800 dark:text-gray-100 whitespace-pre">{{ token.text }}</span>
             } @else {

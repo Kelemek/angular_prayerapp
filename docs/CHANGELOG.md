@@ -19,6 +19,9 @@ Major features and milestones for the Prayer App.
 ### Admin prayer editor card — panel context
 - Child panels bind [`AdminPrayerEditorCardPanelContext`](src/app/lib/admin-prayer-editor-card-panel-context.ts) via `[ctx]` instead of the card component class; [`admin-prayer-editor-card.component.ts`](src/app/components/admin-prayer-editor-card/admin-prayer-editor-card.component.ts) implements the interface.
 
+### Memorize practice session — panel context and practice view
+- Child panels bind [`MemorizationPracticeSessionPanelContext`](src/app/lib/memorization-practice-session-panel-context.ts) via `[ctx]` instead of the shell class; practicing panel takes a single [`MemorizationPracticeSessionPracticeView`](src/app/lib/memorization-practice-session-practice-view.ts) input from `practicePanelView`. Token blank/hint display uses shared helpers in [`memorizationPracticeUtils.ts`](src/app/lib/memorization/memorizationPracticeUtils.ts). Scroll integration tests live in [`memorization-practice-session-scroll-run.spec.ts`](src/app/lib/memorization-practice-session-scroll-run.spec.ts).
+
 ### Memorize practice session — OnPush inputs
 - Header, mode picker, intro footer, and **practicing panel** use `ChangeDetectionStrategy.OnPush` with explicit inputs for volatile UI (`showListenOpeners`, `showStartOver`, `reciteModeVisible`, `startRoundChoice`, practice tokens/round state, flash error, reorder slots, recite metrics, etc.) so chrome and verse blanks update when the parent facade mutates under OnPush. Practicing keeps `session` only for event handlers and `ViewChild` refs used by the facade.
 

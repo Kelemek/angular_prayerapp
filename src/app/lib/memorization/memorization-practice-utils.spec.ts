@@ -8,6 +8,8 @@ import {
   buildMemorizationTokens,
   getTypableTokenIndices,
   formatMemorizationTokensPlain,
+  memorizationIsCurrentBlank,
+  memorizationShowViaHint,
   formatMemorizationReciteWhisperPrompt,
   hiddenFractionForRound,
   MEMORIZATION_FULL_HIDE_ROUND,
@@ -165,6 +167,25 @@ describe('formatMemorizationTokensPlain', () => {
       { kind: 'word', text: 'God' },
     ];
     expect(formatMemorizationTokensPlain(tokens)).toBe('For God');
+  });
+});
+
+describe('memorization token display helpers', () => {
+  it('memorizationIsCurrentBlank respects hidden, revealed, and target index', () => {
+    const hidden = new Set([1, 2]);
+    const revealed = new Set([2]);
+    expect(memorizationIsCurrentBlank(1, hidden, revealed, 1)).toBe(true);
+    expect(memorizationIsCurrentBlank(2, hidden, revealed, 2)).toBe(false);
+    expect(memorizationIsCurrentBlank(0, hidden, revealed, 1)).toBe(false);
+  });
+
+  it('memorizationShowViaHint requires hint active and peek set', () => {
+    const hidden = new Set([1]);
+    const revealed = new Set<number>();
+    const peek = new Set([1]);
+    expect(memorizationShowViaHint(1, false, hidden, revealed, peek)).toBe(false);
+    expect(memorizationShowViaHint(1, true, hidden, revealed, peek)).toBe(true);
+    expect(memorizationShowViaHint(1, true, hidden, revealed, new Set())).toBe(false);
   });
 });
 

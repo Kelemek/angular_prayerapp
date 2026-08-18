@@ -335,6 +335,29 @@ describe('MemorizationPracticeSessionComponent', () => {
 
       expect(component.phase).toBe('intro');
     });
+
+    it('refreshes intro passage text when item reference changes (OnPush inputs)', async () => {
+      const { component, getByTestId, cdr, fixture } = await renderSession();
+      expect(getByTestId('memorize-intro-text').textContent).toContain('For God');
+
+      mockScriptureService.getPassage.mockResolvedValue({
+        reference: 'John 3:17',
+        text: 'For God so loved the world that he gave',
+        translation: 'esv',
+      });
+      const newItem: MemorizedItem = {
+        ...verseItem,
+        reference: 'John 3:17',
+      };
+      component.item = newItem;
+      component.ngOnChanges({
+        item: new SimpleChange(verseItem, newItem, false),
+      });
+      await fixture.whenStable();
+      cdr.detectChanges();
+
+      expect(getByTestId('memorize-intro-text').textContent).toContain('that he gave');
+    });
   });
 
   describe('listen panel', () => {

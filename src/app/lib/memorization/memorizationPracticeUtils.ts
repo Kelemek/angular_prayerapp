@@ -104,6 +104,42 @@ export function formatMemorizationTokensPlain(tokens: MemorizationToken[]): stri
   return tokens.map((t) => t.text).join('')
 }
 
+export function memorizationIsTokenHidden(i: number, hiddenIndices: ReadonlySet<number>): boolean {
+  return hiddenIndices.has(i);
+}
+
+export function memorizationIsTokenRevealed(i: number, revealed: ReadonlySet<number>): boolean {
+  return revealed.has(i);
+}
+
+export function memorizationIsCurrentBlank(
+  i: number,
+  hiddenIndices: ReadonlySet<number>,
+  revealed: ReadonlySet<number>,
+  currentTargetIndex: number | null,
+): boolean {
+  return (
+    memorizationIsTokenHidden(i, hiddenIndices) &&
+    !memorizationIsTokenRevealed(i, revealed) &&
+    i === currentTargetIndex
+  );
+}
+
+export function memorizationShowViaHint(
+  i: number,
+  hintActive: boolean,
+  hiddenIndices: ReadonlySet<number>,
+  revealed: ReadonlySet<number>,
+  hintPeekIndices: ReadonlySet<number>,
+): boolean {
+  return (
+    hintActive &&
+    memorizationIsTokenHidden(i, hiddenIndices) &&
+    !memorizationIsTokenRevealed(i, revealed) &&
+    hintPeekIndices.has(i)
+  );
+}
+
 /**
  * Whisper prompt style prefix — nudges STT toward the memorized translation’s English
  * without sending verse text (which biases Whisper to insert omitted words).

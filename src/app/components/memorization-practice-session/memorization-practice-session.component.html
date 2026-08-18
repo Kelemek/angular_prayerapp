@@ -24,7 +24,7 @@
         class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] border modal-panel-edge flex flex-col overflow-hidden"
       >
         <app-memorization-practice-session-header
-          [session]="this"
+          [ctx]="this"
           [phase]="phase"
           [displayPracticeErrors]="displayPracticeErrors"
           [awaitingRoundAdvance]="awaitingRoundAdvance"
@@ -89,10 +89,15 @@
               #practiceScroll
               class="relative px-4 py-4 flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y"
             >
-              <app-memorization-practice-session-intro [session]="this" />
+              <app-memorization-practice-session-intro
+                [isBibleBooks]="isBibleBooks"
+                [introTokensPlain]="introTokensPlain"
+                [introTranslation]="introTranslation"
+                [bibleBooksScope]="item.bibleBooksScope"
+              />
             </div>
             <app-memorization-practice-session-intro-footer
-              [session]="this"
+              [ctx]="this"
               [startRoundChoice]="startRoundChoice"
             />
           } @else {
@@ -109,37 +114,9 @@
             >
               @if (phase === 'practicing') {
                 <app-memorization-practice-session-practicing
-                  [session]="this"
+                  [ctx]="this"
+                  [view]="practicePanelView"
                   [scrollParentRef]="practiceScrollElement"
-                  [awaitingRoundAdvance]="awaitingRoundAdvance"
-                  [roundAdvanceHeaderCopy]="roundAdvanceHeaderCopy"
-                  [practiceMode]="practiceMode"
-                  [phase]="phase"
-                  [flashError]="flashError"
-                  [roundIndex]="roundIndex"
-                  [hintActive]="hintActive"
-                  [tokens]="tokens"
-                  [typableIndices]="typableIndices"
-                  [hiddenIndices]="hiddenIndices"
-                  [revealed]="revealed"
-                  [hintPeekIndices]="hintPeekIndices"
-                  [firstLetterCueHiddenSlots]="firstLetterCueHiddenSlots"
-                  [firstLetterCueRevealedSlots]="firstLetterCueRevealedSlots"
-                  [currentTargetIndex]="currentTargetIndex"
-                  [currentTargetToken]="currentTargetToken"
-                  [reorderChunks]="reorderChunks"
-                  [reorderSlotChunkIds]="reorderSlotChunkIds"
-                  [reorderRoundMovableIndices]="reorderRoundMovableIndices"
-                  [reorderColonAfterSlotIndex]="reorderColonAfterSlotIndex"
-                  [isBibleBooks]="isBibleBooks"
-                  [reference]="item.reference"
-                  [translation]="item.translation"
-                  [itemId]="item.id"
-                  [practiceInputId]="practiceInputId"
-                  [wrongAttemptsInRound]="wrongAttemptsInRound"
-                  [roundCompletedWithErrors]="roundCompletedWithErrors"
-                  [strictModeEnabled]="strictModeEnabled"
-                  [isFinalRound]="isFinalRound"
                 />
               }
 
@@ -151,7 +128,7 @@
 
               @if (phase === 'done') {
                 <app-memorization-practice-session-done
-                  [session]="this"
+                  [ctx]="this"
                   [completionMessage]="completionMessage"
                 />
               }
@@ -159,7 +136,7 @@
 
             @if (phase === 'practicing' && practiceMode === 'recite' && !awaitingRoundAdvance) {
               <app-memorization-practice-session-recite-footer
-                [session]="this"
+                [ctx]="this"
                 [recitePhase]="recitePhase"
                 [reciteStarting]="reciteStarting"
                 [reciteSettingsLoadedForRecord]="reciteSettingsLoadedForRecord"
@@ -183,7 +160,7 @@
 
             @if (phase === 'practicing' && awaitingRoundAdvance) {
               <app-memorization-practice-session-round-advance-footer
-                [session]="this"
+                [ctx]="this"
                 [roundAffirmation]="roundAffirmation"
                 [showNextRoundOption]="showNextRoundOption"
                 [showFinishPracticeOption]="showFinishPracticeOption"
@@ -196,14 +173,14 @@
 
     @if (modePickerOpen && phase === 'intro') {
       <app-memorization-practice-session-mode-picker
-        [session]="this"
+        [ctx]="this"
         [reciteModeBlockedMessage]="reciteModeBlockedMessage"
         [reciteModeVisible]="reciteModeVisible"
       />
     }
 
     @if (reciteFeedbackHelpOpen) {
-      <app-memorization-practice-session-recite-feedback [session]="this" />
+      <app-memorization-practice-session-recite-feedback [ctx]="this" />
     }
 
     @if (listenPanelOpen && showListenOpeners) {

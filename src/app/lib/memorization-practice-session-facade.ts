@@ -29,6 +29,10 @@ import {
 import {
   MEMORIZATION_FULL_HIDE_ROUND,
   generateMemorizationSessionSeed,
+  memorizationIsCurrentBlank,
+  memorizationIsTokenHidden,
+  memorizationIsTokenRevealed,
+  memorizationShowViaHint,
 } from './memorization/memorizationPracticeUtils';
 import {
   runPracticeSessionBumpListenUi,
@@ -503,19 +507,30 @@ export class MemorizationPracticeSessionFacade
   }
 
   isTokenHidden(i: number): boolean {
-    return this.hiddenIndices.has(i);
+    return memorizationIsTokenHidden(i, this.hiddenIndices);
   }
 
   isTokenRevealed(i: number): boolean {
-    return this.revealed.has(i);
+    return memorizationIsTokenRevealed(i, this.revealed);
   }
 
   showViaHint(i: number): boolean {
-    return this.hintActive && this.isTokenHidden(i) && !this.isTokenRevealed(i) && this.hintPeekIndices.has(i);
+    return memorizationShowViaHint(
+      i,
+      this.hintActive,
+      this.hiddenIndices,
+      this.revealed,
+      this.hintPeekIndices,
+    );
   }
 
   isCurrentBlank(i: number): boolean {
-    return this.isTokenHidden(i) && !this.isTokenRevealed(i) && i === this.currentTargetIndex;
+    return memorizationIsCurrentBlank(
+      i,
+      this.hiddenIndices,
+      this.revealed,
+      this.currentTargetIndex,
+    );
   }
 
   finishPracticeSession(): void {

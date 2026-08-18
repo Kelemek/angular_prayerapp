@@ -11,7 +11,9 @@ export const ANDROID_SCROLL_CLAMP_MS = 600;
 export const MEMORIZE_LISTEN_CONTROLS_DIALOG_ID = 'memorize-listen-controls-dialog';
 export const MEMORIZE_LISTEN_CONTROLS_TITLE_ID = 'memorize-listen-controls-title';
 
-export const MEMORIZE_INTRO_START_ROUND_OPTIONS = Array.from(
+export type MemorizationStartRoundOption = { value: number; label: string };
+
+export const MEMORIZE_INTRO_START_ROUND_OPTIONS: MemorizationStartRoundOption[] = Array.from(
   { length: MEMORIZATION_FULL_HIDE_ROUND },
   (_, i) => ({ value: i + 1, label: `Round ${i + 1}` }),
 );

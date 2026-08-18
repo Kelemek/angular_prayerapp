@@ -17,6 +17,7 @@ import {
   type MemorizationPracticeMode,
   type MemorizedItem,
 } from '../types/memorization';
+import type { MemorizationPracticeSessionPracticeView } from './memorization-practice-session-practice-view';
 import { isKeyboardPracticeMode } from './memorization/memorizationKeyboardPractice';
 import { MemorizeListenSpeed } from './memorization/memorizeListenSpeedStorage';
 import {
@@ -417,6 +418,52 @@ export abstract class MemorizationPracticeSessionFacadeBase {
 
   get modePickerTitle(): string {
     return this.modePickerTitleId;
+  }
+
+  get introTokensPlain(): string {
+    return formatMemorizationTokensPlain(this.tokens);
+  }
+
+  get introTranslation(): MemorizedItem['translation'] {
+    return this.item.translation;
+  }
+
+  get bibleBooksScope(): MemorizedItem['bibleBooksScope'] {
+    return this.item.bibleBooksScope;
+  }
+
+  get practicePanelView(): MemorizationPracticeSessionPracticeView {
+    return {
+      practiceMode: this.practiceMode,
+      phase: this.phase,
+      flashError: this.flashError,
+      roundIndex: this.roundIndex,
+      hintActive: this.hintActive,
+      tokens: this.tokens,
+      typableIndices: this.typableIndices,
+      hiddenIndices: this.hiddenIndices,
+      revealed: this.revealed,
+      hintPeekIndices: this.hintPeekIndices,
+      firstLetterCueHiddenSlots: this.firstLetterCueHiddenSlots,
+      firstLetterCueRevealedSlots: this.firstLetterCueRevealedSlots,
+      currentTargetIndex: this.currentTargetIndex,
+      currentTargetToken: this.currentTargetToken,
+      reorderChunks: this.reorderChunks,
+      reorderSlotChunkIds: this.reorderSlotChunkIds,
+      reorderRoundMovableIndices: this.reorderRoundMovableIndices,
+      reorderColonAfterSlotIndex: this.reorderColonAfterSlotIndex,
+      isBibleBooks: this.isBibleBooks,
+      reference: this.item.reference,
+      translation: this.item.translation,
+      itemId: this.item.id,
+      practiceInputId: this.practiceInputId,
+      wrongAttemptsInRound: this.wrongAttemptsInRound,
+      roundCompletedWithErrors: this.roundCompletedWithErrors,
+      strictModeEnabled: this.strictModeEnabled,
+      isFinalRound: this.isFinalRound,
+      awaitingRoundAdvance: this.awaitingRoundAdvance,
+      roundAdvanceHeaderCopy: this.roundAdvanceHeaderCopy,
+    };
   }
 
   /** Public so scroll-run can invoke without same-module spy gaps; tests spy these on the component. */
