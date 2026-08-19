@@ -114,48 +114,6 @@ export class PrayerService {
   }
 
   /** Spec-compatible aliases for private catalog state. */
-  private get allPrayersSubject() {
-    return this.community.allPrayersSubject;
-  }
-  private get prayersSubject() {
-    return this.community.prayersSubject;
-  }
-  private get loadingSubject() {
-    return this.community.loadingSubject;
-  }
-  private get errorSubject() {
-    return this.community.errorSubject;
-  }
-  private get allPersonalPrayersSubject() {
-    return this.personal.allPersonalPrayersSubject;
-  }
-  private get loadingPersonalPrayersSubject() {
-    return this.personal.loadingPersonalPrayersSubject;
-  }
-  private get communityPrayersFetchInFlight() {
-    return this.community.communityPrayersFetchInFlight;
-  }
-  private set communityPrayersFetchInFlight(value: boolean) {
-    this.community.communityPrayersFetchInFlight = value;
-  }
-  private get communityPrayersDbFetchComplete() {
-    return this.community.communityPrayersDbFetchComplete;
-  }
-  private set communityPrayersDbFetchComplete(value: boolean) {
-    this.community.communityPrayersDbFetchComplete = value;
-  }
-  private get personalPrayersDbFetchComplete() {
-    return this.personal.personalPrayersDbFetchComplete;
-  }
-  private set personalPrayersDbFetchComplete(value: boolean) {
-    this.personal.personalPrayersDbFetchComplete = value;
-  }
-  private get currentFilters() {
-    return this.community.currentFilters;
-  }
-  private set currentFilters(value: PrayerFilters) {
-    this.community.currentFilters = value;
-  }
 
   getAllCommunityPrayersSnapshot(): PrayerRequest[] {
     return this.community.getAllCommunityPrayersSnapshot();

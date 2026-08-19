@@ -66,8 +66,8 @@ describe('PrayerService', () => {
     it('calls rpc and updates in-memory lists with returned count', async () => {
       const p1 = makePrayer({ id: 'pid-1', prayed_for_count: 2 });
       const p2 = makePrayer({ id: 'pid-2' });
-      (service as any).allPrayersSubject.next([p1, p2]);
-      (service as any).prayersSubject.next([p1, p2]);
+      (service as any).community.allPrayersSubject.next([p1, p2]);
+      (service as any).community.prayersSubject.next([p1, p2]);
 
       supabase.client.rpc.mockResolvedValue({ data: 3, error: null });
 
@@ -75,27 +75,27 @@ describe('PrayerService', () => {
 
       expect(result).toBe(3);
       expect(supabase.client.rpc).toHaveBeenCalledWith('increment_prayed_for_count', { prayer_id: 'pid-1' });
-      expect((service as any).allPrayersSubject.value[0].prayed_for_count).toBe(3);
-      expect((service as any).prayersSubject.value[0].prayed_for_count).toBe(3);
-      expect((service as any).allPrayersSubject.value[1].prayed_for_count).toBeUndefined();
+      expect((service as any).community.allPrayersSubject.value[0].prayed_for_count).toBe(3);
+      expect((service as any).community.prayersSubject.value[0].prayed_for_count).toBe(3);
+      expect((service as any).community.allPrayersSubject.value[1].prayed_for_count).toBeUndefined();
     });
 
     it('returns null and does not update lists when rpc errors', async () => {
       const p1 = makePrayer({ id: 'pid-1', prayed_for_count: 1 });
-      (service as any).allPrayersSubject.next([p1]);
-      (service as any).prayersSubject.next([p1]);
+      (service as any).community.allPrayersSubject.next([p1]);
+      (service as any).community.prayersSubject.next([p1]);
       supabase.client.rpc.mockResolvedValue({ data: null, error: new Error('db error') });
 
       const result = await service.incrementPrayedFor('pid-1');
 
       expect(result).toBeNull();
-      expect((service as any).allPrayersSubject.value[0].prayed_for_count).toBe(1);
+      expect((service as any).community.allPrayersSubject.value[0].prayed_for_count).toBe(1);
     });
 
     it('returns null when rpc returns non-number', async () => {
       const p1 = makePrayer({ id: 'pid-1' });
-      (service as any).allPrayersSubject.next([p1]);
-      (service as any).prayersSubject.next([p1]);
+      (service as any).community.allPrayersSubject.next([p1]);
+      (service as any).community.prayersSubject.next([p1]);
       supabase.client.rpc.mockResolvedValue({ data: 'invalid', error: null });
 
       const result = await service.incrementPrayedFor('pid-1');
@@ -105,14 +105,14 @@ describe('PrayerService', () => {
 
     it('returns null when rpc returns zero (no row updated)', async () => {
       const p1 = makePrayer({ id: 'pid-1', prayed_for_count: 1 });
-      (service as any).allPrayersSubject.next([p1]);
-      (service as any).prayersSubject.next([p1]);
+      (service as any).community.allPrayersSubject.next([p1]);
+      (service as any).community.prayersSubject.next([p1]);
       supabase.client.rpc.mockResolvedValue({ data: 0, error: null });
 
       const result = await service.incrementPrayedFor('pid-1');
 
       expect(result).toBeNull();
-      expect((service as any).allPrayersSubject.value[0].prayed_for_count).toBe(1);
+      expect((service as any).community.allPrayersSubject.value[0].prayed_for_count).toBe(1);
     });
   });
 
@@ -124,7 +124,7 @@ describe('PrayerService', () => {
     it('calls rpc and updates in-memory personal list and cache with returned count', async () => {
       const p1 = makePrayer({ id: 'personal-1', prayed_for_count: 2 });
       const p2 = makePrayer({ id: 'personal-2' });
-      (service as any).allPersonalPrayersSubject.next([p1, p2]);
+      (service as any).personal.allPersonalPrayersSubject.next([p1, p2]);
 
       supabase.client.rpc.mockResolvedValue({ data: 3, error: null });
 
@@ -135,30 +135,30 @@ describe('PrayerService', () => {
         personal_prayer_id: 'personal-1',
         p_user_email: 'me@test.com',
       });
-      expect((service as any).allPersonalPrayersSubject.value[0].prayed_for_count).toBe(3);
-      expect((service as any).allPersonalPrayersSubject.value[1].prayed_for_count).toBeUndefined();
+      expect((service as any).personal.allPersonalPrayersSubject.value[0].prayed_for_count).toBe(3);
+      expect((service as any).personal.allPersonalPrayersSubject.value[1].prayed_for_count).toBeUndefined();
       expect(cache.set).toHaveBeenCalledWith(
         'personalPrayers',
-        (service as any).allPersonalPrayersSubject.value
+        (service as any).personal.allPersonalPrayersSubject.value
       );
     });
 
     it('returns null and does not update personal list when rpc errors', async () => {
       const p1 = makePrayer({ id: 'personal-1', prayed_for_count: 1 });
-      (service as any).allPersonalPrayersSubject.next([p1]);
+      (service as any).personal.allPersonalPrayersSubject.next([p1]);
       cache.set.mockClear();
       supabase.client.rpc.mockResolvedValue({ data: null, error: new Error('db error') });
 
       const result = await service.incrementPersonalPrayedFor('personal-1');
 
       expect(result).toBeNull();
-      expect((service as any).allPersonalPrayersSubject.value[0].prayed_for_count).toBe(1);
+      expect((service as any).personal.allPersonalPrayersSubject.value[0].prayed_for_count).toBe(1);
       expect(cache.set).not.toHaveBeenCalledWith('personalPrayers', expect.anything());
     });
 
     it('returns null when rpc returns non-number', async () => {
       const p1 = makePrayer({ id: 'personal-1' });
-      (service as any).allPersonalPrayersSubject.next([p1]);
+      (service as any).personal.allPersonalPrayersSubject.next([p1]);
       supabase.client.rpc.mockResolvedValue({ data: 'invalid', error: null });
 
       const result = await service.incrementPersonalPrayedFor('personal-1');
@@ -168,14 +168,14 @@ describe('PrayerService', () => {
 
     it('returns null when rpc returns zero (no row updated)', async () => {
       const p1 = makePrayer({ id: 'personal-1', prayed_for_count: 1 });
-      (service as any).allPersonalPrayersSubject.next([p1]);
+      (service as any).personal.allPersonalPrayersSubject.next([p1]);
       cache.set.mockClear();
       supabase.client.rpc.mockResolvedValue({ data: 0, error: null });
 
       const result = await service.incrementPersonalPrayedFor('personal-1');
 
       expect(result).toBeNull();
-      expect((service as any).allPersonalPrayersSubject.value[0].prayed_for_count).toBe(1);
+      expect((service as any).personal.allPersonalPrayersSubject.value[0].prayed_for_count).toBe(1);
       expect(cache.set).not.toHaveBeenCalledWith('personalPrayers', expect.anything());
     });
 
@@ -277,22 +277,22 @@ describe('PrayerService', () => {
     const p1 = makePrayer({ id: 'a', title: 'Hello World', description: 'desc', requester: 'Bob', type: 'prayer', status: 'current' });
     const p2 = makePrayer({ id: 'b', title: 'Prompt One', description: 'other', requester: 'Alice', type: 'prompt', status: 'answered' });
 
-    (service as any).allPrayersSubject.next([p1, p2]);
+    (service as any).community.allPrayersSubject.next([p1, p2]);
 
     service.applyFilters({ status: 'current' });
-    expect((service as any).prayersSubject.value).toEqual([p1]);
+    expect((service as any).community.prayersSubject.value).toEqual([p1]);
 
     service.applyFilters({ type: 'prompt' });
-    expect((service as any).prayersSubject.value).toEqual([p2]);
+    expect((service as any).community.prayersSubject.value).toEqual([p2]);
 
     service.applyFilters({ search: 'hello' });
-    expect((service as any).prayersSubject.value).toEqual([p1]);
+    expect((service as any).community.prayersSubject.value).toEqual([p1]);
   });
 
   it('getFilteredPrayers filters by status and search', () => {
     const p1 = makePrayer({ id: 'a', title: 'FindMe', description: 'desc', requester: 'Bob', prayer_for: 'X', status: 'current' });
     const p2 = makePrayer({ id: 'b', title: 'Other', description: 'other', requester: 'Alice', prayer_for: 'FindMe', status: 'answered' });
-    (service as any).prayersSubject.next([p1, p2]);
+    (service as any).community.prayersSubject.next([p1, p2]);
 
     expect(service.getFilteredPrayers({ status: 'current' })).toEqual([p1]);
     expect(service.getFilteredPrayers({ search: 'findme' })).toEqual([p1, p2]);
@@ -357,13 +357,13 @@ describe('PrayerService', () => {
 
   it('updatePrayerStatus updates local state on success', async () => {
     const p = makePrayer({ id: 'u1', status: 'current' });
-    (service as any).prayersSubject.next([p]);
+    (service as any).community.prayersSubject.next([p]);
 
     supabase.client.from.mockImplementation((table: string) => ({ update: () => ({ eq: () => Promise.resolve({ error: null }) }) }));
 
     const result = await service.updatePrayerStatus('u1', 'answered');
     expect(result).toBe(true);
-    const updated = (service as any).prayersSubject.value.find((x: any) => x.id === 'u1');
+    const updated = (service as any).community.prayersSubject.value.find((x: any) => x.id === 'u1');
     expect(updated.status).toBe('answered');
     expect(updated.date_answered).not.toBeNull();
     expect(toast.success).toHaveBeenCalled();
@@ -378,12 +378,12 @@ describe('PrayerService', () => {
 
   it('deletePrayer removes prayer on success', async () => {
     const p = makePrayer({ id: 'del1' });
-    (service as any).prayersSubject.next([p]);
+    (service as any).community.prayersSubject.next([p]);
     supabase.client.from.mockImplementation((table: string) => ({ delete: () => ({ eq: () => Promise.resolve({ error: null }) }) }));
 
     const result = await service.deletePrayer('del1');
     expect(result).toBe(true);
-    expect((service as any).prayersSubject.value.find((x: any) => x.id === 'del1')).toBeUndefined();
+    expect((service as any).community.prayersSubject.value.find((x: any) => x.id === 'del1')).toBeUndefined();
     expect(toast.success).toHaveBeenCalled();
   });
 
@@ -517,7 +517,7 @@ describe('PrayerService', () => {
     // cached set called
     expect(cache.set).toHaveBeenCalled();
     // allPrayers should be set and sorted (p2 has the most recent created_at so should come first)
-    const all = (service as any).allPrayersSubject.value;
+    const all = (service as any).community.allPrayersSubject.value;
     expect(all.length).toBe(2);
     expect(all[0].id).toBe('p2');
     expect(applySpy).toHaveBeenCalled();
@@ -556,8 +556,8 @@ describe('PrayerService', () => {
     cache.get.mockReturnValue(cached);
 
     await (service as any).loadPrayers(false);
-    expect((service as any).allPrayersSubject.value).toEqual(cached);
-    expect((service as any).errorSubject.value).toBeNull();
+    expect((service as any).community.allPrayersSubject.value).toEqual(cached);
+    expect((service as any).community.errorSubject.value).toBeNull();
   });
 
   it('addPrayerUpdate sends admin notification and toasts on success', async () => {
@@ -640,7 +640,7 @@ describe('PrayerService', () => {
 
     (service as any).triggerBackgroundRecovery();
     await vi.advanceTimersByTimeAsync(500);
-    expect((service as any).allPrayersSubject.value).toEqual(cached);
+    expect((service as any).community.allPrayersSubject.value).toEqual(cached);
     expect(setupSpy).toHaveBeenCalled();
     setupSpy.mockRestore();
     vi.useRealTimers();
@@ -673,36 +673,36 @@ describe('PrayerService', () => {
   }, 5000);
 
   it('arePrayerCatalogsReady is false while either catalog is loading', () => {
-    (service as any).communityPrayersDbFetchComplete = true;
-    (service as any).personalPrayersDbFetchComplete = true;
-    (service as any).loadingSubject.next(true);
-    (service as any).loadingPersonalPrayersSubject.next(false);
+    (service as any).community.communityPrayersDbFetchComplete = true;
+    (service as any).personal.personalPrayersDbFetchComplete = true;
+    (service as any).community.loadingSubject.next(true);
+    (service as any).personal.loadingPersonalPrayersSubject.next(false);
     expect(service.arePrayerCatalogsReady()).toBe(false);
 
-    (service as any).loadingSubject.next(false);
-    (service as any).loadingPersonalPrayersSubject.next(true);
+    (service as any).community.loadingSubject.next(false);
+    (service as any).personal.loadingPersonalPrayersSubject.next(true);
     expect(service.arePrayerCatalogsReady()).toBe(false);
 
-    (service as any).loadingSubject.next(false);
-    (service as any).loadingPersonalPrayersSubject.next(false);
+    (service as any).community.loadingSubject.next(false);
+    (service as any).personal.loadingPersonalPrayersSubject.next(false);
     expect(service.arePrayerCatalogsReady()).toBe(true);
   });
 
   it('arePrayerCatalogsReady is false while community prayers fetch is in flight', () => {
-    (service as any).loadingSubject.next(false);
-    (service as any).loadingPersonalPrayersSubject.next(false);
-    (service as any).communityPrayersDbFetchComplete = true;
-    (service as any).personalPrayersDbFetchComplete = true;
-    (service as any).communityPrayersFetchInFlight = true;
+    (service as any).community.loadingSubject.next(false);
+    (service as any).personal.loadingPersonalPrayersSubject.next(false);
+    (service as any).community.communityPrayersDbFetchComplete = true;
+    (service as any).personal.personalPrayersDbFetchComplete = true;
+    (service as any).community.communityPrayersFetchInFlight = true;
     expect(service.arePrayerCatalogsReady()).toBe(false);
   });
 
   it('arePrayerCatalogsReady is false before community DB fetch completes', () => {
-    (service as any).loadingSubject.next(false);
-    (service as any).loadingPersonalPrayersSubject.next(false);
-    (service as any).communityPrayersFetchInFlight = false;
-    (service as any).communityPrayersDbFetchComplete = false;
-    (service as any).personalPrayersDbFetchComplete = true;
+    (service as any).community.loadingSubject.next(false);
+    (service as any).personal.loadingPersonalPrayersSubject.next(false);
+    (service as any).community.communityPrayersFetchInFlight = false;
+    (service as any).community.communityPrayersDbFetchComplete = false;
+    (service as any).personal.personalPrayersDbFetchComplete = true;
     expect(service.arePrayerCatalogsReady()).toBe(false);
   });
 
@@ -920,7 +920,7 @@ describe('PrayerService', () => {
 
       await (service as any).loadPrayers(false);
       
-      expect((service as any).errorSubject.value).toBeTruthy();
+      expect((service as any).community.errorSubject.value).toBeTruthy();
       expect(toast.error).toHaveBeenCalled();
       expect(errSpy).toHaveBeenCalled();
       errSpy.mockRestore();
@@ -1696,7 +1696,7 @@ describe('PrayerService - Integration Tests', () => {
 
       // recovery should use cached data synchronously
       expect(mockCacheService.get).toHaveBeenCalledWith('prayers');
-      expect((service as any).allPrayersSubject.value).toEqual(cached);
+      expect((service as any).community.allPrayersSubject.value).toEqual(cached);
 
       // restore previous addEventListener to avoid side effects
       (window as any).addEventListener = previousAdd;
@@ -1749,7 +1749,7 @@ describe('PrayerService - Integration Tests', () => {
       await (service as any).loadPrayers(false);
 
       // errorSubject should be set and toast.error called
-      expect((service as any).errorSubject.value).toBe('db fail');
+      expect((service as any).community.errorSubject.value).toBe('db fail');
       expect(mockToastService.error).toHaveBeenCalled();
     });
 
@@ -1768,7 +1768,7 @@ describe('PrayerService - Integration Tests', () => {
 
       expect(() => (service as any).triggerBackgroundRecovery()).not.toThrow();
       await vi.advanceTimersByTimeAsync(500);
-      expect((service as any).allPrayersSubject.value).toEqual(cached);
+      expect((service as any).community.allPrayersSubject.value).toEqual(cached);
       vi.useRealTimers();
     });
   });
@@ -1973,7 +1973,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-      expect((service as any).currentFilters).toBeDefined();
+      expect((service as any).community.currentFilters).toBeDefined();
     });
   });
 
@@ -2198,23 +2198,23 @@ describe('PrayerService - Integration Tests', () => {
 
     it('should apply status filter', () => {
       service.applyFilters({ status: 'current' });
-      expect((service as any).currentFilters.status).toBe('current');
+      expect((service as any).community.currentFilters.status).toBe('current');
     });
 
     it('should apply type filter', () => {
       service.applyFilters({ type: 'prompt' });
-      expect((service as any).currentFilters.type).toBe('prompt');
+      expect((service as any).community.currentFilters.type).toBe('prompt');
     });
 
     it('should apply search filter', () => {
       service.applyFilters({ search: 'test query' });
-      expect((service as any).currentFilters.search).toBe('test query');
+      expect((service as any).community.currentFilters.search).toBe('test query');
     });
 
     it('should apply multiple filters at once', () => {
       service.applyFilters({ status: 'answered', search: 'test' });
-      expect((service as any).currentFilters.status).toBe('answered');
-      expect((service as any).currentFilters.search).toBe('test');
+      expect((service as any).community.currentFilters.status).toBe('answered');
+      expect((service as any).community.currentFilters.search).toBe('test');
     });
   });
 
@@ -2315,7 +2315,7 @@ describe('PrayerService - Integration Tests', () => {
     );
 
       // spy on the private loadingSubject.next to ensure it's called with true
-      const loadingNext = vi.spyOn((service as any).loadingSubject, 'next');
+      const loadingNext = vi.spyOn((service as any).community.loadingSubject, 'next');
 
       await (service as any).loadPrayers(false);
 
@@ -2612,7 +2612,7 @@ describe('PrayerService - Integration Tests', () => {
     );
 
       // Directly set the all prayers and verify trigger works
-      (service as any).allPrayersSubject.next(cachedPrayers);
+      (service as any).community.allPrayersSubject.next(cachedPrayers);
       const setupSpy = vi.spyOn(service as any, 'setupRealtimeSubscription').mockImplementation(() => {});
       const loadSpy = vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
 
@@ -2668,7 +2668,7 @@ describe('PrayerService - Integration Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect((service as any).allPrayersSubject.value).toEqual(cachedPrayers);
+      expect((service as any).community.allPrayersSubject.value).toEqual(cachedPrayers);
       // Error may or may not be set depending on timing; just verify cache was used
       expect(mockCacheService.get).toHaveBeenCalled();
     });
@@ -2874,12 +2874,12 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).prayersSubject.next([testPrayer]);
+      (service as any).community.prayersSubject.next([testPrayer]);
 
       const result = await service.deletePrayer('del-test1');
 
       expect(result).toBe(true);
-      expect((service as any).prayersSubject.value).toEqual([]);
+      expect((service as any).community.prayersSubject.value).toEqual([]);
       expect(mockToastService.success).toHaveBeenCalled();
     });
 
@@ -2990,7 +2990,7 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).prayersSubject.next([prayer]);
+      (service as any).community.prayersSubject.next([prayer]);
 
       const result = service.getFilteredPrayers({ status: 'answered', search: 'nonexistent' });
       expect(result).toEqual([]);
@@ -3024,10 +3024,10 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).allPrayersSubject.next([prayer]);
+      (service as any).community.allPrayersSubject.next([prayer]);
       service.applyFilters({});
 
-      expect((service as any).prayersSubject.value).toEqual([prayer]);
+      expect((service as any).community.prayersSubject.value).toEqual([prayer]);
     });
 
     it('applyFilters with type prompt filter', () => {
@@ -3075,10 +3075,10 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).allPrayersSubject.next([prayer1, prayer2]);
+      (service as any).community.allPrayersSubject.next([prayer1, prayer2]);
       service.applyFilters({ type: 'prompt' });
 
-      expect((service as any).prayersSubject.value).toEqual([prayer2]);
+      expect((service as any).community.prayersSubject.value).toEqual([prayer2]);
     });
 
     it('addPrayer handles email subscription when email already exists', async () => {
@@ -3144,7 +3144,7 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).prayersSubject.next([prayer]);
+      (service as any).community.prayersSubject.next([prayer]);
 
       mockSupabaseService.client.from = vi.fn(() => ({
         update: () => ({ eq: () => Promise.resolve({ error: null }) })
@@ -3153,7 +3153,7 @@ describe('PrayerService - Integration Tests', () => {
       const result = await service.updatePrayerStatus('p1', 'answered');
 
       expect(result).toBe(true);
-      const updated = (service as any).prayersSubject.value[0];
+      const updated = (service as any).community.prayersSubject.value[0];
       expect(updated.status).toBe('answered');
       expect(updated.date_answered).not.toBeNull();
     });
@@ -3219,7 +3219,7 @@ describe('PrayerService - Integration Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      const allPrayers = (service as any).allPrayersSubject.value;
+      const allPrayers = (service as any).community.allPrayersSubject.value;
       expect(allPrayers[0].id).toBe('1');
       expect(allPrayers[1].id).toBe('2');
     });
@@ -3363,19 +3363,19 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).allPrayersSubject.next([prayer]);
+      (service as any).community.allPrayersSubject.next([prayer]);
 
       // Search by title
       service.applyFilters({ search: 'grace' });
-      expect((service as any).prayersSubject.value).toEqual([prayer]);
+      expect((service as any).community.prayersSubject.value).toEqual([prayer]);
 
       // Search by description
       service.applyFilters({ search: 'prayer' });
-      expect((service as any).prayersSubject.value).toEqual([prayer]);
+      expect((service as any).community.prayersSubject.value).toEqual([prayer]);
 
       // Search by requester
       service.applyFilters({ search: 'john' });
-      expect((service as any).prayersSubject.value).toEqual([prayer]);
+      expect((service as any).community.prayersSubject.value).toEqual([prayer]);
     });
 
     it('getFilteredPrayers searches in prayer_for field', () => {
@@ -3406,7 +3406,7 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).prayersSubject.next([prayer]);
+      (service as any).community.prayersSubject.next([prayer]);
 
       const result = service.getFilteredPrayers({ search: 'healing' });
       expect(result).toEqual([prayer]);
@@ -4525,7 +4525,7 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).allPersonalPrayersSubject.next([existingPrayer]);
+      (service as any).personal.allPersonalPrayersSubject.next([existingPrayer]);
 
       mockSupabaseService.client.from.mockImplementation((table: string) => {
         if (table === 'personal_prayer_updates') {
@@ -4545,7 +4545,7 @@ describe('PrayerService - Integration Tests', () => {
 
       expect(result).toBe(true);
       expect(mockToastService.success).toHaveBeenCalledWith('Update added to personal prayer');
-      const updated = (service as any).allPersonalPrayersSubject.value;
+      const updated = (service as any).personal.allPersonalPrayersSubject.value;
       expect(updated[0].updates.length).toBe(1);
     });
 
@@ -4567,7 +4567,7 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).allPersonalPrayersSubject.next([existingPrayer]);
+      (service as any).personal.allPersonalPrayersSubject.next([existingPrayer]);
 
       mockSupabaseService.client.from.mockImplementation((table: string) => {
         if (table === 'personal_prayer_updates') {
@@ -4586,7 +4586,7 @@ describe('PrayerService - Integration Tests', () => {
       const result = await service.addPersonalPrayerUpdate('p1', 'Answered', 'Me', 'me@test.com', true);
 
       expect(result).toBe(true);
-      const updated = (service as any).allPersonalPrayersSubject.value;
+      const updated = (service as any).personal.allPersonalPrayersSubject.value;
       expect(updated[0].updates[0].mark_as_answered).toBe(true);
     });
 
@@ -4667,7 +4667,7 @@ describe('PrayerService - Integration Tests', () => {
         ]
       };
 
-      (service as any).allPersonalPrayersSubject.next([prayer]);
+      (service as any).personal.allPersonalPrayersSubject.next([prayer]);
 
       mockSupabaseService.client.auth = { getSession: () => Promise.resolve({ data: { session: { user: { email: 'me@test.com' } } } }) };
       mockSupabaseService.client.from.mockImplementation((table: string) => {
@@ -4683,7 +4683,7 @@ describe('PrayerService - Integration Tests', () => {
 
       expect(result).toBe(true);
       expect(mockToastService.success).toHaveBeenCalledWith('Update deleted');
-      const updated = (service as any).allPersonalPrayersSubject.value;
+      const updated = (service as any).personal.allPersonalPrayersSubject.value;
       expect(updated[0].updates.length).toBe(0);
     });
 
@@ -4971,7 +4971,7 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       };
 
-      (service as any).allPersonalPrayersSubject.next([prayer]);
+      (service as any).personal.allPersonalPrayersSubject.next([prayer]);
 
       // Mock Supabase auth to return user email
       mockSupabaseService.client.auth = {
@@ -4993,7 +4993,7 @@ describe('PrayerService - Integration Tests', () => {
       const result = await (service as any).deletePersonalPrayer('p1');
 
       expect(result).toBe(true);
-      const updated = (service as any).allPersonalPrayersSubject.value;
+      const updated = (service as any).personal.allPersonalPrayersSubject.value;
       expect(updated.length).toBe(0);
     });
   });
@@ -5336,7 +5336,7 @@ describe('PrayerService - Integration Tests', () => {
       await (service as any).loadPersonalPrayers();
 
       // Personal prayers should be ordered by display_order (database order)
-      const personalPrayers = (service as any).allPersonalPrayersSubject.value;
+      const personalPrayers = (service as any).personal.allPersonalPrayersSubject.value;
       expect(personalPrayers.length).toBe(2);
       // Prayer with higher display_order (1) should be first
       expect(personalPrayers[0].id).toBe('p2');
@@ -5661,7 +5661,7 @@ describe('PrayerService - Integration Tests', () => {
         const prayersInMemory = [
           { id: '1', category: 'Family', display_order: 2000 } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayersInMemory);
+        (service as any).personal.allPersonalPrayersSubject.next(prayersInMemory);
         
         mockSupabaseService.client.from.mockReturnValue({
           update: vi.fn().mockReturnValue({
@@ -5989,7 +5989,7 @@ describe('PrayerService - Integration Tests', () => {
         await expect((service as any).loadPersonalPrayers(true)).resolves.toBeUndefined();
 
         expect(cacheGetSpy).toHaveBeenCalledWith('personalPrayers');
-        expect((service as any).loadingPersonalPrayersSubject.value).toBe(false);
+        expect((service as any).personal.loadingPersonalPrayersSubject.value).toBe(false);
       });
     });
 
@@ -6304,7 +6304,7 @@ describe('PrayerService - Integration Tests', () => {
           { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
           { id: '2', category: 'Morning', display_order: 1000 } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         const result = await service.renamePersonalCategory('Evening', 'Night');
 
@@ -6313,7 +6313,7 @@ describe('PrayerService - Integration Tests', () => {
         expect(result).toBe(true);
         expect(updateMock).toHaveBeenCalled();
         expect(updateIn).toHaveBeenCalledWith('id', ['1']);
-        const updated = (service as any).allPersonalPrayersSubject.value;
+        const updated = (service as any).personal.allPersonalPrayersSubject.value;
         expect(updated.find((p: PrayerRequest) => p.id === '1')?.category).toBe(
           'Night'
         );
@@ -6358,7 +6358,7 @@ describe('PrayerService - Integration Tests', () => {
           userSessionService
         );
 
-        (service as any).allPersonalPrayersSubject.next([
+        (service as any).personal.allPersonalPrayersSubject.next([
           { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
           { id: '2', category: ' Evening ', display_order: 2001 } as PrayerRequest,
           { id: '3', category: 'Morning', display_order: 1000 } as PrayerRequest,
@@ -6370,7 +6370,7 @@ describe('PrayerService - Integration Tests', () => {
 
         expect(result).toBe(true);
         expect(updateIn).toHaveBeenCalledWith('id', ['1', '2']);
-        const updated = (service as any).allPersonalPrayersSubject.value;
+        const updated = (service as any).personal.allPersonalPrayersSubject.value;
         expect(updated.find((p: PrayerRequest) => p.id === '1')?.category).toBe(
           'Night'
         );
@@ -6401,7 +6401,7 @@ describe('PrayerService - Integration Tests', () => {
           userSessionService
         );
 
-        (service as any).allPersonalPrayersSubject.next([
+        (service as any).personal.allPersonalPrayersSubject.next([
           { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
           { id: '2', category: 'Morning', display_order: 1000 } as PrayerRequest,
         ]);
@@ -6433,7 +6433,7 @@ describe('PrayerService - Integration Tests', () => {
           userSessionService
         );
 
-        (service as any).allPersonalPrayersSubject.next([
+        (service as any).personal.allPersonalPrayersSubject.next([
           { id: '1', category: 'Evening', display_order: 2000 } as PrayerRequest,
         ]);
 
@@ -6517,7 +6517,7 @@ describe('PrayerService - Integration Tests', () => {
           { id: '2', category: 'B', display_order: 2000 } as PrayerRequest,
         ];
 
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
         mockCacheService.get.mockReturnValue(prayers);
 
         mockSupabaseService.client.from.mockReturnValue({
@@ -6579,7 +6579,7 @@ describe('PrayerService - Integration Tests', () => {
           { id: '2', title: 'Prayer 2' } as PrayerRequest,
         ];
 
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
         const mockEqChain = vi.fn().mockReturnValue({ eq: mockEq });
@@ -6662,7 +6662,7 @@ describe('PrayerService - Integration Tests', () => {
         const prayers = [
           { id: '1', title: 'Prayer 1', category: 'Test', display_order: 1000 } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
         const mockEqChain = vi.fn().mockReturnValue({ eq: mockEq });
@@ -6687,7 +6687,7 @@ describe('PrayerService - Integration Tests', () => {
         const prayers = [
           { id: '1', title: 'Prayer 1', category: 'Test', display_order: 1000 } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
         const mockEqChain = vi.fn().mockReturnValue({ eq: mockEq });
@@ -6727,7 +6727,7 @@ describe('PrayerService - Integration Tests', () => {
             ],
           } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         const updatesEq = vi.fn().mockResolvedValue({ data: null, error: null });
         const prayerEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -6771,7 +6771,7 @@ describe('PrayerService - Integration Tests', () => {
           'personal_prayer_updates'
         );
         expect(updatesEq).toHaveBeenCalledWith('personal_prayer_id', '1');
-        const updated = (service as any).allPersonalPrayersSubject.value[0];
+        const updated = (service as any).personal.allPersonalPrayersSubject.value[0];
         expect(updated.category).toBeNull();
         expect(updated.updates.every((u: { mark_as_answered: boolean }) => !u.mark_as_answered)).toBe(
           true
@@ -6795,7 +6795,7 @@ describe('PrayerService - Integration Tests', () => {
             updates: [{ id: 'u1', content: 'Done', mark_as_answered: true }],
           } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         mockSupabaseService.client.from.mockImplementation((table: string) => {
           if (table === 'personal_prayer_updates') {
@@ -6838,7 +6838,7 @@ describe('PrayerService - Integration Tests', () => {
         const result = await service.updatePersonalPrayer('1', { category: null });
 
         expect(result).toBe(false);
-        expect((service as any).allPersonalPrayersSubject.value[0].category).toBe(
+        expect((service as any).personal.allPersonalPrayersSubject.value[0].category).toBe(
           'Answered'
         );
         expect(mockToastService.error).toHaveBeenCalled();
@@ -6866,7 +6866,7 @@ describe('PrayerService - Integration Tests', () => {
         const prayers = [
           { id: '1', title: 'Prayer 1', category: 'Test', display_order: 1000 } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         const mockEq = vi.fn().mockResolvedValue({ error: { message: 'Update failed' } });
         const mockEqChain = vi.fn().mockReturnValue({ eq: mockEq });
@@ -6908,7 +6908,7 @@ describe('PrayerService - Integration Tests', () => {
         const prayers = [
           { id: 'prayer1', title: 'Prayer 1', updates: [] } as unknown as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         mockSupabaseService.client.from.mockReturnValue({
           insert: vi.fn().mockReturnValue({
@@ -6960,7 +6960,7 @@ describe('PrayerService - Integration Tests', () => {
         const prayers = [
           { id: 'prayer1', title: 'Prayer 1', updates: [] } as unknown as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         const insertMock = vi.fn().mockReturnValue({
           select: vi.fn().mockResolvedValue({ 
@@ -7093,7 +7093,7 @@ describe('PrayerService - Integration Tests', () => {
             ]
           } as PrayerRequest,
         ];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         mockSupabaseService.client.from.mockReturnValue({
           update: vi.fn().mockReturnValue({
@@ -7185,7 +7185,7 @@ describe('PrayerService - Integration Tests', () => {
     );
 
         const prayers: PrayerRequest[] = [];
-        (service as any).allPersonalPrayersSubject.next(prayers);
+        (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         // Spy on private methods to bypass complex mocking
         vi.spyOn(service as any, 'getCategoryPrayerCount').mockResolvedValue(0);
@@ -7242,7 +7242,7 @@ describe('PrayerService - Integration Tests', () => {
         expect(result).toBe(true);
         expect(mockToastService.success).toHaveBeenCalled();
 
-        const optimisticPrayers = (service as any).allPersonalPrayersSubject.value;
+        const optimisticPrayers = (service as any).personal.allPersonalPrayersSubject.value;
         expect(optimisticPrayers[0].user_email).toBe(mockEmail);
         expect(optimisticPrayers[0].prayed_for_count).toBe(0);
       });
@@ -7507,9 +7507,9 @@ describe('PrayerService - Integration Tests', () => {
         } as PrayerRequest
       ];
 
-      (service as any).allPrayersSubject.next(prayers);
+      (service as any).community.allPrayersSubject.next(prayers);
 
-      const allPrayers = (service as any).allPrayersSubject.value;
+      const allPrayers = (service as any).community.allPrayersSubject.value;
       expect(allPrayers[0].approval_status).toBe('pending');
     });
 
@@ -7546,9 +7546,9 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       } as PrayerRequest;
 
-      (service as any).allPrayersSubject.next([prayer]);
+      (service as any).community.allPrayersSubject.next([prayer]);
 
-      const allPrayers = (service as any).allPrayersSubject.value;
+      const allPrayers = (service as any).community.allPrayersSubject.value;
       expect(allPrayers[0].prayer_image).toBe('https://example.com/image.jpg');
     });
 
@@ -7585,9 +7585,9 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       } as PrayerRequest;
 
-      (service as any).allPrayersSubject.next([prayer]);
+      (service as any).community.allPrayersSubject.next([prayer]);
 
-      const allPrayers = (service as any).allPrayersSubject.value;
+      const allPrayers = (service as any).community.allPrayersSubject.value;
       expect(allPrayers[0].is_anonymous).toBe(true);
     });
 
@@ -7624,9 +7624,9 @@ describe('PrayerService - Integration Tests', () => {
         updates: []
       } as PrayerRequest;
 
-      (service as any).allPrayersSubject.next([prayer]);
+      (service as any).community.allPrayersSubject.next([prayer]);
 
-      const allPrayers = (service as any).allPrayersSubject.value;
+      const allPrayers = (service as any).community.allPrayersSubject.value;
       expect(allPrayers[0].email).toBeNull();
     });
   });

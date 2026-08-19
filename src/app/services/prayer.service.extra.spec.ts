@@ -56,7 +56,7 @@ describe('PrayerService extra coverage', () => {
 
     (service as any).triggerBackgroundRecovery();
     await vi.advanceTimersByTimeAsync(500);
-    const all = (service as any).allPrayersSubject.value;
+    const all = (service as any).community.allPrayersSubject.value;
     expect(all && all.length > 0).toBe(true);
     vi.useRealTimers();
   });
@@ -76,7 +76,7 @@ describe('PrayerService extra coverage', () => {
     document.dispatchEvent(new Event('visibilitychange'));
     await vi.advanceTimersByTimeAsync(500);
 
-    expect(Array.isArray((service as any).allPrayersSubject.value)).toBe(true);
+    expect(Array.isArray((service as any).community.allPrayersSubject.value)).toBe(true);
     vi.useRealTimers();
   });
 
