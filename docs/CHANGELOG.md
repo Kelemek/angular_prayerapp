@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Memorization recite alignment — lib split
+- [`memorizationReciteAlignment.ts`](src/app/lib/memorization/memorizationReciteAlignment.ts) (~18 lines) re-exports the public recite alignment API. Token normalization lives in [`memorization-recite-tokenize.ts`](src/app/lib/memorization/memorization-recite-tokenize.ts); fuzzy/digit matching in [`memorization-recite-match.ts`](src/app/lib/memorization/memorization-recite-match.ts); display segments and grouped stats in [`memorization-recite-display.ts`](src/app/lib/memorization/memorization-recite-display.ts); alignment orchestration in [`memorization-recite-align.ts`](src/app/lib/memorization/memorization-recite-align.ts). Shared types in [`memorization-recite-alignment-types.ts`](src/app/lib/memorization/memorization-recite-alignment-types.ts). Callers still import from `memorizationReciteAlignment`.
+
 ### Personal category queries — match SQL NULL for uncategorized
 - Uncategorized filters in [`prayer-personal-category-query-db.ts`](src/app/lib/prayer-personal-category-query-db.ts) use PostgREST `.is("category", null)` instead of `.eq("category", null)`, so category count and max-order queries include uncategorized rows.
 
