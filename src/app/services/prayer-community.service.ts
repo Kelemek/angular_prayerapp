@@ -6,39 +6,53 @@ import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { PrayerItemReminderService } from './prayer-item-reminder.service';
 import {
-  COMMUNITY_PRAYERS_WITH_UPDATES_SELECT,
-  formatApprovedCommunityPrayersFromDb,
   formatPrayersByMonthFromDb,
   prayersByMonthIsoRange,
-  prayersByMonthOrFilter,
 } from '../lib/prayer-community-load';
-import {
-  COMMUNITY_PRAYERS_CACHE_KEY,
-  applyCommunityPrayersCacheSnapshot,
-  applyCommunityLoadErrorPlan,
-  publishCommunityPrayersFromDb,
-  planCommunityLoadErrorFallback,
-  shouldShowCommunityLoadingIndicator,
-  shouldSkipCommunityPrayersDbOnSilentRefresh,
-} from '../lib/prayer-catalog-load';
+import { COMMUNITY_PRAYERS_CACHE_KEY } from '../lib/prayer-catalog-load';
 import {
   buildCommunityPrayerInsertRow,
   buildCommunityPrayerAdminNotificationPayload,
   buildCommunityPrayerStatusUpdatePayload,
   afterCommunityPendingUpdateInserted,
-  buildPendingCommunityUpdateInsertRow,
-  buildSimplePendingUpdateInsertRow,
   ensureEmailSubscriberForPrayerSubmit,
   patchCommunityPrayerStatus,
   applyCommunityPrayerDeleteSnapshot,
   shouldDropCommunityReminderForStatus,
+  type CommunityUpdateSubmitData,
 } from '../lib/prayer-community-mutations';
 import {
-  buildPrayerDeletionRequestRow,
-  buildUpdateDeletionRequestRow,
   notifyPrayerDeletionRequestSubmitted,
   notifyUpdateDeletionRequestSubmitted,
+  type PrayerDeletionRequestInput,
+  type UpdateDeletionRequestInput,
 } from '../lib/prayer-community-deletion-requests';
+import {
+  deleteCommunityPrayerRow,
+  deleteCommunityPrayerUpdateRow,
+  deleteMemberPrayerUpdateRow,
+  fetchApprovedCommunityPrayers,
+  fetchCommunityPrayerTitle,
+  fetchCommunityPrayersByMonth,
+  fetchMemberPrayedForCountsBatch,
+  fetchMemberPrayerUpdatesBatch,
+  fetchMemberPrayerUpdatesForPerson,
+  fetchPrayerRowForDeletionNotify,
+  fetchPrayerUpdateRowForDeletionNotify,
+  findEmailSubscriberByEmail,
+  insertCommunityPrayerRow,
+  insertEmailSubscriberRow,
+  insertMemberPrayerUpdateRow,
+  insertPendingCommunityPrayerUpdate,
+  insertPendingCommunityUpdate,
+  insertPrayerDeletionRequestRow,
+  insertUpdateDeletionRequestRow,
+  rpcIncrementCommunityPrayedFor,
+  rpcIncrementMemberPrayedFor,
+  updateCommunityPrayerStatusRow,
+  updateMemberPrayerUpdateRow,
+} from '../lib/prayer-community-db';
+import { runCommunityPrayerCatalogLoad } from '../lib/prayer-community-load-wire';
 import {
   applyPrayerCatalogFilters,
   filterPrayerRequestsByStatusAndSearch,
@@ -50,8 +64,6 @@ import {
 } from '../lib/prayer-member-pray-for';
 import {
   MEMBER_PRAYER_UPDATES_CACHE_KEY,
-  buildMemberPrayerUpdateInsertRow,
-  buildMemberPrayerUpdatePatch,
   groupMemberPrayerUpdatesByPersonId,
   mapMemberPrayerUpdateRow,
   memberPrayerCacheKeysToInvalidate,
@@ -115,105 +127,49 @@ export class PrayerCommunityService {
   }
 
   async loadPrayers(silentRefresh = false): Promise<void> {
-    const cachedPrayers = this.cache.get<PrayerRequest[]>(COMMUNITY_PRAYERS_CACHE_KEY);
-    const skipDb = shouldSkipCommunityPrayersDbOnSilentRefresh(silentRefresh, cachedPrayers);
-
-    try {
-      console.log('[PrayerService] Loading prayers...');
-      if (!skipDb) {
-        this.communityPrayersFetchInFlight = true;
-      }
-
-      if (cachedPrayers && cachedPrayers.length > 0) {
-        console.log(`[PrayerService] Using cached prayers (${cachedPrayers.length} items)`);
-        applyCommunityPrayersCacheSnapshot(cachedPrayers, {
-          setAllPrayers: (prayers) => this.allPrayersSubject.next(prayers),
-          reapplyFilters: () => this.facadeHooks.applyFilters(this.currentFilters),
-        });
-
-        if (skipDb) {
-          console.log('[PrayerService] Cache hit for silent refresh - skipping database query');
-          if (!this.communityPrayersFetchInFlight) {
-            this.communityPrayersDbFetchComplete = true;
-          }
-          return;
-        }
-      }
-
-      if (shouldShowCommunityLoadingIndicator(silentRefresh, cachedPrayers)) {
-        this.loadingSubject.next(true);
-      }
-      this.errorSubject.next(null);
-
-      const { data: prayersData, error } = await this.supabase.client
-        .from('prayers')
-        .select(COMMUNITY_PRAYERS_WITH_UPDATES_SELECT)
-        .eq('approval_status', 'approved')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      console.log(`[PrayerService] Loaded ${prayersData?.length || 0} approved prayers from database`);
-
-      publishCommunityPrayersFromDb(
-        prayersData || [],
-        formatApprovedCommunityPrayersFromDb,
-        {
-          setAllPrayers: (prayers) => this.allPrayersSubject.next(prayers),
-          setCache: (prayers) => this.cache.set(COMMUNITY_PRAYERS_CACHE_KEY, prayers),
-          reapplyFilters: () => this.facadeHooks.applyFilters(this.currentFilters),
-          refreshBadges: () => this.badgeService.refreshBadgeCounts(),
-          markDbFetchComplete: () => {
-            this.communityPrayersDbFetchComplete = true;
-          },
-        }
-      );
-    } catch (err) {
-      console.error('[PrayerService] Failed to load prayers:', err);
-      
-      const fallbackPlan = planCommunityLoadErrorFallback(
-        this.cache.get<PrayerRequest[]>(COMMUNITY_PRAYERS_CACHE_KEY),
-        err,
-        this.lastLoadErrorToastTime,
-        PrayerCommunityService.LOAD_ERROR_TOAST_COOLDOWN_MS
-      );
-
-      if (fallbackPlan.kind === 'use_cache') {
-        console.log(
-          `[PrayerService] Showing ${fallbackPlan.prayers.length} cached prayers (error fallback)`
-        );
-      }
-
-      applyCommunityLoadErrorPlan(fallbackPlan, {
-        setAllPrayers: (prayers) => this.allPrayersSubject.next(prayers),
+    return runCommunityPrayerCatalogLoad(
+      {
+        readCache: () => this.cache.get<PrayerRequest[]>(COMMUNITY_PRAYERS_CACHE_KEY),
+        setFetchInFlight: (inFlight) => {
+          this.communityPrayersFetchInFlight = inFlight;
+        },
+        markDbFetchComplete: () => {
+          this.communityPrayersDbFetchComplete = true;
+        },
+        setAllPrayersInMemory: (prayers) => this.allPrayersSubject.next(prayers),
+        setCache: (prayers) => this.cache.set(COMMUNITY_PRAYERS_CACHE_KEY, prayers),
         reapplyFilters: () => this.facadeHooks.applyFilters(this.currentFilters),
+        setLoading: (loading) => this.loadingSubject.next(loading),
         setError: (message) => this.errorSubject.next(message),
+        refreshBadges: () => this.badgeService.refreshBadgeCounts(),
         emitErrorToast: () => {
           this.lastLoadErrorToastTime = Date.now();
           this.toast.error('Failed to load prayers');
         },
-      });
-      this.communityPrayersDbFetchComplete = true;
-    } finally {
-      if (!skipDb) {
-        this.communityPrayersFetchInFlight = false;
-      }
-      this.loadingSubject.next(false);
-    }
+        getLastErrorToastTime: () => this.lastLoadErrorToastTime,
+        loadErrorToastCooldownMs: PrayerCommunityService.LOAD_ERROR_TOAST_COOLDOWN_MS,
+        isFetchInFlight: () => this.communityPrayersFetchInFlight,
+        fetchApprovedFromDb: async () => {
+          const { data, error } = await fetchApprovedCommunityPrayers(
+            this.supabase.client
+          );
+          if (error) throw error;
+          return data || [];
+        },
+      },
+      silentRefresh
+    );
   }
 
   async getPrayersByMonth(year: number, month: number): Promise<PrayerRequest[]> {
     try {
       const { startDate, endDate } = prayersByMonthIsoRange(year, month);
-
-      const { data: prayersData, error } = await this.supabase.client
-        .from('prayers')
-        .select(COMMUNITY_PRAYERS_WITH_UPDATES_SELECT)
-        .or(prayersByMonthOrFilter(startDate, endDate))
-        .order('updated_at', { ascending: false });
-
+      const { data: prayersData, error } = await fetchCommunityPrayersByMonth(
+        this.supabase.client,
+        startDate,
+        endDate
+      );
       if (error) throw error;
-
       return formatPrayersByMonthFromDb(prayersData || []);
     } catch (err) {
       console.error(`[PrayerService] Failed to load prayers for ${year}-${month}:`, err);
@@ -228,37 +184,36 @@ export class PrayerCommunityService {
     );
   }
 
-  /**
-   * Add a new prayer request
-   */
-  async addPrayer(prayer: Omit<PrayerRequest, 'id' | 'date_requested' | 'created_at' | 'updated_at' | 'updates'>): Promise<boolean> {
+  async addPrayer(
+    prayer: Omit<PrayerRequest, 'id' | 'date_requested' | 'created_at' | 'updated_at' | 'updates'>
+  ): Promise<boolean> {
     try {
       const prayerData = buildCommunityPrayerInsertRow(prayer);
-
-      const { data, error } = await this.supabase.client
-        .from('prayers')
-        .insert(prayerData)
-        .select()
-        .single();
-
+      const { data, error } = await insertCommunityPrayerRow(
+        this.supabase.client,
+        prayerData
+      );
       if (error) throw error;
+      if (!data) throw new Error('Prayer insert returned no row');
 
-      // Auto-subscribe user to email notifications if email provided
       if (prayer.email) {
         try {
           await ensureEmailSubscriberForPrayerSubmit(
             prayer.requester,
             prayer.email,
             async (normalizedEmail) => {
-              const { data: existing } = await this.supabase.client
-                .from('email_subscribers')
-                .select('id')
-                .eq('email', normalizedEmail)
-                .maybeSingle();
+              const { data: existing } = await findEmailSubscriberByEmail(
+                this.supabase.client,
+                normalizedEmail
+              );
               return existing;
             },
             async (row) => {
-              await this.supabase.client.from('email_subscribers').insert(row);
+              const { error: insertError } = await insertEmailSubscriberRow(
+                this.supabase.client,
+                row
+              );
+              if (insertError) throw insertError;
             }
           );
         } catch (subscribeError) {
@@ -266,9 +221,11 @@ export class PrayerCommunityService {
         }
       }
 
-      this.emailNotification.sendAdminNotification(
-        buildCommunityPrayerAdminNotificationPayload(prayer, data.id)
-      ).catch((err) => console.error('Failed to send admin notification:', err));
+      this.emailNotification
+        .sendAdminNotification(
+          buildCommunityPrayerAdminNotificationPayload(prayer, data.id)
+        )
+        .catch((err) => console.error('Failed to send admin notification:', err));
 
       this.toast.success('Prayer request submitted for approval');
       return true;
@@ -279,19 +236,15 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Update prayer status
-   */
   async updatePrayerStatus(id: string, status: PrayerStatus): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from('prayers')
-        .update(buildCommunityPrayerStatusUpdatePayload(status))
-        .eq('id', id);
-
+      const { error } = await updateCommunityPrayerStatusRow(
+        this.supabase.client,
+        id,
+        buildCommunityPrayerStatusUpdatePayload(status)
+      );
       if (error) throw error;
 
-      // Update local state
       this.prayersSubject.next(
         patchCommunityPrayerStatus(this.prayersSubject.value, id, status)
       );
@@ -309,16 +262,14 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Increment prayed_for_count for a prayer via RPC. Updates in-memory list only (no refetch).
-   * @returns The new count, or null on error.
-   */
   async incrementPrayedFor(prayerId: string): Promise<number | null> {
     try {
-      const { data: newCount, error } = await this.supabase.client
-        .rpc('increment_prayed_for_count', { prayer_id: prayerId });
-
+      const { data: newCount, error } = await rpcIncrementCommunityPrayedFor(
+        this.supabase.client,
+        prayerId
+      );
       if (error) throw error;
+
       const count = parsePrayedForRpcCount(newCount);
       if (count === null) return null;
 
@@ -338,11 +289,6 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Increment prayed_for_count for a Planning Center member via RPC.
-   * Updates the in-memory counts cache only (member cards live on Home/Presentation).
-   * @returns The new count, or null on error.
-   */
   async incrementMemberPrayedFor(personId: string): Promise<number | null> {
     try {
       const trimmedId = trimMemberPersonId(personId);
@@ -350,12 +296,12 @@ export class PrayerCommunityService {
         return null;
       }
 
-      const { data: newCount, error } = await this.supabase.client.rpc(
-        'increment_member_prayed_for_count',
-        { p_person_id: trimmedId }
+      const { data: newCount, error } = await rpcIncrementMemberPrayedFor(
+        this.supabase.client,
+        trimmedId
       );
-
       if (error) throw error;
+
       const count = parsePrayedForRpcCount(newCount);
       if (count === null) return null;
 
@@ -375,21 +321,16 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Batch-load Pray For counts for Planning Center members.
-   * Returns a map keyed by person_id (missing ids imply 0).
-   */
   async getMemberPrayedForCountsBatch(personIds: string[]): Promise<Record<string, number>> {
     try {
       if (personIds.length === 0) {
         return {};
       }
 
-      const { data, error } = await this.supabase.client
-        .from('member_prayed_for_counts')
-        .select('person_id, prayed_for_count')
-        .in('person_id', personIds);
-
+      const { data, error } = await fetchMemberPrayedForCountsBatch(
+        this.supabase.client,
+        personIds
+      );
       if (error) throw error;
 
       const countsMap = memberPrayedForCountsFromRows(data || []);
@@ -401,18 +342,16 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Add an update to a prayer
-   */
   async addPrayerUpdate(prayerId: string, content: string, author: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.client
-        .from('prayer_updates')
-        .insert(buildSimplePendingUpdateInsertRow(prayerId, content, author))
-        .select()
-        .single();
-
+      const { data, error } = await insertPendingCommunityPrayerUpdate(
+        this.supabase.client,
+        prayerId,
+        content,
+        author
+      );
       if (error) throw error;
+      if (!data) throw new Error('Prayer update insert returned no row');
 
       await afterCommunityPendingUpdateInserted(
         prayerId,
@@ -420,11 +359,10 @@ export class PrayerCommunityService {
         content,
         data.id,
         async (id) => {
-          const { data: prayer } = await this.supabase.client
-            .from('prayers')
-            .select('title')
-            .eq('id', id)
-            .single();
+          const { data: prayer } = await fetchCommunityPrayerTitle(
+            this.supabase.client,
+            id
+          );
           return prayer?.title;
         },
         (payload) => this.emailNotification.sendAdminNotification(payload)
@@ -439,17 +377,23 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Add an update to a Planning Center member prayer card
-   */
-  async addMemberPrayerUpdate(personId: string, memberName: string, content: string, author: string, authorEmail: string = '', isAnswered: boolean = false, listId?: string): Promise<boolean> {
+  async addMemberPrayerUpdate(
+    personId: string,
+    memberName: string,
+    content: string,
+    author: string,
+    authorEmail: string = '',
+    isAnswered: boolean = false,
+    listId?: string
+  ): Promise<boolean> {
     return runMemberPrayerCacheMutation(
       async () => {
-        const { error } = await this.supabase.client
-          .from('member_prayer_updates')
-          .insert(buildMemberPrayerUpdateInsertRow(personId, content, isAnswered))
-          .select()
-          .single();
+        const { error } = await insertMemberPrayerUpdateRow(
+          this.supabase.client,
+          personId,
+          content,
+          isAnswered
+        );
         if (error) {
           throw error;
         }
@@ -465,29 +409,19 @@ export class PrayerCommunityService {
     );
   }
 
-  /**
-   * Get updates for Planning Center members by batch fetching
-   * Fetches updates only for specified person IDs (much faster than fetching all)
-   * Returns a map keyed by person_id for easy access
-   */
   async getMemberPrayerUpdatesBatch(personIds: string[]): Promise<Record<string, any[]>> {
     try {
       if (personIds.length === 0) {
         return {};
       }
 
-      // Batch fetch updates for specific members only
-      const { data, error } = await this.supabase.client
-        .from('member_prayer_updates')
-        .select('id, person_id, content, created_at, updated_at, is_answered')
-        .in('person_id', personIds)
-        .order('created_at', { ascending: true });
-
+      const { data, error } = await fetchMemberPrayerUpdatesBatch(
+        this.supabase.client,
+        personIds
+      );
       if (error) throw error;
 
       const updatesMap = groupMemberPrayerUpdatesByPersonId(data || []);
-
-      // Cache the batch results
       this.cache.set(MEMBER_PRAYER_UPDATES_CACHE_KEY, updatesMap);
 
       console.log(`[PrayerService] Batch loaded updates for ${personIds.length} members`);
@@ -498,13 +432,8 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Get updates for a Planning Center member by person_id
-   * Uses cache first, falls back to batch fetch if needed
-   */
   async getMemberPrayerUpdates(personId: string): Promise<any[]> {
     try {
-      // Try to get from cache first
       const cachedUpdates = this.cache.get(MEMBER_PRAYER_UPDATES_CACHE_KEY) as
         | Record<string, any[]>
         | undefined;
@@ -513,13 +442,10 @@ export class PrayerCommunityService {
         return cachedForPerson;
       }
 
-      // Cache miss - fetch just this person's updates
-      const { data, error } = await this.supabase.client
-        .from('member_prayer_updates')
-        .select('id, person_id, content, created_at, updated_at, is_answered')
-        .eq('person_id', personId)
-        .order('created_at', { ascending: true });
-
+      const { data, error } = await fetchMemberPrayerUpdatesForPerson(
+        this.supabase.client,
+        personId
+      );
       if (error) throw error;
 
       const updates = (data || []).map((u) => mapMemberPrayerUpdateRow(u));
@@ -536,25 +462,21 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Clear cache for Planning Center list data (call after adding/editing/deleting member updates)
-   * Clears the consolidated list cache so it refetches with updated member updates
-   * Note: listId needed because member updates are cached at the list level
-   */
   clearPlanningCenterListDataCache(listId: string): void {
     this.cache.invalidate(planningCenterListDataCacheKey(listId));
   }
 
-  /**
-   * Delete a member prayer update by ID and clear cache
-   */
-  async deleteMemberPrayerUpdate(updateId: string, personId: string, listId?: string): Promise<boolean> {
+  async deleteMemberPrayerUpdate(
+    updateId: string,
+    personId: string,
+    listId?: string
+  ): Promise<boolean> {
     return runMemberPrayerCacheMutation(
       async () => {
-        const { error } = await this.supabase.client
-          .from('member_prayer_updates')
-          .delete()
-          .eq('id', updateId);
+        const { error } = await deleteMemberPrayerUpdateRow(
+          this.supabase.client,
+          updateId
+        );
         if (error) {
           throw error;
         }
@@ -570,18 +492,19 @@ export class PrayerCommunityService {
     );
   }
 
-  /**
-   * Update a member prayer update
-   */
-  async updateMemberPrayerUpdate(updateId: string, personId: string, updates: Partial<PrayerUpdate>, listId?: string): Promise<boolean> {
+  async updateMemberPrayerUpdate(
+    updateId: string,
+    personId: string,
+    updates: Partial<PrayerUpdate>,
+    listId?: string
+  ): Promise<boolean> {
     return runMemberPrayerCacheMutation(
       async () => {
-        const updateData = buildMemberPrayerUpdatePatch(updates);
-        const { error } = await this.supabase.client
-          .from('member_prayer_updates')
-          .update(updateData)
-          .eq('id', updateId)
-          .select();
+        const { error } = await updateMemberPrayerUpdateRow(
+          this.supabase.client,
+          updateId,
+          updates
+        );
         if (error) {
           throw error;
         }
@@ -597,16 +520,9 @@ export class PrayerCommunityService {
     );
   }
 
-  /**
-   * Delete a prayer
-   */
   async deletePrayer(id: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from('prayers')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await deleteCommunityPrayerRow(this.supabase.client, id);
       if (error) throw error;
 
       applyCommunityPrayerDeleteSnapshot(
@@ -633,21 +549,15 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Delete a prayer update
-   */
   async deletePrayerUpdate(updateId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from('prayer_updates')
-        .delete()
-        .eq('id', updateId);
-
+      const { error } = await deleteCommunityPrayerUpdateRow(
+        this.supabase.client,
+        updateId
+      );
       if (error) throw error;
 
-      // Reload prayers to reflect the change
       await this.facadeHooks.loadPrayers();
-      
       this.toast.success('Update deleted');
       return true;
     } catch (error) {
@@ -657,9 +567,6 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Get filtered prayers
-   */
   getFilteredPrayers(filters: PrayerFilters): PrayerRequest[] {
     return filterPrayerRequestsByStatusAndSearch(this.prayersSubject.value, filters);
   }
@@ -670,18 +577,14 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Add an update to a prayer with full details
-   */
-  async addUpdate(updateData: any): Promise<boolean> {
+  async addUpdate(updateData: CommunityUpdateSubmitData): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.client
-        .from('prayer_updates')
-        .insert(buildPendingCommunityUpdateInsertRow(updateData))
-        .select()
-        .single();
-
+      const { data, error } = await insertPendingCommunityUpdate(
+        this.supabase.client,
+        updateData
+      );
       if (error) throw error;
+      if (!data) throw new Error('Prayer update insert returned no row');
 
       await afterCommunityPendingUpdateInserted(
         updateData.prayer_id,
@@ -689,11 +592,10 @@ export class PrayerCommunityService {
         updateData.content,
         data.id,
         async (id) => {
-          const { data: prayer } = await this.supabase.client
-            .from('prayers')
-            .select('title')
-            .eq('id', id)
-            .single();
+          const { data: prayer } = await fetchCommunityPrayerTitle(
+            this.supabase.client,
+            id
+          );
           return prayer?.title;
         },
         (payload) => this.emailNotification.sendAdminNotification(payload)
@@ -708,16 +610,12 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Delete an update
-   */
   async deleteUpdate(updateId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from('prayer_updates')
-        .delete()
-        .eq('id', updateId);
-
+      const { error } = await deleteCommunityPrayerUpdateRow(
+        this.supabase.client,
+        updateId
+      );
       if (error) throw error;
 
       this.toast.success('Update deleted');
@@ -730,28 +628,22 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Request deletion of a prayer
-   */
-  async requestDeletion(requestData: any): Promise<boolean> {
+  async requestDeletion(requestData: PrayerDeletionRequestInput): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.client
-        .from('deletion_requests')
-        .insert(buildPrayerDeletionRequestRow(requestData))
-        .select('id')
-        .single();
-
+      const { data, error } = await insertPrayerDeletionRequestRow(
+        this.supabase.client,
+        requestData
+      );
       if (error) throw error;
 
       await notifyPrayerDeletionRequestSubmitted(
         requestData,
         data?.id,
         async () => {
-          const { data: prayerRow } = await this.supabase.client
-            .from('prayers')
-            .select('title')
-            .eq('id', requestData.prayer_id)
-            .single();
+          const { data: prayerRow } = await fetchPrayerRowForDeletionNotify(
+            this.supabase.client,
+            requestData.prayer_id
+          );
           return prayerRow;
         },
         (payload) => this.emailNotification.sendAdminNotification(payload)
@@ -766,28 +658,22 @@ export class PrayerCommunityService {
     }
   }
 
-  /**
-   * Request deletion of a prayer update
-   */
-  async requestUpdateDeletion(requestData: any): Promise<boolean> {
+  async requestUpdateDeletion(requestData: UpdateDeletionRequestInput): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.client
-        .from('update_deletion_requests')
-        .insert(buildUpdateDeletionRequestRow(requestData))
-        .select('id')
-        .single();
-
+      const { data, error } = await insertUpdateDeletionRequestRow(
+        this.supabase.client,
+        requestData
+      );
       if (error) throw error;
 
       await notifyUpdateDeletionRequestSubmitted(
         requestData,
         data?.id,
         async () => {
-          const { data: updateRow } = await this.supabase.client
-            .from('prayer_updates')
-            .select('*, prayers!inner(title)')
-            .eq('id', requestData.update_id)
-            .single();
+          const { data: updateRow } = await fetchPrayerUpdateRowForDeletionNotify(
+            this.supabase.client,
+            requestData.update_id
+          );
           return updateRow;
         },
         (payload) => this.emailNotification.sendAdminNotification(payload)

@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Prayer community service — DB and load wire libs
+- [`prayer-community.service.ts`](src/app/services/prayer-community.service.ts) (~680 lines, down from ~804) keeps catalog subjects and mutation orchestration. Supabase row adapters live in [`prayer-community-db.ts`](src/app/lib/prayer-community-db.ts). Catalog load/cache fallback wiring lives in [`prayer-community-load-wire.ts`](src/app/lib/prayer-community-load-wire.ts). Public API unchanged.
+
 ### Prayer personal service — DB and load wire libs
 - [`prayer-personal.service.ts`](src/app/services/prayer-personal.service.ts) (~770 lines, down from ~979) keeps catalog subjects and mutation orchestration. Supabase row adapters live in [`prayer-personal-db.ts`](src/app/lib/prayer-personal-db.ts). Catalog load/cache fallback wiring lives in [`prayer-personal-load-wire.ts`](src/app/lib/prayer-personal-load-wire.ts) (mismatched-user discard clears in-memory state only, not cache). Category query deps and orchestration deps live in [`prayer-personal-category-wire.ts`](src/app/lib/prayer-personal-category-wire.ts). Public API unchanged.
 
