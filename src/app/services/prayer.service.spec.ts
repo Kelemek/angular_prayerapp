@@ -5447,7 +5447,7 @@ describe('PrayerService - Integration Tests', () => {
         mockSupabaseService.client.rpc = mockRpc;
 
         // Mock fallback method calls - getCategoryRange
-        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
+        vi.spyOn((service as any).personal, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
 
         // Mock fallback update with error
         mockSupabaseService.client.from.mockReturnValue({
@@ -6013,7 +6013,7 @@ describe('PrayerService - Integration Tests', () => {
       userSessionService
     );
 
-        const result = await (service as any).getCategoryRange(null);
+        const result = await (service as any).personal.getCategoryRange(null);
         expect(result).toEqual({ min: 0, max: 999 });
       });
 
@@ -6047,7 +6047,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         });
 
-        const result = await (service as any).getCategoryRange('Family');
+        const result = await (service as any).personal.getCategoryRange('Family');
         expect(result).toEqual({ min: 2000, max: 2999 });
       });
 
@@ -6087,7 +6087,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         });
 
-        const result = await (service as any).getCategoryRange('NonExistent');
+        const result = await (service as any).personal.getCategoryRange('NonExistent');
         expect(result).not.toBeNull();
       });
 
@@ -6121,7 +6121,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         });
 
-        await expect((service as any).getCategoryRange('Family')).rejects.toThrow('category query failed');
+        await expect((service as any).personal.getCategoryRange('Family')).rejects.toThrow('category query failed');
       });
     });
 
@@ -6210,7 +6210,7 @@ describe('PrayerService - Integration Tests', () => {
           getSession: vi.fn().mockResolvedValue({ data: { session: null } })
         };
 
-        const result = await (service as any).getCategoryPrayerCount('Family');
+        const result = await (service as any).personal.getCategoryPrayerCount('Family');
         expect(result).toBe(0);
       });
 
@@ -6231,7 +6231,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         });
 
-        const result = await (service as any).getCategoryPrayerCount('Family');
+        const result = await (service as any).personal.getCategoryPrayerCount('Family');
         expect(result).toBe(3);
       });
 
@@ -6253,7 +6253,7 @@ describe('PrayerService - Integration Tests', () => {
         });
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        const result = await (service as any).getCategoryPrayerCount('Family');
+        const result = await (service as any).personal.getCategoryPrayerCount('Family');
         expect(result).toBe(0);
         expect(errorSpy).toHaveBeenCalled();
         errorSpy.mockRestore();
@@ -6709,8 +6709,8 @@ describe('PrayerService - Integration Tests', () => {
 
       it('clears mark_as_answered on updates when leaving Answered', async () => {
         vi.spyOn(service as any, 'getUserEmail').mockResolvedValue('user@example.com');
-        vi.spyOn(service as any, 'getCategoryPrayerCount').mockResolvedValue(0);
-        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({
+        vi.spyOn((service as any).personal, 'getCategoryPrayerCount').mockResolvedValue(0);
+        vi.spyOn((service as any).personal, 'getCategoryRange').mockResolvedValue({
           min: 0,
           max: 999,
         });
@@ -6733,6 +6733,17 @@ describe('PrayerService - Integration Tests', () => {
         const prayerEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
         const prayerEq1 = vi.fn().mockReturnValue({ eq: prayerEq2 });
         const selectSingle = vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+        const afterCategory = {
+          gte: vi.fn().mockReturnValue({
+            lte: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  single: selectSingle,
+                }),
+              }),
+            }),
+          }),
+        };
 
         mockSupabaseService.client.from.mockImplementation((table: string) => {
           if (table === 'personal_prayer_updates') {
@@ -6745,17 +6756,8 @@ describe('PrayerService - Integration Tests', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  gte: vi.fn().mockReturnValue({
-                    lte: vi.fn().mockReturnValue({
-                      order: vi.fn().mockReturnValue({
-                        limit: vi.fn().mockReturnValue({
-                          single: selectSingle,
-                        }),
-                      }),
-                    }),
-                  }),
-                }),
+                eq: vi.fn().mockReturnValue(afterCategory),
+                is: vi.fn().mockReturnValue(afterCategory),
               }),
             }),
             update: vi.fn().mockReturnValue({
@@ -6780,8 +6782,8 @@ describe('PrayerService - Integration Tests', () => {
 
       it('does not clear Answered when update answered flags fail to clear', async () => {
         vi.spyOn(service as any, 'getUserEmail').mockResolvedValue('user@example.com');
-        vi.spyOn(service as any, 'getCategoryPrayerCount').mockResolvedValue(0);
-        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({
+        vi.spyOn((service as any).personal, 'getCategoryPrayerCount').mockResolvedValue(0);
+        vi.spyOn((service as any).personal, 'getCategoryRange').mockResolvedValue({
           min: 0,
           max: 999,
         });
@@ -6808,23 +6810,25 @@ describe('PrayerService - Integration Tests', () => {
               }),
             };
           }
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  gte: vi.fn().mockReturnValue({
-                    lte: vi.fn().mockReturnValue({
-                      order: vi.fn().mockReturnValue({
-                        limit: vi.fn().mockReturnValue({
-                          single: vi.fn().mockResolvedValue({
-                            data: null,
-                            error: { code: 'PGRST116' },
-                          }),
-                        }),
-                      }),
+          const afterCategory = {
+            gte: vi.fn().mockReturnValue({
+              lte: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({
+                      data: null,
+                      error: { code: 'PGRST116' },
                     }),
                   }),
                 }),
+              }),
+            }),
+          };
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue(afterCategory),
+                is: vi.fn().mockReturnValue(afterCategory),
               }),
             }),
             update: vi.fn().mockReturnValue({
@@ -7188,8 +7192,8 @@ describe('PrayerService - Integration Tests', () => {
         (service as any).personal.allPersonalPrayersSubject.next(prayers);
 
         // Spy on private methods to bypass complex mocking
-        vi.spyOn(service as any, 'getCategoryPrayerCount').mockResolvedValue(0);
-        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
+        vi.spyOn((service as any).personal, 'getCategoryPrayerCount').mockResolvedValue(0);
+        vi.spyOn((service as any).personal, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
 
         // Mock the insert operation
         mockSupabaseService.client.from.mockReturnValue({
@@ -7312,8 +7316,8 @@ describe('PrayerService - Integration Tests', () => {
     );
 
         // Spy on private methods to bypass complex mocking
-        vi.spyOn(service as any, 'getCategoryPrayerCount').mockResolvedValue(0);
-        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
+        vi.spyOn((service as any).personal, 'getCategoryPrayerCount').mockResolvedValue(0);
+        vi.spyOn((service as any).personal, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
 
         // Mock the queries and insert
         mockSupabaseService.client.from.mockReturnValue({
@@ -7453,7 +7457,7 @@ describe('PrayerService - Integration Tests', () => {
         mockSupabaseService.client.rpc = mockRpc;
 
         // Spy on private method for fallback
-        vi.spyOn(service as any, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
+        vi.spyOn((service as any).personal, 'getCategoryRange').mockResolvedValue({ min: 1000, max: 1999 });
 
         // Mock fallback update with error
         mockSupabaseService.client.from.mockReturnValue({

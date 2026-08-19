@@ -1,17 +1,17 @@
-import { Injectable, Optional } from '@angular/core';
-import { distinctUntilChanged, type Subscription } from 'rxjs';
-import { SupabaseService } from './supabase.service';
-import { ToastService } from './toast.service';
-import { EmailNotificationService } from './email-notification.service';
-import { VerificationService } from './verification.service';
-import { CacheService } from './cache.service';
-import { BadgeService } from './badge.service';
-import { UserSessionService } from './user-session.service';
-import { PrayerItemReminderService } from './prayer-item-reminder.service';
-import { PrayerCommunityService } from './prayer-community.service';
-import { PrayerPersonalService } from './prayer-personal.service';
-import { COMMUNITY_PRAYERS_CACHE_KEY } from '../lib/prayer-catalog-load';
-import { arePrayerCatalogsReadyFromFlags } from '../lib/prayer-personal-load';
+import { Injectable, Optional } from "@angular/core";
+import { distinctUntilChanged, type Subscription } from "rxjs";
+import { SupabaseService } from "./supabase.service";
+import { ToastService } from "./toast.service";
+import { EmailNotificationService } from "./email-notification.service";
+import { VerificationService } from "./verification.service";
+import { CacheService } from "./cache.service";
+import { BadgeService } from "./badge.service";
+import { UserSessionService } from "./user-session.service";
+import { PrayerItemReminderService } from "./prayer-item-reminder.service";
+import { PrayerCommunityService } from "./prayer-community.service";
+import { PrayerPersonalService } from "./prayer-personal.service";
+import { COMMUNITY_PRAYERS_CACHE_KEY } from "../lib/prayer-catalog-load";
+import { arePrayerCatalogsReadyFromFlags } from "../lib/prayer-personal-load";
 import {
   clearTimeoutIdMap,
   mergePrayerResumeListenerSubscriptions,
@@ -19,30 +19,30 @@ import {
   scheduleDebouncedResumeRefresh,
   unsubscribePrayerResumeListeners,
   wirePrayerResumeListeners,
-} from '../lib/prayer-service-resume';
-import { subscribePrayerCatalogRealtime } from '../lib/prayer-service-realtime';
-import { buildPrayerCatalogRealtimeHandlers } from '../lib/prayer-service-realtime-handlers';
+} from "../lib/prayer-service-resume";
+import { subscribePrayerCatalogRealtime } from "../lib/prayer-service-realtime";
+import { buildPrayerCatalogRealtimeHandlers } from "../lib/prayer-service-realtime-handlers";
 import {
   PRAYER_SERVICE_INACTIVITY_THRESHOLD_MS,
   PRAYER_SERVICE_RESUME_REFRESH_DEBOUNCE_MS,
-} from '../lib/prayer-service-constants';
+} from "../lib/prayer-service-constants";
 import {
   personalPrayerSessionAction,
   userSessionEmailDistinctEqual,
-} from '../lib/prayer-service-session-wire';
-import { resolvePrayerServiceUserEmail } from '../lib/prayer-service-user-email';
+} from "../lib/prayer-service-session-wire";
+import { resolvePrayerServiceUserEmail } from "../lib/prayer-service-user-email";
 import type {
   PrayerFilters,
   PrayerRequest,
   PrayerStatus,
   PrayerUpdate,
-} from '../lib/prayer-types';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+} from "../lib/prayer-types";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type { PrayerFilters, PrayerRequest, PrayerStatus, PrayerUpdate };
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class PrayerService {
   private readonly community: PrayerCommunityService;
@@ -87,8 +87,6 @@ export class PrayerService {
       prayerItemReminderService,
       {
         getUserEmail: () => this.getUserEmail(),
-        getCategoryRange: (category) => this.getCategoryRange(category),
-        getCategoryPrayerCount: (category) => this.getCategoryPrayerCount(category),
       }
     );
     this.initializePrayers();
@@ -140,11 +138,11 @@ export class PrayerService {
       .pipe(distinctUntilChanged(userSessionEmailDistinctEqual))
       .subscribe((session) => {
         const action = personalPrayerSessionAction(session);
-        if (action === 'load') {
+        if (action === "load") {
           this.personal.personalPrayersDbFetchComplete = false;
           this.loadPersonalPrayers().catch((err) =>
             console.error(
-              '[PrayerService] Error loading personal prayers on session change:',
+              "[PrayerService] Error loading personal prayers on session change:",
               err
             )
           );
@@ -165,7 +163,10 @@ export class PrayerService {
     return this.personal.loadPersonalPrayers(silentRefresh);
   }
 
-  async getPrayersByMonth(year: number, month: number): Promise<PrayerRequest[]> {
+  async getPrayersByMonth(
+    year: number,
+    month: number
+  ): Promise<PrayerRequest[]> {
     return this.community.getPrayersByMonth(year, month);
   }
 
@@ -175,14 +176,14 @@ export class PrayerService {
       onEnterBackground: () => {
         this.isInBackground = true;
         console.log(
-          '[PrayerService] App going to background - pausing aggressive operations'
+          "[PrayerService] App going to background - pausing aggressive operations"
         );
         clearTimeoutIdMap(this.backgroundRecoveryTimeouts);
       },
       onLeaveBackground: () => {
         this.isInBackground = false;
         console.log(
-          '[PrayerService] App returning from background - triggering recovery'
+          "[PrayerService] App returning from background - triggering recovery"
         );
         this.triggerBackgroundRecovery();
       },
@@ -247,7 +248,10 @@ export class PrayerService {
   }
 
   async addPrayer(
-    prayer: Omit<PrayerRequest, 'id' | 'date_requested' | 'created_at' | 'updated_at' | 'updates'>
+    prayer: Omit<
+      PrayerRequest,
+      "id" | "date_requested" | "created_at" | "updated_at" | "updates"
+    >
   ): Promise<boolean> {
     return this.community.addPrayer(prayer);
   }
@@ -268,11 +272,17 @@ export class PrayerService {
     return this.community.incrementMemberPrayedFor(personId);
   }
 
-  async getMemberPrayedForCountsBatch(personIds: string[]): Promise<Record<string, number>> {
+  async getMemberPrayedForCountsBatch(
+    personIds: string[]
+  ): Promise<Record<string, number>> {
     return this.community.getMemberPrayedForCountsBatch(personIds);
   }
 
-  async addPrayerUpdate(prayerId: string, content: string, author: string): Promise<boolean> {
+  async addPrayerUpdate(
+    prayerId: string,
+    content: string,
+    author: string
+  ): Promise<boolean> {
     return this.community.addPrayerUpdate(prayerId, content, author);
   }
 
@@ -281,7 +291,7 @@ export class PrayerService {
     memberName: string,
     content: string,
     author: string,
-    authorEmail: string = '',
+    authorEmail: string = "",
     isAnswered: boolean = false,
     listId?: string
   ): Promise<boolean> {
@@ -296,7 +306,9 @@ export class PrayerService {
     );
   }
 
-  async getMemberPrayerUpdatesBatch(personIds: string[]): Promise<Record<string, any[]>> {
+  async getMemberPrayerUpdatesBatch(
+    personIds: string[]
+  ): Promise<Record<string, any[]>> {
     return this.community.getMemberPrayerUpdatesBatch(personIds);
   }
 
@@ -322,7 +334,12 @@ export class PrayerService {
     updates: Partial<PrayerUpdate>,
     listId?: string
   ): Promise<boolean> {
-    return this.community.updateMemberPrayerUpdate(updateId, personId, updates, listId);
+    return this.community.updateMemberPrayerUpdate(
+      updateId,
+      personId,
+      updates,
+      listId
+    );
   }
 
   async deletePrayer(id: string): Promise<boolean> {
@@ -339,23 +356,29 @@ export class PrayerService {
 
   private setupRealtimeSubscription(): void {
     try {
-      console.log('[PrayerService] Setting up realtime subscription...');
+      console.log("[PrayerService] Setting up realtime subscription...");
       this.realtimeChannel = subscribePrayerCatalogRealtime(
         this.supabase.client,
         buildPrayerCatalogRealtimeHandlers({
           dropRemindersForPrayer: (prayerId, kind) =>
-            this.prayerItemReminderService?.dropRemindersForPrayer(prayerId, kind),
+            this.prayerItemReminderService?.dropRemindersForPrayer(
+              prayerId,
+              kind
+            ),
           reloadCommunityPrayers: () => this.loadPrayers(true),
           reloadPersonalPrayers: () => this.loadPersonalPrayers(false),
         })
       );
     } catch (error) {
-      console.error('[PrayerService] Error setting up realtime subscription:', error);
+      console.error(
+        "[PrayerService] Error setting up realtime subscription:",
+        error
+      );
     }
   }
 
   async cleanup(): Promise<void> {
-    console.log('[PrayerService] Cleaning up...');
+    console.log("[PrayerService] Cleaning up...");
     try {
       unsubscribePrayerResumeListeners(this.resumeListenerSubscriptions);
       this.resumeListenerSubscriptions = [];
@@ -372,7 +395,7 @@ export class PrayerService {
         this.inactivityTimeout = null;
       }
     } catch (error) {
-      console.error('[PrayerService] Error during cleanup:', error);
+      console.error("[PrayerService] Error during cleanup:", error);
     }
   }
 
@@ -397,7 +420,9 @@ export class PrayerService {
   }
 
   private async getUserEmail(): Promise<string | null> {
-    return resolvePrayerServiceUserEmail(() => this.supabase.client.auth.getSession());
+    return resolvePrayerServiceUserEmail(() =>
+      this.supabase.client.auth.getSession()
+    );
   }
 
   private isPersonalPrayerDisplayOrderOnlyChange(
@@ -407,22 +432,21 @@ export class PrayerService {
     return this.personal.isPersonalPrayerDisplayOrderOnlyChange(oldRow, newRow);
   }
 
-  private async getCategoryRange(category: string | null | undefined) {
-    return this.personal.getCategoryRange(category);
-  }
-
-  private async getCategoryPrayerCount(category: string | null | undefined) {
-    return this.personal.getCategoryPrayerCount(category);
-  }
-
-  async getPersonalPrayers(forceRefresh: boolean = false): Promise<PrayerRequest[]> {
+  async getPersonalPrayers(
+    forceRefresh: boolean = false
+  ): Promise<PrayerRequest[]> {
     return this.personal.getPersonalPrayers(forceRefresh);
   }
 
   async addPersonalPrayer(
     prayer: Omit<
       PrayerRequest,
-      'id' | 'date_requested' | 'created_at' | 'updated_at' | 'updates' | 'approval_status'
+      | "id"
+      | "date_requested"
+      | "created_at"
+      | "updated_at"
+      | "updates"
+      | "approval_status"
     >
   ): Promise<boolean> {
     return this.personal.addPersonalPrayer(prayer);
@@ -434,7 +458,9 @@ export class PrayerService {
 
   async updatePersonalPrayer(
     id: string,
-    updates: Partial<Pick<PrayerRequest, 'title' | 'prayer_for' | 'description' | 'category'>>,
+    updates: Partial<
+      Pick<PrayerRequest, "title" | "prayer_for" | "description" | "category">
+    >,
     options?: { silentSuccess?: boolean }
   ): Promise<boolean> {
     return this.personal.updatePersonalPrayer(id, updates, options);
@@ -450,12 +476,18 @@ export class PrayerService {
   async updatePersonalPrayerUpdate(
     updateId: string,
     prayerId: string,
-    updates: Partial<Pick<PrayerUpdate, 'content' | 'mark_as_answered'>>
+    updates: Partial<Pick<PrayerUpdate, "content" | "mark_as_answered">>
   ): Promise<boolean> {
-    return this.personal.updatePersonalPrayerUpdate(updateId, prayerId, updates);
+    return this.personal.updatePersonalPrayerUpdate(
+      updateId,
+      prayerId,
+      updates
+    );
   }
 
-  async getUniqueCategoriesForUser(prayers?: PrayerRequest[]): Promise<string[]> {
+  async getUniqueCategoriesForUser(
+    prayers?: PrayerRequest[]
+  ): Promise<string[]> {
     return this.personal.getUniqueCategoriesForUser(prayers);
   }
 
@@ -464,7 +496,11 @@ export class PrayerService {
     newCategory: string,
     options?: { reservedCategoryNames?: string[] }
   ): Promise<boolean> {
-    return this.personal.renamePersonalCategory(oldCategory, newCategory, options);
+    return this.personal.renamePersonalCategory(
+      oldCategory,
+      newCategory,
+      options
+    );
   }
 
   async addPersonalPrayerUpdate(
@@ -491,7 +527,9 @@ export class PrayerService {
     return this.personal.markPersonalPrayerUpdateAsAnswered(updateId);
   }
 
-  async reorderCategories(orderedCategories: (string | null)[]): Promise<boolean> {
+  async reorderCategories(
+    orderedCategories: (string | null)[]
+  ): Promise<boolean> {
     return this.personal.reorderCategories(orderedCategories);
   }
 

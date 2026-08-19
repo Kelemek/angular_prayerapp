@@ -4,6 +4,15 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Personal category queries — match SQL NULL for uncategorized
+- Uncategorized filters in [`prayer-personal-category-query-db.ts`](src/app/lib/prayer-personal-category-query-db.ts) use PostgREST `.is("category", null)` instead of `.eq("category", null)`, so category count and max-order queries include uncategorized rows.
+
+### Prayer personal service — category queries stay on the personal service
+- [`PrayerPersonalFacadeHooks`](src/app/services/prayer-personal.service.ts) now only supplies session email. Category range/count queries run on [`PrayerPersonalService`](src/app/services/prayer-personal.service.ts) instead of round-tripping through `PrayerService` private wrappers. Personal list load uses the shared `fetchPersonalPrayersFromDb` path. Supabase category row adapters live in [`prayer-personal-category-query-db.ts`](src/app/lib/prayer-personal-category-query-db.ts).
+
+### Email notification — HTML and helper libs
+- [`email-notification.service.ts`](src/app/services/email-notification.service.ts) (~910 lines, down from ~1,427) keeps send/queue orchestration. Payload types live in [`email-notification-types.ts`](src/app/lib/email-notification-types.ts) (re-exported from the service). Fallback HTML documents live in [`email-notification-html.ts`](src/app/lib/email-notification-html.ts). Shared helpers: [`email-notification-links.ts`](src/app/lib/email-notification-links.ts) (base URL and subscriber/admin links), [`email-notification-template.ts`](src/app/lib/email-notification-template.ts) (`{{variable}}` apply), [`email-notification-broadcast.ts`](src/app/lib/email-notification-broadcast.ts) (manual-broadcast recipient filter), [`email-notification-admin-push.ts`](src/app/lib/email-notification-admin-push.ts) (admin push copy), and [`email-notification-admin-mail.ts`](src/app/lib/email-notification-admin-mail.ts) (per-admin approval/account emails). Approved prayer/update subscriber queues share `queueTemplateToActiveSubscribers`. Public API and constructor are unchanged.
+
 ### Prayer service — facade split (community + personal)
 - [`prayer.service.ts`](src/app/services/prayer.service.ts) is a thin public facade (session, realtime, resume). Community catalog and member mutations live in [`prayer-community.service.ts`](src/app/services/prayer-community.service.ts); personal catalog and categories live in [`prayer-personal.service.ts`](src/app/services/prayer-personal.service.ts). Those inner classes are composed with `new` (not `providedIn: 'root'`), so callers still inject `PrayerService` and the constructor signature is unchanged.
 

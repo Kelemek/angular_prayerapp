@@ -1,95 +1,66 @@
-import { Injectable } from '@angular/core';
-import { environment } from '../../environments/environment';
-import { SupabaseService } from './supabase.service';
-import { PushNotificationService } from './push-notification.service';
-import { htmlToPlainText, markdownToPlainText, markdownToSafeHtml, sanitizeEmailHtml } from '../../utils/markdown';
+import { Injectable } from "@angular/core";
+import { environment } from "../../environments/environment";
+import {
+  htmlToPlainText,
+  markdownToPlainText,
+  markdownToSafeHtml,
+  sanitizeEmailHtml,
+} from "../../utils/markdown";
+import { adminNotificationPushBody } from "../lib/email-notification-admin-push";
+import {
+  sendAccountApprovalNotificationToEmail as deliverAccountApprovalNotificationEmail,
+  sendAdminItemNotificationToEmail as deliverAdminItemNotificationEmail,
+} from "../lib/email-notification-admin-mail";
+import {
+  filterManualBroadcastRecipientEmails,
+  normalizeTestAccountEmail,
+} from "../lib/email-notification-broadcast";
+import {
+  generateDeniedPrayerHTML,
+  generateDeniedUpdateHTML,
+  generateRequesterApprovalHTML,
+  generateUpdateAuthorApprovalHTML,
+  generateWelcomeEmailHTML,
+} from "../lib/email-notification-html";
+import {
+  buildAppHomeLink,
+  buildSubscriberAppLink,
+  resolveEmailBaseUrl,
+} from "../lib/email-notification-links";
+import {
+  applyEmailTemplateVariables,
+  stringifyEmailTemplateVariables,
+} from "../lib/email-notification-template";
+import {
+  ADMIN_SUBSCRIBER_MANUAL_BROADCAST_TEMPLATE_KEY,
+  type AdminNotificationPayload,
+  type ApprovedPrayerPayload,
+  type ApprovedUpdatePayload,
+  type DeniedPrayerPayload,
+  type DeniedUpdatePayload,
+  type EmailTemplate,
+  type RequesterApprovalPayload,
+  type SendEmailOptions,
+  type UpdateAuthorApprovalPayload,
+} from "../lib/email-notification-types";
+import { PushNotificationService } from "./push-notification.service";
+import { SupabaseService } from "./supabase.service";
 
-export interface SendEmailOptions {
-  to: string | string[];
-  subject: string;
-  htmlBody?: string;
-  textBody?: string;
-  replyTo?: string;
-  fromName?: string;
-}
-
-export interface EmailTemplate {
-  id: string;
-  template_key: string;
-  name: string;
-  subject: string;
-  html_body: string;
-  text_body: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ApprovedPrayerPayload {
-  title: string;
-  description: string;
-  requester: string;
-  prayerFor: string;
-  status: string;
-}
-
-export interface ApprovedUpdatePayload {
-  prayerTitle: string;
-  prayerDescription: string;
-  content: string;
-  author: string;
-  /** Parent `prayers.status` — drives `?filter=` on subscriber email app link (current | answered). */
-  prayerStatus: string;
-  markedAsAnswered?: boolean;
-}
-
-export interface RequesterApprovalPayload {
-  title: string;
-  description: string;
-  requester: string;
-  requesterEmail: string;
-  prayerFor: string;
-}
-
-export interface DeniedPrayerPayload {
-  title: string;
-  description: string;
-  requester: string;
-  requesterEmail: string;
-  denialReason: string;
-}
-
-export interface DeniedUpdatePayload {
-  prayerTitle: string;
-  content: string;
-  author: string;
-  authorEmail: string;
-  denialReason: string;
-}
-
-export interface UpdateAuthorApprovalPayload {
-  prayerTitle: string;
-  content: string;
-  author: string;
-  authorEmail: string;
-}
-
-export interface AdminNotificationPayload {
-  type: 'prayer' | 'update' | 'deletion';
-  title: string;
-  description?: string;
-  requester?: string;
-  author?: string;
-  content?: string;
-  reason?: string;
-  requestId?: string;
-}
-
-/** Queued template for Admin → Settings → Email → manual broadcast to subscriber list. */
-export const ADMIN_SUBSCRIBER_MANUAL_BROADCAST_TEMPLATE_KEY = 'admin_subscriber_manual_broadcast';
+export {
+  ADMIN_SUBSCRIBER_MANUAL_BROADCAST_TEMPLATE_KEY,
+  type AdminNotificationPayload,
+  type ApprovedPrayerPayload,
+  type ApprovedUpdatePayload,
+  type DeniedPrayerPayload,
+  type DeniedUpdatePayload,
+  type EmailTemplate,
+  type RequesterApprovalPayload,
+  type SendEmailOptions,
+  type UpdateAuthorApprovalPayload,
+} from "../lib/email-notification-types";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class EmailNotificationService {
   constructor(
@@ -103,52 +74,39 @@ export class EmailNotificationService {
    * so we use environment.appUrl when origin is localhost or non-http(s) so links always point to the real web app.
    */
   getEmailBaseUrl(): string {
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const isLocalhost = origin.includes('localhost');
-    const isHttpOrigin = origin && (origin.startsWith('http://') || origin.startsWith('https://'));
-    if (isHttpOrigin && !isLocalhost) {
-      return origin;
-    }
-    if (typeof environment !== 'undefined' && environment.appUrl) {
-      return environment.appUrl.replace(/\/$/, '');
-    }
-    return origin;
-  }
-
-  /**
-   * Subscriber mass-email link to home with Current or Answered tab pre-selected.
-   */
-  private buildSubscriberAppLink(prayerStatus: string): string {
-    const filter = prayerStatus === 'answered' ? 'answered' : 'current';
-    const base = this.getEmailBaseUrl().replace(/\/$/, '');
-    if (!base) {
-      return `/?filter=${filter}`;
-    }
-    return `${base}/?filter=${filter}`;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return resolveEmailBaseUrl({
+      origin,
+      appUrl:
+        typeof environment !== "undefined" ? environment.appUrl : undefined,
+    });
   }
 
   /**
    * Send a single email using Supabase edge function
    */
   async sendEmail(options: SendEmailOptions): Promise<void> {
-    const { data, error } = await this.supabase.client.functions.invoke('send-email', {
-      body: {
-        to: options.to,
-        subject: options.subject,
-        htmlBody: options.htmlBody,
-        textBody: options.textBody,
-        replyTo: options.replyTo,
-        fromName: options.fromName
+    const { data, error } = await this.supabase.client.functions.invoke(
+      "send-email",
+      {
+        body: {
+          to: options.to,
+          subject: options.subject,
+          htmlBody: options.htmlBody,
+          textBody: options.textBody,
+          replyTo: options.replyTo,
+          fromName: options.fromName,
+        },
       }
-    });
+    );
 
     if (error) {
-      console.error('Failed to send email:', error);
-      throw new Error(error.message || 'Failed to send email');
+      console.error("Failed to send email:", error);
+      throw new Error(error.message || "Failed to send email");
     }
 
     if (!data?.success) {
-      throw new Error(data?.error || 'Failed to send email');
+      throw new Error(data?.error || "Failed to send email");
     }
   }
 
@@ -157,13 +115,13 @@ export class EmailNotificationService {
    */
   async getTemplate(templateKey: string): Promise<EmailTemplate | null> {
     const { data, error } = await this.supabase.client
-      .from('email_templates')
-      .select('*')
-      .eq('template_key', templateKey)
+      .from("email_templates")
+      .select("*")
+      .eq("template_key", templateKey)
       .single();
 
     if (error) {
-      console.error('Error fetching template:', error);
+      console.error("Error fetching template:", error);
       return null;
     }
 
@@ -173,13 +131,11 @@ export class EmailNotificationService {
   /**
    * Apply template variables to a string with {{variableName}} syntax
    */
-  applyTemplateVariables(content: string, variables: Record<string, string>): string {
-    let result = content;
-    for (const [key, value] of Object.entries(variables)) {
-      const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-      result = result.replace(placeholder, value || '');
-    }
-    return result;
+  applyTemplateVariables(
+    content: string,
+    variables: Record<string, string>
+  ): string {
+    return applyEmailTemplateVariables(content, variables);
   }
 
   /**
@@ -191,28 +147,24 @@ export class EmailNotificationService {
     templateKey: string,
     variables: Record<string, string | null | undefined> = {}
   ): Promise<void> {
-    // Ensure all values are strings (convert undefined/null to empty string)
-    const stringifiedVariables: Record<string, string> = {};
-    for (const [key, value] of Object.entries(variables)) {
-      stringifiedVariables[key] = value !== null && value !== undefined ? String(value) : '';
-    }
+    const stringifiedVariables = stringifyEmailTemplateVariables(variables);
 
-    const { error } = await this.supabase.client
-      .from('email_queue')
-      .insert({
-        recipient,
-        template_key: templateKey,
-        template_variables: stringifiedVariables,
-        status: 'pending',
-        attempts: 0
-      });
+    const { error } = await this.supabase.client.from("email_queue").insert({
+      recipient,
+      template_key: templateKey,
+      template_variables: stringifiedVariables,
+      status: "pending",
+      attempts: 0,
+    });
 
     if (error) {
-      console.error('Failed to enqueue email:', error);
-      throw new Error(error.message || 'Failed to enqueue email');
+      console.error("Failed to enqueue email:", error);
+      throw new Error(error.message || "Failed to enqueue email");
     }
 
-    console.log(`📧 Email queued for ${recipient} with template ${templateKey}`);
+    console.log(
+      `📧 Email queued for ${recipient} with template ${templateKey}`
+    );
   }
 
   /**
@@ -220,21 +172,27 @@ export class EmailNotificationService {
    */
   private async triggerEmailProcessor(): Promise<void> {
     try {
-      console.log('🚀 Triggering email processor via Edge Function...');
-      
-      const response = await this.supabase.client.functions.invoke('trigger-email-processor', {
-        method: 'POST',
-      });
+      console.log("🚀 Triggering email processor via Edge Function...");
+
+      const response = await this.supabase.client.functions.invoke(
+        "trigger-email-processor",
+        {
+          method: "POST",
+        }
+      );
 
       if (response.error) {
-        console.error('❌ Edge Function error:', response.error);
+        console.error("❌ Edge Function error:", response.error);
         return;
       }
 
-      console.log('📊 Edge Function response:', response.data);
-      console.log('✅ Email processor workflow triggered successfully');
+      console.log("📊 Edge Function response:", response.data);
+      console.log("✅ Email processor workflow triggered successfully");
     } catch (error) {
-      console.error('❌ Failed to trigger email processor:', error instanceof Error ? error.message : error);
+      console.error(
+        "❌ Failed to trigger email processor:",
+        error instanceof Error ? error.message : error
+      );
     }
   }
 
@@ -248,24 +206,27 @@ export class EmailNotificationService {
     replyTo?: string;
     fromName?: string;
   }): Promise<void> {
-    const { data, error } = await this.supabase.client.functions.invoke('send-email', {
-      body: {
-        action: 'send_to_all_subscribers',
-        subject: options.subject,
-        htmlBody: options.htmlBody,
-        textBody: options.textBody,
-        replyTo: options.replyTo,
-        fromName: options.fromName
+    const { data, error } = await this.supabase.client.functions.invoke(
+      "send-email",
+      {
+        body: {
+          action: "send_to_all_subscribers",
+          subject: options.subject,
+          htmlBody: options.htmlBody,
+          textBody: options.textBody,
+          replyTo: options.replyTo,
+          fromName: options.fromName,
+        },
       }
-    });
+    );
 
     if (error) {
-      console.error('Failed to send bulk email:', error);
-      throw new Error(error.message || 'Failed to send bulk email');
+      console.error("Failed to send bulk email:", error);
+      throw new Error(error.message || "Failed to send bulk email");
     }
 
     if (!data?.success) {
-      throw new Error(data?.error || 'Failed to send bulk email');
+      throw new Error(data?.error || "Failed to send bulk email");
     }
   }
 
@@ -274,21 +235,19 @@ export class EmailNotificationService {
    */
   private async getConfiguredTestAccountEmailLower(): Promise<string | null> {
     const { data, error } = await this.supabase.client
-      .from('admin_settings')
-      .select('test_account_email')
-      .eq('id', 1)
+      .from("admin_settings")
+      .select("test_account_email")
+      .eq("id", 1)
       .maybeSingle();
 
     if (error) {
-      console.error('Failed to load test_account_email for broadcast exclusion:', error);
+      console.error(
+        "Failed to load test_account_email for broadcast exclusion:",
+        error
+      );
       return null;
     }
-    const raw = data?.test_account_email;
-    if (raw == null || typeof raw !== 'string') {
-      return null;
-    }
-    const t = raw.trim().toLowerCase();
-    return t.length > 0 ? t : null;
+    return normalizeTestAccountEmail(data?.test_account_email);
   }
 
   /**
@@ -297,9 +256,9 @@ export class EmailNotificationService {
   async getManualBroadcastRecipientEmails(): Promise<string[]> {
     const excludeLower = await this.getConfiguredTestAccountEmailLower();
     const { data: rows, error } = await this.supabase.client
-      .from('email_subscribers')
-      .select('email')
-      .eq('is_blocked', false);
+      .from("email_subscribers")
+      .select("email")
+      .eq("is_blocked", false);
 
     if (error) {
       throw error;
@@ -307,17 +266,10 @@ export class EmailNotificationService {
     if (!rows?.length) {
       return [];
     }
-    return rows
-      .map((r: { email: string }) => String(r.email ?? '').trim())
-      .filter((email: string) => {
-        if (!email) {
-          return false;
-        }
-        if (!excludeLower) {
-          return true;
-        }
-        return email.toLowerCase() !== excludeLower;
-      });
+    return filterManualBroadcastRecipientEmails(
+      rows.map((r: { email: string }) => r.email),
+      excludeLower
+    );
   }
 
   /** Count of recipients that would receive `queueAdminManualBroadcastToSubscribers`. */
@@ -339,16 +291,16 @@ export class EmailNotificationService {
     bodyHtml?: string;
   }): Promise<{ queued: number }> {
     const broadcastSubject = options.subject.trim();
-    const bodyMarkdown = options.bodyMarkdown?.trim() ?? '';
-    const bodyHtmlRaw = options.bodyHtml?.trim() ?? '';
+    const bodyMarkdown = options.bodyMarkdown?.trim() ?? "";
+    const bodyHtmlRaw = options.bodyHtml?.trim() ?? "";
     if (!broadcastSubject) {
-      throw new Error('Subject is required');
+      throw new Error("Subject is required");
     }
     if (!bodyMarkdown && !bodyHtmlRaw) {
-      throw new Error('Message body is required');
+      throw new Error("Message body is required");
     }
     if (bodyMarkdown && bodyHtmlRaw) {
-      throw new Error('Provide either Markdown or HTML body, not both');
+      throw new Error("Provide either Markdown or HTML body, not both");
     }
 
     const broadcastBodyHtml = bodyHtmlRaw
@@ -358,7 +310,7 @@ export class EmailNotificationService {
       ? htmlToPlainText(bodyHtmlRaw)
       : markdownToPlainText(bodyMarkdown);
     if (!broadcastBodyHtml.trim()) {
-      throw new Error('Message body is empty after sanitization');
+      throw new Error("Message body is empty after sanitization");
     }
 
     const variables = {
@@ -373,77 +325,93 @@ export class EmailNotificationService {
       return { queued: 0 };
     }
 
-    const queuePromises = recipientEmails.map(email =>
-      this.enqueueEmail(email, ADMIN_SUBSCRIBER_MANUAL_BROADCAST_TEMPLATE_KEY, variables).catch(err =>
+    const queuePromises = recipientEmails.map((email) =>
+      this.enqueueEmail(
+        email,
+        ADMIN_SUBSCRIBER_MANUAL_BROADCAST_TEMPLATE_KEY,
+        variables
+      ).catch((err) =>
         console.error(`Failed to queue admin broadcast for ${email}:`, err)
       )
     );
 
     await Promise.all(queuePromises);
 
-    console.log(`📧 Queued admin manual broadcast to ${recipientEmails.length} subscriber(s)`);
+    console.log(
+      `📧 Queued admin manual broadcast to ${recipientEmails.length} subscriber(s)`
+    );
 
-    await this.triggerEmailProcessor().catch(err =>
-      console.error('Failed to trigger email processor:', err)
+    await this.triggerEmailProcessor().catch((err) =>
+      console.error("Failed to trigger email processor:", err)
     );
 
     return { queued: recipientEmails.length };
+  }
+
+  private async queueTemplateToActiveSubscribers(
+    templateKey: string,
+    variables: Record<string, string | null | undefined>,
+    logLabel: string
+  ): Promise<void> {
+    const { data: subscribers, error: fetchError } = await this.supabase.client
+      .from("email_subscribers")
+      .select("email")
+      .eq("is_active", true)
+      .eq("is_blocked", false);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    if (!subscribers || subscribers.length === 0) {
+      console.log("No active subscribers to notify");
+      return;
+    }
+
+    const queuePromises = subscribers.map((sub) =>
+      this.enqueueEmail(sub.email, templateKey, variables).catch((err) =>
+        console.error(`Failed to queue email for ${sub.email}:`, err)
+      )
+    );
+
+    await Promise.all(queuePromises);
+    console.log(`📧 Queued ${logLabel} to ${subscribers.length} subscriber(s)`);
+
+    await this.triggerEmailProcessor().catch((err) =>
+      console.error("Failed to trigger email processor:", err)
+    );
   }
 
   /**
    * Send notification when a prayer is approved
    * Queues emails to all active subscribers for processing
    */
-  async sendApprovedPrayerNotification(payload: ApprovedPrayerPayload): Promise<void> {
+  async sendApprovedPrayerNotification(
+    payload: ApprovedPrayerPayload
+  ): Promise<void> {
     try {
-      const isAnswered = payload.status === 'answered';
-      const templateKey = isAnswered ? 'prayer_answered' : 'approved_prayer';
-
-      // Template variables to send with queued emails
-      const appLink = this.buildSubscriberAppLink(payload.status);
-      const variables = {
-        prayerTitle: payload.title,
-        prayerFor: payload.prayerFor,
-        requesterName: payload.requester,
-        prayerDescription: payload.description,
-        prayerDescriptionText: markdownToPlainText(payload.description),
-        prayerDescriptionHtml: markdownToSafeHtml(payload.description),
-        status: payload.status,
-        appLink
-      };
-
-      // Fetch all active subscribers
-      const { data: subscribers, error: fetchError } = await this.supabase.client
-        .from('email_subscribers')
-        .select('email')
-        .eq('is_active', true)
-        .eq('is_blocked', false);
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      if (!subscribers || subscribers.length === 0) {
-        console.log('No active subscribers to notify');
-        return;
-      }
-
-      // Queue an email for each subscriber
-      const queuePromises = subscribers.map(sub =>
-        this.enqueueEmail(sub.email, templateKey, variables).catch(err =>
-          console.error(`Failed to queue email for ${sub.email}:`, err)
-        )
+      const isAnswered = payload.status === "answered";
+      const templateKey = isAnswered ? "prayer_answered" : "approved_prayer";
+      const appLink = buildSubscriberAppLink(
+        this.getEmailBaseUrl(),
+        payload.status
       );
-
-      await Promise.all(queuePromises);
-      console.log(`📧 Queued approved prayer notification to ${subscribers.length} subscriber(s)`);
-
-      // Trigger email processor immediately
-      await this.triggerEmailProcessor().catch(err =>
-        console.error('Failed to trigger email processor:', err)
+      await this.queueTemplateToActiveSubscribers(
+        templateKey,
+        {
+          prayerTitle: payload.title,
+          prayerFor: payload.prayerFor,
+          requesterName: payload.requester,
+          prayerDescription: payload.description,
+          prayerDescriptionText: markdownToPlainText(payload.description),
+          prayerDescriptionHtml: markdownToSafeHtml(payload.description),
+          status: payload.status,
+          appLink,
+        },
+        "approved prayer notification"
       );
     } catch (error) {
-      console.error('Error in sendApprovedPrayerNotification:', error);
+      console.error("Error in sendApprovedPrayerNotification:", error);
       // Don't re-throw - let the error be logged but don't block approval
     }
   }
@@ -452,69 +420,46 @@ export class EmailNotificationService {
    * Send notification when a prayer update is approved
    * Queues emails to all active subscribers for processing
    */
-  async sendApprovedUpdateNotification(payload: ApprovedUpdatePayload): Promise<void> {
+  async sendApprovedUpdateNotification(
+    payload: ApprovedUpdatePayload
+  ): Promise<void> {
     try {
       const isAnswered = payload.markedAsAnswered || false;
-      const templateKey = isAnswered ? 'prayer_answered' : 'approved_update';
-
-      // Template variables to send with queued emails
-      const appLink = this.buildSubscriberAppLink(payload.prayerStatus);
-      const variables = {
-        prayerTitle: payload.prayerTitle,
-        prayerDescription: payload.prayerDescription,
-        prayerDescriptionText: markdownToPlainText(payload.prayerDescription),
-        prayerDescriptionHtml: markdownToSafeHtml(payload.prayerDescription),
-        authorName: payload.author,
-        updateContent: payload.content,
-        updateContentText: markdownToPlainText(payload.content),
-        updateContentHtml: markdownToSafeHtml(payload.content),
-        /** Lets the queue processor fix `appLink` if a template omitted `?filter=`. */
-        prayerStatus: payload.prayerStatus ?? 'current',
-        appLink
-      };
-
-      // Fetch all active subscribers
-      const { data: subscribers, error: fetchError } = await this.supabase.client
-        .from('email_subscribers')
-        .select('email')
-        .eq('is_active', true)
-        .eq('is_blocked', false);
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      if (!subscribers || subscribers.length === 0) {
-        console.log('No active subscribers to notify');
-        return;
-      }
-
-      // Queue an email for each subscriber
-      const queuePromises = subscribers.map(sub =>
-        this.enqueueEmail(sub.email, templateKey, variables).catch(err =>
-          console.error(`Failed to queue email for ${sub.email}:`, err)
-        )
+      const templateKey = isAnswered ? "prayer_answered" : "approved_update";
+      const appLink = buildSubscriberAppLink(
+        this.getEmailBaseUrl(),
+        payload.prayerStatus
       );
-
-      await Promise.all(queuePromises);
-      console.log(`📧 Queued approved update notification to ${subscribers.length} subscriber(s)`);
-
-      // Trigger email processor immediately
-      await this.triggerEmailProcessor().catch(err =>
-        console.error('Failed to trigger email processor:', err)
+      await this.queueTemplateToActiveSubscribers(
+        templateKey,
+        {
+          prayerTitle: payload.prayerTitle,
+          prayerDescription: payload.prayerDescription,
+          prayerDescriptionText: markdownToPlainText(payload.prayerDescription),
+          prayerDescriptionHtml: markdownToSafeHtml(payload.prayerDescription),
+          authorName: payload.author,
+          updateContent: payload.content,
+          updateContentText: markdownToPlainText(payload.content),
+          updateContentHtml: markdownToSafeHtml(payload.content),
+          prayerStatus: payload.prayerStatus ?? "current",
+          appLink,
+        },
+        "approved update notification"
       );
     } catch (error) {
-      console.error('Error in sendApprovedUpdateNotification:', error);
+      console.error("Error in sendApprovedUpdateNotification:", error);
     }
   }
 
   /**
    * Send notification to requester when their prayer is approved
    */
-  async sendRequesterApprovalNotification(payload: RequesterApprovalPayload): Promise<void> {
+  async sendRequesterApprovalNotification(
+    payload: RequesterApprovalPayload
+  ): Promise<void> {
     try {
       if (!payload.requesterEmail) {
-        console.warn('No email address for prayer requester');
+        console.warn("No email address for prayer requester");
         return;
       }
 
@@ -523,145 +468,181 @@ export class EmailNotificationService {
       let html: string;
 
       try {
-        const template = await this.getTemplate('requester_approval');
+        const template = await this.getTemplate("requester_approval");
         if (template) {
           const textVariables = {
             prayerTitle: payload.title,
             prayerFor: payload.prayerFor,
             prayerDescription: markdownToPlainText(payload.description),
-            appLink: `${this.getEmailBaseUrl()}/`
+            appLink: buildAppHomeLink(this.getEmailBaseUrl()),
           };
           const htmlVariables = {
             ...textVariables,
-            prayerDescription: markdownToSafeHtml(payload.description)
+            prayerDescription: markdownToSafeHtml(payload.description),
           };
-          console.log('[EmailNotificationService.sendRequesterApprovalNotification] Template variables:', textVariables);
-          console.log('[EmailNotificationService.sendRequesterApprovalNotification] Template HTML before substitution:', template.html_body.substring(0, 200));
-          subject = this.applyTemplateVariables(template.subject, textVariables);
+          console.log(
+            "[EmailNotificationService.sendRequesterApprovalNotification] Template variables:",
+            textVariables
+          );
+          console.log(
+            "[EmailNotificationService.sendRequesterApprovalNotification] Template HTML before substitution:",
+            template.html_body.substring(0, 200)
+          );
+          subject = this.applyTemplateVariables(
+            template.subject,
+            textVariables
+          );
           body = this.applyTemplateVariables(template.text_body, textVariables);
           html = this.applyTemplateVariables(template.html_body, htmlVariables);
-          console.log('[EmailNotificationService.sendRequesterApprovalNotification] HTML after substitution contains prayerFor:', html.includes(payload.prayerFor));
+          console.log(
+            "[EmailNotificationService.sendRequesterApprovalNotification] HTML after substitution contains prayerFor:",
+            html.includes(payload.prayerFor)
+          );
         } else {
-          throw new Error('Template not found');
+          throw new Error("Template not found");
         }
       } catch (error) {
-        console.warn('Failed to load requester_approval template, using fallback:', error);
+        console.warn(
+          "Failed to load requester_approval template, using fallback:",
+          error
+        );
         subject = `Your Prayer Request Has Been Approved: ${payload.title}`;
         body = `Great news! Your prayer request has been approved and is now live on the prayer app.\n\nTitle: ${payload.title}\nFor: ${payload.prayerFor}\n\nYour prayer is now being lifted up by our community. You will receive updates via email when the prayer status changes or when updates are posted.`;
-        html = this.generateRequesterApprovalHTML(payload);
-        console.log('[EmailNotificationService.sendRequesterApprovalNotification] Using fallback HTML, html contains prayerFor:', html.includes(payload.prayerFor));
+        html = generateRequesterApprovalHTML(payload, this.getEmailBaseUrl());
+        console.log(
+          "[EmailNotificationService.sendRequesterApprovalNotification] Using fallback HTML, html contains prayerFor:",
+          html.includes(payload.prayerFor)
+        );
       }
 
       await this.sendEmail({
         to: [payload.requesterEmail],
         subject,
         textBody: body,
-        htmlBody: html
+        htmlBody: html,
       });
     } catch (error) {
-      console.error('Error in sendRequesterApprovalNotification:', error);
+      console.error("Error in sendRequesterApprovalNotification:", error);
     }
   }
 
   /**
    * Send notification when a prayer is denied
    */
-  async sendDeniedPrayerNotification(payload: DeniedPrayerPayload): Promise<void> {
+  async sendDeniedPrayerNotification(
+    payload: DeniedPrayerPayload
+  ): Promise<void> {
     try {
       if (!payload.requesterEmail) {
-        console.warn('No email address for denied prayer requester');
+        console.warn("No email address for denied prayer requester");
         return;
       }
 
       let subject = `Prayer Request Not Approved: ${payload.title}`;
       let body = `Unfortunately, your prayer request could not be approved at this time.\n\nTitle: ${payload.title}\nRequested by: ${payload.requester}\n\nReason: ${payload.denialReason}\n\nIf you have questions, please contact the administrator.`;
-      let html = this.generateDeniedPrayerHTML(payload);
+      let html = generateDeniedPrayerHTML(payload, this.getEmailBaseUrl());
 
       try {
-        const template = await this.getTemplate('denied_prayer');
+        const template = await this.getTemplate("denied_prayer");
         if (template) {
           const textVariables = {
             prayerTitle: payload.title,
             prayerDescription: markdownToPlainText(payload.description),
             denialReason: payload.denialReason,
-            appLink: `${this.getEmailBaseUrl()}/`
+            appLink: buildAppHomeLink(this.getEmailBaseUrl()),
           };
           const htmlVariables = {
             ...textVariables,
-            prayerDescription: markdownToSafeHtml(payload.description)
+            prayerDescription: markdownToSafeHtml(payload.description),
           };
-          subject = this.applyTemplateVariables(template.subject, textVariables);
+          subject = this.applyTemplateVariables(
+            template.subject,
+            textVariables
+          );
           body = this.applyTemplateVariables(template.text_body, textVariables);
           html = this.applyTemplateVariables(template.html_body, htmlVariables);
         }
       } catch (templateError) {
-        console.warn('Failed to fetch denied_prayer template, using fallback:', templateError);
+        console.warn(
+          "Failed to fetch denied_prayer template, using fallback:",
+          templateError
+        );
       }
 
       await this.sendEmail({
         to: [payload.requesterEmail],
         subject,
         textBody: body,
-        htmlBody: html
+        htmlBody: html,
       });
     } catch (error) {
-      console.error('Error in sendDeniedPrayerNotification:', error);
+      console.error("Error in sendDeniedPrayerNotification:", error);
     }
   }
 
   /**
    * Send notification when an update is denied
    */
-  async sendDeniedUpdateNotification(payload: DeniedUpdatePayload): Promise<void> {
+  async sendDeniedUpdateNotification(
+    payload: DeniedUpdatePayload
+  ): Promise<void> {
     try {
       if (!payload.authorEmail) {
-        console.warn('No email address for denied update author');
+        console.warn("No email address for denied update author");
         return;
       }
 
       let subject = `Prayer Update Not Approved: ${payload.prayerTitle}`;
       let body = `Unfortunately, your update for "${payload.prayerTitle}" could not be approved at this time.\n\nUpdate by: ${payload.author}\n\nReason: ${payload.denialReason}\n\nIf you have questions, please contact the administrator.`;
-      let html = this.generateDeniedUpdateHTML(payload);
+      let html = generateDeniedUpdateHTML(payload, this.getEmailBaseUrl());
 
       try {
-        const template = await this.getTemplate('denied_update');
+        const template = await this.getTemplate("denied_update");
         if (template) {
           const textVariables = {
             prayerTitle: payload.prayerTitle,
             updateContent: markdownToPlainText(payload.content),
             denialReason: payload.denialReason,
-            appLink: `${this.getEmailBaseUrl()}/`
+            appLink: buildAppHomeLink(this.getEmailBaseUrl()),
           };
           const htmlVariables = {
             ...textVariables,
-            updateContent: markdownToSafeHtml(payload.content)
+            updateContent: markdownToSafeHtml(payload.content),
           };
-          subject = this.applyTemplateVariables(template.subject, textVariables);
+          subject = this.applyTemplateVariables(
+            template.subject,
+            textVariables
+          );
           body = this.applyTemplateVariables(template.text_body, textVariables);
           html = this.applyTemplateVariables(template.html_body, htmlVariables);
         }
       } catch (templateError) {
-        console.warn('Failed to fetch denied_update template, using fallback:', templateError);
+        console.warn(
+          "Failed to fetch denied_update template, using fallback:",
+          templateError
+        );
       }
 
       await this.sendEmail({
         to: [payload.authorEmail],
         subject,
         textBody: body,
-        htmlBody: html
+        htmlBody: html,
       });
     } catch (error) {
-      console.error('Error in sendDeniedUpdateNotification:', error);
+      console.error("Error in sendDeniedUpdateNotification:", error);
     }
   }
 
   /**
    * Send notification to update author when their update is approved
    */
-  async sendUpdateAuthorApprovalNotification(payload: UpdateAuthorApprovalPayload): Promise<void> {
+  async sendUpdateAuthorApprovalNotification(
+    payload: UpdateAuthorApprovalPayload
+  ): Promise<void> {
     try {
       if (!payload.authorEmail) {
-        console.warn('No email address for update author');
+        console.warn("No email address for update author");
         return;
       }
 
@@ -670,39 +651,52 @@ export class EmailNotificationService {
       let html: string;
 
       try {
-        const template = await this.getTemplate('update_author_approval');
+        const template = await this.getTemplate("update_author_approval");
         if (template) {
           const textVariables = {
             prayerTitle: payload.prayerTitle,
             updateContent: markdownToPlainText(payload.content),
             author: payload.author,
-            appLink: `${this.getEmailBaseUrl()}/`
+            appLink: buildAppHomeLink(this.getEmailBaseUrl()),
           };
           const htmlVariables = {
             ...textVariables,
-            updateContent: markdownToSafeHtml(payload.content)
+            updateContent: markdownToSafeHtml(payload.content),
           };
-          subject = this.applyTemplateVariables(template.subject, textVariables);
+          subject = this.applyTemplateVariables(
+            template.subject,
+            textVariables
+          );
           body = this.applyTemplateVariables(template.text_body, textVariables);
           html = this.applyTemplateVariables(template.html_body, htmlVariables);
         } else {
-          throw new Error('Template not found');
+          throw new Error("Template not found");
         }
       } catch (error) {
-        console.warn('Failed to load update_author_approval template, using fallback:', error);
+        console.warn(
+          "Failed to load update_author_approval template, using fallback:",
+          error
+        );
         subject = `Your Update Has Been Approved: ${payload.prayerTitle}`;
-        body = `Great news! Your update for "${payload.prayerTitle}" has been approved and is now live on the prayer app.\n\nUpdate: ${markdownToPlainText(payload.content)}\n\nThank you for keeping our community updated!`;
-        html = this.generateUpdateAuthorApprovalHTML(payload);
+        body = `Great news! Your update for "${
+          payload.prayerTitle
+        }" has been approved and is now live on the prayer app.\n\nUpdate: ${markdownToPlainText(
+          payload.content
+        )}\n\nThank you for keeping our community updated!`;
+        html = generateUpdateAuthorApprovalHTML(
+          payload,
+          this.getEmailBaseUrl()
+        );
       }
 
       await this.sendEmail({
         to: [payload.authorEmail],
         subject,
         textBody: body,
-        htmlBody: html
+        htmlBody: html,
       });
     } catch (error) {
-      console.error('Error in sendUpdateAuthorApprovalNotification:', error);
+      console.error("Error in sendUpdateAuthorApprovalNotification:", error);
     }
   }
 
@@ -710,26 +704,30 @@ export class EmailNotificationService {
    * Send notification to admins when new items need approval
    * Sends individual emails to each admin with personalized approval links
    */
-  async sendAdminNotification(payload: AdminNotificationPayload): Promise<void> {
+  async sendAdminNotification(
+    payload: AdminNotificationPayload
+  ): Promise<void> {
     try {
       // Get admin emails from email_subscribers table (receive_admin_emails only; not tied to is_active)
       const { data: admins, error: adminsError } = await this.supabase.client
-        .from('email_subscribers')
-        .select('email')
-        .eq('is_admin', true)
-        .eq('receive_admin_emails', true);
+        .from("email_subscribers")
+        .select("email")
+        .eq("is_admin", true)
+        .eq("receive_admin_emails", true);
 
       if (adminsError) {
-        console.error('Error fetching admin emails:', adminsError);
+        console.error("Error fetching admin emails:", adminsError);
         return;
       }
 
       if (!admins || admins.length === 0) {
-        console.warn('No admins configured to receive notifications. Please enable admin email notifications in Admin User Management.');
+        console.warn(
+          "No admins configured to receive notifications. Please enable admin email notifications in Admin User Management."
+        );
         return;
       }
 
-      const adminEmails = admins.map(admin => admin.email);
+      const adminEmails = admins.map((admin) => admin.email);
 
       // Send individual emails to each admin
       for (const adminEmail of adminEmails) {
@@ -738,24 +736,20 @@ export class EmailNotificationService {
 
       // Send push to admins who have receive_admin_push enabled (best-effort)
       try {
-        const body =
-          payload.type === 'prayer'
-            ? `New prayer request${payload.requester ? ` from ${payload.requester}` : ''}.`
-            : payload.type === 'update'
-              ? `New update${payload.author ? ` from ${payload.author}` : ''}.`
-              : payload.type === 'deletion'
-                ? `Deletion request for ${payload.title}.`
-                : 'Action required in admin.';
+        const body = adminNotificationPushBody(payload);
         await this.pushNotification.sendPushToAdmins({
           title: payload.title,
           body,
-          data: { type: payload.type, ...(payload.requestId && { requestId: payload.requestId }) },
+          data: {
+            type: payload.type,
+            ...(payload.requestId && { requestId: payload.requestId }),
+          },
         });
       } catch (pushErr) {
-        console.error('Error sending admin push notification:', pushErr);
+        console.error("Error sending admin push notification:", pushErr);
       }
     } catch (error) {
-      console.error('Error in sendAdminNotification:', error);
+      console.error("Error in sendAdminNotification:", error);
       // Don't throw - we don't want email failures to break the app
     }
   }
@@ -763,575 +757,106 @@ export class EmailNotificationService {
   /**
    * Send account approval request notification to all admins
    */
-  async sendAccountApprovalNotification(email: string, firstName: string, lastName: string, affiliationReason?: string): Promise<void> {
+  async sendAccountApprovalNotification(
+    email: string,
+    firstName: string,
+    lastName: string,
+    affiliationReason?: string
+  ): Promise<void> {
     try {
       // Get all admin emails (receive_admin_emails only; not tied to is_active)
-      const { data: admins, error: adminsError } = await this.supabase.directQuery<{ email: string }>(
-        'email_subscribers',
-        {
-          select: 'email',
-          eq: { is_admin: true, receive_admin_emails: true }
-        }
-      );
+      const { data: admins, error: adminsError } =
+        await this.supabase.directQuery<{ email: string }>(
+          "email_subscribers",
+          {
+            select: "email",
+            eq: { is_admin: true, receive_admin_emails: true },
+          }
+        );
 
-      if (adminsError || !admins || !Array.isArray(admins) || admins.length === 0) {
-        console.error('No admins found for account approval notification:', adminsError);
+      if (
+        adminsError ||
+        !admins ||
+        !Array.isArray(admins) ||
+        admins.length === 0
+      ) {
+        console.error(
+          "No admins found for account approval notification:",
+          adminsError
+        );
         return;
       }
 
       // Send notification to each admin
       for (const admin of admins) {
-        await this.sendAccountApprovalNotificationToEmail(email, firstName, lastName, affiliationReason || '', admin.email);
+        await this.sendAccountApprovalNotificationToEmail(
+          email,
+          firstName,
+          lastName,
+          affiliationReason || "",
+          admin.email
+        );
       }
 
       // Send push to admins who have receive_admin_push enabled (best-effort)
       try {
         await this.pushNotification.sendPushToAdmins({
-          title: 'Account approval request',
+          title: "Account approval request",
           body: `${firstName} ${lastName} (${email})`,
-          data: { type: 'account_approval_request' },
+          data: { type: "account_approval_request" },
         });
       } catch (pushErr) {
-        console.error('Error sending admin push for account approval:', pushErr);
+        console.error(
+          "Error sending admin push for account approval:",
+          pushErr
+        );
       }
     } catch (error) {
-      console.error('Error in sendAccountApprovalNotification:', error);
+      console.error("Error in sendAccountApprovalNotification:", error);
       // Don't throw - we don't want email failures to break the app
     }
+  }
+
+  private mailDeps() {
+    return {
+      getTemplate: (templateKey: string) => this.getTemplate(templateKey),
+      sendEmail: (options: SendEmailOptions) => this.sendEmail(options),
+      getEmailBaseUrl: () => this.getEmailBaseUrl(),
+    };
   }
 
   /**
    * Send account approval notification to a single admin
    */
-  private async sendAccountApprovalNotificationToEmail(email: string, firstName: string, lastName: string, affiliationReason: string, adminEmail: string): Promise<void> {
-    try {
-      // Link to admin site - admins will log in normally
-      const baseUrl = this.getEmailBaseUrl();
-      const adminLink = `${baseUrl}/admin`;
-      
-      // Get template from database
-      const template = await this.getTemplate('account_approval_request');
-      
-      if (!template) {
-        console.error('Account approval request template not found');
-        return;
-      }
-      
-      const requestedDate = new Date().toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      // Replace variables in template
-      const subject = this.applyTemplateVariables(template.subject, {
-        firstName,
-        lastName,
-        email
-      });
-      
-      const html = this.applyTemplateVariables(template.html_body, {
-        firstName,
-        lastName,
-        email,
-        affiliationReason,
-        requestedDate,
-        adminLink
-      });
-      
-      const body = this.applyTemplateVariables(template.text_body, {
-        firstName,
-        lastName,
-        email,
-        affiliationReason,
-        requestedDate,
-        adminLink
-      });
-      
-      await this.sendEmail({
-        to: [adminEmail],
-        subject,
-        textBody: body,
-        htmlBody: html
-      });
-    } catch (error) {
-      console.error('Error in sendAccountApprovalNotificationToEmail:', error);
-      // Don't throw - we don't want email failures to break the app
-    }
+  private async sendAccountApprovalNotificationToEmail(
+    email: string,
+    firstName: string,
+    lastName: string,
+    affiliationReason: string,
+    adminEmail: string
+  ): Promise<void> {
+    await deliverAccountApprovalNotificationEmail(
+      this.mailDeps(),
+      email,
+      firstName,
+      lastName,
+      affiliationReason,
+      adminEmail
+    );
   }
 
   /**
    * Send notification to a single admin with personalized approval link
    */
-  private async sendAdminNotificationToEmail(payload: AdminNotificationPayload, adminEmail: string): Promise<void> {
-    try {
-      // Link to admin site - admins will log in normally to handle approvals
-      const adminLink = `${this.getEmailBaseUrl()}/admin`;
-
-      let subject: string;
-      let body: string;
-      let html: string | undefined;
-
-      // Load appropriate template based on payload type
-      try {
-        let templateKey: string;
-        let textVariables: Record<string, string>;
-        let htmlVariables: Record<string, string>;
-
-        switch (payload.type) {
-          case 'prayer':
-            templateKey = 'admin_notification_prayer';
-            textVariables = {
-              prayerTitle: payload.title,
-              requesterName: payload.requester || 'Anonymous',
-              prayerDescription: payload.description ? markdownToPlainText(payload.description) : 'No description provided',
-              adminLink
-            };
-            htmlVariables = {
-              ...textVariables,
-              prayerDescription: payload.description ? markdownToSafeHtml(payload.description) : 'No description provided'
-            };
-            break;
-
-          case 'update':
-            templateKey = 'admin_notification_update';
-            textVariables = {
-              prayerTitle: payload.title,
-              authorName: payload.author || 'Anonymous',
-              updateContent: payload.content ? markdownToPlainText(payload.content) : 'No content provided',
-              adminLink
-            };
-            htmlVariables = {
-              ...textVariables,
-              updateContent: payload.content ? markdownToSafeHtml(payload.content) : 'No content provided'
-            };
-            break;
-
-          case 'deletion':
-            templateKey = 'admin_notification_deletion';
-            textVariables = {
-              prayerTitle: payload.title,
-              requestedBy: payload.requester || 'Anonymous',
-              reason: payload.reason || 'No reason provided',
-              adminLink
-            };
-            htmlVariables = textVariables;
-            break;
-
-          default:
-            subject = `New Admin Action Required: ${payload.title}`;
-            body = `A new item requires your attention in the admin portal.`;
-            throw new Error('Unknown payload type');
-        }
-
-        const template = await this.getTemplate(templateKey);
-
-        if (template) {
-          subject = this.applyTemplateVariables(template.subject, textVariables);
-          body = this.applyTemplateVariables(template.text_body, textVariables);
-          html = this.applyTemplateVariables(template.html_body, htmlVariables);
-        } else {
-          throw new Error(`Template ${templateKey} not found`);
-        }
-      } catch (error) {
-        // Fallback templates
-        if (payload.type === 'prayer') {
-          subject = `New Prayer Request: ${payload.title}`;
-          body = `A new prayer request has been submitted and is pending approval.\n\nTitle: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nDescription: ${markdownToPlainText(payload.description) || 'No description provided'}\n\nApprove this request here: ${adminLink}`;
-          html = this.generateAdminNotificationPrayerHTML(payload, adminLink);
-        } else if (payload.type === 'update') {
-          subject = `New Prayer Update: ${payload.title}`;
-          body = `A new prayer update has been submitted and is pending approval.\n\nPrayer: ${payload.title}\nUpdate by: ${payload.author || 'Anonymous'}\n\nContent: ${markdownToPlainText(payload.content) || 'No content provided'}\n\nApprove this request here: ${adminLink}`;
-          html = this.generateAdminNotificationUpdateHTML(payload, adminLink);
-        } else if (payload.type === 'deletion') {
-          subject = `Deletion Request: ${payload.title}`;
-          body = `A deletion request has been submitted for a prayer.\n\nPrayer: ${payload.title}\nRequested by: ${payload.requester || 'Anonymous'}\n\nReason: ${payload.reason || 'No reason provided'}\n\nApprove this request here: ${adminLink}`;
-          html = this.generateAdminNotificationDeletionHTML(payload, adminLink);
-        } else {
-          subject = `New Admin Action Required`;
-          body = `A new item requires your attention in the admin portal: ${adminLink}`;
-        }
-      }
-
-      // Send email
-      await this.sendEmail({
-        to: [adminEmail],
-        subject,
-        textBody: body,
-        htmlBody: html
-      });
-    } catch (error) {
-      console.error('Error in sendAdminNotificationToEmail:', error);
-      // Don't throw - we don't want email failures to break the app
-    }
-  }
-
-  // HTML template generators (fallbacks when templates not found in DB)
-
-  private generateApprovedPrayerHTML(payload: ApprovedPrayerPayload): string {
-    const appUrl = this.buildSubscriberAppLink(payload.status);
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>New Prayer Request</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">🙏 New Prayer Request</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
-            <div style="margin-bottom: 15px;">
-              <p style="margin: 5px 0;"><strong>For:</strong> ${payload.prayerFor}</p>
-              <p style="margin: 5px 0;"><strong>Requested by:</strong> ${payload.requester}</p>
-              <p style="margin: 5px 0;"><strong>Status:</strong> ${payload.status}</p>
-            </div>
-            <p><strong>Description:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981;">${markdownToSafeHtml(payload.description)}</div>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Prayer</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This prayer has been approved and is now active. Join us in prayer!</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateAnsweredPrayerHTML(payload: ApprovedPrayerPayload): string {
-    const appUrl = this.buildSubscriberAppLink(payload.status);
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Prayer Answered</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Prayer Answered!</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <div style="display: inline-block; background: #10b981; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 15px;">✓ Answered Prayer</div>
-            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
-            <div style="margin-bottom: 15px;">
-              <p style="margin: 5px 0;"><strong>For:</strong> ${payload.prayerFor}</p>
-              <p style="margin: 5px 0;"><strong>Requested by:</strong> ${payload.requester}</p>
-            </div>
-            <p><strong>Description:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981;">${markdownToSafeHtml(payload.description)}</div>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Prayer</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>Let's give thanks and praise for this answered prayer!</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateApprovedUpdateHTML(payload: ApprovedUpdatePayload): string {
-    const appUrl = this.buildSubscriberAppLink(payload.prayerStatus);
-    const isAnswered = payload.markedAsAnswered || false;
-
-    const gradientColors = isAnswered ? '#10b981, #059669' : '#3b82f6, #2563eb';
-    const icon = isAnswered ? '🎉' : '💬';
-    const title = isAnswered ? 'Prayer Answered!' : 'Prayer Update';
-    const borderColor = isAnswered ? '#10b981' : '#3b82f6';
-    const buttonColor = isAnswered ? '#10b981' : '#3b82f6';
-    const statusBadge = isAnswered
-      ? '<div style="display: inline-block; background: #10b981; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 15px;">✓ Answered Prayer</div>'
-      : '';
-    const closingMessage = isAnswered
-      ? "Let's give thanks and praise for this answered prayer!"
-      : "Let's continue to lift this prayer up together.";
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${title}</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, ${gradientColors}); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">${icon} ${title}</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            ${statusBadge}
-            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${payload.prayerTitle}</h2>
-            <p style="margin: 5px 0 15px 0;"><strong>Posted by:</strong> ${payload.author}</p>
-            <p><strong>Update:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid ${borderColor};">${markdownToSafeHtml(payload.content)}</div>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${appUrl}" style="background: ${buttonColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Prayer</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>${closingMessage}</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateRequesterApprovalHTML(payload: RequesterApprovalPayload): string {
-    const appUrl = `${this.getEmailBaseUrl()}/`;
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Prayer Request Approved</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">✅ Prayer Request Approved!</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">Great news, ${payload.requester}!</h2>
-            <p style="margin-bottom: 20px;">Your prayer request has been approved and is now active in our prayer community.</p>
-            
-            <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <p style="margin: 0 0 10px 0; color: #065f46; font-size: 14px;"><strong>Your Prayer Request:</strong></p>
-              <p style="margin: 0 0 5px 0; color: #065f46; font-weight: 600; font-size: 18px;">${payload.title}</p>
-              <p style="margin: 0 0 10px 0; color: #047857; font-size: 14px;"><strong>Prayer for:</strong> ${payload.prayerFor}</p>
-              <div style="color: #047857;">${markdownToSafeHtml(payload.description)}</div>
-            </div>
-            
-            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0; color: #0c4a6e; font-size: 14px;">
-                <strong>What happens next?</strong><br>
-                • Your prayer is now visible to our community<br>
-                • People can pray for this request and post updates<br>
-                • You'll receive email notifications when updates are posted<br>
-                • You can visit the app anytime to see the latest
-              </p>
-            </div>
-
-            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">Thank you for sharing this prayer need with our community. We are honored to pray alongside you!</p>
-            
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">View Your Prayer</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>You're receiving this because you submitted a prayer request to our prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateDeniedPrayerHTML(payload: DeniedPrayerPayload): string {
-    const appUrl = `${this.getEmailBaseUrl()}/`;
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Prayer Request Not Approved</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">📋 Prayer Request Status</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
-            <p style="margin-bottom: 15px;">Thank you for submitting your prayer request. After careful review, we are unable to approve this request at this time.</p>
-            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong></p>
-              <p style="margin: 10px 0 0 0; color: #991b1b;">${payload.denialReason}</p>
-            </div>
-            <p style="margin-top: 20px;"><strong>Your Submission:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">${markdownToSafeHtml(payload.description)}</div>
-            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">If you have questions or would like to discuss this decision, please feel free to contact the administrator.</p>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${appUrl}" style="background: #6b7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateDeniedUpdateHTML(payload: DeniedUpdatePayload): string {
-    const appUrl = `${this.getEmailBaseUrl()}/`;
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Prayer Update Not Approved</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">💬 Update Status</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${payload.prayerTitle}</h2>
-            <p style="margin-bottom: 15px;">Thank you for submitting an update. After careful review, we are unable to approve this update at this time.</p>
-            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong></p>
-              <p style="margin: 10px 0 0 0; color: #991b1b;">${payload.denialReason}</p>
-            </div>
-            <p style="margin-top: 20px;"><strong>Your Update:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">${markdownToSafeHtml(payload.content)}</div>
-            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">If you have questions or would like to discuss this decision, please feel free to contact the administrator.</p>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${appUrl}" style="background: #6b7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateUpdateAuthorApprovalHTML(payload: UpdateAuthorApprovalPayload): string {
-    const appUrl = `${this.getEmailBaseUrl()}/`;
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Update Approved</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #10b981, #059669); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">✅ Update Approved</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${payload.prayerTitle}</h2>
-            <p style="margin-bottom: 15px;">Great news! Your update has been approved and is now live on the prayer app.</p>
-            <p style="margin-top: 20px;"><strong>Your Update:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">${markdownToSafeHtml(payload.content)}</div>
-            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">Thank you for keeping our community updated on this prayer!</p>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-  
-  private generateAdminNotificationPrayerHTML(payload: AdminNotificationPayload, adminLink: string): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>New Prayer Request</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">🙏 New Prayer Request</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
-            <p><strong>Requested by:</strong> ${payload.requester || 'Anonymous'}</p>
-            <p><strong>Description:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6;">${payload.description ? markdownToSafeHtml(payload.description) : 'No description provided'}</div>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${adminLink}" style="background: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateAdminNotificationUpdateHTML(payload: AdminNotificationPayload, adminLink: string): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>New Prayer Update</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #3b82f6, #2563eb); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">💬 New Prayer Update</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${payload.title}</h2>
-            <p><strong>Update by:</strong> ${payload.author || 'Anonymous'}</p>
-            <p><strong>Content:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6;">${payload.content ? markdownToSafeHtml(payload.content) : 'No content provided'}</div>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${adminLink}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateAdminNotificationDeletionHTML(payload: AdminNotificationPayload, adminLink: string): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Deletion Request</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #dc2626, #991b1b); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">🗑️ Deletion Request</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
-            <p><strong>Requested by:</strong> ${payload.requester || 'Anonymous'}</p>
-            <p><strong>Reason:</strong></p>
-            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #dc2626;">${payload.reason || 'No reason provided'}</p>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${adminLink}" style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
+  private async sendAdminNotificationToEmail(
+    payload: AdminNotificationPayload,
+    adminEmail: string
+  ): Promise<void> {
+    await deliverAdminItemNotificationEmail(
+      this.mailDeps(),
+      payload,
+      adminEmail
+    );
   }
 
   /**
@@ -1340,88 +865,46 @@ export class EmailNotificationService {
   async sendSubscriberWelcomeNotification(email: string): Promise<void> {
     try {
       if (!email) {
-        console.warn('No email address provided for subscriber welcome notification');
+        console.warn(
+          "No email address provided for subscriber welcome notification"
+        );
         return;
       }
 
-      const template = await this.getTemplate('subscriber_welcome');
+      const template = await this.getTemplate("subscriber_welcome");
       let subject: string;
       let htmlContent: string;
       let textContent: string;
 
       if (template) {
         const variables = {
-          appLink: `${this.getEmailBaseUrl()}/`
+          appLink: buildAppHomeLink(this.getEmailBaseUrl()),
         };
         subject = this.applyTemplateVariables(template.subject, variables);
-        htmlContent = this.applyTemplateVariables(template.html_body, variables);
-        textContent = this.applyTemplateVariables(template.text_body, variables);
+        htmlContent = this.applyTemplateVariables(
+          template.html_body,
+          variables
+        );
+        textContent = this.applyTemplateVariables(
+          template.text_body,
+          variables
+        );
       } else {
-        // Fallback content
-        subject = 'Welcome to Our Prayer Community! 🙏';
-        htmlContent = this.generateWelcomeEmailHTML();
-        textContent = 'Welcome to our prayer community! We are thrilled to have you join us. Visit the app to learn more about how you can participate.';
+        subject = "Welcome to Our Prayer Community! 🙏";
+        htmlContent = generateWelcomeEmailHTML(this.getEmailBaseUrl());
+        textContent =
+          "Welcome to our prayer community! We are thrilled to have you join us. Visit the app to learn more about how you can participate.";
       }
 
       await this.sendEmail({
         to: [email],
         subject,
         htmlBody: htmlContent,
-        textBody: textContent
+        textBody: textContent,
       });
     } catch (error) {
-      console.error('Error in sendSubscriberWelcomeNotification:', error);
+      console.error("Error in sendSubscriberWelcomeNotification:", error);
       // Don't re-throw - let the error be logged but don't block subscriber addition
     }
-  }
-
-  /**
-   * Fallback HTML for welcome email
-   */
-  private generateWelcomeEmailHTML(): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Welcome to Prayer Community</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #2B2B2B; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #0047AB, #3E5266); padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Our Prayer Community! 🙏</h1>
-            <p style="color: #E8E5E1; margin: 10px 0 0 0; font-size: 16px;">You're now part of something meaningful</p>
-          </div>
-          <div style="background: #F8F7F5; padding: 20px; border: 1px solid #D1CCC4; border-top: none; border-radius: 0 0 8px 8px;">
-            <p style="font-size: 16px; margin-bottom: 20px;">Hello,</p>
-            <p style="margin-bottom: 20px;">We're so glad you've joined our prayer community! You're now connected to a group of people who believe in the power of prayer and the importance of lifting each other up.</p>
-            <div style="background: #E8E5E1; border-left: 4px solid #39704D; padding: 20px; border-radius: 6px; margin: 25px 0;">
-              <h3 style="margin-top: 0; color: #39704D;">What You Can Do:</h3>
-              <ul style="margin: 10px 0; padding-left: 20px; color: #2B2B2B;">
-                <li style="margin: 8px 0;"><strong>Submit Prayer Requests</strong> - Share what's on your heart. Our community will pray for your needs, whether big or small.</li>
-                <li style="margin: 8px 0;"><strong>Receive Prayer Updates</strong> - Get notified when community members share updates about their prayers, answered prayers, and God's faithfulness at work in their lives.</li>
-                <li style="margin: 8px 0;"><strong>Stay Informed</strong> - Choose how often you want to hear from us. You can adjust your email preferences anytime.</li>
-                <li style="margin: 8px 0;"><strong>Be Encouraged</strong> - Read stories of answered prayers and see how God is working in the lives of those around you.</li>
-                <li style="margin: 8px 0;"><strong>Lift Others Up</strong> - Join in prayer for the requests that touch your heart. Your prayers make a real difference.</li>
-              </ul>
-            </div>
-            <div style="background: #FEF9E7; border: 1px solid #C9A961; border-radius: 6px; padding: 15px; margin: 25px 0;">
-              <p style="margin: 0; color: #B8860B;"><strong>💡 Pro Tip:</strong> Check out the app to explore prayers in different categories and find people and situations you'd like to pray for.</p>
-            </div>
-            <h3 style="margin-top: 25px; margin-bottom: 10px; color: #2B2B2B;">Have Feedback or Questions?</h3>
-            <p style="margin-bottom: 15px;">We'd love to hear from you! Whether you have suggestions to improve the app, questions about how things work, or feedback about your experience, we're all ears.</p>
-            <p style="margin-bottom: 15px;"><strong>📝 Share Your Feedback:</strong> You can submit feedback directly through the app using the feedback form. Just look for the "Send Feedback" option in your user menu. Your thoughts help us create a better experience for everyone.</p>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${this.getEmailBaseUrl()}/" style="background: #39704D; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Enter the Prayer App</a>
-            </div>
-          </div>
-          <div style="margin-top: 25px; text-align: center; color: #988F83; font-size: 13px; border-top: 1px solid #D1CCC4; padding-top: 20px;">
-            <p style="margin: 10px 0;"><strong>Blessings,</strong><br>Your Prayer Community Team</p>
-            <p style="margin: 10px 0; font-size: 12px;">You're receiving this email because you've joined our prayer community. This is a one-time welcome message.</p>
-            <p style="margin: 10px 0; font-size: 12px;">© 2024 Prayer Community. All rights reserved.</p>
-          </div>
-        </body>
-      </html>
-    `;
   }
 }
