@@ -1,16 +1,32 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { AdminSectionLoadingComponent } from '../admin-section-loading/admin-section-loading.component';
+import { AdminFilterSelectComponent } from '../admin-filter-select/admin-filter-select.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
+
+const CODE_LENGTH_OPTIONS = [
+  { value: '4', label: '4 digits' },
+  { value: '6', label: '6 digits (recommended)' },
+  { value: '8', label: '8 digits' },
+] as const;
+
+const CODE_EXPIRY_OPTIONS = [
+  { value: '5', label: '5 minutes' },
+  { value: '10', label: '10 minutes' },
+  { value: '15', label: '15 minutes (recommended)' },
+  { value: '20', label: '20 minutes' },
+  { value: '30', label: '30 minutes' },
+  { value: '45', label: '45 minutes' },
+  { value: '60', label: '60 minutes' },
+] as const;
 
 @Component({
   selector: 'app-email-verification-settings',
   standalone: true,
-  imports: [FormsModule, AdminSectionLoadingComponent],
+  imports: [AdminSectionLoadingComponent, AdminFilterSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
       <button
         type="button"
         id="email-verification-settings-trigger"
@@ -65,20 +81,13 @@ import { ToastService } from '../../services/toast.service';
                 Verification Code Length
               </label>
               <div class="relative">
-                <select
-                  [(ngModel)]="verificationCodeLength"
-                  id="codeLength"
-                  name="codeLength"
-                  aria-label="Verification code length"
-                  class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
-                >
-                  <option [value]="4">4 digits</option>
-                  <option [value]="6">6 digits (recommended)</option>
-                  <option [value]="8">8 digits</option>
-                </select>
-                <svg class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+                <app-admin-filter-select
+                  triggerId="codeLength"
+                  [value]="verificationCodeLength.toString()"
+                  (valueChange)="onCodeLengthChange($event)"
+                  [options]="codeLengthOptions"
+                  ariaLabel="Verification code length"
+                />
               </div>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Length of verification code sent to users
@@ -91,24 +100,13 @@ import { ToastService } from '../../services/toast.service';
                 Code Expiration Time
               </label>
               <div class="relative">
-                <select
-                  [(ngModel)]="verificationCodeExpiryMinutes"
-                  id="codeExpiry"
-                  name="codeExpiry"
-                  aria-label="Code expiration time in minutes"
-                  class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
-                >
-                  <option [value]="5">5 minutes</option>
-                  <option [value]="10">10 minutes</option>
-                  <option [value]="15">15 minutes (recommended)</option>
-                  <option [value]="20">20 minutes</option>
-                  <option [value]="30">30 minutes</option>
-                  <option [value]="45">45 minutes</option>
-                  <option [value]="60">60 minutes</option>
-                </select>
-                <svg class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+                <app-admin-filter-select
+                  triggerId="codeExpiry"
+                  [value]="verificationCodeExpiryMinutes.toString()"
+                  (valueChange)="onCodeExpiryChange($event)"
+                  [options]="codeExpiryOptions"
+                  ariaLabel="Code expiration time in minutes"
+                />
               </div>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 How long verification codes remain valid
@@ -151,6 +149,8 @@ export class EmailVerificationSettingsComponent {
   verificationCodeExpiryMinutes = 15;
   loading = false;
   saving = false;
+  readonly codeLengthOptions = CODE_LENGTH_OPTIONS;
+  readonly codeExpiryOptions = CODE_EXPIRY_OPTIONS;
 
   constructor(
     private supabase: SupabaseService,
@@ -164,6 +164,16 @@ export class EmailVerificationSettingsComponent {
       this.sectionInitialLoadDone = true;
       void this.loadSettings();
     }
+    this.cdr.markForCheck();
+  }
+
+  onCodeLengthChange(value: string): void {
+    this.verificationCodeLength = Number(value);
+    this.cdr.markForCheck();
+  }
+
+  onCodeExpiryChange(value: string): void {
+    this.verificationCodeExpiryMinutes = Number(value);
     this.cdr.markForCheck();
   }
 

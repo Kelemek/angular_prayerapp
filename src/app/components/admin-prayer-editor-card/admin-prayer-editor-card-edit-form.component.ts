@@ -12,6 +12,7 @@ import type { AdminPrayerEditorCardPanelContext } from '../../lib/admin-prayer-e
   selector: 'app-admin-prayer-editor-card-edit-form',
   standalone: true,
   imports: [CommonModule, FormsModule, RichTextEditorComponent],
+  host: { class: 'block' },
   templateUrl: './admin-prayer-editor-card-edit-form.component.html',
 })
 export class AdminPrayerEditorCardEditFormComponent {

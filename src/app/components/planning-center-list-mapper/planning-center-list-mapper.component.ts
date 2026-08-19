@@ -20,7 +20,7 @@ interface EmailSubscriber {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
       <button
         type="button"
         id="planning-center-list-mapper-trigger"
@@ -75,12 +75,12 @@ interface EmailSubscriber {
               [(ngModel)]="subscriberSearch"
               (input)="filterSubscribers()"
               placeholder="Search by name or email..."
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-inset-surface text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
           <!-- Subscriber dropdown -->
-          @if (filteredSubscribers.length > 0) {
+          @if (subscriberSearch.trim() && filteredSubscribers.length > 0) {
             <div class="mt-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 max-h-48 overflow-y-auto z-10">
               @for (subscriber of filteredSubscribers; track subscriber.id) {
                 <button
@@ -116,7 +116,7 @@ interface EmailSubscriber {
                 (input)="filterLists()"
                 [disabled]="loadingLists"
                 placeholder="Search Planning Center lists..."
-                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-inset-surface text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               />
               @if (loadingLists) {
                 <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -126,7 +126,7 @@ interface EmailSubscriber {
             </div>
 
             <!-- Lists dropdown -->
-            @if (filteredLists.length > 0) {
+            @if (listSearch.trim() && filteredLists.length > 0) {
               <div class="mt-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 max-h-48 overflow-y-auto z-10">
                 @for (list of filteredLists; track list.id) {
                   <button
@@ -283,7 +283,7 @@ export class PlanningCenterListMapperComponent {
         throw new Error(result.error);
       }
       this.allLists = result.lists;
-      this.filteredLists = result.lists;
+      this.filteredLists = [];
       this.cdr.markForCheck();
     } catch (error) {
       console.error('Error loading Planning Center lists:', error);
@@ -310,14 +310,22 @@ export class PlanningCenterListMapperComponent {
   }
 
   filterSubscribers() {
-    const search = this.subscriberSearch.toLowerCase();
+    const search = this.subscriberSearch.trim().toLowerCase();
+    if (!search) {
+      this.filteredSubscribers = [];
+      return;
+    }
     this.filteredSubscribers = this.subscribers.filter(
       sub => sub.name.toLowerCase().includes(search) || sub.email.toLowerCase().includes(search)
     );
   }
 
   filterLists() {
-    const search = this.listSearch.toLowerCase();
+    const search = this.listSearch.trim().toLowerCase();
+    if (!search) {
+      this.filteredLists = [];
+      return;
+    }
     this.filteredLists = this.allLists.filter(
       list => list.name.toLowerCase().includes(search) || (list.description || '').toLowerCase().includes(search)
     );
@@ -342,6 +350,8 @@ export class PlanningCenterListMapperComponent {
     this.selectedList = null;
     this.subscriberSearch = '';
     this.listSearch = '';
+    this.filteredSubscribers = [];
+    this.filteredLists = [];
     this.cdr.markForCheck();
   }
 

@@ -31,6 +31,7 @@ import { AdminPrayerEditorCardExpandedComponent } from './admin-prayer-editor-ca
     AdminPrayerEditorCardExpandedComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   templateUrl: './admin-prayer-editor-card.component.html',
 })
 export class AdminPrayerEditorCardComponent implements AdminPrayerEditorCardPanelContext {

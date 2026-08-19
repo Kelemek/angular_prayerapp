@@ -1,18 +1,24 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { AdminSectionLoadingComponent } from '../admin-section-loading/admin-section-loading.component';
+import { AdminFilterSelectComponent } from '../admin-filter-select/admin-filter-select.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 
 type AllowanceLevel = 'everyone' | 'original-requestor' | 'admin-only';
 
+const ALLOWANCE_LEVEL_OPTIONS = [
+  { value: 'everyone', label: 'Everyone' },
+  { value: 'original-requestor', label: 'Original Requestor Only' },
+  { value: 'admin-only', label: 'Admin Only' },
+] as const;
+
 @Component({
   selector: 'app-security-policy-settings',
   standalone: true,
-  imports: [FormsModule, AdminSectionLoadingComponent],
+  imports: [AdminSectionLoadingComponent, AdminFilterSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
       <button
         type="button"
         id="security-policy-settings-trigger"
@@ -79,20 +85,13 @@ type AllowanceLevel = 'everyone' | 'original-requestor' | 'admin-only';
                 Prayer & Update Deletion Policy
               </h4>
               <div class="relative">
-                <select
-                  id="deletionsAllowed"
-                  [(ngModel)]="deletionsAllowed"
-                  name="deletionsAllowed"
-                  aria-label="Policy for prayer and update deletions"
-                  class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
-                >
-                  <option value="everyone">Everyone</option>
-                  <option value="original-requestor">Original Requestor Only</option>
-                  <option value="admin-only">Admin Only</option>
-                </select>
-                <svg class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+                <app-admin-filter-select
+                  triggerId="deletionsAllowed"
+                  [value]="deletionsAllowed"
+                  (valueChange)="onDeletionsAllowedChange($event)"
+                  [options]="allowanceLevelOptions"
+                  ariaLabel="Policy for prayer and update deletions"
+                />
               </div>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
                 <strong class="text-gray-700 dark:text-gray-300">Everyone:</strong> Users can request to delete any prayer requests and updates. Deletions require admin approval before taking effect.
@@ -111,20 +110,13 @@ type AllowanceLevel = 'everyone' | 'original-requestor' | 'admin-only';
                 Prayer Update Policy
               </h4>
               <div class="relative">
-                <select
-                  id="updatesAllowed"
-                  [(ngModel)]="updatesAllowed"
-                  name="updatesAllowed"
-                  aria-label="Policy for prayer updates"
-                  class="w-full appearance-none px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 cursor-pointer"
-                >
-                  <option value="everyone">Everyone</option>
-                  <option value="original-requestor">Original Requestor Only</option>
-                  <option value="admin-only">Admin Only</option>
-                </select>
-                <svg class="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+                <app-admin-filter-select
+                  triggerId="updatesAllowed"
+                  [value]="updatesAllowed"
+                  (valueChange)="onUpdatesAllowedChange($event)"
+                  [options]="allowanceLevelOptions"
+                  ariaLabel="Policy for prayer updates"
+                />
               </div>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
                 <strong class="text-gray-700 dark:text-gray-300">Everyone:</strong> Users can submit updates to any existing prayer requests. Updates require admin approval before being displayed.
@@ -177,6 +169,7 @@ export class SecurityPolicySettingsComponent {
   loading = false;
   saving = false;
   error: string | null = null;
+  readonly allowanceLevelOptions = ALLOWANCE_LEVEL_OPTIONS;
 
   constructor(
     private supabase: SupabaseService,
@@ -190,6 +183,16 @@ export class SecurityPolicySettingsComponent {
       this.sectionInitialLoadDone = true;
       void this.loadSettings();
     }
+    this.cdr.markForCheck();
+  }
+
+  onDeletionsAllowedChange(value: string): void {
+    this.deletionsAllowed = value as AllowanceLevel;
+    this.cdr.markForCheck();
+  }
+
+  onUpdatesAllowedChange(value: string): void {
+    this.updatesAllowed = value as AllowanceLevel;
     this.cdr.markForCheck();
   }
 

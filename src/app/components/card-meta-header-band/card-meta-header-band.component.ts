@@ -120,7 +120,7 @@ export class CardMetaHeaderBandComponent {
     const size = this.layoutClasses.centerTextClasses;
     const nowrap =
       this.centerDate && this.centerTime ? '' : ' whitespace-nowrap';
-    return `${this.layoutClasses.centerPaddingClasses} text-center ${size} text-gray-500 dark:text-gray-400${nowrap}`;
+    return `${this.layoutClasses.centerPaddingClasses} text-center ${size} text-gray-600 dark:text-gray-400${nowrap}`;
   }
 
   get centerDragHandleClass(): string {

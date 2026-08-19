@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Presentation — spacebar in modals and form fields
+- [`presentation-controls-input.controller.ts`](src/app/services/presentation-controls-input.controller.ts): presentation keyboard shortcuts (Space, arrows, etc.) no longer fire while focus is in a text input, textarea, select, or rich-text editor (including TipTap `.ProseMirror`). Fixes Add Prayer Update and other presentation modals where Space advanced the slide instead of inserting a space.
+
 ### Prayer community service — DB and load wire libs
 - [`prayer-community.service.ts`](src/app/services/prayer-community.service.ts) (~680 lines, down from ~804) keeps catalog subjects and mutation orchestration. Supabase row adapters live in [`prayer-community-db.ts`](src/app/lib/prayer-community-db.ts). Catalog load/cache fallback wiring lives in [`prayer-community-load-wire.ts`](src/app/lib/prayer-community-load-wire.ts). Public API unchanged.
 

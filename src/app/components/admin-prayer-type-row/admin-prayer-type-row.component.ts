@@ -15,6 +15,7 @@ import { formatPrayerTypeDate } from '../../lib/admin-prayer-types-manager';
   standalone: true,
   imports: [CommonModule, DragDropModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   templateUrl: './admin-prayer-type-row.component.html',
 })
 export class AdminPrayerTypeRowComponent {

@@ -90,7 +90,7 @@
   }
 
   @if (!loading && types.length > 0) {
-    <div cdkDropList (cdkDropListDropped)="drop.emit($event)" class="space-y-2">
+    <div cdkDropList (cdkDropListDropped)="drop.emit($event)" class="flex flex-col gap-2">
       @for (type of types; track type.id) {
         <app-admin-prayer-type-row
           [type]="type"

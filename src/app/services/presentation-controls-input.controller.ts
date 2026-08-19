@@ -9,6 +9,39 @@ export interface PresentationControlsInputHost {
   onExitPresentation(): void;
 }
 
+/** Skip presentation shortcuts while the user is typing in a form control or rich text editor. */
+export function shouldIgnorePresentationKeyboardEvent(
+  event: KeyboardEvent
+): boolean {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (
+    target.isContentEditable ||
+    target.closest('[contenteditable=""], [contenteditable="true"], .ProseMirror')
+  ) {
+    return true;
+  }
+
+  const field = target.closest("textarea, select, input");
+  if (!field) {
+    return false;
+  }
+
+  if (field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) {
+    return true;
+  }
+
+  if (field instanceof HTMLInputElement) {
+    const type = (field.type || "text").toLowerCase();
+    return !["button", "submit", "reset", "image", "hidden"].includes(type);
+  }
+
+  return false;
+}
+
 @Injectable()
 export class PresentationControlsInputController {
   private touchStart: number | null = null;
@@ -87,6 +120,10 @@ export class PresentationControlsInputController {
   }
 
   handleKeyboard(event: KeyboardEvent, host: PresentationControlsInputHost): void {
+    if (shouldIgnorePresentationKeyboardEvent(event)) {
+      return;
+    }
+
     switch (event.key) {
       case "ArrowLeft":
         event.preventDefault();

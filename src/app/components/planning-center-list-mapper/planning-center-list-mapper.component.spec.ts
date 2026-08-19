@@ -129,7 +129,7 @@ describe('PlanningCenterListMapperComponent', () => {
       await component.loadLists();
 
       expect(component.allLists).toHaveLength(2);
-      expect(component.filteredLists).toHaveLength(2);
+      expect(component.filteredLists).toHaveLength(0);
       expect(component.loadingLists).toBe(false);
     });
 
@@ -237,11 +237,18 @@ describe('PlanningCenterListMapperComponent', () => {
       expect(component.filteredSubscribers).toHaveLength(0);
     });
 
-    it('should return all subscribers on empty search', () => {
+    it('returns empty array when search is blank', () => {
       component.subscriberSearch = '';
       component.filterSubscribers();
 
-      expect(component.filteredSubscribers).toHaveLength(2);
+      expect(component.filteredSubscribers).toHaveLength(0);
+    });
+
+    it('returns empty array when search is whitespace only', () => {
+      component.subscriberSearch = '   ';
+      component.filterSubscribers();
+
+      expect(component.filteredSubscribers).toHaveLength(0);
     });
   });
 
@@ -286,11 +293,18 @@ describe('PlanningCenterListMapperComponent', () => {
       expect(component.filteredLists).toHaveLength(0);
     });
 
-    it('should return all lists on empty search', () => {
+    it('returns empty array when search is blank', () => {
       component.listSearch = '';
       component.filterLists();
 
-      expect(component.filteredLists).toHaveLength(2);
+      expect(component.filteredLists).toHaveLength(0);
+    });
+
+    it('returns empty array when search is whitespace only', () => {
+      component.listSearch = '   ';
+      component.filterLists();
+
+      expect(component.filteredLists).toHaveLength(0);
     });
   });
 
@@ -351,6 +365,8 @@ describe('PlanningCenterListMapperComponent', () => {
       expect(component.selectedList).toBeNull();
       expect(component.subscriberSearch).toBe('');
       expect(component.listSearch).toBe('');
+      expect(component.filteredSubscribers).toHaveLength(0);
+      expect(component.filteredLists).toHaveLength(0);
     });
 
     it('should call markForCheck', () => {

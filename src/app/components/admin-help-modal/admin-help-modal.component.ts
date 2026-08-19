@@ -227,15 +227,6 @@ import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tou
                   }
             }
           </div>
-
-          <div class="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-b-lg">
-            <button
-              (click)="onClose()"
-              class="w-full px-4 py-2 bg-blue-600 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium cursor-pointer"
-            >
-              Close Help
-            </button>
-          </div>
         </div>
       </div>
     }

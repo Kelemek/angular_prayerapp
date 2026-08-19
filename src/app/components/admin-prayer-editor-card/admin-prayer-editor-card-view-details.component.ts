@@ -7,6 +7,7 @@ import type { AdminPrayerEditorCardPanelContext } from '../../lib/admin-prayer-e
   selector: 'app-admin-prayer-editor-card-view-details',
   standalone: true,
   imports: [CommonModule, RichTextViewComponent],
+  host: { class: 'block' },
   templateUrl: './admin-prayer-editor-card-view-details.component.html',
 })
 export class AdminPrayerEditorCardViewDetailsComponent {

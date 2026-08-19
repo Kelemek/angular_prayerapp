@@ -16,7 +16,7 @@ import { PrayerEncouragementService } from "../../services/prayer-encouragement.
   imports: [CommonModule, FormsModule, AdminSectionLoadingComponent],
   template: `
     <div
-      class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors dark:hover:bg-gray-700/40"
       [class.cursor-pointer]="!sectionExpanded"
       (click)="!sectionExpanded && onSectionToggle()"
     >

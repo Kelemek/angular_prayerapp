@@ -75,6 +75,45 @@ describe("PresentationControlsInputController", () => {
     expect(host.spies.next).toHaveBeenCalled();
   });
 
+  it("handleKeyboard ignores space in contenteditable rich text editors", () => {
+    const host = createHost();
+    const editor = document.createElement("div");
+    editor.className = "tiptap ProseMirror";
+    editor.contentEditable = "true";
+    const preventDefault = vi.fn();
+    controller.handleKeyboard(
+      { key: " ", preventDefault, target: editor } as unknown as KeyboardEvent,
+      host
+    );
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(host.spies.next).not.toHaveBeenCalled();
+  });
+
+  it("handleKeyboard ignores arrow keys in text inputs", () => {
+    const host = createHost();
+    const input = document.createElement("input");
+    input.type = "text";
+    const preventDefault = vi.fn();
+    controller.handleKeyboard(
+      { key: "ArrowRight", preventDefault, target: input } as unknown as KeyboardEvent,
+      host
+    );
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(host.spies.next).not.toHaveBeenCalled();
+  });
+
+  it("handleKeyboard ignores keys in textarea fields", () => {
+    const host = createHost();
+    const textarea = document.createElement("textarea");
+    const preventDefault = vi.fn();
+    controller.handleKeyboard(
+      { key: " ", preventDefault, target: textarea } as unknown as KeyboardEvent,
+      host
+    );
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(host.spies.next).not.toHaveBeenCalled();
+  });
+
   it("handleMouseMove does nothing when mouse is between 75-80% of screen", () => {
     const host = createHost({ initialPeriodElapsed: true, showControls: true });
     vi.stubGlobal("innerHeight", 100);

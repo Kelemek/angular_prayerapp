@@ -19,16 +19,15 @@
     <label for="pageSize" class="text-sm text-gray-600 dark:text-gray-400"
       >Items per page:</label
     >
-    <select
-      id="pageSize"
-      [ngModel]="pageSize"
-      (ngModelChange)="pageSizeChange.emit($event)"
-      class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
-    >
-      <option [ngValue]="10">10</option>
-      <option [ngValue]="50">50</option>
-      <option [ngValue]="100">100</option>
-    </select>
+    <div class="w-[4.75rem] shrink-0">
+      <app-admin-filter-select
+        triggerId="pageSize"
+        [value]="pageSize.toString()"
+        (valueChange)="onPageSizeChange($event)"
+        [options]="pageSizeOptions"
+        ariaLabel="Items per page"
+      />
+    </div>
   </div>
 
   @if (totalPages > 1) {

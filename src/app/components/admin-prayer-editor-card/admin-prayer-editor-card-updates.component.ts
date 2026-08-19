@@ -14,6 +14,7 @@ import type { AdminPrayerEditorCardPanelContext } from '../../lib/admin-prayer-e
     RichTextEditorComponent,
     RichTextViewComponent,
   ],
+  host: { class: 'block' },
   templateUrl: './admin-prayer-editor-card-updates.component.html',
 })
 export class AdminPrayerEditorCardUpdatesComponent {

@@ -18,6 +18,7 @@ import type { AdminPrayerEditorCardPanelContext } from '../../lib/admin-prayer-e
     AdminSubscriberPickComponent,
     RichTextEditorComponent,
   ],
+  host: { class: 'block' },
   templateUrl: './admin-prayer-editor-card-add-update.component.html',
 })
 export class AdminPrayerEditorCardAddUpdateComponent {

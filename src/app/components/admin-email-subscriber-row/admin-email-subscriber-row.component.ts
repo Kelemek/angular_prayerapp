@@ -17,6 +17,7 @@ import type {
   standalone: true,
   imports: [CommonModule, EmailSubscriberTimestampComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   templateUrl: './admin-email-subscriber-row.component.html',
 })
 export class AdminEmailSubscriberRowComponent {

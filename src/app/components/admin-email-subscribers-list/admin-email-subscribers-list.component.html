@@ -127,7 +127,7 @@
           >Actions</span
         >
       </div>
-      <div class="space-y-2">
+      <div class="flex flex-col gap-2">
         @for (subscriber of subscribers; track subscriber.id; let isFirst = $first) {
           <app-admin-email-subscriber-row
             [subscriber]="subscriber"

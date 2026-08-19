@@ -24,7 +24,7 @@ export interface HourlyReminderTemplateOption {
   template: `
     <div class="mb-4">
       <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 transition-colors dark:hover:bg-gray-700/40"
         [class.cursor-pointer]="!expanded"
         (click)="!expanded && toggleExpanded()"
       >
@@ -89,8 +89,8 @@ export interface HourlyReminderTemplateOption {
                 <div class="relative max-w-lg">
                   <div
                     [ngClass]="{
-                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20': showDropdown,
-                      'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                      'border-blue-500 ring-2 ring-blue-500 bg-white dark:bg-gray-800': showDropdown,
+                      'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600':
                         !showDropdown
                     }"
                     class="flex w-full rounded-lg border-2 transition-all overflow-hidden"

@@ -40,7 +40,7 @@ import type {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 transition-colors dark:hover:bg-gray-700/40"
       [class.cursor-pointer]="!sectionExpanded"
       (click)="!sectionExpanded && onSectionToggle()"
     >
@@ -132,7 +132,7 @@ import type {
                     [(ngModel)]="newCategoryName"
                     name="newCategoryName"
                     placeholder="Category name"
-                    class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     required
                   />
                   <button
@@ -183,7 +183,7 @@ import type {
                           type="text"
                           [(ngModel)]="editingCategoryName"
                           [name]="'editCat-' + group.category.id"
-                          class="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+                          class="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                         />
                         <button type="button" (click)="saveRenameCategory(group.category)" class="text-sm text-blue-600 cursor-pointer">Save</button>
                         <button type="button" (click)="cancelRename()" class="text-sm text-gray-500 cursor-pointer">Cancel</button>
@@ -202,7 +202,7 @@ import type {
                             ({{ group.items.length }})
                           </span>
                         </button>
-                        <button type="button" (click)="startRename(group.category)" class="p-1 text-gray-500 hover:text-blue-600 cursor-pointer" title="Rename">
+                        <button type="button" (click)="startRename(group.category)" class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors cursor-pointer" title="Rename">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -211,7 +211,7 @@ import type {
                         <button
                           type="button"
                           (click)="confirmRemoveCategory(group.category)"
-                          class="p-1 text-gray-500 hover:text-red-600 cursor-pointer"
+                          class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer"
                           title="Delete category"
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -281,7 +281,7 @@ import type {
                       @for (item of group.items; track item.id) {
                         <div
                           cdkDrag
-                          class="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2"
+                          class="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2"
                         >
                           <button
                             type="button"
@@ -312,7 +312,7 @@ import type {
                           <button
                             type="button"
                             (click)="confirmRemoveVerse(item)"
-                            class="p-2 text-gray-500 hover:text-red-600 cursor-pointer"
+                            class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer"
                             [attr.aria-label]="'Remove ' + item.reference"
                           >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
