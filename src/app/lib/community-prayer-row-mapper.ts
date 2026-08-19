@@ -1,4 +1,4 @@
-import type { PrayerRequest } from "../services/prayer.service";
+import type { PrayerRequest } from '../lib/prayer-types';
 
 /** Supabase `prayers` row shape when `prayer_updates` are joined. */
 export type CommunityPrayerRow = {

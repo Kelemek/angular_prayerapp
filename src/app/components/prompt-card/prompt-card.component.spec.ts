@@ -1257,7 +1257,6 @@ describe('PromptCardComponent - Core Logic', () => {
         updated_at: 't',
       };
       component.showPrayForModal = true;
-      component.prayForDoNotShowAgain = true;
       component.ngOnChanges({
         prompt: {
           previousValue: component.prompt,
@@ -1274,7 +1273,6 @@ describe('PromptCardComponent - Core Logic', () => {
         },
       });
       expect(component.showPrayForModal).toBe(false);
-      expect(component.prayForDoNotShowAgain).toBe(false);
     });
 
     it('showPrayedForBadge is true when count > 0', () => {

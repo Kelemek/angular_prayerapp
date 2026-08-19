@@ -1,12 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, beforeAll } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { MemorizationRecommendationsModalComponent } from './memorization-recommendations-modal.component';
 import { MemorizationService } from '../../services/memorization.service';
+import { resolveScriptureHoverPreviewComponentResources } from '../scripture-hover-preview/scripture-hover-preview-component-resources.spec-helper';
 import type {
   MemorizationRecommendation,
   MemorizationRecommendationCategoryGroup,
 } from '../../types/memorization';
+
+beforeAll(async () => {
+  await resolveScriptureHoverPreviewComponentResources();
+});
 
 const mockMemorization = {
   getPreferredTranslation: vi.fn(() => 'esv' as const),

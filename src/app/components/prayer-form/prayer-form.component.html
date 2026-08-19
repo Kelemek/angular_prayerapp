@@ -1,0 +1,292 @@
+@if (isOpen) {
+    <app-modal-shell
+      title="New Prayer Request"
+      titleId="prayer-form-title"
+      closeAriaLabel="Close prayer form dialog"
+      (close)="cancel()"
+    >
+        <form
+          #prayerForm="ngForm"
+          (ngSubmit)="prayerForm.valid && handleSubmit()"
+          class="p-6 space-y-4"
+        >
+          <!-- Success Message -->
+          @if (showSuccessMessage) {
+          <div
+            class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <div
+              class="flex items-center gap-2 text-green-800 dark:text-green-200"
+            >
+              <div
+                class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0"
+              >
+                <div class="w-2 h-2 bg-white rounded-full"></div>
+              </div>
+              <div>
+                <p class="font-medium">
+                  Prayer request submitted successfully!
+                </p>
+                <p class="text-sm text-green-600 dark:text-green-300">
+                  Your request is pending admin approval and will appear in the
+                  list once reviewed.
+                </p>
+              </div>
+            </div>
+          </div>
+          }
+
+          <!-- Prayer For -->
+          <div>
+            <label
+              for="prayer_for"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Prayer For <span aria-label="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="prayer_for"
+              [(ngModel)]="formData.prayer_for"
+              name="prayer_for"
+              required
+              aria-required="true"
+              aria-label="Prayer For"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100"
+              placeholder="Who or what this prayer is for"
+            />
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label
+              for="description"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Prayer Request Details <span aria-label="required">*</span>
+            </label>
+            @if (richTextEditorsEnabled) {
+            <app-rich-text-editor
+              #descriptionEditor
+              [(ngModel)]="formData.description"
+              name="description"
+              ngDefaultControl
+              required
+              ariaLabel="Prayer Request Details"
+              placeholder="Describe the prayer request in detail"
+              minHeight="6rem"
+            ></app-rich-text-editor>
+            } @else {
+            <textarea
+              id="description"
+              name="description"
+              [(ngModel)]="formData.description"
+              required
+              rows="8"
+              aria-label="Prayer Request Details"
+              placeholder="Describe the prayer request in detail"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100 min-h-[6rem] whitespace-pre-wrap"
+            ></textarea>
+            }
+          </div>
+
+          <!-- Prayer Visibility Toggle Buttons -->
+          <div id="tour-prayer-visibility" class="space-y-2">
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Prayer Visibility
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <!-- Public Prayer Button -->
+              <button
+                type="button"
+                (click)="formData.is_personal = false"
+                [class.ring-2]="!formData.is_personal"
+                class="relative flex flex-col items-center justify-start py-3 px-4 rounded-lg border-2 transition-all font-medium cursor-pointer text-left"
+                [ngClass]="
+                  !formData.is_personal
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-gray-800'
+                    : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
+                "
+                aria-pressed="!formData.is_personal"
+                aria-label="Select public prayer - requires admin approval"
+              >
+                <div class="flex items-center justify-center gap-2 text-left">
+                  <svg
+                    class="hidden sm:block w-6 h-6 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                  <div class="text-left min-w-0">
+                    <div class="text-sm sm:text-base font-semibold">
+                      Public Prayer
+                    </div>
+                    <div class="text-xs opacity-75">Pending admin approval</div>
+                  </div>
+                </div>
+              </button>
+
+              <!-- Personal Prayer Button -->
+              <button
+                type="button"
+                id="tour-prayer-choose-personal"
+                (click)="formData.is_personal = true"
+                [class.ring-2]="formData.is_personal"
+                class="relative flex flex-col items-center justify-start py-3 px-4 rounded-lg border-2 transition-all font-medium cursor-pointer text-left"
+                [ngClass]="
+                  formData.is_personal
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-gray-800'
+                    : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
+                "
+                aria-pressed="formData.is_personal"
+                aria-label="Select personal prayer - private, no approval needed"
+              >
+                <div class="flex items-center justify-center gap-2 text-left">
+                  <svg
+                    class="hidden sm:block w-6 h-6 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                  <div class="text-left min-w-0">
+                    <div class="text-sm sm:text-base font-semibold">
+                      Personal Prayer
+                    </div>
+                    <div class="text-xs opacity-75">Private, no approval</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Anonymous Checkbox - only show for public prayers -->
+          @if (!formData.is_personal) {
+          <div
+            id="tour-prayer-anonymous"
+            class="flex items-center cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              [(ngModel)]="formData.is_anonymous"
+              name="is_anonymous"
+              id="is_anonymous"
+              class="w-4 h-4 text-blue-600 border-gray-900 dark:border-white rounded focus:ring-blue-500 bg-white dark:bg-gray-800"
+            />
+            <label
+              for="is_anonymous"
+              class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+            >
+              Make this prayer anonymous (your name will not be shown publicly)
+            </label>
+          </div>
+          }
+
+          <!-- Category Field - only show for personal prayers -->
+          @if (formData.is_personal) {
+          <div class="relative">
+            <label
+              for="category"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Category
+              <span class="text-gray-500 dark:text-gray-400"
+                >(optional, {{ formData.category.length }}/50 characters
+                max)</span
+              >
+            </label>
+            <div class="space-y-2">
+              <div class="relative min-w-0">
+            <input
+              type="text"
+              id="category"
+              [(ngModel)]="formData.category"
+              name="category"
+              autocomplete="off"
+              maxlength="50"
+              aria-label="Prayer category"
+              (focus)="showCategoryDropdown = true"
+              (input)="onCategoryInput($event)"
+              (keydown)="onCategoryKeyDown($event)"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-inset-surface text-gray-900 dark:text-gray-100"
+              placeholder="e.g., Health, Family, Work (or create a new category)"
+            />
+            <!-- Category Dropdown -->
+            @if (showCategoryDropdown && filteredCategories.length > 0) {
+            <div
+              class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
+            >
+              @for (category of filteredCategories; track category; let i =
+              $index) {
+              <button
+                type="button"
+                (click)="selectCategory(category)"
+                [class.bg-blue-100]="i === selectedCategoryIndex"
+                [class.dark:bg-gray-600]="i === selectedCategoryIndex"
+                class="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:bg-blue-100 dark:focus:bg-gray-600 transition-colors cursor-pointer"
+              >
+                {{ category }}
+              </button>
+              }
+            </div>
+            }
+              </div>
+              @if (formData.category.trim()) {
+              <app-personal-category-color-picker
+                layout="inline"
+                colorDisplay="text"
+                [color]="categoryColor"
+                [categoryLabel]="formData.category"
+                (colorChange)="onCategoryColorChange($event)"
+              />
+              }
+            </div>
+          </div>
+          }
+
+          <!-- Buttons -->
+          <div class="flex justify-end pt-4">
+            <button
+              type="submit"
+              id="tour-prayer-submit-request"
+              [disabled]="
+                !prayerForm.valid ||
+                !isFormValid() ||
+                isSubmitting ||
+                showSuccessMessage
+              "
+              class="min-h-11 px-6 py-2.5 text-base font-medium btn-chip btn-chip-blue disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              aria-label="Submit prayer request"
+            >
+              {{
+                isSubmitting
+                  ? "Submitting..."
+                  : showSuccessMessage
+                  ? "Submitted"
+                  : "Submit Prayer Request"
+              }}
+            </button>
+          </div>
+        </form>
+    </app-modal-shell>
+    }

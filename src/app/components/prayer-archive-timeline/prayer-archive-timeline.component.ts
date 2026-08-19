@@ -3,368 +3,63 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { PrayerService, PrayerRequest } from '../../services/prayer.service';
 import { SupabaseService } from '../../services/supabase.service';
-
-interface TimelineEvent {
-  date: Date;
-  prayer: {
-    id: string;
-    title: string;
-  };
-  eventType: 'reminder-sent' | 'reminder-upcoming' | 'reminder-missed' | 'archive-upcoming' | 'archive-missed' | 'archived' | 'answered';
-  daysUntil: number;
-}
-
-interface TimelineDay {
-  date: Date;
-  dateStr: string;
-  events: TimelineEvent[];
-}
+import {
+  canGoNextPrayerArchiveTimelineMonth,
+  canGoPreviousPrayerArchiveTimelineMonth,
+  formatPrayerArchiveTimelineDayLabel,
+  prayerArchiveTimelineLocalDateAtMidnight,
+  prayerArchiveTimelineLocalDateString,
+  prayerArchiveTimelineMonthDisplay,
+  prayerArchiveTimelineMonthKey,
+  prayerArchiveTimelineNextDailyRunAfterUtc,
+} from '../../lib/prayer-archive-timeline-calendar';
+import {
+  buildPrayerArchiveTimelineEvents,
+  computePrayerArchiveTimelineMonthBounds,
+  filterPrayerArchiveTimelineEventsForMonth,
+  groupPrayerArchiveTimelineEventsByDay,
+} from '../../lib/prayer-archive-timeline-events';
+import {
+  prayerArchiveTimelineEventBorderClass,
+  prayerArchiveTimelineEventDotClass,
+  prayerArchiveTimelineEventLabelClass,
+  prayerArchiveTimelineMonthNavButtonClass,
+} from '../../lib/prayer-archive-timeline-ui';
+import type {
+  PrayerArchiveTimelineDay,
+  PrayerArchiveTimelineEvent,
+  PrayerArchiveTimelineEventType,
+} from '../../lib/prayer-archive-timeline-types';
+import {
+  PRAYER_ARCHIVE_TIMELINE_DEFAULT_DAYS_BEFORE_ARCHIVE as DEFAULT_DAYS_BEFORE_ARCHIVE,
+  PRAYER_ARCHIVE_TIMELINE_DEFAULT_REMINDER_INTERVAL_DAYS as DEFAULT_REMINDER_INTERVAL_DAYS,
+  PRAYER_ARCHIVE_TIMELINE_REMINDER_JOB_HOUR_UTC as REMINDER_JOB_HOUR_UTC,
+  PRAYER_ARCHIVE_TIMELINE_REMINDER_JOB_MINUTE_UTC as REMINDER_JOB_MINUTE_UTC,
+} from '../../lib/prayer-archive-timeline-types';
 
 @Component({
   selector: 'app-prayer-archive-timeline',
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40" [class.cursor-pointer]="!sectionExpanded" (click)="!sectionExpanded && onSectionToggle()">
-      <button
-        type="button"
-        id="prayer-archive-timeline-trigger"
-        class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
-        (click)="onSectionToggle(); $event.stopPropagation()"
-        [attr.aria-expanded]="sectionExpanded"
-        aria-controls="prayer-archive-timeline-panel"
-      >
-        <span class="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2 min-w-0">
-          <svg class="text-blue-600 dark:text-blue-400 shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          Prayer Timeline
-        </span>
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200"
-          [class.rotate-180]="sectionExpanded"
-          aria-hidden="true"
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-
-      @if (sectionExpanded) {
-      <div
-        id="prayer-archive-timeline-panel"
-        role="region"
-        aria-labelledby="prayer-archive-timeline-trigger"
-        class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
-      >
-      <!-- Settings Info -->
-      <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <div class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-          <p>
-            <span class="font-semibold">Reminder Interval:</span> {{ reminderIntervalDays }} days of inactivity
-          </p>
-          <p>
-            <span class="font-semibold">Archive Threshold:</span> {{ daysBeforeArchive }} days after reminder sent
-          </p>
-          <p>
-            <span class="font-semibold">Timezone:</span> {{ userTimezone }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Unified Timeline -->
-      @if (timelineEvents.length > 0) {
-        <div class="mt-8">
-          <!-- Month Navigation -->
-          <div class="flex items-center justify-between mb-6">
-            <button
-              (click)="previousMonth()"
-              [disabled]="!canGoPrevious"
-              class="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
-              [ngClass]="canGoPrevious
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer' 
-                : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              Previous
-            </button>
-            
-            <div class="text-center">
-              <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ monthDisplay }}</h3>
-            </div>
-            
-            <button
-              (click)="nextMonth()"
-              [disabled]="!canGoNext"
-              class="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
-              [ngClass]="canGoNext
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer' 
-                : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'"
-            >
-              Next
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
-          </div>
-
-          <h4 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6">Prayer Lifecycle Timeline</h4>
-          <div class="relative">
-            <!-- Timeline line -->
-            <div class="absolute left-[11px] top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 via-blue-400 to-green-400 dark:from-orange-600 dark:via-blue-600 dark:to-green-600"></div>
-
-            <!-- Timeline events -->
-            @for (day of timelineEvents; track day.dateStr) {
-              <div class="mb-8">
-                <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 ml-14">{{ day.dateStr }}</h5>
-                
-                @for (event of day.events; track event.prayer.id + event.eventType) {
-                  <div class="relative mb-4">
-                    <!-- Timeline dot positioned on the line -->
-                    <div class="absolute left-[1px] top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2"
-                        [ngClass]="{
-                          'bg-blue-500 border-blue-600 dark:bg-blue-600 dark:border-blue-700': event.eventType === 'reminder-upcoming',
-                          'bg-purple-500 border-purple-600 dark:bg-purple-600 dark:border-purple-700': event.eventType === 'reminder-sent',
-                          'bg-orange-500 border-orange-600 dark:bg-orange-600 dark:border-orange-700': event.eventType === 'reminder-missed',
-                          'bg-red-500 border-red-600 dark:bg-red-600 dark:border-red-700': event.eventType === 'archive-upcoming',
-                          'bg-red-700 border-red-800 dark:bg-red-700 dark:border-red-800': event.eventType === 'archive-missed',
-                          'bg-green-500 border-green-600 dark:bg-green-600 dark:border-green-700': event.eventType === 'answered',
-                          'bg-gray-500 border-gray-600 dark:bg-gray-600 dark:border-gray-700': event.eventType === 'archived'
-                        }">
-                    </div>
-
-                    <!-- Event content -->
-                    <div class="ml-14 p-3 rounded-lg bg-gray-50 dark:bg-gray-700 border"
-                      [ngClass]="{
-                        'border-blue-200 dark:border-blue-600': event.eventType === 'reminder-upcoming',
-                        'border-purple-200 dark:border-purple-600': event.eventType === 'reminder-sent',
-                        'border-orange-200 dark:border-orange-600': event.eventType === 'reminder-missed',
-                        'border-red-200 dark:border-red-600': event.eventType === 'archive-upcoming',
-                        'border-red-400 dark:border-red-800': event.eventType === 'archive-missed',
-                        'border-green-200 dark:border-green-600': event.eventType === 'answered',
-                        'border-gray-300 dark:border-gray-600': event.eventType === 'archived'
-                      }">
-                      <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                          <p class="font-semibold text-gray-800 dark:text-gray-100">{{ event.prayer.title }}</p>
-                          <div class="flex items-center gap-2 mt-1 timeline-event-label"
-                            [ngClass]="{
-                              'text-blue-700 dark:text-blue-300': event.eventType === 'reminder-upcoming',
-                              'text-purple-700 dark:text-purple-300': event.eventType === 'reminder-sent',
-                              'text-orange-700 dark:text-orange-300': event.eventType === 'reminder-missed',
-                              'text-red-800 dark:text-red-200': event.eventType === 'archive-upcoming',
-                              'text-red-900 dark:text-red-400': event.eventType === 'archive-missed',
-                              'text-green-700 dark:text-green-300': event.eventType === 'answered',
-                              'text-gray-800 dark:text-gray-300': event.eventType === 'archived'
-                            }">
-                            @switch (event.eventType) {
-                              @case ('reminder-upcoming') {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                  <circle cx="12" cy="12" r="10"></circle>
-                                  <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                <span class="text-sm">Reminder will send</span>
-                              }
-                              @case ('reminder-sent') {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
-                                </svg>
-                                <span class="text-sm">Reminder sent</span>
-                              }
-                              @case ('reminder-missed') {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
-                                </svg>
-                                <span class="text-sm">Reminder missed</span>
-                              }
-                              @case ('archive-upcoming') {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"></path>
-                                </svg>
-                                <span class="text-sm">Will archive</span>
-                              }
-                              @case ('archive-missed') {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
-                                </svg>
-                                <span class="text-sm">Archive missed</span>
-                              }
-                              @case ('archived') {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"></path>
-                                </svg>
-                                <span class="text-sm">Archived</span>
-                              }
-                              @case ('answered') {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
-                                </svg>
-                                <span class="text-sm">Prayer answered</span>
-                              }
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      } @else {
-        <div class="text-center py-12 text-gray-500 dark:text-gray-400">
-          <svg class="w-12 h-12 mx-auto mb-4 opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-            <path d="M21 3v5h-5"></path>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-            <path d="M3 21v-5h5"></path>
-          </svg>
-          <p>No prayer events scheduled for the selected timeframe</p>
-        </div>
-      }
-
-      <!-- Bottom Navigation -->
-      <div class="mt-8 flex items-center justify-between gap-4">
-        <button
-          (click)="previousMonth()"
-          [disabled]="!canGoPrevious"
-          class="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
-          [ngClass]="canGoPrevious
-            ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer' 
-            : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-          Previous
-        </button>
-
-        <div class="flex-1"></div>
-
-        <button
-          (click)="nextMonth()"
-          [disabled]="!canGoNext"
-          class="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
-          [ngClass]="canGoNext
-            ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer' 
-            : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'"
-        >
-          Next
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Legend -->
-      <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Legend</p>
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <div class="flex items-center gap-2">
-            <svg class="text-blue-600 dark:text-blue-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span class="text-gray-600 dark:text-gray-400">Upcoming reminder</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <svg class="text-purple-600 dark:text-purple-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
-            </svg>
-            <span class="text-gray-600 dark:text-gray-400">Reminder sent</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <svg class="text-orange-600 dark:text-orange-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
-            </svg>
-            <span class="text-gray-600 dark:text-gray-400">Reminder missed</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <svg class="text-red-600 dark:text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z"></path>
-            </svg>
-            <span class="text-gray-600 dark:text-gray-400">Upcoming archive</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <svg class="text-red-700 dark:text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
-            </svg>
-            <span class="text-gray-600 dark:text-gray-400">Archive missed</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <svg class="text-gray-600 dark:text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
-            </svg>
-            <span class="text-gray-600 dark:text-gray-400">Prayer archived</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <svg class="text-green-600 dark:text-green-400" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
-            </svg>
-            <span class="text-gray-600 dark:text-gray-400">Prayer answered</span>
-          </div>
-        </div>
-      </div>
-      </div>
-      }
-    </div>
-  `,
-  styles: [`
-    :host {
-      display: block;
-    }
-    /* Force light red for Will archive / Archive missed in dark mode (high contrast on gray-700 card) */
-    :host-context(.dark) .archive-label-red {
-      color: #fecaca !important;
-    }
-    :host-context(.dark) .archive-label-red svg {
-      color: #fecaca !important;
-    }
-    @keyframes spin {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
-    }
-    
-    :host ::ng-deep .animate-spin {
-      animation: spin 1s linear infinite;
-    }
-  `]
+  templateUrl: './prayer-archive-timeline.component.html',
+  styleUrl: './prayer-archive-timeline.component.css',
 })
 export class PrayerArchiveTimelineComponent {
   sectionExpanded = false;
   private sectionInitialLoadDone = false;
-  reminderIntervalDays = 30;
-  daysBeforeArchive = 30;
-  private readonly reminderJobHourUtc = 10;
-  private readonly reminderJobMinuteUtc = 0;
+  reminderIntervalDays = DEFAULT_REMINDER_INTERVAL_DAYS;
+  daysBeforeArchive = DEFAULT_DAYS_BEFORE_ARCHIVE;
+  private readonly reminderJobHourUtc = REMINDER_JOB_HOUR_UTC;
+  private readonly reminderJobMinuteUtc = REMINDER_JOB_MINUTE_UTC;
 
-  timelineEvents: TimelineDay[] = [];
-  
-  // Timezone
+  timelineEvents: PrayerArchiveTimelineDay[] = [];
+
   userTimezone: string;
-  
-  // Month pagination
+
   currentMonth: Date;
   private allPrayers: PrayerRequest[] = [];
-  private allEvents: TimelineEvent[] = [];
+  private allEvents: PrayerArchiveTimelineEvent[] = [];
   private minMonth: Date | null = null;
   private maxMonth: Date | null = null;
 
@@ -374,40 +69,42 @@ export class PrayerArchiveTimelineComponent {
     private cdr: ChangeDetectorRef,
     private destroyRef: DestroyRef
   ) {
-    // Detect user's timezone
     this.userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    // Initialize currentMonth to the first day of the current month
+
     const now = new Date();
     this.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   }
-  
+
   get monthKey(): string {
-    return `${this.currentMonth.getFullYear()}-${String(this.currentMonth.getMonth() + 1).padStart(2, '0')}`;
+    return prayerArchiveTimelineMonthKey(this.currentMonth);
   }
-  
+
   get monthDisplay(): string {
-    return this.currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return prayerArchiveTimelineMonthDisplay(this.currentMonth);
   }
-  
+
   get canGoPrevious(): boolean {
-    if (!this.minMonth) return false;
-    const currentYear = this.currentMonth.getFullYear();
-    const currentMonth = this.currentMonth.getMonth();
-    const minYear = this.minMonth.getFullYear();
-    const minMonthValue = this.minMonth.getMonth();
-    
-    return currentYear > minYear || (currentYear === minYear && currentMonth > minMonthValue);
+    return canGoPreviousPrayerArchiveTimelineMonth(this.currentMonth, this.minMonth);
   }
 
   get canGoNext(): boolean {
-    if (!this.maxMonth) return false;
-    const currentYear = this.currentMonth.getFullYear();
-    const currentMonth = this.currentMonth.getMonth();
-    const maxYear = this.maxMonth.getFullYear();
-    const maxMonthValue = this.maxMonth.getMonth();
-    
-    return currentYear < maxYear || (currentYear === maxYear && currentMonth < maxMonthValue);
+    return canGoNextPrayerArchiveTimelineMonth(this.currentMonth, this.maxMonth);
+  }
+
+  eventDotClass(eventType: PrayerArchiveTimelineEventType): string {
+    return prayerArchiveTimelineEventDotClass(eventType);
+  }
+
+  eventBorderClass(eventType: PrayerArchiveTimelineEventType): string {
+    return prayerArchiveTimelineEventBorderClass(eventType);
+  }
+
+  eventLabelClass(eventType: PrayerArchiveTimelineEventType): string {
+    return prayerArchiveTimelineEventLabelClass(eventType);
+  }
+
+  monthNavButtonClass(enabled: boolean): string {
+    return prayerArchiveTimelineMonthNavButtonClass(enabled);
   }
 
   onSectionToggle(): void {
@@ -415,13 +112,13 @@ export class PrayerArchiveTimelineComponent {
     if (this.sectionExpanded && !this.sectionInitialLoadDone) {
       this.sectionInitialLoadDone = true;
       void this.loadSettings();
-      // Prayer list still comes from PrayerService (loaded app-wide); deferring only skips this
-      // component's admin_settings read and subscription until the section opens.
       this.prayerService.allPrayers$
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((prayers: PrayerRequest[]) => {
           this.allPrayers = prayers;
-          this.filterCurrentMonth().catch(err => console.error('Error filtering prayers:', err));
+          this.filterCurrentMonth().catch((err) =>
+            console.error('Error filtering prayers:', err)
+          );
         });
     }
     this.cdr.markForCheck();
@@ -445,340 +142,92 @@ export class PrayerArchiveTimelineComponent {
           this.daysBeforeArchive = data.days_before_archive;
         }
       }
-      
-      // Refresh timeline with updated settings
+
       this.filterCurrentMonth();
     } catch (err) {
       console.error('Error loading timeline settings:', err);
-      // Use defaults if load fails
     }
   }
 
   previousMonth(): void {
     if (!this.canGoPrevious) return;
     const scrollY = window.scrollY;
-    // Move to first day of previous month
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    this.currentMonth = new Date(
+      this.currentMonth.getFullYear(),
+      this.currentMonth.getMonth() - 1,
+      1
+    );
     this.filterCurrentMonth().then(() => {
       window.scrollTo(0, scrollY);
     });
   }
-  
+
   nextMonth(): void {
     if (!this.canGoNext) return;
     const scrollY = window.scrollY;
-    // Move to first day of next month
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
+    this.currentMonth = new Date(
+      this.currentMonth.getFullYear(),
+      this.currentMonth.getMonth() + 1,
+      1
+    );
     this.filterCurrentMonth().then(() => {
       window.scrollTo(0, scrollY);
     });
   }
 
   private async filterCurrentMonth(): Promise<void> {
-    // Process ALL prayers first (this calculates reminder/archive dates)
     this.processPrayers(this.allPrayers);
-    
-    // Calculate min and max months from all events
-    if (this.allEvents.length > 0) {
-      const months = this.allEvents.map(e => {
-        const [year, month] = this.getLocalDateString(e.date).split('-').map(Number);
-        return new Date(year, month - 1, 1);
-      });
-      this.minMonth = new Date(Math.min(...months.map(d => d.getTime())));
-      this.maxMonth = new Date(Math.max(...months.map(d => d.getTime())));
-    } else {
-      this.minMonth = null;
-      this.maxMonth = null;
-    }
-    
-    // Then filter timeline events by the target month using timezone-aware comparison
-    const targetYear = this.currentMonth.getFullYear();
-    const targetMonth = String(this.currentMonth.getMonth() + 1).padStart(2, '0');
-    const targetYearMonth = `${targetYear}-${targetMonth}`;
-    
-    this.timelineEvents = this.groupEventsByDate(
-      this.allEvents.filter(event => {
-        const eventYearMonth = this.getLocalDateString(event.date).substring(0, 7);
-        return eventYearMonth === targetYearMonth;
-      })
+
+    const bounds = computePrayerArchiveTimelineMonthBounds(this.allEvents, this.userTimezone);
+    this.minMonth = bounds.minMonth;
+    this.maxMonth = bounds.maxMonth;
+
+    const monthEvents = filterPrayerArchiveTimelineEventsForMonth(
+      this.allEvents,
+      this.currentMonth,
+      this.userTimezone
     );
-    
+    this.timelineEvents = groupPrayerArchiveTimelineEventsByDay(monthEvents, this.userTimezone);
+
     this.cdr.markForCheck();
   }
 
-  /**
-   * Convert UTC Date to local date string in user's timezone
-   * Returns YYYY-MM-DD format
-   */
+  /** Spec and regression tests call through private calendar helpers. */
   private getLocalDateString(date: Date): string {
-    return new Date(date).toLocaleDateString('en-CA', { timeZone: this.userTimezone });
+    return prayerArchiveTimelineLocalDateString(date, this.userTimezone);
   }
 
-  /**
-   * Anchor a calendar day from the user's local YYYY-MM-DD so grouping and labels stay stable.
-   * Uses noon UTC (not midnight UTC): midnight UTC is often the *previous* local calendar day in
-   * Americas, which made "reminder sent" jump to yesterday after send while "reminder upcoming"
-   * still used the real job run time (~10:00 UTC).
-   */
   private getLocalDateAtMidnight(utcDate: Date): Date {
-    const localDateStr = this.getLocalDateString(utcDate);
-    const [year, month, day] = localDateStr.split('-').map(Number);
-    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    return prayerArchiveTimelineLocalDateAtMidnight(utcDate, this.userTimezone);
   }
 
-  private getNextDailyRunAfterUtc(base: Date, runHourUtc: number, runMinuteUtc: number): Date {
-    const candidate = new Date(Date.UTC(
-      base.getUTCFullYear(),
-      base.getUTCMonth(),
-      base.getUTCDate(),
-      runHourUtc,
-      runMinuteUtc,
-      0,
-      0
-    ));
-
-    if (base.getTime() < candidate.getTime()) {
-      return candidate;
-    }
-
-    const next = new Date(candidate);
-    next.setUTCDate(next.getUTCDate() + 1);
-    return next;
+  private getNextDailyRunAfterUtc(
+    base: Date,
+    runHourUtc: number,
+    runMinuteUtc: number
+  ): Date {
+    return prayerArchiveTimelineNextDailyRunAfterUtc(base, runHourUtc, runMinuteUtc);
   }
 
   private processPrayers(prayers: PrayerRequest[]): void {
-    const allEvents: TimelineEvent[] = [];
-    const millisecondsInDay = 24 * 60 * 60 * 1000;
-
-    const today = new Date();
-    const todayLocalStr = this.getLocalDateString(today);
-    const [todayYear, todayMonth, todayDay] = todayLocalStr.split('-').map(Number);
-    const todayLocal = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay, 12, 0, 0));
-
-    for (const prayer of prayers) {
-      // Show answered prayers with when they were marked as answered
-      if (prayer.status === 'answered' && prayer.updated_at) {
-        const answeredDate = this.getLocalDateAtMidnight(new Date(prayer.updated_at));
-        
-        allEvents.push({
-          date: answeredDate,
-          prayer: { id: prayer.id, title: prayer.title },
-          eventType: 'answered',
-          daysUntil: 0
-        });
-        continue; // Don't process reminder/archive events for answered prayers
-      }
-
-      // Show archived prayers with their archive date
-      if (prayer.status === 'archived' && prayer.updated_at) {
-        const archivedDate = this.getLocalDateAtMidnight(new Date(prayer.updated_at));
-        
-        allEvents.push({
-          date: archivedDate,
-          prayer: { id: prayer.id, title: prayer.title },
-          eventType: 'archived',
-          daysUntil: 0
-        });
-        continue; // Don't process reminder/archive events for already-archived prayers
-      }
-
-      // Only process current prayers for reminders and archive events
-      // Answered prayers should not be auto-archived
-      if (prayer.status !== 'current') {
-        continue;
-      }
-
-      // Use already-loaded updates from prayer (no extra Supabase egress)
-      const lastActivityDate: Date | null =
-        prayer.updates?.length > 0
-          ? new Date(prayer.updates[0].created_at)
-          : null;
-
-      const lastReminderSent = prayer.last_reminder_sent;
-      const lastActivityExactDate = lastActivityDate ? new Date(lastActivityDate) : new Date(prayer.created_at);
-      
-      if (lastReminderSent) {
-        // Reminder was actually sent - show it
-        const lastReminderDate = this.getLocalDateAtMidnight(new Date(lastReminderSent));
-        
-        // Don't process events if the reminder date is in the future (data integrity check)
-        const reminderDaysInPast = Math.ceil((todayLocal.getTime() - lastReminderDate.getTime()) / (1000 * 60 * 60 * 24));
-        if (reminderDaysInPast < 0) {
-          // Skip invalid data - reminder sent in the future
-          continue;
-        }
-        
-        // Check if there's an update after the reminder was sent (timer reset)
-        let hasUpdateAfterReminder = false;
-        if (lastActivityDate) {
-          const lastActivityLocalDate = this.getLocalDateAtMidnight(lastActivityDate);
-          if (lastActivityLocalDate > lastReminderDate) {
-            hasUpdateAfterReminder = true;
-          }
-        }
-
-        if (!hasUpdateAfterReminder) {
-          // Check for missed archive - if archive date has passed and prayer is still current
-          const archiveDate = new Date(lastReminderDate);
-          archiveDate.setDate(archiveDate.getDate() + this.daysBeforeArchive);
-          
-          const archiveDaysUntil = Math.ceil((archiveDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
-          const archiveRunAt = this.getNextDailyRunAfterUtc(
-            new Date(new Date(lastReminderSent).getTime() + this.daysBeforeArchive * millisecondsInDay),
-            this.reminderJobHourUtc,
-            this.reminderJobMinuteUtc
-          );
-          if (archiveDaysUntil <= -2) {
-            // Archive date has passed by at least 2 days - show as missed
-            // (Give system 2 extra days buffer for auto-archive job to execute)
-            allEvents.push({
-              date: archiveRunAt,
-              prayer: { id: prayer.id, title: prayer.title },
-              eventType: 'archive-missed',
-              daysUntil: 0
-            });
-          } else if (archiveDaysUntil > 0) {
-            // Archive date is in the future
-            allEvents.push({
-              date: archiveRunAt,
-              prayer: { id: prayer.id, title: prayer.title },
-              eventType: 'archive-upcoming',
-              daysUntil: archiveDaysUntil
-            });
-          }
-          // If archiveDaysUntil is between -2 and 0, don't show anything yet (archive is pending)
-        }
-        
-        // Reminder sent event
-        allEvents.push({
-          date: lastReminderDate,
-          prayer: { id: prayer.id, title: prayer.title },
-          eventType: 'reminder-sent',
-          daysUntil: 0
-        });
-      } else {
-        // No reminder sent yet - calculate when it should be/should have been
-        let baseDate: Date;
-        if (lastActivityDate) {
-          baseDate = this.getLocalDateAtMidnight(lastActivityDate);
-        } else {
-          baseDate = this.getLocalDateAtMidnight(new Date(prayer.created_at));
-        }
-        
-        const nextReminderDate = new Date(baseDate);
-        nextReminderDate.setDate(nextReminderDate.getDate() + this.reminderIntervalDays);
-        const nextReminderDueExact = new Date(lastActivityExactDate.getTime() + this.reminderIntervalDays * millisecondsInDay);
-        const nextReminderRunAt = this.getNextDailyRunAfterUtc(
-          nextReminderDueExact,
-          this.reminderJobHourUtc,
-          this.reminderJobMinuteUtc
-        );
-        
-        const reminderDaysUntil = Math.ceil((nextReminderDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (reminderDaysUntil <= -2) {
-          // Reminder should have been sent but wasn't - show as missed
-          // (Give system 2 extra days buffer before marking as missed)
-          allEvents.push({
-            date: nextReminderRunAt,
-            prayer: { id: prayer.id, title: prayer.title },
-            eventType: 'reminder-missed',
-              daysUntil: 0
-          });
-          
-          // Also check for missed archive
-          const archiveDate = new Date(nextReminderDate);
-          archiveDate.setDate(archiveDate.getDate() + this.daysBeforeArchive);
-          const archiveRunAt = this.getNextDailyRunAfterUtc(
-            new Date(nextReminderDueExact.getTime() + this.daysBeforeArchive * millisecondsInDay),
-            this.reminderJobHourUtc,
-            this.reminderJobMinuteUtc
-          );
-          const archiveDaysUntil = Math.ceil((archiveDate.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (archiveDaysUntil <= -2) {
-            // Archive date has passed by at least 2 days - show as missed
-            // (Give system 2 extra days buffer for auto-archive job to execute)
-            allEvents.push({
-              date: archiveRunAt,
-              prayer: { id: prayer.id, title: prayer.title },
-              eventType: 'archive-missed',
-              daysUntil: 0
-            });
-          } else if (archiveDaysUntil > 0) {
-            // Archive date is still in the future
-            allEvents.push({
-              date: archiveRunAt,
-              prayer: { id: prayer.id, title: prayer.title },
-              eventType: 'archive-upcoming',
-              daysUntil: archiveDaysUntil
-            });
-          }
-          // If archiveDaysUntil is between -2 and 0, don't show anything yet (archive is pending)
-        } else {
-          // Reminder is still upcoming
-          allEvents.push({
-            date: nextReminderRunAt,
-            prayer: { id: prayer.id, title: prayer.title },
-            eventType: 'reminder-upcoming',
-            daysUntil: reminderDaysUntil
-          });
-        }
-      }
-    }
-    
-    this.allEvents = allEvents;
+    this.allEvents = buildPrayerArchiveTimelineEvents(prayers, this.timelineConfig());
   }
 
-  private groupEventsByDate(events: TimelineEvent[]): TimelineDay[] {
-    const groupedByDate = new Map<string, TimelineEvent[]>();
-    
-    events.forEach(event => {
-      const dateKey = this.getLocalDateString(event.date);
-      if (!groupedByDate.has(dateKey)) {
-        groupedByDate.set(dateKey, []);
-      }
-      groupedByDate.get(dateKey)!.push(event);
-    });
-    
-    return Array.from(groupedByDate.entries())
-      .map(([dateStr, dayEvents]) => {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        // Noon UTC avoids "previous day" rendering in many negative offsets.
-        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-        return {
-          date,
-          dateStr: this.formatDate(date),
-          events: dayEvents.sort((a, b) => {
-            const typeOrder = { 'reminder-upcoming': 1, 'reminder-sent': 2, 'reminder-missed': 3, 'archive-upcoming': 4, 'archive-missed': 5, 'answered': 6, 'archived': 7 };
-            return typeOrder[a.eventType] - typeOrder[b.eventType];
-          })
-        };
-      })
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  private groupEventsByDate(events: PrayerArchiveTimelineEvent[]): PrayerArchiveTimelineDay[] {
+    return groupPrayerArchiveTimelineEventsByDay(events, this.userTimezone);
   }
 
   private formatDate(date: Date): string {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const dateFormatted = new Date(date);
-    dateFormatted.setHours(0, 0, 0, 0);
-    
-    // Compare using local timezone strings
-    const dateLocalStr = this.getLocalDateString(dateFormatted);
-    const todayLocalStr = this.getLocalDateString(today);
-    
-    if (dateLocalStr === todayLocalStr) {
-      return 'Today';
-    } else {
-      return dateFormatted.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric',
-        timeZone: this.userTimezone 
-      });
-    }
+    return formatPrayerArchiveTimelineDayLabel(date, this.userTimezone);
+  }
+
+  private timelineConfig() {
+    return {
+      userTimezone: this.userTimezone,
+      reminderIntervalDays: this.reminderIntervalDays,
+      daysBeforeArchive: this.daysBeforeArchive,
+      reminderJobHourUtc: this.reminderJobHourUtc,
+      reminderJobMinuteUtc: this.reminderJobMinuteUtc,
+    };
   }
 }

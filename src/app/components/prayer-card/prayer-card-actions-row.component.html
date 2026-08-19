@@ -1,0 +1,48 @@
+<div [class]="'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
+  <button
+    type="button"
+    (click)="addUpdate.emit()"
+    title="Add an update to this prayer"
+    [attr.id]="
+      showTourAnchors && tourPersonalWalkthroughAnchors
+        ? 'tour-walkthrough-add-update'
+        : showTourAnchors && tourUpdateAnchors
+          ? 'tour-prayer-add-update'
+          : null
+    "
+    [class]="variantLayout.actionButtonClasses + ' btn-chip btn-chip-green'"
+  >
+    Add Update
+  </button>
+  @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
+    @if (canPrayFor) {
+      <button
+        type="button"
+        (click)="prayFor.emit()"
+        title="Record that you prayed for this request"
+        [attr.id]="showTourAnchors && tourPrayForEncouragementAnchors ? 'tour-prayer-pray-for' : null"
+        [class]="variantLayout.actionButtonClasses + ' btn-chip btn-chip-blue'"
+      >
+        Pray For
+      </button>
+    } @else {
+      <button
+        type="button"
+        disabled
+        [attr.id]="showTourAnchors && tourPrayForEncouragementAnchors ? 'tour-prayer-pray-for' : null"
+        [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(usesPersonalCooldown) | async) ?? 4) + ' hours'"
+        [class]="variantLayout.actionButtonClasses + ' bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md border border-gray-300 dark:border-gray-600 cursor-not-allowed'"
+      >
+        Prayed For
+      </button>
+    }
+  }
+  @if ((userSessionService.getShowPrayingCount$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && showPrayedForBadge) {
+    <span
+      [class]="variantLayout.prayedForBadgeClasses"
+      title="Number praying for this request"
+    >
+      {{ prayedForCount }} {{ prayedForCountLabel }}
+    </span>
+  }
+</div>

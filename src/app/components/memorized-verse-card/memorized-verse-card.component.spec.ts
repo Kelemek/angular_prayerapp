@@ -1,9 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { MemorizedVerseCardComponent } from './memorized-verse-card.component';
 import { ScriptureService } from '../../services/scripture.service';
+import { resolveScriptureHoverPreviewComponentResources } from '../scripture-hover-preview/scripture-hover-preview-component-resources.spec-helper';
 import type { MemorizedItem } from '../../types/memorization';
+
+beforeAll(async () => {
+  await resolveScriptureHoverPreviewComponentResources();
+});
 
 const mockScriptureService = {
   getPassage: vi.fn(() =>

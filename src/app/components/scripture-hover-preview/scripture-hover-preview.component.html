@@ -1,0 +1,89 @@
+<div
+      #trigger
+      class="relative h-full select-none [-webkit-touch-callout:none]"
+      (mouseenter)="onMouseEnter($event)"
+      (mouseleave)="onMouseLeave()"
+      (click)="onTriggerActivate($event)"
+      (keydown.capture)="onTriggerKeydown($event)"
+      (contextmenu)="onTriggerContextMenu($event)"
+      (touchstart)="onTouchStart($event)"
+      (touchmove)="onTouchMove($event)"
+      (touchend)="onTouchEnd($event)"
+      (touchcancel)="onTouchCancel()"
+    >
+      <ng-content />
+    </div>
+
+    <ng-template #popoverTpl>
+      @if (openedByLongPress) {
+        <div
+          class="fixed inset-0 z-[210]"
+          data-scripture-hover-backdrop
+          aria-hidden="true"
+          (click)="closeLongPressPopup()"
+          (touchend)="onBackdropTouchEnd($event)"
+        ></div>
+      }
+      <div
+        data-scripture-hover-popover
+        class="fixed z-[220] box-border flex min-h-0 max-w-none flex-col overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xl select-none [-webkit-touch-callout:none] dark:border-slate-600 dark:bg-slate-800"
+        [style.left.px]="positionX"
+        [style.top.px]="positionY"
+        [style.width.px]="popoverWidthPx"
+        [style.maxHeight]="
+          'min(' + popoverMaxHeightPx + 'px, min(90dvh, calc(100dvh - 24px)))'
+        "
+        [style.transform]="isAbove ? 'translate(-50%, -100%)' : 'translate(-50%, 0%)'"
+        style="pointer-events: auto"
+        (mouseenter)="onPopoverMouseEnter()"
+        (mouseleave)="onPopoverMouseLeave()"
+        role="dialog"
+        [attr.aria-label]="'Scripture preview for ' + reference"
+      >
+        <div
+          class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-6"
+        >
+          @if (loading) {
+            <div class="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+              <div
+                class="h-6 w-6 shrink-0 animate-spin rounded-full border-b-2 border-blue-600 dark:border-blue-400"
+                aria-hidden="true"
+              ></div>
+              <span class="text-base md:text-lg">Loading verse...</span>
+            </div>
+          } @else if (error) {
+            <div class="text-base text-red-600 md:text-lg dark:text-red-400">
+              <p class="font-medium">Error loading verse:</p>
+              <p>{{ error }}</p>
+            </div>
+          } @else if (passage) {
+            <div class="text-slate-700 dark:text-slate-200">
+              <div
+                class="mb-2 text-base font-medium text-slate-900 md:text-lg dark:text-slate-100"
+              >
+                {{ passage.reference }}
+              </div>
+              <div class="wrap-break-word text-base leading-relaxed md:text-lg whitespace-pre-wrap">
+                {{ passage.text }}
+              </div>
+            </div>
+          } @else {
+            <div class="text-base text-slate-600 md:text-lg dark:text-slate-400">
+              Hover to load verse text
+            </div>
+          }
+        </div>
+
+        @if (isAbove) {
+          <div
+            class="pointer-events-none absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-4 border-r-4 border-l-4 border-transparent border-t-white dark:border-t-slate-800"
+            style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1))"
+          ></div>
+        } @else {
+          <div
+            class="pointer-events-none absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 border-b-4 border-r-4 border-l-4 border-transparent border-b-white dark:border-b-slate-800"
+            style="filter: drop-shadow(0 -1px 1px rgba(0,0,0,0.1))"
+          ></div>
+        }
+      </div>
+    </ng-template>

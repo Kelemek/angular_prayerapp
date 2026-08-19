@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, beforeAll } from 'vitest';
 import { ChangeDetectorRef, DestroyRef, ElementRef } from '@angular/core';
 import { render, screen } from '@testing-library/angular';
 import {
   ScriptureHoverPreviewComponent,
   clearScriptureHoverPreviewCacheForTests,
 } from './scripture-hover-preview.component';
+import { resolveScriptureHoverPreviewComponentResources } from './scripture-hover-preview-component-resources.spec-helper';
 import { ScriptureService } from '../../services/scripture.service';
 import type { ScriptureService as ScriptureServiceType } from '../../services/scripture.service';
 
@@ -13,6 +14,10 @@ vi.mock('@capacitor/core', () => ({
     isNativePlatform: vi.fn(() => false),
   },
 }));
+
+beforeAll(async () => {
+  await resolveScriptureHoverPreviewComponentResources();
+});
 
 describe('ScriptureHoverPreviewComponent', () => {
   let component: ScriptureHoverPreviewComponent;

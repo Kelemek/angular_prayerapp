@@ -1,0 +1,52 @@
+@if (prayerUpdates.length > 0) {
+<div [class.mt-4]="showTopMargin">
+  @if (shouldShowToggle) {
+  <div class="flex justify-end mb-2">
+    <button
+      type="button"
+      (click)="toggleShowAll.emit()"
+      [class]="variantLayout.updateToggleButtonClasses"
+    >
+      {{ showAllUpdates ? 'Show less' : 'Show all' }}
+      <svg [class]="'transform transition-transform ' + (showAllUpdates ? 'rotate-180' : '')" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  </div>
+  }
+  <div [class]="variantLayout.updateSectionSpacing">
+    @for (update of displayedUpdates; track update.id) {
+    <app-prayer-update-row
+      [update]="update"
+      [size]="variantLayout.updateRowSize"
+      [shellClass]="variantLayout.updateShellClass"
+      [contentClass]="variantLayout.updateContentClass"
+      [showUpdatedBy]="isCommunityPrayer"
+    >
+      <app-prayer-update-actions
+        updateActions
+        [bandSize]="variantLayout.updateRowSize"
+        [update]="update"
+        [mode]="updateActionsMode"
+        [showDelete]="showUpdateDelete"
+        (edit)="updateEdit.emit(update)"
+        (delete)="updateDelete.emit(update.id)"
+        (toggleAnswered)="toggleAnswered.emit(update)"
+      />
+      @if (variantLayout.showUnreadBadges && (updateBadges$.get(update.id) | async) && (badgeService.getBadgeFunctionalityEnabled$() | async) && showsCommunityUnreadBadges && isCommunityPrayer) {
+        <button
+          updateCorner
+          type="button"
+          (click)="markUpdateRead.emit(update.id)"
+          class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+          title="Mark update as read"
+          aria-label="Mark update as read"
+        >
+          1
+        </button>
+      }
+    </app-prayer-update-row>
+    }
+  </div>
+</div>
+}

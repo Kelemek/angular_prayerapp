@@ -1,0 +1,56 @@
+<!-- Header -->
+<div [class]="'flex items-start justify-between relative ' + variantLayout.headerRowMargin">
+  <div
+    [class]="'flex flex-1 min-w-0 ' + variantLayout.titleRowGap"
+    [class.items-center]="isMemberPrayer()"
+    [class.items-start]="!isMemberPrayer()"
+  >
+    @if (prayer.prayer_image && isMemberPrayer()) {
+      <img
+        [src]="prayer.prayer_image"
+        [alt]="'Avatar for ' + prayer.prayer_for"
+        [class]="variantLayout.avatarClasses"
+        loading="lazy"
+      />
+    }
+    <div class="flex-1">
+      <div class="relative flex items-baseline gap-2 flex-wrap">
+        <h3 [class]="variantLayout.titleClasses">
+          Prayer for {{ prayer.prayer_for }}
+        </h3>
+        @if (!isPersonal && !isMemberPrayer()) {
+          <span [class]="variantLayout.requesterClasses">
+            Requested by:
+            <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester }}</span>
+          </span>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (
+  variantLayout.showUnreadBadges &&
+  (prayerBadge$ | async) &&
+  (badgeService.getBadgeFunctionalityEnabled$() | async) &&
+  showsCommunityUnreadBadges &&
+  !isPersonal &&
+  !isMemberPrayer()
+) {
+  <button
+    type="button"
+    (click)="onMarkPrayerRead()"
+    class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+    title="Mark prayer as read"
+    aria-label="Mark prayer as read"
+  >
+    1
+  </button>
+}
+
+@if (showDescription) {
+  <app-rich-text-view
+    [class]="variantLayout.descriptionClasses"
+    [text]="prayer.description"
+  ></app-rich-text-view>
+}

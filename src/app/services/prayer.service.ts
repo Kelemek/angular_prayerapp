@@ -1,5 +1,5 @@
 import { Injectable, Optional } from '@angular/core';
-import { BehaviorSubject, Observable, fromEvent, distinctUntilChanged } from 'rxjs';
+import { BehaviorSubject, Observable, distinctUntilChanged, type Subscription } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -10,63 +10,168 @@ import { UserSessionService } from './user-session.service';
 import { PrayerItemReminderService } from './prayer-item-reminder.service';
 import { resolvePrayerUpdateContent } from '../lib/prayer-update-content';
 import { personalCategoryNamesFromPrayers } from '../lib/personal-category-order';
+import {
+  COMMUNITY_PRAYERS_WITH_UPDATES_SELECT,
+  formatApprovedCommunityPrayersFromDb,
+  formatPrayersByMonthFromDb,
+  prayersByMonthIsoRange,
+  prayersByMonthOrFilter,
+} from '../lib/prayer-community-load';
+import {
+  COMMUNITY_PRAYERS_CACHE_KEY,
+  PERSONAL_PRAYERS_CACHE_KEY,
+  applyCachedPersonalPrayersSnapshot,
+  applyCommunityPrayersCacheSnapshot,
+  applyCommunityLoadErrorPlan,
+  applyPersonalPrayerLoadCacheFallbackPlan,
+  publishCommunityPrayersFromDb,
+  publishPersonalPrayersFromDb,
+  planCommunityLoadErrorFallback,
+  planPersonalPrayerLoadCacheFallback,
+  shouldShowCommunityLoadingIndicator,
+  shouldSkipCommunityPrayersDbOnSilentRefresh,
+  type PersonalPrayersCacheSnapshotActions,
+} from '../lib/prayer-catalog-load';
+import {
+  buildCommunityPrayerInsertRow,
+  buildCommunityPrayerAdminNotificationPayload,
+  buildCommunityPrayerStatusUpdatePayload,
+  afterCommunityPendingUpdateInserted,
+  buildPendingCommunityUpdateInsertRow,
+  buildSimplePendingUpdateInsertRow,
+  ensureEmailSubscriberForPrayerSubmit,
+  patchCommunityPrayerStatus,
+  applyCommunityPrayerDeleteSnapshot,
+  shouldDropCommunityReminderForStatus,
+} from '../lib/prayer-community-mutations';
+import {
+  buildPrayerDeletionRequestRow,
+  buildUpdateDeletionRequestRow,
+  notifyPrayerDeletionRequestSubmitted,
+  notifyUpdateDeletionRequestSubmitted,
+} from '../lib/prayer-community-deletion-requests';
+import {
+  applyPrayerCatalogFilters,
+  filterPrayerRequestsByStatusAndSearch,
+} from '../lib/prayer-filter';
+import {
+  validatePersonalCategoryRename,
+  type PersonalPrayerDisplayOrderUpdate,
+  type CategoryDisplayOrderRange,
+} from '../lib/prayer-personal-category';
+import {
+  fetchPersonalCategoryPrayerCountWithDb,
+  resolvePersonalCategoryRangeWithDb,
+} from '../lib/prayer-personal-category-query-db';
+import {
+  applyPersonalCategoryRenameSnapshot,
+  orchestratePersonalCategoryReorder,
+  orchestratePersonalCategorySwap,
+  orchestratePersonalPrayerOrderUpdate,
+  type PersonalCategoryOrchestrationDeps,
+} from '../lib/prayer-personal-category-orchestrate';
+import { planPersonalPrayerAdd, type PersonalCategoryDeps } from '../lib/prayer-personal-add-plan';
+import { resolvePersonalPrayerCategoryChangeDisplayOrder } from '../lib/prayer-personal-update-category-plan';
+import {
+  isPersonalPrayerDisplayOrderOnlyChange as isPersonalPrayerDisplayOrderOnlyDbChange,
+  normalizePersonalPrayerCache as normalizePersonalPrayerCacheRows,
+  personalPrayerRowToPrayerRequest,
+  PERSONAL_PRAYERS_LIST_SELECT,
+  PRAYER_PERSONAL_UNCATEGORIZED_MAX,
+  sanitizePersonalPrayerCategory,
+  withPersonalPrayerUserEmail as withPersonalPrayerUserEmailRow,
+} from '../lib/prayer-personal-display';
+import {
+  appendPersonalPrayerUpdate,
+  applyPersonalPrayerFieldUpdate,
+  buildPersonalPrayerDbUpdatePayload,
+  buildPersonalPrayerInsertRow,
+  buildPersonalPrayerUpdateInsertRow,
+  mapDbPersonalPrayerUpdateRow,
+  markPersonalPrayerUpdateAnsweredPatch,
+  personalPrayerRequestFromInsertedRow,
+  patchPersonalPrayerUpdateLocally,
+  personalPrayerUpdatePatchWithTimestamp,
+  personalPrayerListAfterInsert,
+  removePersonalPrayerById,
+  removePersonalPrayerUpdateById,
+} from '../lib/prayer-personal-mutations';
+import {
+  buildPersonalPrayerDisplayOrderDbPayload,
+  runPersonalPrayerDisplayOrderBatchUpdates,
+} from '../lib/prayer-personal-display-order';
+import { buildClearPersonalPrayerAnsweredFlagsPayload } from '../lib/prayer-personal-update';
+import {
+  personalPrayerUpdateClearsAnsweredFlags,
+  shouldDropPersonalPrayerRemindersAfterUpdate,
+  startPersonalPrayerUpdatePlan,
+} from '../lib/prayer-personal-update-plan';
+import {
+  hasPersonalCategoryRenameTargets,
+  matchingPersonalPrayerIdsForCategoryRename,
+  personalCategoryRenameDbPayload,
+} from '../lib/prayer-personal-rename';
+import {
+  answeredPersonalPrayerIds,
+  arePrayerCatalogsReadyFromFlags,
+  personalPrayersFromDbRows,
+} from '../lib/prayer-personal-load';
+import { extractSupabaseErrorMessage } from '../lib/prayer-error-message';
+import {
+  MEMBER_PRAYED_FOR_COUNTS_CACHE_KEY,
+  memberPrayedForCountsFromRows,
+  writeMemberPrayedForCountToCache,
+} from '../lib/prayer-member-pray-for';
+import {
+  MEMBER_PRAYER_UPDATES_CACHE_KEY,
+  buildMemberPrayerUpdateInsertRow,
+  buildMemberPrayerUpdatePatch,
+  groupMemberPrayerUpdatesByPersonId,
+  mapMemberPrayerUpdateRow,
+  memberPrayerCacheKeysToInvalidate,
+  memberUpdatesCacheForPerson,
+  planningCenterListDataCacheKey,
+  trimMemberPersonId,
+  writeMemberUpdatesCacheForPerson,
+} from '../lib/prayer-member-updates';
+import {
+  MEMBER_PRAYER_UPDATE_TOAST,
+  runMemberPrayerCacheMutation,
+} from '../lib/prayer-member-mutation-wire';
+import {
+  parsePrayedForRpcCount,
+  patchCommunityPrayerListsPrayedForCount,
+  patchPersonalPrayersPrayedForCount,
+} from '../lib/prayer-prayed-for-increment';
+import {
+  clearTimeoutIdMap,
+  mergePrayerResumeListenerSubscriptions,
+  runResumeCommunityPrayerRefresh,
+  scheduleDebouncedResumeRefresh,
+  unsubscribePrayerResumeListeners,
+  wirePrayerResumeListeners,
+} from '../lib/prayer-service-resume';
+import { subscribePrayerCatalogRealtime } from '../lib/prayer-service-realtime';
+import { buildPrayerCatalogRealtimeHandlers } from '../lib/prayer-service-realtime-handlers';
+import {
+  PRAYER_SERVICE_INACTIVITY_THRESHOLD_MS,
+  PRAYER_SERVICE_LOAD_ERROR_TOAST_COOLDOWN_MS,
+  PRAYER_SERVICE_RESUME_REFRESH_DEBOUNCE_MS,
+} from '../lib/prayer-service-constants';
+import { resolvePrayerServiceUserEmail } from '../lib/prayer-service-user-email';
+import {
+  personalPrayerSessionAction,
+  userSessionEmailDistinctEqual,
+} from '../lib/prayer-service-session-wire';
+import type {
+  PrayerFilters,
+  PrayerRequest,
+  PrayerStatus,
+  PrayerUpdate,
+} from '../lib/prayer-types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-export type PrayerStatus = 'current' | 'answered' | 'archived';
-
-export interface PrayerUpdate {
-  id: string;
-  prayer_id: string;
-  content: string;
-  author: string;
-  author_email?: string;
-  created_at: string;
-  updated_at?: string;
-  is_anonymous?: boolean;
-  is_answered?: boolean;
-  /** Personal prayer updates use this flag (member updates use is_answered). */
-  mark_as_answered?: boolean;
-  approval_status?: string;
-  in_planning_center?: boolean | null;
-}
-
-export interface PrayerRequest {
-  id: string;
-  title: string;
-  description: string;
-  status: PrayerStatus;
-  approval_status?: 'pending' | 'approved' | 'rejected';
-  requester: string;
-  prayer_for: string;
-  email?: string | null;
-  is_anonymous?: boolean;
-  type?: 'prayer' | 'prompt';
-  date_requested: string;
-  date_answered?: string | null;
-  created_at: string;
-  updated_at: string;
-  last_reminder_sent?: string | null;
-  category?: string | null;
-  display_order?: number;
-  prayer_image?: string | null;
-  updates: PrayerUpdate[];
-  in_planning_center?: boolean | null;
-  prayed_for_count?: number;
-  /** Set on personal-prayer rows (legacy cache entries may only have email). */
-  user_email?: string;
-}
-
-export interface PrayerFilters {
-  status?: PrayerStatus;
-  search?: string;
-  type?: string;
-  category?: string; // Filter personal prayers by category
-}
-
-// Category range constants for personal prayer display_order
-const CATEGORY_RANGE_SIZE = 1000;
-const UNCATEGORIZED_MIN = 0;
-const UNCATEGORIZED_MAX = 999;
+export type { PrayerFilters, PrayerRequest, PrayerStatus, PrayerUpdate };
 
 @Injectable({
   providedIn: 'root'
@@ -81,15 +186,18 @@ export class PrayerService {
   private realtimeChannel: RealtimeChannel | null = null;
   private currentFilters: PrayerFilters = {};
   private inactivityTimeout: any = null;
-  private inactivityThresholdMs = 5 * 60 * 1000; // 5 minutes of inactivity
+  private inactivityThresholdMs = PRAYER_SERVICE_INACTIVITY_THRESHOLD_MS;
   private backgroundRecoveryTimeouts: Map<string, number> = new Map();
   private isInBackground = document.hidden;
   /** Debounce resume-triggered refresh so visibility/focus/app-became-visible only trigger one load */
   private resumeRefreshTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private static readonly RESUME_REFRESH_DEBOUNCE_MS = 400;
+  private resumeListenerSubscriptions: Subscription[] = [];
+  private static readonly RESUME_REFRESH_DEBOUNCE_MS =
+    PRAYER_SERVICE_RESUME_REFRESH_DEBOUNCE_MS;
   /** Avoid multiple "Failed to load prayers" toasts when several loads fail at once (e.g. after long background) */
   private lastLoadErrorToastTime = 0;
-  private static readonly LOAD_ERROR_TOAST_COOLDOWN_MS = 10_000;
+  private static readonly LOAD_ERROR_TOAST_COOLDOWN_MS =
+    PRAYER_SERVICE_LOAD_ERROR_TOAST_COOLDOWN_MS;
   /** True while a community-prayer DB fetch is in flight (cache may already be shown). */
   private communityPrayersFetchInFlight = false;
   /** True after community prayers have been loaded from the database at least once. */
@@ -114,21 +222,75 @@ export class PrayerService {
 
   /** True when initial community + personal prayer loads have finished (may still be empty). */
   arePrayerCatalogsReady(): boolean {
-    return (
-      !this.loadingSubject.value &&
-      !this.loadingPersonalPrayersSubject.value &&
-      !this.communityPrayersFetchInFlight &&
-      this.communityPrayersDbFetchComplete &&
-      this.personalPrayersDbFetchComplete
-    );
+    return arePrayerCatalogsReadyFromFlags({
+      loadingCommunity: this.loadingSubject.value,
+      loadingPersonal: this.loadingPersonalPrayersSubject.value,
+      communityFetchInFlight: this.communityPrayersFetchInFlight,
+      communityDbComplete: this.communityPrayersDbFetchComplete,
+      personalDbComplete: this.personalPrayersDbFetchComplete,
+    });
   }
 
   private dropRemindersForAnsweredPersonalPrayers(prayers: PrayerRequest[]): void {
-    for (const prayer of prayers) {
-      if (prayer.category === 'Answered') {
-        this.prayerItemReminderService?.dropRemindersForPrayer(prayer.id, 'personal');
-      }
+    for (const prayerId of answeredPersonalPrayerIds(prayers)) {
+      this.prayerItemReminderService?.dropRemindersForPrayer(prayerId, 'personal');
     }
+  }
+
+  private setPersonalPrayersState(prayers: PrayerRequest[]): void {
+    this.allPersonalPrayersSubject.next(prayers);
+    this.cache.set(PERSONAL_PRAYERS_CACHE_KEY, prayers);
+  }
+
+  private personalCacheSnapshotActions(): PersonalPrayersCacheSnapshotActions {
+    return {
+      normalize: (prayers) => this.normalizePersonalPrayerCache(prayers),
+      setPersonalPrayers: (prayers) => this.allPersonalPrayersSubject.next(prayers),
+      dropAnsweredReminders: (prayers) =>
+        this.dropRemindersForAnsweredPersonalPrayers(prayers),
+    };
+  }
+
+  private personalCategoryOrchestrationDeps(): PersonalCategoryOrchestrationDeps {
+    return {
+      getUserEmail: () => this.getUserEmail(),
+      local: {
+        getPrayers: () => this.allPersonalPrayersSubject.value,
+        setPrayers: (prayers) => this.setPersonalPrayersState(prayers),
+      },
+      runCategoryRpc: async (rpcName, args) => {
+        const result = await this.supabase.client.rpc(rpcName, args);
+        return { data: result.data, error: result.error };
+      },
+      runPrayerOrderRpc: async (args) => {
+        const result = await this.supabase.client.rpc('reorder_personal_prayers', args);
+        return { data: result.data, error: result.error };
+      },
+      applyDisplayOrderUpdates: (updates, options) =>
+        this.applyPersonalPrayerDisplayOrderUpdates(updates, options),
+      getCategoryRange: (category) => this.getCategoryRange(category),
+    };
+  }
+
+  private mapFetchedPersonalPrayers(data: unknown[]): PrayerRequest[] {
+    return personalPrayersFromDbRows(
+      data,
+      (row) => personalPrayerRowToPrayerRequest(row as never),
+      (prayers) => this.normalizePersonalPrayerCache(prayers)
+    );
+  }
+
+  private async fetchPersonalPrayersFromDb(userEmail: string): Promise<PrayerRequest[]> {
+    const { data, error } = await this.supabase.client
+      .from('personal_prayers')
+      .select(PERSONAL_PRAYERS_LIST_SELECT)
+      .eq('user_email', userEmail)
+      .order('display_order', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return this.mapFetchedPersonalPrayers(data || []);
   }
 
   /** True when a personal_prayers UPDATE only reordered a row (drag-and-drop). */
@@ -136,20 +298,7 @@ export class PrayerService {
     oldRow: Record<string, unknown> | undefined,
     newRow: Record<string, unknown> | undefined
   ): boolean {
-    if (!oldRow || !newRow || oldRow['display_order'] === newRow['display_order']) {
-      return false;
-    }
-    const ignoreKeys = new Set(['display_order', 'updated_at']);
-    const keys = new Set([...Object.keys(oldRow), ...Object.keys(newRow)]);
-    for (const key of keys) {
-      if (ignoreKeys.has(key)) {
-        continue;
-      }
-      if (oldRow[key] !== newRow[key]) {
-        return false;
-      }
-    }
-    return true;
+    return isPersonalPrayerDisplayOrderOnlyDbChange(oldRow, newRow);
   }
 
   constructor(
@@ -171,30 +320,27 @@ export class PrayerService {
     // Subscribe to user session changes to auto-load personal prayers
     this.userSessionService.userSession$
       .pipe(
-        // Only trigger when user email changes (not on every session field change)
-        distinctUntilChanged((prev, curr) => 
-          prev?.email === curr?.email
-        )
+        distinctUntilChanged(userSessionEmailDistinctEqual)
       )
       .subscribe((session) => {
-        if (session?.email) {
+        const action = personalPrayerSessionAction(session);
+        if (action === 'load') {
           this.personalPrayersDbFetchComplete = false;
-          // Automatically load personal prayers when user logs in
-          this.loadPersonalPrayers().catch(err => 
-            console.error('[PrayerService] Error loading personal prayers on session change:', err)
+          this.loadPersonalPrayers().catch((err) =>
+            console.error(
+              '[PrayerService] Error loading personal prayers on session change:',
+              err
+            )
           );
         } else {
-          // Clear personal prayers when user logs out
           this.allPersonalPrayersSubject.next([]);
           this.personalPrayersDbFetchComplete = true;
-          this.cache.invalidate('personalPrayers');
+          this.cache.invalidate(PERSONAL_PRAYERS_CACHE_KEY);
         }
       });
     
     this.setupRealtimeSubscription();
-    this.setupVisibilityListener();
-    this.setupInactivityListener();
-    this.setupBackgroundRecoveryListener();
+    this.setupResumeListeners();
   }
 
   /**
@@ -204,8 +350,8 @@ export class PrayerService {
    * - Fallback to cached data on network failure
    */
   async loadPrayers(silentRefresh = false): Promise<void> {
-    const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
-    const skipDb = Boolean(silentRefresh && cachedPrayers && cachedPrayers.length > 0);
+    const cachedPrayers = this.cache.get<PrayerRequest[]>(COMMUNITY_PRAYERS_CACHE_KEY);
+    const skipDb = shouldSkipCommunityPrayersDbOnSilentRefresh(silentRefresh, cachedPrayers);
 
     try {
       console.log('[PrayerService] Loading prayers...');
@@ -215,8 +361,10 @@ export class PrayerService {
 
       if (cachedPrayers && cachedPrayers.length > 0) {
         console.log(`[PrayerService] Using cached prayers (${cachedPrayers.length} items)`);
-        this.allPrayersSubject.next(cachedPrayers);
-        this.applyFilters(this.currentFilters);
+        applyCommunityPrayersCacheSnapshot(cachedPrayers, {
+          setAllPrayers: (prayers) => this.allPrayersSubject.next(prayers),
+          reapplyFilters: () => this.applyFilters(this.currentFilters),
+        });
 
         if (skipDb) {
           console.log('[PrayerService] Cache hit for silent refresh - skipping database query');
@@ -227,18 +375,14 @@ export class PrayerService {
         }
       }
 
-      // Only show loading if we need to fetch from DB and it's not a silent refresh
-      if (!silentRefresh && !cachedPrayers) {
+      if (shouldShowCommunityLoadingIndicator(silentRefresh, cachedPrayers)) {
         this.loadingSubject.next(true);
       }
       this.errorSubject.next(null);
 
       const { data: prayersData, error } = await this.supabase.client
         .from('prayers')
-        .select(`
-          *,
-          prayer_updates!prayer_updates_prayer_id_fkey(*)
-        `)
+        .select(COMMUNITY_PRAYERS_WITH_UPDATES_SELECT)
         .eq('approval_status', 'approved')
         .order('created_at', { ascending: false });
 
@@ -246,81 +390,44 @@ export class PrayerService {
 
       console.log(`[PrayerService] Loaded ${prayersData?.length || 0} approved prayers from database`);
 
-      const formattedPrayers = (prayersData || []).map((prayer: any) => {
-        const updates = (prayer.prayer_updates || [])
-          .filter((u: any) => u && u.approval_status === 'approved')
-          .sort((a: any, b: any) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        
-        return {
-          id: prayer.id,
-          title: prayer.title,
-          description: prayer.description || 'No description provided',
-          status: prayer.status,
-          requester: prayer.requester,
-          prayer_for: prayer.prayer_for,
-          email: prayer.email,
-          is_anonymous: prayer.is_anonymous,
-          type: prayer.type,
-          date_requested: prayer.date_requested,
-          date_answered: prayer.date_answered,
-          created_at: prayer.created_at,
-          updated_at: prayer.updated_at,
-          last_reminder_sent: prayer.last_reminder_sent,
-          prayed_for_count: prayer.prayed_for_count ?? 0,
-          updates: updates.map((u: any) => ({
-            id: u.id,
-            prayer_id: u.prayer_id,
-            content: u.content,
-            author: u.author,
-            is_anonymous: u.is_anonymous,
-            created_at: u.created_at
-          }))
-        } as PrayerRequest;
-      });
-
-      // Sort by most recent activity
-      const sortedPrayers = formattedPrayers
-        .map(prayer => ({
-          prayer,
-          latestActivity: Math.max(
-            new Date(prayer.created_at).getTime(),
-            prayer.updates.length > 0 
-              ? new Date(prayer.updates[0].created_at).getTime()
-              : 0
-          )
-        }))
-        .sort((a, b) => b.latestActivity - a.latestActivity)
-        .map(({ prayer }) => prayer);
-
-      this.allPrayersSubject.next(sortedPrayers);
-      this.cache.set('prayers', sortedPrayers);
-      this.applyFilters(this.currentFilters);
-      
-      // Refresh badge counts to ensure badges show up for new updates
-      this.badgeService.refreshBadgeCounts();
-      this.communityPrayersDbFetchComplete = true;
+      publishCommunityPrayersFromDb(
+        prayersData || [],
+        formatApprovedCommunityPrayersFromDb,
+        {
+          setAllPrayers: (prayers) => this.allPrayersSubject.next(prayers),
+          setCache: (prayers) => this.cache.set(COMMUNITY_PRAYERS_CACHE_KEY, prayers),
+          reapplyFilters: () => this.applyFilters(this.currentFilters),
+          refreshBadges: () => this.badgeService.refreshBadgeCounts(),
+          markDbFetchComplete: () => {
+            this.communityPrayersDbFetchComplete = true;
+          },
+        }
+      );
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load prayers';
       console.error('[PrayerService] Failed to load prayers:', err);
       
-      // Try to load from cache as fallback
-      const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
-      if (cachedPrayers && cachedPrayers.length > 0) {
-        console.log(`[PrayerService] Showing ${cachedPrayers.length} cached prayers (error fallback)`);
-        this.allPrayersSubject.next(cachedPrayers);
-        this.applyFilters(this.currentFilters);
-        this.errorSubject.next(null); // Clear error to show data silently
-      } else {
-        // No cache available
-        this.errorSubject.next(errorMessage);
-        const now = Date.now();
-        if (now - this.lastLoadErrorToastTime > PrayerService.LOAD_ERROR_TOAST_COOLDOWN_MS) {
-          this.lastLoadErrorToastTime = now;
-          this.toast.error('Failed to load prayers');
-        }
+      const fallbackPlan = planCommunityLoadErrorFallback(
+        this.cache.get<PrayerRequest[]>(COMMUNITY_PRAYERS_CACHE_KEY),
+        err,
+        this.lastLoadErrorToastTime,
+        PrayerService.LOAD_ERROR_TOAST_COOLDOWN_MS
+      );
+
+      if (fallbackPlan.kind === 'use_cache') {
+        console.log(
+          `[PrayerService] Showing ${fallbackPlan.prayers.length} cached prayers (error fallback)`
+        );
       }
+
+      applyCommunityLoadErrorPlan(fallbackPlan, {
+        setAllPrayers: (prayers) => this.allPrayersSubject.next(prayers),
+        reapplyFilters: () => this.applyFilters(this.currentFilters),
+        setError: (message) => this.errorSubject.next(message),
+        emitErrorToast: () => {
+          this.lastLoadErrorToastTime = Date.now();
+          this.toast.error('Failed to load prayers');
+        },
+      });
       this.communityPrayersDbFetchComplete = true;
     } finally {
       if (!skipDb) {
@@ -349,13 +456,14 @@ export class PrayerService {
       }
 
       // ✅ TIER 1: Check cache first
-      const cachedPersonalPrayers = this.cache.get<PrayerRequest[]>('personalPrayers');
+      const cachedPersonalPrayers = this.cache.get<PrayerRequest[]>(PERSONAL_PRAYERS_CACHE_KEY);
       if (cachedPersonalPrayers && cachedPersonalPrayers.length > 0) {
         console.log(`[PrayerService] Using cached personal prayers (${cachedPersonalPrayers.length} items)`);
-        const normalized = this.normalizePersonalPrayerCache(cachedPersonalPrayers);
-        this.allPersonalPrayersSubject.next(normalized);
-        this.dropRemindersForAnsweredPersonalPrayers(normalized);
-        
+        applyCachedPersonalPrayersSnapshot(
+          cachedPersonalPrayers,
+          this.personalCacheSnapshotActions()
+        );
+
         // ✅ TIER 1: Skip DB for silent refresh - personal prayers only change when user adds them
         if (silentRefresh) {
           console.log('[PrayerService] Cache hit for silent refresh - skipping personal prayers database query');
@@ -365,94 +473,45 @@ export class PrayerService {
 
       const { data, error } = await this.supabase.client
         .from('personal_prayers')
-        .select(`
-          id,
-          title,
-          description,
-          category,
-          prayer_for,
-          user_email,
-          display_order,
-          created_at,
-          updated_at,
-          prayed_for_count,
-          personal_prayer_updates (
-            id,
-            content,
-            author,
-            author_email,
-            mark_as_answered,
-            created_at
-          )
-        `)
+        .select(PERSONAL_PRAYERS_LIST_SELECT)
         .eq('user_email', userEmail)
         .order('display_order', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const personalPrayers = this.normalizePersonalPrayerCache(
-        (data || []).map(p => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        category: p.category,
-        status: (p.category === 'Answered' ? 'answered' : 'current') as PrayerStatus,
-        prayer_for: p.prayer_for,
-        requester: p.user_email,
-        email: p.user_email,
-        user_email: p.user_email,
-        is_anonymous: false,
-        date_requested: p.created_at,
-        created_at: p.created_at,
-        updated_at: p.updated_at,
-        approval_status: 'approved' as const,
-        type: 'prayer' as const,
-        display_order: p.display_order,
-        prayed_for_count: p.prayed_for_count ?? 0,
-        updates: (p.personal_prayer_updates || []).map((u: any) => ({
-          id: u.id,
-          prayer_id: p.id,
-          content: u.content,
-          author: u.author,
-          author_email: u.author_email,
-          is_anonymous: false,
-          mark_as_answered: u.mark_as_answered,
-          created_at: u.created_at,
-          approval_status: 'approved' as const
-        }))
-      }))
+      const personalPrayers = this.mapFetchedPersonalPrayers(data || []);
+
+      console.log(`[PrayerService] Loaded ${personalPrayers.length} personal prayers from database`);
+      publishPersonalPrayersFromDb(personalPrayers, {
+        setPersonalPrayers: (prayers) => this.setPersonalPrayersState(prayers),
+        dropAnsweredReminders: (prayers) =>
+          this.dropRemindersForAnsweredPersonalPrayers(prayers),
+      });
+    } catch (err) {
+      console.error('[PrayerService] Failed to load personal prayers:', err);
+
+      const userEmail = await this.getUserEmail();
+      const cacheFallback = planPersonalPrayerLoadCacheFallback(
+        this.cache.get<PrayerRequest[]>(PERSONAL_PRAYERS_CACHE_KEY),
+        userEmail
       );
 
-      // Use the database ordering (by display_order DESC, then created_at DESC)
-      // Don't re-sort by activity as it would override user's manual ordering
-      console.log(`[PrayerService] Loaded ${personalPrayers.length} personal prayers from database`);
-      this.allPersonalPrayersSubject.next(personalPrayers);
-      this.dropRemindersForAnsweredPersonalPrayers(personalPrayers);
-      this.cache.set('personalPrayers', personalPrayers);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load personal prayers';
-      console.error('[PrayerService] Failed to load personal prayers:', err);
-      
-      // Try to load from cache as fallback - but only if it belongs to the current user
-      const userEmail = await this.getUserEmail();
-      const cachedPersonalPrayers = this.cache.get<PrayerRequest[]>('personalPrayers');
-      
-      if (cachedPersonalPrayers && cachedPersonalPrayers.length > 0) {
-        // Safety check: verify cached prayers belong to current user
-        const allCachedPrayersMatchCurrentUser = cachedPersonalPrayers.every(p => p.email === userEmail);
-        
-        if (allCachedPrayersMatchCurrentUser) {
-          console.log(`[PrayerService] Showing ${cachedPersonalPrayers.length} cached personal prayers`);
-          const normalized = this.normalizePersonalPrayerCache(cachedPersonalPrayers);
-          this.allPersonalPrayersSubject.next(normalized);
-          this.dropRemindersForAnsweredPersonalPrayers(normalized);
-        } else {
-          console.warn('[PrayerService] Cached personal prayers do not match current user - discarding cache');
-          this.cache.invalidate('personalPrayers');
+      applyPersonalPrayerLoadCacheFallbackPlan(cacheFallback, {
+        applyCachedSnapshot: (prayers) => {
+          console.log(
+            `[PrayerService] Showing ${prayers.length} cached personal prayers`
+          );
+          applyCachedPersonalPrayersSnapshot(prayers, this.personalCacheSnapshotActions());
+        },
+        invalidatePersonalCache: () => this.cache.invalidate(PERSONAL_PRAYERS_CACHE_KEY),
+        clearPersonalPrayers: () => {
+          console.warn(
+            '[PrayerService] Cached personal prayers do not match current user - discarding cache'
+          );
           this.allPersonalPrayersSubject.next([]);
-        }
-      }
+        },
+      });
     } finally {
       this.loadingPersonalPrayersSubject.next(false);
       this.personalPrayersDbFetchComplete = true;
@@ -460,40 +519,17 @@ export class PrayerService {
   }
   async getPrayersByMonth(year: number, month: number): Promise<PrayerRequest[]> {
     try {
-      // Create date range for the month
-      const startDate = new Date(year, month - 1, 1).toISOString();
-      const endDate = new Date(year, month, 1).toISOString();
+      const { startDate, endDate } = prayersByMonthIsoRange(year, month);
 
       const { data: prayersData, error } = await this.supabase.client
         .from('prayers')
-        .select(`
-          *,
-          prayer_updates!prayer_updates_prayer_id_fkey(*)
-        `)
-        .or(`(updated_at.gte.${startDate},updated_at.lt.${endDate}),(created_at.gte.${startDate},created_at.lt.${endDate})`)
+        .select(COMMUNITY_PRAYERS_WITH_UPDATES_SELECT)
+        .or(prayersByMonthOrFilter(startDate, endDate))
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      // Format the data same as loadPrayers
-      const formattedPrayers = (prayersData || []).map((prayer: any) => ({
-        ...prayer,
-        updates: prayer.prayer_updates || []
-      }));
-
-      // Sort by latest activity
-      return formattedPrayers
-        .map(prayer => ({
-          prayer,
-          latestActivity: Math.max(
-            new Date(prayer.created_at).getTime(),
-            prayer.updates.length > 0 
-              ? new Date(prayer.updates[0].created_at).getTime()
-              : 0
-          )
-        }))
-        .sort((a, b) => b.latestActivity - a.latestActivity)
-        .map(({ prayer }) => prayer);
+      return formatPrayersByMonthFromDb(prayersData || []);
     } catch (err) {
       console.error(`[PrayerService] Failed to load prayers for ${year}-${month}:`, err);
       return [];
@@ -503,72 +539,46 @@ export class PrayerService {
   /**
    * Refresh data when window regains focus or after inactivity
    */
-  private setupInactivityListener(): void {
-    // Refresh when window regains focus (tab becomes visible again)
-    fromEvent(window, 'focus').subscribe(() => {
-      if (!document.hidden) {
-        this.scheduleResumeRefresh();
-      }
+  private setupResumeListeners(): void {
+    const added = wirePrayerResumeListeners({
+      scheduleResumeRefresh: () => this.scheduleResumeRefresh(),
+      onEnterBackground: () => {
+        this.isInBackground = true;
+        console.log(
+          '[PrayerService] App going to background - pausing aggressive operations'
+        );
+        clearTimeoutIdMap(this.backgroundRecoveryTimeouts);
+      },
+      onLeaveBackground: () => {
+        this.isInBackground = false;
+        console.log(
+          '[PrayerService] App returning from background - triggering recovery'
+        );
+        this.triggerBackgroundRecovery();
+      },
+      inactivityThresholdMs: this.inactivityThresholdMs,
+      getInactivityTimeout: () => this.inactivityTimeout,
+      setInactivityTimeout: (id) => {
+        this.inactivityTimeout = id;
+      },
+      clearBackgroundRecoveryTimeouts: () => {
+        clearTimeoutIdMap(this.backgroundRecoveryTimeouts);
+      },
     });
-
-    // Track inactivity - reset timer on any user activity
-    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
-    
-    const resetInactivityTimer = () => {
-      clearTimeout(this.inactivityTimeout);
-      this.inactivityTimeout = setTimeout(() => {
-        console.log('[PrayerService] Inactivity detected, next activity will trigger refresh');
-      }, this.inactivityThresholdMs);
-    };
-
-    // Set up initial inactivity timer
-    resetInactivityTimer();
-
-    // Reset timer on any activity
-    activityEvents.forEach(event => {
-      fromEvent(document, event).subscribe(() => {
-        resetInactivityTimer();
-      });
-    });
-
-    // When document becomes visible, trigger a single debounced refresh (with ensureConnected first)
-    fromEvent(document, 'visibilitychange').subscribe(() => {
-      if (!document.hidden) {
-        this.scheduleResumeRefresh();
-      }
-    });
+    this.resumeListenerSubscriptions = mergePrayerResumeListenerSubscriptions(
+      this.resumeListenerSubscriptions,
+      added
+    );
   }
 
-  /**
-   * Handle background/foreground transitions for Edge on iOS
-   * Edge may suspend the app and lose connections, so we need to actively recover
-   */
-  private setupBackgroundRecoveryListener(): void {
-    // Listen for visibility changes
-    fromEvent(document, 'visibilitychange').subscribe(() => {
-      if (document.hidden) {
-        this.isInBackground = true;
-        console.log('[PrayerService] App going to background - pausing aggressive operations');
-        
-        // Clear any pending recovery timeouts
-        this.backgroundRecoveryTimeouts.forEach(timeout => clearTimeout(timeout));
-        this.backgroundRecoveryTimeouts.clear();
-      } else {
-        this.isInBackground = false;
-        console.log('[PrayerService] App returning from background - triggering recovery');
-        
-        // Trigger immediate recovery
-        this.triggerBackgroundRecovery();
-      }
-    });
+  /** @internal Used by specs to wire inactivity timer only (same path as setupResumeListeners). */
+  private setupInactivityListener(): void {
+    this.setupResumeListeners();
+  }
 
-    // Listen for app visibility event (custom event from AppComponent)
-    window.addEventListener('app-became-visible', () => {
-      if (!document.hidden) {
-        console.log('[PrayerService] Received app-became-visible event, triggering recovery');
-        this.triggerBackgroundRecovery();
-      }
-    });
+  /** @internal Used by specs — consolidated into setupResumeListeners. */
+  private setupBackgroundRecoveryListener(): void {
+    this.setupResumeListeners();
   }
 
   /**
@@ -576,13 +586,14 @@ export class PrayerService {
    * so we only run one refresh after coming back from background instead of several.
    */
   private scheduleResumeRefresh(): void {
-    if (this.resumeRefreshTimeoutId != null) {
-      clearTimeout(this.resumeRefreshTimeoutId);
-    }
-    this.resumeRefreshTimeoutId = setTimeout(() => {
-      this.resumeRefreshTimeoutId = null;
-      this.runResumeRefresh();
-    }, PrayerService.RESUME_REFRESH_DEBOUNCE_MS);
+    this.resumeRefreshTimeoutId = scheduleDebouncedResumeRefresh(
+      this.resumeRefreshTimeoutId,
+      PrayerService.RESUME_REFRESH_DEBOUNCE_MS,
+      () => {
+        this.resumeRefreshTimeoutId = null;
+        this.runResumeRefresh();
+      }
+    );
   }
 
   /**
@@ -590,31 +601,21 @@ export class PrayerService {
    * so the session is refreshed before fetching (avoids "Failed to load prayers" from expired token).
    */
   private async runResumeRefresh(): Promise<void> {
-    try {
-      console.log('[PrayerService] Resume refresh: ensuring connection then loading prayers');
-      try {
-        const cachedPrayers = this.cache.get<PrayerRequest[]>('prayers');
-        if (cachedPrayers && cachedPrayers.length > 0) {
-          this.allPrayersSubject.next(cachedPrayers);
-          this.applyFilters(this.currentFilters);
-        }
-      } catch {
-        // Cache may throw (e.g. storage unavailable); continue to refresh
-      }
-      await this.supabase.ensureConnected();
-      await this.loadPrayers(true);
-    } catch (err) {
-      console.debug('[PrayerService] Resume refresh failed, keeping cached data visible:', err);
-      const cached = this.cache.get<PrayerRequest[]>('prayers');
-      if (cached && cached.length > 0) {
+    await runResumeCommunityPrayerRefresh({
+      readCachedPrayers: () =>
+        this.cache.get<PrayerRequest[]>(COMMUNITY_PRAYERS_CACHE_KEY),
+      onShowCachedPrayers: (cached) => {
         this.allPrayersSubject.next(cached);
         this.applyFilters(this.currentFilters);
-      }
-    } finally {
-      if (!this.realtimeChannel) {
-        this.setupRealtimeSubscription();
-      }
-    }
+      },
+      ensureConnected: () => this.supabase.ensureConnected(),
+      loadPrayersSilent: () => this.loadPrayers(true),
+      reconnectRealtimeIfNeeded: () => {
+        if (!this.realtimeChannel) {
+          this.setupRealtimeSubscription();
+        }
+      },
+    });
   }
 
   /**
@@ -630,43 +631,9 @@ export class PrayerService {
    */
   applyFilters(filters: PrayerFilters): void {
     this.currentFilters = filters;
-    let filtered = this.allPrayersSubject.getValue();
-
-    // Filter by status
-    if (filters.status) {
-      filtered = filtered.filter(p => p.status === filters.status);
-    }
-
-    // Filter by type (prompt)
-    if (filters.type === 'prompt') {
-      filtered = filtered.filter(p => p.type === 'prompt');
-    }
-
-    // Filter by search term
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(p => {
-        // Check prayer fields
-        const prayerMatch = p.title.toLowerCase().includes(searchLower) ||
-          p.description.toLowerCase().includes(searchLower) ||
-          p.requester.toLowerCase().includes(searchLower);
-        
-        // Also check prayer updates
-        const updateMatch = p.updates && p.updates.length > 0 &&
-          p.updates.some(update =>
-            update.content && update.content.toLowerCase().includes(searchLower)
-          );
-
-        return prayerMatch || updateMatch;
-      });
-    }
-
-    // Filter by category (for personal prayers)
-    if (filters.category) {
-      filtered = filtered.filter(p => p.category === filters.category);
-    }
-
-    this.prayersSubject.next(filtered);
+    this.prayersSubject.next(
+      applyPrayerCatalogFilters(this.allPrayersSubject.getValue(), filters)
+    );
   }
 
   /**
@@ -674,16 +641,7 @@ export class PrayerService {
    */
   async addPrayer(prayer: Omit<PrayerRequest, 'id' | 'date_requested' | 'created_at' | 'updated_at' | 'updates'>): Promise<boolean> {
     try {
-      const prayerData: any = {
-        title: prayer.title,
-        description: prayer.description,
-        status: prayer.status,
-        requester: prayer.requester,
-        prayer_for: prayer.prayer_for,
-        approval_status: 'pending',
-        email: prayer.email || null,
-        is_anonymous: prayer.is_anonymous || false
-      };
+      const prayerData = buildCommunityPrayerInsertRow(prayer);
 
       const { data, error } = await this.supabase.client
         .from('prayers')
@@ -696,35 +654,29 @@ export class PrayerService {
       // Auto-subscribe user to email notifications if email provided
       if (prayer.email) {
         try {
-          const { data: existing } = await this.supabase.client
-            .from('email_subscribers')
-            .select('id')
-            .eq('email', prayer.email.toLowerCase().trim())
-            .maybeSingle();
-
-          if (!existing) {
-            await this.supabase.client
-              .from('email_subscribers')
-              .insert({
-                name: prayer.requester,
-                email: prayer.email.toLowerCase().trim(),
-                is_active: true,
-                is_admin: false
-              });
-          }
+          await ensureEmailSubscriberForPrayerSubmit(
+            prayer.requester,
+            prayer.email,
+            async (normalizedEmail) => {
+              const { data: existing } = await this.supabase.client
+                .from('email_subscribers')
+                .select('id')
+                .eq('email', normalizedEmail)
+                .maybeSingle();
+              return existing;
+            },
+            async (row) => {
+              await this.supabase.client.from('email_subscribers').insert(row);
+            }
+          );
         } catch (subscribeError) {
           console.error('Failed to auto-subscribe user:', subscribeError);
         }
       }
 
-      // Send email notification to admins (don't let email failures block prayer submission)
-      this.emailNotification.sendAdminNotification({
-        type: 'prayer',
-        title: prayer.title,
-        description: prayer.description,
-        requester: prayer.requester,
-        requestId: data.id
-      }).catch(err => console.error('Failed to send admin notification:', err));
+      this.emailNotification.sendAdminNotification(
+        buildCommunityPrayerAdminNotificationPayload(prayer, data.id)
+      ).catch((err) => console.error('Failed to send admin notification:', err));
 
       this.toast.success('Prayer request submitted for approval');
       return true;
@@ -742,22 +694,17 @@ export class PrayerService {
     try {
       const { error } = await this.supabase.client
         .from('prayers')
-        .update({ 
-          status,
-          date_answered: status === 'answered' ? new Date().toISOString() : null
-        })
+        .update(buildCommunityPrayerStatusUpdatePayload(status))
         .eq('id', id);
 
       if (error) throw error;
 
       // Update local state
-      const prayers = this.prayersSubject.value;
-      const updatedPrayers = prayers.map(p => 
-        p.id === id ? { ...p, status, date_answered: status === 'answered' ? new Date().toISOString() : null } : p
+      this.prayersSubject.next(
+        patchCommunityPrayerStatus(this.prayersSubject.value, id, status)
       );
-      this.prayersSubject.next(updatedPrayers);
 
-      if (status === 'archived' || status === 'answered') {
+      if (shouldDropCommunityReminderForStatus(status)) {
         this.prayerItemReminderService?.dropRemindersForPrayer(id, 'community');
       }
 
@@ -780,14 +727,17 @@ export class PrayerService {
         .rpc('increment_prayed_for_count', { prayer_id: prayerId });
 
       if (error) throw error;
-      const count = typeof newCount === 'number' && newCount > 0 ? newCount : null;
+      const count = parsePrayedForRpcCount(newCount);
       if (count === null) return null;
 
-      const updateOne = (p: PrayerRequest) =>
-        p.id === prayerId ? { ...p, prayed_for_count: count } : p;
-
-      this.allPrayersSubject.next(this.allPrayersSubject.value.map(updateOne));
-      this.prayersSubject.next(this.prayersSubject.value.map(updateOne));
+      const patched = patchCommunityPrayerListsPrayedForCount(
+        this.allPrayersSubject.value,
+        this.prayersSubject.value,
+        prayerId,
+        count
+      );
+      this.allPrayersSubject.next(patched.all);
+      this.prayersSubject.next(patched.filtered);
 
       return count;
     } catch (err) {
@@ -814,15 +764,15 @@ export class PrayerService {
         });
 
       if (error) throw error;
-      const count = typeof newCount === 'number' && newCount > 0 ? newCount : null;
+      const count = parsePrayedForRpcCount(newCount);
       if (count === null) return null;
 
-      const updateOne = (p: PrayerRequest) =>
-        p.id === prayerId ? { ...p, prayed_for_count: count } : p;
-
-      const updated = this.allPersonalPrayersSubject.value.map(updateOne);
-      this.allPersonalPrayersSubject.next(updated);
-      this.cache.set('personalPrayers', updated);
+      const updated = patchPersonalPrayersPrayedForCount(
+        this.allPersonalPrayersSubject.value,
+        prayerId,
+        count
+      );
+      this.setPersonalPrayersState(updated);
 
       return count;
     } catch (err) {
@@ -838,7 +788,7 @@ export class PrayerService {
    */
   async incrementMemberPrayedFor(personId: string): Promise<number | null> {
     try {
-      const trimmedId = personId?.trim();
+      const trimmedId = trimMemberPersonId(personId);
       if (!trimmedId) {
         return null;
       }
@@ -849,13 +799,17 @@ export class PrayerService {
       );
 
       if (error) throw error;
-      const count = typeof newCount === 'number' && newCount > 0 ? newCount : null;
+      const count = parsePrayedForRpcCount(newCount);
       if (count === null) return null;
 
-      const cachedMap =
-        (this.cache.get('memberPrayedForCounts') as Record<string, number> | null) || {};
-      cachedMap[trimmedId] = count;
-      this.cache.set('memberPrayedForCounts', cachedMap);
+      this.cache.set(
+        MEMBER_PRAYED_FOR_COUNTS_CACHE_KEY,
+        writeMemberPrayedForCountToCache(
+          this.cache.get(MEMBER_PRAYED_FOR_COUNTS_CACHE_KEY) as Record<string, number> | null,
+          trimmedId,
+          count
+        )
+      );
 
       return count;
     } catch (err) {
@@ -881,12 +835,8 @@ export class PrayerService {
 
       if (error) throw error;
 
-      const countsMap: Record<string, number> = {};
-      (data || []).forEach((row: { person_id: string; prayed_for_count: number }) => {
-        countsMap[row.person_id] = row.prayed_for_count ?? 0;
-      });
-
-      this.cache.set('memberPrayedForCounts', countsMap);
+      const countsMap = memberPrayedForCountsFromRows(data || []);
+      this.cache.set(MEMBER_PRAYED_FOR_COUNTS_CACHE_KEY, countsMap);
       return countsMap;
     } catch (error) {
       console.error('Error fetching batch member prayed-for counts:', error);
@@ -901,34 +851,27 @@ export class PrayerService {
     try {
       const { data, error } = await this.supabase.client
         .from('prayer_updates')
-        .insert({
-          prayer_id: prayerId,
-          content,
-          author,
-          approval_status: 'pending'
-        })
+        .insert(buildSimplePendingUpdateInsertRow(prayerId, content, author))
         .select()
         .single();
 
       if (error) throw error;
 
-      // Get prayer title for notification
-      const { data: prayer } = await this.supabase.client
-        .from('prayers')
-        .select('title')
-        .eq('id', prayerId)
-        .single();
-
-      // Send email notification to admins (don't let email failures block update submission)
-      if (prayer) {
-        this.emailNotification.sendAdminNotification({
-          type: 'update',
-          title: prayer.title,
-          author,
-          content,
-          requestId: data.id
-        }).catch(err => console.error('Failed to send admin notification:', err));
-      }
+      await afterCommunityPendingUpdateInserted(
+        prayerId,
+        author,
+        content,
+        data.id,
+        async (id) => {
+          const { data: prayer } = await this.supabase.client
+            .from('prayers')
+            .select('title')
+            .eq('id', id)
+            .single();
+          return prayer?.title;
+        },
+        (payload) => this.emailNotification.sendAdminNotification(payload)
+      );
 
       this.toast.success('Update submitted for approval');
       return true;
@@ -943,32 +886,26 @@ export class PrayerService {
    * Add an update to a Planning Center member prayer card
    */
   async addMemberPrayerUpdate(personId: string, memberName: string, content: string, author: string, authorEmail: string = '', isAnswered: boolean = false, listId?: string): Promise<boolean> {
-    try {
-      const { data, error } = await this.supabase.client
-        .from('member_prayer_updates')
-        .insert({
-          person_id: personId,
-          content,
-          is_answered: isAnswered
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Clear both caches
-      this.cache.invalidate('memberPrayerUpdates');
-      if (listId) {
-        this.clearPlanningCenterListDataCache(listId);
-      }
-
-      this.toast.success('Update added successfully');
-      return true;
-    } catch (error) {
-      console.error('Error adding member prayer update:', error);
-      this.toast.error('Failed to add update');
-      return false;
-    }
+    return runMemberPrayerCacheMutation(
+      async () => {
+        const { error } = await this.supabase.client
+          .from('member_prayer_updates')
+          .insert(buildMemberPrayerUpdateInsertRow(personId, content, isAnswered))
+          .select()
+          .single();
+        if (error) {
+          throw error;
+        }
+      },
+      () => this.invalidateMemberPrayerCaches(listId),
+      (message) => this.toast.success(message),
+      (message) => this.toast.error(message),
+      {
+        success: MEMBER_PRAYER_UPDATE_TOAST.addSuccess,
+        fail: MEMBER_PRAYER_UPDATE_TOAST.addFail,
+      },
+      'Error adding member prayer update:'
+    );
   }
 
   /**
@@ -991,23 +928,10 @@ export class PrayerService {
 
       if (error) throw error;
 
-      // Group updates by person_id for efficient access
-      const updatesMap: Record<string, any[]> = {};
-      (data || []).forEach(update => {
-        if (!updatesMap[update.person_id]) {
-          updatesMap[update.person_id] = [];
-        }
-        updatesMap[update.person_id].push({
-          id: update.id,
-          content: update.content,
-          created_at: update.created_at,
-          updated_at: update.updated_at,
-          is_answered: update.is_answered
-        });
-      });
+      const updatesMap = groupMemberPrayerUpdatesByPersonId(data || []);
 
       // Cache the batch results
-      this.cache.set('memberPrayerUpdates', updatesMap);
+      this.cache.set(MEMBER_PRAYER_UPDATES_CACHE_KEY, updatesMap);
 
       console.log(`[PrayerService] Batch loaded updates for ${personIds.length} members`);
       return updatesMap;
@@ -1024,9 +948,12 @@ export class PrayerService {
   async getMemberPrayerUpdates(personId: string): Promise<any[]> {
     try {
       // Try to get from cache first
-      const cachedUpdates = this.cache.get('memberPrayerUpdates') as Record<string, any[]> | undefined;
-      if (cachedUpdates && cachedUpdates[personId]) {
-        return cachedUpdates[personId];
+      const cachedUpdates = this.cache.get(MEMBER_PRAYER_UPDATES_CACHE_KEY) as
+        | Record<string, any[]>
+        | undefined;
+      const cachedForPerson = memberUpdatesCacheForPerson(cachedUpdates, personId);
+      if (cachedForPerson) {
+        return cachedForPerson;
       }
 
       // Cache miss - fetch just this person's updates
@@ -1038,18 +965,12 @@ export class PrayerService {
 
       if (error) throw error;
 
-      const updates = (data || []).map(u => ({
-        id: u.id,
-        content: u.content,
-        created_at: u.created_at,
-        updated_at: u.updated_at,
-        is_answered: u.is_answered
-      }));
+      const updates = (data || []).map((u) => mapMemberPrayerUpdateRow(u));
 
-      // Update cache
-      const cachedMap = cachedUpdates || {};
-      cachedMap[personId] = updates;
-      this.cache.set('memberPrayerUpdates', cachedMap);
+      this.cache.set(
+        MEMBER_PRAYER_UPDATES_CACHE_KEY,
+        writeMemberUpdatesCacheForPerson(cachedUpdates, personId, updates)
+      );
 
       return updates;
     } catch (error) {
@@ -1064,72 +985,59 @@ export class PrayerService {
    * Note: listId needed because member updates are cached at the list level
    */
   clearPlanningCenterListDataCache(listId: string): void {
-    const cacheKey = `planningCenterListData_${listId}`;
-    this.cache.invalidate(cacheKey);
+    this.cache.invalidate(planningCenterListDataCacheKey(listId));
   }
 
   /**
    * Delete a member prayer update by ID and clear cache
    */
   async deleteMemberPrayerUpdate(updateId: string, personId: string, listId?: string): Promise<boolean> {
-    try {
-      const { error } = await this.supabase.client
-        .from('member_prayer_updates')
-        .delete()
-        .eq('id', updateId);
-
-      if (error) {
-        console.error('[PrayerService] Error deleting member update:', error);
-        throw error;
-      }
-
-      // Clear both caches
-      this.cache.invalidate('memberPrayerUpdates');
-      if (listId) {
-        this.clearPlanningCenterListDataCache(listId);
-      }
-      
-      this.toast.success('Update deleted successfully');
-      return true;
-    } catch (error) {
-      console.error('Error deleting member prayer update:', error);
-      this.toast.error('Failed to delete update');
-      return false;
-    }
+    return runMemberPrayerCacheMutation(
+      async () => {
+        const { error } = await this.supabase.client
+          .from('member_prayer_updates')
+          .delete()
+          .eq('id', updateId);
+        if (error) {
+          throw error;
+        }
+      },
+      () => this.invalidateMemberPrayerCaches(listId),
+      (message) => this.toast.success(message),
+      (message) => this.toast.error(message),
+      {
+        success: MEMBER_PRAYER_UPDATE_TOAST.deleteSuccess,
+        fail: MEMBER_PRAYER_UPDATE_TOAST.deleteFail,
+      },
+      '[PrayerService] Error deleting member update:'
+    );
   }
 
   /**
    * Update a member prayer update
    */
   async updateMemberPrayerUpdate(updateId: string, personId: string, updates: Partial<PrayerUpdate>, listId?: string): Promise<boolean> {
-    try {
-      const updateData: any = {};
-      if (updates.content) updateData.content = updates.content;
-      if (updates.is_answered !== undefined) updateData.is_answered = updates.is_answered;
-
-      const { data, error } = await this.supabase.client
-        .from('member_prayer_updates')
-        .update(updateData)
-        .eq('id', updateId)
-        .select();
-
-      if (error) {
-        throw error;
-      }
-
-      // Clear both caches
-      this.cache.invalidate('memberPrayerUpdates');
-      if (listId) {
-        this.clearPlanningCenterListDataCache(listId);
-      }
-
-      this.toast.success('Update saved successfully');
-      return true;
-    } catch (error) {
-      console.error('Error updating member prayer update:', error);
-      this.toast.error('Failed to save update');
-      return false;
-    }
+    return runMemberPrayerCacheMutation(
+      async () => {
+        const updateData = buildMemberPrayerUpdatePatch(updates);
+        const { error } = await this.supabase.client
+          .from('member_prayer_updates')
+          .update(updateData)
+          .eq('id', updateId)
+          .select();
+        if (error) {
+          throw error;
+        }
+      },
+      () => this.invalidateMemberPrayerCaches(listId),
+      (message) => this.toast.success(message),
+      (message) => this.toast.error(message),
+      {
+        success: MEMBER_PRAYER_UPDATE_TOAST.updateSuccess,
+        fail: MEMBER_PRAYER_UPDATE_TOAST.updateFail,
+      },
+      'Error updating member prayer update:'
+    );
   }
 
   /**
@@ -1144,17 +1052,20 @@ export class PrayerService {
 
       if (error) throw error;
 
-      // Update local state immediately for responsive UI
-      const filteredPrayers = this.prayersSubject.value.filter(p => p.id !== id);
-      this.prayersSubject.next(filteredPrayers);
-
-      // Also update the canonical allPrayers$ stream and cache so counts and filters stay in sync
-      const filteredAllPrayers = this.allPrayersSubject.value.filter(p => p.id !== id);
-      this.allPrayersSubject.next(filteredAllPrayers);
-      this.cache.set('prayers', filteredAllPrayers);
-      this.applyFilters(this.currentFilters);
-      this.badgeService.refreshBadgeCounts();
-      this.prayerItemReminderService?.dropRemindersForPrayer(id, 'community');
+      applyCommunityPrayerDeleteSnapshot(
+        this.prayersSubject.value,
+        this.allPrayersSubject.value,
+        id,
+        {
+          setFilteredPrayers: (prayers) => this.prayersSubject.next(prayers),
+          setAllPrayers: (prayers) => this.allPrayersSubject.next(prayers),
+          setCache: (prayers) => this.cache.set(COMMUNITY_PRAYERS_CACHE_KEY, prayers),
+          reapplyFilters: () => this.applyFilters(this.currentFilters),
+          refreshBadges: () => this.badgeService.refreshBadgeCounts(),
+          dropReminders: (prayerId) =>
+            this.prayerItemReminderService?.dropRemindersForPrayer(prayerId, 'community'),
+        }
+      );
 
       this.toast.success('Prayer deleted');
       return true;
@@ -1193,32 +1104,7 @@ export class PrayerService {
    * Get filtered prayers
    */
   getFilteredPrayers(filters: PrayerFilters): PrayerRequest[] {
-    let filtered = this.prayersSubject.value;
-
-    if (filters.status) {
-      filtered = filtered.filter(p => p.status === filters.status);
-    }
-
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(p => {
-        // Check prayer fields
-        const prayerMatch = p.title.toLowerCase().includes(searchLower) ||
-          p.description.toLowerCase().includes(searchLower) ||
-          p.requester.toLowerCase().includes(searchLower) ||
-          p.prayer_for.toLowerCase().includes(searchLower);
-        
-        // Also check prayer updates
-        const updateMatch = p.updates && p.updates.length > 0 &&
-          p.updates.some(update =>
-            update.content && update.content.toLowerCase().includes(searchLower)
-          );
-
-        return prayerMatch || updateMatch;
-      });
-    }
-
-    return filtered;
+    return filterPrayerRequestsByStatusAndSearch(this.prayersSubject.value, filters);
   }
 
   /**
@@ -1227,95 +1113,16 @@ export class PrayerService {
   private setupRealtimeSubscription(): void {
     try {
       console.log('[PrayerService] Setting up realtime subscription...');
-      
-      this.realtimeChannel = this.supabase.client
-        .channel('prayers-channel')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'prayers'
-          },
-          (payload) => {
-            console.log('[PrayerService] Prayer changed:', payload);
-            const row = (
-              payload.eventType === 'DELETE' ? payload.old : payload.new
-            ) as { id?: string; status?: string } | undefined;
-            const prayerId = row?.id;
-            if (prayerId) {
-              const status = (payload.new as { status?: string } | undefined)?.status;
-              if (
-                payload.eventType === 'DELETE' ||
-                status === 'archived' ||
-                status === 'answered'
-              ) {
-                this.prayerItemReminderService?.dropRemindersForPrayer(
-                  prayerId,
-                  'community'
-                );
-              }
-            }
-            this.loadPrayers(true).catch(err => {
-              console.error('[PrayerService] Error reloading after prayer change:', err);
-            });
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'prayer_updates'
-          },
-          (payload) => {
-            console.log('[PrayerService] Prayer update changed:', payload);
-            this.loadPrayers(true).catch(err => {
-              console.error('[PrayerService] Error reloading after update change:', err);
-            });
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'personal_prayers'
-          },
-          (payload) => {
-            const row = (
-              payload.eventType === 'DELETE' ? payload.old : payload.new
-            ) as { id?: string; category?: string } | undefined;
-            const prayerId = row?.id;
-            if (prayerId) {
-              const category = (payload.new as { category?: string } | undefined)?.category;
-              if (payload.eventType === 'DELETE' || category === 'Answered') {
-                this.prayerItemReminderService?.dropRemindersForPrayer(
-                  prayerId,
-                  'personal'
-                );
-              }
-            }
-            if (
-              payload.eventType === 'UPDATE' &&
-              this.isPersonalPrayerDisplayOrderOnlyChange(
-                payload.old as Record<string, unknown> | undefined,
-                payload.new as Record<string, unknown> | undefined
-              )
-            ) {
-              return;
-            }
-            this.loadPersonalPrayers(false).catch((err) => {
-              console.error('[PrayerService] Error reloading after personal prayer change:', err);
-            });
-          }
-        )
-        .subscribe((status) => {
-          console.log('[PrayerService] Realtime subscription status:', status);
-          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-            console.warn('[PrayerService] Realtime subscription disconnected, will retry on next activity');
-          }
-        });
+
+      this.realtimeChannel = subscribePrayerCatalogRealtime(
+        this.supabase.client,
+        buildPrayerCatalogRealtimeHandlers({
+          dropRemindersForPrayer: (prayerId, kind) =>
+            this.prayerItemReminderService?.dropRemindersForPrayer(prayerId, kind),
+          reloadCommunityPrayers: () => this.loadPrayers(true),
+          reloadPersonalPrayers: () => this.loadPersonalPrayers(false),
+        })
+      );
     } catch (error) {
       console.error('[PrayerService] Error setting up realtime subscription:', error);
       // Continue without realtime - fallback to polling
@@ -1328,12 +1135,19 @@ export class PrayerService {
   async cleanup(): Promise<void> {
     console.log('[PrayerService] Cleaning up...');
     try {
+      unsubscribePrayerResumeListeners(this.resumeListenerSubscriptions);
+      this.resumeListenerSubscriptions = [];
+      if (this.resumeRefreshTimeoutId != null) {
+        clearTimeout(this.resumeRefreshTimeoutId);
+        this.resumeRefreshTimeoutId = null;
+      }
       if (this.realtimeChannel) {
         await this.supabase.client.removeChannel(this.realtimeChannel);
         this.realtimeChannel = null;
       }
       if (this.inactivityTimeout) {
         clearTimeout(this.inactivityTimeout);
+        this.inactivityTimeout = null;
       }
     } catch (error) {
       console.error('[PrayerService] Error during cleanup:', error);
@@ -1341,15 +1155,16 @@ export class PrayerService {
   }
 
   /**
-   * Reload prayers when page becomes visible (ALWAYS silent refresh in background)
-   * This keeps the UI visible with cached data while fetching fresh data
+   * Reload prayers when page becomes visible (debounced via scheduleResumeRefresh).
    */
   private setupVisibilityListener(): void {
-    fromEvent(document, 'visibilitychange').subscribe(() => {
-      if (document.visibilityState === 'visible') {
-        this.scheduleResumeRefresh();
-      }
-    });
+    this.setupResumeListeners();
+  }
+
+  private invalidateMemberPrayerCaches(listId?: string): void {
+    for (const key of memberPrayerCacheKeysToInvalidate(listId)) {
+      this.cache.invalidate(key);
+    }
   }
 
   /**
@@ -1359,37 +1174,27 @@ export class PrayerService {
     try {
       const { data, error } = await this.supabase.client
         .from('prayer_updates')
-        .insert({
-          prayer_id: updateData.prayer_id,
-          content: updateData.content,
-          author: updateData.author,
-          author_email: updateData.author_email,
-          is_anonymous: updateData.is_anonymous,
-          mark_as_answered: updateData.mark_as_answered,
-          approval_status: 'pending'
-        })
+        .insert(buildPendingCommunityUpdateInsertRow(updateData))
         .select()
         .single();
 
       if (error) throw error;
 
-      // Get prayer title for admin notification
-      const { data: prayer } = await this.supabase.client
-        .from('prayers')
-        .select('title')
-        .eq('id', updateData.prayer_id)
-        .single();
-
-      // Send email notification to admins (don't let email failures block update submission)
-      if (prayer) {
-        this.emailNotification.sendAdminNotification({
-          type: 'update',
-          title: prayer.title,
-          author: updateData.author,
-          content: updateData.content,
-          requestId: data.id
-        }).catch(err => console.error('Failed to send admin notification:', err));
-      }
+      await afterCommunityPendingUpdateInserted(
+        updateData.prayer_id,
+        updateData.author,
+        updateData.content,
+        data.id,
+        async (id) => {
+          const { data: prayer } = await this.supabase.client
+            .from('prayers')
+            .select('title')
+            .eq('id', id)
+            .single();
+          return prayer?.title;
+        },
+        (payload) => this.emailNotification.sendAdminNotification(payload)
+      );
 
       this.toast.success('Update submitted for approval');
       return true;
@@ -1427,42 +1232,27 @@ export class PrayerService {
    */
   async requestDeletion(requestData: any): Promise<boolean> {
     try {
-      const fullName = `${requestData.requester_first_name} ${requestData.requester_last_name}`;
-      
       const { data, error } = await this.supabase.client
         .from('deletion_requests')
-        .insert({
-          prayer_id: requestData.prayer_id,
-          requested_by: fullName,
-          requested_email: requestData.requester_email,
-          reason: requestData.reason
-        })
+        .insert(buildPrayerDeletionRequestRow(requestData))
         .select('id')
         .single();
 
       if (error) throw error;
 
-      // Fetch the prayer info for admin notification (best-effort)
-      try {
-        const { data: prayerRow } = await this.supabase.client
-          .from('prayers')
-          .select('title')
-          .eq('id', requestData.prayer_id)
-          .single();
-
-        const title = prayerRow?.title || 'Unknown Prayer';
-
-        // Send admin notification (don't let email failures block the request)
-        this.emailNotification.sendAdminNotification({
-          type: 'deletion',
-          title,
-          reason: requestData.reason,
-          requester: fullName,
-          requestId: data?.id
-        }).catch(err => console.error('Failed to send admin notification for prayer deletion request:', err));
-      } catch (notifyErr) {
-        console.warn('Could not fetch prayer details for notification:', notifyErr);
-      }
+      await notifyPrayerDeletionRequestSubmitted(
+        requestData,
+        data?.id,
+        async () => {
+          const { data: prayerRow } = await this.supabase.client
+            .from('prayers')
+            .select('title')
+            .eq('id', requestData.prayer_id)
+            .single();
+          return prayerRow;
+        },
+        (payload) => this.emailNotification.sendAdminNotification(payload)
+      );
 
       this.toast.success('Deletion request submitted for review');
       return true;
@@ -1478,46 +1268,27 @@ export class PrayerService {
    */
   async requestUpdateDeletion(requestData: any): Promise<boolean> {
     try {
-      const fullName = `${requestData.requester_first_name} ${requestData.requester_last_name}`;
-      
       const { data, error } = await this.supabase.client
         .from('update_deletion_requests')
-        .insert({
-          update_id: requestData.update_id,
-          requested_by: fullName,
-          requested_email: requestData.requester_email,
-          reason: requestData.reason
-        })
+        .insert(buildUpdateDeletionRequestRow(requestData))
         .select('id')
         .single();
 
       if (error) throw error;
 
-      // Fetch the update/prayer info for admin notification (best-effort)
-      try {
-        const { data: updateRow } = await this.supabase.client
-          .from('prayer_updates')
-          .select('*, prayers!inner(title)')
-          .eq('id', requestData.update_id)
-          .single();
-
-        const title = updateRow?.prayers?.title || 'Unknown Prayer';
-        const author = updateRow?.author || undefined;
-        const content = updateRow?.content || undefined;
-
-        // Send admin notification (don't let email failures block the request)
-        this.emailNotification.sendAdminNotification({
-          type: 'deletion',
-          title,
-          reason: requestData.reason,
-          requester: fullName,
-          author,
-          content,
-          requestId: data?.id
-        }).catch(err => console.error('Failed to send admin notification for update deletion request:', err));
-      } catch (notifyErr) {
-        console.warn('Could not fetch update/prayer details for notification:', notifyErr);
-      }
+      await notifyUpdateDeletionRequestSubmitted(
+        requestData,
+        data?.id,
+        async () => {
+          const { data: updateRow } = await this.supabase.client
+            .from('prayer_updates')
+            .select('*, prayers!inner(title)')
+            .eq('id', requestData.update_id)
+            .single();
+          return updateRow;
+        },
+        (payload) => this.emailNotification.sendAdminNotification(payload)
+      );
 
       this.toast.success('Update deletion request submitted for review');
       return true;
@@ -1532,22 +1303,7 @@ export class PrayerService {
    * Validate and sanitize category name (50 character max)
    */
   private sanitizeCategory(category: string | null | undefined): string | null {
-    if (!category || typeof category !== 'string') {
-      return null;
-    }
-    
-    const trimmed = category.trim();
-    if (trimmed.length === 0) {
-      return null;
-    }
-    
-    // Enforce 50 character limit
-    if (trimmed.length > 50) {
-      console.warn(`Category name exceeds 50 characters, truncating: "${trimmed}"`);
-      return trimmed.substring(0, 50);
-    }
-    
-    return trimmed;
+    return sanitizePersonalPrayerCategory(category);
   }
 
   /**
@@ -1555,61 +1311,62 @@ export class PrayerService {
    * Uncategorized (null): 0-999
    * Categories assigned sequentially by creation order: 1000-1999, 2000-2999, etc.
    */
-  private async getCategoryRange(category: string | null | undefined): Promise<{ min: number; max: number }> {
-    if (!category || category.trim().length === 0) {
-      // Uncategorized prayers use 0-999 range
-      return { min: UNCATEGORIZED_MIN, max: UNCATEGORIZED_MAX };
-    }
+  private personalCategoryDeps(): PersonalCategoryDeps {
+    return {
+      getCategoryCount: (category) => this.getCategoryPrayerCount(category),
+      getCategoryRange: (category) => this.getCategoryRange(category),
+      queryMaxDisplayOrderInRange: (email, category, range) =>
+        this.queryMaxDisplayOrderInCategoryRange(email, category, range),
+    };
+  }
 
-    const userEmail = await this.getUserEmail();
-    if (!userEmail) {
-      throw new Error('User email not available');
-    }
-
-    // Get the actual min/max display_order for this category
-    // This ensures we use the correct range after category swaps
-    const { data: categoryPrayers, error } = await this.supabase.client
+  private async queryMaxDisplayOrderInCategoryRange(
+    userEmail: string,
+    category: string | null,
+    range: CategoryDisplayOrderRange
+  ): Promise<{
+    data: { display_order?: number | null } | null;
+    error: unknown;
+  }> {
+    const result = await this.supabase.client
       .from('personal_prayers')
       .select('display_order')
       .eq('user_email', userEmail)
-      .eq('category', category);
+      .eq('category', category ?? null)
+      .gte('display_order', range.min)
+      .lte('display_order', range.max)
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .single();
+    return { data: result.data, error: result.error };
+  }
 
-    if (error) throw error;
-
-    if (!categoryPrayers || categoryPrayers.length === 0) {
-      // New category - find the next available range
-      // Get all categories with their min display_order to find gaps
-      const { data: allCategoryData, error: allError } = await this.supabase.client
-        .from('personal_prayers')
-        .select('category, display_order')
-        .eq('user_email', userEmail)
-        .not('category', 'is', null)
-        .gte('display_order', UNCATEGORIZED_MAX + 1);
-
-      if (allError) throw allError;
-
-      // Find the highest prefix in use
-      let maxPrefix = 0;
-      (allCategoryData || []).forEach((row: any) => {
-        const prefix = Math.floor(row.display_order / 1000);
-        maxPrefix = Math.max(maxPrefix, prefix);
-      });
-
-      // Assign next prefix
-      const nextPrefix = maxPrefix + 1;
-      const min = nextPrefix * 1000;
-      const max = min + CATEGORY_RANGE_SIZE - 1;
-      return { min, max };
-    }
-
-    // Existing category - determine its range from actual display_order values
-    const displayOrders = categoryPrayers.map(p => p.display_order || 0);
-    const minOrder = Math.min(...displayOrders);
-    const prefix = Math.floor(minOrder / 1000);
-    const min = prefix * 1000;
-    const max = min + CATEGORY_RANGE_SIZE - 1;
-    
-    return { min, max };
+  private async getCategoryRange(
+    category: string | null | undefined
+  ): Promise<CategoryDisplayOrderRange> {
+    const userEmail = await this.getUserEmail();
+    return resolvePersonalCategoryRangeWithDb(
+      category,
+      userEmail,
+      async (email, categoryEq) => {
+        const result = await this.supabase.client
+          .from('personal_prayers')
+          .select('display_order')
+          .eq('user_email', email)
+          .eq('category', categoryEq);
+        return { data: result.data, error: result.error };
+      },
+      async (email, minDisplayOrder) => {
+        const result = await this.supabase.client
+          .from('personal_prayers')
+          .select('category, display_order')
+          .eq('user_email', email)
+          .not('category', 'is', null)
+          .gte('display_order', minDisplayOrder);
+        return { data: result.data, error: result.error };
+      },
+      PRAYER_PERSONAL_UNCATEGORIZED_MAX + 1
+    );
   }
 
   /**
@@ -1617,34 +1374,40 @@ export class PrayerService {
    */
   private async getCategoryPrayerCount(category: string | null | undefined): Promise<number> {
     const userEmail = await this.getUserEmail();
-    if (!userEmail) {
-      return 0;
-    }
-
-    // Get all personal prayers for the user in this category
-    const { data: prayers, error } = await this.supabase.client
-      .from('personal_prayers')
-      .select('id')
-      .eq('user_email', userEmail)
-      .eq('category', category || null); // null for uncategorized
-
-    if (error) {
-      console.error('Error counting category prayers:', error);
-      return 0;
-    }
-
-    return (prayers || []).length;
+    return fetchPersonalCategoryPrayerCountWithDb(
+      userEmail,
+      category,
+      async (email, categoryEq) => {
+        const result = await this.supabase.client
+          .from('personal_prayers')
+          .select('id')
+          .eq('user_email', email)
+          .eq('category', categoryEq);
+        return { data: result.data, error: result.error };
+      }
+    );
   }
 
-  /**
-   * Migrate existing personal prayers to category-scoped display_order ranges
-   * NOTE: This migration is handled by Supabase SQL migration file instead
-   * File: supabase/migrations/20260121_migrate_personal_prayers_to_category_ranges.sql
-   */
-  private async migratePersonalPrayersToRanges(): Promise<void> {
-    // This function is kept for reference but not called
-    // The SQL migration handles reassignment of all existing prayers to category ranges
-    console.log('[Migration] Data migration handled by SQL migration file');
+  private async applyPersonalPrayerDisplayOrderUpdates(
+    updates: PersonalPrayerDisplayOrderUpdate[],
+    options?: { matchUserEmail?: boolean }
+  ): Promise<void> {
+    const userEmail = options?.matchUserEmail ? await this.getUserEmail() : null;
+    if (options?.matchUserEmail && !userEmail) {
+      throw new Error('User email not available');
+    }
+
+    await runPersonalPrayerDisplayOrderBatchUpdates(updates, async (update) => {
+      let query = this.supabase.client
+        .from('personal_prayers')
+        .update(buildPersonalPrayerDisplayOrderDbPayload(update.displayOrder))
+        .eq('id', update.prayerId);
+      if (userEmail) {
+        query = query.eq('user_email', userEmail);
+      }
+      const result = await query;
+      return { error: result.error };
+    });
   }
 
   /**
@@ -1664,79 +1427,14 @@ export class PrayerService {
 
       // Check cache first to reduce database egress (unless force refresh)
       if (!forceRefresh) {
-        const cached = this.cache.get<PrayerRequest[]>('personalPrayers');
+        const cached = this.cache.get<PrayerRequest[]>(PERSONAL_PRAYERS_CACHE_KEY);
         if (cached) {
           return this.normalizePersonalPrayerCache(cached);
         }
       }
 
-      const { data, error } = await this.supabase.client
-        .from('personal_prayers')
-        .select(`
-          id,
-          title,
-          description,
-          category,
-          prayer_for,
-          user_email,
-          display_order,
-          created_at,
-          updated_at,
-          prayed_for_count,
-          personal_prayer_updates (
-            id,
-            content,
-            author,
-            author_email,
-            mark_as_answered,
-            created_at
-          )
-        `)
-        .eq('user_email', userEmail)
-        .order('display_order', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('[PrayerService] Error querying personal_prayers:', error);
-        throw error;
-      }
-
-      // Transform personal prayers to PrayerRequest format for reuse
-      const prayers = this.normalizePersonalPrayerCache(
-        (data || []).map(p => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        category: p.category,
-        status: (p.category === 'Answered' ? 'answered' : 'current') as PrayerStatus,
-        prayer_for: p.prayer_for,
-        requester: p.user_email,
-        email: p.user_email,
-        user_email: p.user_email,
-        is_anonymous: false,
-        date_requested: p.created_at,
-        created_at: p.created_at,
-        updated_at: p.updated_at,
-        approval_status: 'approved' as const,
-        type: 'prayer' as const,
-        display_order: p.display_order,
-        prayed_for_count: p.prayed_for_count ?? 0,
-        updates: (p.personal_prayer_updates || []).map((u: any) => ({
-          id: u.id,
-          prayer_id: p.id,
-          content: u.content,
-          author: u.author,
-          author_email: u.author_email,
-          is_anonymous: false,
-          mark_as_answered: u.mark_as_answered,
-          created_at: u.created_at,
-          approval_status: 'approved' as const
-        }))
-      }))
-      );
-      
-      // Cache the prayers for future requests
-      this.cache.set('personalPrayers', prayers);
+      const prayers = await this.fetchPersonalPrayersFromDb(userEmail);
+      this.cache.set(PERSONAL_PRAYERS_CACHE_KEY, prayers);
       
       return prayers;
     } catch (error) {
@@ -1758,51 +1456,24 @@ export class PrayerService {
 
       console.log('Adding personal prayer for email:', userEmail);
 
-      // Validate category limit (max 1000 prayers per category)
-      const category = this.sanitizeCategory(prayer.category);
-      const categoryCount = await this.getCategoryPrayerCount(category);
-      if (categoryCount >= CATEGORY_RANGE_SIZE) {
-        const categoryName = category || 'Uncategorized';
-        this.toast.error(`Category '${categoryName}' has reached its limit of 1,000 prayers. Please archive or delete some prayers, or organize into multiple categories.`);
+      const addPlan = await planPersonalPrayerAdd(
+        prayer.category,
+        userEmail,
+        (category) => this.sanitizeCategory(category),
+        this.personalCategoryDeps()
+      );
+      if (!addPlan.ok) {
+        this.toast.error(addPlan.userMessage);
         return false;
       }
+      const { category, displayOrder: newDisplayOrder } = addPlan;
 
-      // Get the category range for display_order assignment
-      const range = await this.getCategoryRange(category);
-
-      // Get the max display_order within this category's range
-      const { data: maxData, error: maxError } = await this.supabase.client
-        .from('personal_prayers')
-        .select('display_order')
-        .eq('user_email', userEmail)
-        .eq('category', category || null)
-        .gte('display_order', range.min)
-        .lte('display_order', range.max)
-        .order('display_order', { ascending: false })
-        .limit(1)
-        .single();
-
-      const maxDisplayOrderInRange = (!maxError && maxData?.display_order !== null && maxData?.display_order !== undefined) 
-        ? maxData.display_order 
-        : range.min - 1;
-      
-      // Check if we're at the top of the range (no room for new prayers)
-      if (maxDisplayOrderInRange >= range.max) {
-        const categoryName = category || 'Uncategorized';
-        this.toast.error(`Category '${categoryName}' is full (display order at maximum). Please reorder prayers or use a different category.`);
-        return false;
-      }
-      
-      const newDisplayOrder = maxDisplayOrderInRange + 1;
-
-      const prayerData = {
-        title: prayer.title,
-        description: prayer.description,
-        prayer_for: prayer.prayer_for,
-        category: category,
-        user_email: userEmail,
-        display_order: newDisplayOrder
-      };
+      const prayerData = buildPersonalPrayerInsertRow(
+        prayer,
+        category,
+        userEmail,
+        newDisplayOrder
+      );
 
       const { data, error } = await this.supabase.client
         .from('personal_prayers')
@@ -1812,32 +1483,20 @@ export class PrayerService {
 
       if (error) throw error;
 
-      // Add to observable and cache immediately (no approval needed)
-      const newPrayer = this.withPersonalPrayerUserEmail({
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        status: 'current',
-        prayer_for: data.prayer_for,
-        category: data.category,
-        requester: userEmail,
-        email: userEmail,
-        is_anonymous: false,
-        date_requested: data.created_at,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        approval_status: 'approved' as const,
-        type: 'prayer' as const,
-        updates: [],
-        display_order: data.display_order || newDisplayOrder,
-        prayed_for_count: 0,
-      });
-
-      // Add to the beginning of the list (most recent first)
-      const currentPrayers = this.allPersonalPrayersSubject.value;
-      const updatedPrayers = [newPrayer, ...currentPrayers];
-      this.allPersonalPrayersSubject.next(updatedPrayers);
-      this.cache.set('personalPrayers', updatedPrayers);
+      const updatedPrayers = personalPrayerListAfterInsert(
+        this.allPersonalPrayersSubject.value,
+        data,
+        userEmail,
+        newDisplayOrder,
+        (row, email, order) =>
+          personalPrayerRequestFromInsertedRow(
+            row as Parameters<typeof personalPrayerRequestFromInsertedRow>[0],
+            email,
+            order
+          ),
+        (p) => this.withPersonalPrayerUserEmail(p)
+      );
+      this.setPersonalPrayersState(updatedPrayers);
 
       // No email notifications or badge notifications for personal prayers
       // Just show success message
@@ -1845,22 +1504,9 @@ export class PrayerService {
       return true;
     } catch (error) {
       console.error('Error adding personal prayer:', error);
-      let errorMessage = 'Unknown error';
-      
-      // Handle Supabase error objects
-      if (error && typeof error === 'object') {
-        if ('message' in error) {
-          errorMessage = (error as any).message;
-        } else if ('error' in error) {
-          errorMessage = (error as any).error;
-        } else {
-          errorMessage = JSON.stringify(error);
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      this.toast.error(`Failed to add personal prayer: ${errorMessage}`);
+      this.toast.error(
+        `Failed to add personal prayer: ${extractSupabaseErrorMessage(error)}`
+      );
       return false;
     }
   }
@@ -1884,10 +1530,11 @@ export class PrayerService {
 
       if (error) throw error;
 
-      // Update local state and cache
-      const personalPrayers = this.allPersonalPrayersSubject.value;
-      this.allPersonalPrayersSubject.next(personalPrayers.filter(p => p.id !== id));
-      this.cache.set('personalPrayers', personalPrayers.filter(p => p.id !== id));
+      const updatedPersonalPrayers = removePersonalPrayerById(
+        this.allPersonalPrayersSubject.value,
+        id
+      );
+      this.setPersonalPrayersState(updatedPersonalPrayers);
       this.prayerItemReminderService?.dropRemindersForPrayer(id, 'personal');
 
       this.toast.success('Personal prayer deleted');
@@ -1914,57 +1561,41 @@ export class PrayerService {
         return false;
       }
 
-      // Get the current prayer to check if category is changing
-      const currentPrayer = this.allPersonalPrayersSubject.value.find(p => p.id === id);
-      if (!currentPrayer) {
+      const startPlan = startPersonalPrayerUpdatePlan(
+        this.allPersonalPrayersSubject.value,
+        id,
+        updates,
+        (category) => this.sanitizeCategory(category)
+      );
+      if (!startPlan.ok) {
         this.toast.error('Prayer not found');
         return false;
       }
 
-      const newCategory = updates.category !== undefined ? this.sanitizeCategory(updates.category) : currentPrayer.category;
-      const categoryChanged = newCategory !== currentPrayer.category;
+      const { currentPrayer, newCategory, categoryChanged } = startPlan;
 
-      // If category changed, validate new category limit and assign new display_order
-      let newDisplayOrder = currentPrayer.display_order;
-      if (categoryChanged && updates.category !== undefined) {
-        // Validate new category doesn't exceed limit
-        const newCategoryCount = await this.getCategoryPrayerCount(newCategory);
-        if (newCategoryCount >= CATEGORY_RANGE_SIZE) {
-          const categoryName = newCategory || 'Uncategorized';
-          this.toast.error(`Category '${categoryName}' has reached its limit of 1,000 prayers. Please archive or delete some prayers, or organize into multiple categories.`);
-          return false;
-        }
-
-        // Get the new category's range and assign display_order
-        const newRange = await this.getCategoryRange(newCategory);
-        const { data: maxData, error: maxError } = await this.supabase.client
-          .from('personal_prayers')
-          .select('display_order')
-          .eq('user_email', userEmail)
-          .eq('category', newCategory || null)
-          .gte('display_order', newRange.min)
-          .lte('display_order', newRange.max)
-          .order('display_order', { ascending: false })
-          .limit(1)
-          .single();
-
-        const maxDisplayOrderInRange = (!maxError && maxData?.display_order !== null && maxData?.display_order !== undefined) 
-          ? maxData.display_order 
-          : newRange.min - 1;
-        newDisplayOrder = Math.min(maxDisplayOrderInRange + 1, newRange.max);
+      const categoryChangePlan = await resolvePersonalPrayerCategoryChangeDisplayOrder(
+        categoryChanged,
+        updates.category !== undefined,
+        newCategory,
+        currentPrayer.display_order,
+        userEmail,
+        this.personalCategoryDeps()
+      );
+      if (!categoryChangePlan.ok) {
+        this.toast.error(categoryChangePlan.userMessage);
+        return false;
       }
+      const newDisplayOrder = categoryChangePlan.displayOrder;
 
-      // Clear update answered flags before leaving Answered so a later update edit
-      // cannot silently re-answer from a stale mark_as_answered value.
-      const clearingAnswered =
-        currentPrayer.category === 'Answered' && newCategory !== 'Answered';
+      const clearingAnswered = personalPrayerUpdateClearsAnsweredFlags(
+        currentPrayer.category,
+        newCategory
+      );
       if (clearingAnswered) {
         const { error: clearFlagsError } = await this.supabase.client
           .from('personal_prayer_updates')
-          .update({
-            mark_as_answered: false,
-            updated_at: new Date().toISOString(),
-          })
+          .update(buildClearPersonalPrayerAnsweredFlagsPayload())
           .eq('personal_prayer_id', id);
 
         if (clearFlagsError) {
@@ -1979,12 +1610,13 @@ export class PrayerService {
         }
       }
 
-      const updateData = {
-        ...updates,
-        category: newCategory,
-        ...(categoryChanged && { display_order: newDisplayOrder }),
-        updated_at: new Date().toISOString()
-      };
+      const updateData = buildPersonalPrayerDbUpdatePayload(
+        updates,
+        newCategory,
+        categoryChanged,
+        newDisplayOrder
+      );
+      const updatedAt = updateData['updated_at'] as string;
 
       const { error } = await this.supabase.client
         .from('personal_prayers')
@@ -1995,33 +1627,20 @@ export class PrayerService {
       if (error) throw error;
 
       // Update local state and cache (include prayer_for and title so card title updates immediately)
-      const personalPrayers = this.allPersonalPrayersSubject.value;
-      const updatedPrayers = personalPrayers.map(p =>
-        p.id === id 
-          ? { 
-              ...p, 
-              title: updates.title ?? p.title,
-              prayer_for: updates.prayer_for ?? p.prayer_for,
-              description: updates.description ?? p.description,
-              category: newCategory,
-              status: (newCategory === 'Answered' ? 'answered' : 'current') as PrayerStatus,
-              display_order: newDisplayOrder,
-              updated_at: updateData.updated_at,
-              ...(clearingAnswered
-                ? {
-                    updates: (p.updates || []).map((u) => ({
-                      ...u,
-                      mark_as_answered: false,
-                    })),
-                  }
-                : {}),
-            } 
-          : p
+      const updatedPrayers = applyPersonalPrayerFieldUpdate(
+        this.allPersonalPrayersSubject.value,
+        id,
+        {
+          updates,
+          newCategory,
+          newDisplayOrder,
+          clearingAnswered,
+          updatedAt,
+        }
       );
-      this.allPersonalPrayersSubject.next(updatedPrayers);
-      this.cache.set('personalPrayers', updatedPrayers);
+      this.setPersonalPrayersState(updatedPrayers);
 
-      if (newCategory === 'Answered') {
+      if (shouldDropPersonalPrayerRemindersAfterUpdate(newCategory)) {
         this.prayerItemReminderService?.dropRemindersForPrayer(id, 'personal');
       }
 
@@ -2042,128 +1661,10 @@ export class PrayerService {
    * Enforces category range boundaries - reordering stays within that category's range
    */
   async updatePersonalPrayerOrder(prayers: PrayerRequest[], categoryFilter?: string): Promise<boolean> {
-    try {
-      const userEmail = await this.getUserEmail();
-      if (!userEmail) {
-        console.error('[PrayerService] User email not available for order update');
-        return false;
-      }
-
-      // Group prayers by category to handle cross-category reordering
-      // When viewing multiple categories together, prayers array may contain multiple categories
-      const prayersByCategory = new Map<string | null | undefined, PrayerRequest[]>();
-      
-      for (const prayer of prayers) {
-        const category = prayer.category as string | null | undefined;
-        if (!prayersByCategory.has(category)) {
-          prayersByCategory.set(category, []);
-        }
-        prayersByCategory.get(category)!.push(prayer);
-      }
-
-      // Process each category group using RPC for efficiency
-      for (const [category, categoryPrayers] of prayersByCategory) {
-        // Extract prayer IDs in their desired order
-        const orderedPrayerIds = categoryPrayers.map(p => p.id);
-
-        // Use RPC for maximum efficiency - single server-side transaction per category
-        const { data, error } = await this.supabase.client
-          .rpc('reorder_personal_prayers', {
-            p_user_email: userEmail,
-            p_ordered_prayer_ids: orderedPrayerIds,
-            p_category: category || null
-          });
-
-        if (error) {
-          console.error('[PrayerService] RPC error reordering prayers:', error);
-          // Fall back to client-side implementation if RPC fails
-          return await this.updatePersonalPrayerOrderFallback(prayers, categoryFilter);
-        }
-
-        if (data && data.length > 0) {
-          const result = data[0];
-          if (!result.success) {
-            console.error('[PrayerService] Reorder prayers failed:', result.message);
-            return false;
-          }
-          console.log('[PrayerService]', result.message);
-        }
-      }
-
-      // Note: Do NOT update cache here - the prayers array may be filtered
-      // Component will invalidate cache and reload all prayers after successful update
-
-      console.log('[PrayerService] Personal prayer order updated successfully');
-      return true;
-    } catch (error) {
-      console.error('[PrayerService] Error updating personal prayer order:', error);
-      // Fall back to client-side implementation
-      return await this.updatePersonalPrayerOrderFallback(prayers, categoryFilter);
-    }
-  }
-
-  /**
-   * Fallback method for updating prayer order using client-side batch updates
-   * Used if the RPC function is not available or fails
-   */
-  private async updatePersonalPrayerOrderFallback(prayers: PrayerRequest[], categoryFilter?: string): Promise<boolean> {
-    try {
-      console.log('[PrayerService] Using fallback method for prayer order update');
-      
-      const userEmail = await this.getUserEmail();
-      if (!userEmail) return false;
-
-      // Group prayers by category to handle cross-category reordering
-      const prayersByCategory = new Map<string | null | undefined, PrayerRequest[]>();
-      
-      for (const prayer of prayers) {
-        const category = prayer.category as string | null | undefined;
-        if (!prayersByCategory.has(category)) {
-          prayersByCategory.set(category, []);
-        }
-        prayersByCategory.get(category)!.push(prayer);
-      }
-
-      // Process each category group separately with its own range
-      const updates: Promise<any>[] = [];
-      
-      for (const [category, categoryPrayers] of prayersByCategory) {
-        // Get the range for this category
-        const range = await this.getCategoryRange(category);
-
-        // Batch update all prayers in this category with new display_order within their category's range
-        // Reverse the index so first item (index 0) gets highest display_order value
-        // This ensures correct DESC sorting: highest values appear first
-        categoryPrayers.forEach((prayer, index) => {
-          const orderWithinRange = categoryPrayers.length - 1 - index;
-          const displayOrder = Math.min(range.min + orderWithinRange, range.max);
-
-          updates.push(
-            Promise.resolve(
-              this.supabase.client
-                .from('personal_prayers')
-                .update({ display_order: displayOrder })
-                .eq('id', prayer.id)
-                .eq('user_email', userEmail)
-            )
-          );
-        });
-      }
-
-      const results = await Promise.all(updates);
-
-      // Check for errors
-      const errorResult = results.find(r => r.error);
-      if (errorResult?.error) throw errorResult.error;
-
-      // Note: Do NOT update cache here - the prayers array may be filtered
-      // Component will invalidate cache and reload all prayers after successful update
-
-      return true;
-    } catch (error) {
-      console.error('[PrayerService] Fallback prayer order update failed:', error);
-      return false;
-    }
+    return orchestratePersonalPrayerOrderUpdate(
+      prayers,
+      this.personalCategoryOrchestrationDeps()
+    );
   }
 
   /**
@@ -2181,10 +1682,7 @@ export class PrayerService {
         return false;
       }
 
-      const updateData = {
-        ...updates,
-        updated_at: new Date().toISOString()
-      };
+      const updateData = personalPrayerUpdatePatchWithTimestamp(updates);
 
       const { error } = await this.supabase.client
         .from('personal_prayer_updates')
@@ -2194,28 +1692,13 @@ export class PrayerService {
       if (error) throw error;
 
       // Update local state and cache
-      const personalPrayers = this.allPersonalPrayersSubject.value;
-      const updatedPrayers = personalPrayers.map(p =>
-        p.id === prayerId 
-          ? { 
-              ...p, 
-              updates: (p.updates || []).map(u =>
-                u.id === updateId
-                  ? {
-                      ...u,
-                      content: updates.content ?? u.content,
-                      mark_as_answered:
-                        updates.mark_as_answered !== undefined
-                          ? updates.mark_as_answered
-                          : u.mark_as_answered,
-                    }
-                  : u
-              )
-            } 
-          : p
+      const updatedPrayers = patchPersonalPrayerUpdateLocally(
+        this.allPersonalPrayersSubject.value,
+        prayerId,
+        updateId,
+        updates
       );
-      this.allPersonalPrayersSubject.next(updatedPrayers);
-      this.cache.set('personalPrayers', updatedPrayers);
+      this.setPersonalPrayersState(updatedPrayers);
 
       console.log('[PrayerService] Personal prayer update updated successfully');
       return true;
@@ -2244,30 +1727,24 @@ export class PrayerService {
     newCategory: string,
     options?: { reservedCategoryNames?: string[] }
   ): Promise<boolean> {
-    const oldName = this.sanitizeCategory(oldCategory);
-    const newName = this.sanitizeCategory(newCategory);
+    const validation = validatePersonalCategoryRename(
+      oldCategory,
+      newCategory,
+      (category) => this.sanitizeCategory(category),
+      await this.getUniqueCategoriesForUser(),
+      options?.reservedCategoryNames ?? []
+    );
 
-    if (!oldName) {
-      this.toast.error('Category not found');
+    if (!validation.ok) {
+      this.toast.error(validation.errorMessage);
       return false;
     }
 
-    if (!newName) {
-      this.toast.error('Enter a category name');
-      return false;
-    }
-
-    if (oldName === newName) {
+    if (validation.unchanged) {
       return true;
     }
 
-    const existing = await this.getUniqueCategoriesForUser();
-    const reserved = options?.reservedCategoryNames ?? [];
-    const duplicateNames = new Set([...existing, ...reserved]);
-    if (duplicateNames.has(newName)) {
-      this.toast.error(`Category "${newName}" already exists`);
-      return false;
-    }
+    const { oldName, newName } = validation;
 
     try {
       const userEmail = await this.getUserEmail();
@@ -2276,8 +1753,6 @@ export class PrayerService {
         return false;
       }
 
-      // Match chip semantics (trim): rename every row whose trimmed category equals oldName,
-      // including legacy values with leading/trailing whitespace.
       const { data: categoryRows, error: selectError } = await this.supabase.client
         .from('personal_prayers')
         .select('id, category')
@@ -2287,17 +1762,15 @@ export class PrayerService {
         throw selectError;
       }
 
-      const matchingIds = (categoryRows ?? [])
-        .filter((row) => this.sanitizeCategory(row.category) === oldName)
-        .map((row) => row.id as string);
+      const matchingIds = matchingPersonalPrayerIdsForCategoryRename(
+        (categoryRows ?? []) as Array<{ id: string; category: string | null }>,
+        oldName
+      );
 
-      if (matchingIds.length > 0) {
+      if (hasPersonalCategoryRenameTargets(matchingIds)) {
         const { error } = await this.supabase.client
           .from('personal_prayers')
-          .update({
-            category: newName,
-            updated_at: new Date().toISOString(),
-          })
+          .update(personalCategoryRenameDbPayload(newName))
           .eq('user_email', userEmail)
           .in('id', matchingIds);
 
@@ -2306,7 +1779,7 @@ export class PrayerService {
         }
       }
 
-      this.applyCategoryRenameLocally(oldName, newName);
+      this.applyPersonalCategoryRenameLocally(oldName, newName);
       return true;
     } catch (error) {
       console.error('[PrayerService] Error renaming personal category:', error);
@@ -2315,14 +1788,15 @@ export class PrayerService {
     }
   }
 
-  private applyCategoryRenameLocally(oldName: string, newName: string): void {
-    const updated = this.allPersonalPrayersSubject.value.map((p) =>
-      this.sanitizeCategory(p.category) === oldName
-        ? { ...p, category: newName }
-        : p
+  private applyPersonalCategoryRenameLocally(oldName: string, newName: string): void {
+    applyPersonalCategoryRenameSnapshot(
+      {
+        getPrayers: () => this.allPersonalPrayersSubject.value,
+        setPrayers: (prayers) => this.setPersonalPrayersState(prayers),
+      },
+      oldName,
+      newName
     );
-    this.allPersonalPrayersSubject.next(updated);
-    this.cache.set('personalPrayers', updated);
   }
 
   /**
@@ -2342,13 +1816,13 @@ export class PrayerService {
         return false;
       }
 
-      const updateData = {
-        personal_prayer_id: personalPrayerId,
-        content: resolvedContent,
+      const updateData = buildPersonalPrayerUpdateInsertRow(
+        personalPrayerId,
+        resolvedContent,
         author,
-        author_email: authorEmail,
-        mark_as_answered: markAsAnswered
-      };
+        authorEmail,
+        markAsAnswered
+      );
 
       console.log('Adding personal prayer update with data:', updateData);
 
@@ -2362,49 +1836,21 @@ export class PrayerService {
       console.log('Personal prayer update added successfully:', data);
 
       // Add to observable and cache immediately (no approval needed)
-      const currentPrayers = this.allPersonalPrayersSubject.value;
-      const updatedPrayers = currentPrayers.map(prayer => {
-        if (prayer.id === personalPrayerId) {
-          const newUpdate = {
-            id: data[0].id,
-            prayer_id: personalPrayerId,
-            content: data[0].content,
-            author: data[0].author,
-            author_email: data[0].author_email,
-            is_anonymous: false,
-            mark_as_answered: data[0].mark_as_answered,
-            created_at: data[0].created_at,
-            approval_status: 'approved' as const
-          };
-          return {
-            ...prayer,
-            updates: [newUpdate, ...(prayer.updates || [])]
-          };
-        }
-        return prayer;
-      });
-      this.allPersonalPrayersSubject.next(updatedPrayers);
-      this.cache.set('personalPrayers', updatedPrayers);
+      const newUpdate = mapDbPersonalPrayerUpdateRow(personalPrayerId, data[0]);
+      const updatedPrayers = appendPersonalPrayerUpdate(
+        this.allPersonalPrayersSubject.value,
+        personalPrayerId,
+        newUpdate
+      );
+      this.setPersonalPrayersState(updatedPrayers);
 
       this.toast.success('Update added to personal prayer');
       return true;
     } catch (error) {
       console.error('Error adding personal prayer update:', error);
-      let errorMessage = 'Unknown error';
-      
-      if (error && typeof error === 'object') {
-        if ('message' in error) {
-          errorMessage = (error as any).message;
-        } else if ('error' in error) {
-          errorMessage = (error as any).error;
-        } else {
-          errorMessage = JSON.stringify(error);
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      this.toast.error(`Failed to add update: ${errorMessage}`);
+      this.toast.error(
+        `Failed to add update: ${extractSupabaseErrorMessage(error)}`
+      );
       return false;
     }
   }
@@ -2430,13 +1876,11 @@ export class PrayerService {
       if (deleteError) throw deleteError;
 
       // Update local state - remove the update from all personal prayers
-      const personalPrayers = this.allPersonalPrayersSubject.value;
-      const updatedPrayers = personalPrayers.map(prayer => ({
-        ...prayer,
-        updates: (prayer.updates || []).filter(u => u.id !== updateId)
-      }));
-      this.allPersonalPrayersSubject.next(updatedPrayers);
-      this.cache.set('personalPrayers', updatedPrayers);
+      const updatedPrayers = removePersonalPrayerUpdateById(
+        this.allPersonalPrayersSubject.value,
+        updateId
+      );
+      this.setPersonalPrayersState(updatedPrayers);
       
       this.toast.success('Update deleted');
       return true;
@@ -2454,7 +1898,7 @@ export class PrayerService {
     try {
       const { error } = await this.supabase.client
         .from('personal_prayer_updates')
-        .update({ mark_as_answered: true, updated_at: new Date().toISOString() })
+        .update(markPersonalPrayerUpdateAnsweredPatch())
         .eq('id', updateId);
 
       if (error) throw error;
@@ -2471,39 +1915,15 @@ export class PrayerService {
    * Get user email from session
    */
   private withPersonalPrayerUserEmail(prayer: PrayerRequest): PrayerRequest {
-    const userEmail = prayer.user_email ?? prayer.email;
-    if (!userEmail) {
-      return prayer;
-    }
-    return {
-      ...prayer,
-      email: prayer.email ?? userEmail,
-      user_email: userEmail,
-    };
+    return withPersonalPrayerUserEmailRow(prayer);
   }
 
   private normalizePersonalPrayerCache(prayers: PrayerRequest[]): PrayerRequest[] {
-    return prayers.map((prayer) => this.withPersonalPrayerUserEmail(prayer));
+    return normalizePersonalPrayerCacheRows(prayers);
   }
 
   private async getUserEmail(): Promise<string | null> {
-    // Try to get from Supabase auth session first
-    try {
-      const { data: { session } } = await this.supabase.client.auth.getSession();
-      if (session?.user?.email) {
-        return session.user.email;
-      }
-    } catch (error) {
-      console.error('Error getting session:', error);
-    }
-
-    // Fallback to localStorage for MFA authenticated users
-    const mfaEmail = localStorage.getItem('mfa_authenticated_email');
-    if (mfaEmail) {
-      return mfaEmail;
-    }
-
-    return null;
+    return resolvePrayerServiceUserEmail(() => this.supabase.client.auth.getSession());
   }
 
   /**
@@ -2511,168 +1931,10 @@ export class PrayerService {
    * Assigns new prefix values to match the desired order
    */
   async reorderCategories(orderedCategories: (string | null)[]): Promise<boolean> {
-    try {
-      const userEmail = await this.getUserEmail();
-      if (!userEmail) {
-        console.error('[PrayerService] User email not available for category reorder');
-        return false;
-      }
-
-      // Filter out null categories for the RPC call
-      const validCategories = orderedCategories.filter(c => c !== null && c !== undefined) as string[];
-      
-      if (validCategories.length === 0) {
-        console.warn('[PrayerService] No valid categories to reorder');
-        return true;
-      }
-
-      // Use RPC for maximum efficiency - single server-side transaction
-      const { data, error } = await this.supabase.client
-        .rpc('reorder_personal_prayer_categories', {
-          p_user_email: userEmail,
-          p_ordered_categories: validCategories
-        });
-
-      if (error) {
-        console.error('[PrayerService] RPC error reordering categories:', error);
-        // Fall back to client-side implementation if RPC fails
-        return await this.reorderCategoriesFallback(orderedCategories);
-      }
-
-      if (data && data.length > 0) {
-        const result = data[0];
-        if (!result.success) {
-          console.error('[PrayerService] Reorder failed:', result.message);
-          return false;
-        }
-        console.log('[PrayerService]', result.message);
-      }
-
-      // Update local state and cache only (no refetch = no egress)
-      this.applyCategoryReorderLocally(orderedCategories);
-      return true;
-    } catch (error) {
-      console.error('[PrayerService] Error reordering categories:', error);
-      // Fall back to client-side implementation
-      return await this.reorderCategoriesFallback(orderedCategories);
-    }
-  }
-
-  /**
-   * Fallback method for reordering categories using client-side batch updates
-   * Used if the RPC function is not available or fails
-   */
-  private async reorderCategoriesFallback(orderedCategories: (string | null)[]): Promise<boolean> {
-    try {
-      console.log('[PrayerService] Using fallback method for category reorder');
-      
-      const userEmail = await this.getUserEmail();
-      if (!userEmail) return false;
-
-      // Get all personal prayers
-      const allPrayers = this.allPersonalPrayersSubject.value;
-      
-      // Build updates for each category based on its new position
-      // Position 0 gets prefix (length), position 1 gets prefix (length-1), etc.
-      // This maintains descending sort order
-      const updates: any[] = [];
-      
-      for (let newIndex = 0; newIndex < orderedCategories.length; newIndex++) {
-        const category = orderedCategories[newIndex];
-        if (!category) continue;
-        
-        // Calculate new prefix: higher position = higher prefix (for DESC sort)
-        const newPrefix = orderedCategories.length - newIndex;
-        
-        // Get all prayers in this category
-        const categoryPrayers = allPrayers.filter(p => p.category === category);
-        
-        // Update each prayer's display_order to use the new prefix
-        for (const prayer of categoryPrayers) {
-          const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
-          const newDisplayOrder = newPrefix * 1000 + lastThreeDigits;
-          
-          updates.push(
-            this.supabase.client
-              .from('personal_prayers')
-              .update({ display_order: newDisplayOrder })
-              .eq('id', prayer.id)
-          );
-        }
-      }
-
-      // Execute all updates in parallel
-      const results = await Promise.all(updates);
-      const error = results.find(r => r.error);
-      if (error?.error) throw error.error;
-
-      // Update local state and cache only (no refetch = no egress)
-      this.applyCategoryReorderLocally(orderedCategories);
-      return true;
-    } catch (error) {
-      console.error('[PrayerService] Fallback reorder failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Update in-memory state and cache after a category swap (no refetch).
-   * Keeps UI in sync and avoids Supabase egress from loadPersonalPrayers().
-   */
-  private applyCategorySwapLocally(categoryA: string, categoryB: string): void {
-    const allPrayers = this.allPersonalPrayersSubject.value;
-    const prayersA = allPrayers.filter(p => p.category === categoryA);
-    const prayersB = allPrayers.filter(p => p.category === categoryB);
-    if (prayersA.length === 0 || prayersB.length === 0) return;
-
-    const minOrderA = Math.min(...prayersA.map(p => p.display_order ?? 0));
-    const minOrderB = Math.min(...prayersB.map(p => p.display_order ?? 0));
-    const prefixA = Math.floor(minOrderA / 1000);
-    const prefixB = Math.floor(minOrderB / 1000);
-
-    const updated = allPrayers.map(p => {
-      const cat = p.category as string | null | undefined;
-      if (cat === categoryA) {
-        const lastThree = (p.display_order ?? 0) % 1000;
-        return { ...p, display_order: prefixB * 1000 + lastThree };
-      }
-      if (cat === categoryB) {
-        const lastThree = (p.display_order ?? 0) % 1000;
-        return { ...p, display_order: prefixA * 1000 + lastThree };
-      }
-      return p;
-    });
-    const sorted = [...updated].sort((a, b) => {
-      const oa = a.display_order ?? 0;
-      const ob = b.display_order ?? 0;
-      if (ob !== oa) return ob - oa;
-      return (b.created_at || '').localeCompare(a.created_at || '');
-    });
-    this.allPersonalPrayersSubject.next(sorted);
-    this.cache.set('personalPrayers', sorted);
-  }
-
-  /**
-   * Update in-memory state and cache after a full category reorder (no refetch).
-   * Keeps UI in sync and avoids Supabase egress from loadPersonalPrayers().
-   */
-  private applyCategoryReorderLocally(orderedCategories: (string | null)[]): void {
-    const allPrayers = this.allPersonalPrayersSubject.value;
-    const updated = allPrayers.map(p => {
-      const idx = orderedCategories.indexOf(p.category as string | null);
-      if (idx === -1) return p;
-      const newPrefix = orderedCategories.length - idx;
-      const lastThree = (p.display_order ?? 0) % 1000;
-      return { ...p, display_order: newPrefix * 1000 + lastThree };
-    });
-    const sorted = [...updated].sort((a, b) => {
-      const oa = a.display_order ?? 0;
-      const ob = b.display_order ?? 0;
-      if (ob !== oa) return ob - oa;
-      return (b.created_at || '').localeCompare(a.created_at || '');
-    });
-    this.allPersonalPrayersSubject.next(sorted);
-    this.cache.set('personalPrayers', sorted);
+    return orchestratePersonalCategoryReorder(
+      orderedCategories,
+      this.personalCategoryOrchestrationDeps()
+    );
   }
 
   /**
@@ -2681,137 +1943,23 @@ export class PrayerService {
    * Example: If A has 2000-2999 and B has 1000-1999, swapping gives A 1000-1999 and B 2000-2999
    */
   async swapCategoryRanges(categoryA: string | null | undefined, categoryB: string | null | undefined): Promise<boolean> {
-    const userEmail = await this.getUserEmail();
-    
-    if (!userEmail) {
-      console.error('[PrayerService] User email not available for category swap');
-      return false;
-    }
-
-    if (!categoryA || !categoryB) {
-      console.error('[PrayerService] Both categories required for swap');
-      return false;
-    }
-
-    try {
-      // Use RPC for maximum efficiency - single server-side transaction
-      const { data, error } = await this.supabase.client
-        .rpc('swap_personal_prayer_categories', {
-          p_user_email: userEmail,
-          p_category_a: categoryA,
-          p_category_b: categoryB
-        });
-
-      if (error) {
-        console.error('[PrayerService] RPC error swapping categories:', error);
-        // Fall back to client-side implementation if RPC fails
-        return await this.swapCategoryRangesFallback(categoryA, categoryB);
-      }
-
-      if (data && data.length > 0) {
-        const result = data[0];
-        if (!result.success) {
-          console.error('[PrayerService] Swap failed:', result.message);
-          return false;
-        }
-        console.log('[PrayerService]', result.message);
-      }
-
-      // Update local state and cache only (no refetch = no egress)
-      this.applyCategorySwapLocally(categoryA, categoryB);
-      return true;
-    } catch (error) {
-      console.error('[PrayerService] Exception swapping categories:', error);
-      // Fall back to client-side implementation
-      return await this.swapCategoryRangesFallback(categoryA, categoryB);
-    }
-  }
-
-  /**
-   * Fallback method for swapping categories using client-side batch updates
-   * Used if the RPC function is not available or fails
-   */
-  private async swapCategoryRangesFallback(categoryA: string, categoryB: string): Promise<boolean> {
-    try {
-      console.log('[PrayerService] Using fallback method for category swap');
-      
-      const userEmail = await this.getUserEmail();
-      if (!userEmail) return false;
-
-      // Get all personal prayers
-      const allPrayers = this.allPersonalPrayersSubject.value;
-      
-      // Get prayers in each category
-      const prayersA = allPrayers.filter(p => p.category === categoryA);
-      const prayersB = allPrayers.filter(p => p.category === categoryB);
-
-      if (prayersA.length === 0 || prayersB.length === 0) {
-        return true;
-      }
-
-      // Extract prefixes from the actual display_order values
-      const minOrderA = Math.min(...prayersA.map(p => p.display_order ?? 0));
-      const minOrderB = Math.min(...prayersB.map(p => p.display_order ?? 0));
-
-      const prefixA = Math.floor(minOrderA / 1000);
-      const prefixB = Math.floor(minOrderB / 1000);
-      const tempPrefix = 999;
-
-      // Step 1: Move Category A to temp prefix (parallel batch)
-      const step1Updates = prayersA.map(prayer => {
-        const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
-        const newDisplayOrder = tempPrefix * 1000 + lastThreeDigits;
-        return this.supabase.client
-          .from('personal_prayers')
-          .update({ display_order: newDisplayOrder })
-          .eq('id', prayer.id);
-      });
-      
-      const step1Results = await Promise.all(step1Updates);
-      const step1Error = step1Results.find(r => r.error);
-      if (step1Error?.error) throw step1Error.error;
-
-      // Step 2: Move Category B to Category A's prefix (parallel batch)
-      const step2Updates = prayersB.map(prayer => {
-        const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
-        const newDisplayOrder = prefixA * 1000 + lastThreeDigits;
-        return this.supabase.client
-          .from('personal_prayers')
-          .update({ display_order: newDisplayOrder })
-          .eq('id', prayer.id);
-      });
-      
-      const step2Results = await Promise.all(step2Updates);
-      const step2Error = step2Results.find(r => r.error);
-      if (step2Error?.error) throw step2Error.error;
-
-      // Step 3: Move Category A from temp to Category B's prefix (parallel batch)
-      const step3Updates = prayersA.map(prayer => {
-        const lastThreeDigits = (prayer.display_order ?? 0) % 1000;
-        const newDisplayOrder = prefixB * 1000 + lastThreeDigits;
-        return this.supabase.client
-          .from('personal_prayers')
-          .update({ display_order: newDisplayOrder })
-          .eq('id', prayer.id);
-      });
-      
-      const step3Results = await Promise.all(step3Updates);
-      const step3Error = step3Results.find(r => r.error);
-      if (step3Error?.error) throw step3Error.error;
-
-      // Update local state and cache only (no refetch = no egress)
-      this.applyCategorySwapLocally(categoryA, categoryB);
-      return true;
-    } catch (error) {
-      console.error('[PrayerService] Fallback swap failed:', error);
-      return false;
-    }
+    return orchestratePersonalCategorySwap(
+      categoryA,
+      categoryB,
+      this.personalCategoryOrchestrationDeps()
+    );
   }
 
   /**
    * Clean up subscriptions
    */
   ngOnDestroy(): void {
+    unsubscribePrayerResumeListeners(this.resumeListenerSubscriptions);
+    this.resumeListenerSubscriptions = [];
+    if (this.resumeRefreshTimeoutId != null) {
+      clearTimeout(this.resumeRefreshTimeoutId);
+      this.resumeRefreshTimeoutId = null;
+    }
     if (this.realtimeChannel) {
       this.supabase.client.removeChannel(this.realtimeChannel);
     }

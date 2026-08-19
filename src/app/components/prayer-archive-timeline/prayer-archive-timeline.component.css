@@ -1,0 +1,22 @@
+:host {
+      display: block;
+    }
+    /* Force light red for Will archive / Archive missed in dark mode (high contrast on gray-700 card) */
+    :host-context(.dark) .archive-label-red {
+      color: #fecaca !important;
+    }
+    :host-context(.dark) .archive-label-red svg {
+      color: #fecaca !important;
+    }
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    :host ::ng-deep .animate-spin {
+      animation: spin 1s linear infinite;
+    }

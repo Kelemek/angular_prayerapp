@@ -1,0 +1,44 @@
+@if (isOpen) {
+<div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
+    <div class="px-6 py-4 modal-chrome-border-b">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Pray For This Prompt</h2>
+    </div>
+    <div class="px-6 py-4">
+      <p class="text-gray-600 dark:text-gray-300 mb-4">
+        When you click Pray For, your private count for this prompt increases so you can track how often you have prayed with it. Only you see this count.
+      </p>
+      <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+        <p class="text-sm text-blue-700 dark:text-blue-300">
+          You can pray with the same prompt again in {{ (prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4 }} hours. Change this cooldown in Settings under Prayer encouragement on cards.
+        </p>
+      </div>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          [(ngModel)]="prayForDoNotShowAgain"
+          name="prayForDoNotShowAgain"
+          class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+        />
+        <span class="text-sm text-gray-700 dark:text-gray-300">Do not show this again</span>
+      </label>
+    </div>
+    <div class="px-6 py-4 modal-chrome-border-t flex gap-3 justify-end">
+      <button
+        type="button"
+        (click)="onCancel()"
+        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        (click)="onConfirm()"
+        class="px-4 py-2 btn-chip btn-chip-blue"
+      >
+        Pray For
+      </button>
+    </div>
+  </div>
+</div>
+}

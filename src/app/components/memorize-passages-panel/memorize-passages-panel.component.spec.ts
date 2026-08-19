@@ -1,10 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { MEMORIZE_LIST_VIEW_KEY } from '../../lib/memorization/memorization-list-prefs';
 import type { MemorizedItem } from '../../types/memorization';
 import { MemorizePassagesPanelComponent } from './memorize-passages-panel.component';
 import { ScriptureService } from '../../services/scripture.service';
+import { resolveScriptureHoverPreviewComponentResources } from '../scripture-hover-preview/scripture-hover-preview-component-resources.spec-helper';
+
+beforeAll(async () => {
+  await resolveScriptureHoverPreviewComponentResources();
+});
 
 function item(
   partial: Pick<MemorizedItem, 'id' | 'reference'> & Partial<MemorizedItem>

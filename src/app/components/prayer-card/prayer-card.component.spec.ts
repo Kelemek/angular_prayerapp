@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { of } from 'rxjs';
 import { PrayerCardComponent } from './prayer-card.component';
-import { SupabaseService } from '../../services/supabase.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { PrayerCardBadgeWire } from '../../lib/prayer-card-badge-wire';
 
 const mockRichTextEditorsSettings = {
   getRichTextEditorsEnabled$: () => of(true),
@@ -10,7 +10,14 @@ const mockRichTextEditorsSettings = {
 
 function defaultPrayerCardCtorDeps() {
   return {
-    badge: {} as any,
+    badge: {
+      isPrayerUnread: vi.fn().mockReturnValue(false),
+      isUpdateUnread: vi.fn().mockReturnValue(false),
+      getUpdateBadgesChanged$: vi.fn().mockReturnValue(of(null)),
+      markPrayerAsRead: vi.fn(),
+      markUpdateAsRead: vi.fn(),
+      getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(true)),
+    } as any,
     prayerService: {} as any,
     encouragement: {
       getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
@@ -25,7 +32,6 @@ function defaultPrayerCardCtorDeps() {
 
 describe('PrayerCardComponent', () => {
   let component: PrayerCardComponent;
-  let mockSupabaseService: any;
   let mockUserSessionService: any;
   const now = new Date();
 
@@ -36,30 +42,6 @@ describe('PrayerCardComponent', () => {
     // Set up default localStorage with both old and new key names
     localStorage.setItem('userFirstName', 'John');
     localStorage.setItem('userLastName', 'Doe');
-
-    // Set up default mock that returns no data (triggers fallback to localStorage)
-    const defaultMaybeSingle = vi.fn().mockResolvedValue({
-      data: null,
-      error: null
-    });
-
-    const defaultEq = vi.fn().mockReturnValue({
-      maybeSingle: defaultMaybeSingle
-    });
-
-    const defaultSelect = vi.fn().mockReturnValue({
-      eq: defaultEq
-    });
-
-    const defaultFrom = vi.fn().mockReturnValue({
-      select: defaultSelect
-    });
-
-    mockSupabaseService = {
-      client: {
-        from: defaultFrom
-      }
-    };
 
     mockUserSessionService = {
       userSession$: of({
@@ -82,7 +64,6 @@ describe('PrayerCardComponent', () => {
 
     const deps = defaultPrayerCardCtorDeps();
     component = new PrayerCardComponent(
-      mockSupabaseService,
       mockUserSessionService,
       deps.badge,
       deps.prayerService,
@@ -124,33 +105,33 @@ describe('PrayerCardComponent', () => {
     it('shows for current community prayers when session email exists', () => {
       (component.prayer as any).status = 'current';
       component.isPersonal = false;
-      expect(component.showReminderButton()).toBe(true);
+      expect(component.viewState.showReminderButton).toBe(true);
     });
 
     it('hides for answered and archived community prayers', () => {
       component.isPersonal = false;
       (component.prayer as any).status = 'answered';
-      expect(component.showReminderButton()).toBe(false);
+      expect(component.viewState.showReminderButton).toBe(false);
       (component.prayer as any).status = 'archived';
-      expect(component.showReminderButton()).toBe(false);
+      expect(component.viewState.showReminderButton).toBe(false);
     });
 
     it('hides for answered personal prayers', () => {
       component.isPersonal = true;
       (component.prayer as any).category = 'Answered';
-      expect(component.showReminderButton()).toBe(false);
+      expect(component.viewState.showReminderButton).toBe(false);
     });
 
     it('shows for active personal prayers that are not answered', () => {
       component.isPersonal = true;
       (component.prayer as any).category = 'Family';
-      expect(component.showReminderButton()).toBe(true);
+      expect(component.viewState.showReminderButton).toBe(true);
     });
 
     it('hides when there is no session email', () => {
       mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({ email: '' });
       (component.prayer as any).status = 'current';
-      expect(component.showReminderButton()).toBe(false);
+      expect(component.viewState.showReminderButton).toBe(false);
     });
   });
 
@@ -178,7 +159,7 @@ describe('PrayerCardComponent', () => {
       id: 'pc-member-123',
       description: 'Updates from Jane Doe',
     } as any;
-    expect(component.showDescription()).toBe(false);
+    expect(component.viewState.showDescription).toBe(false);
   });
 
   it('showDescription is false when description is empty', () => {
@@ -187,7 +168,7 @@ describe('PrayerCardComponent', () => {
       id: 'p1',
       description: '   ',
     } as any;
-    expect(component.showDescription()).toBe(false);
+    expect(component.viewState.showDescription).toBe(false);
   });
 
   it('showDescription is true for community prayers with text', () => {
@@ -196,29 +177,29 @@ describe('PrayerCardComponent', () => {
       id: 'p1',
       description: 'Please pray for recovery.',
     } as any;
-    expect(component.showDescription()).toBe(true);
+    expect(component.viewState.showDescription).toBe(true);
   });
 
   it('displayRequester respects anonymity', () => {
     component.prayer.is_anonymous = true;
-    expect(component.displayRequester()).toBe('Anonymous');
+    expect(component.viewState.displayRequester).toBe('Anonymous');
 
     component.prayer.is_anonymous = false;
-    expect(component.displayRequester()).toBe('Jane Doe');
+    expect(component.viewState.displayRequester).toBe('Jane Doe');
   });
 
   describe('meta header helpers', () => {
     it('isCommunityPrayer is true for community cards only', () => {
       component.isPersonal = false;
       component.prayer.id = 'p1';
-      expect(component.isCommunityPrayer()).toBe(true);
+      expect(component.viewState.isCommunityPrayer).toBe(true);
 
       component.isPersonal = true;
-      expect(component.isCommunityPrayer()).toBe(false);
+      expect(component.viewState.isCommunityPrayer).toBe(false);
 
       component.isPersonal = false;
       component.prayer.id = 'pc-member-1';
-      expect(component.isCommunityPrayer()).toBe(false);
+      expect(component.viewState.isCommunityPrayer).toBe(false);
     });
 
     it('personalDragHandle enables meta header date drag when personal', () => {
@@ -230,60 +211,60 @@ describe('PrayerCardComponent', () => {
     it('showStatusPillInHeader is true for community cards only', () => {
       component.isPersonal = false;
       component.prayer.id = 'p1';
-      expect(component.showStatusPillInHeader()).toBe(true);
+      expect(component.viewState.showStatusPillInHeader).toBe(true);
 
       component.prayer.id = 'pc-member-1';
-      expect(component.showStatusPillInHeader()).toBe(false);
+      expect(component.viewState.showStatusPillInHeader).toBe(false);
 
       component.prayer.id = 'p1';
       component.isPersonal = true;
-      expect(component.showStatusPillInHeader()).toBe(false);
+      expect(component.viewState.showStatusPillInHeader).toBe(false);
     });
   });
 
   it('showDeleteButton logic', () => {
     component.isAdmin = true;
-    expect(component.showDeleteButton()).toBe(true);
+    expect(component.viewState.showDeleteButton).toBe(true);
 
     component.isAdmin = false;
     component.deletionsAllowed = 'everyone';
-    expect(component.showDeleteButton()).toBe(true);
+    expect(component.viewState.showDeleteButton).toBe(true);
 
     component.deletionsAllowed = 'everyone';
-    expect(component.showDeleteButton()).toBe(true);
+    expect(component.viewState.showDeleteButton).toBe(true);
 
     component.deletionsAllowed = 'admin-only';
-    expect(component.showDeleteButton()).toBe(false);
+    expect(component.viewState.showDeleteButton).toBe(false);
   });
 
   it('showAddUpdateButton logic', () => {
     component.isAdmin = true;
-    expect(component.showAddUpdateButton()).toBe(true);
+    expect(component.viewState.showAddUpdateButton).toBe(true);
 
     component.isAdmin = false;
     component.updatesAllowed = 'everyone';
-    expect(component.showAddUpdateButton()).toBe(true);
+    expect(component.viewState.showAddUpdateButton).toBe(true);
 
     component.updatesAllowed = 'everyone';
-    expect(component.showAddUpdateButton()).toBe(true);
+    expect(component.viewState.showAddUpdateButton).toBe(true);
 
     component.updatesAllowed = 'admin-only';
-    expect(component.showAddUpdateButton()).toBe(false);
+    expect(component.viewState.showAddUpdateButton).toBe(false);
   });
 
   it('showUpdateDeleteButton logic', () => {
     component.isAdmin = true;
-    expect(component.showUpdateDeleteButton()).toBe(true);
+    expect(component.viewState.showUpdateDeleteButton).toBe(true);
 
     component.isAdmin = false;
     component.deletionsAllowed = 'everyone';
-    expect(component.showUpdateDeleteButton()).toBe(true);
+    expect(component.viewState.showUpdateDeleteButton).toBe(true);
 
     component.deletionsAllowed = 'everyone';
-    expect(component.showUpdateDeleteButton()).toBe(true);
+    expect(component.viewState.showUpdateDeleteButton).toBe(true);
 
     component.deletionsAllowed = 'admin-only';
-    expect(component.showUpdateDeleteButton()).toBe(false);
+    expect(component.viewState.showUpdateDeleteButton).toBe(false);
   });
 
   it('handleDeleteClick as admin shows confirmation dialog', () => {
@@ -490,7 +471,7 @@ describe('PrayerCardComponent', () => {
       isActive: true
     });
 
-    expect(component.showUpdateDeleteButton()).toBe(true);
+    expect(component.viewState.showUpdateDeleteButton).toBe(true);
 
     mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({
       email: 'other@example.com',
@@ -500,7 +481,7 @@ describe('PrayerCardComponent', () => {
       isActive: true
     });
 
-    expect(component.showUpdateDeleteButton()).toBe(false);
+    expect(component.viewState.showUpdateDeleteButton).toBe(false);
   });
 
   it('getDisplayedUpdates handles various cases', () => {
@@ -605,7 +586,6 @@ describe('PrayerCardComponent', () => {
     const localCdr = { markForCheck: vi.fn() };
 
     const localComponent = new PrayerCardComponent(
-      mockSupabaseService as any,
       mockUserSessionService as any,
       { getBadgeFunctionalityEnabled$: () => of(false) } as any,
       localPrayerService as any,
@@ -682,7 +662,6 @@ describe('PrayerCardComponent', () => {
       mockCdr = { markForCheck: vi.fn() };
 
       prayForComponent = new PrayerCardComponent(
-        mockSupabaseService as any,
         mockUserSessionService as any,
         { getBadgeFunctionalityEnabled$: () => of(false) } as any,
         mockPrayerService,
@@ -706,27 +685,27 @@ describe('PrayerCardComponent', () => {
     });
 
     it('showPrayedForBadge returns false when count is 0', () => {
-      expect(prayForComponent.showPrayedForBadge()).toBe(false);
+      expect(prayForComponent.viewState.showPrayedForBadge).toBe(false);
     });
 
     it('showPrayedForBadge returns true when count > 0 and isPersonal', () => {
       prayForComponent.isPersonal = true;
       prayForComponent.prayer.prayed_for_count = 3;
       mockUserSessionService.getCurrentSession.mockReturnValue({ email: 'other@example.com' });
-      expect(prayForComponent.showPrayedForBadge()).toBe(true);
+      expect(prayForComponent.viewState.showPrayedForBadge).toBe(true);
     });
 
     it('showPrayedForBadge returns true when count > 0 and current user is requester', () => {
       prayForComponent.prayer.prayed_for_count = 3;
       mockUserSessionService.getCurrentSession.mockReturnValue({ email: 'test@example.com' });
-      expect(prayForComponent.showPrayedForBadge()).toBe(true);
+      expect(prayForComponent.viewState.showPrayedForBadge).toBe(true);
     });
 
     it('showPrayedForBadge returns true when count > 0 and isAdmin', () => {
       prayForComponent.prayer.prayed_for_count = 2;
       prayForComponent.isAdmin = true;
       mockUserSessionService.getCurrentSession.mockReturnValue({ email: 'other@example.com' });
-      expect(prayForComponent.showPrayedForBadge()).toBe(true);
+      expect(prayForComponent.viewState.showPrayedForBadge).toBe(true);
     });
 
     it('showPrayedForBadge returns true for member prayer when count > 0', () => {
@@ -737,19 +716,19 @@ describe('PrayerCardComponent', () => {
         email: '',
       };
       mockUserSessionService.getCurrentSession.mockReturnValue({ email: 'other@example.com' });
-      expect(prayForComponent.showPrayedForBadge()).toBe(true);
+      expect(prayForComponent.viewState.showPrayedForBadge).toBe(true);
     });
 
     it('prayedForCountLabel uses singular Prayer when personal count is 1', () => {
       prayForComponent.isPersonal = true;
       prayForComponent.prayer.prayed_for_count = 1;
-      expect(prayForComponent.prayedForCountLabel()).toBe('Prayer');
+      expect(prayForComponent.viewState.prayedForCountLabel).toBe('Prayer');
     });
 
     it('prayedForCountLabel uses plural Prayers when personal count is not 1', () => {
       prayForComponent.isPersonal = true;
       prayForComponent.prayer.prayed_for_count = 2;
-      expect(prayForComponent.prayedForCountLabel()).toBe('Prayers');
+      expect(prayForComponent.viewState.prayedForCountLabel).toBe('Prayers');
     });
 
     it('prayedForCountLabel uses Praying for community prayers', () => {
@@ -759,7 +738,7 @@ describe('PrayerCardComponent', () => {
         id: 'community-1',
         prayed_for_count: 1,
       };
-      expect(prayForComponent.prayedForCountLabel()).toBe('Praying');
+      expect(prayForComponent.viewState.prayedForCountLabel).toBe('Praying');
     });
 
     it('showAddUpdateButton returns true for member prayers even when updates_allowed is admin-only', () => {
@@ -770,7 +749,7 @@ describe('PrayerCardComponent', () => {
       };
       prayForComponent.isAdmin = false;
       prayForComponent.updatesAllowed = 'admin-only';
-      expect(prayForComponent.showAddUpdateButton()).toBe(true);
+      expect(prayForComponent.viewState.showAddUpdateButton).toBe(true);
     });
 
     it('confirmPrayFor calls recordPrayedFor, incrementPrayedFor, and updates local prayer', async () => {
@@ -888,20 +867,16 @@ describe('PrayerCardComponent', () => {
 
   describe('PrayerCardComponent - Rendering and Display', () => {
     let component: PrayerCardComponent;
-    let mockSupabaseService: any;
     let mockUserSessionService: any;
 
     beforeEach(() => {
-      mockSupabaseService = {
-        client: {}
-      };
       mockUserSessionService = {
-        userSession$: of(null)
+        userSession$: of(null),
+        getCurrentSession: vi.fn().mockReturnValue(null),
       };
 
       const deps = defaultPrayerCardCtorDeps();
       component = new PrayerCardComponent(
-        mockSupabaseService as any,
         mockUserSessionService as any,
         deps.badge,
         deps.prayerService,
@@ -937,7 +912,7 @@ describe('PrayerCardComponent', () => {
         created_at: '2026-01-01'
       } as any;
 
-      const requester = component.displayRequester && component.displayRequester();
+      const requester = component.viewState.displayRequester;
       expect(requester || component.prayer.requester).toBe('Jane Doe');
     });
 
@@ -1038,11 +1013,12 @@ describe('PrayerCardComponent', () => {
     let component: PrayerCardComponent;
 
     beforeEach(() => {
-      const mockSupabaseService = { client: {} };
-      const mockUserSessionService = { userSession$: of(null) };
+      const mockUserSessionService = {
+        userSession$: of(null),
+        getCurrentSession: vi.fn().mockReturnValue(null),
+      };
       const deps = defaultPrayerCardCtorDeps();
       component = new PrayerCardComponent(
-        mockSupabaseService as any,
         mockUserSessionService as any,
         deps.badge,
         deps.prayerService,
@@ -1144,11 +1120,12 @@ describe('PrayerCardComponent', () => {
     let component: PrayerCardComponent;
 
     beforeEach(() => {
-      const mockSupabaseService = { client: {} };
-      const mockUserSessionService = { userSession$: of(null) };
+      const mockUserSessionService = {
+        userSession$: of(null),
+        getCurrentSession: vi.fn().mockReturnValue(null),
+      };
       const deps = defaultPrayerCardCtorDeps();
       component = new PrayerCardComponent(
-        mockSupabaseService as any,
         mockUserSessionService as any,
         deps.badge,
         deps.prayerService,
@@ -1220,19 +1197,15 @@ describe('PrayerCardComponent', () => {
 
   describe('PrayerCardComponent - User Interactions', () => {
     let component: PrayerCardComponent;
-    let mockSupabaseService: any;
     let mockUserSessionService: any;
 
     beforeEach(() => {
-      mockSupabaseService = {
-        client: {}
-      };
       mockUserSessionService = {
-        userSession$: of(null)
+        userSession$: of(null),
+        getCurrentSession: vi.fn().mockReturnValue(null),
       };
       const deps = defaultPrayerCardCtorDeps();
       component = new PrayerCardComponent(
-        mockSupabaseService as any,
         mockUserSessionService as any,
         deps.badge,
         deps.prayerService,
@@ -1305,11 +1278,12 @@ describe('PrayerCardComponent', () => {
     let component: PrayerCardComponent;
 
     beforeEach(() => {
-      const mockSupabaseService = { client: {} };
-      const mockUserSessionService = { userSession$: of(null) };
+      const mockUserSessionService = {
+        userSession$: of(null),
+        getCurrentSession: vi.fn().mockReturnValue(null),
+      };
       const deps = defaultPrayerCardCtorDeps();
       component = new PrayerCardComponent(
-        mockSupabaseService as any,
         mockUserSessionService as any,
         deps.badge,
         deps.prayerService,
@@ -1318,6 +1292,16 @@ describe('PrayerCardComponent', () => {
         deps.cdr,
         mockRichTextEditorsSettings as any
       );
+      component.prayer = {
+        id: 'p1',
+        prayer_for: 'Test',
+        title: 'Test',
+        description: 'Test',
+        requester: 'Jane',
+        status: 'current',
+        created_at: '2026-01-01',
+        updates: [],
+      } as any;
     });
 
     it('should show badge when prayer is unread', () => {
@@ -1359,19 +1343,19 @@ describe('PrayerCardComponent', () => {
 
     it('shows community unread badges only on Current and Answered filters', () => {
       component.activeFilter = 'current';
-      expect(component.showsCommunityUnreadBadges()).toBe(true);
+      expect(component.viewState.showsCommunityUnreadBadges).toBe(true);
 
       component.activeFilter = 'answered';
-      expect(component.showsCommunityUnreadBadges()).toBe(true);
+      expect(component.viewState.showsCommunityUnreadBadges).toBe(true);
 
       component.activeFilter = 'archived';
-      expect(component.showsCommunityUnreadBadges()).toBe(false);
+      expect(component.viewState.showsCommunityUnreadBadges).toBe(false);
 
       component.activeFilter = 'total';
-      expect(component.showsCommunityUnreadBadges()).toBe(false);
+      expect(component.viewState.showsCommunityUnreadBadges).toBe(false);
 
       component.activeFilter = 'planning_center_list';
-      expect(component.showsCommunityUnreadBadges()).toBe(false);
+      expect(component.viewState.showsCommunityUnreadBadges).toBe(false);
     });
   });
 
@@ -1379,11 +1363,12 @@ describe('PrayerCardComponent', () => {
     let component: PrayerCardComponent;
 
     beforeEach(() => {
-      const mockSupabaseService = { client: {} };
-      const mockUserSessionService = { userSession$: of(null) };
+      const mockUserSessionService = {
+        userSession$: of(null),
+        getCurrentSession: vi.fn().mockReturnValue(null),
+      };
       const deps = defaultPrayerCardCtorDeps();
       component = new PrayerCardComponent(
-        mockSupabaseService as any,
         mockUserSessionService as any,
         deps.badge,
         deps.prayerService,
@@ -1507,16 +1492,17 @@ describe('PrayerCardComponent', () => {
     let mockBadgeService: any;
 
     beforeEach(() => {
-      // Setup mock badge service for these tests
       mockBadgeService = {
         isPrayerUnread: vi.fn().mockReturnValue(false),
         isUpdateUnread: vi.fn().mockReturnValue(false),
         getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(true)),
         getUpdateBadgesChanged$: vi.fn().mockReturnValue(of(null)),
         markPrayerAsRead: vi.fn(),
-        markUpdateAsRead: vi.fn()
+        markUpdateAsRead: vi.fn(),
       };
       component.badgeService = mockBadgeService;
+      (component as unknown as { badgeWire: PrayerCardBadgeWire }).badgeWire =
+        new PrayerCardBadgeWire(mockBadgeService, () => component.prayer);
     });
 
     it('should track update badges with updateBadges$ map', () => {
@@ -1629,7 +1615,6 @@ describe('PrayerCardComponent', () => {
 
     it('dismisses Pray For modal when prayer id changes', () => {
       component.showPrayForModal = true;
-      component.prayForDoNotShowAgain = true;
       const previous = { ...component.prayer, id: 'prayer-1' };
       const next = { ...component.prayer, id: 'prayer-2' };
       component.prayer = next;
@@ -1642,7 +1627,6 @@ describe('PrayerCardComponent', () => {
         },
       });
       expect(component.showPrayForModal).toBe(false);
-      expect(component.prayForDoNotShowAgain).toBe(false);
     });
 
     it('should skip ngOnChanges on first change', () => {
@@ -1843,13 +1827,13 @@ describe('PrayerCardComponent', () => {
       it('showAddUpdateButton: admin always sees button', () => {
         component.isAdmin = true;
         component.updatesAllowed = 'admin-only';
-        expect(component.showAddUpdateButton()).toBe(true);
+        expect(component.viewState.showAddUpdateButton).toBe(true);
       });
 
       it('showAddUpdateButton: non-admin hidden when admin-only', () => {
         component.isAdmin = false;
         component.updatesAllowed = 'admin-only';
-        expect(component.showAddUpdateButton()).toBe(false);
+        expect(component.viewState.showAddUpdateButton).toBe(false);
       });
 
       it('showAddUpdateButton: original-requestor matches on email', () => {
@@ -1860,7 +1844,7 @@ describe('PrayerCardComponent', () => {
           email: 'test@example.com',
           fullName: 'Test'
         });
-        expect(component.showAddUpdateButton()).toBe(true);
+        expect(component.viewState.showAddUpdateButton).toBe(true);
       });
 
       it('showAddUpdateButton: original-requestor hidden for others', () => {
@@ -1871,20 +1855,20 @@ describe('PrayerCardComponent', () => {
           email: 'test@example.com',
           fullName: 'Test'
         });
-        expect(component.showAddUpdateButton()).toBe(false);
+        expect(component.viewState.showAddUpdateButton).toBe(false);
       });
 
       it('showAddUpdateButton: everyone can update', () => {
         component.isAdmin = false;
         component.updatesAllowed = 'everyone';
-        expect(component.showAddUpdateButton()).toBe(true);
+        expect(component.viewState.showAddUpdateButton).toBe(true);
       });
 
       it('recentUpdatesNeedsTopMargin: true when add-update button visible', () => {
         component.isAdmin = false;
         component.updatesAllowed = 'everyone';
-        expect(component.showAddUpdateButton()).toBe(true);
-        expect(component.recentUpdatesNeedsTopMargin()).toBe(true);
+        expect(component.viewState.showAddUpdateButton).toBe(true);
+        expect(component.viewState.showAddUpdateButton).toBe(true);
       });
 
       it('recentUpdatesNeedsTopMargin: false when no action buttons above', () => {
@@ -1892,19 +1876,19 @@ describe('PrayerCardComponent', () => {
         component.updatesAllowed = 'admin-only';
         component.showDeleteRequestForm = false;
         component.showAddUpdateForm = false;
-        expect(component.recentUpdatesNeedsTopMargin()).toBe(false);
+        expect(component.viewState.showAddUpdateButton).toBe(false);
       });
 
       it('showUpdateDeleteButton: admin always sees button', () => {
         component.isAdmin = true;
         component.deletionsAllowed = 'admin-only';
-        expect(component.showUpdateDeleteButton()).toBe(true);
+        expect(component.viewState.showUpdateDeleteButton).toBe(true);
       });
 
       it('showUpdateDeleteButton: non-admin hidden when admin-only', () => {
         component.isAdmin = false;
         component.deletionsAllowed = 'admin-only';
-        expect(component.showUpdateDeleteButton()).toBe(false);
+        expect(component.viewState.showUpdateDeleteButton).toBe(false);
       });
 
       it('showUpdateDeleteButton: original-requestor matches on email', () => {
@@ -1915,7 +1899,7 @@ describe('PrayerCardComponent', () => {
           email: 'test@example.com',
           fullName: 'Test'
         });
-        expect(component.showUpdateDeleteButton()).toBe(true);
+        expect(component.viewState.showUpdateDeleteButton).toBe(true);
       });
 
       it('showUpdateDeleteButton: original-requestor hidden for others', () => {
@@ -1926,13 +1910,13 @@ describe('PrayerCardComponent', () => {
           email: 'test@example.com',
           fullName: 'Test'
         });
-        expect(component.showUpdateDeleteButton()).toBe(false);
+        expect(component.viewState.showUpdateDeleteButton).toBe(false);
       });
 
       it('showUpdateDeleteButton: everyone can delete updates', () => {
         component.isAdmin = false;
         component.deletionsAllowed = 'everyone';
-        expect(component.showUpdateDeleteButton()).toBe(true);
+        expect(component.viewState.showUpdateDeleteButton).toBe(true);
       });
 
       it('handleDeleteClick: admin opens confirmation dialog', () => {
@@ -2022,7 +2006,7 @@ describe('PrayerCardComponent', () => {
           email: 'user@example.com',
           fullName: 'Test'
         });
-        expect(component.showAddUpdateButton()).toBe(true);
+        expect(component.viewState.showAddUpdateButton).toBe(true);
       });
 
       it('onPersonalAnsweredClick opens mark modal when not answered', () => {
@@ -2095,6 +2079,7 @@ describe('PrayerCardComponent', () => {
 
         await vi.waitFor(() => {
           expect(mockPrayerService.updatePersonalPrayer).toHaveBeenCalled();
+          expect(component.prayer.category).toBe('Answered');
         });
 
         expect(component.personalAnsweredStatusModalMode).toBeNull();
@@ -2102,7 +2087,6 @@ describe('PrayerCardComponent', () => {
           'prayer-1',
           { category: 'Answered' }
         );
-        expect(component.prayer.category).toBe('Answered');
         expect(component.prayer.status).toBe('answered');
       });
 
@@ -2239,10 +2223,10 @@ describe('PrayerCardComponent', () => {
         ...component.prayer,
         user_email: 'owner@example.com',
       } as any;
-      expect(component.isCommunityPrayer()).toBe(true);
+      expect(component.viewState.isCommunityPrayer).toBe(true);
 
       component.isPersonal = true;
-      expect(component.isCommunityPrayer()).toBe(false);
+      expect(component.viewState.isCommunityPrayer).toBe(false);
     });
 
     it('reads updates from prayer.updates', () => {
@@ -2268,7 +2252,7 @@ describe('PrayerCardComponent', () => {
         user_email: 'owner@example.com',
         prayed_for_count: 1,
       } as any;
-      expect(component.prayedForCountLabel()).toBe('Prayer');
+      expect(component.viewState.prayedForCountLabel).toBe('Prayer');
     });
   });
 

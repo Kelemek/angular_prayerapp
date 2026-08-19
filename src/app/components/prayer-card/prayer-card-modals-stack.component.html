@@ -1,0 +1,69 @@
+<app-prayer-add-update-modal
+  [isOpen]="showAddUpdateForm"
+  [prayerId]="prayerId"
+  [isPersonal]="isPersonal"
+  [richTextEditorsEnabled]="richTextEditorsEnabled"
+  [tourElementIds]="addUpdateTourElementIds"
+  (close)="closeAddUpdate.emit()"
+  (updateSubmit)="addUpdateSubmit.emit($event)"
+/>
+
+<app-prayer-delete-request-modal
+  [isOpen]="showDeleteRequestForm || showUpdateDeleteRequestForm !== null"
+  [prayerId]="prayerId"
+  [requestType]="showUpdateDeleteRequestForm ? 'update' : 'prayer'"
+  [updateId]="showUpdateDeleteRequestForm ?? ''"
+  (close)="closeDeleteRequest.emit()"
+  (submit)="deleteRequestSubmit.emit($event)"
+/>
+
+@if (showConfirmationDialog) {
+  <app-confirmation-dialog
+    [title]="'Delete Prayer'"
+    [message]="'Are you sure you want to delete this prayer? This action cannot be undone.'"
+    [isDangerous]="true"
+    [confirmText]="'Delete'"
+    (confirm)="confirmDelete.emit()"
+    (cancel)="cancelDelete.emit()"
+  />
+}
+
+@if (showUpdateConfirmationDialog) {
+  <app-confirmation-dialog
+    [title]="updateConfirmationTitle"
+    [message]="updateConfirmationMessage"
+    [isDangerous]="true"
+    [confirmText]="'Delete'"
+    (confirm)="confirmUpdateDelete.emit()"
+    (cancel)="cancelUpdateDelete.emit()"
+  />
+}
+
+<app-personal-prayer-answered-status-modal
+  [isOpen]="personalAnsweredStatusModalMode !== null"
+  [mode]="personalAnsweredStatusModalMode ?? 'mark'"
+  (close)="closePersonalAnsweredStatus.emit()"
+  (confirmMark)="confirmPersonalAnswered.emit()"
+  (confirmUnmark)="confirmPersonalUnanswered.emit($event)"
+/>
+
+<app-prayer-item-reminder-modal
+  [isOpen]="showReminderModal"
+  [email]="reminderSessionEmail"
+  [prayerId]="prayerId"
+  [prayerKind]="prayerItemKind"
+  [prayerFor]="prayerFor"
+  [titleSnapshot]="titleSnapshot"
+  [reminders]="reminders"
+  (close)="closeReminder.emit()"
+  (remindersChange)="remindersChange.emit($event)"
+/>
+
+<app-prayer-card-pray-for-modal
+  [isOpen]="showPrayForModal"
+  [isPersonal]="isPersonal"
+  [isMember]="isMember"
+  [usesPersonalCooldown]="usesPersonalCooldown"
+  (confirm)="confirmPrayFor.emit($event)"
+  (cancel)="cancelPrayFor.emit()"
+/>

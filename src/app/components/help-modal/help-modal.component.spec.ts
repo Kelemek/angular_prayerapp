@@ -1890,7 +1890,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartCreatingPrayersHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -1910,7 +1910,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartPromptsSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -1930,7 +1930,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartPrayerEncouragementSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -1950,7 +1950,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartSearchPrayersSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -1970,7 +1970,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartPersonalPrayersHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -1990,7 +1990,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartMemorizeHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -2010,7 +2010,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartFilteringHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -2030,7 +2030,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartPresentationModeHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -2050,7 +2050,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartPrintingHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -2070,7 +2070,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartEmailSubscriptionHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -2090,7 +2090,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartPrayerRemindersHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -2110,7 +2110,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartFeedbackHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });
@@ -2130,7 +2130,7 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
         createdBy: 'system',
       };
       const ev = new MouseEvent('click');
-      component.onStartAppSettingsHelpSectionTour(ev, section as any);
+      component.onStartSectionTour(ev, section as any);
       expect(helpDriverTourService.interruptGuidedTours).toHaveBeenCalled();
       expect(tourSpy).toHaveBeenCalledWith(section);
     });

@@ -1,0 +1,109 @@
+
+    <div [class]="variantLayout.usePresentationWrapper ? variantLayout.presentationScrollClasses : 'contents'">
+    <div
+      [class]="shellClasses()"
+      [attr.id]="variant === 'home' ? 'prompt-card-' + prompt.id : null"
+    >
+      <!-- Meta header: type (left) | delete (right) -->
+      <app-card-meta-header-band
+        layout="two-column"
+        [bandSize]="variantLayout.bandSize"
+        [bleedClasses]="variantLayout.headerBleedClasses"
+        [actionsInsetClasses]="variantLayout.headerInsetClasses"
+      >
+        <div cardMetaLeft class="w-full min-w-0">
+          @if (variantLayout.typeHeaderInteractive) {
+          <button
+            type="button"
+            (click)="onTypeClick.emit(prompt.type)"
+            [class]="'flex items-center min-w-0 max-w-full truncate text-left font-bold transition-colors cursor-pointer ' + headerInsetClasses + ' ' + metaHeaderTextSmClasses + ' ' + getTypeHeaderTextClasses()"
+            [title]="isTypeSelected ? 'Remove ' + prompt.type + ' filter' : 'Filter by ' + prompt.type"
+          >
+            {{ prompt.type }}
+          </button>
+          } @else {
+          <span
+            [class]="'flex items-center min-w-0 max-w-full truncate text-left font-bold ' + headerInsetClasses + ' ' + metaHeaderTextSmClasses + ' ' + variantLayout.typeHeaderClasses"
+          >
+            {{ prompt.type }}
+          </span>
+          }
+        </div>
+        <div cardMetaRight class="flex items-center justify-end">
+          <app-card-actions-overflow-menu
+            [items]="overflowItems"
+            [bandSize]="variantLayout.bandSize"
+          />
+        </div>
+      </app-card-meta-header-band>
+
+      <!-- Title -->
+      <div [class]="'flex items-center gap-2 ' + variantLayout.titleRowMargin">
+        <svg [class]="(variantLayout.typeHeaderClasses || 'text-[#988F83] dark:text-[#988F83]') + ' w-[24px] h-[24px] flex-shrink-0'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18h6"></path>
+          <path d="M10 22h4"></path>
+          <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
+        </svg>
+        <h3 [class]="variantLayout.titleClasses">
+          {{ prompt.title }}
+        </h3>
+      </div>
+
+      @if (variantLayout.showUnreadBadges && (promptBadge$ | async) && (badgeService.getBadgeFunctionalityEnabled$() | async)) {
+        <button
+          (click)="markPromptAsRead()"
+          class="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-6 h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+          title="Mark as read"
+          aria-label="Mark prompt as read"
+        >
+          1
+        </button>
+      }
+
+      <!-- Description -->
+      <p [class]="variantLayout.descriptionClasses + ' ' + variantLayout.descriptionMargin">
+        {{ prompt.description }}
+      </p>
+
+      <app-prompt-card-actions-row
+        [variantLayout]="variantLayout"
+        [prayedForCount]="prompt.prayed_for_count ?? 0"
+        [prayedForCountLabel]="prayedForCountLabel()"
+        [showPrayedForBadge]="showPrayedForBadge()"
+        [canPrayFor]="(canPrayFor$ | async) ?? false"
+        [userSessionService]="userSessionService"
+        [prayerEncouragementService]="prayerEncouragementService"
+        (prayFor)="onPrayForClick()"
+      />
+
+      <!-- Confirmation Dialog -->
+      @if (showConfirmationDialog) {
+      <app-confirmation-dialog
+        [title]="'Delete Prayer Prompt'"
+        [message]="'Are you sure you want to delete this prayer prompt?'"
+        [isDangerous]="true"
+        [confirmText]="'Delete'"
+        (confirm)="onConfirmDelete()"
+        (cancel)="onCancelDelete()">
+      </app-confirmation-dialog>
+      }
+
+      <app-prompt-card-pray-for-modal
+        [isOpen]="showPrayForModal"
+        (confirm)="onConfirmPrayForFromModal($event)"
+        (cancel)="onCancelPrayForModal()"
+      />
+
+      <app-prayer-item-reminder-modal
+        [isOpen]="showReminderModal"
+        [email]="reminderSessionEmail()"
+        [prayerKind]="'prompt'"
+        [prayerId]="prompt.id"
+        [titleSnapshot]="prompt.title"
+        [prayerFor]="prompt.type"
+        [reminders]="remindersForThisPrompt()"
+        (close)="showReminderModal = false"
+        (remindersChange)="onPromptRemindersChanged($event)"
+      />
+    </div>
+    </div>
