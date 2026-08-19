@@ -7,43 +7,28 @@ import { resolvePrayerUpdateContent } from "../lib/prayer-update-content";
 import { personalCategoryNamesFromPrayers } from "../lib/personal-category-order";
 import {
   PERSONAL_PRAYERS_CACHE_KEY,
-  applyCachedPersonalPrayersSnapshot,
-  applyPersonalPrayerLoadCacheFallbackPlan,
-  publishPersonalPrayersFromDb,
-  planPersonalPrayerLoadCacheFallback,
   type PersonalPrayersCacheSnapshotActions,
 } from "../lib/prayer-catalog-load";
-import {
-  validatePersonalCategoryRename,
-  type PersonalPrayerDisplayOrderUpdate,
-  type CategoryDisplayOrderRange,
-} from "../lib/prayer-personal-category";
-import {
-  fetchAllPersonalCategoryDisplayOrderRows,
-  fetchPersonalCategoryDisplayOrderRows,
-  fetchPersonalCategoryIdRows,
-  fetchPersonalCategoryPrayerCountWithDb,
-  queryMaxDisplayOrderInPersonalCategoryRange,
-  resolvePersonalCategoryRangeWithDb,
-} from "../lib/prayer-personal-category-query-db";
+import { validatePersonalCategoryRename } from "../lib/prayer-personal-category";
 import {
   applyPersonalCategoryRenameSnapshot,
   orchestratePersonalCategoryReorder,
   orchestratePersonalCategorySwap,
   orchestratePersonalPrayerOrderUpdate,
-  type PersonalCategoryOrchestrationDeps,
 } from "../lib/prayer-personal-category-orchestrate";
 import {
-  planPersonalPrayerAdd,
-  type PersonalCategoryDeps,
-} from "../lib/prayer-personal-add-plan";
+  buildPersonalCategoryOrchestrationDeps,
+  createPersonalCategoryDeps,
+  fetchPersonalCategoryPrayerCountForUser,
+  fetchPersonalCategoryRangeForUser,
+  type PersonalCategoryQueryWireDeps,
+} from "../lib/prayer-personal-category-wire";
+import { planPersonalPrayerAdd } from "../lib/prayer-personal-add-plan";
 import { resolvePersonalPrayerCategoryChangeDisplayOrder } from "../lib/prayer-personal-update-category-plan";
 import {
   isPersonalPrayerDisplayOrderOnlyChange as isPersonalPrayerDisplayOrderOnlyDbChange,
   normalizePersonalPrayerCache as normalizePersonalPrayerCacheRows,
   personalPrayerRowToPrayerRequest,
-  PERSONAL_PRAYERS_LIST_SELECT,
-  PRAYER_PERSONAL_UNCATEGORIZED_MAX,
   sanitizePersonalPrayerCategory,
   withPersonalPrayerUserEmail as withPersonalPrayerUserEmailRow,
 } from "../lib/prayer-personal-display";
@@ -54,7 +39,6 @@ import {
   buildPersonalPrayerInsertRow,
   buildPersonalPrayerUpdateInsertRow,
   mapDbPersonalPrayerUpdateRow,
-  markPersonalPrayerUpdateAnsweredPatch,
   personalPrayerRequestFromInsertedRow,
   patchPersonalPrayerUpdateLocally,
   personalPrayerUpdatePatchWithTimestamp,
@@ -63,11 +47,6 @@ import {
   removePersonalPrayerUpdateById,
 } from "../lib/prayer-personal-mutations";
 import {
-  buildPersonalPrayerDisplayOrderDbPayload,
-  runPersonalPrayerDisplayOrderBatchUpdates,
-} from "../lib/prayer-personal-display-order";
-import { buildClearPersonalPrayerAnsweredFlagsPayload } from "../lib/prayer-personal-update";
-import {
   personalPrayerUpdateClearsAnsweredFlags,
   shouldDropPersonalPrayerRemindersAfterUpdate,
   startPersonalPrayerUpdatePlan,
@@ -75,12 +54,26 @@ import {
 import {
   hasPersonalCategoryRenameTargets,
   matchingPersonalPrayerIdsForCategoryRename,
-  personalCategoryRenameDbPayload,
 } from "../lib/prayer-personal-rename";
 import {
   answeredPersonalPrayerIds,
   personalPrayersFromDbRows,
 } from "../lib/prayer-personal-load";
+import {
+  clearPersonalPrayerUpdateAnsweredFlags,
+  deletePersonalPrayerRow,
+  deletePersonalPrayerUpdateRow,
+  fetchPersonalPrayerCategoryIdRows,
+  fetchPersonalPrayersList,
+  insertPersonalPrayerRow,
+  insertPersonalPrayerUpdateRow,
+  markPersonalPrayerUpdateAnsweredRow,
+  renamePersonalPrayerCategoriesByIds,
+  rpcIncrementPersonalPrayedFor,
+  updatePersonalPrayerRow,
+  updatePersonalPrayerUpdateRow,
+} from "../lib/prayer-personal-db";
+import { runPersonalPrayerCatalogLoad } from "../lib/prayer-personal-load-wire";
 import { extractSupabaseErrorMessage } from "../lib/prayer-error-message";
 import {
   parsePrayedForRpcCount,
@@ -147,51 +140,44 @@ export class PrayerPersonalService {
     };
   }
 
-  private personalCategoryOrchestrationDeps(): PersonalCategoryOrchestrationDeps {
+  private categoryQueryDeps(): PersonalCategoryQueryWireDeps {
     return {
+      client: this.supabase.client,
       getUserEmail: () => this.getUserEmail(),
-      local: {
-        getPrayers: () => this.allPersonalPrayersSubject.value,
-        setPrayers: (prayers) => this.setPersonalPrayersState(prayers),
-      },
-      runCategoryRpc: async (rpcName, args) => {
-        const result = await this.supabase.client.rpc(rpcName, args);
-        return { data: result.data, error: result.error };
-      },
-      runPrayerOrderRpc: async (args) => {
-        const result = await this.supabase.client.rpc(
-          "reorder_personal_prayers",
-          args
-        );
-        return { data: result.data, error: result.error };
-      },
-      applyDisplayOrderUpdates: (updates, options) =>
-        this.applyPersonalPrayerDisplayOrderUpdates(updates, options),
-      getCategoryRange: (category) => this.getCategoryRange(category),
     };
   }
 
-  private mapFetchedPersonalPrayers(data: unknown[]): PrayerRequest[] {
-    return personalPrayersFromDbRows(
-      data,
-      (row) => personalPrayerRowToPrayerRequest(row as never),
-      (prayers) => this.normalizePersonalPrayerCache(prayers)
+  private personalCategoryOrchestrationDeps() {
+    return buildPersonalCategoryOrchestrationDeps({
+      queryDeps: this.categoryQueryDeps(),
+      getUserEmail: () => this.getUserEmail(),
+      getPrayers: () => this.allPersonalPrayersSubject.value,
+      setPrayers: (prayers) => this.setPersonalPrayersState(prayers),
+      getCategoryRange: (category) => this.getCategoryRange(category),
+    });
+  }
+
+  private personalCategoryDeps() {
+    return createPersonalCategoryDeps(
+      this.categoryQueryDeps(),
+      (category) => this.getCategoryPrayerCount(category),
+      (category) => this.getCategoryRange(category)
     );
   }
 
   private async fetchPersonalPrayersFromDb(
     userEmail: string
   ): Promise<PrayerRequest[]> {
-    const { data, error } = await this.supabase.client
-      .from("personal_prayers")
-      .select(PERSONAL_PRAYERS_LIST_SELECT)
-      .eq("user_email", userEmail)
-      .order("display_order", { ascending: false })
-      .order("created_at", { ascending: false });
-
+    const { data, error } = await fetchPersonalPrayersList(
+      this.supabase.client,
+      userEmail
+    );
     if (error) throw error;
-
-    return this.mapFetchedPersonalPrayers(data || []);
+    return personalPrayersFromDbRows(
+      data || [],
+      (row) => personalPrayerRowToPrayerRequest(row as never),
+      (prayers) => this.normalizePersonalPrayerCache(prayers)
+    );
   }
 
   /** True when a personal_prayers UPDATE only reordered a row (drag-and-drop). */
@@ -203,83 +189,27 @@ export class PrayerPersonalService {
   }
 
   async loadPersonalPrayers(silentRefresh = false): Promise<void> {
-    try {
-      this.loadingPersonalPrayersSubject.next(true);
-      console.log("[PrayerService] Loading personal prayers...");
-
-      const userEmail = await this.getUserEmail();
-      if (!userEmail) {
-        console.warn(
-          "[PrayerService] User email not available for personal prayers"
-        );
-        this.personalPrayersDbFetchComplete = true;
-        return;
-      }
-
-      // ✅ TIER 1: Check cache first
-      const cachedPersonalPrayers = this.cache.get<PrayerRequest[]>(
-        PERSONAL_PRAYERS_CACHE_KEY
-      );
-      if (cachedPersonalPrayers && cachedPersonalPrayers.length > 0) {
-        console.log(
-          `[PrayerService] Using cached personal prayers (${cachedPersonalPrayers.length} items)`
-        );
-        applyCachedPersonalPrayersSnapshot(
-          cachedPersonalPrayers,
-          this.personalCacheSnapshotActions()
-        );
-
-        // ✅ TIER 1: Skip DB for silent refresh - personal prayers only change when user adds them
-        if (silentRefresh) {
-          console.log(
-            "[PrayerService] Cache hit for silent refresh - skipping personal prayers database query"
-          );
-          return;
-        }
-      }
-
-      const personalPrayers = await this.fetchPersonalPrayersFromDb(userEmail);
-
-      console.log(
-        `[PrayerService] Loaded ${personalPrayers.length} personal prayers from database`
-      );
-      publishPersonalPrayersFromDb(personalPrayers, {
+    return runPersonalPrayerCatalogLoad(
+      {
+        getUserEmail: () => this.getUserEmail(),
+        readCache: () =>
+          this.cache.get<PrayerRequest[]>(PERSONAL_PRAYERS_CACHE_KEY),
+        invalidateCache: () => this.cache.invalidate(PERSONAL_PRAYERS_CACHE_KEY),
+        setLoading: (loading) =>
+          this.loadingPersonalPrayersSubject.next(loading),
+        markFetchComplete: () => {
+          this.personalPrayersDbFetchComplete = true;
+        },
         setPersonalPrayers: (prayers) => this.setPersonalPrayersState(prayers),
+        clearPersonalPrayersInMemory: () =>
+          this.allPersonalPrayersSubject.next([]),
+        cacheSnapshotActions: () => this.personalCacheSnapshotActions(),
+        fetchFromDb: (email) => this.fetchPersonalPrayersFromDb(email),
         dropAnsweredReminders: (prayers) =>
           this.dropRemindersForAnsweredPersonalPrayers(prayers),
-      });
-    } catch (err) {
-      console.error("[PrayerService] Failed to load personal prayers:", err);
-
-      const userEmail = await this.getUserEmail();
-      const cacheFallback = planPersonalPrayerLoadCacheFallback(
-        this.cache.get<PrayerRequest[]>(PERSONAL_PRAYERS_CACHE_KEY),
-        userEmail
-      );
-
-      applyPersonalPrayerLoadCacheFallbackPlan(cacheFallback, {
-        applyCachedSnapshot: (prayers) => {
-          console.log(
-            `[PrayerService] Showing ${prayers.length} cached personal prayers`
-          );
-          applyCachedPersonalPrayersSnapshot(
-            prayers,
-            this.personalCacheSnapshotActions()
-          );
-        },
-        invalidatePersonalCache: () =>
-          this.cache.invalidate(PERSONAL_PRAYERS_CACHE_KEY),
-        clearPersonalPrayers: () => {
-          console.warn(
-            "[PrayerService] Cached personal prayers do not match current user - discarding cache"
-          );
-          this.allPersonalPrayersSubject.next([]);
-        },
-      });
-    } finally {
-      this.loadingPersonalPrayersSubject.next(false);
-      this.personalPrayersDbFetchComplete = true;
-    }
+      },
+      silentRefresh
+    );
   }
 
   async incrementPersonalPrayedFor(prayerId: string): Promise<number | null> {
@@ -289,15 +219,13 @@ export class PrayerPersonalService {
         return null;
       }
 
-      const { data: newCount, error } = await this.supabase.client.rpc(
-        "increment_personal_prayed_for_count",
-        {
-          personal_prayer_id: prayerId,
-          p_user_email: userEmail,
-        }
+      const { data: newCount, error } = await rpcIncrementPersonalPrayedFor(
+        this.supabase.client,
+        prayerId,
+        userEmail
       );
-
       if (error) throw error;
+
       const count = parsePrayedForRpcCount(newCount);
       if (count === null) return null;
 
@@ -319,94 +247,20 @@ export class PrayerPersonalService {
     return sanitizePersonalPrayerCategory(category);
   }
 
-  private personalCategoryDeps(): PersonalCategoryDeps {
-    return {
-      getCategoryCount: (category) => this.getCategoryPrayerCount(category),
-      getCategoryRange: (category) => this.getCategoryRange(category),
-      queryMaxDisplayOrderInRange: (email, category, range) =>
-        queryMaxDisplayOrderInPersonalCategoryRange(
-          this.supabase.client,
-          email,
-          category,
-          range
-        ),
-    };
-  }
-
-  /**
-   * Get the display_order range for a category (category-scoped range system)
-   * Uncategorized (null): 0-999
-   * Categories assigned sequentially by creation order: 1000-1999, 2000-2999, etc.
-   */
-  async getCategoryRange(
-    category: string | null | undefined
-  ): Promise<CategoryDisplayOrderRange> {
-    const userEmail = await this.getUserEmail();
-    return resolvePersonalCategoryRangeWithDb(
-      category,
-      userEmail,
-      (email, categoryEq) =>
-        fetchPersonalCategoryDisplayOrderRows(
-          this.supabase.client,
-          email,
-          categoryEq
-        ),
-      (email, minDisplayOrder) =>
-        fetchAllPersonalCategoryDisplayOrderRows(
-          this.supabase.client,
-          email,
-          minDisplayOrder
-        ),
-      PRAYER_PERSONAL_UNCATEGORIZED_MAX + 1
+  async getCategoryRange(category: string | null | undefined) {
+    return fetchPersonalCategoryRangeForUser(
+      this.categoryQueryDeps(),
+      category
     );
   }
 
-  /**
-   * Count how many personal prayers exist in a category's display_order range
-   */
-  async getCategoryPrayerCount(
-    category: string | null | undefined
-  ): Promise<number> {
-    const userEmail = await this.getUserEmail();
-    return fetchPersonalCategoryPrayerCountWithDb(
-      userEmail,
-      category,
-      (email, categoryEq) =>
-        fetchPersonalCategoryIdRows(this.supabase.client, email, categoryEq)
+  async getCategoryPrayerCount(category: string | null | undefined) {
+    return fetchPersonalCategoryPrayerCountForUser(
+      this.categoryQueryDeps(),
+      category
     );
   }
 
-  private async applyPersonalPrayerDisplayOrderUpdates(
-    updates: PersonalPrayerDisplayOrderUpdate[],
-    options?: { matchUserEmail?: boolean }
-  ): Promise<void> {
-    const userEmail = options?.matchUserEmail
-      ? await this.getUserEmail()
-      : null;
-    if (options?.matchUserEmail && !userEmail) {
-      throw new Error("User email not available");
-    }
-
-    await runPersonalPrayerDisplayOrderBatchUpdates(updates, async (update) => {
-      let query = this.supabase.client
-        .from("personal_prayers")
-        .update(buildPersonalPrayerDisplayOrderDbPayload(update.displayOrder))
-        .eq("id", update.prayerId);
-      if (userEmail) {
-        query = query.eq("user_email", userEmail);
-      }
-      const result = await query;
-      return { error: result.error };
-    });
-  }
-
-  /**
-   * PERSONAL PRAYERS - User-specific prayers with no admin approval workflow
-   */
-
-  /**
-   * Get all personal prayers for the current user
-   */
   async getPersonalPrayers(
     forceRefresh: boolean = false
   ): Promise<PrayerRequest[]> {
@@ -417,7 +271,6 @@ export class PrayerPersonalService {
         return [];
       }
 
-      // Check cache first to reduce database egress (unless force refresh)
       if (!forceRefresh) {
         const cached = this.cache.get<PrayerRequest[]>(
           PERSONAL_PRAYERS_CACHE_KEY
@@ -437,9 +290,6 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Add a new personal prayer
-   */
   async addPersonalPrayer(
     prayer: Omit<
       PrayerRequest,
@@ -479,12 +329,10 @@ export class PrayerPersonalService {
         newDisplayOrder
       );
 
-      const { data, error } = await this.supabase.client
-        .from("personal_prayers")
-        .insert(prayerData)
-        .select()
-        .single();
-
+      const { data, error } = await insertPersonalPrayerRow(
+        this.supabase.client,
+        prayerData
+      );
       if (error) throw error;
 
       const updatedPrayers = personalPrayerListAfterInsert(
@@ -502,8 +350,6 @@ export class PrayerPersonalService {
       );
       this.setPersonalPrayersState(updatedPrayers);
 
-      // No email notifications or badge notifications for personal prayers
-      // Just show success message
       this.toast.success("Personal prayer added successfully");
       return true;
     } catch (error) {
@@ -515,9 +361,6 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Delete a personal prayer
-   */
   async deletePersonalPrayer(id: string): Promise<boolean> {
     try {
       const userEmail = await this.getUserEmail();
@@ -526,12 +369,11 @@ export class PrayerPersonalService {
         return false;
       }
 
-      const { error } = await this.supabase.client
-        .from("personal_prayers")
-        .delete()
-        .eq("id", id)
-        .eq("user_email", userEmail);
-
+      const { error } = await deletePersonalPrayerRow(
+        this.supabase.client,
+        id,
+        userEmail
+      );
       if (error) throw error;
 
       const updatedPersonalPrayers = removePersonalPrayerById(
@@ -550,9 +392,6 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Update personal prayer (title, prayer_for, description, and/or category)
-   */
   async updatePersonalPrayer(
     id: string,
     updates: Partial<
@@ -600,10 +439,11 @@ export class PrayerPersonalService {
         newCategory
       );
       if (clearingAnswered) {
-        const { error: clearFlagsError } = await this.supabase.client
-          .from("personal_prayer_updates")
-          .update(buildClearPersonalPrayerAnsweredFlagsPayload())
-          .eq("personal_prayer_id", id);
+        const { error: clearFlagsError } =
+          await clearPersonalPrayerUpdateAnsweredFlags(
+            this.supabase.client,
+            id
+          );
 
         if (clearFlagsError) {
           console.error(
@@ -625,15 +465,14 @@ export class PrayerPersonalService {
       );
       const updatedAt = updateData["updated_at"] as string;
 
-      const { error } = await this.supabase.client
-        .from("personal_prayers")
-        .update(updateData)
-        .eq("id", id)
-        .eq("user_email", userEmail);
-
+      const { error } = await updatePersonalPrayerRow(
+        this.supabase.client,
+        id,
+        userEmail,
+        updateData
+      );
       if (error) throw error;
 
-      // Update local state and cache (include prayer_for and title so card title updates immediately)
       const updatedPrayers = applyPersonalPrayerFieldUpdate(
         this.allPersonalPrayersSubject.value,
         id,
@@ -663,10 +502,6 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Update display order for personal prayers (used for drag-drop reordering)
-   * Enforces category range boundaries - reordering stays within that category's range
-   */
   async updatePersonalPrayerOrder(
     prayers: PrayerRequest[],
     categoryFilter?: string
@@ -677,9 +512,6 @@ export class PrayerPersonalService {
     );
   }
 
-  /**
-   * Update personal prayer update (content and/or mark_as_answered)
-   */
   async updatePersonalPrayerUpdate(
     updateId: string,
     prayerId: string,
@@ -694,14 +526,13 @@ export class PrayerPersonalService {
 
       const updateData = personalPrayerUpdatePatchWithTimestamp(updates);
 
-      const { error } = await this.supabase.client
-        .from("personal_prayer_updates")
-        .update(updateData)
-        .eq("id", updateId);
-
+      const { error } = await updatePersonalPrayerUpdateRow(
+        this.supabase.client,
+        updateId,
+        updateData
+      );
       if (error) throw error;
 
-      // Update local state and cache
       const updatedPrayers = patchPersonalPrayerUpdateLocally(
         this.allPersonalPrayersSubject.value,
         prayerId,
@@ -721,10 +552,6 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Get unique categories for personal prayers of current user, sorted by range (descending)
-   * Categories with higher ranges appear first (newer categories appear at top)
-   */
   async getUniqueCategoriesForUser(
     prayers?: PrayerRequest[]
   ): Promise<string[]> {
@@ -732,9 +559,6 @@ export class PrayerPersonalService {
     return personalCategoryNamesFromPrayers(personalPrayers);
   }
 
-  /**
-   * Rename a personal prayer category for the current user (updates all prayers in that category).
-   */
   async renamePersonalCategory(
     oldCategory: string,
     newCategory: string,
@@ -767,33 +591,39 @@ export class PrayerPersonalService {
       }
 
       const { data: categoryRows, error: selectError } =
-        await this.supabase.client
-          .from("personal_prayers")
-          .select("id, category")
-          .eq("user_email", userEmail);
-
+        await fetchPersonalPrayerCategoryIdRows(
+          this.supabase.client,
+          userEmail
+        );
       if (selectError) {
         throw selectError;
       }
 
       const matchingIds = matchingPersonalPrayerIdsForCategoryRename(
-        (categoryRows ?? []) as Array<{ id: string; category: string | null }>,
+        categoryRows ?? [],
         oldName
       );
 
       if (hasPersonalCategoryRenameTargets(matchingIds)) {
-        const { error } = await this.supabase.client
-          .from("personal_prayers")
-          .update(personalCategoryRenameDbPayload(newName))
-          .eq("user_email", userEmail)
-          .in("id", matchingIds);
-
+        const { error } = await renamePersonalPrayerCategoriesByIds(
+          this.supabase.client,
+          userEmail,
+          matchingIds,
+          newName
+        );
         if (error) {
           throw error;
         }
       }
 
-      this.applyPersonalCategoryRenameLocally(oldName, newName);
+      applyPersonalCategoryRenameSnapshot(
+        {
+          getPrayers: () => this.allPersonalPrayersSubject.value,
+          setPrayers: (prayers) => this.setPersonalPrayersState(prayers),
+        },
+        oldName,
+        newName
+      );
       return true;
     } catch (error) {
       console.error("[PrayerService] Error renaming personal category:", error);
@@ -802,23 +632,6 @@ export class PrayerPersonalService {
     }
   }
 
-  private applyPersonalCategoryRenameLocally(
-    oldName: string,
-    newName: string
-  ): void {
-    applyPersonalCategoryRenameSnapshot(
-      {
-        getPrayers: () => this.allPersonalPrayersSubject.value,
-        setPrayers: (prayers) => this.setPersonalPrayersState(prayers),
-      },
-      oldName,
-      newName
-    );
-  }
-
-  /**
-   * Add update to personal prayer
-   */
   async addPersonalPrayerUpdate(
     personalPrayerId: string,
     content: string,
@@ -846,17 +659,18 @@ export class PrayerPersonalService {
 
       console.log("Adding personal prayer update with data:", updateData);
 
-      const { data, error } = await this.supabase.client
-        .from("personal_prayer_updates")
-        .insert(updateData)
-        .select();
-
+      const { data, error } = await insertPersonalPrayerUpdateRow(
+        this.supabase.client,
+        updateData
+      );
       if (error) throw error;
 
       console.log("Personal prayer update added successfully:", data);
 
-      // Add to observable and cache immediately (no approval needed)
-      const newUpdate = mapDbPersonalPrayerUpdateRow(personalPrayerId, data[0]);
+      const newUpdate = mapDbPersonalPrayerUpdateRow(
+        personalPrayerId,
+        data![0] as Parameters<typeof mapDbPersonalPrayerUpdateRow>[1]
+      );
       const updatedPrayers = appendPersonalPrayerUpdate(
         this.allPersonalPrayersSubject.value,
         personalPrayerId,
@@ -875,9 +689,6 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Delete personal prayer update
-   */
   async deletePersonalPrayerUpdate(updateId: string): Promise<boolean> {
     try {
       const userEmail = await this.getUserEmail();
@@ -886,16 +697,13 @@ export class PrayerPersonalService {
         return false;
       }
 
-      // Verify user owns the prayer before deleting the update
-      const { error: deleteError } = await this.supabase.client
-        .from("personal_prayer_updates")
-        .delete()
-        .eq("id", updateId)
-        .eq("author_email", userEmail);
-
+      const { error: deleteError } = await deletePersonalPrayerUpdateRow(
+        this.supabase.client,
+        updateId,
+        userEmail
+      );
       if (deleteError) throw deleteError;
 
-      // Update local state - remove the update from all personal prayers
       const updatedPrayers = removePersonalPrayerUpdateById(
         this.allPersonalPrayersSubject.value,
         updateId
@@ -911,16 +719,12 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Mark personal prayer update as answered
-   */
   async markPersonalPrayerUpdateAsAnswered(updateId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from("personal_prayer_updates")
-        .update(markPersonalPrayerUpdateAnsweredPatch())
-        .eq("id", updateId);
-
+      const { error } = await markPersonalPrayerUpdateAnsweredRow(
+        this.supabase.client,
+        updateId
+      );
       if (error) throw error;
 
       return true;
@@ -931,9 +735,6 @@ export class PrayerPersonalService {
     }
   }
 
-  /**
-   * Get user email from session
-   */
   private withPersonalPrayerUserEmail(prayer: PrayerRequest): PrayerRequest {
     return withPersonalPrayerUserEmailRow(prayer);
   }
@@ -948,10 +749,6 @@ export class PrayerPersonalService {
     return this.facadeHooks.getUserEmail();
   }
 
-  /**
-   * Reorder all categories based on the provided order array
-   * Assigns new prefix values to match the desired order
-   */
   async reorderCategories(
     orderedCategories: (string | null)[]
   ): Promise<boolean> {
@@ -961,11 +758,6 @@ export class PrayerPersonalService {
     );
   }
 
-  /**
-   * Swap display_order ranges between two categories
-   * Used when user drags a category button to reorder categories
-   * Example: If A has 2000-2999 and B has 1000-1999, swapping gives A 1000-1999 and B 2000-2999
-   */
   async swapCategoryRanges(
     categoryA: string | null | undefined,
     categoryB: string | null | undefined

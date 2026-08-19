@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Prayer personal service — DB and load wire libs
+- [`prayer-personal.service.ts`](src/app/services/prayer-personal.service.ts) (~770 lines, down from ~979) keeps catalog subjects and mutation orchestration. Supabase row adapters live in [`prayer-personal-db.ts`](src/app/lib/prayer-personal-db.ts). Catalog load/cache fallback wiring lives in [`prayer-personal-load-wire.ts`](src/app/lib/prayer-personal-load-wire.ts) (mismatched-user discard clears in-memory state only, not cache). Category query deps and orchestration deps live in [`prayer-personal-category-wire.ts`](src/app/lib/prayer-personal-category-wire.ts). Public API unchanged.
+
 ### Memorization recite alignment — lib split
 - [`memorizationReciteAlignment.ts`](src/app/lib/memorization/memorizationReciteAlignment.ts) (~18 lines) re-exports the public recite alignment API. Token normalization lives in [`memorization-recite-tokenize.ts`](src/app/lib/memorization/memorization-recite-tokenize.ts); fuzzy/digit matching in [`memorization-recite-match.ts`](src/app/lib/memorization/memorization-recite-match.ts); display segments and grouped stats in [`memorization-recite-display.ts`](src/app/lib/memorization/memorization-recite-display.ts); alignment orchestration in [`memorization-recite-align.ts`](src/app/lib/memorization/memorization-recite-align.ts). Shared types in [`memorization-recite-alignment-types.ts`](src/app/lib/memorization/memorization-recite-alignment-types.ts). Callers still import from `memorizationReciteAlignment`.
 
