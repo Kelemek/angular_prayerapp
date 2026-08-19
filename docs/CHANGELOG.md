@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Prayer service — facade split (community + personal)
+- [`prayer.service.ts`](src/app/services/prayer.service.ts) is a thin public facade (session, realtime, resume). Community catalog and member mutations live in [`prayer-community.service.ts`](src/app/services/prayer-community.service.ts); personal catalog and categories live in [`prayer-personal.service.ts`](src/app/services/prayer-personal.service.ts). Those inner classes are composed with `new` (not `providedIn: 'root'`), so callers still inject `PrayerService` and the constructor signature is unchanged.
+
 ### Prayer service — phases 18–20 libs (final decomposition batch)
 - [`prayer.service.ts`](src/app/services/prayer.service.ts): personal category RPC/swap/reorder orchestration in [`prayer-personal-category-orchestrate.ts`](src/app/lib/prayer-personal-category-orchestrate.ts); personal load publish/error in [`prayer-catalog-load.ts`](src/app/lib/prayer-catalog-load.ts); community pending-update and deletion-request notify wire in [`prayer-community-mutations.ts`](src/app/lib/prayer-community-mutations.ts) / [`prayer-community-deletion-requests.ts`](src/app/lib/prayer-community-deletion-requests.ts); member update CRUD toast wire in [`prayer-member-mutation-wire.ts`](src/app/lib/prayer-member-mutation-wire.ts). Decomposition pass complete for high-value pure logic; service retains subjects, Supabase, and thin delegates.
 
