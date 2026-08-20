@@ -8,6 +8,9 @@ import type { UserSettingsFacade } from '../../lib/user-settings-facade';
   imports: [CommonModule],
   templateUrl: './user-settings-appearance-section.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
+  host: {
+    class: 'settings-modal-section-group block',
+  },
 })
 export class UserSettingsAppearanceSectionComponent {
   @Input({ required: true }) host!: UserSettingsFacade;

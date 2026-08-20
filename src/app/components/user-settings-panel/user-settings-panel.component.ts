@@ -28,6 +28,9 @@ import type { UserSettingsFacade } from '../../lib/user-settings-facade';
   ],
   templateUrl: './user-settings-panel.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
+  host: {
+    class: 'flex min-h-0 flex-1 flex-col',
+  },
 })
 export class UserSettingsPanelComponent {
   @Input({ required: true }) host!: UserSettingsFacade;

@@ -9,6 +9,9 @@ import type { UserSettingsFacade } from '../../lib/user-settings-facade';
   imports: [CommonModule, EnabledDisabledToggleComponent],
   templateUrl: './user-settings-notifications-section.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
+  host: {
+    class: 'settings-modal-section-group block',
+  },
 })
 export class UserSettingsNotificationsSectionComponent {
   @Input({ required: true }) host!: UserSettingsFacade;

@@ -852,9 +852,21 @@ html, body {
   gap: 0.5rem;
 }
 
+/* Section hosts that render multiple cards (theme + text size, notification blocks) */
+.settings-modal-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 /* Light mode: cream scroll body + white section cards (matches Home page contrast) */
 .settings-modal-body {
   background-color: #e8e5e1;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.settings-modal-body::-webkit-scrollbar {
+  display: none;
 }
 html.dark .settings-modal-body {
   background-color: transparent;
@@ -905,6 +917,17 @@ html.dark .settings-modal-panel {
   overflow-y: auto;
 }
 
+.help-driver-popover .driver-popover-close-btn {
+  color: #374151 !important;
+  transition: none !important;
+}
+
+.help-driver-popover .driver-popover-close-btn:hover,
+.help-driver-popover .driver-popover-close-btn:focus {
+  color: #374151 !important;
+  background-color: transparent !important;
+}
+
 html.dark .help-driver-popover,
 .dark .help-driver-popover {
   background-color: #111827 !important;
@@ -933,6 +956,19 @@ html.dark .help-driver-popover .driver-popover-footer button,
 html.dark .help-driver-popover .driver-popover-footer button:hover,
 .dark .help-driver-popover .driver-popover-footer button:hover {
   background-color: #374151 !important;
+}
+
+html.dark .help-driver-popover .driver-popover-close-btn,
+.dark .help-driver-popover .driver-popover-close-btn {
+  color: #f9fafb !important;
+}
+
+html.dark .help-driver-popover .driver-popover-close-btn:hover,
+html.dark .help-driver-popover .driver-popover-close-btn:focus,
+.dark .help-driver-popover .driver-popover-close-btn:hover,
+.dark .help-driver-popover .driver-popover-close-btn:focus {
+  color: #f9fafb !important;
+  background-color: transparent !important;
 }
 
 @media print {

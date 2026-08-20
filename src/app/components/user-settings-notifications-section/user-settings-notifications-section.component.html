@@ -38,8 +38,8 @@
               [loaded]="host.preferencesLoaded"
               [saving]="host.savingNotification"
               [value]="host.receiveNotifications"
-              enabledTitle="Enable host.email notifications"
-              disabledTitle="Disable host.email notifications"
+              enabledTitle="Enable email notifications"
+              disabledTitle="Disable email notifications"
               (valueChange)="host.setReceiveNotifications($event)"
             />
           </div>
@@ -50,7 +50,7 @@
             host.savingNotification
               ? "Saving..."
               : host.receiveNotifications
-              ? "Receive host.email notifications for new prayers and updates"
+              ? "Receive email notifications for new prayers and updates"
               : "Email notifications are disabled"
           }}
           } @else {
