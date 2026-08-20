@@ -4,6 +4,16 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Prayer reminder emails — TipTap hard breaks (`\\`)
+- Pure transforms in [`markdown-core.ts`](../src/lib/markdown-core.ts); Edge-safe HTML in [`edge-email-markdown.ts`](../src/lib/edge-email-markdown.ts), **inlined** into [`send-user-hourly-prayer-reminders`](../supabase/functions/send-user-hourly-prayer-reminders/index.ts) and [`send-user-prayer-item-reminders`](../supabase/functions/send-user-prayer-item-reminders/index.ts) (regenerate: `node scripts/inline-edge-email-helpers.mjs`). Angular uses [`markdown.ts`](../src/utils/markdown.ts) (DOMPurify).
+- Spotlight template `{{spotlightPrayerDescriptionHtml}}` — deploy **`send-user-hourly-prayer-reminders` before** migration [`20260820120000_spotlight_email_render_markdown.sql`](../supabase/migrations/20260820120000_spotlight_email_render_markdown.sql). `variablesHtml` still fills legacy `{{spotlightPrayerDescription}}` (escaped plain text). **Redeploy both Edge functions** with the migration.
+
+### User settings modal — section card spacing
+- [`styles.css`](src/styles.css): appearance and notification section hosts stack their cards with gap via `.settings-modal-section-group` (avoids breaking scroll on the modal body).
+- [`user-settings-panel.component.ts`](src/app/components/user-settings-panel/user-settings-panel.component.ts): panel host is a flex child with `min-h-0` so the settings body scrolls inside `max-h-[90dvh]`.
+- [`user-settings-panel.component.html`](src/app/components/user-settings-panel/user-settings-panel.component.html): Logout footer is pinned below the scroll body (not inside the account section) so it stays at the modal bottom with a top border separator.
+- [`styles.css`](src/styles.css): help tour popover close (×) keeps fixed contrast in light/dark mode with no hover color shift.
+
 ### Presentation — spacebar in modals and form fields
 - [`presentation-controls-input.controller.ts`](src/app/services/presentation-controls-input.controller.ts): presentation keyboard shortcuts (Space, arrows, etc.) no longer fire while focus is in a text input, textarea, select, or rich-text editor (including TipTap `.ProseMirror`). Fixes Add Prayer Update and other presentation modals where Space advanced the slide instead of inserting a space.
 

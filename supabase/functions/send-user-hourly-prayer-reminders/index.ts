@@ -1,3 +1,381 @@
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
+import { Marked } from 'https://esm.sh/marked@15.0.12';
+
+// ----- TipTap markdown → safe HTML (inline; keep aligned with src/lib/edge-email-markdown.ts) -----
+/** TipTap hard breaks: `\` + newline or two spaces + newline → plain newline. */
+function normalizeMarkdownHardBreaks(markdown: string): string {
+  return markdown.replace(/\\(\r?\n)/g, '\n').replace(/ {2,}(\r?\n)/g, '\n');
+}
+
+/**
+ * TipTap's Underline mark serializes as ++text++. Expand to `<u>` before `marked`
+ * (skipping fenced code blocks so literal ++ in code is preserved).
+ */
+function expandTiptapUnderlineForMarked(markdown: string): string {
+  const segments = markdown.split(/(```[\s\S]*?```)/g);
+  return segments
+    .map((segment) => {
+      if (segment.startsWith('```')) return segment;
+      return segment.replace(/\+\+([\s\S]+?)\+\+/g, '<u>$1</u>');
+    })
+    .join('');
+}
+
+/** marked emits `<del>` for GFM strikethrough; our allowlist uses `<s>`. */
+function normalizeMarkedDelToStrike(html: string): string {
+  return html.replace(/<\/?del\b([^>]*)>/gi, (tag) => tag.replace(/del/gi, 's'));
+}
+
+function preprocessMarkdownForMarked(markdown: string): string {
+  return expandTiptapUnderlineForMarked(normalizeMarkdownHardBreaks(markdown));
+}
+
+/**
+ * Strip markdown syntax to plain text; preserves paragraph breaks (does not collapse whitespace).
+ */
+function stripMarkdownSyntaxToPlainText(markdown: string): string {
+  let text = normalizeMarkdownHardBreaks(markdown);
+  text = text.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, '').trim());
+  text = text.replace(/`([^`]+)`/g, '$1');
+  text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+  text = text.replace(/(\*\*\*|___)(.*?)\1/g, '$2');
+  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  text = text.replace(/(\*|_)(.*?)\1/g, '$2');
+  text = text.replace(/~~(.*?)~~/g, '$1');
+  text = text.replace(/\+\+([\s\S]+?)\+\+/g, '$1');
+  text = text.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  text = text.replace(/^\s{0,3}>\s?/gm, '');
+  text = text.replace(/^\s*[-*+]\s+/gm, '');
+  text = text.replace(/^\s*\d+\.\s+/gm, '');
+  text = text.replace(/\n{3,}/g, '\n\n');
+  return text.trim();
+}
+
+const MARKDOWN_ALLOWED_TAGS = [
+  'p',
+  'br',
+  'strong',
+  'em',
+  'u',
+  's',
+  'ol',
+  'ul',
+  'li',
+  'blockquote',
+  'h3',
+  'h4',
+  'code',
+  'pre',
+  'a',
+  'hr',
+  'img',
+];
+
+const MARKDOWN_ALLOWED_ATTR = [
+  'href',
+  'title',
+  'target',
+  'rel',
+  'style',
+  'src',
+  'alt',
+  'width',
+  'height',
+];
+const MARKDOWN_ALLOWED_TAG_SET = new Set(MARKDOWN_ALLOWED_TAGS);
+const MARKDOWN_VOID_TAGS = new Set(['br', 'hr', 'img']);
+
+const MARKDOWN_INLINE_STYLES: Record<string, string> = {
+  BLOCKQUOTE:
+    'margin: 0.75rem 0; padding: 0.25rem 0.75rem 0.25rem 1rem; border-left: 3px solid rgba(57, 112, 77, 0.5); opacity: 0.9;',
+  U: 'text-decoration: underline;',
+  IMG: 'display:block;max-width:100%;height:auto;border:0;border-radius:8px;margin:12px 0;',
+  UL: 'margin: 0.5rem 0; padding-left: 1.5rem;',
+  OL: 'margin: 0.5rem 0; padding-left: 1.5rem;',
+  LI: 'margin: 0.25rem 0;',
+  P: 'margin: 0.5rem 0;',
+};
+
+let markedParser: Marked | null = null;
+
+function getMarked(): Marked {
+  if (!markedParser) {
+    markedParser = new Marked({ gfm: true, breaks: true });
+  }
+  return markedParser;
+}
+
+function isSafeHref(value: string): boolean {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('javascript:')) return false;
+  if (trimmed.startsWith('data:') && !trimmed.startsWith('data:text/plain')) return false;
+  if (trimmed.startsWith('vbscript:')) return false;
+  return true;
+}
+
+function isSafeImageSrc(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('javascript:') || lower.startsWith('vbscript:') || lower.startsWith('data:')) {
+    return false;
+  }
+  if (lower.startsWith('https://')) return true;
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return true;
+  return false;
+}
+
+function escapeAttr(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function sanitizeAttrString(tagName: string, attrRaw: string): string {
+  const attrs: string[] = [];
+  const seen = new Set<string>();
+  const attrRe = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*(?:=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let match: RegExpExecArray | null;
+  while ((match = attrRe.exec(attrRaw)) !== null) {
+    const name = match[1].toLowerCase();
+    if (name === 'class' || name === 'id' || !MARKDOWN_ALLOWED_ATTR.includes(name)) continue;
+    const value = match[3] ?? match[4] ?? match[5] ?? '';
+    if (name === 'href' && !isSafeHref(value)) continue;
+    if (name === 'src' && !isSafeImageSrc(value)) continue;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    attrs.push(`${name}="${escapeAttr(value)}"`);
+  }
+  if (tagName === 'img' && !seen.has('src')) {
+    return '';
+  }
+  return attrs.join(' ');
+}
+
+function stripToAllowlistedHtml(html: string): string {
+  const input = html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, '');
+
+  const parts: string[] = [];
+  const stack: string[] = [];
+  const tagRe = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*?)>|[^<]+/g;
+  let match: RegExpExecArray | null;
+  while ((match = tagRe.exec(input)) !== null) {
+    if (match[0].startsWith('<')) {
+      const isClosing = match[1] === '/';
+      const tagName = match[2].toLowerCase();
+      const attrRaw = match[3] ?? '';
+      const isVoid = MARKDOWN_VOID_TAGS.has(tagName) || /\/\s*$/.test(attrRaw);
+
+      if (!MARKDOWN_ALLOWED_TAG_SET.has(tagName)) {
+        if (isClosing) {
+          const idx = stack.lastIndexOf(tagName);
+          if (idx !== -1) {
+            while (stack.length > idx) {
+              parts.push(`</${stack.pop()}>`);
+            }
+          }
+        }
+        continue;
+      }
+
+      if (isClosing) {
+        const idx = stack.lastIndexOf(tagName);
+        if (idx !== -1) {
+          while (stack.length > idx + 1) {
+            parts.push(`</${stack.pop()}>`);
+          }
+          stack.pop();
+          parts.push(`</${tagName}>`);
+        }
+      } else {
+        const safeAttrs = sanitizeAttrString(tagName, attrRaw);
+        if (tagName === 'img' && !safeAttrs) {
+          continue;
+        }
+        const attrSuffix = safeAttrs ? ` ${safeAttrs}` : '';
+        if (isVoid) {
+          parts.push(`<${tagName}${attrSuffix}>`);
+        } else {
+          stack.push(tagName);
+          parts.push(`<${tagName}${attrSuffix}>`);
+        }
+      }
+    } else {
+      parts.push(match[0]);
+    }
+  }
+  while (stack.length) {
+    parts.push(`</${stack.pop()}>`);
+  }
+  return enhanceSanitizedHtml(parts.join(''));
+}
+
+function enhanceSanitizedHtml(html: string): string {
+  return html
+    .replace(/<p(?![^>]*\bstyle=)([^>]*)>/gi, `<p style="${MARKDOWN_INLINE_STYLES['P']}"$1>`)
+    .replace(/<ul(?![^>]*\bstyle=)([^>]*)>/gi, `<ul style="${MARKDOWN_INLINE_STYLES['UL']}"$1>`)
+    .replace(/<ol(?![^>]*\bstyle=)([^>]*)>/gi, `<ol style="${MARKDOWN_INLINE_STYLES['OL']}"$1>`)
+    .replace(/<li(?![^>]*\bstyle=)([^>]*)>/gi, `<li style="${MARKDOWN_INLINE_STYLES['LI']}"$1>`)
+    .replace(
+      /<blockquote(?![^>]*\bstyle=)([^>]*)>/gi,
+      `<blockquote style="${MARKDOWN_INLINE_STYLES['BLOCKQUOTE']}"$1>`
+    )
+    .replace(/<u(?![^>]*\bstyle=)([^>]*)>/gi, `<u style="${MARKDOWN_INLINE_STYLES['U']}"$1>`)
+    .replace(/<a\b([^>]*\bhref="([^"]*)"[^>]*)>/gi, (_match, rest: string, href: string) => {
+      if (!isSafeHref(href)) return '<a>';
+      let extra = '';
+      if (!/\btarget=/.test(rest)) extra += ' target="_blank"';
+      if (!/\brel=/.test(rest)) extra += ' rel="noopener noreferrer"';
+      return `<a${rest}${extra}>`;
+    })
+    .replace(/<img\b([^>]*)>/gi, (_match, rest: string) => {
+      const srcMatch = rest.match(/\bsrc="([^"]*)"/i);
+      const src = srcMatch?.[1] ?? '';
+      if (!isSafeImageSrc(src)) return '';
+      let extra = '';
+      if (!/\balt=/.test(rest)) extra += ' alt=""';
+      if (!/\bstyle=/.test(rest)) extra += ` style="${MARKDOWN_INLINE_STYLES['IMG']}"`;
+      return `<img${rest}${extra}>`;
+    });
+}
+
+function markdownToSafeHtml(markdown: string | null | undefined): string {
+  if (!markdown) return '';
+  const preprocessed = preprocessMarkdownForMarked(String(markdown));
+  const parsed = getMarked().parse(preprocessed, { async: false });
+  const rawHtml = normalizeMarkedDelToStrike(
+    typeof parsed === 'string' ? parsed : String(parsed)
+  );
+  return stripToAllowlistedHtml(rawHtml);
+}
+
+function markdownToPlainText(markdown: string | null | undefined): string {
+  if (!markdown) return '';
+  return stripMarkdownSyntaxToPlainText(String(markdown));
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function truncateText(s: string, maxLen: number): string {
+  if (s.length <= maxLen) return s;
+  return `${s.slice(0, maxLen - 1)}…`;
+}
+
+function buildPrayerUpdateBlockHtml(updateHtml: string): string {
+  if (!updateHtml) return '';
+  return `<p style="margin: 15px 0 10px 0;"><strong>Update</strong></p><div style="background-color:#ffffff;padding:15px;border-radius:6px;border-left:4px solid #3b82f6;margin:0;">${updateHtml}</div>`;
+}
+
+interface SpotlightEmailCandidate {
+  kindLabel: string;
+  title: string;
+  prayerFor: string;
+  requester: string;
+  description: string;
+}
+
+interface SpotlightEmailTemplateVars {
+  variablesText: Record<string, string>;
+  variablesHtml: Record<string, string>;
+}
+
+const EMPTY_SPOTLIGHT_TEXT = {
+  spotlightPrayerKind: '',
+  spotlightPrayerTitle: '',
+  spotlightPrayerFor: '',
+  spotlightPrayerRequester: '',
+  spotlightPrayerDescription: '',
+  updateContent: '',
+  spotlightUpdateTextSection: '',
+};
+
+const EMPTY_SPOTLIGHT_HTML = {
+  spotlightPrayerKind: '',
+  spotlightPrayerTitle: '',
+  spotlightPrayerFor: '',
+  spotlightPrayerRequester: '',
+  spotlightPrayerDescription: '',
+  spotlightPrayerDescriptionHtml: '',
+  updateContent: '',
+};
+
+const SPOTLIGHT_DESCRIPTION_PLAIN_MAX = 600;
+const SPOTLIGHT_UPDATE_PLAIN_MAX = 2000;
+
+function buildSpotlightEmailTemplateVars(
+  appLink: string,
+  spotlight: SpotlightEmailCandidate | null,
+  updateMarkdown: string
+): SpotlightEmailTemplateVars {
+  const updatePlain = truncateText(
+    markdownToPlainText(updateMarkdown),
+    SPOTLIGHT_UPDATE_PLAIN_MAX
+  );
+  const updateHtml = updatePlain ? markdownToSafeHtml(updateMarkdown) : '';
+  const spotlightUpdateBlockHtml = buildPrayerUpdateBlockHtml(updateHtml);
+  const spotlightLatestUpdateHtml = spotlightUpdateBlockHtml;
+  const spotlightUpdateTextSection = updatePlain ? `\n\nLatest update:\n${updatePlain}\n` : '';
+
+  if (!spotlight) {
+    return {
+      variablesText: {
+        appLink,
+        ...EMPTY_SPOTLIGHT_TEXT,
+        spotlightUpdateBlockHtml: '',
+        spotlightLatestUpdateHtml: '',
+      },
+      variablesHtml: {
+        appLink,
+        ...EMPTY_SPOTLIGHT_HTML,
+        spotlightUpdateBlockHtml: '',
+        spotlightLatestUpdateHtml: '',
+      },
+    };
+  }
+
+  const descriptionPlain = truncateText(
+    markdownToPlainText(spotlight.description),
+    SPOTLIGHT_DESCRIPTION_PLAIN_MAX
+  );
+
+  return {
+    variablesText: {
+      appLink,
+      spotlightPrayerKind: spotlight.kindLabel,
+      spotlightPrayerTitle: spotlight.title,
+      spotlightPrayerFor: spotlight.prayerFor,
+      spotlightPrayerRequester: spotlight.requester,
+      spotlightPrayerDescription: descriptionPlain,
+      updateContent: updatePlain,
+      spotlightUpdateTextSection,
+      spotlightUpdateBlockHtml: '',
+      spotlightLatestUpdateHtml: '',
+    },
+    variablesHtml: {
+      appLink,
+      spotlightPrayerKind: escapeHtml(spotlight.kindLabel),
+      spotlightPrayerTitle: escapeHtml(spotlight.title),
+      spotlightPrayerFor: escapeHtml(spotlight.prayerFor),
+      spotlightPrayerRequester: escapeHtml(spotlight.requester),
+      spotlightPrayerDescription: escapeHtml(descriptionPlain),
+      spotlightPrayerDescriptionHtml: markdownToSafeHtml(spotlight.description),
+      updateContent: escapeHtml(updatePlain),
+      spotlightUpdateBlockHtml,
+      spotlightLatestUpdateHtml,
+    },
+  };
+}
+// ----- END inline edge-email-markdown -----
 /**
  * Hourly job: send self prayer reminders.
  * Email when email_subscribers.is_active !== false (matches UserSessionData.isActive).
@@ -5,7 +383,8 @@
  * Both run when both are enabled.
  * Template: admin_settings.user_hourly_prayer_reminder_template_key → email_templates (default user_hourly_prayer_reminder).
  * Spotlight template fills {{spotlightPrayerKind}}, {{spotlightPrayerTitle}}, {{spotlightPrayerFor}}, {{spotlightPrayerRequester}},
- * {{spotlightPrayerDescription}}, {{updateContent}}, {{spotlightUpdateBlockHtml}} (Update subsection HTML; empty if no update),
+ * {{spotlightPrayerDescription}} (plain text), {{spotlightPrayerDescriptionHtml}} (rendered markdown HTML),
+ * {{updateContent}}, {{spotlightUpdateBlockHtml}} (Update subsection HTML; empty if no update),
  * {{spotlightLatestUpdateHtml}} (alias), {{spotlightUpdateTextSection}}. Community: {{spotlightPrayerRequester}} is **Anonymous**
  * when `prayers.is_anonymous`, else `requester`; personal spotlight: **Me**.
  * Community spotlight: **all** approved + **current** `prayers` (app-wide; no date window).
@@ -15,7 +394,6 @@
  * If APP_URL is host-only (no https://), it is prefixed with https:// so mail clients do not rewrite links to x-webdoc://…
  * Auth matches send-prayer-reminders: Supabase Edge JWT verification only.
  */
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +405,11 @@ const corsHeaders = {
 
 const DEFAULT_HOURLY_TEMPLATE_KEY = 'user_hourly_prayer_reminder';
 const SPOTLIGHT_TEMPLATE_KEY = 'user_hourly_prayer_reminder_with_spotlight';
+
+/** Push notification previews must stay on one line (email plain text keeps paragraph breaks). */
+function collapsePlainTextToSingleLine(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
 
 interface ReminderRow {
   id: string;
@@ -88,48 +471,6 @@ function hourlyReminderFallbackParts(appLink: string): {
     textBody: `Take a moment to pray.\n\nOpen the app: ${appLink}\n`,
     htmlBody: `<p>Take a moment to pray.</p><p><a href="${appLink}">Open the prayer app</a></p>`,
   };
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function stripHtmlToText(s: string): string {
-  return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-/**
- * Strip common markdown syntax to produce plain text for notifications/previews.
- * Handles code, images, links, bold/italic/strikethrough, headings, blockquotes, list markers.
- */
-function stripMarkdownToText(input: string | null | undefined): string {
-  if (!input) return '';
-  let text = String(input);
-  text = text.replace(/```[\s\S]*?```/g, ' ');
-  text = text.replace(/`([^`]+)`/g, '$1');
-  text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
-  text = text.replace(/(\*\*\*|___)(.*?)\1/g, '$2');
-  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
-  text = text.replace(/(\*|_)(.*?)\1/g, '$2');
-  text = text.replace(/~~(.*?)~~/g, '$1');
-  text = text.replace(/\+\+([\s\S]+?)\+\+/g, '$1');
-  text = text.replace(/^\s{0,3}#{1,6}\s+/gm, '');
-  text = text.replace(/^\s{0,3}>\s?/gm, '');
-  text = text.replace(/^\s*[-*+]\s+/gm, '');
-  text = text.replace(/^\s*\d+\.\s+/gm, '');
-  text = text.replace(/\s+/g, ' ').trim();
-  return text;
-}
-
-function truncateText(s: string, maxLen: number): string {
-  if (s.length <= maxLen) return s;
-  return `${s.slice(0, maxLen - 1)}…`;
 }
 
 /** Duplicated from src/app/lib/hourly-prayer-spotlight-deep-link.ts */
@@ -356,84 +697,34 @@ Deno.serve(async (req: Request) => {
         useSpotlightVariables && spotlight?.key ? spotlight.key : null
       );
 
-      let updatePlain = '';
+      let updateMarkdown = '';
       if (spotlight && useSpotlightVariables) {
-        updatePlain = truncateText(await fetchLatestUpdatePlain(supabase, spotlight.key), 2000);
+        updateMarkdown = await fetchLatestUpdateMarkdown(supabase, spotlight.key);
       }
 
-      /** Full “Update” subsection (label + inner white box); empty when no update so email omits the block. */
-      const spotlightUpdateBlockHtml = updatePlain
-        ? `<p style="margin: 15px 0 10px 0;"><strong>Update</strong></p><div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6; margin: 0;"><p style="margin: 0; white-space: pre-wrap;">${escapeHtml(
-            updatePlain
-          )}</p></div>`
-        : '';
-
-      /** Legacy alias for custom templates that still reference {{spotlightLatestUpdateHtml}}. */
-      const spotlightLatestUpdateHtml = spotlightUpdateBlockHtml;
-
-      const spotlightUpdateTextSection = updatePlain ? `\n\nLatest update:\n${updatePlain}\n` : '';
-
-      const spotlightPlain = spotlight
-        ? {
-            spotlightPrayerKind: spotlight.kindLabel,
-            spotlightPrayerTitle: spotlight.title,
-            spotlightPrayerFor: spotlight.prayerFor,
-            spotlightPrayerRequester: spotlight.requester,
-            spotlightPrayerDescription: truncateText(
-              stripMarkdownToText(spotlight.description),
-              600
-            ),
-            updateContent: updatePlain,
-            spotlightUpdateTextSection,
-          }
-        : {
-            spotlightPrayerKind: '',
-            spotlightPrayerTitle: '',
-            spotlightPrayerFor: '',
-            spotlightPrayerRequester: '',
-            spotlightPrayerDescription: '',
-            updateContent: '',
-            spotlightUpdateTextSection: '',
-          };
-
-      const spotlightSafeHtml = spotlight
-        ? {
-            spotlightPrayerKind: escapeHtml(spotlight.kindLabel),
-            spotlightPrayerTitle: escapeHtml(spotlight.title),
-            spotlightPrayerFor: escapeHtml(spotlight.prayerFor),
-            spotlightPrayerRequester: escapeHtml(spotlight.requester),
-            spotlightPrayerDescription: escapeHtml(
-              truncateText(stripMarkdownToText(spotlight.description), 600)
-            ),
-            updateContent: escapeHtml(updatePlain),
-          }
-        : {
-            spotlightPrayerKind: '',
-            spotlightPrayerTitle: '',
-            spotlightPrayerFor: '',
-            spotlightPrayerRequester: '',
-            spotlightPrayerDescription: '',
-            updateContent: '',
-          };
-
-      const variablesHtml: Record<string, string> = {
+      const { variablesText, variablesHtml } = buildSpotlightEmailTemplateVars(
         appLink,
-        ...spotlightSafeHtml,
-        spotlightUpdateBlockHtml,
-        spotlightLatestUpdateHtml,
-      };
-      const variablesText: Record<string, string> = {
-        appLink,
-        ...spotlightPlain,
-        spotlightUpdateBlockHtml: '',
-        spotlightLatestUpdateHtml: '',
-      };
+        spotlight
+          ? {
+              kindLabel: spotlight.kindLabel,
+              title: spotlight.title,
+              prayerFor: spotlight.prayerFor,
+              requester: spotlight.requester,
+              description: spotlight.description,
+            }
+          : null,
+        updateMarkdown
+      );
+
+      const updatePlain = variablesText.updateContent;
 
       const pushBody =
         spotlight && useSpotlightVariables
           ? truncateText(
               `${spotlight.title} — ${spotlight.kindLabel}${
-                updatePlain ? ` — ${truncateText(updatePlain, 80)}` : ''
+                updatePlain
+                  ? ` — ${truncateText(collapsePlainTextToSingleLine(updatePlain), 80)}`
+                  : ''
               }`,
               140
             )
@@ -604,8 +895,8 @@ async function loadSpotlightCandidate(
   return pickSpotlightCandidate(candidates, lastSpotlightKey);
 }
 
-/** Latest approved community update or latest personal update (plain text, not truncated). */
-async function fetchLatestUpdatePlain(
+/** Latest approved community update or latest personal update (TipTap markdown). */
+async function fetchLatestUpdateMarkdown(
   supabase: SupabaseClient<any>,
   spotlightKey: string
 ): Promise<string> {
@@ -625,11 +916,11 @@ async function fetchLatestUpdatePlain(
       .limit(1)
       .maybeSingle();
     if (error) {
-      console.error('fetchLatestUpdatePlain community', error);
+      console.error('fetchLatestUpdateMarkdown community', error);
       return '';
     }
     const raw = data?.content;
-    return raw ? stripMarkdownToText(raw) : '';
+    return raw?.trim() ? raw : '';
   }
 
   if (kind === 'p') {
@@ -641,11 +932,11 @@ async function fetchLatestUpdatePlain(
       .limit(1)
       .maybeSingle();
     if (error) {
-      console.error('fetchLatestUpdatePlain personal', error);
+      console.error('fetchLatestUpdateMarkdown personal', error);
       return '';
     }
     const raw = data?.content;
-    return raw ? stripMarkdownToText(raw) : '';
+    return raw?.trim() ? raw : '';
   }
 
   return '';

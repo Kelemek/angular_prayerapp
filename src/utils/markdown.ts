@@ -1,5 +1,10 @@
 import domPurifyImport from 'dompurify';
 import { Marked } from 'marked';
+import {
+  normalizeMarkedDelToStrike,
+  preprocessMarkdownForMarked,
+  stripMarkdownSyntaxToPlainText,
+} from '../lib/markdown-core';
 
 const ALLOWED_TAGS = [
   'p',
@@ -140,28 +145,6 @@ function getMarked(): Marked {
     markedParser = new Marked({ gfm: true, breaks: true });
   }
   return markedParser;
-}
-
-/**
- * TipTap's Underline mark serializes as ++text++. Common Markdown parsers do not
- * treat that as underline, so we expand to &lt;u&gt; before `marked` (skipping
- * fenced code blocks so literal ++ in code is preserved).
- */
-function expandTiptapUnderlineForMarked(markdown: string): string {
-  const segments = markdown.split(/(```[\s\S]*?```)/g);
-  return segments
-    .map((segment) => {
-      if (segment.startsWith('```')) {
-        return segment;
-      }
-      return segment.replace(/\+\+([\s\S]+?)\+\+/g, '<u>$1</u>');
-    })
-    .join('');
-}
-
-/** marked emits `<del>` for GFM strikethrough; our allowlist uses `<s>`. */
-function normalizeMarkedDelToStrike(html: string): string {
-  return html.replace(/<\/?del\b([^>]*)>/gi, (tag) => tag.replace(/del/gi, 's'));
 }
 
 function applyRichHtmlEnhancements(root: ParentNode | null | undefined): void {
@@ -306,7 +289,7 @@ export function sanitizeEmailHtml(html: string | null | undefined): string {
 
 export function markdownToSafeHtml(markdown: string | null | undefined): string {
   if (!markdown) return '';
-  const preprocessed = expandTiptapUnderlineForMarked(markdown);
+  const preprocessed = preprocessMarkdownForMarked(markdown);
   const parsed = getMarked().parse(preprocessed, { async: false });
   const rawHtml = normalizeMarkedDelToStrike(
     typeof parsed === 'string' ? parsed : String(parsed)
@@ -342,28 +325,5 @@ export function htmlToPlainText(html: string | null | undefined): string {
  */
 export function markdownToPlainText(markdown: string | null | undefined): string {
   if (!markdown) return '';
-  let text = String(markdown);
-  // Code fences
-  text = text.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, '').trim());
-  // Inline code
-  text = text.replace(/`([^`]+)`/g, '$1');
-  // Images ![alt](url)
-  text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
-  // Links [text](url)
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
-  // Bold / italic / strikethrough / underline-ish markers
-  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
-  text = text.replace(/(\*|_)(.*?)\1/g, '$2');
-  text = text.replace(/~~(.*?)~~/g, '$1');
-  text = text.replace(/\+\+([\s\S]+?)\+\+/g, '$1');
-  // Headings
-  text = text.replace(/^\s{0,3}#{1,6}\s+/gm, '');
-  // Blockquote markers
-  text = text.replace(/^\s{0,3}>\s?/gm, '');
-  // List bullets / numbers
-  text = text.replace(/^\s*[-*+]\s+/gm, '');
-  text = text.replace(/^\s*\d+\.\s+/gm, '');
-  // Collapse >2 blank lines
-  text = text.replace(/\n{3,}/g, '\n\n');
-  return text.trim();
+  return stripMarkdownSyntaxToPlainText(String(markdown));
 }

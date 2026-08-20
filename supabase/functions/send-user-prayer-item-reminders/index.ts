@@ -1,14 +1,57 @@
-/**
- * Every-15-minutes job: send per-prayer item reminders (once / daily / weekly).
- * Email when email_subscribers.is_active !== false.
- * Push when receive_push and a device_tokens row exists.
- * Template: email_templates.user_prayer_item_reminder.
- * Auth: Supabase Edge JWT verification only (same as other reminder jobs).
- */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 import { Marked } from 'https://esm.sh/marked@15.0.12';
 
-// ----- markdown → safe HTML (inline; marked only — no DOM libs / no native canvas) -----
+// ----- TipTap markdown → safe HTML (inline; keep aligned with src/lib/edge-email-markdown.ts) -----
+/** TipTap hard breaks: `\` + newline or two spaces + newline → plain newline. */
+function normalizeMarkdownHardBreaks(markdown: string): string {
+  return markdown.replace(/\\(\r?\n)/g, '\n').replace(/ {2,}(\r?\n)/g, '\n');
+}
+
+/**
+ * TipTap's Underline mark serializes as ++text++. Expand to `<u>` before `marked`
+ * (skipping fenced code blocks so literal ++ in code is preserved).
+ */
+function expandTiptapUnderlineForMarked(markdown: string): string {
+  const segments = markdown.split(/(```[\s\S]*?```)/g);
+  return segments
+    .map((segment) => {
+      if (segment.startsWith('```')) return segment;
+      return segment.replace(/\+\+([\s\S]+?)\+\+/g, '<u>$1</u>');
+    })
+    .join('');
+}
+
+/** marked emits `<del>` for GFM strikethrough; our allowlist uses `<s>`. */
+function normalizeMarkedDelToStrike(html: string): string {
+  return html.replace(/<\/?del\b([^>]*)>/gi, (tag) => tag.replace(/del/gi, 's'));
+}
+
+function preprocessMarkdownForMarked(markdown: string): string {
+  return expandTiptapUnderlineForMarked(normalizeMarkdownHardBreaks(markdown));
+}
+
+/**
+ * Strip markdown syntax to plain text; preserves paragraph breaks (does not collapse whitespace).
+ */
+function stripMarkdownSyntaxToPlainText(markdown: string): string {
+  let text = normalizeMarkdownHardBreaks(markdown);
+  text = text.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, '').trim());
+  text = text.replace(/`([^`]+)`/g, '$1');
+  text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+  text = text.replace(/(\*\*\*|___)(.*?)\1/g, '$2');
+  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  text = text.replace(/(\*|_)(.*?)\1/g, '$2');
+  text = text.replace(/~~(.*?)~~/g, '$1');
+  text = text.replace(/\+\+([\s\S]+?)\+\+/g, '$1');
+  text = text.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  text = text.replace(/^\s{0,3}>\s?/gm, '');
+  text = text.replace(/^\s*[-*+]\s+/gm, '');
+  text = text.replace(/^\s*\d+\.\s+/gm, '');
+  text = text.replace(/\n{3,}/g, '\n\n');
+  return text.trim();
+}
+
 const MARKDOWN_ALLOWED_TAGS = [
   'p',
   'br',
@@ -29,7 +72,17 @@ const MARKDOWN_ALLOWED_TAGS = [
   'img',
 ];
 
-const MARKDOWN_ALLOWED_ATTR = ['href', 'title', 'target', 'rel', 'style', 'src', 'alt', 'width', 'height'];
+const MARKDOWN_ALLOWED_ATTR = [
+  'href',
+  'title',
+  'target',
+  'rel',
+  'style',
+  'src',
+  'alt',
+  'width',
+  'height',
+];
 const MARKDOWN_ALLOWED_TAG_SET = new Set(MARKDOWN_ALLOWED_TAGS);
 const MARKDOWN_VOID_TAGS = new Set(['br', 'hr', 'img']);
 
@@ -76,21 +129,6 @@ function isSafeImageSrc(value: string): boolean {
 
 function escapeAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-}
-
-function expandTiptapUnderlineForMarked(markdown: string): string {
-  const segments = markdown.split(/(```[\s\S]*?```)/g);
-  return segments
-    .map((segment) => {
-      if (segment.startsWith('```')) return segment;
-      return segment.replace(/\+\+([\s\S]+?)\+\+/g, '<u>$1</u>');
-    })
-    .join('');
-}
-
-/** marked emits `<del>` for GFM strikethrough; our allowlist uses `<s>`. */
-function normalizeMarkedDelToStrike(html: string): string {
-  return html.replace(/<\/?del\b([^>]*)>/gi, (tag) => tag.replace(/del/gi, 's'));
 }
 
 function sanitizeAttrString(tagName: string, attrRaw: string): string {
@@ -206,7 +244,7 @@ function enhanceSanitizedHtml(html: string): string {
 
 function markdownToSafeHtml(markdown: string | null | undefined): string {
   if (!markdown) return '';
-  const preprocessed = expandTiptapUnderlineForMarked(String(markdown));
+  const preprocessed = preprocessMarkdownForMarked(String(markdown));
   const parsed = getMarked().parse(preprocessed, { async: false });
   const rawHtml = normalizeMarkedDelToStrike(
     typeof parsed === 'string' ? parsed : String(parsed)
@@ -216,22 +254,36 @@ function markdownToSafeHtml(markdown: string | null | undefined): string {
 
 function markdownToPlainText(markdown: string | null | undefined): string {
   if (!markdown) return '';
-  let text = String(markdown);
-  text = text.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, '').trim());
-  text = text.replace(/`([^`]+)`/g, '$1');
-  text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
-  text = text.replace(/(\*\*\*|___)(.*?)\1/g, '$2');
-  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
-  text = text.replace(/(\*|_)(.*?)\1/g, '$2');
-  text = text.replace(/~~(.*?)~~/g, '$1');
-  text = text.replace(/\+\+([\s\S]+?)\+\+/g, '$1');
-  text = text.replace(/^\s{0,3}#{1,6}\s+/gm, '');
-  text = text.replace(/^\s{0,3}>\s?/gm, '');
-  text = text.replace(/^\s*[-*+]\s+/gm, '');
-  text = text.replace(/^\s*\d+\.\s+/gm, '');
-  return text.replace(/\s+/g, ' ').trim();
+  return stripMarkdownSyntaxToPlainText(String(markdown));
 }
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function truncateText(s: string, maxLen: number): string {
+  if (s.length <= maxLen) return s;
+  return `${s.slice(0, maxLen - 1)}…`;
+}
+
+function buildPrayerUpdateBlockHtml(updateHtml: string): string {
+  if (!updateHtml) return '';
+  return `<p style="margin: 15px 0 10px 0;"><strong>Update</strong></p><div style="background-color:#ffffff;padding:15px;border-radius:6px;border-left:4px solid #3b82f6;margin:0;">${updateHtml}</div>`;
+}
+
+// ----- END inline edge-email-markdown -----
+/**
+ * Every-15-minutes job: send per-prayer item reminders (once / daily / weekly).
+ * Email when email_subscribers.is_active !== false.
+ * Push when receive_push and a device_tokens row exists.
+ * Template: email_templates.user_prayer_item_reminder.
+ * Auth: Supabase Edge JWT verification only (same as other reminder jobs).
+ */
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -365,26 +417,6 @@ function normalizeAppUrl(raw: string | undefined, fallback: string): string {
     }
   }
   return u;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function truncateText(s: string, maxLen: number): string {
-  if (s.length <= maxLen) return s;
-  return `${s.slice(0, maxLen - 1)}…`;
-}
-
-/** Same Update card CSS as approved_update / spotlight emails; inner HTML is pre-sanitized. */
-function buildUpdateBlockHtml(updateHtml: string): string {
-  if (!updateHtml) return '';
-  return `<p style="margin: 15px 0 10px 0;"><strong>Update</strong></p><div style="background-color:#ffffff;padding:15px;border-radius:6px;border-left:4px solid #3b82f6;margin:0;">${updateHtml}</div>`;
 }
 
 function modeLabel(mode: ItemReminderRow['mode']): string {
@@ -987,7 +1019,7 @@ Deno.serve(async (req: Request) => {
         markdownToSafeHtml(descriptionRaw) || escapeHtml(prayerTitle);
       const updateContentText = markdownToPlainText(updateRaw);
       const updateContentHtml = markdownToSafeHtml(updateRaw);
-      const updateBlockHtml = buildUpdateBlockHtml(updateContentHtml);
+      const updateBlockHtml = buildPrayerUpdateBlockHtml(updateContentHtml);
       const updateTextSection = updateContentText
         ? `\n\nLatest update:\n${updateContentText}\n`
         : '';

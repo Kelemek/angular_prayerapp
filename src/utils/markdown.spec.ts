@@ -13,6 +13,7 @@ describe('markdownToPlainText', () => {
       'bold and italic and strike'
     );
     expect(markdownToPlainText('++under++')).toBe('under');
+    expect(markdownToPlainText('***bold italic***')).toBe('bold italic');
   });
 
   it('strips list markers and headings', () => {
@@ -42,6 +43,11 @@ describe('markdownToPlainText', () => {
 
   it('strips blockquote markers', () => {
     expect(markdownToPlainText('> quoted line')).toBe('quoted line');
+  });
+
+  it('preserves paragraph breaks and strips markdown hard-break backslashes', () => {
+    const input = 'First paragraph.\\\n\nSecond paragraph.';
+    expect(markdownToPlainText(input)).toBe('First paragraph.\n\nSecond paragraph.');
   });
 });
 
