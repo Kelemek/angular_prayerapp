@@ -3,6 +3,21 @@ import { HOME_SHELL_SECTION_GAP_CLASSES } from './home-shell-spacing';
 /** Home prayer card horizontal padding (mobile tighter, sm+ unchanged). */
 export const PRAYER_CARD_SHELL_PADDING_CLASSES = 'px-4 sm:px-6';
 
+/**
+ * Keep the card fill inside the 2px border and seal anti-aliased outer pixels
+ * with a matching overlay stroke (`bg-card-shell-fill` in styles.css). Do not
+ * use `overflow-hidden` on the shell — unread badges sit at `-top-2 -right-2`.
+ */
+export const PRAYER_CARD_SHELL_FILL_CLASSES = 'bg-card-shell-fill';
+
+/** Top radius for meta header bands inside a 2px `rounded-lg` home shell. */
+export const PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES =
+  'rounded-t-card-shell-inner';
+
+/** Top radius for meta header bands inside a 1px `rounded-3xl` presentation shell. */
+export const PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES =
+  'rounded-t-card-shell-inner-presentation';
+
 /** Negative margin for meta header bands that bleed to the card edge. */
 export const PRAYER_CARD_HEADER_BLEED_CLASSES = '-mx-4 sm:-mx-6';
 
@@ -89,6 +104,7 @@ interface CardVariantChrome {
   shellPaddingClasses: string;
   headerBleedClasses: string;
   headerInsetClasses: string;
+  headerBandRoundedClasses: string;
   usePresentationWrapper: boolean;
   presentationScrollClasses: string;
   actionRowGap: string;
@@ -102,6 +118,7 @@ const HOME_CARD_CHROME: CardVariantChrome = {
   shellPaddingClasses: PRAYER_CARD_SHELL_PADDING_CLASSES,
   headerBleedClasses: PRAYER_CARD_HEADER_BLEED_CLASSES,
   headerInsetClasses: PRAYER_CARD_HEADER_INSET_CLASSES,
+  headerBandRoundedClasses: PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES,
   usePresentationWrapper: false,
   presentationScrollClasses: '',
   actionRowGap: 'gap-1',
@@ -117,6 +134,7 @@ const PRESENTATION_CARD_CHROME: CardVariantChrome = {
   shellPaddingClasses: PRESENTATION_CARD_SHELL_PADDING_CLASSES,
   headerBleedClasses: PRESENTATION_CARD_HEADER_BLEED_CLASSES,
   headerInsetClasses: PRESENTATION_CARD_HEADER_INSET_CLASSES,
+  headerBandRoundedClasses: PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES,
   usePresentationWrapper: true,
   presentationScrollClasses: 'presentation-card-elevation w-full max-h-full rounded-3xl',
   actionRowGap: 'gap-2 sm:gap-3',
@@ -149,7 +167,7 @@ export interface PrayerCardVariantLayout extends CardVariantChrome {
 const HOME_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
   ...HOME_CARD_CHROME,
   shellBaseClasses:
-    'bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] transition-colors relative',
+    `bg-white dark:bg-gray-800 ${PRAYER_CARD_SHELL_FILL_CLASSES} rounded-lg shadow-md border-[2px] transition-colors relative`,
   shellTopPadding: 'pt-0',
   shellBottomPadding: 'pb-4',
   shellOuterMargin: HOME_SHELL_SECTION_GAP_CLASSES,
@@ -225,7 +243,7 @@ export interface PromptCardVariantLayout extends CardVariantChrome {
 const HOME_PROMPT_CARD_VARIANT_LAYOUT: PromptCardVariantLayout = {
   ...HOME_CARD_CHROME,
   shellBaseClasses:
-    'prompt-card bg-white dark:bg-gray-800 rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 pb-4 transition-colors relative',
+    `prompt-card bg-white dark:bg-gray-800 ${PRAYER_CARD_SHELL_FILL_CLASSES} rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 pb-4 transition-colors relative`,
   shellOuterMargin: HOME_SHELL_SECTION_GAP_CLASSES,
   typeHeaderClasses: '',
   titleClasses: 'text-lg font-semibold text-gray-700 dark:text-gray-300',

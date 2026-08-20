@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Prayer and prompt card corner fill
+- Home prayer and prompt cards use `bg-card-shell-fill` in [`styles.css`](../src/styles.css) so the white fill is clipped to the padding box and a matching overlay stroke covers anti-aliased outer pixels. Meta header bands use `rounded-t-card-shell-inner` (card radius minus the 2px border) so the beige strip follows the inside of the green corner. The card shell still does not use `overflow-hidden`, so unread badges can sit on the top-right corner ([`prayer-card-layout.ts`](../src/app/lib/prayer-card-layout.ts)).
+
 ### Badge read state — Supabase sync
 - Per-user read badge state is stored in `user_badge_read_state` (migration [`20260821120000_user_badge_read_state.sql`](../supabase/migrations/20260821120000_user_badge_read_state.sql)) with RPC `upsert_user_badge_read_state` (server-side union merge).
 - [`BadgeReadStateService`](src/app/services/badge-read-state.service.ts) owns session sync and read/write; [`BadgeService`](src/app/services/badge.service.ts) gates badge display until `isReadyForReads()`. [`badge-read-merge.ts`](src/app/lib/badge-read-merge.ts) handles client-side union merge for upgrade migration.

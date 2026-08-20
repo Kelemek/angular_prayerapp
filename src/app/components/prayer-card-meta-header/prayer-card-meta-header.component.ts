@@ -11,6 +11,7 @@ import {
 import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
 import {
   PRAYER_CARD_HEADER_BLEED_CLASSES,
+  PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES,
   PRAYER_CARD_HEADER_INSET_CLASSES,
   getMetaHeaderBandLayoutClasses,
   type MetaHeaderBandSize,
@@ -26,6 +27,7 @@ import {
       [layout]="showCenterDateTime ? 'three-column' : 'two-column'"
       [bandSize]="bandSize"
       [bleedClasses]="bleedClasses"
+      [roundedClasses]="roundedClasses"
       [actionsInsetClasses]="actionsInsetClasses"
       [centerDate]="showCenterDateTime ? metaHeaderDate : null"
       [centerTime]="showCenterDateTime ? metaHeaderTime : null"
@@ -72,6 +74,7 @@ export class PrayerCardMetaHeaderComponent {
 
   /** Override when the card shell uses non-standard horizontal padding (e.g. presentation p-8). */
   @Input() bleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
+  @Input() roundedClasses = PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES;
   @Input() headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
   @Input() actionsInsetClasses: string | null = null;
   @Input() bandSize: MetaHeaderBandSize = 'sm';

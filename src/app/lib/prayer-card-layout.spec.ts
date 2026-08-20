@@ -3,6 +3,9 @@ import {
   PRAYER_CARD_HEADER_INSET_CLASSES,
   PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES,
   PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES,
+  PRAYER_CARD_SHELL_FILL_CLASSES,
+  PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES,
+  PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES,
   getMetaHeaderBandLayoutClasses,
   getPrayerCardVariantLayout,
   getPromptCardVariantLayout,
@@ -18,6 +21,24 @@ describe('getPrayerCardVariantLayout', () => {
     expect(layout.updateRowSize).toBe('sm');
   });
 
+  it('seals home card corners without clipping unread badges', () => {
+    const prayer = getPrayerCardVariantLayout('home');
+    const prompt = getPromptCardVariantLayout('home');
+    const prayerTokens = prayer.shellBaseClasses.split(/\s+/);
+    const promptTokens = prompt.shellBaseClasses.split(/\s+/);
+    expect(prayerTokens).toContain(PRAYER_CARD_SHELL_FILL_CLASSES);
+    expect(promptTokens).toContain(PRAYER_CARD_SHELL_FILL_CLASSES);
+    expect(prayerTokens).not.toContain('overflow-hidden');
+    expect(promptTokens).not.toContain('overflow-hidden');
+    expect(prayer.headerBandRoundedClasses).toBe(
+      PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES
+    );
+    expect(prompt.headerBandRoundedClasses).toBe(
+      PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES
+    );
+    expect(prayer.headerBandRoundedClasses).not.toBe('rounded-t-lg');
+  });
+
   it('returns presentation layout with larger typography and wrapper', () => {
     const layout = getPrayerCardVariantLayout('presentation');
     expect(layout.bandSize).toBe('sm');
@@ -29,6 +50,9 @@ describe('getPrayerCardVariantLayout', () => {
     expect(layout.headerBleedClasses).toContain('md:-mx-8');
     expect(layout.updateRowSize).toBe('sm');
     expect(layout.showTourAnchors).toBe(false);
+    expect(layout.headerBandRoundedClasses).toBe(
+      PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES
+    );
   });
 });
 

@@ -201,6 +201,37 @@
     background-color: rgb(17 24 39 / 0.5) !important;
   }
 }
+/*
+  Home prayer/prompt 2px shells: keep the fill inside the stroke, then paint a
+  matching overlay border so anti-aliased outer pixels are the border color
+  instead of white. Do not use overflow-hidden or transform on the shell —
+  unread badges overflow the corner and overflow menus use position:fixed.
+*/
+@utility bg-card-shell-fill {
+  background-clip: padding-box;
+  isolation: isolate;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    border-width: inherit;
+    border-style: solid;
+    border-color: inherit;
+  }
+}
+/* Header band top radius = card radius minus the 2px shell border. */
+@utility rounded-t-card-shell-inner {
+  border-top-left-radius: calc(var(--radius-lg, 0.5rem) - 2px);
+  border-top-right-radius: calc(var(--radius-lg, 0.5rem) - 2px);
+}
+/* Presentation shells use rounded-3xl and a 1px border. */
+@utility rounded-t-card-shell-inner-presentation {
+  border-top-left-radius: calc(var(--radius-3xl, 1.5rem) - 1px);
+  border-top-right-radius: calc(var(--radius-3xl, 1.5rem) - 1px);
+}
 /* Help topic rows: inset fill + hover lift (inputs use bg-inset-surface only). */
 @utility bg-inset-surface-interactive {
   background-color: #e8e5e1 !important;

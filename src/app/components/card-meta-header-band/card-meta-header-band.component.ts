@@ -4,6 +4,7 @@ import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import {
   PRAYER_CARD_HEADER_BLEED_CLASSES,
   PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES,
   PRAYER_CARD_META_HEADER_ACTIONS_INSET_COMPACT_CLASSES,
   getMetaHeaderBandLayoutClasses,
   type MetaHeaderBandSize,
@@ -20,8 +21,8 @@ import { META_HEADER_BORDER_BOTTOM_CLASSES } from '../../lib/prayer-status-heade
       [class]="
         'bg-card-meta-header-band ' +
         (layout === 'two-column'
-          ? 'grid grid-cols-[minmax(0,1fr)_auto] items-stretch ' + bleedClasses + ' overflow-hidden rounded-t-lg ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses
-          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden rounded-t-lg ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses)
+          ? 'grid grid-cols-[minmax(0,1fr)_auto] items-stretch ' + bleedClasses + ' overflow-hidden ' + roundedClasses + ' ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses
+          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden ' + roundedClasses + ' ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses)
       "
     >
       <div [class]="'flex h-full min-w-0 w-full items-center self-stretch overflow-hidden ' + minHeightClasses">
@@ -75,6 +76,8 @@ export class CardMetaHeaderBandComponent {
 
   /** Override when the card shell uses non-standard horizontal padding (e.g. presentation p-8). */
   @Input() bleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
+  /** Top radius; defaults to the inner curve of a 2px `rounded-lg` home shell. */
+  @Input() roundedClasses = PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES;
   /** Bottom border under the meta header band (card accent or default gray). */
   @Input() borderBottomClasses = META_HEADER_BORDER_BOTTOM_CLASSES;
   /** Controls band height, center date size, and vertical spacing below the band. */

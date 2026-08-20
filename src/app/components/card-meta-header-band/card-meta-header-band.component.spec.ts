@@ -20,4 +20,10 @@ describe('CardMetaHeaderBandComponent', () => {
 
     expect(component.centerClass).not.toContain('whitespace-nowrap');
   });
+
+  it('uses the inner shell radius instead of rounded-t-lg', () => {
+    const component = new CardMetaHeaderBandComponent();
+    expect(component.roundedClasses).toBe('rounded-t-card-shell-inner');
+    expect(component.roundedClasses).not.toContain('rounded-t-lg');
+  });
 });
