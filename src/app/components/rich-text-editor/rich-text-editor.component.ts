@@ -43,7 +43,7 @@ type ToolbarButton = {
   template: `
     <div class="rte-wrapper" [class.rte-disabled]="disabled">
       <div
-        class="rte-toolbar flex flex-wrap gap-1 p-1.5 border border-b-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 rounded-t-md"
+        class="rte-toolbar flex flex-wrap gap-1 p-1.5 border border-b-0 border-gray-300 dark:border-gray-600 bg-card-meta-header-band rounded-t-md"
         role="toolbar"
         aria-label="Text formatting"
       >

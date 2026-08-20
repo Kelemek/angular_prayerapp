@@ -194,6 +194,13 @@
     background-color: rgb(55 65 81 / 0.6) !important;
   }
 }
+/* Meta header bands + rich-text toolbar: slightly darker cream strip in light mode. */
+@utility bg-card-meta-header-band {
+  background-color: #d6d1cb !important;
+  .dark & {
+    background-color: rgb(17 24 39 / 0.5) !important;
+  }
+}
 /* Help topic rows: inset fill + hover lift (inputs use bg-inset-surface only). */
 @utility bg-inset-surface-interactive {
   background-color: #e8e5e1 !important;

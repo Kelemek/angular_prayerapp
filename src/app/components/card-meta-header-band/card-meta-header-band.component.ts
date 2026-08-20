@@ -18,9 +18,10 @@ import { META_HEADER_BORDER_BOTTOM_CLASSES } from '../../lib/prayer-status-heade
   template: `
     <div
       [class]="
-        layout === 'two-column'
+        'bg-card-meta-header-band ' +
+        (layout === 'two-column'
           ? 'grid grid-cols-[minmax(0,1fr)_auto] items-stretch ' + bleedClasses + ' overflow-hidden rounded-t-lg ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses
-          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden rounded-t-lg ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses
+          : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden rounded-t-lg ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses)
       "
     >
       <div [class]="'flex h-full min-w-0 w-full items-center self-stretch overflow-hidden ' + minHeightClasses">

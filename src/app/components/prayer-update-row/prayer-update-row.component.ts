@@ -23,7 +23,7 @@ import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-
   template: `
     <div
       [class]="
-        'bg-inset-surface-muted relative pb-6 pt-0 ' +
+        'bg-inset-surface relative pb-6 pt-0 ' +
         shellBorderClass +
         ' ' +
         shellPaddingClasses +
