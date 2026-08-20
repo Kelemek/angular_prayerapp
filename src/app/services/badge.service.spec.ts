@@ -2,14 +2,22 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
 import { SupabaseService } from './supabase.service';
+import { BadgeReadStateService } from './badge-read-state.service';
 import { BehaviorSubject, firstValueFrom, skip, take } from 'rxjs';
 import { Injector } from '@angular/core';
+import { createBadgeServiceInjectorMock } from '../testing/create-badge-service-injector-mock';
+import {
+  getBadgeReadPrayersData,
+  getBadgeReadPromptsData,
+} from '../lib/badge-read-storage';
 
 describe('BadgeService', () => {
   let service: BadgeService;
   let mockUserSessionService: any;
   let mockSupabaseService: any;
   let mockInjector: any;
+  let mockBadgeReadStateService: any;
+  let syncedEmailSubject: BehaviorSubject<string | null>;
 
   beforeEach(() => {
     // Clear localStorage
@@ -25,6 +33,11 @@ describe('BadgeService', () => {
       })
     };
 
+    const harness = createBadgeServiceInjectorMock(mockUserSessionService);
+    mockInjector = harness.mockInjector;
+    mockBadgeReadStateService = harness.mockBadgeReadStateService;
+    syncedEmailSubject = harness.syncedEmailSubject;
+
     // Mock SupabaseService
     mockSupabaseService = {
       client: {
@@ -39,14 +52,7 @@ describe('BadgeService', () => {
     };
 
     // Mock Injector
-    mockInjector = {
-      get: vi.fn((ServiceClass: any) => {
-        if (ServiceClass === UserSessionService) {
-          return mockUserSessionService;
-        }
-        return null;
-      })
-    };
+    // (mockInjector set from createBadgeServiceInjectorMock above)
 
     // Create service with mocked dependencies
     service = new BadgeService(mockSupabaseService, mockInjector);
@@ -98,6 +104,96 @@ describe('BadgeService', () => {
 
       const enabled = await promise;
       expect(enabled).toBe(false);
+    });
+  });
+
+  describe('badge read state sync', () => {
+    it('schedules DB persist when marking a prayer as read', () => {
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [{ id: 'prayer-1', status: 'current', updated_at: '2024-01-01' }],
+      }));
+
+      service.markPrayerAsRead('prayer-1');
+
+      expect(mockBadgeReadStateService.setReadPrayersData).toHaveBeenCalled();
+    });
+
+    it('does not refresh counts before read state is ready', () => {
+      mockBadgeReadStateService.isReadyForReads.mockReturnValue(false);
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [{ id: 'prayer-1', status: 'current', updated_at: '2024-01-01' }],
+      }));
+
+      service.refreshBadgeCounts();
+
+      const prayersSubject = (service as any).badgeCountSubject$.get('prayers');
+      expect(prayersSubject.value).toBe(0);
+    });
+
+    it('treats prayers as not unread until read state is ready', () => {
+      mockBadgeReadStateService.isReadyForReads.mockReturnValue(false);
+
+      expect(service.isPrayerUnread('prayer-1')).toBe(false);
+    });
+
+    it('getBadgeCount$ emits 0 before read state is ready', async () => {
+      mockBadgeReadStateService.isReadyForReads.mockReturnValue(false);
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [{ id: 'prayer-1', status: 'current', updated_at: '2024-01-01' }],
+      }));
+      localStorage.setItem('read_prayers_data', JSON.stringify({
+        prayers: [],
+        updates: [],
+      }));
+
+      const count = await firstValueFrom(service.getBadgeCount$('prayers'));
+      expect(count).toBe(0);
+    });
+
+    it('hasIndividualBadge$ is false before read state is ready', async () => {
+      mockBadgeReadStateService.isReadyForReads.mockReturnValue(false);
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [{ id: 'prayer-1', status: 'current', updated_at: '2024-01-01' }],
+      }));
+
+      const badge = await firstValueFrom(
+        service.hasIndividualBadge$('prayers', 'prayer-1').pipe(take(1))
+      );
+      expect(badge).toBe(false);
+    });
+
+    it('refreshes counts when syncedEmail$ emits', async () => {
+      mockBadgeReadStateService.isReadyForReads.mockReturnValue(true);
+      localStorage.setItem('prayers_cache', JSON.stringify({
+        data: [
+          { id: 'prayer-1', status: 'current', updated_at: '2024-01-01' },
+          { id: 'prayer-2', status: 'current', updated_at: '2024-01-01' },
+        ],
+      }));
+      localStorage.setItem('read_prayers_data', JSON.stringify({
+        prayers: ['prayer-1'],
+        updates: [],
+      }));
+
+      syncedEmailSubject.next('test@example.com');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(service.isPrayerUnread('prayer-1')).toBe(false);
+      expect(service.isPrayerUnread('prayer-2')).toBe(true);
+    });
+
+    it('refreshes counts when same user re-syncs after logout', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const refreshSpy = vi.spyOn(service, 'refreshBadgeCounts');
+
+      syncedEmailSubject.next('test@example.com');
+      refreshSpy.mockClear();
+
+      syncedEmailSubject.next(null);
+      syncedEmailSubject.next('test@example.com');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(refreshSpy).toHaveBeenCalled();
     });
   });
 
@@ -457,9 +553,7 @@ describe('BadgeService', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -546,9 +640,7 @@ describe('BadgeService', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -648,9 +740,7 @@ describe('BadgeService', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -728,9 +818,7 @@ describe('BadgeService', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -807,9 +895,7 @@ describe('BadgeService', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -852,9 +938,7 @@ describe('BadgeService', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -918,9 +1002,7 @@ describe('BadgeService', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1357,9 +1439,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1410,9 +1490,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1441,34 +1519,6 @@ describe('BadgeService - Additional Coverage Tests', () => {
 
       expect(service.getUnreadIds('prayers')).toEqual(['prayer-1']);
       expect(service.getUnreadIds('prompts')).toEqual(['prompt-1']);
-    });
-
-    it('should warn when read prayers data cannot be written', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
-        throw new Error('write failed');
-      });
-
-      (service as any).setReadPrayersData({ prayers: ['prayer-1'], updates: ['u1'] });
-
-      expect(warnSpy).toHaveBeenCalled();
-      expect(setItemSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
-      setItemSpy.mockRestore();
-    });
-
-    it('should warn when read prompts data cannot be written', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
-        throw new Error('write failed');
-      });
-
-      (service as any).setReadPromptsData({ prompts: ['prompt-1'], updates: ['pu1'] });
-
-      expect(warnSpy).toHaveBeenCalled();
-      expect(setItemSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
-      setItemSpy.mockRestore();
     });
 
     it('should return unread prayer IDs when cache exists', () => {
@@ -1552,9 +1602,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1564,7 +1612,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
       localStorage.setItem('read_prayer_updates', JSON.stringify(['update-1']));
 
       // Access read prayers data (triggers migration)
-      const readData = (service as any).getReadPrayersData();
+      const readData = getBadgeReadPrayersData();
 
       expect(readData.prayers).toContain('prayer-1');
       expect(readData.prayers).toContain('prayer-2');
@@ -1581,7 +1629,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
       localStorage.setItem('read_prompt_updates', JSON.stringify(['update-1']));
 
       // Access read prompts data (triggers migration)
-      const readData = (service as any).getReadPromptsData();
+      const readData = getBadgeReadPromptsData();
 
       expect(readData.prompts).toContain('prompt-1');
       expect(readData.prompts).toContain('prompt-2');
@@ -1593,32 +1641,32 @@ describe('BadgeService - Additional Coverage Tests', () => {
     });
 
     it('should handle missing old prayers data', () => {
-      const readData = (service as any).getReadPrayersData();
+      const readData = getBadgeReadPrayersData();
       expect(readData.prayers).toBeDefined();
       expect(Array.isArray(readData.prayers)).toBe(true);
     });
 
     it('should handle missing old prompts data', () => {
-      const readData = (service as any).getReadPromptsData();
+      const readData = getBadgeReadPromptsData();
       expect(readData.prompts).toBeDefined();
       expect(Array.isArray(readData.prompts)).toBe(true);
     });
 
     it('should handle corrupted JSON in old prayers migration', () => {
       localStorage.setItem('read_prayers', 'invalid-json');
-      const readData = (service as any).getReadPrayersData();
+      const readData = getBadgeReadPrayersData();
       expect(readData.prayers).toEqual([]);
     });
 
     it('should handle corrupted JSON in old prompts migration', () => {
       localStorage.setItem('read_prompts', 'invalid-json');
-      const readData = (service as any).getReadPromptsData();
+      const readData = getBadgeReadPromptsData();
       expect(readData.prompts).toEqual([]);
     });
 
     it('should preserve non-array old data as empty arrays', () => {
       localStorage.setItem('read_prayers', JSON.stringify({ not: 'array' }));
-      const readData = (service as any).getReadPrayersData();
+      const readData = getBadgeReadPrayersData();
       expect(readData.prayers).toEqual([]);
     });
   });
@@ -1636,9 +1684,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1694,9 +1740,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1733,9 +1777,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1772,9 +1814,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1860,9 +1900,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1929,9 +1967,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 
@@ -1985,9 +2021,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         }
       };
-      const mockInjector = {
-        get: vi.fn().mockReturnValue(mockUserSessionService)
-      };
+      const { mockInjector } = createBadgeServiceInjectorMock(mockUserSessionService);
       service = new BadgeService(mockSupabaseService as any, mockInjector as any);
     });
 

@@ -6,6 +6,11 @@ import { CacheService } from './cache.service';
 import { PlanningCenterListService } from './planning-center-list.service';
 import { PushNotificationService } from './push-notification.service';
 import { PrayerEncouragementService } from './prayer-encouragement.service';
+import { BadgeReadStateService } from './badge-read-state.service';
+import {
+  BADGE_READ_PRAYERS_DATA_KEY,
+  BADGE_READ_PROMPTS_DATA_KEY,
+} from '../lib/badge-cache';
 import type { User } from '@supabase/supabase-js';
 
 @Injectable({
@@ -125,20 +130,21 @@ export class AdminAuthService {
         if (!mfaAuthenticatedEmail) {
           // Get user email before clearing auth state
           const userEmail = this.userSubject.value?.email;
-          
+
+          await this.clearBadgeReadStateForLogout(userEmail);
+
           this.userSubject.next(null);
           this.isAdminSubject.next(false);
           this.isAuthenticatedSubject.next(false);
           this.sessionStart = null;
           this.persistSessionStart(null);
-          
+
           // Clear user-specific caches when session ends
           this.cacheService.invalidateCategory('personalPrayers');
           this.cacheService.invalidateCategory('prayers');
           this.cacheService.invalidateCategory('prompts');
-          localStorage.removeItem('read_prayers_data');
-          localStorage.removeItem('read_prompts_data');
-          
+          this.cacheService.invalidateCategory('badgeReadState');
+
           // Clear analytics activity tracking for this user
           if (userEmail) {
             localStorage.removeItem(`last_activity_update_${userEmail}`);
@@ -503,6 +509,8 @@ export class AdminAuthService {
         // Ignore if push service not available (e.g. web) or remove fails
       }
 
+      await this.clearBadgeReadStateForLogout(userEmail);
+
       await this.supabase.client.auth.signOut();
       this.userSubject.next(null);
       this.isAdminSubject.next(false);
@@ -525,6 +533,7 @@ export class AdminAuthService {
       this.cacheService.invalidateCategory('prompts');
       this.cacheService.invalidateCategory('planningCenterListData');
       this.cacheService.invalidateCategory('memberPrayerUpdates');
+      this.cacheService.invalidateCategory('badgeReadState');
       if (userEmail) {
         try {
           this.injector.get(PlanningCenterListService).invalidateForUser(userEmail);
@@ -532,10 +541,6 @@ export class AdminAuthService {
           // Ignore if service not yet available
         }
       }
-      
-      // Clear badge read tracking (which prayers/prompts user has read)
-      localStorage.removeItem('read_prayers_data');
-      localStorage.removeItem('read_prompts_data');
 
       // Clear Pray For modal "do not show again" preference so next user sees the modal if desired
       localStorage.removeItem('prayer_encouragement_modal_do_not_show');
@@ -558,6 +563,27 @@ export class AdminAuthService {
     } catch (error) {
       console.error('Error during logout:', error);
     }
+  }
+
+  private async clearBadgeReadStateForLogout(
+    userEmail: string | null | undefined
+  ): Promise<void> {
+    if (!userEmail) {
+      localStorage.removeItem(BADGE_READ_PRAYERS_DATA_KEY);
+      localStorage.removeItem(BADGE_READ_PROMPTS_DATA_KEY);
+      return;
+    }
+
+    try {
+      const badgeReadState = this.injector.get(BadgeReadStateService);
+      await badgeReadState.flushBeforeLogout(userEmail);
+      badgeReadState.invalidateForEmail(userEmail);
+    } catch {
+      // Ignore if service not yet available
+    }
+
+    localStorage.removeItem(BADGE_READ_PRAYERS_DATA_KEY);
+    localStorage.removeItem(BADGE_READ_PROMPTS_DATA_KEY);
   }
 
   /**

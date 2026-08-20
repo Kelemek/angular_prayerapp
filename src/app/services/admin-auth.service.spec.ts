@@ -4,6 +4,7 @@ import { Injector } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { PrayerEncouragementService } from './prayer-encouragement.service';
 import { PushNotificationService } from './push-notification.service';
+import { BadgeReadStateService } from './badge-read-state.service';
 import { firstValueFrom } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
 
@@ -221,6 +222,38 @@ describe('AdminAuthService', () => {
       await service.logout();
 
       expect(localStorage.getItem('prayer_encouragement_modal_do_not_show')).toBeNull();
+    });
+
+    it('flushes badge read state before clearing authentication on logout', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+
+      service.userSubject.next({ email: 'logout-user@example.com' } as User);
+      service.isAuthenticatedSubject.next(true);
+
+      let authAtFlush: boolean | undefined;
+      const flushBeforeLogout = vi.fn().mockImplementation(async () => {
+        authAtFlush = service.isAuthenticatedSubject.value;
+      });
+      const invalidateForEmail = vi.fn();
+
+      mockInjector.get.mockImplementation((token: any) => {
+        if (token === BadgeReadStateService) {
+          return { flushBeforeLogout, invalidateForEmail };
+        }
+        if (token === PushNotificationService) {
+          return { removeDeviceToken: vi.fn().mockResolvedValue(undefined) };
+        }
+        if (token === PrayerEncouragementService) {
+          return { clearCooldownKeys: vi.fn() };
+        }
+        return {};
+      });
+
+      await service.logout();
+
+      expect(flushBeforeLogout).toHaveBeenCalledWith('logout-user@example.com');
+      expect(authAtFlush).toBe(true);
+      expect(await firstValueFrom(service.isAuthenticated$)).toBe(false);
     });
   });
 

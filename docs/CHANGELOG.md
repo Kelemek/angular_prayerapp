@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Badge read state — Supabase sync
+- Per-user read badge state is stored in `user_badge_read_state` (migration [`20260821120000_user_badge_read_state.sql`](../supabase/migrations/20260821120000_user_badge_read_state.sql)) with RPC `upsert_user_badge_read_state` (server-side union merge).
+- [`BadgeReadStateService`](src/app/services/badge-read-state.service.ts) owns session sync and read/write; [`BadgeService`](src/app/services/badge.service.ts) gates badge display until `isReadyForReads()`. [`badge-read-merge.ts`](src/app/lib/badge-read-merge.ts) handles client-side union merge for upgrade migration.
+- Badge checks remain cache-first (`read_prayers_data` / `read_prompts_data` in localStorage); DB reads occur at most once per session after logout.
+
 ### Prayer reminder emails — TipTap hard breaks (`\\`)
 - Pure transforms in [`markdown-core.ts`](../src/lib/markdown-core.ts); Edge-safe HTML in [`edge-email-markdown.ts`](../src/lib/edge-email-markdown.ts), **inlined** into [`send-user-hourly-prayer-reminders`](../supabase/functions/send-user-hourly-prayer-reminders/index.ts) and [`send-user-prayer-item-reminders`](../supabase/functions/send-user-prayer-item-reminders/index.ts) (regenerate: `node scripts/inline-edge-email-helpers.mjs`). Angular uses [`markdown.ts`](../src/utils/markdown.ts) (DOMPurify).
 - Spotlight template `{{spotlightPrayerDescriptionHtml}}` — deploy **`send-user-hourly-prayer-reminders` before** migration [`20260820120000_spotlight_email_render_markdown.sql`](../supabase/migrations/20260820120000_spotlight_email_render_markdown.sql). `variablesHtml` still fills legacy `{{spotlightPrayerDescription}}` (escaped plain text). **Redeploy both Edge functions** with the migration.

@@ -371,7 +371,9 @@ Parents build the item list from existing flags: reminder (`showReminder`), pers
 
 #### BadgeService
 
-Pure helpers: [`badge-read-storage.ts`](src/app/lib/badge-read-storage.ts), [`badge-cache.ts`](src/app/lib/badge-cache.ts), [`badge-count.ts`](src/app/lib/badge-count.ts).
+Pure helpers: [`badge-read-storage.ts`](src/app/lib/badge-read-storage.ts), [`badge-cache.ts`](src/app/lib/badge-cache.ts), [`badge-count.ts`](src/app/lib/badge-count.ts), [`badge-read-merge.ts`](src/app/lib/badge-read-merge.ts).
+
+**Read state persistence:** [`BadgeReadStateService`](src/app/services/badge-read-state.service.ts) is the sole owner of badge read-state sync. It hydrates `read_prayers_data` / `read_prompts_data` from the DB on session bootstrap, exposes `syncedEmail$` for downstream refresh, and debounces RPC upserts on writes via `setReadPrayersData` / `setReadPromptsData`. [`BadgeService`](src/app/services/badge.service.ts) delegates all read/write to that service and gates `refreshBadgeCounts()` / `isPrayerUnread()` until `isReadyForReads()` is true. Logout calls `flushBeforeLogout()` before clearing local read keys.
 
 ```typescript
 // Track read/unread status for prayers and prompts

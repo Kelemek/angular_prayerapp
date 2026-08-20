@@ -1,6 +1,6 @@
 import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { distinctUntilChanged, startWith } from 'rxjs/operators';
+import { distinctUntilChanged, filter, startWith } from 'rxjs/operators';
 import {
   findBadgeCachedItem,
   parseBadgeCachedItems,
@@ -20,12 +20,6 @@ import {
   isBadgeUpdateUnread,
   mergeUniqueIds,
 } from '../lib/badge-count';
-import {
-  getBadgeReadPrayersData,
-  getBadgeReadPromptsData,
-  setBadgeReadPrayersData,
-  setBadgeReadPromptsData,
-} from '../lib/badge-read-storage';
 import type {
   BadgeCachedItem,
   BadgeItemType,
@@ -33,6 +27,7 @@ import type {
 } from '../lib/badge-types';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
+import { BadgeReadStateService } from './badge-read-state.service';
 
 /**
  * BadgeService tracks read/unread prayers and prompts to display notification badges.
@@ -49,6 +44,7 @@ export class BadgeService {
   private storageListenerAttached = false;
 
   private userSessionService: UserSessionService | null = null;
+  private badgeReadStateService: BadgeReadStateService | null = null;
 
   constructor(
     private supabase: SupabaseService,
@@ -56,7 +52,7 @@ export class BadgeService {
   ) {
     this.initializeBadgeSubjects();
     this.attachStorageListener();
-    this.attachUserSessionListener();
+    this.attachSessionListeners();
   }
 
   private getUserSessionService(): UserSessionService {
@@ -66,10 +62,19 @@ export class BadgeService {
     return this.userSessionService;
   }
 
-  private attachUserSessionListener(): void {
+  private getReadState(): BadgeReadStateService {
+    if (!this.badgeReadStateService) {
+      this.badgeReadStateService = this.injector.get(BadgeReadStateService);
+    }
+    return this.badgeReadStateService;
+  }
+
+  private attachSessionListeners(): void {
     setTimeout(() => {
-      this.getUserSessionService()
-        .userSession$
+      const sessionService = this.getUserSessionService();
+      const readState = this.getReadState();
+
+      sessionService.userSession$
         .pipe(
           distinctUntilChanged(
             (prev, curr) =>
@@ -78,15 +83,24 @@ export class BadgeService {
           )
         )
         .subscribe((session) => {
-          if (session) {
-            const isEnabled = session.badgeFunctionalityEnabled ?? false;
-            console.log(`[Badge] User session updated, badge functionality: ${isEnabled}`);
-            this.badgeFunctionalityEnabled$.next(isEnabled);
-            this.refreshBadgeCounts();
-          } else {
+          if (!session?.email) {
             console.log('[Badge] No user session, disabling badges');
             this.badgeFunctionalityEnabled$.next(false);
+            return;
           }
+          const isEnabled = session.badgeFunctionalityEnabled ?? false;
+          console.log(`[Badge] User session updated, badge functionality: ${isEnabled}`);
+          this.badgeFunctionalityEnabled$.next(isEnabled);
+          this.refreshBadgeCounts();
+        });
+
+      readState.syncedEmail$
+        .pipe(
+          distinctUntilChanged(),
+          filter((email): email is string => !!email)
+        )
+        .subscribe(() => {
+          this.refreshBadgeCounts();
         });
     }, 0);
   }
@@ -130,17 +144,18 @@ export class BadgeService {
 
   markUpdateAsRead(updateId: string, itemId: string, type: BadgeItemType): void {
     try {
+      const readState = this.getReadState();
       if (type === 'prayers') {
-        const data = getBadgeReadPrayersData();
+        const data = readState.getReadPrayersData();
         if (!data.updates.includes(updateId)) {
           data.updates.push(updateId);
-          setBadgeReadPrayersData(data);
+          readState.setReadPrayersData(data);
         }
       } else {
-        const data = getBadgeReadPromptsData();
+        const data = readState.getReadPromptsData();
         if (!data.updates.includes(updateId)) {
           data.updates.push(updateId);
-          setBadgeReadPromptsData(data);
+          readState.setReadPromptsData(data);
         }
       }
 
@@ -178,15 +193,16 @@ export class BadgeService {
       }
 
       const ids = items.map((item) => item.id);
+      const readState = this.getReadState();
 
       if (type === 'prayers') {
-        const data = getBadgeReadPrayersData();
+        const data = readState.getReadPrayersData();
         data.prayers = mergeUniqueIds(data.prayers, ids);
-        setBadgeReadPrayersData(data);
+        readState.setReadPrayersData(data);
       } else {
-        const data = getBadgeReadPromptsData();
+        const data = readState.getReadPromptsData();
         data.prompts = mergeUniqueIds(data.prompts, ids);
-        setBadgeReadPromptsData(data);
+        readState.setReadPromptsData(data);
       }
 
       this.markAllUpdatesAsRead(items, type);
@@ -207,15 +223,16 @@ export class BadgeService {
       }
 
       const ids = itemsWithStatus.map((item) => item.id);
+      const readState = this.getReadState();
 
       if (type === 'prayers') {
-        const data = getBadgeReadPrayersData();
+        const data = readState.getReadPrayersData();
         data.prayers = mergeUniqueIds(data.prayers, ids);
-        setBadgeReadPrayersData(data);
+        readState.setReadPrayersData(data);
       } else {
-        const data = getBadgeReadPromptsData();
+        const data = readState.getReadPromptsData();
         data.prompts = mergeUniqueIds(data.prompts, ids);
-        setBadgeReadPromptsData(data);
+        readState.setReadPromptsData(data);
       }
 
       this.markAllUpdatesAsRead(itemsWithStatus, type);
@@ -236,9 +253,10 @@ export class BadgeService {
       }
 
       const ids = itemsWithType.map((item) => item.id);
-      const data = getBadgeReadPromptsData();
+      const readState = this.getReadState();
+      const data = readState.getReadPromptsData();
       data.prompts = mergeUniqueIds(data.prompts, ids);
-      setBadgeReadPromptsData(data);
+      readState.setReadPromptsData(data);
 
       this.markAllUpdatesAsRead(itemsWithType, 'prompts');
       this.clearIndividualBadgesForItems('prompts', itemsWithType);
@@ -267,10 +285,17 @@ export class BadgeService {
 
   getUnreadIds(type: BadgeItemType): string[] {
     try {
+      if (!this.canShowUnreadState()) {
+        return [];
+      }
       const items = parseBadgeCachedItemsByType(type);
-      const readPrayers = getBadgeReadPrayersData();
-      const readPrompts = getBadgeReadPromptsData();
-      return getBadgeUnreadIds(items, type, readPrayers, readPrompts);
+      const readState = this.getReadState();
+      return getBadgeUnreadIds(
+        items,
+        type,
+        readState.getReadPrayersData(),
+        readState.getReadPromptsData()
+      );
     } catch (error) {
       console.warn(`Failed to get unread IDs for ${type}:`, error);
       return [];
@@ -278,15 +303,24 @@ export class BadgeService {
   }
 
   isUpdateUnread(updateId: string): boolean {
-    return isBadgeUpdateUnread(updateId, getBadgeReadPrayersData());
+    if (!this.canShowUnreadState()) {
+      return false;
+    }
+    return isBadgeUpdateUnread(updateId, this.getReadState().getReadPrayersData());
   }
 
   isPrayerUnread(prayerId: string): boolean {
-    return isBadgePrayerUnread(prayerId, getBadgeReadPrayersData());
+    if (!this.canShowUnreadState()) {
+      return false;
+    }
+    return isBadgePrayerUnread(prayerId, this.getReadState().getReadPrayersData());
   }
 
   isPromptUnread(promptId: string): boolean {
-    return isBadgePromptUnread(promptId, getBadgeReadPromptsData());
+    if (!this.canShowUnreadState()) {
+      return false;
+    }
+    return isBadgePromptUnread(promptId, this.getReadState().getReadPromptsData());
   }
 
   refreshBadgeCounts(): void {
@@ -315,22 +349,23 @@ export class BadgeService {
   private markItemAsRead(itemId: string, type: BadgeItemType): void {
     try {
       let itemStatus: string | undefined;
+      const readState = this.getReadState();
 
       if (type === 'prayers') {
-        const data = getBadgeReadPrayersData();
+        const data = readState.getReadPrayersData();
         if (!data.prayers.includes(itemId)) {
           data.prayers.push(itemId);
-          setBadgeReadPrayersData(data);
+          readState.setReadPrayersData(data);
 
           const items = parseBadgeCachedItemsByType('prayers');
           const item = findBadgeCachedItem(items, itemId);
           itemStatus = item?.status;
         }
       } else {
-        const data = getBadgeReadPromptsData();
+        const data = readState.getReadPromptsData();
         if (!data.prompts.includes(itemId)) {
           data.prompts.push(itemId);
-          setBadgeReadPromptsData(data);
+          readState.setReadPromptsData(data);
         }
       }
 
@@ -401,18 +436,27 @@ export class BadgeService {
     }
   }
 
+  private canShowUnreadState(): boolean {
+    return this.getReadState().isReadyForReads();
+  }
+
   private calculateBadgeCount(type: BadgeItemType, status?: BadgePrayerStatus): number {
+    if (!this.canShowUnreadState()) {
+      return 0;
+    }
+
     try {
       const items = parseBadgeCachedItemsByType(type);
       if (items.length === 0) {
         return 0;
       }
 
+      const readState = this.getReadState();
       return calculateBadgeCount(
         items,
         type,
-        getBadgeReadPrayersData(),
-        getBadgeReadPromptsData(),
+        readState.getReadPrayersData(),
+        readState.getReadPromptsData(),
         status
       );
     } catch (error) {
@@ -422,14 +466,19 @@ export class BadgeService {
   }
 
   private checkIndividualBadge(type: BadgeItemType, id: string): boolean {
+    if (!this.canShowUnreadState()) {
+      return false;
+    }
+
     try {
       const items = parseBadgeCachedItemsByType(type);
+      const readState = this.getReadState();
       return checkIndividualBadgeForItem(
         items,
         type,
         id,
-        getBadgeReadPrayersData(),
-        getBadgeReadPromptsData()
+        readState.getReadPrayersData(),
+        readState.getReadPromptsData()
       );
     } catch (error) {
       console.warn(`Failed to check individual badge for ${type}:${id}:`, error);
@@ -444,18 +493,19 @@ export class BadgeService {
     }
 
     try {
+      const readState = this.getReadState();
       if (type === 'prayers') {
         const data = appendUpdateIdsToReadPrayersData(
-          getBadgeReadPrayersData(),
+          readState.getReadPrayersData(),
           allUpdateIds
         );
-        setBadgeReadPrayersData(data);
+        readState.setReadPrayersData(data);
       } else {
         const data = appendUpdateIdsToReadPromptsData(
-          getBadgeReadPromptsData(),
+          readState.getReadPromptsData(),
           allUpdateIds
         );
-        setBadgeReadPromptsData(data);
+        readState.setReadPromptsData(data);
       }
     } catch (error) {
       console.warn(`Failed to mark all updates as read for ${type}:`, error);
@@ -470,12 +520,19 @@ export class BadgeService {
         return;
       }
 
+      const readState = this.getReadState();
       if (type === 'prayers') {
-        const data = appendItemUpdateIdsToReadPrayersData(item, getBadgeReadPrayersData());
-        setBadgeReadPrayersData(data);
+        const data = appendItemUpdateIdsToReadPrayersData(
+          item,
+          readState.getReadPrayersData()
+        );
+        readState.setReadPrayersData(data);
       } else {
-        const data = appendItemUpdateIdsToReadPromptsData(item, getBadgeReadPromptsData());
-        setBadgeReadPromptsData(data);
+        const data = appendItemUpdateIdsToReadPromptsData(
+          item,
+          readState.getReadPromptsData()
+        );
+        readState.setReadPromptsData(data);
       }
     } catch (error) {
       console.warn(`Failed to mark item updates as read:`, error);
@@ -510,20 +567,4 @@ export class BadgeService {
     }
   }
 
-  /** Spec and legacy callers access read-state through the service. */
-  private getReadPrayersData() {
-    return getBadgeReadPrayersData();
-  }
-
-  private setReadPrayersData(data: ReturnType<typeof getBadgeReadPrayersData>): void {
-    setBadgeReadPrayersData(data);
-  }
-
-  private getReadPromptsData() {
-    return getBadgeReadPromptsData();
-  }
-
-  private setReadPromptsData(data: ReturnType<typeof getBadgeReadPromptsData>): void {
-    setBadgeReadPromptsData(data);
-  }
 }

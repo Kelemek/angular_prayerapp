@@ -11,7 +11,9 @@ import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { CapacitorService } from '../../services/capacitor.service';
 import { ChangeDetectorRef, SimpleChanges } from '@angular/core';
-import { of, firstValueFrom } from 'rxjs';
+import { of, firstValueFrom, BehaviorSubject } from 'rxjs';
+import { BadgeService } from '../../services/badge.service';
+import { createBadgeServiceInjectorMock } from '../../testing/create-badge-service-injector-mock';
 
 describe('UserSettingsComponent', () => {
   let component: UserSettingsComponent;
@@ -118,15 +120,13 @@ describe('UserSettingsComponent', () => {
       getGitHubConfig: vi.fn(() => Promise.resolve(null))
     };
 
-    const mockBadgeService = {
-      getBadgeFunctionalityEnabled$: vi.fn(() => Promise.resolve({ enabled: true })),
-      isPromptUnread: vi.fn(() => false),
-      markPromptAsRead: vi.fn(() => Promise.resolve()),
-      getUpdateBadgesChanged$: vi.fn(() => ({})),
-      markPrayerAsRead: vi.fn(() => Promise.resolve()),
-      refreshBadgeCounts: vi.fn(() => Promise.resolve()),
-      getBadgeCount$: vi.fn(() => ({}))
-    };
+    const { mockInjector } = createBadgeServiceInjectorMock({
+      userSession$: new BehaviorSubject(null),
+    });
+    const mockBadgeService = new BadgeService(
+      { client: {} } as any,
+      mockInjector as any
+    );
 
     component = new UserSettingsComponent(
       mockThemeService,
