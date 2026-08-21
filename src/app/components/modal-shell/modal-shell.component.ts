@@ -34,13 +34,19 @@ import { NgClass } from "@angular/common";
       .modal-shell-body {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .modal-shell-body::-webkit-scrollbar {
+        display: none;
       }
     `,
   ],
   template: `
     <div
       #overlay
-      class="modal-shell-overlay fixed inset-0 bg-gray-900/50 z-50 flex items-start sm:items-center justify-center px-2 pb-2 sm:px-4 sm:pb-4 overflow-hidden overscroll-none touch-none safe-area-overlay"
+      class="modal-shell-overlay fixed inset-0 bg-gray-900/50 z-modal-overlay flex items-start sm:items-center justify-center px-2 pb-2 sm:px-4 sm:pb-4 overflow-hidden overscroll-none touch-none safe-area-overlay"
       [ngClass]="overlayClass"
       [style.top]="overlayTop"
       [style.left]="overlayLeft"

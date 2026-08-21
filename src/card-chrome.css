@@ -1,0 +1,47 @@
+/*
+  Card corner sealing — pair bg-shell-corner-seal with shell-border-w-* on the shell,
+  and rounded-t-shell-inner with shell-radius-* + matching shell-border-w-* on header bands.
+  Do not use overflow-hidden on shells with corner unread badges.
+  Card modals must render outside isolated shells (prayer-card / prompt-card templates).
+*/
+@utility bg-shell-corner-seal {
+  background-clip: padding-box;
+  isolation: isolate;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--shell-border-width, 1px));
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    border-width: inherit;
+    border-style: solid;
+    border-color: inherit;
+  }
+}
+@utility shell-border-w-1 {
+  --shell-border-width: 1px;
+}
+@utility shell-border-w-2 {
+  --shell-border-width: 2px;
+}
+@utility rounded-t-shell-inner {
+  border-top-left-radius: calc(
+    var(--shell-radius, var(--radius-lg, 0.5rem)) - var(--shell-border-width, 1px)
+  );
+  border-top-right-radius: calc(
+    var(--shell-radius, var(--radius-lg, 0.5rem)) - var(--shell-border-width, 1px)
+  );
+}
+@utility shell-radius-lg {
+  --shell-radius: var(--radius-lg, 0.5rem);
+}
+@utility shell-radius-xl {
+  --shell-radius: var(--radius-xl, 0.75rem);
+}
+@utility shell-radius-3xl {
+  --shell-radius: var(--radius-3xl, 1.5rem);
+}
+@utility z-modal-overlay {
+  z-index: var(--z-index-modal-overlay);
+}

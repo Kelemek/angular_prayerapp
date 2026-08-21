@@ -1,3 +1,4 @@
+import { joinCardShellClassParts } from './card-shell-chrome';
 import { isMemberPrayerId } from './prayer-card-kind';
 import {
   getPrayerCardVariantLayout,
@@ -32,18 +33,8 @@ export function getPrayerCardShellClasses(
   borderClass: string
 ): string {
   const layout = getPrayerCardVariantLayout(variant);
-  const border =
-    variant === 'presentation' ? '' : ' ' + borderClass;
-  return [
-    layout.shellBaseClasses,
-    layout.shellPaddingClasses,
-    layout.shellBottomPadding,
-    layout.shellOuterMargin,
-    layout.shellTopPadding,
-    border,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const border = variant === 'presentation' ? '' : borderClass;
+  return joinCardShellClassParts(layout.shellBaseClasses, layout, border);
 }
 
 export function getPrayerCardShellClassesFromPrayer(

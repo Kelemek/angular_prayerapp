@@ -9,6 +9,7 @@ import {
   getMetaHeaderBandLayoutClasses,
   getPrayerCardVariantLayout,
   getPromptCardVariantLayout,
+  getUpdateRowHeaderBandRoundedClasses,
 } from './prayer-card-layout';
 
 describe('getPrayerCardVariantLayout', () => {
@@ -19,6 +20,9 @@ describe('getPrayerCardVariantLayout', () => {
     expect(layout.usePresentationWrapper).toBe(false);
     expect(layout.showUnreadBadges).toBe(true);
     expect(layout.updateRowSize).toBe('sm');
+    expect(getUpdateRowHeaderBandRoundedClasses(layout.updateShellClass)).toContain(
+      'shell-radius-lg'
+    );
   });
 
   it('seals home card corners without clipping unread badges', () => {
@@ -26,8 +30,10 @@ describe('getPrayerCardVariantLayout', () => {
     const prompt = getPromptCardVariantLayout('home');
     const prayerTokens = prayer.shellBaseClasses.split(/\s+/);
     const promptTokens = prompt.shellBaseClasses.split(/\s+/);
-    expect(prayerTokens).toContain(PRAYER_CARD_SHELL_FILL_CLASSES);
-    expect(promptTokens).toContain(PRAYER_CARD_SHELL_FILL_CLASSES);
+    for (const token of PRAYER_CARD_SHELL_FILL_CLASSES.split(/\s+/)) {
+      expect(prayerTokens).toContain(token);
+      expect(promptTokens).toContain(token);
+    }
     expect(prayerTokens).not.toContain('overflow-hidden');
     expect(promptTokens).not.toContain('overflow-hidden');
     expect(prayer.headerBandRoundedClasses).toBe(
@@ -37,6 +43,12 @@ describe('getPrayerCardVariantLayout', () => {
       PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES
     );
     expect(prayer.headerBandRoundedClasses).not.toBe('rounded-t-lg');
+  });
+
+  it('returns presentation prompt shell with bottom padding tokens', () => {
+    const layout = getPromptCardVariantLayout('presentation');
+    expect(layout.shellBottomPadding).toContain('pb-4');
+    expect(layout.shellBottomPadding).toContain('md:pb-8');
   });
 
   it('returns presentation layout with larger typography and wrapper', () => {
@@ -50,9 +62,19 @@ describe('getPrayerCardVariantLayout', () => {
     expect(layout.headerBleedClasses).toContain('md:-mx-8');
     expect(layout.updateRowSize).toBe('sm');
     expect(layout.showTourAnchors).toBe(false);
+    expect(getUpdateRowHeaderBandRoundedClasses(layout.updateShellClass)).toContain(
+      'shell-radius-xl'
+    );
     expect(layout.headerBandRoundedClasses).toBe(
       PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES
     );
+    expect(layout.presentationScrollClasses).toContain('presentation-card-elevation');
+    expect(layout.presentationScrollClasses).toContain('overflow-hidden');
+    expect(layout.presentationScrollClasses).toContain('rounded-3xl');
+    expect(layout.shellBaseClasses).toContain('overflow-y-auto');
+    expect(layout.shellBaseClasses).toContain('presentation-card-scroll');
+    expect(layout.shellBaseClasses).not.toContain('rounded-3xl');
+    expect(layout.shellBaseClasses).not.toContain('flex-1');
   });
 });
 

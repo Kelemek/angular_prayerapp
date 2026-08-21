@@ -4,19 +4,38 @@ import { HOME_SHELL_SECTION_GAP_CLASSES } from './home-shell-spacing';
 export const PRAYER_CARD_SHELL_PADDING_CLASSES = 'px-4 sm:px-6';
 
 /**
- * Keep the card fill inside the 2px border and seal anti-aliased outer pixels
- * with a matching overlay stroke (`bg-card-shell-fill` in styles.css). Do not
- * use `overflow-hidden` on the shell — unread badges sit at `-top-2 -right-2`.
+ * Keep the card fill inside the border and seal anti-aliased outer pixels
+ * (`bg-shell-corner-seal` in card-chrome.css). Do not use `overflow-hidden` on
+ * the shell — unread badges sit at `-top-2 -right-2`.
  */
-export const PRAYER_CARD_SHELL_FILL_CLASSES = 'bg-card-shell-fill';
+const CARD_SHELL_CORNER_SEAL = 'bg-shell-corner-seal';
+const CARD_SHELL_HEADER_BAND_ROUNDED = 'rounded-t-shell-inner';
+const CARD_SHELL_BORDER_W_1 = 'shell-border-w-1';
+const CARD_SHELL_BORDER_W_2 = 'shell-border-w-2';
+const CARD_SHELL_RADIUS_LG = 'shell-radius-lg';
+const CARD_SHELL_RADIUS_XL = 'shell-radius-xl';
+const CARD_SHELL_RADIUS_3XL = 'shell-radius-3xl';
+
+export const PRAYER_CARD_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_SHELL_BORDER_W_2}`;
+
+/** Seals update-row outer corners (1px border). Pair with `bg-inset-surface`. */
+export const PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_SHELL_BORDER_W_1}`;
 
 /** Top radius for meta header bands inside a 2px `rounded-lg` home shell. */
-export const PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES =
-  'rounded-t-card-shell-inner';
+export const PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES = `${CARD_SHELL_HEADER_BAND_ROUNDED} ${CARD_SHELL_RADIUS_LG} ${CARD_SHELL_BORDER_W_2}`;
 
 /** Top radius for meta header bands inside a 1px `rounded-3xl` presentation shell. */
-export const PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES =
-  'rounded-t-card-shell-inner-presentation';
+export const PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES = `${CARD_SHELL_HEADER_BAND_ROUNDED} ${CARD_SHELL_RADIUS_3XL} ${CARD_SHELL_BORDER_W_1}`;
+
+/** Derives update-row header top radius from the row shell's border radius token. */
+export function getUpdateRowHeaderBandRoundedClasses(
+  updateShellClass: string
+): string {
+  const radius = updateShellClass.includes('rounded-xl')
+    ? CARD_SHELL_RADIUS_XL
+    : CARD_SHELL_RADIUS_LG;
+  return `${CARD_SHELL_HEADER_BAND_ROUNDED} ${radius} ${CARD_SHELL_BORDER_W_1}`;
+}
 
 /** Negative margin for meta header bands that bleed to the card edge. */
 export const PRAYER_CARD_HEADER_BLEED_CLASSES = '-mx-4 sm:-mx-6';
@@ -136,7 +155,8 @@ const PRESENTATION_CARD_CHROME: CardVariantChrome = {
   headerInsetClasses: PRESENTATION_CARD_HEADER_INSET_CLASSES,
   headerBandRoundedClasses: PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES,
   usePresentationWrapper: true,
-  presentationScrollClasses: 'presentation-card-elevation w-full max-h-full rounded-3xl',
+  presentationScrollClasses:
+    'presentation-card-elevation w-full overflow-hidden rounded-3xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800',
   actionRowGap: 'gap-2 sm:gap-3',
   actionButtonClasses:
     'px-3 py-1.5 text-sm sm:px-4 sm:py-2 sm:text-base md:text-lg font-medium whitespace-nowrap',
@@ -190,7 +210,7 @@ const HOME_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
 const PRESENTATION_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
   ...PRESENTATION_CARD_CHROME,
   shellBaseClasses:
-    'bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto presentation-card-scroll transition-colors relative',
+    'w-full overflow-y-auto presentation-card-scroll transition-colors relative',
   shellTopPadding: 'pt-0',
   shellBottomPadding: 'pb-4 sm:pb-6 md:pb-8',
   shellOuterMargin: '',
@@ -231,6 +251,8 @@ export function getPrayerCardVariantLayout(
 
 export interface PromptCardVariantLayout extends CardVariantChrome {
   shellBaseClasses: string;
+  shellTopPadding: string;
+  shellBottomPadding: string;
   shellOuterMargin: string;
   typeHeaderClasses: string;
   titleClasses: string;
@@ -243,7 +265,9 @@ export interface PromptCardVariantLayout extends CardVariantChrome {
 const HOME_PROMPT_CARD_VARIANT_LAYOUT: PromptCardVariantLayout = {
   ...HOME_CARD_CHROME,
   shellBaseClasses:
-    `prompt-card bg-white dark:bg-gray-800 ${PRAYER_CARD_SHELL_FILL_CLASSES} rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] pt-0 pb-4 transition-colors relative`,
+    `prompt-card bg-white dark:bg-gray-800 ${PRAYER_CARD_SHELL_FILL_CLASSES} rounded-lg shadow-md border-[2px] !border-[#988F83] dark:!border-[#988F83] transition-colors relative`,
+  shellTopPadding: 'pt-0',
+  shellBottomPadding: 'pb-4',
   shellOuterMargin: HOME_SHELL_SECTION_GAP_CLASSES,
   typeHeaderClasses: '',
   titleClasses: 'text-lg font-semibold text-gray-700 dark:text-gray-300',
@@ -257,7 +281,9 @@ const HOME_PROMPT_CARD_VARIANT_LAYOUT: PromptCardVariantLayout = {
 const PRESENTATION_PROMPT_CARD_VARIANT_LAYOUT: PromptCardVariantLayout = {
   ...PRESENTATION_CARD_CHROME,
   shellBaseClasses:
-    'bg-white dark:bg-gray-800 rounded-3xl pt-0 pb-4 sm:pb-6 md:pb-8 border border-gray-200 dark:border-gray-700 w-full max-h-full overflow-y-auto presentation-card-scroll transition-colors relative',
+    'w-full overflow-y-auto presentation-card-scroll transition-colors relative',
+  shellTopPadding: 'pt-0',
+  shellBottomPadding: 'pb-4 sm:pb-6 md:pb-8',
   shellOuterMargin: '',
   typeHeaderClasses: 'text-[#988F83] dark:text-[#988F83]',
   titleClasses:

@@ -2213,8 +2213,10 @@ describe('PrayerCardComponent', () => {
 
     it('shellClasses omits status border for presentation', () => {
       const classes = component.shellClasses();
-      expect(classes).toContain('rounded-3xl');
+      expect(classes).not.toContain('rounded-3xl');
       expect(classes).not.toContain('0047AB');
+      expect(component.variantLayout.presentationScrollClasses).toContain('rounded-3xl');
+      expect(component.variantLayout.presentationScrollClasses).toContain('overflow-hidden');
     });
 
     it('treats isPersonal input as the personal contract even when user_email is set', () => {

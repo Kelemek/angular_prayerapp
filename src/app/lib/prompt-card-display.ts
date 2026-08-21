@@ -1,11 +1,10 @@
 import type { PromptCardVariantLayout } from './prayer-card-layout';
+import { joinCardShellClassParts } from './card-shell-chrome';
 
 export function getPromptCardShellClasses(
   layout: PromptCardVariantLayout
 ): string {
-  return [layout.shellBaseClasses, layout.shellPaddingClasses, layout.shellOuterMargin]
-    .filter(Boolean)
-    .join(' ');
+  return joinCardShellClassParts(layout.shellBaseClasses, layout);
 }
 
 export function showPromptCardPrayedForBadge(

@@ -77,34 +77,35 @@
         (prayFor)="onPrayForClick()"
       />
 
-      <!-- Confirmation Dialog -->
-      @if (showConfirmationDialog) {
-      <app-confirmation-dialog
-        [title]="'Delete Prayer Prompt'"
-        [message]="'Are you sure you want to delete this prayer prompt?'"
-        [isDangerous]="true"
-        [confirmText]="'Delete'"
-        (confirm)="onConfirmDelete()"
-        (cancel)="onCancelDelete()">
-      </app-confirmation-dialog>
-      }
-
-      <app-prompt-card-pray-for-modal
-        [isOpen]="showPrayForModal"
-        (confirm)="onConfirmPrayForFromModal($event)"
-        (cancel)="onCancelPrayForModal()"
-      />
-
-      <app-prayer-item-reminder-modal
-        [isOpen]="showReminderModal"
-        [email]="reminderSessionEmail()"
-        [prayerKind]="'prompt'"
-        [prayerId]="prompt.id"
-        [titleSnapshot]="prompt.title"
-        [prayerFor]="prompt.type"
-        [reminders]="remindersForThisPrompt()"
-        (close)="showReminderModal = false"
-        (remindersChange)="onPromptRemindersChanged($event)"
-      />
     </div>
+
+    <!-- Outside bg-card-shell-fill (isolation: isolate) so fixed modals stack above filter tabs and later cards. -->
+    @if (showConfirmationDialog) {
+    <app-confirmation-dialog
+      [title]="'Delete Prayer Prompt'"
+      [message]="'Are you sure you want to delete this prayer prompt?'"
+      [isDangerous]="true"
+      [confirmText]="'Delete'"
+      (confirm)="onConfirmDelete()"
+      (cancel)="onCancelDelete()">
+    </app-confirmation-dialog>
+    }
+
+    <app-prompt-card-pray-for-modal
+      [isOpen]="showPrayForModal"
+      (confirm)="onConfirmPrayForFromModal($event)"
+      (cancel)="onCancelPrayForModal()"
+    />
+
+    <app-prayer-item-reminder-modal
+      [isOpen]="showReminderModal"
+      [email]="reminderSessionEmail()"
+      [prayerKind]="'prompt'"
+      [prayerId]="prompt.id"
+      [titleSnapshot]="prompt.title"
+      [prayerFor]="prompt.type"
+      [reminders]="remindersForThisPrompt()"
+      (close)="showReminderModal = false"
+      (remindersChange)="onPromptRemindersChanged($event)"
+    />
     </div>

@@ -9,7 +9,13 @@ import {
   getPrayerUpdateHeaderLabelClasses,
   type PrayerUpdateRecord,
 } from '../../lib/prayer-update-header';
-import { PRAYER_CARD_HEADER_BLEED_CLASSES, PRAYER_CARD_HEADER_INSET_CLASSES, PRAYER_CARD_SHELL_PADDING_CLASSES } from '../../lib/prayer-card-layout';
+import {
+  PRAYER_CARD_HEADER_BLEED_CLASSES,
+  PRAYER_CARD_HEADER_INSET_CLASSES,
+  PRAYER_CARD_SHELL_PADDING_CLASSES,
+  PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES,
+  getUpdateRowHeaderBandRoundedClasses,
+} from '../../lib/prayer-card-layout';
 import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-classes';
 
 @Component({
@@ -24,6 +30,8 @@ import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-
     <div
       [class]="
         'bg-inset-surface relative pb-6 pt-0 ' +
+        updateRowShellFillClasses +
+        ' ' +
         shellBorderClass +
         ' ' +
         shellPaddingClasses +
@@ -36,6 +44,7 @@ import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-
         [centerTime]="displayDateParts.time"
         [bandSize]="size"
         [bleedClasses]="bandBleedClasses"
+        [roundedClasses]="headerBandRoundedClasses"
       >
         <div cardMetaLeft [class]="'min-w-0 w-full ' + headerInsetClasses">
           <span [class]="headerLabelClasses">{{ headerLabel }}</span>
@@ -62,6 +71,7 @@ export class PrayerUpdateRowComponent {
   readonly shellPaddingClasses = PRAYER_CARD_SHELL_PADDING_CLASSES;
   readonly shellBorderClass = CHURCH_GREEN_SHELL_BORDER_CLASS;
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
+  readonly updateRowShellFillClasses = PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES;
 
   @Input({ required: true }) update!: PrayerUpdateRecord;
   @Input() size = 'sm' as const;
@@ -72,6 +82,10 @@ export class PrayerUpdateRowComponent {
    * Bleed matches this row's shell padding (px-4 sm:px-6), not the outer presentation card.
    */
   readonly bandBleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
+
+  get headerBandRoundedClasses(): string {
+    return getUpdateRowHeaderBandRoundedClasses(this.shellClass);
+  }
 
   get headerLabel(): string {
     return getPrayerUpdateHeaderLabel(this.update);
