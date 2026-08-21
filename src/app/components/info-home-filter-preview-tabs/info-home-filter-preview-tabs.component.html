@@ -17,54 +17,21 @@
     >
       1
     </button>
-    <div [class]="publicTabClass() + ' w-full'">
-      <div
-        class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-      >
-        47
-      </div>
-      <div
-        class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
-      >
-        Public
-      </div>
-    </div>
+    <div [class]="publicTabClass() + ' w-full'">Public</div>
   </div>
   <button
     type="button"
     (click)="setPreviewFilter('personal')"
     [class]="personalTabClass()"
   >
-    <div class="flex flex-col items-center justify-center w-full">
-      <div
-        class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-      >
-        13
-      </div>
-      <div
-        class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
-      >
-        Personal
-      </div>
-    </div>
+    Personal
   </button>
   <button
     type="button"
     (click)="setPreviewFilter('prompts')"
     [class]="promptsTabClass()"
   >
-    <div class="flex flex-col items-center justify-center w-full">
-      <div
-        class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-      >
-        76
-      </div>
-      <div
-        class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide leading-tight"
-      >
-        Prompts
-      </div>
-    </div>
+    Prompts
   </button>
 </div>
 

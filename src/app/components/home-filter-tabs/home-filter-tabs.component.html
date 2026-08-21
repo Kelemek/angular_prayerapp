@@ -19,14 +19,7 @@
             (markRead)="markAllPublicPrayersRead()"
           />
           }
-          <div
-            class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-          >
-            {{ totalPrayersCount }}
-          </div>
-          <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
-            Public
-          </div>
+          Public
         </button>
 
         <!-- Personal Prayers Filter -->
@@ -36,14 +29,7 @@
           title="Show your personal prayers"
           [class]="tabClass('personal', activeFilter === 'personal')"
         >
-          <div
-            class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-          >
-            {{ personalPrayersCount }}
-          </div>
-          <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
-            Personal
-          </div>
+          Personal
         </button>
 
         <button
@@ -60,14 +46,7 @@
             (markRead)="badgeService.markAllAsRead('prompts')"
           />
           }
-          <div
-            class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-          >
-            {{ promptsCount }}
-          </div>
-          <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
-            Prompts
-          </div>
+          Prompts
         </button>
 
         <button
@@ -76,13 +55,6 @@
           title="Memorize Bible verses"
           [class]="tabClass('memorize', activeFilter === 'memorize')"
         >
-          <div
-            class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums leading-tight"
-          >
-            {{ memorizedItemsCount }}
-          </div>
-          <div class="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-tight">
-            Memorize
-          </div>
+          Memorize
         </button>
       </div>

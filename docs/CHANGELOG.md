@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### UI — Home main filter tabs drop catalog counts
+- **Public**, **Personal**, **Prompts**, and **Memorize** show the tab label only. Label typography lives on shared folder-tab chrome in [`home-sub-filter-chip-classes.ts`](src/app/lib/home-sub-filter-chip-classes.ts) (`HOME_FILTER_TAB_BASE_CLASS`). Catalog counts remain on the sub-filter chips (for example **Current (5)**). Unread badges on **Public** and **Prompts** are unchanged ([`home-filter-tabs`](src/app/components/home-filter-tabs/home-filter-tabs.component.html)). Folder-tab spacing uses `hasPromptSubFilters` (not a catalog count) via [`homeHasSubFilterRowBelowTabs`](src/app/lib/home-community-filter.ts). The Info page mock matches ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)). **Memorize Scripture** help no longer describes a count on the Memorize tab ([`help-content-catalog.ts`](src/app/lib/help-content-catalog.ts)).
+
 ### Prayer and prompt card corner fill
 - Home prayer and prompt cards use `bg-card-shell-fill` in [`styles.css`](../src/styles.css) so the white fill is clipped to the padding box and a matching overlay stroke covers anti-aliased outer pixels. Meta header bands use `rounded-t-card-shell-inner` (card radius minus the 2px border) so the beige strip follows the inside of the green corner. The card shell still does not use `overflow-hidden`, so unread badges can sit on the top-right corner ([`prayer-card-layout.ts`](../src/app/lib/prayer-card-layout.ts)).
 

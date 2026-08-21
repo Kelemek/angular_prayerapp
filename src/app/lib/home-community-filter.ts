@@ -29,12 +29,12 @@ export function isPublicTabFilter(
 /** True when Home renders a folder-tab panel (sub-filters) directly under the main tab row. */
 export function homeHasSubFilterRowBelowTabs(
   filter: HomeActiveFilter,
-  promptsCount: number
+  hasPromptSubFilters: boolean
 ): boolean {
   return (
     isPublicTabFilter(filter) ||
     filter === "personal" ||
     filter === "memorize" ||
-    (filter === "prompts" && promptsCount > 0)
+    (filter === "prompts" && hasPromptSubFilters)
   );
 }

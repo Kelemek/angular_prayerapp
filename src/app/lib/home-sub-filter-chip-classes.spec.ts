@@ -58,6 +58,17 @@ describe("HOME_SHELL chrome borders", () => {
 });
 
 describe("homeFilterTabClass", () => {
+  it("includes label typography on every tab", () => {
+    const cls = homeFilterTabClass({
+      accent: "public",
+      active: true,
+      hasSubRow: true,
+    });
+    expect(cls).toContain("text-sm");
+    expect(cls).toContain("font-semibold");
+    expect(cls).toContain("text-gray-700");
+  });
+
   it("connects the active tab to the panel when a sub-row is present", () => {
     const cls = homeFilterTabClass({
       accent: "public",

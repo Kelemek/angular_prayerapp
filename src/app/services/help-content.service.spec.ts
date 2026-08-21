@@ -171,6 +171,20 @@ describe('HelpContentService', () => {
       ).toBe(true);
     });
 
+    it('should not describe a catalog count on the Memorize main filter tab', () => {
+      let sections: HelpSection[] = [];
+      service.getSections().subscribe((data) => {
+        sections = data;
+      });
+
+      const opening = sections
+        .find((s) => s.id === 'help_memorize')
+        ?.content?.find((item) => item.subtitle === 'Opening Memorize');
+      expect(opening).toBeDefined();
+      expect(opening!.text).not.toContain('count on the tile');
+      expect(opening!.text).toContain('Main filter tabs show the tab name only');
+    });
+
     it('should include prayer encouragement UI settings in Prayer Encouragement section', () => {
       let sections: HelpSection[] = [];
       service.getSections().subscribe((data) => {

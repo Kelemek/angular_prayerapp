@@ -48,6 +48,23 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     expect(emitted).toEqual([]);
   });
 
+  it("shows main preview tab labels without catalog counts", () => {
+    fixture.detectChanges();
+    const row = fixture.nativeElement.querySelector(
+      ".flex.w-full.gap-1.mb-0"
+    ) as HTMLElement;
+    const publicTab = row.querySelector('[role="button"]') as HTMLElement;
+    const [personalBtn, promptsBtn] = row.querySelectorAll(
+      ":scope > button"
+    ) as NodeListOf<HTMLButtonElement>;
+    const normalize = (el: HTMLElement) =>
+      el.textContent?.replace(/\s+/g, " ").trim() ?? "";
+
+    expect(normalize(publicTab)).toBe("1 Public");
+    expect(normalize(personalBtn)).toBe("Personal");
+    expect(normalize(promptsBtn)).toBe("Prompts");
+  });
+
   it("wraps public preview chips with the same flex-wrap host as prompt types", () => {
     fixture.detectChanges();
     const buttons = fixture.nativeElement.querySelectorAll(

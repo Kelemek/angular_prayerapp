@@ -130,12 +130,7 @@
 
       <app-home-filter-tabs
         [activeFilter]="activeFilter"
-        [currentPrayersCount]="currentPrayersCount"
-        [answeredPrayersCount]="answeredPrayersCount"
-        [totalPrayersCount]="totalPrayersCount"
-        [promptsCount]="promptsCount"
-        [personalPrayersCount]="personalPrayersCount"
-        [memorizedItemsCount]="memorizationPanel.memorizedItemsCount"
+        [hasPromptSubFilters]="promptsCount > 0"
         [currentPrayerBadge$]="currentPrayerBadge$"
         [answeredPrayerBadge$]="answeredPrayerBadge$"
         [promptBadge$]="promptBadge$"

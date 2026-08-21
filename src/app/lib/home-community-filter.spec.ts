@@ -39,17 +39,19 @@ describe("isPublicTabFilter", () => {
 
 describe("homeHasSubFilterRowBelowTabs", () => {
   it("returns true when a sub-filter row renders under the main tabs", () => {
-    expect(homeHasSubFilterRowBelowTabs("current", 0)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("answered", 0)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("archived", 0)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("total", 0)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("planning_center_list", 0)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("personal", 0)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("memorize", 0)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("prompts", 5)).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("current", false)).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("answered", false)).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("archived", false)).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("total", false)).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("planning_center_list", false)).toBe(
+      true
+    );
+    expect(homeHasSubFilterRowBelowTabs("personal", false)).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("memorize", false)).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("prompts", true)).toBe(true);
   });
 
   it("returns false when content follows tabs directly", () => {
-    expect(homeHasSubFilterRowBelowTabs("prompts", 0)).toBe(false);
+    expect(homeHasSubFilterRowBelowTabs("prompts", false)).toBe(false);
   });
 });
