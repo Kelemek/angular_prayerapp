@@ -40,7 +40,7 @@ import type {
           (click)="$event.stopPropagation()"
         >
           <div
-            class="shrink-0 flex items-center justify-between gap-3 px-4 py-3 modal-chrome-border-b touch-none"
+            class="shrink-0 flex items-center justify-between gap-3 px-4 py-3 modal-chrome-header touch-none"
           >
             <h2
               id="memorization-recommendations-title"

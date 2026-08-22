@@ -197,11 +197,11 @@
     background-color: rgb(55 65 81 / 0.6) !important;
   }
 }
-/* Meta header bands + rich-text toolbar: slightly darker cream strip in light mode. */
+/* Meta header bands + rich-text toolbar + modal chrome headers/footers. */
 @utility bg-card-meta-header-band {
-  background-color: #d6d1cb !important;
+  background-color: var(--color-card-meta-header-band) !important;
   .dark & {
-    background-color: rgb(17 24 39 / 0.5) !important;
+    background-color: var(--color-card-meta-header-band-dark) !important;
   }
 }
 /* Help topic rows: inset fill + hover lift (inputs use bg-inset-surface only). */
@@ -501,6 +501,7 @@ html.dark .personal-category-header-band {
 /* Church Theme Variables */
 :root {
   --text-scale: 1;
+  --color-card-meta-header-band: #d6d1cb;
   --bg-primary: #FFFFFF;
   --bg-secondary: #E8E5E1;
   --bg-tertiary: #DDD8D2;
@@ -514,6 +515,7 @@ html.dark .personal-category-header-band {
 }
 
 html.dark {
+  --color-card-meta-header-band-dark: rgb(17 24 39 / 0.5);
   --bg-primary: #1F2937;
   --bg-secondary: #2B2B2B;
   --bg-tertiary: #3E5266;
@@ -902,6 +904,13 @@ html.dark .settings-modal-section-card {
   border-style: solid;
   border-color: var(--color-church-surface-inactive-tab-border);
 }
+/* Clip header/footer band fills to rounded panel corners (message + modal-shell dialogs). */
+.modal-panel-edge:has(.modal-chrome-header),
+.modal-panel-edge:has(.modal-chrome-footer),
+.modal-shell-panel:has(.modal-chrome-header),
+.settings-modal-panel:has(.settings-modal-header) {
+  overflow: hidden;
+}
 html.dark .modal-panel-edge,
 html.dark .modal-shell-panel,
 html.dark .settings-modal-panel {
@@ -913,11 +922,33 @@ html.dark .settings-modal-panel {
 .modal-chrome-border-t {
   border-top: 1px solid #2F5F54;
 }
+.modal-chrome-header {
+  border-bottom: 1px solid #2F5F54;
+  background-color: var(--color-card-meta-header-band) !important;
+}
+html.dark .modal-chrome-header {
+  background-color: var(--color-card-meta-header-band-dark) !important;
+}
+.modal-chrome-footer {
+  border-top: 1px solid #2F5F54;
+  background-color: var(--color-card-meta-header-band) !important;
+}
+html.dark .modal-chrome-footer {
+  background-color: var(--color-card-meta-header-band-dark) !important;
+}
 .settings-modal-header {
   border-bottom: 1px solid #2F5F54;
+  background-color: var(--color-card-meta-header-band) !important;
+}
+html.dark .settings-modal-header {
+  background-color: var(--color-card-meta-header-band-dark) !important;
 }
 .settings-modal-footer {
   border-top: 1px solid #2F5F54;
+  background-color: var(--color-card-meta-header-band) !important;
+}
+html.dark .settings-modal-footer {
+  background-color: var(--color-card-meta-header-band-dark) !important;
 }
 
 /* Driver.js help tutorials: wider popover, scroll long copy; dark theme when html.dark */

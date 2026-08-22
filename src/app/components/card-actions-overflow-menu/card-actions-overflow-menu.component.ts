@@ -1,11 +1,14 @@
 import {
+  ApplicationRef,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   ElementRef,
+  EmbeddedViewRef,
   HostListener,
   Input,
   OnDestroy,
+  TemplateRef,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -67,34 +70,35 @@ import type {
     </button>
     }
 
-    @if (menuOpen && items.length > 0) {
-    <div
-      #menu
-      role="menu"
-      aria-label="Card actions"
-      class="fixed z-50 min-w-48 rounded-lg border border-gray-300 bg-white p-1 shadow-lg dark:border-gray-600 dark:bg-gray-800"
-      [style.left.px]="menuPos.left"
-      [style.top.px]="menuPos.top"
-    >
-      @for (item of items; track item.id) {
-      <button
-        type="button"
-        role="menuitem"
-        [attr.id]="item.tourAnchorId || null"
-        [attr.data-card-action]="item.id"
-        [attr.aria-label]="item.ariaLabel || item.label"
-        [class]="itemButtonClass(item.tone)"
-        (click)="selectItem($event, item)"
+    <ng-template #menuPortal>
+      <div
+        role="menu"
+        aria-label="Card actions"
+        data-card-actions-overflow-menu
+        class="fixed z-50 min-w-48 rounded-lg border border-gray-300 bg-white p-1 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+        [style.left.px]="menuPos.left"
+        [style.top.px]="menuPos.top"
       >
-        <app-card-actions-overflow-icon [icon]="item.icon" [filled]="!!item.filled" />
-        <span>{{ item.label }}</span>
-      </button>
-      }
-    </div>
-    }
+        @for (item of items; track item.id) {
+        <button
+          type="button"
+          role="menuitem"
+          [attr.id]="item.tourAnchorId || null"
+          [attr.data-card-action]="item.id"
+          [attr.aria-label]="item.ariaLabel || item.label"
+          [class]="itemButtonClass(item.tone)"
+          (click)="selectItem($event, item)"
+        >
+          <app-card-actions-overflow-icon [icon]="item.icon" [filled]="!!item.filled" />
+          <span>{{ item.label }}</span>
+        </button>
+        }
+      </div>
+    </ng-template>
   `,
 })
 export class CardActionsOverflowMenuComponent implements OnDestroy {
+  private readonly appRef = inject(ApplicationRef);
   private readonly cdr = inject(ChangeDetectorRef);
   readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
 
@@ -102,11 +106,12 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
   @Input() bandSize: MetaHeaderBandSize = 'sm';
 
   @ViewChild('trigger') triggerRef?: ElementRef<HTMLButtonElement>;
-  @ViewChild('menu') menuRef?: ElementRef<HTMLDivElement>;
+  @ViewChild('menuPortal') menuPortalTpl?: TemplateRef<unknown>;
 
   menuOpen = false;
   menuPos = { left: 0, top: 0 };
 
+  private menuPortalView: EmbeddedViewRef<unknown> | null = null;
   private positionRaf = 0;
   private scrollListener: (() => void) | null = null;
   private resizeListener: (() => void) | null = null;
@@ -153,8 +158,8 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
       return;
     }
     this.menuOpen = true;
-    this.schedulePositionUpdate();
     this.cdr.markForCheck();
+    this.schedulePositionUpdate();
   }
 
   closeMenu(): void {
@@ -162,6 +167,7 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
       return;
     }
     this.menuOpen = false;
+    this.detachMenuPortal();
     this.detachPositionListeners();
     this.cdr.markForCheck();
   }
@@ -178,7 +184,7 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
     if (!this.menuOpen) return;
     const target = event.target as Node;
     if (this.triggerRef?.nativeElement.contains(target)) return;
-    if (this.menuRef?.nativeElement.contains(target)) return;
+    if (this.getMenuElement()?.contains(target)) return;
     this.closeMenu();
   }
 
@@ -190,6 +196,7 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.detachMenuPortal();
     this.detachPositionListeners();
     if (this.positionRaf) {
       cancelAnimationFrame(this.positionRaf);
@@ -202,6 +209,9 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
     }
     this.positionRaf = requestAnimationFrame(() => {
       this.positionRaf = 0;
+      if (this.menuOpen) {
+        this.attachMenuPortal();
+      }
       this.updatePosition();
     });
     this.attachPositionListeners();
@@ -210,7 +220,7 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
   private updatePosition(): void {
     const trigger = this.triggerRef?.nativeElement;
     if (!trigger) return;
-    const menu = this.menuRef?.nativeElement;
+    const menu = this.getMenuElement();
     const r = trigger.getBoundingClientRect();
     const viewport = getSafeAreaViewportBounds(trigger);
     const menuW = menu?.offsetWidth ?? CARD_ACTIONS_OVERFLOW_MIN_WIDTH_PX;
@@ -222,7 +232,7 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
       viewport
     );
     this.menuPos = { left: position.leftPx, top: position.topPx };
-    this.cdr.markForCheck();
+    this.syncMenuPortal();
   }
 
   private attachPositionListeners(): void {
@@ -242,5 +252,49 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
       window.removeEventListener('resize', this.resizeListener);
       this.resizeListener = null;
     }
+  }
+
+  private attachMenuPortal(): void {
+    if (this.menuPortalView || !this.menuPortalTpl) return;
+    const viewRef = this.menuPortalTpl.createEmbeddedView(null);
+    this.appRef.attachView(viewRef);
+    for (const node of viewRef.rootNodes) {
+      if (node instanceof Node) {
+        document.body.appendChild(node);
+      }
+    }
+    this.menuPortalView = viewRef;
+    viewRef.detectChanges();
+  }
+
+  private detachMenuPortal(): void {
+    if (!this.menuPortalView) return;
+    const viewRef = this.menuPortalView;
+    this.menuPortalView = null;
+    for (const node of viewRef.rootNodes) {
+      if (node instanceof Node && node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    }
+    this.appRef.detachView(viewRef);
+    viewRef.destroy();
+  }
+
+  private getMenuElement(): HTMLDivElement | null {
+    if (!this.menuPortalView) return null;
+    for (const node of this.menuPortalView.rootNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (node.matches('[data-card-actions-overflow-menu]')) {
+        return node as HTMLDivElement;
+      }
+      const nested = node.querySelector('[data-card-actions-overflow-menu]');
+      if (nested instanceof HTMLDivElement) return nested;
+    }
+    return null;
+  }
+
+  private syncMenuPortal(): void {
+    this.cdr.markForCheck();
+    this.menuPortalView?.detectChanges();
   }
 }

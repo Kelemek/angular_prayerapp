@@ -40,7 +40,7 @@ import type { MemorizeListenSpeed } from '../../lib/memorization/memorizeListenS
           [attr.aria-labelledby]="titleId"
           (click)="$event.stopPropagation()"
         >
-          <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 modal-chrome-border-b px-4 pt-3 pb-2">
+          <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 modal-chrome-header px-4 pt-3 pb-2">
             <h2 [id]="titleId" class="text-lg font-semibold text-gray-800 dark:text-gray-100 min-w-0">
               Listen
             </h2>

@@ -54,7 +54,7 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
         (click)="$event.stopPropagation()"
         (touchmove)="onModalTouchMove($event)"
       >
-        <div class="shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 modal-chrome-border-b touch-none">
+        <div class="shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 modal-chrome-header touch-none">
           <h2 id="bible-passage-picker-title" class="text-lg font-semibold text-gray-800 dark:text-gray-200">
             {{ selectedChapterId ? 'Pick Verse Range' : 'Pick Chapter' }}
           </h2>
@@ -185,7 +185,7 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
           </div>
 
           <div
-            class="shrink-0 modal-chrome-border-t px-4 sm:px-6 py-3 bg-gray-50 dark:bg-gray-900/40 touch-none"
+            class="shrink-0 modal-chrome-footer px-4 sm:px-6 py-3 touch-none"
             style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
             (touchmove)="onModalTouchMove($event)"
           >

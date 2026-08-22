@@ -27,7 +27,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="shrink-0 border-t border-gray-200 dark:border-gray-700"
+      class="shrink-0 modal-chrome-footer"
       data-testid="memorize-word-choices"
     >
       <div

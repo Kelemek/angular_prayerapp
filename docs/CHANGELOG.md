@@ -4,6 +4,12 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — card actions overflow menu under later prayer cards
+- The hamburger actions menu was clipped under the next card in the list. Root cause: same `isolation: isolate` on `bg-shell-corner-seal` that trapped card modals before the modals-stack move. [`card-actions-overflow-menu`](src/app/components/card-actions-overflow-menu/card-actions-overflow-menu.component.ts) now body-portals its `fixed` panel (same pattern as scripture hover previews) so it stacks above later cards while staying below modal overlays (`z-50` vs `z-modal-overlay`).
+
+### UI — modal header/footer band fill
+- Modal chrome headers and footers use the same `bg-card-meta-header-band` fill as prayer card meta header bands in light and dark mode (`#d6d1cb` / semi-transparent gray-900). Shared classes: `.modal-chrome-header`, `.modal-chrome-footer`, `.settings-modal-header`, `.settings-modal-footer` ([`styles.css`](src/styles.css)); applied to [`modal-shell`](src/app/components/modal-shell/modal-shell.component.ts), confirmation/send-notification dialogs, Settings, Help, Pray For modals, and Memorize practice chrome. `.modal-panel-edge` panels with chrome headers/footers use `overflow: hidden` so band fills clip to `rounded-lg` corners.
+
 ### Fix — presentation slide card scroll
 - Tall prayer/prompt slides were clipped with no scroll because `max-h-full` did not cap card height when ancestors sized to content. The slide viewport (`.presentation-scroll`) is now a size container; `.presentation-card-scroll` uses `max-height: 100cqh` so cards stay content-sized when short but scroll when taller than the available slide area ([`styles.css`](src/styles.css), [`prayer-card-layout.ts`](src/app/lib/prayer-card-layout.ts)). Presentation chrome (`rounded-3xl`, border, fill) lives on the outer `.presentation-card-elevation` wrapper with `overflow-hidden`; the inner scroll surface no longer combines `border-radius` with `overflow-y-auto`, so nested update boxes keep full `rounded-xl` corners while scrolling.
 

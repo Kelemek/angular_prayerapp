@@ -3,6 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CardActionsOverflowMenuComponent } from './card-actions-overflow-menu.component';
 import type { CardActionsOverflowItem } from './card-actions-overflow-menu.types';
 
+async function flushMenuPortal(): Promise<void> {
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 describe('CardActionsOverflowMenuComponent', () => {
   let fixture: ComponentFixture<CardActionsOverflowMenuComponent>;
   let component: CardActionsOverflowMenuComponent;
@@ -44,6 +48,7 @@ describe('CardActionsOverflowMenuComponent', () => {
   });
 
   afterEach(() => {
+    component.closeMenu();
     fixture?.destroy();
   });
 
@@ -55,7 +60,7 @@ describe('CardActionsOverflowMenuComponent', () => {
     ).toBeNull();
   });
 
-  it('opens labeled menu items and runs the selected item onSelect', () => {
+  it('opens labeled menu items and runs the selected item onSelect', async () => {
     component.items = sampleItems;
     fixture.detectChanges();
 
@@ -65,14 +70,15 @@ describe('CardActionsOverflowMenuComponent', () => {
     expect(trigger).toBeTruthy();
     trigger.click();
     fixture.detectChanges();
+    await flushMenuPortal();
 
-    const edit = fixture.nativeElement.querySelector(
+    const edit = document.body.querySelector(
       '[data-card-action="edit"]'
     ) as HTMLButtonElement;
     expect(edit.textContent).toContain('Edit prayer');
     expect(edit.className).toContain('min-h-[44px]');
     expect(
-      fixture.nativeElement.querySelector('#tour-prayer-reminder-bell')
+      document.body.querySelector('#tour-prayer-reminder-bell')
     ).toBeTruthy();
 
     edit.click();
@@ -95,5 +101,30 @@ describe('CardActionsOverflowMenuComponent', () => {
     component.onDocumentKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
     expect(component.menuOpen).toBe(false);
+  });
+
+  it('portals the menu to document.body so it escapes isolated card shells', async () => {
+    component.items = sampleItems;
+    fixture.detectChanges();
+
+    (
+      fixture.nativeElement.querySelector(
+        '[data-card-actions-trigger]'
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await flushMenuPortal();
+
+    const menu = document.body.querySelector(
+      '[data-card-actions-overflow-menu]'
+    );
+    expect(menu).toBeTruthy();
+    expect(fixture.nativeElement.contains(menu)).toBe(false);
+
+    component.closeMenu();
+    fixture.detectChanges();
+    expect(
+      document.body.querySelector('[data-card-actions-overflow-menu]')
+    ).toBeNull();
   });
 });

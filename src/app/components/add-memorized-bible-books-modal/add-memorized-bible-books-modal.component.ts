@@ -39,7 +39,7 @@ const SCOPE_OPTIONS: {
         class="w-full max-w-lg max-h-[min(92vh,720px)] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden modal-panel-edge"
         (click)="$event.stopPropagation()"
       >
-        <div class="shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 modal-chrome-border-b">
+        <div class="shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 modal-chrome-header">
           <h2 id="add-memorized-bible-books-title" class="text-xl font-semibold text-gray-800 dark:text-gray-200">
             Bible Books
           </h2>
