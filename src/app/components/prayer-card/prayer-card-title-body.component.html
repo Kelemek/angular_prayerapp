@@ -1,3 +1,31 @@
+@if (isVerseMemorization) {
+  <div [class]="'flex items-start justify-between relative ' + variantLayout.headerRowMargin">
+    <div class="flex-1 min-w-0">
+      <h3 [class]="variantLayout.titleClasses">
+        Memorize: {{ prayer.verse_reference || prayer.title }}
+      </h3>
+      @if (prayer.admin_message?.trim()) {
+        <app-rich-text-view
+          [class]="variantLayout.descriptionClasses + ' mt-2'"
+          [text]="prayer.admin_message!"
+        ></app-rich-text-view>
+      }
+      @if (prayer.verse_reference) {
+        <app-scripture-hover-preview
+          class="mt-3 block"
+          [reference]="prayer.verse_reference"
+          [translation]="verseTranslationForPreview()"
+        >
+          <div
+            [class]="variantLayout.descriptionClasses + ' italic text-gray-700 dark:text-gray-300'"
+          >
+            {{ prayer.verse_reference }}
+          </div>
+        </app-scripture-hover-preview>
+      }
+    </div>
+  </div>
+} @else {
 <!-- Header -->
 <div [class]="'flex items-start justify-between relative ' + variantLayout.headerRowMargin">
   <div
@@ -28,6 +56,7 @@
     </div>
   </div>
 </div>
+}
 
 @if (
   variantLayout.showUnreadBadges &&
@@ -35,7 +64,8 @@
   (badgeService.getBadgeFunctionalityEnabled$() | async) &&
   showsCommunityUnreadBadges &&
   !isPersonal &&
-  !isMemberPrayer()
+  !isMemberPrayer() &&
+  !isVerseMemorization
 ) {
   <button
     type="button"
@@ -48,7 +78,7 @@
   </button>
 }
 
-@if (showDescription) {
+@if (showDescription && !isVerseMemorization) {
   <app-rich-text-view
     [class]="variantLayout.descriptionClasses"
     [text]="prayer.description"

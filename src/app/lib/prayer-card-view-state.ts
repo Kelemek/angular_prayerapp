@@ -10,7 +10,7 @@ import {
   usesPrayerCardPersonalCooldown,
   type PrayerCardActiveFilter,
 } from './prayer-card-display';
-import { isCommunityPrayerCard, isMemberPrayerId } from './prayer-card-kind';
+import { isCommunityPrayerCard, isMemberPrayerId, isVerseMemorizationPrayer } from './prayer-card-kind';
 import type { PrayerCardVariant } from './prayer-card-layout';
 import {
   getPrayerCardBorderClass,
@@ -44,6 +44,7 @@ export interface PrayerCardViewState {
   showDeleteButton: boolean;
   showReminderButton: boolean;
   showAddUpdateButton: boolean;
+  showMemorizeButton: boolean;
   showUpdateDeleteButton: boolean;
   showPrayedForBadge: boolean;
   prayedForCountLabel: string;
@@ -73,6 +74,8 @@ export function computePrayerCardViewState(
     isPersonal
   );
 
+  const isVersePrayer = isVerseMemorizationPrayer(prayer);
+
   return {
     isMember,
     displayRequester: displayPrayerCardRequester(
@@ -92,7 +95,9 @@ export function computePrayerCardViewState(
       prayer.category,
       prayer.status
     ),
-    showAddUpdateButton: showPrayerCardAddUpdateButton(permissionContext),
+    showAddUpdateButton:
+      !isVersePrayer && showPrayerCardAddUpdateButton(permissionContext),
+    showMemorizeButton: isVersePrayer && !isPersonal,
     showUpdateDeleteButton: showPrayerCardUpdateDeleteButton(permissionContext),
     showPrayedForBadge: showPrayerCardPrayedForBadge(
       prayer.prayed_for_count,

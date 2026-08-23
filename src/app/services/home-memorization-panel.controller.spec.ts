@@ -20,6 +20,7 @@ describe("HomeMemorizationPanelController", () => {
     controller.bindHost(host, {
       memorizationService: {
         getPreferredTranslation: vi.fn(() => "esv"),
+        loadItems: vi.fn().mockResolvedValue(undefined),
         addVerse: vi.fn().mockResolvedValue({ ok: true }),
         items: [],
         updatePracticeStats: vi.fn(),
@@ -71,5 +72,44 @@ describe("HomeMemorizationPanelController", () => {
     controller.practiceMemorizedItem = { id: "v1" } as MemorizedItem;
     controller.closeMemorizationPractice();
     expect(controller.practiceMemorizedItem).toBeNull();
+  });
+
+  it("startVerseMemorization adds verse and opens practice when missing", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    memorizationService.items = [];
+    memorizationService.addVerse = vi.fn().mockImplementation(async (reference: string, translation: string) => {
+      memorizationService.items = [
+        {
+          id: "new-verse",
+          reference,
+          translation,
+          kind: "verse",
+        } as MemorizedItem,
+      ];
+      return { ok: true };
+    });
+
+    await controller.startVerseMemorization("John 3:16", "esv");
+
+    expect(memorizationService.addVerse).toHaveBeenCalledWith("John 3:16", "esv");
+    expect(controller.practiceMemorizedItem?.id).toBe("new-verse");
+  });
+
+  it("startVerseMemorization opens practice for duplicate verse without error", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    const existing = {
+      id: "existing-verse",
+      reference: "John 3:16",
+      translation: "esv",
+      kind: "verse",
+    } as MemorizedItem;
+    memorizationService.addVerse = vi
+      .fn()
+      .mockResolvedValue({ ok: false, reason: "duplicate" });
+    memorizationService.items = [existing];
+
+    await controller.startVerseMemorization("John 3:16", "esv");
+
+    expect(controller.practiceMemorizedItem).toEqual(existing);
   });
 });

@@ -1,5 +1,7 @@
 export type PrayerStatus = 'current' | 'answered' | 'archived';
 
+export type PrayerContentKind = 'standard' | 'verse_memorization';
+
 export interface PrayerUpdate {
   id: string;
   prayer_id: string;
@@ -40,6 +42,10 @@ export interface PrayerRequest {
   prayed_for_count?: number;
   /** Set on personal-prayer rows (legacy cache entries may only have email). */
   user_email?: string;
+  content_kind?: PrayerContentKind;
+  verse_reference?: string | null;
+  verse_translation?: string | null;
+  admin_message?: string | null;
 }
 
 export interface PrayerFilters {

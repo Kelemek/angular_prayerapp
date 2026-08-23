@@ -20,6 +20,7 @@ import { PrayerEncouragementSettingsComponent } from '../prayer-encouragement-se
 import { RichTextEditorsSettingsComponent } from '../rich-text-editors-settings/rich-text-editors-settings.component';
 import { PlanningCenterListMapperComponent } from '../planning-center-list-mapper/planning-center-list-mapper.component';
 import { MemorizationRecommendationsManagerComponent } from '../memorization-recommendations-manager/memorization-recommendations-manager.component';
+import { VerseMemorizationPrayerManagerComponent } from '../verse-memorization-prayer-manager/verse-memorization-prayer-manager.component';
 import { MemorizationReciteSettingsComponent } from '../memorization-recite-settings/memorization-recite-settings.component';
 import { AdminSiteAnalyticsPanelComponent } from '../admin-site-analytics-panel/admin-site-analytics-panel.component';
 import { AdminSettingsToolsPanelComponent } from '../admin-settings-tools-panel/admin-settings-tools-panel.component';
@@ -46,6 +47,7 @@ import type { AnalyticsStats } from '../../services/analytics.service';
     PlanningCenterListMapperComponent,
     MemorizationRecommendationsManagerComponent,
     MemorizationReciteSettingsComponent,
+    VerseMemorizationPrayerManagerComponent,
     AdminSettingsToolsPanelComponent,
   ],
   template: `
@@ -179,6 +181,11 @@ import type { AnalyticsStats } from '../../services/analytics.service';
             <app-memorization-recommendations-manager
               #memorizeRecommendationsManager
             ></app-memorization-recommendations-manager>
+          </div>
+          <div class="mb-4">
+            <app-verse-memorization-prayer-manager
+              #verseMemorizationPrayerManager
+            ></app-verse-memorization-prayer-manager>
           </div>
           <div class="mb-4">
             <app-memorization-recite-settings></app-memorization-recite-settings>

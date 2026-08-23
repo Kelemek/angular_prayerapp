@@ -1,7 +1,16 @@
+import type { PrayerContentKind } from './prayer-types';
+
 /** Minimal prayer identity for card-type helpers (home, presentation, print). */
 export interface PrayerCardIdentity {
   id: string;
   user_email?: string | null;
+  content_kind?: PrayerContentKind | null;
+}
+
+export function isVerseMemorizationPrayer(
+  prayer: PrayerCardIdentity | null | undefined
+): boolean {
+  return prayer?.content_kind === 'verse_memorization';
 }
 
 export function isMemberPrayerId(prayerId: string | null | undefined): boolean {

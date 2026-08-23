@@ -32,4 +32,5 @@ export interface HomePrayerContentHandlers {
   openMemorizationRecommendations(): void;
   openMemorizationPractice(item: MemorizedItem): void;
   confirmRemoveMemorizedItem(item: MemorizedItem): void;
+  onCardMemorizeVerse(prayer: PrayerRequest): void;
 }

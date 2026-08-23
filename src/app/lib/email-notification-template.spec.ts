@@ -7,7 +7,9 @@ import {
 import {
   buildAdminPortalLink,
   buildAppHomeLink,
+  buildMemorizeVerseAppLink,
   buildSubscriberAppLink,
+  buildViewPrayerAppLink,
   resolveEmailBaseUrl,
 } from "./email-notification-links";
 import {
@@ -88,6 +90,20 @@ describe("email-notification-links", () => {
     );
     expect(buildAdminPortalLink("https://app.example.com/")).toBe(
       "https://app.example.com/admin"
+    );
+  });
+
+  it("buildMemorizeVerseAppLink encodes memorize filter and verse params", () => {
+    expect(
+      buildMemorizeVerseAppLink("https://app.example.com", "John 3:16", "esv")
+    ).toBe(
+      "https://app.example.com/?filter=memorize&verseRef=John+3%3A16&verseTranslation=esv"
+    );
+  });
+
+  it("buildViewPrayerAppLink encodes current filter and prayer id", () => {
+    expect(buildViewPrayerAppLink("https://app.example.com", "prayer-1")).toBe(
+      "https://app.example.com/?filter=current&prayerId=prayer-1"
     );
   });
 });

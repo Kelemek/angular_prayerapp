@@ -20,6 +20,10 @@ export interface PrayerRequest {
   display_order?: number;
   /** Present on Admin queue rows after a Planning Center email lookup. */
   in_planning_center?: boolean | null;
+  content_kind?: PrayerContentKind;
+  verse_reference?: string | null;
+  verse_translation?: string | null;
+  admin_message?: string | null;
 }
 
 export interface PrayerUpdate {
@@ -100,6 +104,8 @@ export const PrayerStatus = {
 } as const;
 
 export type PrayerStatus = typeof PrayerStatus[keyof typeof PrayerStatus];
+
+export type PrayerContentKind = 'standard' | 'verse_memorization';
 
 // Permission levels for user actions
 export type AllowanceLevel = 'everyone' | 'admin-only' | 'original-requestor';

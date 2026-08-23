@@ -136,6 +136,18 @@ export function wireHomeCoordinators(
       deps.personalCategory.selectPersonalCategoryFilterMode(mode),
     applyPrayerFilters: (filters) => deps.prayerService.applyFilters(filters),
     refreshHomeCatalog: () => page.refreshHomeCatalog(),
+    applyPendingVerseMemorizationDeepLink: () => {
+      const pending = deps.deepLinkCoordinator.consumePendingVerseMemorization();
+      if (!pending) {
+        return;
+      }
+      deepLinkHost.stripQueryParam("verseRef");
+      deepLinkHost.stripQueryParam("verseTranslation");
+      void deps.memorizationPanel.startVerseMemorization(
+        pending.reference,
+        pending.translation
+      );
+    },
   });
   deps.deepLinkCoordinator.bindHost(deepLinkHost);
 
@@ -278,6 +290,12 @@ export function wireHomeCoordinators(
       deps.memorizationPanel.syncMemorizedItems(items),
     syncRecommendationGroups: () =>
       deps.memorizationPanel.syncRecommendationGroups(),
+    stripVerseMemorizationQueryParams: () => {
+      deepLinkHost.stripQueryParam("verseRef");
+      deepLinkHost.stripQueryParam("verseTranslation");
+    },
+    startVerseMemorization: (reference, translation) =>
+      deps.memorizationPanel.startVerseMemorization(reference, translation),
   });
   deps.lifecycleCoordinator.bindHost(lifecycleHost, {
     router: deps.router,

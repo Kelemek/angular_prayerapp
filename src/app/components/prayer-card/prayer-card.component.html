@@ -42,13 +42,25 @@
         [personalDragTourId]="personalDragTourId"
         [displayRequester]="viewState.displayRequester"
         [showDescription]="viewState.showDescription"
+        [isVerseMemorization]="viewState.showMemorizeButton"
         [showsCommunityUnreadBadges]="viewState.showsCommunityUnreadBadges"
         [prayerBadge$]="prayerBadge$"
         [badgeService]="badgeService"
         (markPrayerRead)="markPrayerAsRead()"
       />
 
-      @if (viewState.showAddUpdateButton) {
+      @if (viewState.showMemorizeButton) {
+      <div [class]="'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
+        <button
+          type="button"
+          (click)="memorizeVerse.emit()"
+          title="Open Memorize tab and practice this verse"
+          [class]="variantLayout.actionButtonClasses + ' btn-chip btn-chip-blue'"
+        >
+          Memorize
+        </button>
+      </div>
+      } @else if (viewState.showAddUpdateButton) {
       <app-prayer-card-actions-row
         [variantLayout]="variantLayout"
         [showTourAnchors]="showTourAnchors"
@@ -67,6 +79,7 @@
       />
       }
 
+      @if (!viewState.showMemorizeButton) {
       <app-prayer-card-updates-section
         [variantLayout]="variantLayout"
         [prayerUpdates]="prayerUpdateList"
@@ -87,6 +100,7 @@
         (toggleAnswered)="toggleMemberUpdateAnswered($event)"
         (markUpdateRead)="markUpdateAsRead($event)"
       />
+      }
     </div>
 
     <!-- Outside bg-card-shell-fill (isolation: isolate) so fixed modals stack above filter tabs and later cards. -->

@@ -3,6 +3,7 @@ import {
   isCommunityPrayerCard,
   isMemberPrayerId,
   isPersonalPrayerCard,
+  isVerseMemorizationPrayer,
   getPrayerCardMutationKind,
 } from './prayer-card-kind';
 
@@ -24,5 +25,15 @@ describe('prayer-card-kind', () => {
       'personal'
     );
     expect(getPrayerCardMutationKind({ id: 'p1' })).toBe('community');
+  });
+
+  it('isVerseMemorizationPrayer detects content_kind verse_memorization', () => {
+    expect(
+      isVerseMemorizationPrayer({ id: 'p1', content_kind: 'verse_memorization' })
+    ).toBe(true);
+    expect(isVerseMemorizationPrayer({ id: 'p1', content_kind: 'standard' })).toBe(
+      false
+    );
+    expect(isVerseMemorizationPrayer({ id: 'p1' })).toBe(false);
   });
 });

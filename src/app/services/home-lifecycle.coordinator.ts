@@ -70,6 +70,9 @@ export interface HomeLifecycleHost {
   ): Promise<void>;
   syncMemorizedItems(items: MemorizedItem[]): void;
   syncRecommendationGroups(): void;
+  applyVerseMemorizationDeepLinkFromCoordinator(
+    coordinator: HomeDeepLinkCoordinator
+  ): void;
 }
 
 export interface HomeLifecycleServices {
@@ -116,6 +119,8 @@ export class HomeLifecycleCoordinator {
       filter: initialTree.queryParams["filter"],
       prayerId: initialTree.queryParams["prayerId"],
       promptId: initialTree.queryParams["promptId"],
+      verseRef: initialTree.queryParams["verseRef"],
+      verseTranslation: initialTree.queryParams["verseTranslation"],
     });
 
     services.analyticsService.trackPageView();
@@ -144,6 +149,8 @@ export class HomeLifecycleCoordinator {
             filter: tree.queryParams["filter"],
             prayerId: tree.queryParams["prayerId"],
             promptId: tree.queryParams["promptId"],
+            verseRef: tree.queryParams["verseRef"],
+            verseTranslation: tree.queryParams["verseTranslation"],
           },
           host.getViewReady()
         );
@@ -283,6 +290,11 @@ export class HomeLifecycleCoordinator {
         }
         if (fromEmail) {
           host.stripFilterQueryParam();
+          if (fromEmail === "memorize") {
+            host.applyVerseMemorizationDeepLinkFromCoordinator(
+              services.deepLinkCoordinator
+            );
+          }
         }
         host.setViewReady(true);
         services.deepLinkCoordinator.applyPendingDeepLinksOnViewReady();

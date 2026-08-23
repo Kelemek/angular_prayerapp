@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Verse Memorization of the Week (admin Content)
+- Admins send a weekly-style verse memorization prayer from **Settings → Content → Verse Memorization of the Week** ([`verse-memorization-prayer-manager`](src/app/components/verse-memorization-prayer-manager/verse-memorization-prayer-manager.component.ts)). Pick a passage (same Bible picker as Memorize Recommendations), optional message, **Send** — inserts an already-approved community prayer (`content_kind = verse_memorization`), broadcasts dedicated email (`verse_memorization_prayer` template) and push immediately (no Pending Approvals queue). Current tab shows a verse card with **Memorize** (not Add Update / Pray For). Email/push/card Memorize deep-link to `/?filter=memorize&verseRef=…&verseTranslation=…`; [`home-memorization-panel.controller`](src/app/services/home-memorization-panel.controller.ts) adds the verse if needed and opens practice. Migration [`20260823120000_verse_memorization_prayer.sql`](supabase/migrations/20260823120000_verse_memorization_prayer.sql). Daily [`send-prayer-reminders`](supabase/functions/send-prayer-reminders/index.ts) auto-archives `verse_memorization` prayers on Current after **30 days** from `approved_at` (silent; independent of general auto-archive settings).
+
 ### Fix — card actions overflow menu under later prayer cards
 - The hamburger actions menu was clipped under the next card in the list. Root cause: same `isolation: isolate` on `bg-shell-corner-seal` that trapped card modals before the modals-stack move. [`card-actions-overflow-menu`](src/app/components/card-actions-overflow-menu/card-actions-overflow-menu.component.ts) now body-portals its `fixed` panel (same pattern as scripture hover previews) so it stacks above later cards while staying below modal overlays (`z-50` vs `z-modal-overlay`).
 

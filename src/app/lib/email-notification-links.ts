@@ -40,3 +40,36 @@ export function buildAppHomeLink(baseUrl: string): string {
 export function buildAdminPortalLink(baseUrl: string): string {
   return `${baseUrl.replace(/\/$/, "")}/admin`;
 }
+
+/** Deep link to Memorize tab with optional verse add/practice intent. */
+export function buildMemorizeVerseAppLink(
+  baseUrl: string,
+  reference: string,
+  translation: string
+): string {
+  const base = baseUrl.replace(/\/$/, "");
+  const params = new URLSearchParams({
+    filter: "memorize",
+    verseRef: reference.trim(),
+    verseTranslation: translation.trim(),
+  });
+  if (!base) {
+    return `/?${params.toString()}`;
+  }
+  return `${base}/?${params.toString()}`;
+}
+
+export function buildViewPrayerAppLink(
+  baseUrl: string,
+  prayerId: string
+): string {
+  const base = baseUrl.replace(/\/$/, "");
+  const params = new URLSearchParams({
+    filter: "current",
+    prayerId: prayerId.trim(),
+  });
+  if (!base) {
+    return `/?${params.toString()}`;
+  }
+  return `${base}/?${params.toString()}`;
+}

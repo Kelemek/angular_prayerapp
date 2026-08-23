@@ -52,6 +52,7 @@ export interface HomeDeepLinkHost {
   isPromptInCatalog(promptId: string): boolean;
   arePromptsStillLoading(): boolean;
   requestFreshPromptCatalog(): void;
+  applyPendingVerseMemorizationDeepLink(): void;
 }
 
 export interface HomeDeepLinkHostDependencies {
@@ -71,6 +72,7 @@ export interface HomeDeepLinkHostDependencies {
     search?: string;
   }) => void;
   refreshHomeCatalog: () => void;
+  applyPendingVerseMemorizationDeepLink: () => void;
 }
 
 export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
@@ -88,7 +90,9 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
     this.deps.setFilter(filter);
   }
 
-  stripQueryParam(key: "filter" | "prayerId" | "promptId"): void {
+  stripQueryParam(
+    key: "filter" | "prayerId" | "promptId" | "verseRef" | "verseTranslation"
+  ): void {
     const q: Params = { ...(this.deps.route.snapshot?.queryParams ?? {}) };
     delete q[key];
     void this.deps.router.navigate([], {
@@ -208,6 +212,10 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
 
   requestFreshPromptCatalog(): void {
     void this.deps.promptService.loadPrompts(true);
+  }
+
+  applyPendingVerseMemorizationDeepLink(): void {
+    this.deps.applyPendingVerseMemorizationDeepLink();
   }
 
   private applyPersonalFilterForDeepLink(prayerId?: string): boolean {

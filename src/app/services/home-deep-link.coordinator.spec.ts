@@ -23,6 +23,7 @@ describe("HomeDeepLinkCoordinator", () => {
       isPromptInCatalog: vi.fn(() => true),
       arePromptsStillLoading: vi.fn(() => false),
       requestFreshPromptCatalog: vi.fn(),
+      applyPendingVerseMemorizationDeepLink: vi.fn(),
     };
     coordinator.bindHost(host);
   });
@@ -93,5 +94,38 @@ describe("HomeDeepLinkCoordinator", () => {
     coordinator.retryPendingPromptDeepLinkIfNeeded();
 
     expect(host.setFilter).not.toHaveBeenCalled();
+  });
+
+  it("captures verse memorization deep link params", () => {
+    coordinator.captureInitialQueryParams({
+      verseRef: "John 3:16",
+      verseTranslation: "esv",
+    });
+
+    expect(coordinator.consumePendingVerseMemorization()).toEqual({
+      reference: "John 3:16",
+      translation: "esv",
+    });
+    expect(coordinator.consumePendingVerseMemorization()).toBeNull();
+  });
+
+  it("applies verse memorization deep link when memorize filter is active", () => {
+    coordinator.captureInitialQueryParams({
+      filter: "memorize",
+      verseRef: "Romans 8:28",
+      verseTranslation: "niv",
+    });
+
+    coordinator.handleNavigationDeepLinks(
+      {
+        filter: "memorize",
+        verseRef: "Romans 8:28",
+        verseTranslation: "niv",
+      },
+      true
+    );
+
+    expect(host.setFilter).toHaveBeenCalledWith("memorize");
+    expect(host.applyPendingVerseMemorizationDeepLink).toHaveBeenCalled();
   });
 });

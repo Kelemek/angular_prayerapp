@@ -382,6 +382,17 @@ export function createHomePageShellHandlers(
         deps.memorizationPanel.openMemorizationPractice(item),
       confirmRemoveMemorizedItem: (item) =>
         deps.memorizationPanel.confirmRemoveMemorizedItem(item),
+      onCardMemorizeVerse: (prayer) => {
+        deps.filter.setFilter("memorize");
+        const reference = prayer.verse_reference?.trim() ?? prayer.title.trim();
+        const translation = prayer.verse_translation?.trim() ?? "esv";
+        if (reference) {
+          void deps.memorizationPanel.startVerseMemorization(
+            reference,
+            translation
+          );
+        }
+      },
     },
   };
 }

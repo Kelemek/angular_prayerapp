@@ -5,6 +5,7 @@ import type { MemorizationService } from "./memorization.service";
 import type { MemorizationRecommendationsService } from "./memorization-recommendations.service";
 import type { ToastService } from "./toast.service";
 import type {
+  BibleTranslation,
   MemorizedItem,
   MemorizationInProgressSavePayload,
   MemorizationRecommendation,
@@ -143,6 +144,60 @@ export class HomeMemorizationPanelController {
       this.addingRecommendationId = null;
       this.requireHost().markForCheck();
     }
+  }
+
+  async startVerseMemorization(
+    reference: string,
+    translation: string
+  ): Promise<void> {
+    const memorizationService = this.requireMemorizationService();
+    const toastService = this.requireToastService();
+    const normalizedRef = reference.trim();
+    const normalizedTranslation = translation.trim();
+
+    if (!normalizedRef) {
+      return;
+    }
+
+    await memorizationService.loadItems();
+
+    const existing = memorizationService.items.find(
+      (item) =>
+        (item.kind === "verse" || item.kind == null) &&
+        item.reference === normalizedRef &&
+        item.translation === normalizedTranslation
+    );
+
+    if (!existing) {
+      const result = await memorizationService.addVerse(
+        normalizedRef,
+        normalizedTranslation as BibleTranslation
+      );
+      if (!result.ok && result.reason === "no_user") {
+        toastService.error("Sign in to add verses to memorize.");
+        return;
+      }
+      if (!result.ok && result.reason !== "duplicate") {
+        toastService.error("Could not save this passage.");
+        return;
+      }
+    }
+
+    const item =
+      memorizationService.items.find(
+        (entry) =>
+          (entry.kind === "verse" || entry.kind == null) &&
+          entry.reference === normalizedRef &&
+          entry.translation === normalizedTranslation
+      ) ?? null;
+
+    if (!item) {
+      toastService.error("Could not open this passage for memorization.");
+      return;
+    }
+
+    this.syncMemorizedItems(memorizationService.items);
+    this.openMemorizationPractice(item);
   }
 
   openMemorizationPractice(item: MemorizedItem): void {

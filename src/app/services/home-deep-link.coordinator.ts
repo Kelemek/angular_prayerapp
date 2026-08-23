@@ -7,7 +7,12 @@ export type HomeEmailFilterTab =
   | "archived"
   | "memorize";
 
-export type HomeDeepLinkQueryParamKey = "filter" | "prayerId" | "promptId";
+export type HomeDeepLinkQueryParamKey =
+  | "filter"
+  | "prayerId"
+  | "promptId"
+  | "verseRef"
+  | "verseTranslation";
 
 const MAX_DEEP_LINK_SCROLL_BURSTS = 12;
 
@@ -24,6 +29,8 @@ export class HomeDeepLinkCoordinator {
   private promptDeepLinkScrollGeneration = 0;
   private promptDeepLinkScrollBurstCount = 0;
   private promptDeepLinkFreshCatalogRequested = false;
+  private pendingVerseReference: string | null = null;
+  private pendingVerseTranslation: string | null = null;
 
   bindHost(host: HomeDeepLinkHost): void {
     this.host = host;
@@ -33,6 +40,8 @@ export class HomeDeepLinkCoordinator {
     filter?: string | null;
     prayerId?: string | null;
     promptId?: string | null;
+    verseRef?: string | null;
+    verseTranslation?: string | null;
   }): void {
     const filter = params.filter;
     if (
@@ -53,6 +62,25 @@ export class HomeDeepLinkCoordinator {
       this.pendingPromptIdScroll = promptId;
       this.promptDeepLinkScrollBurstCount = 0;
     }
+    this.captureVerseMemorizationParams(params.verseRef, params.verseTranslation);
+  }
+
+  consumePendingVerseMemorization(): {
+    reference: string;
+    translation: string;
+  } | null {
+    const reference = this.pendingVerseReference;
+    const translation = this.pendingVerseTranslation;
+    if (!reference || !translation) {
+      return null;
+    }
+    this.pendingVerseReference = null;
+    this.pendingVerseTranslation = null;
+    return { reference, translation };
+  }
+
+  hasPendingVerseMemorization(): boolean {
+    return !!this.pendingVerseReference && !!this.pendingVerseTranslation;
   }
 
   consumeInitialEmailFilterTab(): HomeEmailFilterTab | null {
@@ -66,6 +94,8 @@ export class HomeDeepLinkCoordinator {
       filter?: string | null;
       prayerId?: string | null;
       promptId?: string | null;
+      verseRef?: string | null;
+      verseTranslation?: string | null;
     },
     viewReady: boolean
   ): void {
@@ -73,36 +103,48 @@ export class HomeDeepLinkCoordinator {
     const deepLinkPrayerId = this.normalizeId(params.prayerId);
     const deepLinkPromptId = this.normalizeId(params.promptId);
 
-    if (viewReady) {
+    if (!viewReady) {
       if (deepLinkFilter) {
-        this.host?.setFilter(deepLinkFilter);
-        this.host?.markForCheck();
-        this.host?.stripQueryParam("filter");
-      }
-      if (deepLinkPrayerId) {
+        this.initialEmailFilterTab = deepLinkFilter;
+      } else if (deepLinkPrayerId) {
         this.pendingPrayerIdScroll = deepLinkPrayerId;
         this.prayerDeepLinkScrollBurstCount = 0;
-        this.openPrayerDeepLink(deepLinkPrayerId);
-        this.host?.stripQueryParam("prayerId");
-      }
-      if (deepLinkPromptId) {
+      } else if (deepLinkPromptId) {
         this.pendingPromptIdScroll = deepLinkPromptId;
         this.promptDeepLinkScrollBurstCount = 0;
-        this.openPromptDeepLink(deepLinkPromptId);
-        this.host?.markForCheck();
-        this.host?.stripQueryParam("promptId");
       }
+      this.captureVerseMemorizationParams(params.verseRef, params.verseTranslation);
       return;
     }
 
     if (deepLinkFilter) {
-      this.initialEmailFilterTab = deepLinkFilter;
-    } else if (deepLinkPrayerId) {
+      this.host?.setFilter(deepLinkFilter);
+      this.host?.markForCheck();
+      this.host?.stripQueryParam("filter");
+      if (deepLinkFilter === "memorize" && this.hasPendingVerseMemorization()) {
+        this.host?.applyPendingVerseMemorizationDeepLink();
+      }
+    }
+    if (deepLinkPrayerId) {
       this.pendingPrayerIdScroll = deepLinkPrayerId;
       this.prayerDeepLinkScrollBurstCount = 0;
-    } else if (deepLinkPromptId) {
+      this.openPrayerDeepLink(deepLinkPrayerId);
+      this.host?.stripQueryParam("prayerId");
+    }
+    if (deepLinkPromptId) {
       this.pendingPromptIdScroll = deepLinkPromptId;
       this.promptDeepLinkScrollBurstCount = 0;
+      this.openPromptDeepLink(deepLinkPromptId);
+      this.host?.markForCheck();
+      this.host?.stripQueryParam("promptId");
+    }
+    this.captureVerseMemorizationParams(params.verseRef, params.verseTranslation);
+    if (
+      !deepLinkFilter &&
+      this.host?.getActiveFilter() === "memorize" &&
+      this.hasPendingVerseMemorization()
+    ) {
+      this.host?.applyPendingVerseMemorizationDeepLink();
     }
   }
 
@@ -116,6 +158,12 @@ export class HomeDeepLinkCoordinator {
       const id = this.pendingPromptIdScroll;
       this.openPromptDeepLink(id);
       this.host?.stripQueryParam("promptId");
+    }
+    if (
+      this.host?.getActiveFilter() === "memorize" &&
+      this.hasPendingVerseMemorization()
+    ) {
+      this.host?.applyPendingVerseMemorizationDeepLink();
     }
   }
 
@@ -214,6 +262,18 @@ export class HomeDeepLinkCoordinator {
     }
     const trimmed = value.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private captureVerseMemorizationParams(
+    verseRef: string | null | undefined,
+    verseTranslation: string | null | undefined
+  ): void {
+    const reference = this.normalizeId(verseRef);
+    const translation = this.normalizeId(verseTranslation);
+    if (reference && translation) {
+      this.pendingVerseReference = reference;
+      this.pendingVerseTranslation = translation;
+    }
   }
 
   private ensureFreshCatalogForPrayerDeepLink(prayerId: string): void {
