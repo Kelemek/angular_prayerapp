@@ -44,6 +44,7 @@ export interface PrayerCardViewState {
   showDeleteButton: boolean;
   showReminderButton: boolean;
   showAddUpdateButton: boolean;
+  isVerseMemorizationPrayer: boolean;
   showMemorizeButton: boolean;
   showUpdateDeleteButton: boolean;
   showPrayedForBadge: boolean;
@@ -97,6 +98,7 @@ export function computePrayerCardViewState(
     ),
     showAddUpdateButton:
       !isVersePrayer && showPrayerCardAddUpdateButton(permissionContext),
+    isVerseMemorizationPrayer: isVersePrayer,
     showMemorizeButton: isVersePrayer && !isPersonal,
     showUpdateDeleteButton: showPrayerCardUpdateDeleteButton(permissionContext),
     showPrayedForBadge: showPrayerCardPrayedForBadge(

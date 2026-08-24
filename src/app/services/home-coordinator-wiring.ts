@@ -144,8 +144,11 @@ export function wireHomeCoordinators(
         stripQueryParams: () => {
           deepLinkHost.stripQueryParams("verseRef", "verseTranslation");
         },
-        beginFromCard: (reference) =>
-          deps.memorizationPanel.beginVerseMemorizationFromCard(reference),
+        beginFromCard: (reference, translation) =>
+          deps.memorizationPanel.beginVerseMemorizationFromCard(
+            reference,
+            translation
+          ),
       });
     },
   });

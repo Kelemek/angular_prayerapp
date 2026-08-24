@@ -37,6 +37,21 @@ describe('VerseMemorizationTranslationModalComponent', () => {
     expect(component.selectedTranslation).toBe('niv');
   });
 
+  it('prefers suggested translation over user preference when modal opens', () => {
+    getPreferredTranslation.mockReturnValue('esv');
+    component.suggestedTranslation = 'kjv';
+    component.isOpen = true;
+    component.ngOnChanges({
+      isOpen: {
+        currentValue: true,
+        previousValue: false,
+        firstChange: false,
+        isFirstChange: () => false,
+      },
+    });
+    expect(component.selectedTranslation).toBe('kjv');
+  });
+
   it('updates selected translation when picker changes', () => {
     component.onTranslationChanged('kjv');
     expect(component.selectedTranslation).toBe('kjv');

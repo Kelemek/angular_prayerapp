@@ -16,6 +16,7 @@ import { VerseMemorizationTranslationModalComponent } from "../verse-memorizatio
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
 import type { PrayerRequest, PrayerUpdate } from "../../services/prayer.service";
 import type {
+  BibleTranslation,
   MemorizationRecommendationCategoryGroup,
   MemorizedItem,
 } from "../../types/memorization";
@@ -76,6 +77,8 @@ export class HomeModalsHostComponent {
   @Input({ required: true }) memorizedItemToRemove!: MemorizedItem | null;
   @Input({ required: true }) showVerseMemorizationTranslationModal!: boolean;
   @Input({ required: true }) pendingVerseMemorizationReference!: string | null;
+  @Input() pendingVerseMemorizationSuggestedTranslation: BibleTranslation | null =
+    null;
   @Input({ required: true }) handlers!: HomeModalsHostHandlers;
 
   @ViewChild("prayerFormComp") prayerFormComp?: PrayerFormComponent;

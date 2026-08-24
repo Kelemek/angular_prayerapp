@@ -29,7 +29,10 @@ export class HomeDeepLinkCoordinator {
   private promptDeepLinkScrollGeneration = 0;
   private promptDeepLinkScrollBurstCount = 0;
   private promptDeepLinkFreshCatalogRequested = false;
-  private pendingVerseReference: string | null = null;
+  private pendingVerseMemorization: {
+    reference: string;
+    translation?: string;
+  } | null = null;
 
   bindHost(host: HomeDeepLinkHost): void {
     this.host = host;
@@ -61,20 +64,26 @@ export class HomeDeepLinkCoordinator {
       this.pendingPromptIdScroll = promptId;
       this.promptDeepLinkScrollBurstCount = 0;
     }
-    this.captureVerseMemorizationParams(params.verseRef);
+    this.captureVerseMemorizationParams(
+      params.verseRef,
+      params.verseTranslation
+    );
   }
 
-  consumePendingVerseMemorization(): { reference: string } | null {
-    const reference = this.pendingVerseReference;
-    if (!reference) {
+  consumePendingVerseMemorization(): {
+    reference: string;
+    translation?: string;
+  } | null {
+    const pending = this.pendingVerseMemorization;
+    if (!pending) {
       return null;
     }
-    this.pendingVerseReference = null;
-    return { reference };
+    this.pendingVerseMemorization = null;
+    return pending;
   }
 
   hasPendingVerseMemorization(): boolean {
-    return !!this.pendingVerseReference;
+    return !!this.pendingVerseMemorization;
   }
 
   consumeInitialEmailFilterTab(): HomeEmailFilterTab | null {
@@ -107,11 +116,17 @@ export class HomeDeepLinkCoordinator {
         this.pendingPromptIdScroll = deepLinkPromptId;
         this.promptDeepLinkScrollBurstCount = 0;
       }
-      this.captureVerseMemorizationParams(params.verseRef);
+      this.captureVerseMemorizationParams(
+        params.verseRef,
+        params.verseTranslation
+      );
       return;
     }
 
-    this.captureVerseMemorizationParams(params.verseRef);
+    this.captureVerseMemorizationParams(
+      params.verseRef,
+      params.verseTranslation
+    );
 
     if (deepLinkFilter) {
       this.host?.setFilter(deepLinkFilter);
@@ -246,13 +261,17 @@ export class HomeDeepLinkCoordinator {
   }
 
   private captureVerseMemorizationParams(
-    verseRef: string | null | undefined
+    verseRef: string | null | undefined,
+    verseTranslation?: string | null | undefined
   ): void {
     const reference = this.normalizeId(verseRef);
     if (!reference) {
       return;
     }
-    this.pendingVerseReference = reference;
+    const translation = this.normalizeId(verseTranslation);
+    this.pendingVerseMemorization = translation
+      ? { reference, translation }
+      : { reference };
   }
 
   private applyPendingVerseMemorizationIfNeeded(): void {

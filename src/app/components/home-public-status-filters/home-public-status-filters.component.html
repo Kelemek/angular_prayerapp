@@ -18,6 +18,7 @@
     @if (badgesEnabled && currentBadge > 0) {
     <app-home-filter-badge-button
       [count]="currentBadge"
+      [compact]="true"
       title="Mark all current prayers as read"
       ariaLabel="Mark all current prayers as read"
       (markRead)="badgeService.markAllAsReadByStatus('prayers', 'current')"
@@ -40,6 +41,7 @@
     @if (badgesEnabled && answeredBadge > 0) {
     <app-home-filter-badge-button
       [count]="answeredBadge"
+      [compact]="true"
       title="Mark all answered prayers as read"
       ariaLabel="Mark all answered prayers as read"
       (markRead)="badgeService.markAllAsReadByStatus('prayers', 'answered')"

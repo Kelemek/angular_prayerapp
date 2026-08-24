@@ -77,6 +77,6 @@ describe("createHomePageShellHandlers", () => {
     } as never);
 
     expect(setFilter).toHaveBeenCalledWith("memorize");
-    expect(beginVerseMemorizationFromCard).toHaveBeenCalledWith("John 3:16");
+    expect(beginVerseMemorizationFromCard).toHaveBeenCalledWith("John 3:16", "esv");
   });
 });

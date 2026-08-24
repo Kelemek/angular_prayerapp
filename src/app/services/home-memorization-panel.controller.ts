@@ -35,6 +35,7 @@ export class HomeMemorizationPanelController {
   memorizedItemToRemove: MemorizedItem | null = null;
   showVerseMemorizationTranslationModal = false;
   pendingVerseMemorizationReference: string | null = null;
+  pendingVerseMemorizationSuggestedTranslation: BibleTranslation | null = null;
 
   private host: HomeMemorizationPanelHost | null = null;
   private memorizationService: MemorizationService | null = null;
@@ -149,17 +150,25 @@ export class HomeMemorizationPanelController {
     }
   }
 
-  promptVerseMemorizationTranslation(reference: string): void {
+  promptVerseMemorizationTranslation(
+    reference: string,
+    suggestedTranslation?: BibleTranslation | string | null
+  ): void {
     const normalizedRef = reference.trim();
     if (!normalizedRef) {
       return;
     }
     this.pendingVerseMemorizationReference = normalizedRef;
+    this.pendingVerseMemorizationSuggestedTranslation =
+      this.normalizeRequestedTranslation(suggestedTranslation) ?? null;
     this.showVerseMemorizationTranslationModal = true;
     this.requireHost().markForCheck();
   }
 
-  async beginVerseMemorizationFromCard(reference: string): Promise<void> {
+  async beginVerseMemorizationFromCard(
+    reference: string,
+    suggestedTranslation?: BibleTranslation | string | null
+  ): Promise<void> {
     const normalizedRef = reference.trim();
     if (!normalizedRef) {
       return;
@@ -178,13 +187,17 @@ export class HomeMemorizationPanelController {
       return;
     }
 
-    this.promptVerseMemorizationTranslation(normalizedRef);
+    this.promptVerseMemorizationTranslation(
+      normalizedRef,
+      suggestedTranslation
+    );
   }
 
   confirmVerseMemorizationTranslation(translation: BibleTranslation): void {
     const reference = this.pendingVerseMemorizationReference;
     this.showVerseMemorizationTranslationModal = false;
     this.pendingVerseMemorizationReference = null;
+    this.pendingVerseMemorizationSuggestedTranslation = null;
     this.requireHost().markForCheck();
     if (reference) {
       void this.openVerseMemorizationPractice(reference, translation);
@@ -194,6 +207,7 @@ export class HomeMemorizationPanelController {
   cancelVerseMemorizationTranslation(): void {
     this.showVerseMemorizationTranslationModal = false;
     this.pendingVerseMemorizationReference = null;
+    this.pendingVerseMemorizationSuggestedTranslation = null;
     this.requireHost().markForCheck();
   }
 
@@ -202,7 +216,6 @@ export class HomeMemorizationPanelController {
     translation: string,
     options?: { itemsAlreadyLoaded?: boolean }
   ): Promise<void> {
-    const memorizationService = this.requireMemorizationService();
     const toastService = this.requireToastService();
     const normalizedRef = reference.trim();
     const trimmedTranslation = translation.trim();
@@ -210,52 +223,24 @@ export class HomeMemorizationPanelController {
       trimmedTranslation
     )
       ? trimmedTranslation
-      : memorizationService.getPreferredTranslation();
+      : this.requireMemorizationService().getPreferredTranslation();
 
     if (!normalizedRef) {
       return;
     }
 
-    if (!options?.itemsAlreadyLoaded) {
-      await memorizationService.loadItems();
-    }
-
-    const existing = memorizationService.items.find(
-      (item) =>
-        (item.kind === "verse" || item.kind == null) &&
-        item.reference === normalizedRef &&
-        item.translation === normalizedTranslation
+    const item = await this.ensureVerseMemorizedItem(
+      normalizedRef,
+      normalizedTranslation,
+      options
     );
-
-    if (!existing) {
-      const result = await memorizationService.addVerse(
-        normalizedRef,
-        normalizedTranslation
-      );
-      if (!result.ok && result.reason === "no_user") {
-        toastService.error("Sign in to add verses to memorize.");
-        return;
-      }
-      if (!result.ok && result.reason !== "duplicate") {
-        toastService.error("Could not save this passage.");
-        return;
-      }
-    }
-
-    const item =
-      memorizationService.items.find(
-        (entry) =>
-          (entry.kind === "verse" || entry.kind == null) &&
-          entry.reference === normalizedRef &&
-          entry.translation === normalizedTranslation
-      ) ?? null;
 
     if (!item) {
       toastService.error("Could not open this passage for memorization.");
       return;
     }
 
-    this.syncMemorizedItems(memorizationService.items);
+    this.syncMemorizedItems(this.requireMemorizationService().items);
     this.openMemorizationPractice(item);
   }
 
@@ -373,6 +358,61 @@ export class HomeMemorizationPanelController {
       throw new Error("HomeMemorizationPanelController toastService is not bound");
     }
     return this.toastService;
+  }
+
+  private normalizeRequestedTranslation(
+    translation?: BibleTranslation | string | null
+  ): BibleTranslation | undefined {
+    const trimmed = translation?.trim();
+    if (trimmed && isBibleTranslation(trimmed)) {
+      return trimmed;
+    }
+    return undefined;
+  }
+
+  private async ensureVerseMemorizedItem(
+    reference: string,
+    translation: BibleTranslation,
+    options?: { itemsAlreadyLoaded?: boolean }
+  ): Promise<MemorizedItem | null> {
+    const memorizationService = this.requireMemorizationService();
+    const toastService = this.requireToastService();
+
+    if (!options?.itemsAlreadyLoaded) {
+      await memorizationService.loadItems();
+    }
+
+    const existing = this.findVerseMemorizationItem(reference, translation);
+    if (existing) {
+      return existing;
+    }
+
+    const result = await memorizationService.addVerse(reference, translation);
+    if (!result.ok && result.reason === "no_user") {
+      toastService.error("Sign in to add verses to memorize.");
+      return null;
+    }
+    if (!result.ok && result.reason !== "duplicate") {
+      toastService.error("Could not save this passage.");
+      return null;
+    }
+
+    return this.findVerseMemorizationItem(reference, translation);
+  }
+
+  private findVerseMemorizationItem(
+    reference: string,
+    translation: BibleTranslation
+  ): MemorizedItem | null {
+    const memorizationService = this.requireMemorizationService();
+    return (
+      memorizationService.items.find(
+        (item) =>
+          (item.kind === "verse" || item.kind == null) &&
+          item.reference === reference &&
+          item.translation === translation
+      ) ?? null
+    );
   }
 
   private findExistingVerseMemorizationItem(

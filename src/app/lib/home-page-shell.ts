@@ -13,6 +13,7 @@ import type { MemorizationRecommendationsService } from "../services/memorizatio
 import type { HomeCatalogStore } from "../services/home-catalog.store";
 import type { HomeActiveFilter } from "../services/home-deep-link-host.adapter";
 import type { PersonalCategoryFilterMode } from "../types/presentation";
+import type { BibleTranslation } from "../types/memorization";
 import type { CdkDragDrop } from "@angular/cdk/drag-drop";
 import type { HomeHeaderHandlers } from "./home-header-handlers";
 import type { HomeModalsHostHandlers } from "./home-modals-host-handlers";
@@ -93,6 +94,7 @@ export interface HomePageShell {
     readonly memorizedItemToRemove: HomeMemorizationPanelController["memorizedItemToRemove"];
     readonly showVerseMemorizationTranslationModal: boolean;
     readonly pendingVerseMemorizationReference: string | null;
+    readonly pendingVerseMemorizationSuggestedTranslation: BibleTranslation | null;
   };
   personalCategory: {
     readonly filterMode: PersonalCategoryFilterMode;
@@ -217,6 +219,9 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
     },
     get pendingVerseMemorizationReference() {
       return deps.memorizationPanel.pendingVerseMemorizationReference;
+    },
+    get pendingVerseMemorizationSuggestedTranslation() {
+      return deps.memorizationPanel.pendingVerseMemorizationSuggestedTranslation;
     },
   };
 
@@ -399,7 +404,10 @@ export function createHomePageShellHandlers(
         deps.filter.setFilter("memorize");
         const reference = verseReferenceFromPrayer(prayer);
         if (reference) {
-          void deps.memorizationPanel.beginVerseMemorizationFromCard(reference);
+          void deps.memorizationPanel.beginVerseMemorizationFromCard(
+            reference,
+            prayer.verse_translation
+          );
         }
       },
     },
