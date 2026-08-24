@@ -79,6 +79,14 @@ export interface AdminNotificationPayload {
   requestId?: string;
 }
 
+export interface VerseMemorizationPrayerPayload {
+  prayerId: string;
+  verseReference: string;
+  verseTranslation: string;
+  verseText: string;
+  adminMessage?: string | null;
+}
+
 /** Queued template for Admin → Settings → Email → manual broadcast to subscriber list. */
 export const ADMIN_SUBSCRIBER_MANUAL_BROADCAST_TEMPLATE_KEY =
   "admin_subscriber_manual_broadcast";

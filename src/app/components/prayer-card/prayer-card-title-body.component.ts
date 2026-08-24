@@ -11,6 +11,7 @@ import { RichTextViewComponent } from '../rich-text-view/rich-text-view.componen
 import type { BadgeService } from '../../services/badge.service';
 import type { PrayerRequest } from '../../services/prayer.service';
 import { isMemberPrayerId } from '../../lib/prayer-card-kind';
+import { verseMemorizationTextForDisplay } from '../../lib/verse-memorization-description';
 import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
 
 @Component({
@@ -30,6 +31,7 @@ export class PrayerCardTitleBodyComponent {
   @Input() personalDragTourId: string | null = null;
   @Input({ required: true }) displayRequester!: string;
   @Input() showDescription = false;
+  @Input() isVerseMemorization = false;
   @Input() showsCommunityUnreadBadges = false;
   @Input() prayerBadge$: Observable<boolean> | null = null;
   @Input({ required: true }) badgeService!: BadgeService;
@@ -38,6 +40,13 @@ export class PrayerCardTitleBodyComponent {
 
   isMemberPrayer(): boolean {
     return isMemberPrayerId(this.prayer?.id);
+  }
+
+  verseTextForDisplay(): string {
+    return verseMemorizationTextForDisplay(
+      this.prayer.description,
+      this.prayer.verse_reference
+    );
   }
 
   onMarkPrayerRead(): void {

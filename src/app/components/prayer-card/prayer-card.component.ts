@@ -155,6 +155,7 @@ export class PrayerCardComponent
     category: string | null;
     status: string;
   }>();
+  @Output() memorizeVerse = new EventEmitter<void>();
 
   prayerBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);

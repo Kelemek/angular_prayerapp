@@ -1,5 +1,9 @@
 import { markdownToSafeHtml } from "../../utils/markdown";
-import { buildSubscriberAppLink } from "./email-notification-links";
+import {
+  buildMemorizeVerseAppLink,
+  buildSubscriberAppLink,
+  buildViewPrayerAppLink,
+} from "./email-notification-links";
 import type {
   AdminNotificationPayload,
   ApprovedPrayerPayload,
@@ -8,6 +12,7 @@ import type {
   DeniedUpdatePayload,
   RequesterApprovalPayload,
   UpdateAuthorApprovalPayload,
+  VerseMemorizationPrayerPayload,
 } from "./email-notification-types";
 
 export function generateApprovedPrayerHTML(
@@ -504,6 +509,50 @@ export function generateWelcomeEmailHTML(baseUrl: string): string {
             <p style="margin: 10px 0;"><strong>Blessings,</strong><br>Your Prayer Community Team</p>
             <p style="margin: 10px 0; font-size: 12px;">You're receiving this email because you've joined our prayer community. This is a one-time welcome message.</p>
             <p style="margin: 10px 0; font-size: 12px;">© 2024 Prayer Community. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
+}
+
+export function generateVerseMemorizationPrayerHTML(
+  payload: VerseMemorizationPrayerPayload,
+  baseUrl: string
+): string {
+  const memorizeAppLink = buildMemorizeVerseAppLink(
+    baseUrl,
+    payload.verseReference,
+    payload.verseTranslation
+  );
+  const viewPrayerAppLink = buildViewPrayerAppLink(baseUrl, payload.prayerId);
+  const adminMessageHtml = payload.adminMessage?.trim()
+    ? `<div style="background-color:#ffffff;padding:15px;border-radius:6px;border-left:4px solid #C9A961;margin-bottom:16px;">${markdownToSafeHtml(payload.adminMessage)}</div>`
+    : "";
+  const verseTextHtml = markdownToSafeHtml(payload.verseText);
+
+  return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Verse to Memorize</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #39704D, #2d5a3d); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">📖 Verse to Memorize</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p style="color:#4b5563;margin:0 0 16px;">This week we invite you to memorize a passage of Scripture together. Use the Memorize button below to add this verse to your list and start practicing.</p>
+            ${adminMessageHtml}
+            <h2 style="color: #1f2937; margin: 16px 0 8px;">${payload.verseReference}</h2>
+            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #39704D; font-style: italic; color: #374151;">${verseTextHtml}</div>
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="${memorizeAppLink}" style="background: #39704D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Memorize</a>
+            </div>
+            <p style="margin: 20px 0 0; text-align: center; font-size: 14px; color: #6b7280;">
+              <a href="${viewPrayerAppLink}" style="color: #39704D;">View in the prayer app</a>
+            </p>
           </div>
         </body>
       </html>

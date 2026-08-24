@@ -42,6 +42,10 @@ export function formatApprovedCommunityPrayersFromDb(
       updated_at: prayer['updated_at'] as string,
       last_reminder_sent: prayer['last_reminder_sent'] as string | null | undefined,
       prayed_for_count: (prayer['prayed_for_count'] as number | undefined) ?? 0,
+      content_kind: (prayer['content_kind'] as PrayerRequest['content_kind']) ?? 'standard',
+      verse_reference: (prayer['verse_reference'] as string | null | undefined) ?? null,
+      verse_translation: (prayer['verse_translation'] as string | null | undefined) ?? null,
+      admin_message: (prayer['admin_message'] as string | null | undefined) ?? null,
       updates: updates.map((u) => ({
         id: (u as { id: string }).id,
         prayer_id: (u as { prayer_id: string }).prayer_id,

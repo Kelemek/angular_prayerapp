@@ -356,8 +356,34 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const message = emailsSent > 0 || prayersArchived > 0
-      ? `Successfully sent ${emailsSent} reminder emails${prayersArchived > 0 ? ` and archived ${prayersArchived} prayers` : ''}`
+    let verseMemorizationArchived = 0
+    const VERSE_MEMORIZATION_ARCHIVE_DAYS = 30
+    const verseArchiveCutoff = new Date(
+      Date.now() - VERSE_MEMORIZATION_ARCHIVE_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString()
+
+    const { data: verseArchiveRows, error: verseArchiveError } = await supabaseClient
+      .from('prayers')
+      .update({ status: 'archived' })
+      .eq('content_kind', 'verse_memorization')
+      .eq('status', 'current')
+      .eq('approval_status', 'approved')
+      .lt('approved_at', verseArchiveCutoff)
+      .select('id')
+
+    if (verseArchiveError) {
+      console.error('Error auto-archiving verse memorization prayers:', verseArchiveError)
+    } else {
+      verseMemorizationArchived = verseArchiveRows?.length ?? 0
+      if (verseMemorizationArchived > 0) {
+        console.log(
+          `Auto-archived ${verseMemorizationArchived} verse memorization prayer(s) older than ${VERSE_MEMORIZATION_ARCHIVE_DAYS} days`
+        )
+      }
+    }
+
+    const message = emailsSent > 0 || prayersArchived > 0 || verseMemorizationArchived > 0
+      ? `Successfully sent ${emailsSent} reminder emails${prayersArchived > 0 ? ` and archived ${prayersArchived} prayers` : ''}${verseMemorizationArchived > 0 ? ` and archived ${verseMemorizationArchived} verse memorization prayer(s)` : ''}`
       : 'No prayers need reminders at this time - all have recent updates'
 
     return new Response(
@@ -365,6 +391,7 @@ Deno.serve(async (req: Request) => {
         message,
         sent: emailsSent,
         archived: prayersArchived,
+        verseMemorizationArchived,
         total: potentialPrayers.length,
         errors: errors.length > 0 ? errors : undefined
       }),

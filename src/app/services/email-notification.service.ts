@@ -20,11 +20,14 @@ import {
   generateDeniedUpdateHTML,
   generateRequesterApprovalHTML,
   generateUpdateAuthorApprovalHTML,
+  generateVerseMemorizationPrayerHTML,
   generateWelcomeEmailHTML,
 } from "../lib/email-notification-html";
 import {
   buildAppHomeLink,
+  buildMemorizeVerseAppLink,
   buildSubscriberAppLink,
+  buildViewPrayerAppLink,
   resolveEmailBaseUrl,
 } from "../lib/email-notification-links";
 import {
@@ -42,6 +45,7 @@ import {
   type RequesterApprovalPayload,
   type SendEmailOptions,
   type UpdateAuthorApprovalPayload,
+  type VerseMemorizationPrayerPayload,
 } from "../lib/email-notification-types";
 import { PushNotificationService } from "./push-notification.service";
 import { SupabaseService } from "./supabase.service";
@@ -448,6 +452,42 @@ export class EmailNotificationService {
       );
     } catch (error) {
       console.error("Error in sendApprovedUpdateNotification:", error);
+    }
+  }
+
+  /**
+   * Broadcast when admin sends a verse memorization prayer (immediate, no approval queue).
+   */
+  async sendVerseMemorizationPrayerNotification(
+    payload: VerseMemorizationPrayerPayload
+  ): Promise<void> {
+    try {
+      const baseUrl = this.getEmailBaseUrl();
+      const memorizeAppLink = buildMemorizeVerseAppLink(
+        baseUrl,
+        payload.verseReference,
+        payload.verseTranslation
+      );
+      const viewPrayerAppLink = buildViewPrayerAppLink(baseUrl, payload.prayerId);
+      const adminMessageTrimmed = payload.adminMessage?.trim() ?? "";
+      const adminMessageBlock = adminMessageTrimmed
+        ? `<div style="background-color:#ffffff;padding:15px;border-radius:6px;border-left:4px solid #C9A961;margin-bottom:16px;">${markdownToSafeHtml(adminMessageTrimmed)}</div>`
+        : "";
+
+      await this.queueTemplateToActiveSubscribers(
+        "verse_memorization_prayer",
+        {
+          verseReference: payload.verseReference,
+          verseTextHtml: markdownToSafeHtml(payload.verseText),
+          verseTextText: markdownToPlainText(payload.verseText),
+          adminMessageBlock,
+          memorizeAppLink,
+          viewPrayerAppLink,
+        },
+        "verse memorization prayer notification"
+      );
+    } catch (error) {
+      console.error("Error in sendVerseMemorizationPrayerNotification:", error);
     }
   }
 

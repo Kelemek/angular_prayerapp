@@ -1,6 +1,7 @@
 import type { PrayerRequest, PrayerUpdate } from "../services/prayer.service";
 import type { HelpSection } from "../types/help-content";
 import type {
+  BibleTranslation,
   MemorizationInProgressSavePayload,
   MemorizationRecommendation,
   MemorizedItem,
@@ -41,6 +42,8 @@ export interface HomeModalsHostHandlers {
   openSettingsFromReciteFeedback(): void;
   confirmRemoveMemorizedItem(): void;
   cancelRemoveMemorizedItem(): void;
+  confirmVerseMemorizationTranslation(translation: BibleTranslation): void;
+  cancelVerseMemorizationTranslation(): void;
 }
 
 export type HomeModalsHostEditingPrayer = PrayerRequest | null;

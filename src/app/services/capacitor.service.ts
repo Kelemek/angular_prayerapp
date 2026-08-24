@@ -23,6 +23,7 @@ export type PushNotificationEventType =
   | 'prayer_reminder'
   | 'prayer_item_reminder'
   | 'memorization_reminder'
+  | 'verse_memorization_prayer'
   | 'generic';
 
 export interface PushNotificationEvent {

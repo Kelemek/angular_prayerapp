@@ -566,6 +566,33 @@ export class AppComponent implements OnInit {
           });
         });
 
+      // Open Memorize tab with verse when a verse memorization prayer push is tapped
+      capacitorService.notificationEvents$
+        .pipe(
+          filter((event) => event.source === "tap"),
+          filter((event) => event.type === "verse_memorization_prayer")
+        )
+        .subscribe((event) => {
+          const verseRef =
+            typeof event.data?.["verseRef"] === "string"
+              ? event.data["verseRef"]
+              : null;
+          const verseTranslation =
+            typeof event.data?.["verseTranslation"] === "string"
+              ? event.data["verseTranslation"]
+              : null;
+          const queryParams: Record<string, string> = { filter: "memorize" };
+          if (verseRef) {
+            queryParams["verseRef"] = verseRef;
+          }
+          if (verseTranslation) {
+            queryParams["verseTranslation"] = verseTranslation;
+          }
+          this.ngZone.run(() => {
+            void this.router.navigate(["/"], { queryParams });
+          });
+        });
+
       // Open home focused on a prayer when a per-prayer reminder push is tapped
       capacitorService.notificationEvents$
         .pipe(

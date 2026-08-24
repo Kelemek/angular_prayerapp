@@ -12,6 +12,7 @@ import { AddMemorizedVerseModalComponent } from "../add-memorized-verse-modal/ad
 import { AddMemorizedBibleBooksModalComponent } from "../add-memorized-bible-books-modal/add-memorized-bible-books-modal.component";
 import { MemorizationRecommendationsModalComponent } from "../memorization-recommendations-modal/memorization-recommendations-modal.component";
 import { MemorizationPracticeSessionComponent } from "../memorization-practice-session/memorization-practice-session.component";
+import { VerseMemorizationTranslationModalComponent } from "../verse-memorization-translation-modal/verse-memorization-translation-modal.component";
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
 import type { PrayerRequest, PrayerUpdate } from "../../services/prayer.service";
 import type {
@@ -36,6 +37,7 @@ import type { HomeModalsHostHandlers } from "../../lib/home-modals-host-handlers
     AddMemorizedBibleBooksModalComponent,
     MemorizationRecommendationsModalComponent,
     MemorizationPracticeSessionComponent,
+    VerseMemorizationTranslationModalComponent,
   ],
   templateUrl: "./home-modals-host.component.html",
 })
@@ -72,6 +74,8 @@ export class HomeModalsHostComponent {
   @Input({ required: true }) practiceMemorizedItem!: MemorizedItem | null;
   @Input({ required: true }) showRemoveMemorizedConfirm!: boolean;
   @Input({ required: true }) memorizedItemToRemove!: MemorizedItem | null;
+  @Input({ required: true }) showVerseMemorizationTranslationModal!: boolean;
+  @Input({ required: true }) pendingVerseMemorizationReference!: string | null;
   @Input({ required: true }) handlers!: HomeModalsHostHandlers;
 
   @ViewChild("prayerFormComp") prayerFormComp?: PrayerFormComponent;

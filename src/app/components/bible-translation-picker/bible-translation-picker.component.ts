@@ -1,18 +1,28 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
   inject,
   Input,
   Output,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MemorizationService } from '../../services/memorization.service';
+import {
+  getSafeAreaViewportBounds,
+  shouldOpenFixedPopoverUp,
+} from '../../lib/fixed-popover-placement';
 import {
   BIBLE_TRANSLATION_CODES,
   BIBLE_TRANSLATION_LABELS,
   type BibleTranslation,
 } from '../../types/memorization';
+
+const TRANSLATION_OPTION_HEIGHT_PX = 44;
+const TRANSLATION_MENU_PADDING_PX = 8;
 
 @Component({
   selector: 'app-bible-translation-picker',
@@ -35,6 +45,7 @@ import {
           [class.dark:border-gray-600]="!showDropdown"
         >
           <button
+            #triggerButton
             type="button"
             [id]="triggerId"
             (click)="toggleDropdown()"
@@ -69,7 +80,12 @@ import {
           <div
             role="listbox"
             aria-label="Bible translation options"
-            class="absolute left-0 right-0 z-[202] mt-1 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+            [class]="escapeOverflowContainer
+              ? 'fixed z-[202] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800 overflow-y-auto max-h-[min(18rem,40vh)]'
+              : 'absolute left-0 right-0 z-[202] mt-1 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800'"
+            [style.left.px]="escapeOverflowContainer ? fixedMenuPos.left : null"
+            [style.top.px]="escapeOverflowContainer ? fixedMenuPos.top : null"
+            [style.width.px]="escapeOverflowContainer ? fixedMenuPos.width : null"
           >
             @for (code of translationCodes; track code) {
               <button
@@ -95,16 +111,22 @@ import {
 })
 export class BibleTranslationPickerComponent {
   private readonly memorization = inject(MemorizationService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() translation: BibleTranslation = 'esv';
   @Input() triggerId = 'bible-translation-picker-trigger';
   @Input() triggerAriaLabel = 'Preferred Bible translation for memorization';
+  /** Portals the menu with fixed positioning so it is not clipped by modal overflow. */
+  @Input() escapeOverflowContainer = false;
   @Output() translationChange = new EventEmitter<BibleTranslation>();
+
+  @ViewChild('triggerButton') triggerButton?: ElementRef<HTMLButtonElement>;
 
   readonly translationCodes = BIBLE_TRANSLATION_CODES;
   readonly translationLabels = BIBLE_TRANSLATION_LABELS;
 
   showDropdown = false;
+  fixedMenuPos = { left: 0, top: 0, width: 0 };
 
   get isDropdownOpen(): boolean {
     return this.showDropdown;
@@ -115,7 +137,40 @@ export class BibleTranslationPickerComponent {
   }
 
   toggleDropdown(): void {
-    this.showDropdown = !this.showDropdown;
+    const nextOpen = !this.showDropdown;
+    if (nextOpen && this.escapeOverflowContainer) {
+      this.updateFixedMenuPosition();
+    }
+    this.showDropdown = nextOpen;
+    this.cdr.markForCheck();
+  }
+
+  private updateFixedMenuPosition(): void {
+    const trigger = this.triggerButton?.nativeElement;
+    if (!trigger || typeof window === 'undefined') {
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const menuHeight =
+      this.translationCodes.length * TRANSLATION_OPTION_HEIGHT_PX +
+      TRANSLATION_MENU_PADDING_PX;
+    const gap = 4;
+    const viewport = getSafeAreaViewportBounds(trigger);
+    const opensUp = shouldOpenFixedPopoverUp(
+      rect.top,
+      rect.bottom,
+      menuHeight,
+      viewport.bottom,
+      viewport.top,
+      gap
+    );
+
+    this.fixedMenuPos = {
+      left: rect.left,
+      width: rect.width,
+      top: opensUp ? rect.top - menuHeight - gap : rect.bottom + gap,
+    };
   }
 
   closeDropdown(): void {

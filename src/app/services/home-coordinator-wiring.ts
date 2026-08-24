@@ -18,6 +18,7 @@ import type { BadgeService } from "./badge.service";
 import type { PrayerCardActionsFacade } from "./prayer-card-actions.facade";
 import type { PrayerAllowancePolicyService } from "./prayer-allowance-policy.service";
 import { HomeDeepLinkCoordinator } from "./home-deep-link.coordinator";
+import { applyVerseMemorizationDeepLink } from "../lib/verse-memorization-deep-link";
 import { HomeDeepLinkHostAdapter, type HomeActiveFilter } from "./home-deep-link-host.adapter";
 import { HomeHelpTourLauncher } from "./home-help-tour.launcher";
 import {
@@ -136,6 +137,17 @@ export function wireHomeCoordinators(
       deps.personalCategory.selectPersonalCategoryFilterMode(mode),
     applyPrayerFilters: (filters) => deps.prayerService.applyFilters(filters),
     refreshHomeCatalog: () => page.refreshHomeCatalog(),
+    applyPendingVerseMemorizationDeepLink: () => {
+      applyVerseMemorizationDeepLink({
+        consumePending: () =>
+          deps.deepLinkCoordinator.consumePendingVerseMemorization(),
+        stripQueryParams: () => {
+          deepLinkHost.stripQueryParams("verseRef", "verseTranslation");
+        },
+        beginFromCard: (reference) =>
+          deps.memorizationPanel.beginVerseMemorizationFromCard(reference),
+      });
+    },
   });
   deps.deepLinkCoordinator.bindHost(deepLinkHost);
 
