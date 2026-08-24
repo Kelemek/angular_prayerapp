@@ -8,17 +8,16 @@ import {
 } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { RichTextViewComponent } from '../rich-text-view/rich-text-view.component';
-import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scripture-hover-preview.component';
 import type { BadgeService } from '../../services/badge.service';
 import type { PrayerRequest } from '../../services/prayer.service';
-import type { BibleTranslation } from '../../types/memorization';
 import { isMemberPrayerId } from '../../lib/prayer-card-kind';
+import { verseMemorizationTextForDisplay } from '../../lib/verse-memorization-description';
 import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prayer-card-title-body',
   standalone: true,
-  imports: [AsyncPipe, RichTextViewComponent, ScriptureHoverPreviewComponent],
+  imports: [AsyncPipe, RichTextViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prayer-card-title-body.component.html',
 })
@@ -43,20 +42,11 @@ export class PrayerCardTitleBodyComponent {
     return isMemberPrayerId(this.prayer?.id);
   }
 
-  verseTranslationForPreview(): BibleTranslation {
-    const translation = this.prayer.verse_translation;
-    if (
-      translation === 'esv' ||
-      translation === 'nasb' ||
-      translation === 'lsb' ||
-      translation === 'csb' ||
-      translation === 'kjv' ||
-      translation === 'niv' ||
-      translation === 'nlt'
-    ) {
-      return translation;
-    }
-    return 'esv';
+  verseTextForDisplay(): string {
+    return verseMemorizationTextForDisplay(
+      this.prayer.description,
+      this.prayer.verse_reference
+    );
   }
 
   onMarkPrayerRead(): void {

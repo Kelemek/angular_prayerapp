@@ -21,6 +21,13 @@ export type HomeActiveFilter =
   | "memorize"
   | "planning_center_list";
 
+export type HomeDeepLinkQueryParamKey =
+  | "filter"
+  | "prayerId"
+  | "promptId"
+  | "verseRef"
+  | "verseTranslation";
+
 export interface HomeDeepLinkPageState {
   activeFilter: HomeActiveFilter;
   filters: PrayerFilters;
@@ -41,7 +48,8 @@ export interface HomeDeepLinkHost {
   markForCheck(): void;
   getActiveFilter(): HomeActiveFilter;
   setFilter(filter: HomeActiveFilter): void;
-  stripQueryParam(key: "filter" | "prayerId" | "promptId"): void;
+  stripQueryParam(key: HomeDeepLinkQueryParamKey): void;
+  stripQueryParams(...keys: HomeDeepLinkQueryParamKey[]): void;
   clearDeepLinkFilters(options?: { prayerId?: string }): void;
   resolvePrayerDeepLinkTab(prayerId: string): HomeActiveFilter | null;
   isMemberPrayerId(prayerId: string): boolean;
@@ -90,11 +98,18 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
     this.deps.setFilter(filter);
   }
 
-  stripQueryParam(
-    key: "filter" | "prayerId" | "promptId" | "verseRef" | "verseTranslation"
-  ): void {
+  stripQueryParam(key: HomeDeepLinkQueryParamKey): void {
+    this.stripQueryParams(key);
+  }
+
+  stripQueryParams(...keys: HomeDeepLinkQueryParamKey[]): void {
+    if (keys.length === 0) {
+      return;
+    }
     const q: Params = { ...(this.deps.route.snapshot?.queryParams ?? {}) };
-    delete q[key];
+    for (const key of keys) {
+      delete q[key];
+    }
     void this.deps.router.navigate([], {
       relativeTo: this.deps.route,
       queryParams: q,

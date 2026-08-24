@@ -74,7 +74,7 @@ describe("HomeMemorizationPanelController", () => {
     expect(controller.practiceMemorizedItem).toBeNull();
   });
 
-  it("startVerseMemorization adds verse and opens practice when missing", async () => {
+  it("confirmVerseMemorizationTranslation adds verse and opens practice when missing", async () => {
     const memorizationService = controller["memorizationService"] as any;
     memorizationService.items = [];
     memorizationService.addVerse = vi.fn().mockImplementation(async (reference: string, translation: string) => {
@@ -88,14 +88,17 @@ describe("HomeMemorizationPanelController", () => {
       ];
       return { ok: true };
     });
+    controller.promptVerseMemorizationTranslation("John 3:16");
 
-    await controller.startVerseMemorization("John 3:16", "esv");
+    controller.confirmVerseMemorizationTranslation("esv");
 
-    expect(memorizationService.addVerse).toHaveBeenCalledWith("John 3:16", "esv");
-    expect(controller.practiceMemorizedItem?.id).toBe("new-verse");
+    await vi.waitFor(() => {
+      expect(memorizationService.addVerse).toHaveBeenCalledWith("John 3:16", "esv");
+      expect(controller.practiceMemorizedItem?.id).toBe("new-verse");
+    });
   });
 
-  it("startVerseMemorization opens practice for duplicate verse without error", async () => {
+  it("confirmVerseMemorizationTranslation opens practice for duplicate verse without error", async () => {
     const memorizationService = controller["memorizationService"] as any;
     const existing = {
       id: "existing-verse",
@@ -107,9 +110,115 @@ describe("HomeMemorizationPanelController", () => {
       .fn()
       .mockResolvedValue({ ok: false, reason: "duplicate" });
     memorizationService.items = [existing];
+    controller.promptVerseMemorizationTranslation("John 3:16");
 
-    await controller.startVerseMemorization("John 3:16", "esv");
+    controller.confirmVerseMemorizationTranslation("esv");
 
+    await vi.waitFor(() => {
+      expect(controller.practiceMemorizedItem).toEqual(existing);
+    });
+  });
+
+  it("beginVerseMemorizationFromCard opens practice when verse is already memorized", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    const existing = {
+      id: "existing-verse",
+      reference: "John 3:16",
+      translation: "niv",
+      kind: "verse",
+      inProgressPractice: { phase: { kind: "inRound" }, practiceMode: "type" },
+    } as MemorizedItem;
+    memorizationService.items = [existing];
+
+    await controller.beginVerseMemorizationFromCard("John 3:16");
+
+    expect(memorizationService.loadItems).toHaveBeenCalledTimes(1);
+    expect(controller.showVerseMemorizationTranslationModal).toBe(false);
     expect(controller.practiceMemorizedItem).toEqual(existing);
+    expect(host.primeKeyboardBridge).toHaveBeenCalled();
+  });
+
+  it("beginVerseMemorizationFromCard prompts for translation when verse is not memorized", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    memorizationService.items = [];
+    memorizationService.getPreferredTranslation = vi.fn(() => "esv");
+
+    await controller.beginVerseMemorizationFromCard("Romans 8:28");
+
+    expect(controller.showVerseMemorizationTranslationModal).toBe(true);
+    expect(controller.pendingVerseMemorizationReference).toBe("Romans 8:28");
+    expect(controller.practiceMemorizedItem).toBeNull();
+  });
+
+  it("promptVerseMemorizationTranslation opens modal", () => {
+    controller.promptVerseMemorizationTranslation(" Romans 8:28 ");
+
+    expect(controller.showVerseMemorizationTranslationModal).toBe(true);
+    expect(controller.pendingVerseMemorizationReference).toBe("Romans 8:28");
+    expect(host.markForCheck).toHaveBeenCalled();
+  });
+
+  it("confirmVerseMemorizationTranslation starts practice and clears modal state", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    memorizationService.getPreferredTranslation = vi.fn(() => "esv");
+    memorizationService.items = [];
+    memorizationService.addVerse = vi.fn().mockImplementation(async (reference: string, translation: string) => {
+      memorizationService.items = [
+        {
+          id: "new-verse",
+          reference,
+          translation,
+          kind: "verse",
+        } as MemorizedItem,
+      ];
+      return { ok: true };
+    });
+    controller.promptVerseMemorizationTranslation("John 3:16");
+
+    controller.confirmVerseMemorizationTranslation("nlt");
+
+    expect(controller.showVerseMemorizationTranslationModal).toBe(false);
+    expect(controller.pendingVerseMemorizationReference).toBeNull();
+    await vi.waitFor(() => {
+      expect(controller.practiceMemorizedItem?.translation).toBe("nlt");
+    });
+  });
+
+  it("cancelVerseMemorizationTranslation closes modal without opening practice", () => {
+    controller.promptVerseMemorizationTranslation("John 3:16");
+
+    controller.cancelVerseMemorizationTranslation();
+
+    expect(controller.showVerseMemorizationTranslationModal).toBe(false);
+    expect(controller.pendingVerseMemorizationReference).toBeNull();
+    expect(controller.practiceMemorizedItem).toBeNull();
+  });
+
+  it("beginVerseMemorizationFromCard falls back to preferred translation for invalid stored translation", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    memorizationService.getPreferredTranslation = vi.fn(() => "csb");
+    memorizationService.items = [
+      {
+        id: "existing-verse",
+        reference: "John 3:16",
+        translation: "invalid",
+        kind: "verse",
+      } as MemorizedItem,
+    ];
+    memorizationService.addVerse = vi.fn().mockImplementation(async (reference: string, translation: string) => {
+      memorizationService.items = [
+        {
+          id: "new-verse",
+          reference,
+          translation,
+          kind: "verse",
+        } as MemorizedItem,
+      ];
+      return { ok: true };
+    });
+
+    await controller.beginVerseMemorizationFromCard("John 3:16");
+
+    expect(memorizationService.addVerse).toHaveBeenCalledWith("John 3:16", "csb");
   });
 });

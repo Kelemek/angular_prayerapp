@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { markdownToPlainText } from '../../utils/markdown';
 import { buildMemorizeVerseAppLink } from '../lib/email-notification-links';
+import { appendVerseReferenceToDescription } from '../lib/verse-memorization-description';
 import type { BibleTranslation } from '../types/memorization';
 import { BrandingService } from './branding.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -12,8 +13,16 @@ import { ToastService } from './toast.service';
 import { UserSessionService } from './user-session.service';
 
 export type SendVerseMemorizationPrayerOutcome =
-  | { ok: true; prayerId: string }
+  | { ok: true; prayerId: string; verseText: string }
   | { ok: false; reason: 'empty_reference' | 'no_passage' | 'no_admin_email' | 'insert_failed' };
+
+export type VerseMemorizationPrayerBroadcastPayload = {
+  prayerId: string;
+  verseReference: string;
+  verseTranslation: BibleTranslation;
+  verseText: string;
+  adminMessage?: string | null;
+};
 
 const VERSE_MEMORIZATION_PRAYER_FOR = 'Verse Memorization';
 
@@ -29,7 +38,7 @@ export class VerseMemorizationPrayerService {
     private readonly userSession: UserSessionService,
   ) {}
 
-  async sendVerseMemorizationPrayer(options: {
+  async createVerseMemorizationPrayer(options: {
     reference: string;
     translation: BibleTranslation;
     adminMessage?: string | null;
@@ -50,6 +59,7 @@ export class VerseMemorizationPrayerService {
     if (!verseText) {
       return { ok: false, reason: 'no_passage' };
     }
+    const description = appendVerseReferenceToDescription(verseText, reference);
 
     const adminMessage = options.adminMessage?.trim() ?? '';
     const branding = this.brandingService.getBranding();
@@ -61,7 +71,7 @@ export class VerseMemorizationPrayerService {
       .from('prayers')
       .insert({
         title: reference,
-        description: verseText,
+        description,
         status: 'current',
         requester,
         prayer_for: VERSE_MEMORIZATION_PRAYER_FOR,
@@ -83,11 +93,24 @@ export class VerseMemorizationPrayerService {
     }
 
     const prayerId = data.id as string;
+
+    await this.prayerService.loadPrayers(false).catch(() => undefined);
+
+    return { ok: true, prayerId, verseText };
+  }
+
+  async broadcastVerseMemorizationPrayerNotifications(
+    payload: VerseMemorizationPrayerBroadcastPayload
+  ): Promise<void> {
+    const reference = payload.verseReference.trim();
+    const translation = payload.verseTranslation;
+    const adminMessage = payload.adminMessage?.trim() ?? '';
+    const verseText = payload.verseText.trim();
     const baseUrl = this.emailNotification.getEmailBaseUrl();
     const memorizeAppLink = buildMemorizeVerseAppLink(baseUrl, reference, translation);
 
     await this.emailNotification.sendVerseMemorizationPrayerNotification({
-      prayerId,
+      prayerId: payload.prayerId,
       verseReference: reference,
       verseTranslation: translation,
       verseText,
@@ -107,46 +130,12 @@ export class VerseMemorizationPrayerService {
         body: pushBody,
         data: {
           type: 'verse_memorization_prayer',
-          prayerId,
+          prayerId: payload.prayerId,
           verseRef: reference,
           verseTranslation: translation,
           url: memorizeAppLink,
         },
       })
       .catch(() => undefined);
-
-    await this.prayerService.loadPrayers(false).catch(() => undefined);
-
-    return { ok: true, prayerId };
-  }
-
-  async listRecent(limit = 10): Promise<
-    Array<{
-      id: string;
-      verse_reference: string;
-      verse_translation: string | null;
-      approved_at: string | null;
-      status: string;
-    }>
-  > {
-    const { data, error } = await this.supabase.client
-      .from('prayers')
-      .select('id, verse_reference, verse_translation, approved_at, status')
-      .eq('content_kind', 'verse_memorization')
-      .order('approved_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('[VerseMemorizationPrayerService] listRecent failed:', error);
-      return [];
-    }
-
-    return (data ?? []) as Array<{
-      id: string;
-      verse_reference: string;
-      verse_translation: string | null;
-      approved_at: string | null;
-      status: string;
-    }>;
   }
 }

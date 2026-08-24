@@ -17,6 +17,7 @@ import type { CdkDragDrop } from "@angular/cdk/drag-drop";
 import type { HomeHeaderHandlers } from "./home-header-handlers";
 import type { HomeModalsHostHandlers } from "./home-modals-host-handlers";
 import type { HomePrayerContentHandlers } from "./home-prayer-content-handlers";
+import { verseReferenceFromPrayer } from "./verse-memorization-description";
 
 export interface HomePageShellDeps {
   prayerCardActions: PrayerCardActionsFacade;
@@ -90,6 +91,8 @@ export interface HomePageShell {
     readonly practiceMemorizedItem: HomeMemorizationPanelController["practiceMemorizedItem"];
     readonly showRemoveMemorizedConfirm: boolean;
     readonly memorizedItemToRemove: HomeMemorizationPanelController["memorizedItemToRemove"];
+    readonly showVerseMemorizationTranslationModal: boolean;
+    readonly pendingVerseMemorizationReference: string | null;
   };
   personalCategory: {
     readonly filterMode: PersonalCategoryFilterMode;
@@ -208,6 +211,12 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
     },
     get memorizedItemToRemove() {
       return deps.memorizationPanel.memorizedItemToRemove;
+    },
+    get showVerseMemorizationTranslationModal() {
+      return deps.memorizationPanel.showVerseMemorizationTranslationModal;
+    },
+    get pendingVerseMemorizationReference() {
+      return deps.memorizationPanel.pendingVerseMemorizationReference;
     },
   };
 
@@ -349,6 +358,10 @@ export function createHomePageShellHandlers(
       cancelRemoveMemorizedItem: () => {
         deps.memorizationPanel.showRemoveMemorizedConfirm = false;
       },
+      confirmVerseMemorizationTranslation: (translation) =>
+        deps.memorizationPanel.confirmVerseMemorizationTranslation(translation),
+      cancelVerseMemorizationTranslation: () =>
+        deps.memorizationPanel.cancelVerseMemorizationTranslation(),
     },
     prayerContent: {
       deleteCard: (prayer) => deps.prayerCardActions.deleteCard(prayer),
@@ -384,13 +397,9 @@ export function createHomePageShellHandlers(
         deps.memorizationPanel.confirmRemoveMemorizedItem(item),
       onCardMemorizeVerse: (prayer) => {
         deps.filter.setFilter("memorize");
-        const reference = prayer.verse_reference?.trim() ?? prayer.title.trim();
-        const translation = prayer.verse_translation?.trim() ?? "esv";
+        const reference = verseReferenceFromPrayer(prayer);
         if (reference) {
-          void deps.memorizationPanel.startVerseMemorization(
-            reference,
-            translation
-          );
+          void deps.memorizationPanel.beginVerseMemorizationFromCard(reference);
         }
       },
     },

@@ -34,7 +34,7 @@
       <strong>Type mode:</strong> keyboard — first letter of each blank. <strong>Initials mode:</strong> same typing
       with cue row. <strong>Word mode:</strong> tap choices. <strong>Reorder mode:</strong> drag chunks into order.
       @if (reciteModeVisible) {
-        <strong> Recite mode (beta):</strong> record the verse, then see word-by-word accuracy.
+        <strong> Recite mode:</strong> record the verse, then see word-by-word accuracy.
       }
     </p>
     @if (reciteModeBlockedMessage) {
@@ -86,14 +86,7 @@
           (click)="ctx.beginPracticeWithMode('recite')"
           class="w-full px-4 py-3 {{ ctx.practiceBlueBtnClass }}"
         >
-          <span class="inline-flex items-center justify-center gap-2">
-            Recite mode
-            <span
-              class="text-[0.65rem] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-700"
-            >
-              Beta
-            </span>
-          </span>
+          Recite mode
         </button>
       }
     </div>

@@ -104,9 +104,30 @@ describe("HomeDeepLinkCoordinator", () => {
 
     expect(coordinator.consumePendingVerseMemorization()).toEqual({
       reference: "John 3:16",
-      translation: "esv",
     });
     expect(coordinator.consumePendingVerseMemorization()).toBeNull();
+  });
+
+  it("captures verse memorization deep link with reference only", () => {
+    coordinator.captureInitialQueryParams({
+      verseRef: "Psalm 23:1",
+    });
+
+    expect(coordinator.hasPendingVerseMemorization()).toBe(true);
+    expect(coordinator.consumePendingVerseMemorization()).toEqual({
+      reference: "Psalm 23:1",
+    });
+  });
+
+  it("applyPendingDeepLinksOnViewReady switches to memorize and applies verse link", () => {
+    coordinator.captureInitialQueryParams({
+      verseRef: "John 3:16",
+    });
+
+    coordinator.applyPendingDeepLinksOnViewReady();
+
+    expect(host.setFilter).toHaveBeenCalledWith("memorize");
+    expect(host.applyPendingVerseMemorizationDeepLink).toHaveBeenCalled();
   });
 
   it("applies verse memorization deep link when memorize filter is active", () => {
@@ -126,6 +147,23 @@ describe("HomeDeepLinkCoordinator", () => {
     );
 
     expect(host.setFilter).toHaveBeenCalledWith("memorize");
-    expect(host.applyPendingVerseMemorizationDeepLink).toHaveBeenCalled();
+    expect(host.applyPendingVerseMemorizationDeepLink).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies verse memorization deep link only once when pending was pre-captured", () => {
+    coordinator.captureInitialQueryParams({
+      filter: "memorize",
+      verseRef: "Romans 8:28",
+    });
+
+    coordinator.handleNavigationDeepLinks(
+      {
+        filter: "memorize",
+        verseRef: "Romans 8:28",
+      },
+      true
+    );
+
+    expect(host.applyPendingVerseMemorizationDeepLink).toHaveBeenCalledTimes(1);
   });
 });

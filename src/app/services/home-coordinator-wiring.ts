@@ -18,6 +18,7 @@ import type { BadgeService } from "./badge.service";
 import type { PrayerCardActionsFacade } from "./prayer-card-actions.facade";
 import type { PrayerAllowancePolicyService } from "./prayer-allowance-policy.service";
 import { HomeDeepLinkCoordinator } from "./home-deep-link.coordinator";
+import { applyVerseMemorizationDeepLink } from "../lib/verse-memorization-deep-link";
 import { HomeDeepLinkHostAdapter, type HomeActiveFilter } from "./home-deep-link-host.adapter";
 import { HomeHelpTourLauncher } from "./home-help-tour.launcher";
 import {
@@ -137,16 +138,15 @@ export function wireHomeCoordinators(
     applyPrayerFilters: (filters) => deps.prayerService.applyFilters(filters),
     refreshHomeCatalog: () => page.refreshHomeCatalog(),
     applyPendingVerseMemorizationDeepLink: () => {
-      const pending = deps.deepLinkCoordinator.consumePendingVerseMemorization();
-      if (!pending) {
-        return;
-      }
-      deepLinkHost.stripQueryParam("verseRef");
-      deepLinkHost.stripQueryParam("verseTranslation");
-      void deps.memorizationPanel.startVerseMemorization(
-        pending.reference,
-        pending.translation
-      );
+      applyVerseMemorizationDeepLink({
+        consumePending: () =>
+          deps.deepLinkCoordinator.consumePendingVerseMemorization(),
+        stripQueryParams: () => {
+          deepLinkHost.stripQueryParams("verseRef", "verseTranslation");
+        },
+        beginFromCard: (reference) =>
+          deps.memorizationPanel.beginVerseMemorizationFromCard(reference),
+      });
     },
   });
   deps.deepLinkCoordinator.bindHost(deepLinkHost);
@@ -290,12 +290,6 @@ export function wireHomeCoordinators(
       deps.memorizationPanel.syncMemorizedItems(items),
     syncRecommendationGroups: () =>
       deps.memorizationPanel.syncRecommendationGroups(),
-    stripVerseMemorizationQueryParams: () => {
-      deepLinkHost.stripQueryParam("verseRef");
-      deepLinkHost.stripQueryParam("verseTranslation");
-    },
-    startVerseMemorization: (reference, translation) =>
-      deps.memorizationPanel.startVerseMemorization(reference, translation),
   });
   deps.lifecycleCoordinator.bindHost(lifecycleHost, {
     router: deps.router,

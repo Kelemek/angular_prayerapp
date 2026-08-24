@@ -53,7 +53,7 @@ describe('VerseMemorizationPrayerService', () => {
     );
   });
 
-  it('inserts approved verse memorization prayer and notifies subscribers', async () => {
+  it('createVerseMemorizationPrayer inserts approved verse memorization prayer without notifying', async () => {
     const insert = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({ data: { id: 'prayer-verse-1' }, error: null }),
@@ -61,24 +61,43 @@ describe('VerseMemorizationPrayerService', () => {
     });
     mockSupabase.client.from.mockReturnValue({ insert });
 
-    const result = await service.sendVerseMemorizationPrayer({
+    const result = await service.createVerseMemorizationPrayer({
       reference: 'John 3:16',
       translation: 'esv',
       adminMessage: 'Focus on this week.',
     });
 
-    expect(result).toEqual({ ok: true, prayerId: 'prayer-verse-1' });
+    expect(result).toEqual({
+      ok: true,
+      prayerId: 'prayer-verse-1',
+      verseText: 'For God so loved the world.',
+    });
     expect(insert).toHaveBeenCalledWith(
       expect.objectContaining({
         approval_status: 'approved',
         status: 'current',
         content_kind: 'verse_memorization',
+        description: 'For God so loved the world. John 3:16',
         verse_reference: 'John 3:16',
         verse_translation: 'esv',
         prayer_for: 'Verse Memorization',
         admin_message: 'Focus on this week.',
       })
     );
+    expect(mockEmail.sendVerseMemorizationPrayerNotification).not.toHaveBeenCalled();
+    expect(mockPush.sendPushToSubscribers).not.toHaveBeenCalled();
+    expect(mockPrayerService.loadPrayers).toHaveBeenCalledWith(false);
+  });
+
+  it('broadcastVerseMemorizationPrayerNotifications sends email and push', async () => {
+    await service.broadcastVerseMemorizationPrayerNotifications({
+      prayerId: 'prayer-verse-1',
+      verseReference: 'John 3:16',
+      verseTranslation: 'esv',
+      verseText: 'For God so loved the world.',
+      adminMessage: 'Focus on this week.',
+    });
+
     expect(mockEmail.sendVerseMemorizationPrayerNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         prayerId: 'prayer-verse-1',
@@ -96,13 +115,12 @@ describe('VerseMemorizationPrayerService', () => {
         }),
       })
     );
-    expect(mockPrayerService.loadPrayers).toHaveBeenCalledWith(false);
   });
 
   it('returns no_admin_email when session email is missing', async () => {
     mockUserSession.getUserEmail.mockReturnValue(null);
 
-    const result = await service.sendVerseMemorizationPrayer({
+    const result = await service.createVerseMemorizationPrayer({
       reference: 'John 3:16',
       translation: 'esv',
     });

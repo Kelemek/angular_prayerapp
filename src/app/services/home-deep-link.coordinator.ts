@@ -30,7 +30,6 @@ export class HomeDeepLinkCoordinator {
   private promptDeepLinkScrollBurstCount = 0;
   private promptDeepLinkFreshCatalogRequested = false;
   private pendingVerseReference: string | null = null;
-  private pendingVerseTranslation: string | null = null;
 
   bindHost(host: HomeDeepLinkHost): void {
     this.host = host;
@@ -62,25 +61,20 @@ export class HomeDeepLinkCoordinator {
       this.pendingPromptIdScroll = promptId;
       this.promptDeepLinkScrollBurstCount = 0;
     }
-    this.captureVerseMemorizationParams(params.verseRef, params.verseTranslation);
+    this.captureVerseMemorizationParams(params.verseRef);
   }
 
-  consumePendingVerseMemorization(): {
-    reference: string;
-    translation: string;
-  } | null {
+  consumePendingVerseMemorization(): { reference: string } | null {
     const reference = this.pendingVerseReference;
-    const translation = this.pendingVerseTranslation;
-    if (!reference || !translation) {
+    if (!reference) {
       return null;
     }
     this.pendingVerseReference = null;
-    this.pendingVerseTranslation = null;
-    return { reference, translation };
+    return { reference };
   }
 
   hasPendingVerseMemorization(): boolean {
-    return !!this.pendingVerseReference && !!this.pendingVerseTranslation;
+    return !!this.pendingVerseReference;
   }
 
   consumeInitialEmailFilterTab(): HomeEmailFilterTab | null {
@@ -113,17 +107,16 @@ export class HomeDeepLinkCoordinator {
         this.pendingPromptIdScroll = deepLinkPromptId;
         this.promptDeepLinkScrollBurstCount = 0;
       }
-      this.captureVerseMemorizationParams(params.verseRef, params.verseTranslation);
+      this.captureVerseMemorizationParams(params.verseRef);
       return;
     }
+
+    this.captureVerseMemorizationParams(params.verseRef);
 
     if (deepLinkFilter) {
       this.host?.setFilter(deepLinkFilter);
       this.host?.markForCheck();
       this.host?.stripQueryParam("filter");
-      if (deepLinkFilter === "memorize" && this.hasPendingVerseMemorization()) {
-        this.host?.applyPendingVerseMemorizationDeepLink();
-      }
     }
     if (deepLinkPrayerId) {
       this.pendingPrayerIdScroll = deepLinkPrayerId;
@@ -138,14 +131,7 @@ export class HomeDeepLinkCoordinator {
       this.host?.markForCheck();
       this.host?.stripQueryParam("promptId");
     }
-    this.captureVerseMemorizationParams(params.verseRef, params.verseTranslation);
-    if (
-      !deepLinkFilter &&
-      this.host?.getActiveFilter() === "memorize" &&
-      this.hasPendingVerseMemorization()
-    ) {
-      this.host?.applyPendingVerseMemorizationDeepLink();
-    }
+    this.applyPendingVerseMemorizationIfNeeded();
   }
 
   applyPendingDeepLinksOnViewReady(): void {
@@ -159,12 +145,7 @@ export class HomeDeepLinkCoordinator {
       this.openPromptDeepLink(id);
       this.host?.stripQueryParam("promptId");
     }
-    if (
-      this.host?.getActiveFilter() === "memorize" &&
-      this.hasPendingVerseMemorization()
-    ) {
-      this.host?.applyPendingVerseMemorizationDeepLink();
-    }
+    this.applyPendingVerseMemorizationIfNeeded();
   }
 
   retryPendingPrayerDeepLinkIfNeeded(): void {
@@ -265,15 +246,24 @@ export class HomeDeepLinkCoordinator {
   }
 
   private captureVerseMemorizationParams(
-    verseRef: string | null | undefined,
-    verseTranslation: string | null | undefined
+    verseRef: string | null | undefined
   ): void {
     const reference = this.normalizeId(verseRef);
-    const translation = this.normalizeId(verseTranslation);
-    if (reference && translation) {
-      this.pendingVerseReference = reference;
-      this.pendingVerseTranslation = translation;
+    if (!reference) {
+      return;
     }
+    this.pendingVerseReference = reference;
+  }
+
+  private applyPendingVerseMemorizationIfNeeded(): void {
+    if (!this.hasPendingVerseMemorization()) {
+      return;
+    }
+    if (this.host?.getActiveFilter() !== "memorize") {
+      this.host?.setFilter("memorize");
+      this.host?.markForCheck();
+    }
+    this.host?.applyPendingVerseMemorizationDeepLink();
   }
 
   private ensureFreshCatalogForPrayerDeepLink(prayerId: string): void {

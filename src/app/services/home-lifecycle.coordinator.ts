@@ -70,9 +70,6 @@ export interface HomeLifecycleHost {
   ): Promise<void>;
   syncMemorizedItems(items: MemorizedItem[]): void;
   syncRecommendationGroups(): void;
-  applyVerseMemorizationDeepLinkFromCoordinator(
-    coordinator: HomeDeepLinkCoordinator
-  ): void;
 }
 
 export interface HomeLifecycleServices {
@@ -290,11 +287,6 @@ export class HomeLifecycleCoordinator {
         }
         if (fromEmail) {
           host.stripFilterQueryParam();
-          if (fromEmail === "memorize") {
-            host.applyVerseMemorizationDeepLinkFromCoordinator(
-              services.deepLinkCoordinator
-            );
-          }
         }
         host.setViewReady(true);
         services.deepLinkCoordinator.applyPendingDeepLinksOnViewReady();

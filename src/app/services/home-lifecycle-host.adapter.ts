@@ -4,7 +4,6 @@ import type { PrayerRequest } from "./prayer.service";
 import type { HomeReturnContext } from "../types/presentation";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
 import type { HomeLifecycleHost, HomeObservableStreams } from "./home-lifecycle.coordinator";
-import type { HomeDeepLinkCoordinator } from "./home-deep-link.coordinator";
 import type { MemorizedItem } from "../types/memorization";
 
 export interface HomeLifecyclePageBindings {
@@ -46,8 +45,6 @@ export interface HomeLifecycleHostAdapterDeps {
   ): Promise<void>;
   syncMemorizedItems(items: MemorizedItem[]): void;
   syncRecommendationGroups(): void;
-  stripVerseMemorizationQueryParams(): void;
-  startVerseMemorization(reference: string, translation: string): void;
 }
 
 export class HomeLifecycleHostAdapter implements HomeLifecycleHost {
@@ -161,19 +158,5 @@ export class HomeLifecycleHostAdapter implements HomeLifecycleHost {
 
   syncRecommendationGroups(): void {
     this.deps.syncRecommendationGroups();
-  }
-
-  applyVerseMemorizationDeepLinkFromCoordinator(
-    coordinator: HomeDeepLinkCoordinator
-  ): void {
-    const pending = coordinator.consumePendingVerseMemorization();
-    if (!pending) {
-      return;
-    }
-    this.deps.stripVerseMemorizationQueryParams();
-    void this.deps.startVerseMemorization(
-      pending.reference,
-      pending.translation
-    );
   }
 }

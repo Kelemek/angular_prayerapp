@@ -102,6 +102,12 @@
     (onClose)="handlers.closeMemorizationRecommendations()"
     (add)="handlers.addRecommendedVerse($event)"
   />
+  <app-verse-memorization-translation-modal
+    [isOpen]="showVerseMemorizationTranslationModal"
+    [reference]="pendingVerseMemorizationReference ?? ''"
+    (onConfirm)="handlers.confirmVerseMemorizationTranslation($event)"
+    (onCancel)="handlers.cancelVerseMemorizationTranslation()"
+  />
   @if (practiceMemorizedItem) {
   <app-memorization-practice-session
     [item]="practiceMemorizedItem"

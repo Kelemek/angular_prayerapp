@@ -50,6 +50,7 @@ describe("HomeDeepLinkHostAdapter", () => {
       }),
       applyPrayerFilters,
       refreshHomeCatalog,
+      applyPendingVerseMemorizationDeepLink: vi.fn(),
     });
   });
 
@@ -75,5 +76,51 @@ describe("HomeDeepLinkHostAdapter", () => {
 
     expect(applyPrayerFilters).not.toHaveBeenCalled();
     expect(refreshHomeCatalog).not.toHaveBeenCalled();
+  });
+
+  it("stripQueryParams removes multiple keys in one navigation", () => {
+    const navigate = vi.fn();
+    adapter = new HomeDeepLinkHostAdapter({
+      page,
+      router: { navigate } as any,
+      route: {
+        snapshot: {
+          queryParams: {
+            verseRef: "John 3:16",
+            verseTranslation: "esv",
+            filter: "memorize",
+          },
+        },
+      } as any,
+      prayerService: {
+        getAllCommunityPrayersSnapshot: vi.fn(() => []),
+        getPersonalPrayersSnapshot: vi.fn(() => []),
+        arePrayerCatalogsReady: vi.fn(() => true),
+        loadPrayers: vi.fn(),
+        loadPersonalPrayers: vi.fn(),
+      } as any,
+      promptService: {
+        promptsSubject: { value: [] },
+        isPromptsLoading: vi.fn(() => false),
+        loadPrompts: vi.fn(),
+      } as any,
+      markForCheck: vi.fn(),
+      setFilter: vi.fn(),
+      selectPersonalCategoryFilterMode: vi.fn(),
+      applyPrayerFilters,
+      refreshHomeCatalog,
+      applyPendingVerseMemorizationDeepLink: vi.fn(),
+    });
+
+    adapter.stripQueryParams("verseRef", "verseTranslation");
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: { filter: "memorize" },
+        replaceUrl: true,
+      })
+    );
   });
 });
