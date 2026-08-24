@@ -11,6 +11,7 @@ import type { BehaviorSubject } from 'rxjs';
 import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
 import type { BadgeService } from '../../services/badge.service';
+import { HomeFilterBadgeButtonComponent } from '../home-filter-badge-button/home-filter-badge-button.component';
 import {
   PrayerUpdateActionsComponent,
   type PrayerUpdateActionsMode,
@@ -20,7 +21,13 @@ import { PrayerUpdateRowComponent } from '../prayer-update-row/prayer-update-row
 @Component({
   selector: 'app-prayer-card-updates-section',
   standalone: true,
-  imports: [CommonModule, AsyncPipe, PrayerUpdateRowComponent, PrayerUpdateActionsComponent],
+  imports: [
+    CommonModule,
+    AsyncPipe,
+    HomeFilterBadgeButtonComponent,
+    PrayerUpdateRowComponent,
+    PrayerUpdateActionsComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prayer-card-updates-section.component.html',
 })

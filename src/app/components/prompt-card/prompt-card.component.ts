@@ -18,6 +18,7 @@ import { BadgeService } from '../../services/badge.service';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
 import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-header-band.component';
 import { CardActionsOverflowMenuComponent } from '../card-actions-overflow-menu/card-actions-overflow-menu.component';
+import { HomeFilterBadgeButtonComponent } from '../home-filter-badge-button/home-filter-badge-button.component';
 import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card-actions-overflow-menu.types';
 import { UserSessionService } from '../../services/user-session.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
@@ -70,6 +71,7 @@ export interface PrayerPrompt {
     CardMetaHeaderBandComponent,
     PrayerItemReminderModalComponent,
     CardActionsOverflowMenuComponent,
+    HomeFilterBadgeButtonComponent,
     PromptCardActionsRowComponent,
     PromptCardPrayForModalComponent,
   ],

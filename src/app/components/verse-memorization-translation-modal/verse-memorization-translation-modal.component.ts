@@ -92,6 +92,7 @@ export class VerseMemorizationTranslationModalComponent implements OnChanges {
 
   @Input() isOpen = false;
   @Input() reference = '';
+  @Input() suggestedTranslation: BibleTranslation | null = null;
 
   @Output() onConfirm = new EventEmitter<BibleTranslation>();
   @Output() onCancel = new EventEmitter<void>();
@@ -100,7 +101,8 @@ export class VerseMemorizationTranslationModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue === true) {
-      this.selectedTranslation = this.memorization.getPreferredTranslation();
+      this.selectedTranslation =
+        this.suggestedTranslation ?? this.memorization.getPreferredTranslation();
     }
   }
 

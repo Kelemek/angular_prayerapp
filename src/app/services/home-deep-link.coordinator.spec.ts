@@ -104,6 +104,7 @@ describe("HomeDeepLinkCoordinator", () => {
 
     expect(coordinator.consumePendingVerseMemorization()).toEqual({
       reference: "John 3:16",
+      translation: "esv",
     });
     expect(coordinator.consumePendingVerseMemorization()).toBeNull();
   });

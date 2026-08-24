@@ -7,6 +7,7 @@ import {
   Output,
 } from '@angular/core';
 import type { Observable } from 'rxjs';
+import { HomeFilterBadgeButtonComponent } from '../home-filter-badge-button/home-filter-badge-button.component';
 import { RichTextViewComponent } from '../rich-text-view/rich-text-view.component';
 import type { BadgeService } from '../../services/badge.service';
 import type { PrayerRequest } from '../../services/prayer.service';
@@ -17,7 +18,7 @@ import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
 @Component({
   selector: 'app-prayer-card-title-body',
   standalone: true,
-  imports: [AsyncPipe, RichTextViewComponent],
+  imports: [AsyncPipe, HomeFilterBadgeButtonComponent, RichTextViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prayer-card-title-body.component.html',
 })

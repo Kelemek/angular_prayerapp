@@ -31,6 +31,7 @@ const baseInput = {
 describe('computePrayerCardViewState', () => {
   it('shows Memorize button and hides Add Update for verse memorization prayers', () => {
     const state = computePrayerCardViewState(baseInput);
+    expect(state.isVerseMemorizationPrayer).toBe(true);
     expect(state.showMemorizeButton).toBe(true);
     expect(state.showAddUpdateButton).toBe(false);
   });
@@ -38,6 +39,7 @@ describe('computePrayerCardViewState', () => {
   it('does not show Memorize for standard community prayers', () => {
     const prayer = { ...basePrayer, content_kind: 'standard' as const };
     const state = computePrayerCardViewState({ ...baseInput, prayer });
+    expect(state.isVerseMemorizationPrayer).toBe(false);
     expect(state.showMemorizeButton).toBe(false);
     expect(state.showAddUpdateButton).toBe(true);
   });

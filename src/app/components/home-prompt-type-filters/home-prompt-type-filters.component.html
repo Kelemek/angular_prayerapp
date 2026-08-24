@@ -32,6 +32,7 @@
       @if (badgesEnabled && unreadCountForType(type) > 0) {
       <app-home-filter-badge-button
         [count]="unreadCountForType(type)"
+        [compact]="true"
         [title]="'Mark all ' + type + ' prompts as read'"
         [ariaLabel]="'Mark all ' + type + ' prompts as read'"
         (markRead)="badgeService.markAllAsReadByPromptType(type)"

@@ -105,6 +105,7 @@
   <app-verse-memorization-translation-modal
     [isOpen]="showVerseMemorizationTranslationModal"
     [reference]="pendingVerseMemorizationReference ?? ''"
+    [suggestedTranslation]="pendingVerseMemorizationSuggestedTranslation"
     (onConfirm)="handlers.confirmVerseMemorizationTranslation($event)"
     (onCancel)="handlers.cancelVerseMemorizationTranslation()"
   />

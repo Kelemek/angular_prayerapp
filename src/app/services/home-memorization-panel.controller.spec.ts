@@ -138,6 +138,22 @@ describe("HomeMemorizationPanelController", () => {
     expect(host.primeKeyboardBridge).toHaveBeenCalled();
   });
 
+  it("beginVerseMemorizationFromCard skips translation picker when reference is already on list, even with suggested translation", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    const existing = {
+      id: "existing-verse",
+      reference: "John 3:16",
+      translation: "niv",
+      kind: "verse",
+    } as MemorizedItem;
+    memorizationService.items = [existing];
+
+    await controller.beginVerseMemorizationFromCard("John 3:16", "esv");
+
+    expect(controller.showVerseMemorizationTranslationModal).toBe(false);
+    expect(controller.practiceMemorizedItem).toEqual(existing);
+  });
+
   it("beginVerseMemorizationFromCard prompts for translation when verse is not memorized", async () => {
     const memorizationService = controller["memorizationService"] as any;
     memorizationService.items = [];
@@ -147,6 +163,20 @@ describe("HomeMemorizationPanelController", () => {
 
     expect(controller.showVerseMemorizationTranslationModal).toBe(true);
     expect(controller.pendingVerseMemorizationReference).toBe("Romans 8:28");
+    expect(controller.practiceMemorizedItem).toBeNull();
+  });
+
+  it("beginVerseMemorizationFromCard always prompts when verse is not on list, even with suggested translation", async () => {
+    const memorizationService = controller["memorizationService"] as any;
+    memorizationService.items = [];
+    memorizationService.addVerse = vi.fn();
+
+    await controller.beginVerseMemorizationFromCard("Romans 8:28", "niv");
+
+    expect(controller.showVerseMemorizationTranslationModal).toBe(true);
+    expect(controller.pendingVerseMemorizationReference).toBe("Romans 8:28");
+    expect(controller.pendingVerseMemorizationSuggestedTranslation).toBe("niv");
+    expect(memorizationService.addVerse).not.toHaveBeenCalled();
     expect(controller.practiceMemorizedItem).toBeNull();
   });
 
