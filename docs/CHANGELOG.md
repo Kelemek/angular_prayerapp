@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### PostHog — running app version
+- Client analytics now send the running JS bundle version and platform (`app_version`, `app_platform`) alongside `app_environment`. These are registered as event super properties and as person properties (including for feature-flag / survey targeting) in [`src/lib/posthog.ts`](src/lib/posthog.ts). Bump [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) when shipping a store release so it stays aligned with iOS `MARKETING_VERSION` and Android `versionName`.
+
 ### Fix — Home Prompts tab slow on Android
 - Home **Prompts** list uses CDK virtual scroll ([`home-prayer-content`](src/app/components/home-prayer-content/home-prayer-content.component.html)) so only visible prompt cards mount when switching tabs (fixes multi-second Android WebView delay). Parent scroll is [`.safe-area-viewport`](src/app/pages/home/home.component.html) via `cdkVirtualScrollingElement`; prompt `?promptId=` deep links scroll the virtual list through [`HomeDeepLinkHost.scrollPromptIntoView`](src/app/services/home-deep-link-host.adapter.ts) before `scrollIntoView`.
 - Prompts tab shows the home skeleton while [`promptService.loading$`](src/app/services/prompt.service.ts) is true (Pray For count hydration), not a blank list.

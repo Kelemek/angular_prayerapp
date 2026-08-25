@@ -1,13 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import posthog from 'posthog-js';
 import { environment } from '../environments/environment';
+import { APP_BUNDLE_VERSION } from './app-analytics-context';
 import {
+  applyPostHogAppContext,
   capturePostHogEvent,
   capturePostHogException,
   capturePostHogPageview,
   initializePostHog,
   resetPostHogForTesting,
 } from './posthog';
+
+vi.mock('@capacitor/core', () => ({
+  Capacitor: {
+    getPlatform: vi.fn(() => 'web'),
+  },
+}));
 
 vi.mock('posthog-js', () => ({
   default: {
@@ -17,8 +25,16 @@ vi.mock('posthog-js', () => ({
     opt_in_capturing: vi.fn(),
     opt_out_capturing: vi.fn(),
     register: vi.fn(),
+    setPersonProperties: vi.fn(),
+    setPersonPropertiesForFlags: vi.fn(),
   },
 }));
+
+const expectedAppContext = {
+  app_version: APP_BUNDLE_VERSION,
+  app_platform: 'web',
+  app_environment: 'development',
+};
 
 vi.mock('../environments/environment', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../environments/environment')>();
@@ -40,6 +56,9 @@ describe('posthog', () => {
     vi.mocked(posthog.init).mockClear();
     vi.mocked(posthog.capture).mockClear();
     vi.mocked(posthog.captureException).mockClear();
+    vi.mocked(posthog.register).mockClear();
+    vi.mocked(posthog.setPersonProperties).mockClear();
+    vi.mocked(posthog.setPersonPropertiesForFlags).mockClear();
     vi.mocked(posthog.init).mockReturnValue(posthog);
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -64,18 +83,67 @@ describe('posthog', () => {
       expect((window as Window & { posthog?: typeof posthog }).posthog).toBe(posthog);
     });
 
-    it('should opt in and register app environment in loaded callback', () => {
+    it('should tag events with app version and platform before the first pageview', () => {
+      initializePostHog();
+
+      expect(posthog.register).toHaveBeenCalledWith(expectedAppContext);
+      expect(posthog.setPersonProperties).toHaveBeenCalledWith(expectedAppContext);
+      expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+        expectedAppContext,
+        false
+      );
+    });
+
+    it('should opt in and apply app context for surveys in loaded callback', () => {
       initializePostHog();
 
       const initOptions = vi.mocked(posthog.init).mock.calls[0]?.[1];
       const ph = {
         opt_in_capturing: vi.fn(),
         register: vi.fn(),
+        setPersonProperties: vi.fn(),
+        setPersonPropertiesForFlags: vi.fn(),
       };
       initOptions?.loaded?.(ph as never);
 
       expect(ph.opt_in_capturing).toHaveBeenCalled();
-      expect(ph.register).toHaveBeenCalledWith({ app_environment: 'development' });
+      expect(ph.register).toHaveBeenCalledWith(expectedAppContext);
+      expect(ph.setPersonProperties).toHaveBeenCalledWith(expectedAppContext);
+      expect(ph.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+        expectedAppContext,
+        true
+      );
+    });
+
+    it('applyPostHogAppContext reloads feature flags by default', () => {
+      const ph = {
+        register: vi.fn(),
+        setPersonProperties: vi.fn(),
+        setPersonPropertiesForFlags: vi.fn(),
+      };
+
+      applyPostHogAppContext(ph);
+
+      expect(ph.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+        expectedAppContext,
+        true
+      );
+    });
+
+    it('applyPostHogAppContext does not throw when PostHog client methods fail', () => {
+      const ph = {
+        register: vi.fn(() => {
+          throw new Error('register failed');
+        }),
+        setPersonProperties: vi.fn(),
+        setPersonPropertiesForFlags: vi.fn(),
+      };
+
+      expect(() => applyPostHogAppContext(ph)).not.toThrow();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to apply PostHog app context:',
+        expect.any(Error)
+      );
     });
 
     it('should return early when window is undefined', () => {

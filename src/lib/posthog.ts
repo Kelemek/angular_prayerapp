@@ -1,7 +1,32 @@
 import posthog from 'posthog-js';
 import { environment } from '../environments/environment';
+import { getAppAnalyticsContext, type AppAnalyticsContext } from './app-analytics-context';
 
 let initialized = false;
+
+type PostHogAppContextClient = {
+  register: (properties: AppAnalyticsContext) => void;
+  setPersonProperties: (properties: AppAnalyticsContext) => void;
+  setPersonPropertiesForFlags: (
+    properties: AppAnalyticsContext,
+    reloadFeatureFlags?: boolean
+  ) => void;
+};
+
+/** Super properties, person properties, and flag/survey targeting for the running build. */
+export function applyPostHogAppContext(
+  ph: PostHogAppContextClient,
+  reloadFeatureFlags = true
+): void {
+  try {
+    const context = getAppAnalyticsContext(environment.production);
+    ph.register(context);
+    ph.setPersonProperties(context);
+    ph.setPersonPropertiesForFlags(context, reloadFeatureFlags);
+  } catch (error) {
+    console.error('Failed to apply PostHog app context:', error);
+  }
+}
 
 /** Resets init state for unit tests only. */
 export function resetPostHogForTesting(): void {
@@ -35,13 +60,13 @@ export function initializePostHog(): void {
       loaded: ph => {
         // Ensure capturing is on when a key is configured (dev used to opt out and persist in localStorage).
         ph.opt_in_capturing();
-        ph.register({
-          app_environment: environment.production ? 'production' : 'development',
-        });
+        applyPostHogAppContext(ph);
       },
     });
     initialized = true;
     (window as Window & { posthog?: typeof posthog }).posthog = posthog;
+    // Tag events before `loaded` so the first pageview includes version/platform.
+    applyPostHogAppContext(posthog, false);
   } catch (error) {
     console.error('Failed to initialize PostHog:', error);
   }
