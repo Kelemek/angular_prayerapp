@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — Ubuntu CI red after passing tests
+- Pull-request **Run Tests** on Ubuntu was failing after a green typecheck, lint, and coverage run because [`.github/workflows/test.yml`](.github/workflows/test.yml) posted a hardcoded “tests passed” comment and `GITHUB_TOKEN` does not have `issues:write` / `pull-requests:write`. That comment step is removed; coverage still uploads as the `coverage-report` artifact, and GitHub Checks remain the status signal.
+
 ### PostHog — running app version
 - Client analytics now send the running JS bundle version and platform (`app_version`, `app_platform`) alongside `app_environment`. These are registered as event super properties and as person properties (including for feature-flag / survey targeting) in [`src/lib/posthog.ts`](src/lib/posthog.ts). Bump [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) when shipping a store release so it stays aligned with iOS `MARKETING_VERSION` and Android `versionName`.
 

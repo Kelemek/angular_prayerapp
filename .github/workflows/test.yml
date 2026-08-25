@@ -50,20 +50,3 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 7
-      
-      - name: Comment PR with test results
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest'
-        with:
-          script: |
-            const fs = require('fs');
-            let comment = '## 🧪 Test Results\n\n';
-            comment += '✅ All tests passed!\n\n';
-            comment += '[View detailed coverage report in artifacts]';
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
