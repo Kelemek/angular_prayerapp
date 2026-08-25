@@ -35,9 +35,19 @@
             >
               @let slideItem = currentItem;
               @if (slideItem) {
+              @let showPrayForButton =
+                (userSessionService.getShowPrayForButton$() | async) ?? true;
+              @let showPrayingCount =
+                (userSessionService.getShowPrayingCount$() | async) ?? true;
+              @let prayerEncouragementEnabled =
+                (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) ??
+                false;
               <app-presentation-slide-card
                 [prayer]="slidePrayerFromItem(slideItem)"
                 [prompt]="slidePromptFromItem(slideItem)"
+                [showPrayForButton]="showPrayForButton"
+                [showPrayingCount]="showPrayingCount"
+                [prayerEncouragementEnabled]="prayerEncouragementEnabled"
                 (prayerPrayedForCountChange)="onPresentationPrayerPrayedForCountChange($event)"
                 (promptPrayedForCountChange)="onPresentationPromptPrayedForCountChange($event)"
                 (personalPrayerCategoryChange)="onPresentationPersonalPrayerCategoryChange($event)"

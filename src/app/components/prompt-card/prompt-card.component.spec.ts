@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { ChangeDetectorRef } from '@angular/core';
-import { of } from 'rxjs';
+import { of, BehaviorSubject } from 'rxjs';
 import { PromptCardComponent } from './prompt-card.component';
 import { BadgeService } from '../../services/badge.service';
 import { UserSessionService } from '../../services/user-session.service';
@@ -29,6 +29,7 @@ function createPromptCard(
           userSession$: of({ email: 'me@test.com' }),
           getShowPrayForButton$: vi.fn().mockReturnValue(of(true)),
           getShowPrayingCount$: vi.fn().mockReturnValue(of(true)),
+          getPersonalPrayerCooldownHours: vi.fn().mockReturnValue(4),
           getCurrentSession: vi.fn().mockReturnValue({ email: 'me@test.com' }),
           ...extras?.userSessionService,
         },
@@ -112,6 +113,33 @@ describe('PromptCardComponent - Core Logic', () => {
     it('should set admin flag correctly', () => {
       const isAdmin = true;
       expect(isAdmin).toBe(true);
+    });
+
+    it('updates cooldownHours when session cooldown observable emits', () => {
+      const cooldownHours$ = new BehaviorSubject(4);
+      const badgeService = {
+        getUpdateBadgesChanged$: vi.fn().mockReturnValue(of(null)),
+        isPromptUnread: vi.fn().mockReturnValue(false),
+      };
+      const component = createPromptCard(badgeService, {
+        prayerEncouragementService: {
+          getCooldownHoursForPrayer$: vi.fn().mockReturnValue(cooldownHours$),
+          getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
+        },
+      });
+      component.prompt = {
+        id: 'prompt-1',
+        title: 'T',
+        type: 'Guidance',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+      };
+      component.ngOnInit();
+      expect(component.cooldownHours).toBe(4);
+
+      cooldownHours$.next(8);
+      expect(component.cooldownHours).toBe(8);
     });
   });
 
@@ -780,16 +808,16 @@ describe('PromptCardComponent - Core Logic', () => {
       expect(typeClickSpy).toHaveBeenCalledWith('Meditation');
     });
 
-    it('should handle storage event listener', () => {
+    it('should subscribe to badge updates on ngOnInit', () => {
       component.ngOnInit();
       expect(badgeService.getUpdateBadgesChanged$).toHaveBeenCalled();
     });
 
     it('should cleanup on destroy', () => {
       component.ngOnInit();
-      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+      const completeSpy = vi.spyOn(component['destroy$'], 'complete');
       component.ngOnDestroy();
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('storage', expect.any(Function));
+      expect(completeSpy).toHaveBeenCalled();
     });
 
     it('should accept admin flag', () => {
@@ -800,6 +828,12 @@ describe('PromptCardComponent - Core Logic', () => {
     it('should accept isTypeSelected flag', () => {
       component.isTypeSelected = true;
       expect(component.isTypeSelected).toBe(true);
+    });
+
+    it('uses stable prompt-card id on home variant for deep links', () => {
+      component.variant = 'home';
+      component.prompt.id = 'prompt-first';
+      expect(component.homePromptCardDomId()).toBe('prompt-card-prompt-first');
     });
 
     it('should accept prompt input', () => {
@@ -902,11 +936,9 @@ describe('PromptCardComponent - Core Logic', () => {
       expect(component.promptBadge$).toBeDefined();
     });
 
-    it('should handle storage event for read_prompts_data', () => {
+    it('should rely on badge stream for read-state updates', () => {
       component.ngOnInit();
       badgeService.isPromptUnread.mockReturnValue(false);
-      
-      // Verify storage listener was registered
       expect(badgeService.getUpdateBadgesChanged$).toHaveBeenCalled();
     });
 
@@ -935,10 +967,11 @@ describe('PromptCardComponent - Core Logic', () => {
 
     it('should handle multiple ngOnDestroy calls', () => {
       component.ngOnInit();
-      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-      component.ngOnDestroy();
-      component.ngOnDestroy(); // Call again
-      expect(removeEventListenerSpy).toHaveBeenCalled();
+      expect(() => {
+        component.ngOnDestroy();
+        component.ngOnDestroy();
+        component.ngOnDestroy();
+      }).not.toThrow();
     });
 
     it('should correctly identify unread prompts', () => {
@@ -1085,60 +1118,6 @@ describe('PromptCardComponent - Core Logic', () => {
       expect(component.promptBadge$).toBeDefined();
     });
 
-    it('should set up storage listener on ngOnInit', () => {
-      const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-      component.ngOnInit();
-      expect(addEventListenerSpy).toHaveBeenCalledWith('storage', expect.any(Function));
-    });
-
-    it('should call updatePromptBadge when storage event fires with read_prompts_data key', () => {
-      component.ngOnInit();
-      
-      const storageEvent = new StorageEvent('storage', {
-        key: 'read_prompts_data',
-        newValue: '{"prompts": ["prompt-1"]}'
-      });
-      
-      window.dispatchEvent(storageEvent);
-      expect(badgeService.isPromptUnread).toHaveBeenCalled();
-    });
-
-    it('should not call updatePromptBadge for other storage keys', () => {
-      component.ngOnInit();
-      const initialCallCount = badgeService.isPromptUnread.mock.calls.length;
-      
-      const storageEvent = new StorageEvent('storage', {
-        key: 'other_key',
-        newValue: 'value'
-      });
-      
-      window.dispatchEvent(storageEvent);
-      // isPromptUnread should not be called again for other keys
-      expect(badgeService.isPromptUnread.mock.calls.length).toBe(initialCallCount);
-    });
-
-    it('should remove storage listener on ngOnDestroy', () => {
-      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-      component.ngOnInit();
-      component.ngOnDestroy();
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('storage', expect.any(Function));
-    });
-
-    it('should actually call window.removeEventListener with the stored listener function', () => {
-      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-      component.ngOnInit();
-      const listenerRef = (component as any).storageListener;
-      component.ngOnDestroy();
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('storage', listenerRef);
-    });
-
-    it('should handle ngOnDestroy when storageListener is null', () => {
-      component.ngOnInit();
-      component.ngOnDestroy();
-      // Should not throw when called again
-      expect(() => component.ngOnDestroy()).not.toThrow();
-    });
-
     it('should complete destroy subject on ngOnDestroy', () => {
       component.ngOnInit();
       const completeSpy = vi.fn();
@@ -1191,21 +1170,6 @@ describe('PromptCardComponent - Core Logic', () => {
       component.promptBadge$?.subscribe(value => {
         expect(value).toBe(false);
       });
-    });
-
-    it('should handle multiple storage events', () => {
-      component.ngOnInit();
-      const initialCallCount = badgeService.isPromptUnread.mock.calls.length;
-      
-      for (let i = 0; i < 5; i++) {
-        const storageEvent = new StorageEvent('storage', {
-          key: 'read_prompts_data',
-          newValue: `{"prompts": ["prompt-${i}"]}`
-        });
-        window.dispatchEvent(storageEvent);
-      }
-      
-      expect(badgeService.isPromptUnread.mock.calls.length).toBe(initialCallCount + 5);
     });
 
     it('should call markPromptAsRead with prompt id', () => {
@@ -1337,7 +1301,58 @@ describe('PromptCardComponent - Core Logic', () => {
       expect(component.showReminderButton()).toBe(false);
     });
 
-    it('hasReminderForPrompt reflects remindersForPrayer result', () => {
+    it('hasReminderForPrompt reflects session-cached reminders when overflow opens', async () => {
+      const reminder = {
+        id: 'r1',
+        user_email: 'me@test.com',
+        prayer_kind: 'prompt' as const,
+        prayer_id: 'prompt-1',
+        title_snapshot: 'T',
+        prayer_for_snapshot: 'Guidance',
+        mode: 'daily' as const,
+        iana_timezone: 'America/Chicago',
+        local_hour: 9,
+        local_minute: 0,
+        local_date: null,
+        local_weekday: null,
+        last_sent_at: null,
+        created_at: 't',
+      };
+      const component = createPromptCard(
+        { isPromptUnread: vi.fn(), markPromptAsRead: vi.fn(), getUpdateBadgesChanged$: vi.fn().mockReturnValue(of()), getBadgeFunctionalityEnabled$: vi.fn().mockReturnValue(of(true)) },
+        {
+          userSessionService: {
+            userSession$: of({ email: 'me@test.com' }),
+            getShowPrayForButton$: vi.fn().mockReturnValue(of(true)),
+            getShowPrayingCount$: vi.fn().mockReturnValue(of(true)),
+            getPersonalPrayerCooldownHours: vi.fn().mockReturnValue(4),
+            getCurrentSession: vi.fn().mockReturnValue({
+              email: 'me@test.com',
+              prayerItemReminders: [reminder],
+            }),
+          },
+          prayerItemReminderService: {
+            ensureLoaded: vi.fn().mockResolvedValue([reminder]),
+            remindersForPrayer: vi.fn().mockReturnValue([reminder]),
+          },
+        }
+      );
+      component.prompt = {
+        id: 'prompt-1',
+        title: 'T',
+        type: 'Guidance',
+        description: 'd',
+        created_at: 't',
+        updated_at: 't',
+      };
+      await component.prepareOverflowMenuOpen();
+      const reminderItem = component.overflowItems.find((item) => item.id === 'reminder');
+      expect(component.hasReminderForPrompt()).toBe(true);
+      expect(reminderItem?.filled).toBe(true);
+      expect(reminderItem?.label).toBe('Manage prayer reminders');
+    });
+
+    it('loads reminders when overflow opens before reminder modal', async () => {
       const reminder = {
         id: 'r1',
         user_email: 'me@test.com',
@@ -1371,6 +1386,8 @@ describe('PromptCardComponent - Core Logic', () => {
         created_at: 't',
         updated_at: 't',
       };
+      await component.prepareOverflowMenuOpen();
+      await Promise.resolve();
       expect(component.hasReminderForPrompt()).toBe(true);
     });
 

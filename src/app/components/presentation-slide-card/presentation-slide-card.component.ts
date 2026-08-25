@@ -62,6 +62,9 @@ import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
       variant="presentation"
       [prompt]="prompt"
       [isAdmin]="cardActions.isAdmin"
+      [showPrayForButton]="showPrayForButton"
+      [showPrayingCount]="showPrayingCount"
+      [prayerEncouragementEnabled]="prayerEncouragementEnabled"
       (delete)="onDeletePrompt($event)"
       (prayedForCountChange)="promptPrayedForCountChange.emit($event)"
     />
@@ -96,6 +99,9 @@ import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
 export class PresentationSlideCardComponent {
   @Input() prayer: PrayerRequest | null = null;
   @Input() prompt: PrayerPrompt | null = null;
+  @Input() showPrayForButton = true;
+  @Input() showPrayingCount = true;
+  @Input() prayerEncouragementEnabled = true;
 
   @Output() prayerPrayedForCountChange = new EventEmitter<{
     prayerId: string;

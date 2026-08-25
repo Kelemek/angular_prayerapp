@@ -64,6 +64,7 @@ const makeMocks = () => {
   const promptService: any = {
     prompts$: promptsSubject.asObservable(),
     promptsSubject,
+    loading$: of(false),
     deletePrompt: vi.fn(),
     loadPrompts: vi.fn(() => Promise.resolve()),
     isPromptsLoading: vi.fn(() => false),
@@ -131,6 +132,13 @@ const makeMocks = () => {
     addVerse: vi.fn(() => Promise.resolve({ ok: true, item: {} })),
     getPreferredTranslation: vi.fn(() => 'esv'),
     setPreferredTranslation: vi.fn(),
+  };
+
+  const prayerEncouragementService: any = {
+    getPrayerEncouragementEnabled$: vi.fn().mockReturnValue(of(false)),
+    getCooldownHoursForPrayer$: vi.fn().mockReturnValue(of(4)),
+    canPrayFor: vi.fn().mockReturnValue(true),
+    getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
   };
 
   const memorizationRecommendationsService: any = {
@@ -233,7 +241,7 @@ const makeMocks = () => {
     load: vi.fn().mockResolvedValue(undefined),
   };
 
-  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, badgeService, memorizationService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, personalCategoryColorService, prayerAllowancePolicy, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
+  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, badgeService, memorizationService, prayerEncouragementService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, personalCategoryColorService, prayerAllowancePolicy, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
 };
 
 interface SupabaseEmailOptions {
@@ -322,6 +330,7 @@ function createHomeComponent(
     m.planningCenterListService,
     m.badgeService,
     m.memorizationService,
+    m.prayerEncouragementService,
     m.memorizationRecommendationsService,
     m.scriptureService,
     m.toastService,

@@ -1,5 +1,5 @@
 <div [class]="'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
-  @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
+  @if (showPrayForButton && prayerEncouragementEnabled) {
     @if (canPrayFor) {
       <button
         type="button"
@@ -13,14 +13,14 @@
       <button
         type="button"
         disabled
-        [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(true) | async) ?? 4) + ' hours'"
+        [title]="'You can pray for this again in ' + cooldownHours + ' hours'"
         [class]="variantLayout.actionButtonClasses + ' bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md border border-gray-300 dark:border-gray-600 cursor-not-allowed'"
       >
         Prayed For
       </button>
     }
   }
-  @if ((userSessionService.getShowPrayingCount$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && showPrayedForBadge) {
+  @if (showPrayingCount && prayerEncouragementEnabled && showPrayedForBadge) {
     <span
       [class]="variantLayout.prayedForBadgeClasses"
       title="How many times you have prayed with this prompt"

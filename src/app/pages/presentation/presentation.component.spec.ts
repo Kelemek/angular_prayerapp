@@ -14,6 +14,7 @@ import { PresentationHelpTourLauncher } from '../../services/presentation-help-t
 import { PresentationHomeHandoffCoordinator } from '../../services/presentation-home-handoff.coordinator';
 import { PresentationSettingsCoordinator } from '../../services/presentation-settings.coordinator';
 import { ThemeService } from '../../services/theme.service';
+import { of } from 'rxjs';
 
 function createMockUserSessionService() {
   const userSessionSubject = new BehaviorSubject<{ email: string } | null>(null);
@@ -70,6 +71,9 @@ describe('PresentationComponent', () => {
   let mockPlanningCenterListService: any;
   let mockPresentationSettingsService: any;
   let mockUserSessionService: ReturnType<typeof createMockUserSessionService>;
+  let mockPrayerEncouragementService: {
+    getPrayerEncouragementEnabled$: ReturnType<typeof vi.fn>;
+  };
   let catalog: PresentationCatalogStore;
   let playback: PresentationPlaybackController;
   let contentLoader: PresentationContentLoader;
@@ -104,6 +108,9 @@ describe('PresentationComponent', () => {
     };
     mockPromptService = createMockPromptService();
     mockUserSessionService = createMockUserSessionService();
+    mockPrayerEncouragementService = {
+      getPrayerEncouragementEnabled$: vi.fn(() => of(true)),
+    };
     mockPlanningCenterListService = {
       loadForCurrentUser: vi.fn().mockResolvedValue(undefined),
       loadForUser: vi.fn().mockResolvedValue(undefined),
@@ -158,6 +165,7 @@ describe('PresentationComponent', () => {
       mockRoute,
       mockPromptService as any,
       mockUserSessionService,
+      mockPrayerEncouragementService as any,
       mockCdr as unknown as ChangeDetectorRef,
       helpDriverTour as any,
       mockPlanningCenterListService,

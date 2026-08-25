@@ -2,7 +2,7 @@
     <div [class]="variantLayout.usePresentationWrapper ? variantLayout.presentationScrollClasses : 'contents'">
     <div
       [class]="shellClasses()"
-      [attr.id]="variant === 'home' ? 'prompt-card-' + prompt.id : null"
+      [attr.id]="homePromptCardDomId()"
     >
       <!-- Meta header: type (left) | delete (right) -->
       <app-card-meta-header-band
@@ -34,6 +34,7 @@
           <app-card-actions-overflow-menu
             [items]="overflowItems"
             [bandSize]="variantLayout.bandSize"
+            [beforeMenuOpen]="prepareOverflowMenuOpen"
           />
         </div>
       </app-card-meta-header-band>
@@ -71,8 +72,10 @@
         [prayedForCountLabel]="prayedForCountLabel()"
         [showPrayedForBadge]="showPrayedForBadge()"
         [canPrayFor]="(canPrayFor$ | async) ?? false"
-        [userSessionService]="userSessionService"
-        [prayerEncouragementService]="prayerEncouragementService"
+        [showPrayForButton]="showPrayForButton"
+        [showPrayingCount]="showPrayingCount"
+        [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+        [cooldownHours]="cooldownHours"
         (prayFor)="onPrayForClick()"
       />
 
@@ -90,12 +93,15 @@
     </app-confirmation-dialog>
     }
 
+    @if (showPrayForModal) {
     <app-prompt-card-pray-for-modal
       [isOpen]="showPrayForModal"
       (confirm)="onConfirmPrayForFromModal($event)"
       (cancel)="onCancelPrayForModal()"
     />
+    }
 
+    @if (showReminderModal) {
     <app-prayer-item-reminder-modal
       [isOpen]="showReminderModal"
       [email]="reminderSessionEmail()"
@@ -107,4 +113,5 @@
       (close)="showReminderModal = false"
       (remindersChange)="onPromptRemindersChanged($event)"
     />
+    }
     </div>
