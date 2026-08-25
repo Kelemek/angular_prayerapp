@@ -26,7 +26,7 @@ function defaultPrayerCardCtorDeps() {
       ensureLoaded: vi.fn().mockResolvedValue([]),
       remindersForPrayer: vi.fn().mockReturnValue([]),
     } as any,
-    cdr: { markForCheck: vi.fn() } as any,
+    cdr: { markForCheck: vi.fn(), detectChanges: vi.fn() } as any,
   };
 }
 
@@ -99,6 +99,64 @@ describe('PrayerCardComponent', () => {
 
     (component.prayer as any).status = 'archived';
     expect(component.getBorderClass()).toContain('C9A961');
+  });
+
+  describe('Per-prayer reminders', () => {
+    it('does not load reminders on ngOnInit', () => {
+      const deps = defaultPrayerCardCtorDeps();
+      const itemReminders = deps.itemReminders;
+      component = new PrayerCardComponent(
+        mockUserSessionService,
+        deps.badge,
+        deps.prayerService,
+        deps.encouragement,
+        itemReminders,
+        deps.cdr,
+        mockRichTextEditorsSettings as any
+      );
+      component.prayer = {
+        id: 'p1',
+        prayer_for: 'Community',
+        description: 'Please pray',
+        requester: 'Jane Doe',
+        is_anonymous: false,
+        status: 'current',
+        created_at: now.toISOString(),
+        updates: [],
+      } as any;
+
+      component.ngOnInit();
+
+      expect(itemReminders.ensureLoaded).not.toHaveBeenCalled();
+    });
+
+    it('loads reminders when overflow opens', async () => {
+      const deps = defaultPrayerCardCtorDeps();
+      const itemReminders = deps.itemReminders;
+      component = new PrayerCardComponent(
+        mockUserSessionService,
+        deps.badge,
+        deps.prayerService,
+        deps.encouragement,
+        itemReminders,
+        deps.cdr,
+        mockRichTextEditorsSettings as any
+      );
+      component.prayer = {
+        id: 'p1',
+        prayer_for: 'Community',
+        description: 'Please pray',
+        requester: 'Jane Doe',
+        is_anonymous: false,
+        status: 'current',
+        created_at: now.toISOString(),
+        updates: [],
+      } as any;
+
+      await component.prepareOverflowMenuOpen();
+
+      expect(itemReminders.ensureLoaded).toHaveBeenCalled();
+    });
   });
 
   describe('showReminderButton', () => {

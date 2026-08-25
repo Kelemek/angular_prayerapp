@@ -23,7 +23,10 @@ import type { AllowanceLevel } from "../../types/prayer";
 import { PrayerRequest } from "../../services/prayer.service";
 import type { MemorizedItem } from "../../types/memorization";
 import type { HomePrayerContentHandlers } from "../../lib/home-prayer-content-handlers";
-import { HOME_SHELL_STACK_GAP_CLASSES } from "../../lib/home-shell-spacing";
+import {
+  HOME_PROMPT_VIRTUAL_SCROLL_ITEM_CLASSES,
+  HOME_SHELL_STACK_GAP_CLASSES,
+} from "../../lib/home-shell-spacing";
 import {
   HOME_PROMPT_VIRTUAL_SCROLL_MAX_BUFFER_PX,
   HOME_PROMPT_VIRTUAL_SCROLL_MIN_BUFFER_PX,
@@ -48,6 +51,7 @@ export type HomePersonalCategoryPickerOpenChange = {
     MemorizePassagesPanelComponent,
   ],
   templateUrl: "./home-prayer-content.component.html",
+  styleUrl: "./home-prayer-content.component.css",
 })
 export class HomePrayerContentComponent {
   @Input({ required: true }) contentHidden!: boolean;
@@ -86,6 +90,8 @@ export class HomePrayerContentComponent {
   private promptVirtualScrollViewport?: CdkVirtualScrollViewport;
 
   readonly stackGapClass = HOME_SHELL_STACK_GAP_CLASSES;
+  readonly promptVirtualScrollItemClass =
+    HOME_PROMPT_VIRTUAL_SCROLL_ITEM_CLASSES;
   readonly promptVirtualScrollMinBufferPx =
     HOME_PROMPT_VIRTUAL_SCROLL_MIN_BUFFER_PX;
   readonly promptVirtualScrollMaxBufferPx =

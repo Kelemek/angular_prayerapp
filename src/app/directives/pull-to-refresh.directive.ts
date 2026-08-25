@@ -46,7 +46,8 @@ export class PullToRefreshDirective {
       0;
     const scrollTop = Math.max(elementScrollTop, pageScrollTop);
 
-    if (scrollTop > 0) {
+    // Small tolerance for sub-pixel scroll restoration on iOS WebView
+    if (scrollTop > 2) {
       this.startY = null;
       this.pulling = false;
       return;

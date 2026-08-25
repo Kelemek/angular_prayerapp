@@ -24,6 +24,19 @@ export async function loadPrayerCardItemReminders(
   }
 }
 
+/** Session cache first; network load only when reminders are not already on session. */
+export async function ensurePrayerCardItemRemindersLoaded(
+  userSessionService: UserSessionService,
+  prayerItemReminderService: PrayerItemReminderService
+): Promise<PrayerItemReminder[]> {
+  const sessionRows =
+    userSessionService.getCurrentSession()?.prayerItemReminders;
+  if (sessionRows !== undefined) {
+    return sessionRows;
+  }
+  return loadPrayerCardItemReminders(prayerItemReminderService);
+}
+
 export function remindersForPrayerCard(
   prayerItemReminderService: PrayerItemReminderService,
   userSessionService: UserSessionService,

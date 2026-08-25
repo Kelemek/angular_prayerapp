@@ -36,7 +36,7 @@ import {
   type PrayerCardPermissionContext,
 } from '../../lib/prayer-card-permissions';
 import {
-  loadPrayerCardItemReminders,
+  ensurePrayerCardItemRemindersLoaded,
   remindersForPrayerCard,
 } from '../../lib/prayer-card-reminders';
 import {
@@ -207,12 +207,6 @@ export class PrayerCardComponent
     this.prayerBadge$ = this.badgeWire.prayerBadge$;
     this.badgeWire.init(this.destroy$);
     this.refreshCanPrayFor$();
-    this.loadPrayerItemReminders();
-    this.userSessionService.userSession$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.loadPrayerItemReminders();
-      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -224,7 +218,8 @@ export class PrayerCardComponent
       const currentId = changes['prayer'].currentValue?.id;
       if (previousId !== currentId) {
         this.showPrayForModal = false;
-        this.cdr.markForCheck();
+        this.showReminderModal = false;
+        this.allPrayerItemReminders = [];
       }
       if (!changes['prayer'].firstChange) {
         this.badgeWire.onPrayerChanged(
@@ -232,6 +227,7 @@ export class PrayerCardComponent
           changes['prayer'].currentValue as PrayerRequest
         );
       }
+      this.cdr.markForCheck();
     }
   }
 
@@ -306,7 +302,7 @@ export class PrayerCardComponent
 
   openReminderModal(): void {
     this.showReminderModal = true;
-    this.loadPrayerItemReminders();
+    void this.ensurePrayerItemRemindersLoaded();
     this.cdr.markForCheck();
   }
 
@@ -321,18 +317,24 @@ export class PrayerCardComponent
     this.cdr.markForCheck();
   }
 
-  private loadPrayerItemReminders(): void {
+  readonly prepareOverflowMenuOpen = async (): Promise<void> => {
+    await this.ensurePrayerItemRemindersLoaded();
+    this.cdr.detectChanges();
+  };
+
+  private ensurePrayerItemRemindersLoaded(): Promise<void> {
     if (!this.reminderSessionEmail()) {
       this.allPrayerItemReminders = [];
       this.cdr.markForCheck();
-      return;
+      return Promise.resolve();
     }
-    void loadPrayerCardItemReminders(this.prayerItemReminderService).then(
-      (rows) => {
-        this.allPrayerItemReminders = rows;
-        this.cdr.markForCheck();
-      }
-    );
+    return ensurePrayerCardItemRemindersLoaded(
+      this.userSessionService,
+      this.prayerItemReminderService
+    ).then((rows) => {
+      this.allPrayerItemReminders = rows;
+      this.cdr.markForCheck();
+    });
   }
 
   private refreshCanPrayFor$(): void {

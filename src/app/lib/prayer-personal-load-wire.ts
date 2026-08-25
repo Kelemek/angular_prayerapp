@@ -3,6 +3,7 @@ import {
   applyPersonalPrayerLoadCacheFallbackPlan,
   planPersonalPrayerLoadCacheFallback,
   publishPersonalPrayersFromDb,
+  shouldShowPersonalLoadingIndicator,
   type PersonalPrayersCacheSnapshotActions,
 } from "./prayer-catalog-load";
 import type { PrayerRequest } from "./prayer-types";
@@ -26,7 +27,6 @@ export async function runPersonalPrayerCatalogLoad(
   silentRefresh = false
 ): Promise<void> {
   try {
-    deps.setLoading(true);
     console.log("[PrayerService] Loading personal prayers...");
 
     const userEmail = await deps.getUserEmail();
@@ -39,6 +39,11 @@ export async function runPersonalPrayerCatalogLoad(
     }
 
     const cachedPersonalPrayers = deps.readCache();
+    if (
+      shouldShowPersonalLoadingIndicator(silentRefresh, cachedPersonalPrayers)
+    ) {
+      deps.setLoading(true);
+    }
     if (cachedPersonalPrayers && cachedPersonalPrayers.length > 0) {
       console.log(
         `[PrayerService] Using cached personal prayers (${cachedPersonalPrayers.length} items)`

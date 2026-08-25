@@ -54,8 +54,8 @@ describe("HomeRefreshCoordinator", () => {
 
     await coordinator.onPullToRefresh();
 
-    expect(prayerService.loadPrayers).toHaveBeenCalledWith(false);
-    expect(prayerService.loadPersonalPrayers).toHaveBeenCalledWith(false);
+    expect(prayerService.loadPrayers).toHaveBeenCalledWith(true);
+    expect(prayerService.loadPersonalPrayers).toHaveBeenCalledWith(true);
     expect(host.setRefreshing).toHaveBeenCalledWith(false);
   });
 });

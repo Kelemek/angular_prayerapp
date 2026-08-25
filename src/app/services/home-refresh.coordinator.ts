@@ -49,11 +49,11 @@ export class HomeRefreshCoordinator {
     host.markForCheck();
 
     try {
-      const tasks: Promise<unknown>[] = [services.prayerService.loadPrayers(false)];
+      const tasks: Promise<unknown>[] = [services.prayerService.loadPrayers(true)];
 
       const session = services.userSessionService.getCurrentSession();
       if (session?.email) {
-        tasks.push(services.prayerService.loadPersonalPrayers(false));
+        tasks.push(services.prayerService.loadPersonalPrayers(true));
         tasks.push(services.personalCategoryColorService.loadColors(true));
       }
 

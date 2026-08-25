@@ -919,7 +919,7 @@ The BrandingService implements a multi-tier caching strategy to eliminate logo f
 - Lazy-load admin routes
 - Image optimization (PNG/WebP)
 - Bundle analysis: `npm run build:analyze`
-- **Home Prompts list**: CDK **autosize** virtual scroll in [`home-prayer-content`](src/app/components/home-prayer-content/home-prayer-content.component.ts) (`@angular/cdk-experimental`; buffer constants in [`home-prompt-virtual-scroll.ts`](src/app/lib/home-prompt-virtual-scroll.ts)); only ~viewport-visible [`prompt-card`](src/app/components/prompt-card/prompt-card.component.ts) instances mount with full description text. Prompt `?promptId=` deep links call [`HomeDeepLinkHost.scrollPromptIntoView`](src/app/services/home-deep-link-host.adapter.ts) (`scrollToOffset` estimate, then DOM `scrollIntoView`).
+- **Home Prompts list**: CDK **autosize** virtual scroll in [`home-prayer-content`](src/app/components/home-prayer-content/home-prayer-content.component.ts) (`@angular/cdk-experimental`; scroll stepping in [`home-prompt-virtual-scroll.ts`](src/app/lib/home-prompt-virtual-scroll.ts); row spacing via [`.home-prompt-virtual-scroll-item`](src/app/components/home-prayer-content/home-prayer-content.component.css) padding matching `space-y-2 sm:space-y-3`). Public, Personal, and Members tabs use normal `@for` lists (full DOM). Prompt `?promptId=` deep links call [`HomeDeepLinkHost.scrollPromptIntoView`](src/app/services/home-deep-link-host.adapter.ts) (`scrollToOffset` estimate, then DOM `scrollIntoView`).
 - Logo preload hints in HTML head for browser priority
 
 ### Monitoring

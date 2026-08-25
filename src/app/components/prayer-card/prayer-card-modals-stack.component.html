@@ -1,3 +1,4 @@
+@if (showAddUpdateForm) {
 <app-prayer-add-update-modal
   [isOpen]="showAddUpdateForm"
   [prayerId]="prayerId"
@@ -7,7 +8,9 @@
   (close)="closeAddUpdate.emit()"
   (updateSubmit)="addUpdateSubmit.emit($event)"
 />
+}
 
+@if (showDeleteRequestForm || showUpdateDeleteRequestForm !== null) {
 <app-prayer-delete-request-modal
   [isOpen]="showDeleteRequestForm || showUpdateDeleteRequestForm !== null"
   [prayerId]="prayerId"
@@ -16,6 +19,7 @@
   (close)="closeDeleteRequest.emit()"
   (submit)="deleteRequestSubmit.emit($event)"
 />
+}
 
 @if (showConfirmationDialog) {
   <app-confirmation-dialog
@@ -39,6 +43,7 @@
   />
 }
 
+@if (personalAnsweredStatusModalMode !== null) {
 <app-personal-prayer-answered-status-modal
   [isOpen]="personalAnsweredStatusModalMode !== null"
   [mode]="personalAnsweredStatusModalMode ?? 'mark'"
@@ -46,7 +51,9 @@
   (confirmMark)="confirmPersonalAnswered.emit()"
   (confirmUnmark)="confirmPersonalUnanswered.emit($event)"
 />
+}
 
+@if (showReminderModal) {
 <app-prayer-item-reminder-modal
   [isOpen]="showReminderModal"
   [email]="reminderSessionEmail"
@@ -58,7 +65,9 @@
   (close)="closeReminder.emit()"
   (remindersChange)="remindersChange.emit($event)"
 />
+}
 
+@if (showPrayForModal) {
 <app-prayer-card-pray-for-modal
   [isOpen]="showPrayForModal"
   [isPersonal]="isPersonal"
@@ -67,3 +76,4 @@
   (confirm)="confirmPrayFor.emit($event)"
   (cancel)="cancelPrayFor.emit()"
 />
+}

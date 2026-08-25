@@ -18,6 +18,13 @@ export function shouldShowCommunityLoadingIndicator(
   return !silentRefresh && !cachedPrayers;
 }
 
+export function shouldShowPersonalLoadingIndicator(
+  silentRefresh: boolean,
+  cachedPrayers: PrayerRequest[] | null | undefined
+): boolean {
+  return !silentRefresh || !cachedPrayers?.length;
+}
+
 export function prayerLoadErrorMessage(err: unknown, defaultMessage: string): string {
   return err instanceof Error ? err.message : defaultMessage;
 }

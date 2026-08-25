@@ -1,0 +1,21 @@
+/* Prompts-only CDK autosize virtual scroll (parent scroll: .safe-area-viewport). */
+.home-prompt-virtual-scroll-viewport {
+  width: 100%;
+}
+
+/*
+  Row gap must live inside the measured autosize box (padding on the row host).
+  Matches stackGapClass rhythm (space-y-2 / sm:space-y-3). Prompt card shell
+  outer margin is cleared in prompt-card.component.css — see comment there.
+*/
+.home-prompt-virtual-scroll-item {
+  box-sizing: border-box;
+  display: block;
+  padding-bottom: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .home-prompt-virtual-scroll-item {
+    padding-bottom: 0.75rem;
+  }
+}

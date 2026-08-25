@@ -26,6 +26,7 @@
     class="safe-area-viewport w-full bg-gray-50 dark:bg-gray-900"
     cdkVirtualScrollingElement
     appPullToRefresh
+    [appPullToRefreshDisabled]="isRefreshing"
     [refreshing]="isRefreshing"
     (refresh)="refresh.onPullToRefresh()"
   >
@@ -167,6 +168,8 @@
       }
 
       <!-- Loading State -->
+      @let displayedPublicPrayers = (prayers$ | async) ?? [];
+      @let promptsCatalogCount = (prompts$ | async)?.length ?? 0;
       @let contentLoading =
         !viewReady ||
         !!(loading$ | async) ||
@@ -176,7 +179,17 @@
           !!(prayerService.loadingPersonalPrayers$ | async)) ||
         (activeFilter === 'memorize' &&
           !!(memorizationService.loading$ | async));
-      @if (contentLoading) {
+      @let hasCachedContentForTab =
+        activeFilter === 'memorize' ||
+        (activeFilter === 'prompts' &&
+          (catalog.displayedPrompts.length > 0 || promptsCatalogCount > 0)) ||
+        (activeFilter === 'personal' &&
+          catalog.filteredPersonalPrayers.length > 0) ||
+        (activeFilter === 'planning_center_list' &&
+          catalog.filteredPlanningCenterPrayers.length > 0) ||
+        (isPublicTabFilter(activeFilter) && displayedPublicPrayers.length > 0);
+      @let hidePrayerContentForLoading = contentLoading && !hasCachedContentForTab;
+      @if (hidePrayerContentForLoading) {
       <app-skeleton-loader [count]="5" type="card"></app-skeleton-loader>
       }
 
@@ -251,7 +264,7 @@
         false;
       @let isAdmin = (isAdmin$ | async) ?? false;
       <app-home-prayer-content
-        [contentHidden]="contentLoading"
+        [contentHidden]="hidePrayerContentForLoading"
         [activeFilter]="activeFilter"
         [filters]="filters"
         [prayers$]="prayers$"

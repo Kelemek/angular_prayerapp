@@ -44,7 +44,7 @@ import {
   shouldSkipPrayForExplanationModal,
 } from '../../lib/prayer-card-pray-for-modal';
 import {
-  loadPrayerCardItemReminders,
+  ensurePrayerCardItemRemindersLoaded,
   remindersForPrayerCard,
 } from '../../lib/prayer-card-reminders';
 import { getPrayerCardUserEmail } from '../../lib/prayer-card-user-context';
@@ -81,6 +81,7 @@ export interface PrayerPrompt {
     '[class.block]': 'variant !== "presentation"',
   },
   templateUrl: './prompt-card.component.html',
+  styleUrl: './prompt-card.component.css',
 })
 export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() variant: PrayerCardVariant = 'home';
@@ -191,6 +192,10 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
         this.showPrayForModal = false;
         this.showReminderModal = false;
         this.allPrayerItemReminders = [];
+        if (!changes['prompt'].firstChange) {
+          this.promptBadgeSubject$.next(false);
+          this.updatePromptBadge();
+        }
       }
       this.refreshCanPrayFor$();
       this.cdr.markForCheck();
@@ -312,28 +317,18 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   };
 
   private ensurePrayerItemRemindersLoaded(): Promise<void> {
-    const sessionRows =
-      this.userSessionService.getCurrentSession()?.prayerItemReminders;
-    if (sessionRows !== undefined) {
-      this.allPrayerItemReminders = sessionRows;
-      this.cdr.markForCheck();
-      return Promise.resolve();
-    }
-    return this.loadPrayerItemReminders();
-  }
-
-  private loadPrayerItemReminders(): Promise<void> {
     if (!this.reminderSessionEmail()) {
       this.allPrayerItemReminders = [];
       this.cdr.markForCheck();
       return Promise.resolve();
     }
-    return loadPrayerCardItemReminders(this.prayerItemReminderService).then(
-      (rows) => {
-        this.allPrayerItemReminders = rows;
-        this.cdr.markForCheck();
-      }
-    );
+    return ensurePrayerCardItemRemindersLoaded(
+      this.userSessionService,
+      this.prayerItemReminderService
+    ).then((rows) => {
+      this.allPrayerItemReminders = rows;
+      this.cdr.markForCheck();
+    });
   }
 
   reminderSessionEmail(): string {

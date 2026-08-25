@@ -309,21 +309,18 @@
     [maxBufferPx]="promptVirtualScrollMaxBufferPx"
     class="home-prompt-virtual-scroll-viewport block w-full"
   >
-    <div
+    <app-prompt-card
       *cdkVirtualFor="let prompt of displayedPrompts; trackBy: trackPrompt"
-      class="home-prompt-virtual-scroll-item pb-2 sm:pb-3"
-    >
-      <app-prompt-card
-        [prompt]="prompt"
-        [isAdmin]="isAdmin"
-        [isTypeSelected]="isPromptTypeSelected(prompt.type)"
-        [showPrayForButton]="showPrayForButton"
-        [showPrayingCount]="showPrayingCount"
-        [prayerEncouragementEnabled]="prayerEncouragementEnabled"
-        (delete)="handlers.deletePrompt($event)"
-        (onTypeClick)="handlers.togglePromptType($event)"
-      ></app-prompt-card>
-    </div>
+      [class]="promptVirtualScrollItemClass"
+      [prompt]="prompt"
+      [isAdmin]="isAdmin"
+      [isTypeSelected]="isPromptTypeSelected(prompt.type)"
+      [showPrayForButton]="showPrayForButton"
+      [showPrayingCount]="showPrayingCount"
+      [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+      (delete)="handlers.deletePrompt($event)"
+      (onTypeClick)="handlers.togglePromptType($event)"
+    ></app-prompt-card>
   </cdk-virtual-scroll-viewport>
   }
 </div>

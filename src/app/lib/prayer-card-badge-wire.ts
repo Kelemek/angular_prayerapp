@@ -51,6 +51,11 @@ export class PrayerCardBadgeWire {
     previousPrayer: PrayerRequest | undefined,
     currentPrayer: PrayerRequest
   ): void {
+    if (previousPrayer?.id !== currentPrayer.id) {
+      this.rebindPrayer(currentPrayer);
+      return;
+    }
+
     const previousUpdateIds = previousPrayer?.updates?.map((u) => u.id) ?? [];
     const currentUpdateIds = currentPrayer.updates?.map((u) => u.id) ?? [];
     const newUpdateIds = currentUpdateIds.filter(
@@ -68,6 +73,14 @@ export class PrayerCardBadgeWire {
       }
     }
     this.syncAllUpdateBadges(currentPrayer.updates);
+  }
+
+  /** Virtual scroll reuses card instances; reset badge state when the row prayer changes. */
+  rebindPrayer(prayer: PrayerRequest): void {
+    this.prayerBadgeSubject$.next(false);
+    this.updateBadges$.clear();
+    this.syncPrayerBadge();
+    this.seedUpdateBadges(prayer.updates);
   }
 
   markUpdateRead(updateId: string, prayerId: string): void {

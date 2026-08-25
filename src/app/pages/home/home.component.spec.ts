@@ -2883,8 +2883,8 @@ describe('HomeComponent', () => {
       m.userSessionService.getCurrentSession = vi.fn(() => ({ email: 'user@example.com' }));
       const comp = newHome(m);
       await comp.refresh.onPullToRefresh();
-      expect(m.prayerService.loadPrayers).toHaveBeenCalledWith(false);
-      expect(m.prayerService.loadPersonalPrayers).toHaveBeenCalledWith(false);
+      expect(m.prayerService.loadPrayers).toHaveBeenCalledWith(true);
+      expect(m.prayerService.loadPersonalPrayers).toHaveBeenCalledWith(true);
       expect(comp.isRefreshing).toBe(false);
     });
 

@@ -25,6 +25,7 @@
         [personalDeleteTourId]="showTourAnchors && tourPersonalWalkthroughAnchors ? 'tour-walkthrough-personal-delete' : null"
         [centerDragHandle]="showTourAnchors && personalDragHandle && isPersonal"
         [centerDragHandleId]="personalDragTourId"
+        [beforeMenuOpen]="prepareOverflowMenuOpen"
         (toggleAnswered)="onPersonalAnsweredClick()"
         (edit)="editPersonalPrayer.emit(prayer)"
         (delete)="handleDeleteClick()"

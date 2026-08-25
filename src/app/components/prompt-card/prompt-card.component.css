@@ -1,0 +1,8 @@
+/*
+  Virtual scroll rows use padding-bottom on the host (included in autosize measurement).
+  Shell outer margin (mb-2 sm:mb-3) must be cleared here — unlike @for + space-y lists,
+  adjacent virtual rows do not collapse margins, so keeping both looks like double spacing.
+*/
+:host(.home-prompt-virtual-scroll-item) .prompt-card {
+  margin-bottom: 0;
+}

@@ -11,6 +11,7 @@ import {
   prayerLoadErrorMessage,
   personalCachedPrayersMatchUser,
   shouldShowCommunityLoadingIndicator,
+  shouldShowPersonalLoadingIndicator,
   shouldSkipCommunityPrayersDbOnSilentRefresh,
 } from './prayer-catalog-load';
 import type { PrayerRequest } from './prayer-types';
@@ -52,6 +53,13 @@ describe('prayer-catalog-load', () => {
     expect(shouldShowCommunityLoadingIndicator(false, undefined)).toBe(true);
     expect(shouldShowCommunityLoadingIndicator(true, undefined)).toBe(false);
     expect(shouldShowCommunityLoadingIndicator(false, [prayer('a@test.com')])).toBe(false);
+  });
+
+  it('shouldShowPersonalLoadingIndicator on silent refresh when cache exists', () => {
+    const cached = [prayer('a@test.com')];
+    expect(shouldShowPersonalLoadingIndicator(true, cached)).toBe(false);
+    expect(shouldShowPersonalLoadingIndicator(false, cached)).toBe(true);
+    expect(shouldShowPersonalLoadingIndicator(true, undefined)).toBe(true);
   });
 
   it('prayerLoadErrorMessage prefers Error.message', () => {

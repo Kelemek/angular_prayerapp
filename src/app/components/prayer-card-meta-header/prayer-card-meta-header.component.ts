@@ -63,6 +63,7 @@ import {
         <app-card-actions-overflow-menu
           [items]="overflowItems"
           [bandSize]="bandSize"
+          [beforeMenuOpen]="beforeMenuOpen"
         />
       </div>
     </app-card-meta-header-band>
@@ -96,6 +97,7 @@ export class PrayerCardMetaHeaderComponent {
   @Input() personalDeleteTourId: string | null = null;
   @Input() centerDragHandle = false;
   @Input() centerDragHandleId: string | null = null;
+  @Input() beforeMenuOpen?: () => void | Promise<void>;
 
   @Output() toggleAnswered = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();
