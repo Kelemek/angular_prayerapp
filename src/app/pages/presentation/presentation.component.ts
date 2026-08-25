@@ -8,10 +8,12 @@ import {
   ViewChild,
   ElementRef,
 } from "@angular/core";
+import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Subject } from "rxjs";
 import { distinctUntilChanged, takeUntil } from "rxjs/operators";
 import { PromptService } from "../../services/prompt.service";
+import { PrayerEncouragementService } from "../../services/prayer-encouragement.service";
 import { UserSessionService } from "../../services/user-session.service";
 import { PlanningCenterListService } from "../../services/planning-center-list.service";
 import { ThemeService, type Theme } from "../../services/theme.service";
@@ -69,6 +71,7 @@ import type { PrayerRequest } from "../../services/prayer.service";
     PresentationSettingsCoordinator,
   ],
   imports: [
+    CommonModule,
     PresentationToolbarComponent,
     PresentationSlideCardComponent,
     PresentationSettingsModalComponent,
@@ -125,7 +128,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private promptService: PromptService,
-    private userSessionService: UserSessionService,
+    public userSessionService: UserSessionService,
+    public prayerEncouragementService: PrayerEncouragementService,
     private cdr: ChangeDetectorRef,
     private helpDriverTourService: HelpDriverTourService,
     private readonly planningCenterListService: PlanningCenterListService,

@@ -24,6 +24,7 @@ describe("HomeDeepLinkCoordinator", () => {
       arePromptsStillLoading: vi.fn(() => false),
       requestFreshPromptCatalog: vi.fn(),
       applyPendingVerseMemorizationDeepLink: vi.fn(),
+      scrollPromptIntoView: vi.fn(() => true),
     };
     coordinator.bindHost(host);
   });
@@ -83,6 +84,7 @@ describe("HomeDeepLinkCoordinator", () => {
     expect(host.requestFreshPromptCatalog).toHaveBeenCalled();
     expect(host.clearDeepLinkFilters).toHaveBeenCalled();
     expect(host.setFilter).toHaveBeenCalledWith("prompts");
+    expect(host.scrollPromptIntoView).toHaveBeenCalledWith("prompt-1");
     scrollSpy.mockRestore();
   });
 

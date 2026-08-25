@@ -24,6 +24,7 @@
   <!-- Scroll viewport below safe area: header sticky inside so content scrolls under header to top of header, never into safe area -->
   <div
     class="safe-area-viewport w-full bg-gray-50 dark:bg-gray-900"
+    cdkVirtualScrollingElement
     appPullToRefresh
     [refreshing]="isRefreshing"
     (refresh)="refresh.onPullToRefresh()"
@@ -169,6 +170,8 @@
       @let contentLoading =
         !viewReady ||
         !!(loading$ | async) ||
+        (activeFilter === 'prompts' &&
+          !!(promptService.loading$ | async)) ||
         (activeFilter === 'personal' &&
           !!(prayerService.loadingPersonalPrayers$ | async)) ||
         (activeFilter === 'memorize' &&
@@ -239,6 +242,14 @@
       }
 
       <!-- Prayers or Prompts List -->
+      @let showPrayForButton =
+        (userSessionService.getShowPrayForButton$() | async) ?? true;
+      @let showPrayingCount =
+        (userSessionService.getShowPrayingCount$() | async) ?? true;
+      @let prayerEncouragementEnabled =
+        (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) ??
+        false;
+      @let isAdmin = (isAdmin$ | async) ?? false;
       <app-home-prayer-content
         [contentHidden]="contentLoading"
         [activeFilter]="activeFilter"
@@ -247,7 +258,6 @@
         [prompts$]="prompts$"
         [loading$]="loading$"
         [error$]="error$"
-        [isAdmin$]="isAdmin$"
         [deletionsAllowed]="deletionsAllowed"
         [updatesAllowed]="updatesAllowed"
         [personalCategoryPickerPrayerId]="personalCategoryPickerPrayerId"
@@ -264,6 +274,10 @@
         [showAddMemorizedVerse]="shell.modals.showAddMemorizedVerse"
         [showAddMemorizedBibleBooks]="shell.modals.showAddMemorizedBibleBooks"
         [showMemorizationRecommendations]="shell.modals.showMemorizationRecommendations"
+        [showPrayForButton]="showPrayForButton"
+        [showPrayingCount]="showPrayingCount"
+        [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+        [isAdmin]="isAdmin"
         [handlers]="shell.handlers.prayerContent"
         (personalCategoryPickerOpenChange)="
           onPersonalCategoryPickerOpenChange($event.prayerId, $event.open)

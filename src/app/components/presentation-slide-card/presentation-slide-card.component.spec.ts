@@ -2,6 +2,22 @@ import { describe, it, expect, vi } from 'vitest';
 import { PresentationSlideCardComponent } from './presentation-slide-card.component';
 
 describe('PresentationSlideCardComponent', () => {
+  it('passes encouragement visibility inputs to prompt-card', () => {
+    const component = new PresentationSlideCardComponent(
+      { isAdmin: false } as any,
+      { deletionsAllowed: 'everyone', updatesAllowed: 'everyone' } as any,
+      { getCurrentListId: vi.fn() } as any,
+      { markForCheck: vi.fn() } as any
+    );
+    component.showPrayForButton = false;
+    component.showPrayingCount = false;
+    component.prayerEncouragementEnabled = false;
+
+    expect(component.showPrayForButton).toBe(false);
+    expect(component.showPrayingCount).toBe(false);
+    expect(component.prayerEncouragementEnabled).toBe(false);
+  });
+
   it('opens personal edit modal from card output', () => {
     const cardActions = {
       isAdmin: false,

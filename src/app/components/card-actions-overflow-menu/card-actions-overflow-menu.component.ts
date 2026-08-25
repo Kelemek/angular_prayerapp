@@ -5,9 +5,13 @@ import {
   Component,
   ElementRef,
   EmbeddedViewRef,
+  EventEmitter,
   HostListener,
   Input,
+  OnChanges,
   OnDestroy,
+  Output,
+  SimpleChanges,
   TemplateRef,
   ViewChild,
   inject,
@@ -97,13 +101,18 @@ import type {
     </ng-template>
   `,
 })
-export class CardActionsOverflowMenuComponent implements OnDestroy {
+export class CardActionsOverflowMenuComponent implements OnChanges, OnDestroy {
   private readonly appRef = inject(ApplicationRef);
   private readonly cdr = inject(ChangeDetectorRef);
   readonly iconButtonBaseClasses = PRAYER_CARD_META_HEADER_ICON_BUTTON_BASE_CLASSES;
 
   @Input() items: CardActionsOverflowItem[] = [];
   @Input() bandSize: MetaHeaderBandSize = 'sm';
+  /** Optional async prep (e.g. load reminder state) before the menu opens. */
+  @Input() beforeMenuOpen?: () => void | Promise<void>;
+
+  /** Emitted after `beforeMenuOpen` resolves and before the portal renders. */
+  @Output() menuWillOpen = new EventEmitter<void>();
 
   @ViewChild('trigger') triggerRef?: ElementRef<HTMLButtonElement>;
   @ViewChild('menuPortal') menuPortalTpl?: TemplateRef<unknown>;
@@ -115,6 +124,7 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
   private positionRaf = 0;
   private scrollListener: (() => void) | null = null;
   private resizeListener: (() => void) | null = null;
+  private openMenuGeneration = 0;
 
   get layoutClasses() {
     return getMetaHeaderBandLayoutClasses(this.bandSize);
@@ -144,22 +154,46 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['items'] && this.menuOpen) {
+      this.syncMenuPortal();
+      this.updatePosition();
+    }
+  }
+
   toggleMenu(event: Event): void {
     event.stopPropagation();
     if (this.menuOpen) {
       this.closeMenu();
       return;
     }
-    this.openMenu();
+    void this.openMenu();
   }
 
-  openMenu(): void {
+  async openMenu(): Promise<void> {
     if (this.items.length === 0 || this.menuOpen) {
       return;
     }
+    const generation = ++this.openMenuGeneration;
+    await this.runBeforeMenuOpen();
+    if (generation !== this.openMenuGeneration) {
+      return;
+    }
+    if (!this.triggerRef?.nativeElement.isConnected) {
+      return;
+    }
+    this.menuWillOpen.emit();
     this.menuOpen = true;
     this.cdr.markForCheck();
     this.schedulePositionUpdate();
+  }
+
+  private async runBeforeMenuOpen(): Promise<void> {
+    const prepare = this.beforeMenuOpen;
+    if (!prepare) {
+      return;
+    }
+    await prepare();
   }
 
   closeMenu(): void {
@@ -196,6 +230,7 @@ export class CardActionsOverflowMenuComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.openMenuGeneration += 1;
     this.detachMenuPortal();
     this.detachPositionListeners();
     if (this.positionRaf) {

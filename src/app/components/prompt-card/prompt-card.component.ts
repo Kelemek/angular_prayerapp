@@ -87,8 +87,9 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() prompt!: PrayerPrompt;
   @Input() isAdmin = false;
   @Input() isTypeSelected = false;
-  /** First visible prompt in the list: stable id for the Prayer Prompts guided tour. */
-  @Input() tourPromptAnchors = false;
+  @Input() showPrayForButton = true;
+  @Input() showPrayingCount = true;
+  @Input() prayerEncouragementEnabled = true;
 
   @Output() delete = new EventEmitter<string>();
   @Output() onTypeClick = new EventEmitter<string>();
@@ -105,11 +106,11 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
 
   promptBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);
+  cooldownHours = 4;
   showConfirmationDialog = false;
   showPrayForModal = false;
   showReminderModal = false;
   private allPrayerItemReminders: PrayerItemReminder[] = [];
-  private storageListener: ((event: StorageEvent) => void) | null = null;
   private promptBadgeSubject$ = new BehaviorSubject<boolean>(false);
   private destroy$ = new Subject<void>();
 
@@ -157,8 +158,11 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
     return getPromptCardShellClasses(this.variantLayout);
   }
 
+  homePromptCardDomId(): string | null {
+    return this.variant === 'home' ? `prompt-card-${this.prompt.id}` : null;
+  }
+
   ngOnInit(): void {
-    this.loadPrayerItemReminders();
     this.initializePromptBadge();
     this.promptBadge$ = this.promptBadgeSubject$.asObservable();
     this.refreshCanPrayFor$();
@@ -170,17 +174,12 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
         this.updatePromptBadge();
       });
 
-    this.storageListener = (event: StorageEvent) => {
-      if (event.key === 'read_prompts_data') {
-        this.updatePromptBadge();
-      }
-    };
-
-    window.addEventListener('storage', this.storageListener);
-    this.userSessionService.userSession$
+    this.prayerEncouragementService
+      .getCooldownHoursForPrayer$(true)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.loadPrayerItemReminders();
+      .subscribe((hours) => {
+        this.cooldownHours = hours;
+        this.cdr.markForCheck();
       });
   }
 
@@ -190,6 +189,8 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
       const currentId = changes['prompt'].currentValue?.id;
       if (previousId !== currentId) {
         this.showPrayForModal = false;
+        this.showReminderModal = false;
+        this.allPrayerItemReminders = [];
       }
       this.refreshCanPrayFor$();
       this.cdr.markForCheck();
@@ -197,9 +198,6 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.storageListener) {
-      window.removeEventListener('storage', this.storageListener);
-    }
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -290,28 +288,47 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
 
   handleDelete(): void {
     this.showConfirmationDialog = true;
+    this.cdr.markForCheck();
   }
 
   onConfirmDelete(): void {
     this.delete.emit(this.prompt.id);
     this.showConfirmationDialog = false;
+    this.cdr.markForCheck();
   }
 
   onCancelDelete(): void {
     this.showConfirmationDialog = false;
+    this.cdr.markForCheck();
   }
 
   markPromptAsRead(): void {
     this.badgeService.markPromptAsRead(this.prompt.id);
   }
 
-  private loadPrayerItemReminders(): void {
+  readonly prepareOverflowMenuOpen = async (): Promise<void> => {
+    await this.ensurePrayerItemRemindersLoaded();
+    this.cdr.detectChanges();
+  };
+
+  private ensurePrayerItemRemindersLoaded(): Promise<void> {
+    const sessionRows =
+      this.userSessionService.getCurrentSession()?.prayerItemReminders;
+    if (sessionRows !== undefined) {
+      this.allPrayerItemReminders = sessionRows;
+      this.cdr.markForCheck();
+      return Promise.resolve();
+    }
+    return this.loadPrayerItemReminders();
+  }
+
+  private loadPrayerItemReminders(): Promise<void> {
     if (!this.reminderSessionEmail()) {
       this.allPrayerItemReminders = [];
       this.cdr.markForCheck();
-      return;
+      return Promise.resolve();
     }
-    void loadPrayerCardItemReminders(this.prayerItemReminderService).then(
+    return loadPrayerCardItemReminders(this.prayerItemReminderService).then(
       (rows) => {
         this.allPrayerItemReminders = rows;
         this.cdr.markForCheck();
@@ -346,7 +363,7 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
 
   openReminderModal(): void {
     this.showReminderModal = true;
-    this.loadPrayerItemReminders();
+    void this.ensurePrayerItemRemindersLoaded();
     this.cdr.markForCheck();
   }
 

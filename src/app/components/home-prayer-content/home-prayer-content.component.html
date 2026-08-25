@@ -147,7 +147,7 @@
   <app-prayer-card
     [attr.id]="'prayer-card-' + prayer.id"
     [prayer]="prayer"
-    [isAdmin]="(isAdmin$ | async) || false"
+    [isAdmin]="isAdmin"
     [activeFilter]="activeFilter"
     [deletionsAllowed]="deletionsAllowed"
     [updatesAllowed]="updatesAllowed"
@@ -166,7 +166,7 @@
   <app-prayer-card
     [attr.id]="'prayer-card-' + prayer.id"
     [prayer]="prayer"
-    [isAdmin]="(isAdmin$ | async) || false"
+    [isAdmin]="isAdmin"
     [activeFilter]="activeFilter"
     [deletionsAllowed]="deletionsAllowed"
     [updatesAllowed]="updatesAllowed"
@@ -216,7 +216,7 @@
     >
       <app-prayer-card
         [prayer]="prayer"
-        [isAdmin]="(isAdmin$ | async) || false"
+        [isAdmin]="isAdmin"
         [activeFilter]="activeFilter"
         [isPersonal]="true"
         [deletionsAllowed]="'everyone'"
@@ -301,17 +301,30 @@
   }
   }
 
-  <!-- Prompt Cards (only show when on prompts filter) -->
-  @if (activeFilter === 'prompts') { @for (prompt of
-  displayedPrompts; track prompt.id) {
-  <app-prompt-card
-    [prompt]="prompt"
-    [isAdmin]="(isAdmin$ | async) || false"
-    [isTypeSelected]="isPromptTypeSelected(prompt.type)"
-    [tourPromptAnchors]="$first"
-    (delete)="handlers.deletePrompt($event)"
-    (onTypeClick)="handlers.togglePromptType($event)"
-  ></app-prompt-card>
-  } }
+  <!-- Prompt Cards (virtual scroll — only visible cards mount) -->
+  @if (activeFilter === 'prompts' && displayedPrompts.length > 0) {
+  <cdk-virtual-scroll-viewport
+    autosize
+    [minBufferPx]="promptVirtualScrollMinBufferPx"
+    [maxBufferPx]="promptVirtualScrollMaxBufferPx"
+    class="home-prompt-virtual-scroll-viewport block w-full"
+  >
+    <div
+      *cdkVirtualFor="let prompt of displayedPrompts; trackBy: trackPrompt"
+      class="home-prompt-virtual-scroll-item pb-2 sm:pb-3"
+    >
+      <app-prompt-card
+        [prompt]="prompt"
+        [isAdmin]="isAdmin"
+        [isTypeSelected]="isPromptTypeSelected(prompt.type)"
+        [showPrayForButton]="showPrayForButton"
+        [showPrayingCount]="showPrayingCount"
+        [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+        (delete)="handlers.deletePrompt($event)"
+        (onTypeClick)="handlers.togglePromptType($event)"
+      ></app-prompt-card>
+    </div>
+  </cdk-virtual-scroll-viewport>
+  }
 </div>
 }

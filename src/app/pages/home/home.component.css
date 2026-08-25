@@ -1,3 +1,12 @@
+/* Home prompts list: CDK virtual scroll (parent is .safe-area-viewport). */
+.home-prompt-virtual-scroll-viewport {
+  width: 100%;
+}
+
+.home-prompt-virtual-scroll-item {
+  box-sizing: border-box;
+}
+
 /*
   Always-mounted bridge for resume keyboard open. WebKit only opens the software
   keyboard when focus happens on an already-present field inside the user gesture;

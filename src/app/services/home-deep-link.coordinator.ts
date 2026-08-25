@@ -371,6 +371,7 @@ export class HomeDeepLinkCoordinator {
       },
       shouldRetryBurst: () => this.host?.isPromptInCatalog(promptId) ?? false,
       reschedule: () => this.scheduleScrollToPromptId(promptId),
+      prepareScroll: () => this.host?.scrollPromptIntoView(promptId) ?? false,
     });
   }
 
@@ -385,12 +386,14 @@ export class HomeDeepLinkCoordinator {
     incrementBurstCount: () => void;
     shouldRetryBurst: () => boolean;
     reschedule: () => void;
+    prepareScroll?: () => boolean;
   }): void {
     const generation = options.incrementGeneration();
     const tryScroll = (attempt: number): void => {
       if (generation !== options.generationRef()) {
         return;
       }
+      options.prepareScroll?.();
       const el = document.getElementById(options.elementId);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });

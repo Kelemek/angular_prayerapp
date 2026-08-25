@@ -36,6 +36,7 @@ import type { AllowanceLevel } from "../../types/prayer";
 import { PersonalCategoryColorService } from "../../services/personal-category-color.service";
 import { AnalyticsService } from "../../services/analytics.service";
 import { PullToRefreshDirective } from "../../directives/pull-to-refresh.directive";
+import { ScrollingModule } from "@angular/cdk/scrolling";
 import {
   PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION,
   PERSONAL_PRAYER_WALKTHROUGH_PRAYER_FOR,
@@ -74,6 +75,7 @@ import type { PrayerPrompt } from "../../components/prompt-card/prompt-card.comp
 import type { PrayerFilters } from "../../components/prayer-filters/prayer-filters.component";
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
 import { MemorizationService } from "../../services/memorization.service";
+import { PrayerEncouragementService } from "../../services/prayer-encouragement.service";
 import {
   createHomePageShell,
   type HomePageShell,
@@ -95,6 +97,7 @@ import {
     PrayerFiltersComponent,
     SkeletonLoaderComponent,
     PullToRefreshDirective,
+    ScrollingModule,
   ],
   templateUrl: "./home.component.html",
   styleUrl: "./home.component.css",
@@ -166,6 +169,8 @@ export class HomeComponent
   private deepLinkHost!: HomeDeepLinkHostAdapter;
 
   @ViewChild("modalsHost") private modalsHost?: HomeModalsHostComponent;
+  @ViewChild(HomePrayerContentComponent)
+  private prayerContent?: HomePrayerContentComponent;
   @ViewChild("memorizeKeyboardBridge")
   private memorizeKeyboardBridge?: ElementRef<HTMLInputElement>;
 
@@ -185,6 +190,7 @@ export class HomeComponent
     public planningCenterListService: PlanningCenterListService,
     public badgeService: BadgeService,
     public memorizationService: MemorizationService,
+    public prayerEncouragementService: PrayerEncouragementService,
     public memorizationRecommendationsService: MemorizationRecommendationsService,
     private scriptureService: ScriptureService,
     private toastService: ToastService,
@@ -305,6 +311,10 @@ export class HomeComponent
 
   getMemorizeKeyboardBridge(): HTMLInputElement | undefined {
     return this.memorizeKeyboardBridge?.nativeElement;
+  }
+
+  scrollHomePromptIntoView(promptId: string): boolean {
+    return this.prayerContent?.scrollPromptIntoView(promptId) ?? false;
   }
 
   onPersonalCategoryPickerOpenChange(prayerId: string, open: boolean): void {
