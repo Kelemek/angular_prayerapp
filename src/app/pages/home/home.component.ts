@@ -61,6 +61,7 @@ import { HomePromptTypeFiltersComponent } from "../../components/home-prompt-typ
 import { HomePersonalCategoryFiltersComponent } from "../../components/home-personal-category-filters/home-personal-category-filters.component";
 import { HomePublicStatusFiltersComponent } from "../../components/home-public-status-filters/home-public-status-filters.component";
 import { HomePrayerContentComponent } from "../../components/home-prayer-content/home-prayer-content.component";
+import { ScrollToTopButtonComponent } from "../../components/scroll-to-top-button/scroll-to-top-button.component";
 import { isPublicTabFilter, isCommunityPrayerFilter } from "../../lib/home-community-filter";
 import { HOME_SHELL_FOOTER_BORDER_TOP_CLASS } from "../../lib/home-sub-filter-chip-classes";
 import {
@@ -94,6 +95,7 @@ import {
     HomePersonalCategoryFiltersComponent,
     HomePublicStatusFiltersComponent,
     HomePrayerContentComponent,
+    ScrollToTopButtonComponent,
     PrayerFiltersComponent,
     SkeletonLoaderComponent,
     PullToRefreshDirective,

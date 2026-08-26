@@ -23,6 +23,7 @@
   </form>
   <!-- Scroll viewport below safe area: header sticky inside so content scrolls under header to top of header, never into safe area -->
   <div
+    #safeAreaViewport
     class="safe-area-viewport w-full bg-gray-50 dark:bg-gray-900"
     cdkVirtualScrollingElement
     appPullToRefresh
@@ -307,6 +308,8 @@
       aria-hidden="true"
     ></footer>
   </div>
+
+  <app-scroll-to-top-button [scrollElement]="safeAreaViewport"></app-scroll-to-top-button>
 
   <!-- No Footer Links -->
 </div>

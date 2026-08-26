@@ -294,6 +294,18 @@ describe('AppComponent', () => {
       expect(scrollToSpy).not.toHaveBeenCalled();
       vi.useRealTimers();
     });
+
+    it('should not scroll to top for Home deep-link query navigations', () => {
+      vi.useFakeTimers();
+      const scrollToSpy = vi.spyOn(window, 'scrollTo');
+      routerEventsSubject.next(
+        new NavigationEnd(2, '/?prayerId=abc', '/?prayerId=abc')
+      );
+
+      vi.runAllTimers();
+      expect(scrollToSpy).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
   });
 
   describe('onWindowFocus', () => {

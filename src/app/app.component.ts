@@ -15,6 +15,12 @@ import { HelpDriverTourService } from "./services/help-driver-tour.service";
 import { AdminDataService } from "./services/admin-data.service";
 import { PosthogService } from "./services/posthog.service";
 import { filter } from "rxjs";
+import {
+  findAppScrollContainer,
+  scrollAppContainerToTop,
+  extractNavigationPath,
+  shouldSkipAppScrollResetOnNavigation,
+} from "./lib/app-scroll-container";
 
 @Component({
   selector: "app-root",
@@ -64,6 +70,7 @@ import { filter } from "rxjs";
 export class AppComponent implements OnInit {
   title = "prayerapp";
   private lastVisibilityState = !document.hidden;
+  private lastNavigationPath: string | null = null;
 
   constructor(
     private router: Router,
@@ -113,17 +120,21 @@ export class AppComponent implements OnInit {
   private setupScrollToTopOnNavigation(): void {
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe(() => {
-        // Small delay to ensure DOM is updated
+      .subscribe((event) => {
+        const urlAfterRedirects = (event as NavigationEnd).urlAfterRedirects;
+        if (
+          shouldSkipAppScrollResetOnNavigation(
+            urlAfterRedirects,
+            this.lastNavigationPath
+          )
+        ) {
+          this.lastNavigationPath = extractNavigationPath(urlAfterRedirects);
+          return;
+        }
+        this.lastNavigationPath = extractNavigationPath(urlAfterRedirects);
+        // Small delay to ensure DOM is updated (home safe-area viewport may mount after route)
         setTimeout(() => {
-          window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-          // Also try setting document scroll for older browsers
-          if (document.documentElement) {
-            document.documentElement.scrollTop = 0;
-          }
-          if (document.body) {
-            document.body.scrollTop = 0;
-          }
+          scrollAppContainerToTop(findAppScrollContainer(), "instant");
         }, 0);
       });
   }

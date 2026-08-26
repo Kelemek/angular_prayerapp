@@ -120,6 +120,9 @@
   --z-index-modal-overlay: 100;
   --z-index-modal-dropdown-backdrop: 101;
   --z-index-modal-dropdown-panel: 102;
+  /* Native Home: shared bottom inset for sticky footer + scroll-to-top button */
+  --native-bottom-safe-min: 34px;
+  --scroll-to-top-extra-bottom: 0.75rem;
 }
 
 /*
@@ -695,6 +698,14 @@ html, body {
   }
 }
 
+/* Home scroll-to-top button (position refined under @supports safe-area below). */
+.app-scroll-to-top-button {
+  position: fixed;
+  z-index: 40;
+  right: 1rem;
+  bottom: 1rem;
+}
+
 /* Viewport scroll container: fallback when safe-area not supported (e.g. desktop) */
 .safe-area-viewport {
   height: 100vh;
@@ -787,9 +798,20 @@ html, body {
   .native-app .bottom-safe-bar {
     display: block;
     flex-shrink: 0;
-    min-height: max(env(safe-area-inset-bottom, 0px), 34px);
+    min-height: max(env(safe-area-inset-bottom, 0px), var(--native-bottom-safe-min));
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
+  }
+  /* Home scroll-to-top: above native bottom safe bar + extra gesture-nav clearance */
+  .app-scroll-to-top-button {
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+  .native-app .app-scroll-to-top-button {
+    bottom: calc(
+      1rem + max(env(safe-area-inset-bottom, 0px), var(--native-bottom-safe-min)) +
+        var(--scroll-to-top-extra-bottom)
+    );
   }
   .native-app header.sticky {
     top: 0;
