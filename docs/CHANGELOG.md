@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — Add reminder in prayer reminder modal
+- **Add reminder** on per-prayer reminder modals (Prompt and Public cards) did nothing after opening a date/time dropdown: a full-screen dismiss layer at `z-modal-dropdown-backdrop` (101) sat above the modal overlay (100) and swallowed clicks. Dropdowns now close via `document:mousedown` outside listbox/triggers ([`shouldClosePrayerItemReminderDropdownOnPointerDown`](src/app/lib/prayer-item-reminder-modal-ui.ts)); the dismiss backdrop is removed from [`prayer-item-reminder-modal`](src/app/components/prayer-item-reminder-modal/prayer-item-reminder-modal.component.html).
+- **Prompt cards**: saved reminders use `prayer_kind = prompt`, but [`remindersForPrayerCard`](src/app/lib/prayer-card-reminders.ts) filtered with `community`, so the modal list stayed empty after a successful add. Prompt cards now pass `isPrompt: true` ([`prompt-card.component.ts`](src/app/components/prompt-card/prompt-card.component.ts)).
+
 ### Fix — Ubuntu CI red after passing tests
 - Pull-request **Run Tests** on Ubuntu was failing after a green typecheck, lint, and coverage run because [`.github/workflows/test.yml`](.github/workflows/test.yml) posted a hardcoded “tests passed” comment and `GITHUB_TOKEN` does not have `issues:write` / `pull-requests:write`. That comment step is removed; coverage still uploads as the `coverage-report` artifact, and GitHub Checks remain the status signal.
 

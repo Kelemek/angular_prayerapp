@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   ElementRef,
+  HostListener,
   OnChanges,
   OnDestroy,
   SimpleChanges,
@@ -35,6 +36,7 @@ import {
   PRAYER_ITEM_REMINDER_DATE_OPTIONS_DAYS,
   PRAYER_ITEM_REMINDER_WEEKDAYS,
   refreshPrayerItemReminderLocalDate,
+  shouldClosePrayerItemReminderDropdownOnPointerDown,
   validatePrayerItemReminderAddInput,
 } from '../../lib/prayer-item-reminder-modal-ui';
 import {
@@ -92,8 +94,6 @@ export class PrayerItemReminderModalComponent implements OnChanges, OnDestroy {
   showWeekdayDropdown = false;
   showTimeDropdown = false;
   dropdownPanelStyle: Record<string, string> = {};
-  /** Deferred so the opening click does not hit the dismiss layer in the same frame. */
-  dropdownDismissLayerReady = false;
 
   constructor(
     private remindersService: PrayerItemReminderService,
@@ -119,6 +119,27 @@ export class PrayerItemReminderModalComponent implements OnChanges, OnDestroy {
       this.portalAnchor
     );
     this.portalAnchor = null;
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onDocumentMouseDown(event: MouseEvent): void {
+    if (
+      !this.isOpen ||
+      (!this.showDateDropdown &&
+        !this.showWeekdayDropdown &&
+        !this.showTimeDropdown)
+    ) {
+      return;
+    }
+    if (
+      !shouldClosePrayerItemReminderDropdownOnPointerDown(
+        event.target instanceof Node ? event.target : null,
+        this.host.nativeElement
+      )
+    ) {
+      return;
+    }
+    this.closeAllDropdowns();
   }
 
   private syncBodyPortal(): void {
@@ -222,7 +243,6 @@ export class PrayerItemReminderModalComponent implements OnChanges, OnDestroy {
     this.showWeekdayDropdown = false;
     this.showTimeDropdown = false;
     this.dropdownPanelStyle = {};
-    this.dropdownDismissLayerReady = false;
     this.cdr.markForCheck();
   }
 
@@ -235,19 +255,7 @@ export class PrayerItemReminderModalComponent implements OnChanges, OnDestroy {
     this.showWeekdayDropdown = kind === 'weekday';
     this.showTimeDropdown = kind === 'time';
     this.dropdownPanelStyle = buildPrayerItemReminderDropdownPanelStyle(trigger);
-    this.dropdownDismissLayerReady = false;
     this.cdr.markForCheck();
-    requestAnimationFrame(() => {
-      if (
-        !this.showDateDropdown &&
-        !this.showWeekdayDropdown &&
-        !this.showTimeDropdown
-      ) {
-        return;
-      }
-      this.dropdownDismissLayerReady = true;
-      this.cdr.markForCheck();
-    });
   }
 
   formatReminder(r: PrayerItemReminder): string {

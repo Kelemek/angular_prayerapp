@@ -3,10 +3,62 @@ import {
   buildPrayerItemReminderDateOptions,
   formatPrayerItemReminderLine,
   isPrayerItemReminderOnceInPast,
+  prayerItemReminderDropdownShellClass,
+  shouldClosePrayerItemReminderDropdownOnPointerDown,
   validatePrayerItemReminderAddInput,
   prayerItemReminderAddErrorMessage,
 } from './prayer-item-reminder-modal-ui';
 import type { PrayerItemReminder } from '../types/prayer-item-reminder';
+
+describe('prayerItemReminderDropdownShellClass', () => {
+  it('uses active border classes when open', () => {
+    expect(prayerItemReminderDropdownShellClass(true)).toContain('border-blue-500');
+  });
+});
+
+describe('shouldClosePrayerItemReminderDropdownOnPointerDown', () => {
+  it('closes when pointer down is outside the modal host', () => {
+    const host = document.createElement('div');
+    const outside = document.createElement('button');
+    document.body.appendChild(host);
+    document.body.appendChild(outside);
+
+    expect(
+      shouldClosePrayerItemReminderDropdownOnPointerDown(outside, host)
+    ).toBe(true);
+
+    host.remove();
+    outside.remove();
+  });
+
+  it('does not close when pointer down is on a dropdown trigger', () => {
+    const host = document.createElement('div');
+    const trigger = document.createElement('button');
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    host.appendChild(trigger);
+    document.body.appendChild(host);
+
+    expect(
+      shouldClosePrayerItemReminderDropdownOnPointerDown(trigger, host)
+    ).toBe(false);
+
+    host.remove();
+  });
+
+  it('closes when pointer down is on Add reminder inside the modal host', () => {
+    const host = document.createElement('div');
+    const addButton = document.createElement('button');
+    addButton.textContent = 'Add reminder';
+    host.appendChild(addButton);
+    document.body.appendChild(host);
+
+    expect(
+      shouldClosePrayerItemReminderDropdownOnPointerDown(addButton, host)
+    ).toBe(true);
+
+    host.remove();
+  });
+});
 
 describe('buildPrayerItemReminderDateOptions', () => {
   afterEach(() => {

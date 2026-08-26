@@ -233,15 +233,6 @@
         </div>
       </app-modal-shell>
 
-      @if (
-        (showDateDropdown || showWeekdayDropdown || showTimeDropdown) &&
-        dropdownDismissLayerReady
-      ) {
-        <div
-          class="fixed inset-0 z-modal-dropdown-backdrop"
-          (click)="closeAllDropdowns()"
-        ></div>
-      }
       @if (showDateDropdown) {
         <div
           role="listbox"

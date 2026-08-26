@@ -70,6 +70,28 @@ export function prayerItemReminderDropdownShellClass(open: boolean): string {
     : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20';
 }
 
+/** Close dropdowns on outside pointer down without a full-screen layer above the modal (that blocked Add reminder). */
+export function shouldClosePrayerItemReminderDropdownOnPointerDown(
+  target: Node | null,
+  modalHost: HTMLElement
+): boolean {
+  if (!target) {
+    return true;
+  }
+  if (!modalHost.contains(target)) {
+    return true;
+  }
+  if (target instanceof Element) {
+    if (
+      target.closest('[role="listbox"]') ||
+      target.closest('[aria-haspopup="listbox"]')
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function buildPrayerItemReminderDropdownPanelStyle(
   trigger: HTMLElement
 ): Record<string, string> {

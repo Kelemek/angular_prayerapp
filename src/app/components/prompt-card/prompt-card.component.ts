@@ -409,7 +409,8 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
       this.userSessionService,
       this.allPrayerItemReminders,
       this.prompt?.id ?? '',
-      false
+      false,
+      true
     );
   }
 
