@@ -82,6 +82,7 @@
     </div>
 
     <!-- Outside bg-card-shell-fill (isolation: isolate) so fixed modals stack above filter tabs and later cards. -->
+    <div #promptCardModalsHost class="contents">
     @if (showConfirmationDialog) {
     <app-confirmation-dialog
       [title]="'Delete Prayer Prompt'"
@@ -110,8 +111,9 @@
       [titleSnapshot]="prompt.title"
       [prayerFor]="prompt.type"
       [reminders]="remindersForThisPrompt()"
-      (close)="showReminderModal = false"
+      (close)="onCloseReminderModal()"
       (remindersChange)="onPromptRemindersChanged($event)"
     />
     }
+    </div>
     </div>

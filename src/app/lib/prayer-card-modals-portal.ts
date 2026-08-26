@@ -25,6 +25,18 @@ export function prayerCardModalsStackHasOpenModal(state: {
   );
 }
 
+export function promptCardHasOpenModal(state: {
+  showConfirmationDialog: boolean;
+  showPrayForModal: boolean;
+  showReminderModal: boolean;
+}): boolean {
+  return (
+    state.showConfirmationDialog ||
+    state.showPrayForModal ||
+    state.showReminderModal
+  );
+}
+
 export function isInsideCdkVirtualScrollContent(host: HTMLElement): boolean {
   return !!host.closest(".cdk-virtual-scroll-content-wrapper");
 }

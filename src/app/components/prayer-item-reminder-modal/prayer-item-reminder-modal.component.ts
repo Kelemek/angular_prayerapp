@@ -5,8 +5,11 @@ import {
   EventEmitter,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  ElementRef,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
+  inject,
 } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
 import { ModalShellComponent } from '../modal-shell/modal-shell.component';
@@ -34,6 +37,12 @@ import {
   refreshPrayerItemReminderLocalDate,
   validatePrayerItemReminderAddInput,
 } from '../../lib/prayer-item-reminder-modal-ui';
+import {
+  isInsideCdkVirtualScrollContent,
+  portalPrayerCardModalsHostToBody,
+  restorePrayerCardModalsHostFromBody,
+  type PrayerCardModalsPortalAnchor,
+} from '../../lib/prayer-card-modals-portal';
 import type {
   PrayerItemReminder,
   PrayerItemReminderKind,
@@ -47,7 +56,10 @@ import type {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prayer-item-reminder-modal.component.html',
 })
-export class PrayerItemReminderModalComponent implements OnChanges {
+export class PrayerItemReminderModalComponent implements OnChanges, OnDestroy {
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private portalAnchor: PrayerCardModalsPortalAnchor | null = null;
+
   @Input() isOpen = false;
   @Input() email = '';
   @Input() prayerId = '';
@@ -80,6 +92,8 @@ export class PrayerItemReminderModalComponent implements OnChanges {
   showWeekdayDropdown = false;
   showTimeDropdown = false;
   dropdownPanelStyle: Record<string, string> = {};
+  /** Deferred so the opening click does not hit the dismiss layer in the same frame. */
+  dropdownDismissLayerReady = false;
 
   constructor(
     private remindersService: PrayerItemReminderService,
@@ -87,6 +101,9 @@ export class PrayerItemReminderModalComponent implements OnChanges {
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isOpen']) {
+      this.syncBodyPortal();
+    }
     if (changes['isOpen']?.currentValue === true) {
       this.error = null;
       this.closeAllDropdowns();
@@ -94,6 +111,36 @@ export class PrayerItemReminderModalComponent implements OnChanges {
       this.selectedTimeValue = nextReminderQuarterSlot().value;
       this.cdr.markForCheck();
     }
+  }
+
+  ngOnDestroy(): void {
+    restorePrayerCardModalsHostFromBody(
+      this.host.nativeElement,
+      this.portalAnchor
+    );
+    this.portalAnchor = null;
+  }
+
+  private syncBodyPortal(): void {
+    const host = this.host.nativeElement;
+    const shouldManagePortal =
+      this.portalAnchor !== null ||
+      isInsideCdkVirtualScrollContent(host);
+
+    if (!shouldManagePortal) {
+      return;
+    }
+
+    if (this.isOpen) {
+      this.portalAnchor = portalPrayerCardModalsHostToBody(
+        host,
+        this.portalAnchor
+      );
+      return;
+    }
+
+    restorePrayerCardModalsHostFromBody(host, this.portalAnchor);
+    this.portalAnchor = null;
   }
 
   private refreshDateOptions(): void {
@@ -175,6 +222,7 @@ export class PrayerItemReminderModalComponent implements OnChanges {
     this.showWeekdayDropdown = false;
     this.showTimeDropdown = false;
     this.dropdownPanelStyle = {};
+    this.dropdownDismissLayerReady = false;
     this.cdr.markForCheck();
   }
 
@@ -187,7 +235,19 @@ export class PrayerItemReminderModalComponent implements OnChanges {
     this.showWeekdayDropdown = kind === 'weekday';
     this.showTimeDropdown = kind === 'time';
     this.dropdownPanelStyle = buildPrayerItemReminderDropdownPanelStyle(trigger);
+    this.dropdownDismissLayerReady = false;
     this.cdr.markForCheck();
+    requestAnimationFrame(() => {
+      if (
+        !this.showDateDropdown &&
+        !this.showWeekdayDropdown &&
+        !this.showTimeDropdown
+      ) {
+        return;
+      }
+      this.dropdownDismissLayerReady = true;
+      this.cdr.markForCheck();
+    });
   }
 
   formatReminder(r: PrayerItemReminder): string {

@@ -115,6 +115,66 @@ describe("ModalShellComponent", () => {
     expect(document.documentElement.style.overflow).toBe("auto");
   });
 
+  it("onBodyFocusIn does not scrollIntoView when a button inside the modal body is focused", () => {
+    fixture = TestBed.createComponent(ModalShellComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const scroller = fixture.nativeElement.querySelector(
+      ".modal-shell-body"
+    ) as HTMLElement;
+    const button = document.createElement("button");
+    scroller.appendChild(button);
+    button.scrollIntoView = vi.fn();
+
+    component.onBodyFocusIn({ target: button } as FocusEvent);
+
+    expect(button.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("onBodyFocusIn scrolls only the modal body for focused inputs", async () => {
+    fixture = TestBed.createComponent(ModalShellComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const scroller = fixture.nativeElement.querySelector(
+      ".modal-shell-body"
+    ) as HTMLElement;
+    const input = document.createElement("input");
+    scroller.appendChild(input);
+    Object.defineProperty(scroller, "scrollTop", {
+      writable: true,
+      value: 0,
+    });
+    vi.spyOn(scroller, "getBoundingClientRect").mockReturnValue({
+      top: 0,
+      bottom: 200,
+      left: 0,
+      right: 300,
+      width: 300,
+      height: 200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    vi.spyOn(input, "getBoundingClientRect").mockReturnValue({
+      top: 250,
+      bottom: 280,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 30,
+      x: 0,
+      y: 250,
+      toJSON: () => ({}),
+    } as DOMRect);
+    input.scrollIntoView = vi.fn();
+
+    component.onBodyFocusIn({ target: input } as FocusEvent);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    expect(input.scrollIntoView).not.toHaveBeenCalled();
+    expect(scroller.scrollTop).toBeGreaterThan(0);
+  });
+
   it("onOverlayTouchMove prevents default outside modal body", () => {
     fixture = TestBed.createComponent(ModalShellComponent);
     fixture.detectChanges();

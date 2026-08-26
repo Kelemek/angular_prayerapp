@@ -249,9 +249,36 @@ export class ModalShellComponent implements OnInit, AfterViewInit, OnDestroy {
   onBodyFocusIn(event: FocusEvent): void {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+    const scroller = this.bodyScroller?.nativeElement;
+    if (!scroller?.contains(target)) return;
+    if (!this.shouldScrollFocusedFieldIntoModalBody(target)) return;
+
     requestAnimationFrame(() => {
-      target.scrollIntoView({ block: "center", behavior: "smooth" });
+      this.scrollFocusedFieldIntoModalBody(target, scroller);
     });
+  }
+
+  /** Avoid scrollIntoView — it scrolls ancestor viewports (Home virtual scroll) and can recycle the row hosting this modal. */
+  private shouldScrollFocusedFieldIntoModalBody(target: HTMLElement): boolean {
+    const tag = target.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+  }
+
+  private scrollFocusedFieldIntoModalBody(
+    target: HTMLElement,
+    scroller: HTMLElement
+  ): void {
+    const pad = 8;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+
+    if (targetRect.bottom > scrollerRect.bottom - pad) {
+      scroller.scrollTop += targetRect.bottom - scrollerRect.bottom + pad;
+      return;
+    }
+    if (targetRect.top < scrollerRect.top + pad) {
+      scroller.scrollTop -= scrollerRect.top - targetRect.top + pad;
+    }
   }
 
   private isAllowedScrollTouch(event: TouchEvent): boolean {

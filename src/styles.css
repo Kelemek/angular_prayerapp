@@ -118,6 +118,8 @@
   --header-bg-dark: rgba(31, 41, 55, 0.5);
   --z-index-sticky-chrome: 50;
   --z-index-modal-overlay: 100;
+  --z-index-modal-dropdown-backdrop: 101;
+  --z-index-modal-dropdown-panel: 102;
 }
 
 /*

@@ -45,3 +45,9 @@
 @utility z-modal-overlay {
   z-index: var(--z-index-modal-overlay);
 }
+@utility z-modal-dropdown-backdrop {
+  z-index: var(--z-index-modal-dropdown-backdrop);
+}
+@utility z-modal-dropdown-panel {
+  z-index: var(--z-index-modal-dropdown-panel);
+}

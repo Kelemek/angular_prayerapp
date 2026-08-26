@@ -3,6 +3,7 @@ import {
   isInsideCdkVirtualScrollContent,
   portalPrayerCardModalsHostToBody,
   prayerCardModalsStackHasOpenModal,
+  promptCardHasOpenModal,
   restorePrayerCardModalsHostFromBody,
 } from "./prayer-card-modals-portal";
 
@@ -33,6 +34,28 @@ describe("prayerCardModalsStackHasOpenModal", () => {
         personalAnsweredStatusModalMode: null,
         showReminderModal: false,
         showPrayForModal: false,
+      })
+    ).toBe(false);
+  });
+});
+
+describe("promptCardHasOpenModal", () => {
+  it("returns true when any prompt-card modal is open", () => {
+    expect(
+      promptCardHasOpenModal({
+        showConfirmationDialog: true,
+        showPrayForModal: false,
+        showReminderModal: false,
+      })
+    ).toBe(true);
+  });
+
+  it("returns false when all prompt-card modals are closed", () => {
+    expect(
+      promptCardHasOpenModal({
+        showConfirmationDialog: false,
+        showPrayForModal: false,
+        showReminderModal: false,
       })
     ).toBe(false);
   });

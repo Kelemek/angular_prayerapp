@@ -233,14 +233,20 @@
         </div>
       </app-modal-shell>
 
-      @if (showDateDropdown || showWeekdayDropdown || showTimeDropdown) {
-        <div class="fixed inset-0 z-[60]" (click)="closeAllDropdowns()"></div>
+      @if (
+        (showDateDropdown || showWeekdayDropdown || showTimeDropdown) &&
+        dropdownDismissLayerReady
+      ) {
+        <div
+          class="fixed inset-0 z-modal-dropdown-backdrop"
+          (click)="closeAllDropdowns()"
+        ></div>
       }
       @if (showDateDropdown) {
         <div
           role="listbox"
           aria-label="Reminder date"
-          class="fixed z-[70] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 overflow-y-auto"
+          class="fixed z-modal-dropdown-panel bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 overflow-y-auto"
           [ngStyle]="dropdownPanelStyle"
         >
           @for (opt of dateOptions; track opt.value) {
@@ -263,7 +269,7 @@
         <div
           role="listbox"
           aria-label="Reminder weekday"
-          class="fixed z-[70] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 overflow-y-auto"
+          class="fixed z-modal-dropdown-panel bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 overflow-y-auto"
           [ngStyle]="dropdownPanelStyle"
         >
           @for (d of weekdays; track d.value) {
@@ -286,7 +292,7 @@
         <div
           role="listbox"
           aria-label="Reminder time"
-          class="fixed z-[70] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 overflow-y-auto"
+          class="fixed z-modal-dropdown-panel bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 overflow-y-auto"
           [ngStyle]="dropdownPanelStyle"
         >
           @for (opt of timeOptions; track opt.value) {

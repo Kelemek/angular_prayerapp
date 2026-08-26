@@ -9,6 +9,8 @@ import {
   SimpleChanges,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  ElementRef,
+  ViewChild,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -48,6 +50,13 @@ import {
   remindersForPrayerCard,
 } from '../../lib/prayer-card-reminders';
 import { getPrayerCardUserEmail } from '../../lib/prayer-card-user-context';
+import {
+  isInsideCdkVirtualScrollContent,
+  portalPrayerCardModalsHostToBody,
+  promptCardHasOpenModal,
+  restorePrayerCardModalsHostFromBody,
+  type PrayerCardModalsPortalAnchor,
+} from '../../lib/prayer-card-modals-portal';
 import { PromptCardActionsRowComponent } from './prompt-card-actions-row.component';
 import { PromptCardPrayForModalComponent } from './prompt-card-pray-for-modal.component';
 
@@ -84,6 +93,12 @@ export interface PrayerPrompt {
   styleUrl: './prompt-card.component.css',
 })
 export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
+  private readonly host = inject(ElementRef<HTMLElement>, { optional: true });
+  private modalsPortalAnchor: PrayerCardModalsPortalAnchor | null = null;
+
+  @ViewChild('promptCardModalsHost')
+  private modalsHost?: ElementRef<HTMLElement>;
+
   @Input() variant: PrayerCardVariant = 'home';
   @Input() prompt!: PrayerPrompt;
   @Input() isAdmin = false;
@@ -191,11 +206,13 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
       if (previousId !== currentId) {
         this.showPrayForModal = false;
         this.showReminderModal = false;
+        this.showConfirmationDialog = false;
         this.allPrayerItemReminders = [];
         if (!changes['prompt'].firstChange) {
           this.promptBadgeSubject$.next(false);
           this.updatePromptBadge();
         }
+        this.afterModalStateChange();
       }
       this.refreshCanPrayFor$();
       this.cdr.markForCheck();
@@ -203,8 +220,52 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    const modalsHost = this.modalsHost?.nativeElement;
+    if (modalsHost) {
+      restorePrayerCardModalsHostFromBody(modalsHost, this.modalsPortalAnchor);
+      this.modalsPortalAnchor = null;
+    }
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private afterModalStateChange(): void {
+    this.cdr.markForCheck();
+    queueMicrotask(() => this.syncModalsBodyPortal());
+  }
+
+  private syncModalsBodyPortal(): void {
+    const modalsHost = this.modalsHost?.nativeElement;
+    if (!modalsHost) {
+      return;
+    }
+
+    const shouldManagePortal =
+      this.modalsPortalAnchor !== null ||
+      (this.host
+        ? isInsideCdkVirtualScrollContent(this.host.nativeElement)
+        : false);
+
+    if (!shouldManagePortal) {
+      return;
+    }
+
+    if (
+      promptCardHasOpenModal({
+        showConfirmationDialog: this.showConfirmationDialog,
+        showPrayForModal: this.showPrayForModal,
+        showReminderModal: this.showReminderModal,
+      })
+    ) {
+      this.modalsPortalAnchor = portalPrayerCardModalsHostToBody(
+        modalsHost,
+        this.modalsPortalAnchor
+      );
+      return;
+    }
+
+    restorePrayerCardModalsHostFromBody(modalsHost, this.modalsPortalAnchor);
+    this.modalsPortalAnchor = null;
   }
 
   private refreshCanPrayFor$(): void {
@@ -236,7 +297,7 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
     this.showPrayForModal = true;
-    this.cdr.markForCheck();
+    this.afterModalStateChange();
   }
 
   onConfirmPrayForFromModal(doNotShowAgain: boolean): void {
@@ -245,12 +306,12 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
     }
     this.showPrayForModal = false;
     void this.confirmPrayFor();
-    this.cdr.markForCheck();
+    this.afterModalStateChange();
   }
 
   onCancelPrayForModal(): void {
     this.showPrayForModal = false;
-    this.cdr.markForCheck();
+    this.afterModalStateChange();
   }
 
   async confirmPrayFor(): Promise<void> {
@@ -293,18 +354,18 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
 
   handleDelete(): void {
     this.showConfirmationDialog = true;
-    this.cdr.markForCheck();
+    this.afterModalStateChange();
   }
 
   onConfirmDelete(): void {
     this.delete.emit(this.prompt.id);
     this.showConfirmationDialog = false;
-    this.cdr.markForCheck();
+    this.afterModalStateChange();
   }
 
   onCancelDelete(): void {
     this.showConfirmationDialog = false;
-    this.cdr.markForCheck();
+    this.afterModalStateChange();
   }
 
   markPromptAsRead(): void {
@@ -359,7 +420,12 @@ export class PromptCardComponent implements OnInit, OnChanges, OnDestroy {
   openReminderModal(): void {
     this.showReminderModal = true;
     void this.ensurePrayerItemRemindersLoaded();
-    this.cdr.markForCheck();
+    this.afterModalStateChange();
+  }
+
+  onCloseReminderModal(): void {
+    this.showReminderModal = false;
+    this.afterModalStateChange();
   }
 
   onPromptRemindersChanged(all: PrayerItemReminder[]): void {
