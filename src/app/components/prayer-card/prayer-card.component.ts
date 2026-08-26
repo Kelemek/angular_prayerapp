@@ -8,8 +8,10 @@ import {
   ChangeDetectorRef,
   OnDestroy,
   OnChanges,
+  Optional,
   SimpleChanges,
 } from '@angular/core';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
 import { Observable, Subject, of } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -67,6 +69,7 @@ import {
   prayerUpdateFromRecord,
 } from '../../lib/prayer-card-mutations';
 import { computePrayerCardViewState } from '../../lib/prayer-card-view-state';
+import { scheduleHomePrayerVirtualScrollRemeasure } from '../../lib/home-prayer-virtual-scroll';
 import type {
   PrayerCardAddUpdateEvent,
   PrayerCardDeleteUpdateEvent,
@@ -192,7 +195,8 @@ export class PrayerCardComponent
     public prayerEncouragementService: PrayerEncouragementService,
     private prayerItemReminderService: PrayerItemReminderService,
     private cdr: ChangeDetectorRef,
-    richTextEditorsSettings: RichTextEditorsSettingsService
+    richTextEditorsSettings: RichTextEditorsSettingsService,
+    @Optional() private virtualScrollViewport?: CdkVirtualScrollViewport
   ) {
     this.badgeWire = new PrayerCardBadgeWire(this.badgeService, () => this.prayer);
     richTextEditorsSettings
@@ -227,6 +231,7 @@ export class PrayerCardComponent
         this.showPrayForModal = false;
         this.showReminderModal = false;
         this.allPrayerItemReminders = [];
+        this.showAllUpdates = false;
       }
       if (!changes['prayer'].firstChange) {
         this.badgeWire.onPrayerChanged(
@@ -466,6 +471,7 @@ export class PrayerCardComponent
       prayerCardToggleAddUpdatePatch(this.showAddUpdateForm)
     );
     this.cdr.markForCheck();
+    this.remeasureVirtualScrollRow();
   }
 
   get addUpdateTourElementIds(): PrayerCardAddUpdateTourElementIds | null {
@@ -478,6 +484,7 @@ export class PrayerCardComponent
   closeAddUpdateForm(): void {
     this.showAddUpdateForm = false;
     this.cdr.markForCheck();
+    this.remeasureVirtualScrollRow();
   }
 
   onAddUpdateSubmit(payload: unknown): void {
@@ -557,6 +564,11 @@ export class PrayerCardComponent
   toggleShowAllUpdates(): void {
     this.showAllUpdates = !this.showAllUpdates;
     this.cdr.markForCheck();
+    this.remeasureVirtualScrollRow();
+  }
+
+  private remeasureVirtualScrollRow(): void {
+    scheduleHomePrayerVirtualScrollRemeasure(this.virtualScrollViewport);
   }
 
   closeUpdateDeleteRequestForm(): void {

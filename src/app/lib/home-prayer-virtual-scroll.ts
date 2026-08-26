@@ -44,3 +44,15 @@ export function scrollHomePrayerVirtualViewportToIndex(
   viewport.checkViewportSize();
   return !!document.getElementById(elementId);
 }
+
+/** Autosize rows do not remeasure when inner card content grows (e.g. Show all updates). */
+export function scheduleHomePrayerVirtualScrollRemeasure(
+  viewport: CdkVirtualScrollViewport | null | undefined
+): void {
+  if (!viewport) {
+    return;
+  }
+  queueMicrotask(() => {
+    viewport.checkViewportSize();
+  });
+}

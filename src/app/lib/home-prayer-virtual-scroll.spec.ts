@@ -3,6 +3,7 @@ import type { CdkVirtualScrollViewport } from "@angular/cdk/scrolling";
 import {
   HOME_PRAYER_VIRTUAL_SCROLL_ESTIMATED_ITEM_SIZE,
   scrollHomePrayerVirtualViewportToIndex,
+  scheduleHomePrayerVirtualScrollRemeasure,
 } from "./home-prayer-virtual-scroll";
 
 describe("scrollHomePrayerVirtualViewportToIndex", () => {
@@ -74,5 +75,23 @@ describe("scrollHomePrayerVirtualViewportToIndex", () => {
     );
 
     expect(offsets).toEqual([index * step + step]);
+  });
+});
+
+describe("scheduleHomePrayerVirtualScrollRemeasure", () => {
+  it("no-ops when viewport is missing", () => {
+    expect(scheduleHomePrayerVirtualScrollRemeasure(undefined)).toBeUndefined();
+  });
+
+  it("calls checkViewportSize on the next microtask", async () => {
+    const viewport = {
+      checkViewportSize: vi.fn(),
+    } as unknown as CdkVirtualScrollViewport;
+
+    scheduleHomePrayerVirtualScrollRemeasure(viewport);
+    expect(viewport.checkViewportSize).not.toHaveBeenCalled();
+
+    await Promise.resolve();
+    expect(viewport.checkViewportSize).toHaveBeenCalledTimes(1);
   });
 });

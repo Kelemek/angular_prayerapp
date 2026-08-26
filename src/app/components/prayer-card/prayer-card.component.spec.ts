@@ -610,6 +610,48 @@ describe('PrayerCardComponent', () => {
     expect(all[0].id).toBe('u1');
   });
 
+  it('toggleShowAllUpdates remeasures virtual scroll when viewport is present', async () => {
+    const viewport = { checkViewportSize: vi.fn() };
+    const deps = defaultPrayerCardCtorDeps();
+    component = new PrayerCardComponent(
+      mockUserSessionService,
+      deps.badge,
+      deps.prayerService,
+      deps.encouragement,
+      deps.itemReminders,
+      deps.cdr,
+      mockRichTextEditorsSettings as any,
+      viewport as any
+    );
+    component.prayer = {
+      id: 'p1',
+      prayer_for: 'Community',
+      description: 'Please pray',
+      requester: 'Jane Doe',
+      is_anonymous: false,
+      status: 'current',
+      created_at: now.toISOString(),
+      updates: []
+    } as any;
+
+    component.toggleShowAllUpdates();
+    expect(component.showAllUpdates).toBe(true);
+    await Promise.resolve();
+    expect(viewport.checkViewportSize).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets showAllUpdates when virtual scroll rebinds to another prayer', () => {
+    component.showAllUpdates = true;
+    component.ngOnChanges({
+      prayer: {
+        previousValue: { id: 'p1', updates: [] },
+        currentValue: { id: 'p2', updates: [] },
+        firstChange: false,
+      },
+    } as any);
+    expect(component.showAllUpdates).toBe(false);
+  });
+
   it('onUpdateDeleteRequestSubmit preserves multi-part last name', () => {
     localStorage.setItem('userFirstName', 'First');
     localStorage.setItem('userLastName', 'Last Middle');
