@@ -640,6 +640,36 @@ describe('PrayerCardComponent', () => {
     expect(viewport.checkViewportSize).toHaveBeenCalledTimes(1);
   });
 
+  it('toggleAddUpdate does not remeasure virtual scroll (modal is fixed overlay)', async () => {
+    const viewport = { checkViewportSize: vi.fn() };
+    const deps = defaultPrayerCardCtorDeps();
+    component = new PrayerCardComponent(
+      mockUserSessionService,
+      deps.badge,
+      deps.prayerService,
+      deps.encouragement,
+      deps.itemReminders,
+      deps.cdr,
+      mockRichTextEditorsSettings as any,
+      viewport as any
+    );
+    component.prayer = {
+      id: 'p1',
+      prayer_for: 'Community',
+      description: 'Please pray',
+      requester: 'Jane Doe',
+      is_anonymous: false,
+      status: 'current',
+      created_at: now.toISOString(),
+      updates: []
+    } as any;
+
+    component.toggleAddUpdate();
+    expect(component.showAddUpdateForm).toBe(true);
+    await Promise.resolve();
+    expect(viewport.checkViewportSize).not.toHaveBeenCalled();
+  });
+
   it('resets showAllUpdates when virtual scroll rebinds to another prayer', () => {
     component.showAllUpdates = true;
     component.ngOnChanges({

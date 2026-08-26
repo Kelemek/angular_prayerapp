@@ -203,7 +203,7 @@ const HOME_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
   updateContentClass: 'block text-sm text-gray-700 dark:text-gray-300',
   updateSectionSpacing: 'space-y-3',
   updateToggleButtonClasses:
-    'text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1',
+    'cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1',
   showTourAnchors: true,
 };
 
@@ -230,7 +230,7 @@ const PRESENTATION_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
     'block text-base md:text-lg lg:text-xl text-gray-800 dark:text-gray-200',
   updateSectionSpacing: 'space-y-4',
   updateToggleButtonClasses:
-    'text-sm md:text-base text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1',
+    'cursor-pointer text-sm md:text-base text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1',
   showTourAnchors: false,
 };
 

@@ -1,9 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
+  OnChanges,
+  OnDestroy,
   Output,
+  inject,
 } from '@angular/core';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
 import { PersonalPrayerAnsweredStatusModalComponent } from '../personal-prayer-answered-status-modal/personal-prayer-answered-status-modal.component';
@@ -19,6 +23,13 @@ import type {
   PrayerItemReminder,
   PrayerItemReminderKind,
 } from '../../types/prayer-item-reminder';
+import {
+  isInsideCdkVirtualScrollContent,
+  portalPrayerCardModalsHostToBody,
+  prayerCardModalsStackHasOpenModal,
+  restorePrayerCardModalsHostFromBody,
+  type PrayerCardModalsPortalAnchor,
+} from '../../lib/prayer-card-modals-portal';
 
 @Component({
   selector: 'app-prayer-card-modals-stack',
@@ -34,7 +45,10 @@ import type {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prayer-card-modals-stack.component.html',
 })
-export class PrayerCardModalsStackComponent {
+export class PrayerCardModalsStackComponent implements OnChanges, OnDestroy {
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private portalAnchor: PrayerCardModalsPortalAnchor | null = null;
+
   @Input() showAddUpdateForm = false;
   @Input({ required: true }) prayerId!: string;
   @Input() isPersonal = false;
@@ -74,4 +88,35 @@ export class PrayerCardModalsStackComponent {
   @Output() remindersChange = new EventEmitter<PrayerItemReminder[]>();
   @Output() confirmPrayFor = new EventEmitter<boolean>();
   @Output() cancelPrayFor = new EventEmitter<void>();
+
+  ngOnChanges(): void {
+    this.syncBodyPortal();
+  }
+
+  ngOnDestroy(): void {
+    restorePrayerCardModalsHostFromBody(
+      this.host.nativeElement,
+      this.portalAnchor
+    );
+    this.portalAnchor = null;
+  }
+
+  private syncBodyPortal(): void {
+    const host = this.host.nativeElement;
+    const shouldManagePortal =
+      this.portalAnchor !== null ||
+      isInsideCdkVirtualScrollContent(host);
+
+    if (!shouldManagePortal) {
+      return;
+    }
+
+    if (prayerCardModalsStackHasOpenModal(this)) {
+      this.portalAnchor = portalPrayerCardModalsHostToBody(host, this.portalAnchor);
+      return;
+    }
+
+    restorePrayerCardModalsHostFromBody(host, this.portalAnchor);
+    this.portalAnchor = null;
+  }
 }

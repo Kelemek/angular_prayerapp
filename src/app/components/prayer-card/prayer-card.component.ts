@@ -471,7 +471,6 @@ export class PrayerCardComponent
       prayerCardToggleAddUpdatePatch(this.showAddUpdateForm)
     );
     this.cdr.markForCheck();
-    this.remeasureVirtualScrollRow();
   }
 
   get addUpdateTourElementIds(): PrayerCardAddUpdateTourElementIds | null {
@@ -484,7 +483,6 @@ export class PrayerCardComponent
   closeAddUpdateForm(): void {
     this.showAddUpdateForm = false;
     this.cdr.markForCheck();
-    this.remeasureVirtualScrollRow();
   }
 
   onAddUpdateSubmit(payload: unknown): void {
