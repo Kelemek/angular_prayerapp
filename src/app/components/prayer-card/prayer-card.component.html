@@ -73,8 +73,10 @@
         [showPrayedForBadge]="viewState.showPrayedForBadge"
         [usesPersonalCooldown]="viewState.usesPersonalCooldown"
         [canPrayFor]="(canPrayFor$ | async) ?? false"
-        [userSessionService]="userSessionService"
-        [prayerEncouragementService]="prayerEncouragementService"
+        [showPrayForButton]="showPrayForButton"
+        [showPrayingCount]="showPrayingCount"
+        [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+        [cooldownHours]="cooldownHours"
         (addUpdate)="toggleAddUpdate()"
         (prayFor)="onPrayForClick()"
       />

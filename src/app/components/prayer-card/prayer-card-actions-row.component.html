@@ -14,7 +14,7 @@
   >
     Add Update
   </button>
-  @if ((userSessionService.getShowPrayForButton$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async)) {
+  @if (showPrayForButton && prayerEncouragementEnabled) {
     @if (canPrayFor) {
       <button
         type="button"
@@ -30,14 +30,14 @@
         type="button"
         disabled
         [attr.id]="showTourAnchors && tourPrayForEncouragementAnchors ? 'tour-prayer-pray-for' : null"
-        [title]="'You can pray for this again in ' + ((prayerEncouragementService.getCooldownHoursForPrayer$(usesPersonalCooldown) | async) ?? 4) + ' hours'"
+        [title]="'You can pray for this again in ' + cooldownHours + ' hours'"
         [class]="variantLayout.actionButtonClasses + ' bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md border border-gray-300 dark:border-gray-600 cursor-not-allowed'"
       >
         Prayed For
       </button>
     }
   }
-  @if ((userSessionService.getShowPrayingCount$() | async) && (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) && showPrayedForBadge) {
+  @if (showPrayingCount && prayerEncouragementEnabled && showPrayedForBadge) {
     <span
       [class]="variantLayout.prayedForBadgeClasses"
       title="Number praying for this request"

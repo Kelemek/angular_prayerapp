@@ -21,6 +21,7 @@ function defaultPrayerCardCtorDeps() {
     prayerService: {} as any,
     encouragement: {
       getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
+      getCooldownHoursForPrayer$: vi.fn().mockReturnValue(of(4)),
     } as any,
     itemReminders: {
       ensureLoaded: vi.fn().mockResolvedValue([]),
@@ -639,6 +640,7 @@ describe('PrayerCardComponent', () => {
       getPrayerEncouragementEnabled$: vi.fn().mockReturnValue(of(true)),
       canPrayFor: vi.fn().mockReturnValue(false),
       getCanPrayFor$: vi.fn().mockReturnValue(of(false)),
+      getCooldownHoursForPrayer$: vi.fn().mockReturnValue(of(4)),
       recordPrayedFor: vi.fn()
     };
     const localCdr = { markForCheck: vi.fn() };
@@ -714,6 +716,7 @@ describe('PrayerCardComponent', () => {
         getPrayerEncouragementEnabled$: vi.fn().mockReturnValue(of(true)),
         canPrayFor: vi.fn().mockReturnValue(true),
         getCanPrayFor$: vi.fn().mockReturnValue(of(true)),
+        getCooldownHoursForPrayer$: vi.fn().mockReturnValue(of(4)),
         recordPrayedFor: vi.fn(),
         clearPrayedForCooldown: vi.fn()
       };

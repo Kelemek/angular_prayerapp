@@ -25,6 +25,7 @@ describe("HomeDeepLinkCoordinator", () => {
       requestFreshPromptCatalog: vi.fn(),
       applyPendingVerseMemorizationDeepLink: vi.fn(),
       scrollPromptIntoView: vi.fn(() => true),
+      scrollPrayerIntoView: vi.fn(() => true),
     };
     coordinator.bindHost(host);
   });
@@ -71,6 +72,7 @@ describe("HomeDeepLinkCoordinator", () => {
     expect(host.clearDeepLinkFilters).toHaveBeenCalledWith({ prayerId: "p1" });
     expect(host.setFilter).toHaveBeenCalledWith("personal");
     expect(host.stripQueryParam).toHaveBeenCalledWith("prayerId");
+    expect(host.scrollPrayerIntoView).toHaveBeenCalledWith("p1");
     scrollSpy.mockRestore();
   });
 

@@ -63,6 +63,7 @@ export interface HomeCoordinatorWiringPage {
   getPrayerFormComp(): PrayerFormComponent | undefined;
   getMemorizeKeyboardBridge(): HTMLInputElement | undefined;
   scrollHomePromptIntoView(promptId: string): boolean;
+  scrollHomePrayerIntoView(prayerId: string): boolean;
 }
 
 export interface HomeCoordinatorWiringDeps {
@@ -153,6 +154,7 @@ export function wireHomeCoordinators(
       });
     },
     scrollPromptIntoView: (promptId) => page.scrollHomePromptIntoView(promptId),
+    scrollPrayerIntoView: (prayerId) => page.scrollHomePrayerIntoView(prayerId),
   });
   deps.deepLinkCoordinator.bindHost(deepLinkHost);
 

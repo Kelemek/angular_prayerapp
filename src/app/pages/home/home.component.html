@@ -67,7 +67,10 @@
     </div>
 
     <!-- Main Content -->
-    <main class="w-full max-w-6xl mx-auto px-4 pt-2 sm:pt-3 pb-6">
+    <main
+      class="w-full max-w-6xl mx-auto px-4 pt-2 sm:pt-3 pb-6"
+      [class.home-virtual-scroll-main]="usesVirtualScrollMainLayout(activeFilter)"
+    >
       <!-- Top refresh indicator -->
       <div
         *ngIf="isRefreshing"
@@ -278,6 +281,7 @@
         [personalWalkthroughDescription]="personalWalkthroughDescription"
         [filteredPersonalPrayers]="catalog.filteredPersonalPrayers"
         [filteredPlanningCenterPrayers]="catalog.filteredPlanningCenterPrayers"
+        [displayedPublicPrayers]="displayedPublicPrayers"
         [displayedPrompts]="catalog.displayedPrompts"
         [loadingPersonalPrayers$]="prayerService.loadingPersonalPrayers$"
         [canReorderPersonalPrayers]="shell.personalCategory.canReorderPersonalPrayers"

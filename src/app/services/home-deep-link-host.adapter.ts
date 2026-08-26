@@ -63,6 +63,8 @@ export interface HomeDeepLinkHost {
   applyPendingVerseMemorizationDeepLink(): void;
   /** Scroll the prompts virtual list toward `promptId` (returns false if not on Prompts). */
   scrollPromptIntoView(promptId: string): boolean;
+  /** Scroll the Public community virtual list toward `prayerId` (returns false if not on a community tab). */
+  scrollPrayerIntoView(prayerId: string): boolean;
 }
 
 export interface HomeDeepLinkHostDependencies {
@@ -84,6 +86,7 @@ export interface HomeDeepLinkHostDependencies {
   refreshHomeCatalog: () => void;
   applyPendingVerseMemorizationDeepLink: () => void;
   scrollPromptIntoView: (promptId: string) => boolean;
+  scrollPrayerIntoView: (prayerId: string) => boolean;
 }
 
 export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
@@ -238,6 +241,10 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
 
   scrollPromptIntoView(promptId: string): boolean {
     return this.deps.scrollPromptIntoView(promptId);
+  }
+
+  scrollPrayerIntoView(prayerId: string): boolean {
+    return this.deps.scrollPrayerIntoView(prayerId);
   }
 
   private applyPersonalFilterForDeepLink(prayerId?: string): boolean {

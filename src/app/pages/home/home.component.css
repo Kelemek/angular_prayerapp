@@ -38,3 +38,15 @@
   right: 0;
   opacity: 0;
 }
+
+/*
+  Prompts / Public virtual scroll: do not stretch main to fill the viewport when the
+  list is shorter than the screen (avoids extra scroll past the last card).
+*/
+.native-app .safe-area-viewport > main.home-virtual-scroll-main {
+  flex: 0 1 auto;
+}
+
+html:not(.native-app) .safe-area-viewport > main.home-virtual-scroll-main {
+  flex: 0 1 auto;
+}

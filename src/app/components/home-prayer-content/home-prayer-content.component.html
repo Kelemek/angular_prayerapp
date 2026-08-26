@@ -151,6 +151,9 @@
     [activeFilter]="activeFilter"
     [deletionsAllowed]="deletionsAllowed"
     [updatesAllowed]="updatesAllowed"
+    [showPrayForButton]="showPrayForButton"
+    [showPrayingCount]="showPrayingCount"
+    [prayerEncouragementEnabled]="prayerEncouragementEnabled"
     [tourUpdateAnchors]="isFirstPrayer"
     (delete)="handlers.deleteCard(prayer)"
     (addUpdate)="handlers.onCardAddUpdate(prayer, $event)"
@@ -161,26 +164,43 @@
     (editMemberUpdate)="handlers.editMemberUpdate($event)"
     (toggleUpdateAnswered)="handlers.toggleMemberUpdateAnswered($event)"
   ></app-prayer-card>
-  } } @else { @for (prayer of prayers$ | async; track prayer.id; let
-  isFirstPrayer = $first) {
-  <app-prayer-card
-    [attr.id]="'prayer-card-' + prayer.id"
-    [prayer]="prayer"
-    [isAdmin]="isAdmin"
-    [activeFilter]="activeFilter"
-    [deletionsAllowed]="deletionsAllowed"
-    [updatesAllowed]="updatesAllowed"
-    [tourUpdateAnchors]="isFirstPrayer"
-    [tourPrayForEncouragementAnchors]="isFirstPrayer"
-    [tourPrayerReminderBellAnchors]="isFirstPrayer"
-    (delete)="handlers.deleteCard(prayer)"
-    (addUpdate)="handlers.onCardAddUpdate(prayer, $event)"
-    (memorizeVerse)="handlers.onCardMemorizeVerse(prayer)"
-    (deleteUpdate)="handlers.onCardDeleteUpdate(prayer, $event)"
-    (requestDeletion)="handlers.requestDeletion($event)"
-    (requestUpdateDeletion)="handlers.requestUpdateDeletion($event)"
-  ></app-prayer-card>
-  } } }
+  } } @else if (isCommunityPrayerFilter(activeFilter) &&
+  displayedPublicPrayers.length > 0) {
+  <cdk-virtual-scroll-viewport
+    #publicVirtualScrollViewport
+    autosize
+    [minBufferPx]="prayerVirtualScrollMinBufferPx"
+    [maxBufferPx]="prayerVirtualScrollMaxBufferPx"
+    class="home-prayer-virtual-scroll-viewport block w-full"
+  >
+    <app-prayer-card
+      *cdkVirtualFor="
+        let prayer of displayedPublicPrayers;
+        trackBy: trackPrayer;
+        let i = index
+      "
+      [attr.id]="'prayer-card-' + prayer.id"
+      [class]="prayerVirtualScrollItemClass"
+      [prayer]="prayer"
+      [isAdmin]="isAdmin"
+      [activeFilter]="activeFilter"
+      [deletionsAllowed]="deletionsAllowed"
+      [updatesAllowed]="updatesAllowed"
+      [showPrayForButton]="showPrayForButton"
+      [showPrayingCount]="showPrayingCount"
+      [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+      [tourUpdateAnchors]="i === 0"
+      [tourPrayForEncouragementAnchors]="i === 0"
+      [tourPrayerReminderBellAnchors]="i === 0"
+      (delete)="handlers.deleteCard(prayer)"
+      (addUpdate)="handlers.onCardAddUpdate(prayer, $event)"
+      (memorizeVerse)="handlers.onCardMemorizeVerse(prayer)"
+      (deleteUpdate)="handlers.onCardDeleteUpdate(prayer, $event)"
+      (requestDeletion)="handlers.requestDeletion($event)"
+      (requestUpdateDeletion)="handlers.requestUpdateDeletion($event)"
+    ></app-prayer-card>
+  </cdk-virtual-scroll-viewport>
+  } }
 
   @if (activeFilter === 'memorize') {
   <app-memorize-passages-panel
@@ -221,6 +241,9 @@
         [isPersonal]="true"
         [deletionsAllowed]="'everyone'"
         [updatesAllowed]="'everyone'"
+        [showPrayForButton]="showPrayForButton"
+        [showPrayingCount]="showPrayingCount"
+        [prayerEncouragementEnabled]="prayerEncouragementEnabled"
         [personalDragHandle]="canReorderPersonalPrayers"
         [personalDragTourId]="
           prayer.prayer_for === personalWalkthroughPrayerFor
@@ -301,9 +324,11 @@
   }
   }
 
-  <!-- Prompt Cards (virtual scroll — only visible cards mount) -->
+  <!-- Prompt Cards: @for when short (stable scroll); virtual scroll when long -->
   @if (activeFilter === 'prompts' && displayedPrompts.length > 0) {
+  @if (shouldUsePromptVirtualScroll(displayedPrompts.length)) {
   <cdk-virtual-scroll-viewport
+    #promptVirtualScrollViewport
     autosize
     [minBufferPx]="promptVirtualScrollMinBufferPx"
     [maxBufferPx]="promptVirtualScrollMaxBufferPx"
@@ -322,6 +347,22 @@
       (onTypeClick)="handlers.togglePromptType($event)"
     ></app-prompt-card>
   </cdk-virtual-scroll-viewport>
+  } @else {
+  <div [class]="stackGapClass">
+    @for (prompt of displayedPrompts; track prompt.id) {
+    <app-prompt-card
+      [prompt]="prompt"
+      [isAdmin]="isAdmin"
+      [isTypeSelected]="isPromptTypeSelected(prompt.type)"
+      [showPrayForButton]="showPrayForButton"
+      [showPrayingCount]="showPrayingCount"
+      [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+      (delete)="handlers.deletePrompt($event)"
+      (onTypeClick)="handlers.togglePromptType($event)"
+    ></app-prompt-card>
+    }
+  </div>
+  }
   }
 </div>
 }

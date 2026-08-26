@@ -2,7 +2,9 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   Output,
+  SimpleChanges,
   ViewChild,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
@@ -23,7 +25,9 @@ import type { AllowanceLevel } from "../../types/prayer";
 import { PrayerRequest } from "../../services/prayer.service";
 import type { MemorizedItem } from "../../types/memorization";
 import type { HomePrayerContentHandlers } from "../../lib/home-prayer-content-handlers";
+import { isCommunityPrayerFilter } from "../../lib/home-community-filter";
 import {
+  HOME_PRAYER_VIRTUAL_SCROLL_ITEM_CLASSES,
   HOME_PROMPT_VIRTUAL_SCROLL_ITEM_CLASSES,
   HOME_SHELL_STACK_GAP_CLASSES,
 } from "../../lib/home-shell-spacing";
@@ -31,7 +35,14 @@ import {
   HOME_PROMPT_VIRTUAL_SCROLL_MAX_BUFFER_PX,
   HOME_PROMPT_VIRTUAL_SCROLL_MIN_BUFFER_PX,
   scrollHomePromptVirtualViewportToIndex,
+  reconcileHomeVirtualScrollTotalSizeAtTail,
+  shouldUseHomePromptVirtualScroll,
 } from "../../lib/home-prompt-virtual-scroll";
+import {
+  HOME_PRAYER_VIRTUAL_SCROLL_MAX_BUFFER_PX,
+  HOME_PRAYER_VIRTUAL_SCROLL_MIN_BUFFER_PX,
+  scrollHomePrayerVirtualViewportToIndex,
+} from "../../lib/home-prayer-virtual-scroll";
 
 export type HomePersonalCategoryPickerOpenChange = {
   prayerId: string;
@@ -53,7 +64,7 @@ export type HomePersonalCategoryPickerOpenChange = {
   templateUrl: "./home-prayer-content.component.html",
   styleUrl: "./home-prayer-content.component.css",
 })
-export class HomePrayerContentComponent {
+export class HomePrayerContentComponent implements OnChanges {
   @Input({ required: true }) contentHidden!: boolean;
   @Input({ required: true }) activeFilter!: HomeActiveFilter;
   @Input({ required: true }) filters!: PrayerFilters;
@@ -68,6 +79,7 @@ export class HomePrayerContentComponent {
   @Input({ required: true }) personalWalkthroughDescription!: string;
   @Input({ required: true }) filteredPersonalPrayers!: PrayerRequest[];
   @Input({ required: true }) filteredPlanningCenterPrayers!: PrayerRequest[];
+  @Input({ required: true }) displayedPublicPrayers!: PrayerRequest[];
   @Input({ required: true }) displayedPrompts!: PrayerPrompt[];
   @Input({ required: true }) loadingPersonalPrayers$!: Observable<boolean>;
   @Input({ required: true }) canReorderPersonalPrayers!: boolean;
@@ -86,16 +98,41 @@ export class HomePrayerContentComponent {
   @Output() personalCategoryPickerOpenChange =
     new EventEmitter<HomePersonalCategoryPickerOpenChange>();
 
-  @ViewChild(CdkVirtualScrollViewport)
+  @ViewChild("promptVirtualScrollViewport")
   private promptVirtualScrollViewport?: CdkVirtualScrollViewport;
+
+  @ViewChild("publicVirtualScrollViewport")
+  private publicVirtualScrollViewport?: CdkVirtualScrollViewport;
 
   readonly stackGapClass = HOME_SHELL_STACK_GAP_CLASSES;
   readonly promptVirtualScrollItemClass =
     HOME_PROMPT_VIRTUAL_SCROLL_ITEM_CLASSES;
+  readonly prayerVirtualScrollItemClass =
+    HOME_PRAYER_VIRTUAL_SCROLL_ITEM_CLASSES;
   readonly promptVirtualScrollMinBufferPx =
     HOME_PROMPT_VIRTUAL_SCROLL_MIN_BUFFER_PX;
   readonly promptVirtualScrollMaxBufferPx =
     HOME_PROMPT_VIRTUAL_SCROLL_MAX_BUFFER_PX;
+  readonly prayerVirtualScrollMinBufferPx =
+    HOME_PRAYER_VIRTUAL_SCROLL_MIN_BUFFER_PX;
+  readonly prayerVirtualScrollMaxBufferPx =
+    HOME_PRAYER_VIRTUAL_SCROLL_MAX_BUFFER_PX;
+  readonly isCommunityPrayerFilter = isCommunityPrayerFilter;
+  readonly shouldUsePromptVirtualScroll = shouldUseHomePromptVirtualScroll;
+
+  private promptTailReconciledContentEnd: number | null = null;
+  private promptTailReconcileHandle: ReturnType<typeof setTimeout> | null =
+    null;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      changes["displayedPrompts"] ||
+      (changes["activeFilter"] && this.activeFilter === "prompts")
+    ) {
+      this.promptTailReconciledContentEnd = null;
+      this.schedulePromptVirtualScrollTailReconcile();
+    }
+  }
 
   isPromptTypeSelected(type: string): boolean {
     return this.selectedPromptTypes.includes(type);
@@ -109,14 +146,28 @@ export class HomePrayerContentComponent {
     return prompt.id;
   }
 
+  trackPrayer(_index: number, prayer: PrayerRequest): string {
+    return prayer.id;
+  }
+
   scrollPromptIntoView(promptId: string): boolean {
     if (this.activeFilter !== "prompts") {
       return false;
+    }
+    const elementId = `prompt-card-${promptId}`;
+    if (
+      typeof document !== "undefined" &&
+      document.getElementById(elementId)
+    ) {
+      return true;
     }
     const index = this.displayedPrompts.findIndex(
       (prompt) => prompt.id === promptId
     );
     if (index < 0) {
+      return false;
+    }
+    if (!shouldUseHomePromptVirtualScroll(this.displayedPrompts.length)) {
       return false;
     }
     const viewport = this.promptVirtualScrollViewport;
@@ -126,7 +177,62 @@ export class HomePrayerContentComponent {
     return scrollHomePromptVirtualViewportToIndex(
       viewport,
       index,
-      `prompt-card-${promptId}`
+      elementId
     );
+  }
+
+  scrollPrayerIntoView(prayerId: string): boolean {
+    if (!isCommunityPrayerFilter(this.activeFilter)) {
+      return false;
+    }
+    const index = this.displayedPublicPrayers.findIndex(
+      (prayer) => prayer.id === prayerId
+    );
+    if (index < 0) {
+      return false;
+    }
+    const viewport = this.publicVirtualScrollViewport;
+    if (!viewport) {
+      return false;
+    }
+    return scrollHomePrayerVirtualViewportToIndex(
+      viewport,
+      index,
+      `prayer-card-${prayerId}`
+    );
+  }
+
+  reconcilePromptVirtualScrollSize(): void {
+    if (this.activeFilter !== "prompts") {
+      return;
+    }
+    if (!shouldUseHomePromptVirtualScroll(this.displayedPrompts.length)) {
+      return;
+    }
+    const viewport = this.promptVirtualScrollViewport;
+    if (!viewport) {
+      return;
+    }
+    this.promptTailReconciledContentEnd =
+      reconcileHomeVirtualScrollTotalSizeAtTail(
+        viewport,
+        this.promptTailReconciledContentEnd
+      );
+  }
+
+  private schedulePromptVirtualScrollTailReconcile(): void {
+    if (this.activeFilter !== "prompts") {
+      return;
+    }
+    if (!shouldUseHomePromptVirtualScroll(this.displayedPrompts.length)) {
+      return;
+    }
+    if (this.promptTailReconcileHandle != null) {
+      clearTimeout(this.promptTailReconcileHandle);
+    }
+    this.promptTailReconcileHandle = setTimeout(() => {
+      this.promptTailReconcileHandle = null;
+      this.reconcilePromptVirtualScrollSize();
+    }, 0);
   }
 }

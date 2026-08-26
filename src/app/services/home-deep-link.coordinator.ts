@@ -347,6 +347,7 @@ export class HomeDeepLinkCoordinator {
       shouldRetryBurst: () =>
         this.host?.isPrayerInLoadedCatalog(prayerId) ?? false,
       reschedule: () => this.scheduleScrollToPrayerId(prayerId),
+      prepareScroll: () => this.host?.scrollPrayerIntoView(prayerId) ?? false,
     });
   }
 

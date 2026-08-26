@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { CdkVirtualScrollViewport } from "@angular/cdk/scrolling";
 import {
   HOME_PROMPT_VIRTUAL_SCROLL_ESTIMATED_ITEM_SIZE,
+  HOME_PROMPT_VIRTUAL_SCROLL_LIST_THRESHOLD,
   scrollHomePromptVirtualViewportToIndex,
+  reconcileHomeVirtualScrollTotalSizeAtTail,
+  shouldUseHomePromptVirtualScroll,
 } from "./home-prompt-virtual-scroll";
 
 describe("scrollHomePromptVirtualViewportToIndex", () => {
@@ -141,5 +144,72 @@ describe("scrollHomePromptVirtualViewportToIndex", () => {
 
     expect(result).toBe(true);
     expect(offsets).toEqual([index * step]);
+  });
+});
+
+describe("shouldUseHomePromptVirtualScroll", () => {
+  it("uses @for for short lists at or below the threshold", () => {
+    expect(
+      shouldUseHomePromptVirtualScroll(HOME_PROMPT_VIRTUAL_SCROLL_LIST_THRESHOLD)
+    ).toBe(false);
+    expect(shouldUseHomePromptVirtualScroll(1)).toBe(false);
+  });
+
+  it("uses virtual scroll above the threshold", () => {
+    expect(
+      shouldUseHomePromptVirtualScroll(
+        HOME_PROMPT_VIRTUAL_SCROLL_LIST_THRESHOLD + 1
+      )
+    ).toBe(true);
+  });
+});
+
+describe("reconcileHomeVirtualScrollTotalSizeAtTail", () => {
+  it("returns the prior value when data length is zero", () => {
+    const viewport = {
+      getDataLength: () => 0,
+      getRenderedRange: () => ({ start: 0, end: 0 }),
+    } as unknown as CdkVirtualScrollViewport;
+
+    expect(reconcileHomeVirtualScrollTotalSizeAtTail(viewport, null)).toBe(
+      null
+    );
+  });
+
+  it("returns the prior value when the tail is not rendered", () => {
+    const viewport = {
+      getDataLength: () => 10,
+      getRenderedRange: () => ({ start: 0, end: 5 }),
+    } as unknown as CdkVirtualScrollViewport;
+
+    expect(reconcileHomeVirtualScrollTotalSizeAtTail(viewport, 99)).toBe(99);
+  });
+
+  it("sets total content size to measured content end when tail is rendered", () => {
+    const setTotalContentSize = vi.fn();
+    const viewport = {
+      getDataLength: () => 3,
+      getRenderedRange: () => ({ start: 0, end: 3 }),
+      measureRenderedContentSize: () => 420.4,
+      getOffsetToRenderedContentStart: () => 12,
+      setTotalContentSize,
+    } as unknown as CdkVirtualScrollViewport;
+
+    expect(reconcileHomeVirtualScrollTotalSizeAtTail(viewport, null)).toBe(433);
+    expect(setTotalContentSize).toHaveBeenCalledWith(433);
+  });
+
+  it("skips setTotalContentSize when already reconciled to the same end", () => {
+    const setTotalContentSize = vi.fn();
+    const viewport = {
+      getDataLength: () => 3,
+      getRenderedRange: () => ({ start: 0, end: 3 }),
+      measureRenderedContentSize: () => 420.4,
+      getOffsetToRenderedContentStart: () => 12,
+      setTotalContentSize,
+    } as unknown as CdkVirtualScrollViewport;
+
+    expect(reconcileHomeVirtualScrollTotalSizeAtTail(viewport, 433)).toBe(433);
+    expect(setTotalContentSize).not.toHaveBeenCalled();
   });
 });

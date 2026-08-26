@@ -51,6 +51,8 @@ describe("HomeDeepLinkHostAdapter", () => {
       applyPrayerFilters,
       refreshHomeCatalog,
       applyPendingVerseMemorizationDeepLink: vi.fn(),
+      scrollPromptIntoView: vi.fn(() => true),
+      scrollPrayerIntoView: vi.fn(() => true),
     });
   });
 

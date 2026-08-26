@@ -14,3 +14,11 @@ export const HOME_SHELL_STACK_GAP_CLASSES = "space-y-2 sm:space-y-3";
  */
 export const HOME_PROMPT_VIRTUAL_SCROLL_ITEM_CLASSES =
   "home-prompt-virtual-scroll-item";
+
+/**
+ * Row host class for Public community prayer CDK virtual scroll items.
+ * Padding: home-prayer-content.component.css. Shell mb-2 is cleared in
+ * prayer-card.component.css so gap matches collapsed space-y on other tabs.
+ */
+export const HOME_PRAYER_VIRTUAL_SCROLL_ITEM_CLASSES =
+  "home-prayer-virtual-scroll-item";

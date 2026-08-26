@@ -107,7 +107,7 @@ import type { PersonalPrayerAnsweredStatusMode } from '../personal-prayer-answer
     '[class.block]': 'variant !== "presentation"',
   },
   templateUrl: './prayer-card.component.html',
-  styles: [],
+  styleUrl: './prayer-card.component.css',
 })
 export class PrayerCardComponent
   implements OnInit, OnChanges, OnDestroy, PrayerCardDeleteUiState
@@ -127,6 +127,9 @@ export class PrayerCardComponent
   @Input() tourPrayForEncouragementAnchors = false;
   @Input() tourPrayerReminderBellAnchors = false;
   @Input() tourPersonalWalkthroughAnchors = false;
+  @Input() showPrayForButton = true;
+  @Input() showPrayingCount = true;
+  @Input() prayerEncouragementEnabled = true;
 
   @Output() delete = new EventEmitter<string>();
   @Output() addUpdate = new EventEmitter<PrayerCardAddUpdateEvent>();
@@ -159,8 +162,10 @@ export class PrayerCardComponent
 
   prayerBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);
+  cooldownHours = 4;
   private badgeWire!: PrayerCardBadgeWire;
   private destroy$ = new Subject<void>();
+  private cooldownHoursDestroy$ = new Subject<void>();
 
   showAddUpdateForm = false;
   showDeleteRequestForm = false;
@@ -207,11 +212,13 @@ export class PrayerCardComponent
     this.prayerBadge$ = this.badgeWire.prayerBadge$;
     this.badgeWire.init(this.destroy$);
     this.refreshCanPrayFor$();
+    this.refreshCooldownHoursSubscription();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['prayer'] || changes['isPersonal'] || changes['variant']) {
       this.refreshCanPrayFor$();
+      this.refreshCooldownHoursSubscription();
     }
     if (changes['prayer']) {
       const previousId = changes['prayer'].previousValue?.id;
@@ -232,6 +239,8 @@ export class PrayerCardComponent
   }
 
   ngOnDestroy(): void {
+    this.cooldownHoursDestroy$.next();
+    this.cooldownHoursDestroy$.complete();
     this.badgeWire.destroy();
     this.destroy$.next();
     this.destroy$.complete();
@@ -346,6 +355,20 @@ export class PrayerCardComponent
       this.prayer.id,
       this.viewState.usesPersonalCooldown
     );
+  }
+
+  private refreshCooldownHoursSubscription(): void {
+    this.cooldownHoursDestroy$.next();
+    this.prayerEncouragementService
+      .getCooldownHoursForPrayer$(this.viewState.usesPersonalCooldown)
+      .pipe(
+        takeUntil(this.cooldownHoursDestroy$),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((hours) => {
+        this.cooldownHours = hours;
+        this.cdr.markForCheck();
+      });
   }
 
   onPrayForClick(): void {
