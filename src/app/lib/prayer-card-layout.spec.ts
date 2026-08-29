@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import {
   PRAYER_CARD_HEADER_INSET_CLASSES,
@@ -34,8 +37,12 @@ describe('getPrayerCardVariantLayout', () => {
       expect(prayerTokens).toContain(token);
       expect(promptTokens).toContain(token);
     }
+    expect(prayerTokens).toContain('overflow-visible');
+    expect(promptTokens).toContain('overflow-visible');
     expect(prayerTokens).not.toContain('overflow-hidden');
     expect(promptTokens).not.toContain('overflow-hidden');
+    expect(prayerTokens).not.toContain('isolate');
+    expect(promptTokens).not.toContain('isolate');
     expect(prayer.headerBandRoundedClasses).toBe(
       PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES
     );
@@ -43,6 +50,21 @@ describe('getPrayerCardVariantLayout', () => {
       PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES
     );
     expect(prayer.headerBandRoundedClasses).not.toBe('rounded-t-lg');
+  });
+
+  it('does not isolate the corner-seal utility (isolation clips hanging badges)', () => {
+    const cssPath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../card-chrome.css'
+    );
+    const css = readFileSync(cssPath, 'utf8');
+    expect(css).toContain('@utility bg-shell-corner-seal');
+    expect(css).not.toMatch(/^\s*isolation:\s*isolate/m);
+    expect(css).toMatch(/overflow:\s*visible/);
+    expect(css).toContain(
+      '.home-prayer-virtual-scroll-viewport > .cdk-virtual-scroll-content-wrapper'
+    );
+    expect(css).toMatch(/contain:\s*layout/);
   });
 
   it('returns presentation prompt shell with bottom padding tokens', () => {

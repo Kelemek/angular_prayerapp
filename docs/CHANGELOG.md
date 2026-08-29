@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — unread badges clipped on prayer and prompt cards
+- Corner unread counts were clipped to a quarter-circle because `bg-shell-corner-seal` used `isolation: isolate`. That stacking context plus `rounded-lg` clips overflow the same way `overflow-hidden` does, so badges at `-top-2 -right-2` could not hang off the card corner. Isolation is removed and the shell is `overflow: visible`; Home virtual-scroll rows drop CDK paint containment on the content wrapper so the count is not clipped there either ([`card-chrome.css`](src/card-chrome.css), [`prayer-card-layout.ts`](src/app/lib/prayer-card-layout.ts)).
+
 ### UI — Scroll to top button
 - A round **Back to top** button on **Home** appears in the bottom-right after scrolling the prayer feed; it smooth-scrolls the `.safe-area-viewport` to the top. Native positioning uses shared theme tokens (`--native-bottom-safe-min`, `--scroll-to-top-extra-bottom` in [`styles.css`](src/styles.css)) so the FAB stays above the sticky bottom safe bar and Android gesture nav. Shared scroll helpers in [`app-scroll-container.ts`](src/app/lib/app-scroll-container.ts) also reset scroll on route navigation ([`app.component.ts`](src/app/app.component.ts)), skipping Home deep-link and query-only navigations so `?prayerId=` / `?promptId=` scroll-to-card still works. Component: [`scroll-to-top-button`](src/app/components/scroll-to-top-button/scroll-to-top-button.component.ts).
 

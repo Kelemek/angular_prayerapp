@@ -5,10 +5,10 @@ export const PRAYER_CARD_SHELL_PADDING_CLASSES = 'px-4 sm:px-6';
 
 /**
  * Keep the card fill inside the border and seal anti-aliased outer pixels
- * (`bg-shell-corner-seal` in card-chrome.css). Do not use `overflow-hidden` on
- * the shell — unread badges sit at `-top-2 -right-2`.
+ * (`bg-shell-corner-seal` in card-chrome.css). Do not use `overflow-hidden` or
+ * `isolation: isolate` on the shell — unread badges sit at `-top-2 -right-2`.
  */
-const CARD_SHELL_CORNER_SEAL = 'bg-shell-corner-seal';
+const CARD_SHELL_CORNER_SEAL = 'bg-shell-corner-seal overflow-visible';
 const CARD_SHELL_HEADER_BAND_ROUNDED = 'rounded-t-shell-inner';
 const CARD_SHELL_BORDER_W_1 = 'shell-border-w-1';
 const CARD_SHELL_BORDER_W_2 = 'shell-border-w-2';

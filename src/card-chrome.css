@@ -1,12 +1,14 @@
 /*
   Card corner sealing — pair bg-shell-corner-seal with shell-border-w-* on the shell,
   and rounded-t-shell-inner with shell-radius-* + matching shell-border-w-* on header bands.
-  Do not use overflow-hidden on shells with corner unread badges.
-  Card modals must render outside isolated shells (prayer-card / prompt-card templates).
+  Do not use overflow-hidden or a stacking-context isolation property on shells with
+  corner unread badges: that clips overflow the same way overflow-hidden does.
+  Card modals still render outside the shell (prayer-card / prompt-card templates) so
+  fixed overlays are not trapped if a stacking context returns.
 */
 @utility bg-shell-corner-seal {
   background-clip: padding-box;
-  isolation: isolate;
+  overflow: visible;
   &::after {
     content: '';
     position: absolute;
@@ -50,4 +52,14 @@
 }
 @utility z-modal-dropdown-panel {
   z-index: var(--z-index-modal-dropdown-panel);
+}
+
+/*
+  CDK `contain: content` on the virtual-scroll content wrapper includes paint
+  containment, which clips unread badges that hang past the card (`-top-2 -right-2`).
+  Keep layout containment for virtualization; drop paint so the count can overflow.
+*/
+.home-prayer-virtual-scroll-viewport > .cdk-virtual-scroll-content-wrapper,
+.home-prompt-virtual-scroll-viewport > .cdk-virtual-scroll-content-wrapper {
+  contain: layout;
 }
