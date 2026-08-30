@@ -1,0 +1,32 @@
+---
+description: Keep PostHog APP_BUNDLE_VERSION in sync with iOS/Android store version bumps
+globs: android/app/build.gradle, ios/App/App.xcodeproj/project.pbxproj, src/lib/app-analytics-context.ts
+alwaysApply: true
+---
+
+# App version → PostHog
+
+PostHog `app_version` is **not** read from the stores. It is the hardcoded string `APP_BUNDLE_VERSION` in [`src/lib/app-analytics-context.ts`](../../src/lib/app-analytics-context.ts).
+
+## When you bump a store version
+
+If you change **any** of:
+
+- Android `versionName` in `android/app/build.gradle`
+- iOS `MARKETING_VERSION` in `ios/App/App.xcodeproj/project.pbxproj` (both Debug and Release)
+
+then in the **same change**:
+
+1. Set `APP_BUNDLE_VERSION` to that **same** marketing string (for example `'2.21'`).
+2. Keep iOS `MARKETING_VERSION` and Android `versionName` equal to each other.
+3. Leave Android `versionCode` as an integer bump only — do not put it in PostHog.
+
+```typescript
+// ❌ BAD — native is 2.21, PostHog still reports 2.19
+export const APP_BUNDLE_VERSION = '2.19';
+
+// ✅ GOOD — matches versionName / MARKETING_VERSION
+export const APP_BUNDLE_VERSION = '2.21';
+```
+
+Do **not** invent a version. If native files were not changed, leave `APP_BUNDLE_VERSION` alone.

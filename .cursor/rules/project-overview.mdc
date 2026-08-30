@@ -11,4 +11,5 @@ alwaysApply: true
 - **Key paths**: `src/app/` (components, pages, services, guards, types), `src/styles.css` (Tailwind + theme), `src/environments/` (env config), `supabase/functions/<name>/index.ts` (Edge Functions).
 - **Notable deps**: @supabase/supabase-js, posthog-js, @capacitor/*, lucide-angular, @planningcenter/api-client.
 - Prefer existing services (`SupabaseService`, `ToastService`, etc.) and shared types in `src/app/types/` when adding features.
+- Store version bumps (iOS `MARKETING_VERSION`, Android `versionName`) must also set [`APP_BUNDLE_VERSION`](../../src/lib/app-analytics-context.ts) — see [app-version-sync.mdc](app-version-sync.mdc).
 - Before finishing work: **`npm run pre-handoff`**, **`ReadLints`** on touched files, logic review. See [AGENTS.md](../../AGENTS.md), [verify-before-done.mdc](verify-before-done.mdc), [pre-handoff skill](skills/pre-handoff/SKILL.md).

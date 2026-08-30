@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### PostHog — app version stays in sync with store releases
+- [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) is now **2.21**, matching iOS `MARKETING_VERSION` and Android `versionName`. A Cursor rule ([`.cursor/rules/app-version-sync.mdc`](.cursor/rules/app-version-sync.mdc)) requires that constant to be updated in the same change as a native version bump so PostHog `app_version` does not lag the store.
+
 ### Fix — verse memorization send clicked twice
 - **Send Email & Push** after posting a Verse Memorization of the Week prayer stayed clickable with no progress text while emails and push were still queuing, so a second click broadcast twice. [`send-notification-dialog`](src/app/components/send-notification-dialog/send-notification-dialog.component.ts) now emits confirm once, shows **Sending…**, and disables both buttons until the dialog is closed. [`verse-memorization-prayer-manager`](src/app/components/verse-memorization-prayer-manager/verse-memorization-prayer-manager.component.ts) also ignores a second confirm or decline while that broadcast is in flight.
 
