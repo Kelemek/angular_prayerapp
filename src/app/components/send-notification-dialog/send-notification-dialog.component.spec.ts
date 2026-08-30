@@ -156,14 +156,14 @@ describe('SendNotificationDialogComponent', () => {
       expect(confirmSpy).toHaveBeenCalledWith();
     });
 
-    it('should emit confirm event multiple times', () => {
+    it('should emit confirm only once while submitting', () => {
       const confirmSpy = vi.spyOn(component.confirm, 'emit');
       
       component.onConfirm();
       component.onConfirm();
       component.onConfirm();
       
-      expect(confirmSpy).toHaveBeenCalledTimes(3);
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -185,13 +185,22 @@ describe('SendNotificationDialogComponent', () => {
       expect(declineSpy).toHaveBeenCalledWith();
     });
 
-    it('should emit decline event multiple times', () => {
+    it('should emit decline event multiple times when not submitting', () => {
       const declineSpy = vi.spyOn(component.decline, 'emit');
       
       component.onDecline();
       component.onDecline();
       
       expect(declineSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should ignore decline while send is in flight', () => {
+      const declineSpy = vi.spyOn(component.decline, 'emit');
+
+      component.onConfirm();
+      component.onDecline();
+
+      expect(declineSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -462,7 +471,7 @@ describe('SendNotificationDialogComponent', () => {
   });
 
   describe('Event Emission Integration', () => {
-    it('should handle sequential confirm and decline events', () => {
+    it('should ignore decline after confirm until the dialog is recreated', () => {
       const confirmSpy = vi.spyOn(component.confirm, 'emit');
       const declineSpy = vi.spyOn(component.decline, 'emit');
       
@@ -470,8 +479,8 @@ describe('SendNotificationDialogComponent', () => {
       component.onDecline();
       component.onConfirm();
       
-      expect(confirmSpy).toHaveBeenCalledTimes(2);
-      expect(declineSpy).toHaveBeenCalledTimes(1);
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(declineSpy).not.toHaveBeenCalled();
     });
 
     it('should allow parent component to subscribe to confirm event', () => {
@@ -518,7 +527,7 @@ describe('SendNotificationDialogComponent', () => {
       }
     });
 
-    it('should handle rapid button clicks', () => {
+    it('should emit confirm only once when the send button is clicked rapidly', () => {
       const confirmSpy = vi.spyOn(component.confirm, 'emit');
       
       const sendButton = fixture.nativeElement.querySelectorAll('button')[1];
@@ -526,7 +535,23 @@ describe('SendNotificationDialogComponent', () => {
         sendButton.click();
       }
       
-      expect(confirmSpy).toHaveBeenCalledTimes(10);
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows Sending… and disables both buttons after confirm', () => {
+      const sendButton = fixture.nativeElement.querySelector(
+        '[data-testid="send-notification-confirm"]'
+      ) as HTMLButtonElement;
+      const declineButton = fixture.nativeElement.querySelector(
+        '[data-testid="send-notification-decline"]'
+      ) as HTMLButtonElement;
+
+      sendButton.click();
+      fixture.detectChanges();
+
+      expect(sendButton.disabled).toBe(true);
+      expect(declineButton.disabled).toBe(true);
+      expect(sendButton.textContent).toContain('Sending…');
     });
   });
 });

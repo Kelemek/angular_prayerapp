@@ -199,6 +199,7 @@ export class VerseMemorizationPrayerManagerComponent {
   showSendNotificationDialog = false;
   sendDialogPrayerTitle?: string;
   private pendingBroadcast: VerseMemorizationPrayerBroadcastPayload | null = null;
+  private notificationSendInFlight = false;
 
   constructor(
     private readonly versePrayerService: VerseMemorizationPrayerService,
@@ -282,11 +283,15 @@ export class VerseMemorizationPrayerManagerComponent {
 
   async onConfirmSendNotification(): Promise<void> {
     const payload = this.pendingBroadcast;
+    if (this.notificationSendInFlight) {
+      return;
+    }
     if (!payload) {
       this.onDeclineSendNotification();
       return;
     }
 
+    this.notificationSendInFlight = true;
     try {
       await this.versePrayerService.broadcastVerseMemorizationPrayerNotifications(
         payload
@@ -296,11 +301,15 @@ export class VerseMemorizationPrayerManagerComponent {
       console.error(error);
       this.toast.error('Failed to send notification emails');
     } finally {
+      this.notificationSendInFlight = false;
       this.onDeclineSendNotification();
     }
   }
 
   onDeclineSendNotification(): void {
+    if (this.notificationSendInFlight) {
+      return;
+    }
     this.showSendNotificationDialog = false;
     this.sendDialogPrayerTitle = undefined;
     this.pendingBroadcast = null;

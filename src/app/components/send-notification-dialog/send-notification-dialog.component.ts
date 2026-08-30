@@ -1,4 +1,11 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export type NotificationType = 'prayer' | 'update' | 'subscriber';
@@ -9,7 +16,10 @@ export type NotificationType = 'prayer' | 'update' | 'subscriber';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+    <div
+      class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4"
+      [attr.aria-busy]="submitting() ? true : null"
+    >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
         <!-- Header -->
         <div class="px-6 py-4 modal-chrome-header">
@@ -43,16 +53,22 @@ export type NotificationType = 'prayer' | 'update' | 'subscriber';
         <!-- Footer -->
         <div class="px-6 py-4 modal-chrome-footer flex gap-3 justify-end">
           <button
+            type="button"
+            data-testid="send-notification-decline"
             (click)="onDecline()"
-            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+            [disabled]="submitting()"
+            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Don't Send
           </button>
           <button
+            type="button"
+            data-testid="send-notification-confirm"
             (click)="onConfirm()"
-            class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+            [disabled]="submitting()"
+            class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ getConfirmButtonText() }}
+            {{ submitting() ? 'Sending…' : getConfirmButtonText() }}
           </button>
         </div>
       </div>
@@ -65,6 +81,8 @@ export class SendNotificationDialogComponent {
   @Input() prayerTitle?: string;
   @Output() confirm = new EventEmitter<void>();
   @Output() decline = new EventEmitter<void>();
+
+  protected readonly submitting = signal(false);
 
   getHeaderText(): string {
     if (this.notificationType === 'subscriber') {
@@ -99,10 +117,17 @@ export class SendNotificationDialogComponent {
   }
 
   onConfirm() {
+    if (this.submitting()) {
+      return;
+    }
+    this.submitting.set(true);
     this.confirm.emit();
   }
 
   onDecline() {
+    if (this.submitting()) {
+      return;
+    }
     this.decline.emit();
   }
 }

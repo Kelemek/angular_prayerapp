@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — verse memorization send clicked twice
+- **Send Email & Push** after posting a Verse Memorization of the Week prayer stayed clickable with no progress text while emails and push were still queuing, so a second click broadcast twice. [`send-notification-dialog`](src/app/components/send-notification-dialog/send-notification-dialog.component.ts) now emits confirm once, shows **Sending…**, and disables both buttons until the dialog is closed. [`verse-memorization-prayer-manager`](src/app/components/verse-memorization-prayer-manager/verse-memorization-prayer-manager.component.ts) also ignores a second confirm or decline while that broadcast is in flight.
+
 ### Fix — unread badges clipped on prayer and prompt cards
 - Corner unread counts were clipped to a quarter-circle because `bg-shell-corner-seal` used `isolation: isolate`. That stacking context plus `rounded-lg` clips overflow the same way `overflow-hidden` does, so badges at `-top-2 -right-2` could not hang off the card corner. Isolation is removed and the shell is `overflow: visible`; Home virtual-scroll rows drop CDK paint containment on the content wrapper so the count is not clipped there either ([`card-chrome.css`](src/card-chrome.css), [`prayer-card-layout.ts`](src/app/lib/prayer-card-layout.ts)).
 
