@@ -11,7 +11,7 @@ export function getDefaultHelpSections(): HelpSection[] {
         content: [
           {
             subtitle: 'Creating a New Prayer Request',
-            text: 'Click the "Add Request" button in the header to create a new prayer request. Fill in who or what the prayer is for, then provide details about the prayer request. You can optionally make your prayer anonymous to protect your privacy. Your request will be reviewed and approved by an administrator before appearing publicly.',
+            text: 'Click the "Add Request" button in the header to create a new prayer request. Fill in who or what the prayer is for, then provide details about the prayer request. You can optionally make your prayer anonymous to protect your privacy. Your request will be reviewed and approved by an administrator before appearing on the Church list.',
             examples: [
               'Example: Prayer For: "Jane", Details: "Please pray for healing as she prepares for surgery next week"',
               'Example: Prayer For: "Job Decision", Details: "I need wisdom and guidance as I consider a new job opportunity"',
@@ -19,7 +19,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Prayer Approval Process',
-            text: 'When you submit a new prayer request, update or deletion, it will be reviewed and approved by an administrator before it appears publicly. This helps maintain the quality and appropriateness of prayer requests in our community.',
+            text: 'When you submit a new prayer request, update or deletion, it will be reviewed and approved by an administrator before it appears on the Church list. This helps maintain the quality and appropriateness of prayer requests in our community.',
           },
           {
             subtitle: 'Creating Personal Prayers (Private Prayers)',
@@ -48,7 +48,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Managing Personal vs. Regular Prayers',
-            text: 'Use the "Personal" filter tab to access your private prayers that are only visible to you. For community prayers, tap the **Public** tab (it fills the folder section below when active), then choose the **Current** or **Total** filter in that section. Personal prayers are a great way to track private prayer requests.',
+            text: 'Use the "Personal" filter tab to access your private prayers that are only visible to you. For community prayers, tap the **Church** tab (it fills the folder section below when active), then choose the **Current** or **Total** filter in that section. Personal prayers are a great way to track private prayer requests.',
           },
         ],
         order: 1,
@@ -106,7 +106,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'When can I use Pray For?',
-            text: 'Pray For appears on community prayer cards (**Public** tab, especially **Current**), on your **Personal** tab cards, on **Members** cards under **Public** when you have a Planning Center list applied, on **Prompts** tab cards, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
+            text: 'Pray For appears on community prayer cards (**Church** tab, especially **Current**), on your **Personal** tab cards, on **Members** cards under **Church** when you have a Planning Center list applied, on **Prompts** tab cards, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
           },
           {
             subtitle: 'Personal prayers',
@@ -114,7 +114,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Member list cards',
-            text: 'If admins have mapped a Planning Center list to your account, **Members** appears under the **Public** tab after **Total** and shows those people as prayer cards. Pray For on a member card increases a **shared** anonymous **{n} Prayers** count for that person (visible to everyone who can see the Members list). Your cooldown from Settings controls how soon you can tap Pray For again on the same member. Member lists still appear only for users who have a list applied—Pray For does not change who can see Members.',
+            text: 'If admins have mapped a Planning Center list to your account, **Members** appears under the **Church** tab after **Total** and shows those people as prayer cards. Pray For on a member card increases a **shared** anonymous **{n} Prayers** count for that person (visible to everyone who can see the Members list). Your cooldown from Settings controls how soon you can tap Pray For again on the same member. Member lists still appear only for users who have a list applied—Pray For does not change who can see Members.',
           },
           {
             subtitle: 'Prayer prompts',
@@ -259,7 +259,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Opening Memorize',
-            text: 'Tap the **Memorize** filter on Home (fourth tab after **Public**, **Personal**, and **Prompts**) to see your passages. Main filter tabs show the tab name only—your saved passages appear in the list below. Use the Home search field to filter your list by book, reference, or translation (for example **John**, **3:16**, or **kjv**). Switch between **Cards** and **Table** layouts on the action bar; the layout defaults to **Cards** until you change it, then your choice and the table’s column sort are remembered on this device. Table columns are Reference (Bible order), Sessions, and Mastery (Learning first by default).',
+            text: 'Tap the **Memorize** filter on Home (fourth tab after **Church**, **Personal**, and **Prompts**) to see your passages. Main filter tabs show the tab name only—your saved passages appear in the list below. Use the Home search field to filter your list by book, reference, or translation (for example **John**, **3:16**, or **kjv**). Switch between **Cards** and **Table** layouts on the action bar; the layout defaults to **Cards** until you change it, then your choice and the table’s column sort are remembered on this device. Table columns are Reference (Bible order), Sessions, and Mastery (Learning first by default).',
           },
           {
             subtitle: 'Adding verses',
@@ -312,7 +312,7 @@ export function getDefaultHelpSections(): HelpSection[] {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'The main filter row has **Public**, **Personal**, **Prompts**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Public** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. If your church maps a Planning Center list, **Members** also appears after **Total**. **Personal**, **Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.',
+            text: 'The main filter row has **Church**, **Personal**, **Prompts**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. If your church maps a Planning Center list, **Members** also appears after **Total**. **Personal**, **Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.',
           },
           {
             subtitle: 'Personal Prayers Filter',
@@ -320,7 +320,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Finding Archived Prayers',
-            text: 'Archived prayers are still accessible and can be updated. Under the **Public** tab, tap the **Archived** filter to see only archived community prayers. You can find, edit, and update them just like active prayers. **Total** still includes archived prayers along with current and answered.',
+            text: 'Archived prayers are still accessible and can be updated. Under the **Church** tab, tap the **Archived** filter to see only archived community prayers. You can find, edit, and update them just like active prayers. **Total** still includes archived prayers along with current and answered.',
           },
           {
             subtitle: 'Search Across All Filters',
@@ -531,7 +531,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Notification Badges',
-            text: 'Badges appear on the main filter tabs and on the filter chips in each tab section to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge on a **Public**, **Prompts**, or community filter to clear all badges for that category at once.',
+            text: 'Badges appear on the main filter tabs and on the filter chips in each tab section to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge on a **Church**, **Prompts**, or community filter to clear all badges for that category at once.',
           },
           {
             subtitle: 'Enabling Badges',
@@ -551,7 +551,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Default Prayer View',
-            text: 'Set your preferred default view when you log in. Choose between "Current Prayers View" to see public prayers waiting for prayer, or "Personal Prayers View" to see your personal prayer list. Your selection is saved and will be remembered each time you log in.',
+            text: 'Set your preferred default view when you log in. Choose between "Current Prayers View" to see church prayers waiting for prayer, or "Personal Prayers View" to see your personal prayer list. Your selection is saved and will be remembered each time you log in.',
           },
           {
             subtitle: 'Memorization practice',

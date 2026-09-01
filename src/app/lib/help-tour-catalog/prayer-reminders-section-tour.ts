@@ -52,7 +52,7 @@ if (typeof document === 'undefined') {
       element: () => dom.getPublicFilterEl()!,
       popover: {
         title: title0,
-        description: `${desc0}<br><br>There are two kinds of reminders: the <strong>card menu</strong> (hamburger) on a prayer card for one prayer at a time, and <strong>general nudges</strong> in Settings. Tap <strong>Next</strong> to open <strong>Public</strong> prayers on the <strong>Current</strong> chip.`,
+        description: `${desc0}<br><br>There are two kinds of reminders: the <strong>card menu</strong> (hamburger) on a prayer card for one prayer at a time, and <strong>general nudges</strong> in Settings. Tap <strong>Next</strong> to open <strong>Church</strong> prayers on the <strong>Current</strong> chip.`,
         side: 'bottom',
         align: 'start',
         nextBtnText: 'Show current &rarr;',

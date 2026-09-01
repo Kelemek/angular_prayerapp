@@ -7,19 +7,19 @@
         <button
           id="tour-filter-public"
           (click)="publicTabSelected.emit()"
-          title="Show public prayers"
+          title="Show church prayers"
           [class]="tabClass('public', isPublicTabFilter(activeFilter))"
         >
           @if (badgesEnabled && aggregateBadge > 0) {
           <app-home-filter-badge-button
             [count]="aggregateBadge"
             [compact]="true"
-            title="Mark all public prayers as read"
-            ariaLabel="Mark all public prayers as read"
+            title="Mark all church prayers as read"
+            ariaLabel="Mark all church prayers as read"
             (markRead)="markAllPublicPrayersRead()"
           />
           }
-          Public
+          Church
         </button>
 
         <!-- Personal Prayers Filter -->

@@ -60,7 +60,15 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     const normalize = (el: HTMLElement) =>
       el.textContent?.replace(/\s+/g, " ").trim() ?? "";
 
-    expect(normalize(publicTab)).toBe("1 Public");
+    expect(normalize(publicTab)).toBe("Church 1");
+    expect(publicTab.className).toContain("z-20");
+    const badge = publicTab.querySelector(
+      'button[aria-label="About badges"]'
+    ) as HTMLButtonElement;
+    const tabChrome = publicTab.firstElementChild as HTMLElement;
+    expect(tabChrome.textContent?.trim()).toBe("Church");
+    expect(badge.previousElementSibling).toBe(tabChrome);
+    expect(badge.className).toContain("z-20");
     expect(normalize(personalBtn)).toBe("Personal");
     expect(normalize(promptsBtn)).toBe("Prompts");
   });

@@ -32,10 +32,10 @@ if (typeof document === 'undefined') {
       element: () => dom.getPersonalFilterEl()!,
       popover: {
         title: title0,
-        description: `${body0}<br><br>The <strong>Personal</strong> tab is for prayers only you can see (highlighted when active). Sub-chips for <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> appear below when it is selected. Tap <strong>Show Public</strong> next to switch to the shared community list.`,
+        description: `${body0}<br><br>The <strong>Personal</strong> tab is for prayers only you can see (highlighted when active). Sub-chips for <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> appear below when it is selected. Tap <strong>Show Church</strong> next to switch to the shared community list.`,
         side: 'bottom',
         align: 'start',
-        nextBtnText: 'Show Public &rarr;',
+        nextBtnText: 'Show Church &rarr;',
         onNextClick: host.advanceAfterOrKill(hooks.switchToCurrent),
       },
     },

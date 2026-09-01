@@ -33,7 +33,7 @@ if (typeof document === 'undefined') {
       element: () => dom.getPublicFilterEl()!,
       popover: {
         title: title0,
-        description: `${desc0}<br><br>Community prayer requests live under the <strong>Public</strong> tab—use the <strong>Current</strong>, <strong>Answered</strong>, or <strong>Total</strong> chips below it (not Personal or member-list views). Tap <strong>Show current</strong> to jump to active requests.`,
+        description: `${desc0}<br><br>Community prayer requests live under the <strong>Church</strong> tab—use the <strong>Current</strong>, <strong>Answered</strong>, or <strong>Total</strong> chips below it (not Personal or member-list views). Tap <strong>Show current</strong> to jump to active requests.`,
         side: 'bottom',
         align: 'start',
         nextBtnText: 'Show current &rarr;',

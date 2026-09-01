@@ -19,7 +19,7 @@ export class HomeFilterBadgeButtonComponent {
   @Input({ required: true }) count!: number;
   @Input({ required: true }) title!: string;
   @Input({ required: true }) ariaLabel!: string;
-  /** Compact pill allows wider counts on main Public tab aggregate badge. */
+  /** Compact pill allows wider counts on main Church tab aggregate badge. */
   @Input() compact = false;
 
   @Output() markRead = new EventEmitter<void>();

@@ -46,9 +46,9 @@ if (typeof document === 'undefined') {
     {
       element: () => dom.getPublicFilterEl()!,
       popover: {
-        title: dom.escapeHtml('Public'),
+        title: dom.escapeHtml('Church'),
         description:
-          'The <strong>Public</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, <strong>Archived</strong>, and <strong>Total</strong> filters in the row below to switch views. If a Planning Center list is mapped, <strong>Members</strong> also appears after <strong>Total</strong>.',
+          'The <strong>Church</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, <strong>Archived</strong>, and <strong>Total</strong> filters in the row below to switch views. If a Planning Center list is mapped, <strong>Members</strong> also appears after <strong>Total</strong>.',
         side: 'bottom',
         align: 'start',
         nextBtnText: 'Next',
@@ -124,7 +124,7 @@ if (typeof document === 'undefined') {
         description: membersPhrase
           ? formatHelpContentHtml(membersPhrase)
           : formatHelpContentHtml(
-              'Members shows Planning Center list people as prayer cards under Public, after Total.'
+              'Members shows Planning Center list people as prayer cards under Church, after Total.'
             ),
         side: 'bottom',
         align: 'start',

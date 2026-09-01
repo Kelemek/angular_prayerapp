@@ -87,7 +87,7 @@ const sampleUpdatingHelp: HelpContent = {
 
 const sampleManagingViewsHelp: HelpContent = {
   subtitle: 'Managing Personal vs. Regular Prayers',
-  text: 'Use the Personal tab for private prayers and Public with Current or Total chips for community.',
+  text: 'Use the Personal tab for private prayers and Church with Current or Total chips for community.',
   examples: [],
 };
 
@@ -435,7 +435,7 @@ describe('HelpDriverTourService', () => {
       document.body.appendChild(total);
     }
 
-    it('does not call driver when Public filter element is missing', () => {
+    it('does not call driver when Church filter element is missing', () => {
       const personal = document.createElement('button');
       personal.id = TOUR_FILTER_PERSONAL_ID;
       document.body.appendChild(personal);
@@ -452,7 +452,7 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts tour when Personal and Public exist', () => {
+    it('starts tour when Personal and Church exist', () => {
       mountFourFilters();
       service.startManagingPrayerViewsTour(sampleManagingViewsHelp, managingHooks());
       expect(driver).toHaveBeenCalledTimes(1);
@@ -913,7 +913,7 @@ describe('HelpDriverTourService', () => {
       description: 'Encourage others by marking when you pray',
     };
 
-    it('does not call driver when Public filter tile is missing', () => {
+    it('does not call driver when Church filter tile is missing', () => {
       service.startPrayerEncouragementTour(
         sampleEncouragementSection,
         { hasCommunityPrayer: false },
@@ -1026,7 +1026,7 @@ describe('HelpDriverTourService', () => {
       content: [
         {
           subtitle: 'Filter Options',
-          text: 'Use filters: under **Public**, **Current** shows active community prayers, **Answered** shows answered ones, and **Total** shows all. **Prompts** and **Personal** are main tabs with their own sub-chips below.',
+          text: 'Use filters: under **Church**, **Current** shows active community prayers, **Answered** shows answered ones, and **Total** shows all. **Prompts** and **Personal** are main tabs with their own sub-chips below.',
           examples: [] as string[],
         },
         { subtitle: 'Personal Prayers Filter', text: 'Personal help body.', examples: [] },
@@ -1035,7 +1035,7 @@ describe('HelpDriverTourService', () => {
       ],
     };
 
-    it('does not call driver when Public filter element is missing', () => {
+    it('does not call driver when Church filter element is missing', () => {
       service.startFilteringHelpSectionTour(filteringSection as any, {
         switchToCurrent,
         switchToAnswered,
@@ -1048,7 +1048,7 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts tour when Public filter exists', () => {
+    it('starts tour when Church filter exists', () => {
       const publicTab = document.createElement('button');
       publicTab.id = TOUR_FILTER_PUBLIC_ID;
       document.body.appendChild(publicTab);
@@ -1129,7 +1129,7 @@ describe('HelpDriverTourService', () => {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'Tap **Public** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below.',
+            text: 'Tap **Church** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below.',
             examples: [] as string[],
           },
           filteringSection.content[1],
@@ -1170,7 +1170,7 @@ describe('HelpDriverTourService', () => {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'Tap **Public** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below.',
+            text: 'Tap **Church** for community prayers, then use the **Current**, **Answered**, and **Total** chips that appear below.',
             examples: [] as string[],
           },
           filteringSection.content[1],
@@ -1194,7 +1194,7 @@ describe('HelpDriverTourService', () => {
         (step) => step.popover?.title === 'Current'
       );
       expect(currentStep?.popover?.description).toBe(
-        'Tap <strong>Public</strong> for community prayers, then use the <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> chips that appear below.'
+        'Tap <strong>Church</strong> for community prayers, then use the <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong> chips that appear below.'
       );
       expect(currentStep?.popover?.description).not.toContain('<br><br>');
     });

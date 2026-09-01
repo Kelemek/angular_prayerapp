@@ -55,7 +55,7 @@ describe("HomeFilterTabsComponent", () => {
 
   it("shows main tab labels without catalog counts", () => {
     const labels: Record<string, string> = {
-      "tour-filter-public": "Public",
+      "tour-filter-public": "Church",
       "tour-filter-personal": "Personal",
       "tour-filter-prompts": "Prompts",
       "tour-filter-memorize": "Memorize",

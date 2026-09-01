@@ -4,6 +4,15 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — Info Church tab badge stacks above the folder tab
+- The Info preview unread badge sat under the selected **Church** folder tab because both used `z-10` and the tab came later in the DOM. The badge host is now `z-20`, and the count button follows the tab chrome so it paints on top ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)).
+
+### UI — Church tab (was Public)
+- The main Home filter tab formerly labeled **Public** is now **Church**. Internal filter ids (`tour-filter-public`, `isPublicTabFilter`, `selectPublicTab`) are unchanged. User-facing copy matches on Home ([`home-filter-tabs`](src/app/components/home-filter-tabs/home-filter-tabs.component.html)), the Info preview ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)), the request form (**Church Prayer**), Help ([`help-content-catalog.ts`](src/app/lib/help-content-catalog.ts)), and guided tours ([`help-tour-catalog`](src/app/lib/help-tour-catalog/)).
+
+### UI — Home filter tabs keep the same size on mobile
+- **Church**, **Personal**, **Prompts**, and **Memorize** no longer shrink padding or label size below the `sm` breakpoint. Shared folder-tab chrome in [`home-sub-filter-chip-classes.ts`](src/app/lib/home-sub-filter-chip-classes.ts) (`HOME_FILTER_TAB_BASE_CLASS`) uses the former desktop size (`px-3 py-2 text-base`) at every viewport. The Info page mock matches.
+
 ### PostHog — app version stays in sync with store releases
 - [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) is now **2.21**, matching iOS `MARKETING_VERSION` and Android `versionName`. A Cursor rule ([`.cursor/rules/app-version-sync.mdc`](.cursor/rules/app-version-sync.mdc)) requires that constant to be updated in the same change as a native version bump so PostHog `app_version` does not lag the store.
 

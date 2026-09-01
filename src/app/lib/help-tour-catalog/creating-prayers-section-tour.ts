@@ -79,9 +79,9 @@ if (typeof document === 'undefined') {
     {
       element: '#tour-prayer-visibility',
       popover: {
-        title: 'Public or personal',
+        title: 'Church or personal',
         description:
-          '<strong>Public Prayer</strong> is reviewed by an admin before it appears for everyone. <strong>Personal Prayer</strong> stays private to you.',
+          '<strong>Church Prayer</strong> is reviewed by an admin before it appears for everyone. <strong>Personal Prayer</strong> stays private to you.',
         side: 'top',
         align: 'start',
       },
@@ -91,7 +91,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Optional anonymity',
         description:
-          'For public prayers, you can check <strong>Make this prayer anonymous</strong> so your name is not shown.',
+          'For church prayers, you can check <strong>Make this prayer anonymous</strong> so your name is not shown.',
         side: 'top',
         align: 'start',
       },
@@ -101,7 +101,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Submit for review',
         description:
-          'Tap <strong>Submit Prayer Request</strong> when you’re done. <strong>Public</strong> requests go through <strong>admin review</strong> before they show on the community list; you may get an email when yours is approved or needs changes. <strong>Personal</strong> prayers save without that step.',
+          'Tap <strong>Submit Prayer Request</strong> when you’re done. <strong>Church</strong> requests go through <strong>admin review</strong> before they show on the church list; you may get an email when yours is approved or needs changes. <strong>Personal</strong> prayers save without that step.',
         side: 'top',
         align: 'start',
       },

@@ -90,9 +90,9 @@ if (typeof document === 'undefined') {
       {
         element: '#tour-prayer-visibility',
         popover: {
-          title: 'Personal vs public',
+          title: 'Personal vs church',
           description:
-            '<strong>Personal Prayer</strong> should stay selected for a private request. <strong>Public</strong> would send the request for admin review—switch only if you meant a community prayer.',
+            '<strong>Personal Prayer</strong> should stay selected for a private request. <strong>Church</strong> would send the request for admin review—switch only if you meant a church-wide prayer.',
           side: 'top',
           align: 'start',
         },

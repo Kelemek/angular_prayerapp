@@ -72,9 +72,9 @@ if (typeof document === 'undefined') {
       {
         element: '#tour-prayer-visibility',
         popover: {
-          title: 'Public or personal',
+          title: 'Church or personal',
           description:
-            '<strong>Public Prayer</strong> is reviewed by an admin before it appears for everyone. <strong>Personal Prayer</strong> stays private to you.',
+            '<strong>Church Prayer</strong> is reviewed by an admin before it appears for everyone. <strong>Personal Prayer</strong> stays private to you.',
           side: 'top',
           align: 'start',
         },
@@ -84,7 +84,7 @@ if (typeof document === 'undefined') {
         popover: {
           title: 'Optional anonymity',
           description:
-            'For public prayers, you can check <strong>Make this prayer anonymous</strong> so your name is not shown.',
+            'For church prayers, you can check <strong>Make this prayer anonymous</strong> so your name is not shown.',
           side: 'top',
           align: 'start',
         },
@@ -94,7 +94,7 @@ if (typeof document === 'undefined') {
         popover: {
           title: 'Submit for review',
           description:
-            'When you’re ready, tap <strong>Submit Prayer Request</strong>. <strong>Public</strong> prayers are <strong>reviewed by an admin</strong> before they appear for everyone; you may get an email when yours is approved or needs attention. <strong>Personal</strong> prayers stay private and skip that review.',
+            'When you’re ready, tap <strong>Submit Prayer Request</strong>. <strong>Church</strong> prayers are <strong>reviewed by an admin</strong> before they appear for everyone; you may get an email when yours is approved or needs attention. <strong>Personal</strong> prayers stay private and skip that review.',
           side: 'top',
           align: 'start',
           onNextClick: host.popoverNextKillsTour(),

@@ -101,7 +101,7 @@
               Prayer Visibility
             </label>
             <div class="grid grid-cols-2 gap-3">
-              <!-- Public Prayer Button -->
+              <!-- Church Prayer Button -->
               <button
                 type="button"
                 (click)="formData.is_personal = false"
@@ -113,7 +113,7 @@
                     : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
                 "
                 aria-pressed="!formData.is_personal"
-                aria-label="Select public prayer - requires admin approval"
+                aria-label="Select church prayer - requires admin approval"
               >
                 <div class="flex items-center justify-center gap-2 text-left">
                   <svg
@@ -132,7 +132,7 @@
                   </svg>
                   <div class="text-left min-w-0">
                     <div class="text-sm sm:text-base font-semibold">
-                      Public Prayer
+                      Church Prayer
                     </div>
                     <div class="text-xs opacity-75">Pending admin approval</div>
                   </div>
@@ -180,7 +180,7 @@
             </div>
           </div>
 
-          <!-- Anonymous Checkbox - only show for public prayers -->
+          <!-- Anonymous Checkbox - only show for church prayers -->
           @if (!formData.is_personal) {
           <div
             id="tour-prayer-anonymous"

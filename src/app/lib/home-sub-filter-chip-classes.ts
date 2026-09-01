@@ -1,6 +1,6 @@
 /** Folder-tab chrome shared by Home and the Info filter mock (label typography included). */
 export const HOME_FILTER_TAB_BASE_CLASS =
-  "flex-1 min-w-0 px-2 py-1.5 sm:px-3 sm:py-2 text-center text-sm sm:text-base font-semibold leading-tight text-gray-700 dark:text-gray-300 transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center";
+  "flex-1 min-w-0 px-3 py-2 text-center text-base font-semibold leading-tight text-gray-700 dark:text-gray-300 transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center";
 
 /** Slightly tinted off-white for inactive tabs/chips (not pure white on cream canvas). */
 export const HOME_INACTIVE_SURFACE_BG_CLASS =

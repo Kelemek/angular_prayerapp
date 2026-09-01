@@ -168,16 +168,20 @@ describe("InfoComponent", () => {
       expect(el.textContent).toContain("Play Store");
     });
 
-    it("should show filter tabs with Public, Personal, Prompts and public sub-chips", async () => {
+    it("should show filter tabs with Church, Personal, Prompts and public sub-chips", async () => {
       await component.ngOnInit();
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
-      expect(el.textContent).toContain("Public");
-      expect(el.textContent).toContain("Current");
-      expect(el.textContent).toContain("Answered");
-      expect(el.textContent).toContain("Total");
-      expect(el.textContent).toContain("Prompts");
-      expect(el.textContent).toContain("Personal");
+      const previewTabs = el.querySelector(
+        "app-info-home-filter-preview-tabs"
+      ) as HTMLElement | null;
+      const previewText = previewTabs?.textContent?.replace(/\s+/g, " ") ?? "";
+      expect(previewText).toContain("Church");
+      expect(previewText).toContain("Current");
+      expect(previewText).toContain("Answered");
+      expect(previewText).toContain("Total");
+      expect(previewText).toContain("Prompts");
+      expect(previewText).toContain("Personal");
     });
 
     it("should open badges modal when badge button is clicked", async () => {

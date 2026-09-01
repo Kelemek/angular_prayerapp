@@ -19,7 +19,7 @@ export function isCommunityPrayerFilter(
 
 export type PublicTabFilter = CommunityPrayerFilter | "planning_center_list";
 
-/** True when the Public folder tab is selected (community prayers or Members). */
+/** True when the Church folder tab is selected (community prayers or Members). */
 export function isPublicTabFilter(
   filter: HomeActiveFilter
 ): filter is PublicTabFilter {

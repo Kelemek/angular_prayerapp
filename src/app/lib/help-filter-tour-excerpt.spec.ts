@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { excerptForNamedFilter, isDescriptiveFilterTourExcerpt } from './help-filter-tour-excerpt';
 
 const FILTER_OPTIONS_HELP =
-  'The main filter row has **Public**, **Personal**, **Prompts**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Public** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. If your church maps a Planning Center list, **Members** also appears after **Total**. **Personal**, **Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.';
+  'The main filter row has **Church**, **Personal**, **Prompts**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. If your church maps a Planning Center list, **Members** also appears after **Total**. **Personal**, **Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.';
 
 describe('excerptForNamedFilter', () => {
   it('extracts markdown-bold filter clauses from Filter Options help', () => {
@@ -36,7 +36,7 @@ describe('excerptForNamedFilter', () => {
 
   it('stops markdown-bold excerpts at the next filter clause in one sentence', () => {
     const combined =
-      'Use filters: under **Public**, **Current** shows active community prayers, **Answered** shows answered ones, and **Total** shows all.';
+      'Use filters: under **Church**, **Current** shows active community prayers, **Answered** shows answered ones, and **Total** shows all.';
     expect(excerptForNamedFilter(combined, 'Current')).toBe(
       '**Current** shows active community prayers'
     );
