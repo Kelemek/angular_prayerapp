@@ -10,8 +10,10 @@
         <app-info-hero-section></app-info-hero-section>
         <app-info-feature-overview
           [brandingImageUrl]="brandingImageUrl"
+          (openPreviewModal)="previewModals.openModal($event)"
         ></app-info-feature-overview>
       </section>
     </div>
   </div>
+  <app-info-preview-modals #previewModals />
 </div>

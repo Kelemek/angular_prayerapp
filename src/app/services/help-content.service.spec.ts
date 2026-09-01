@@ -206,6 +206,11 @@ describe('HelpContentService', () => {
       expect(
         encouragementSection!.content?.some((item) => item.subtitle === 'Member list cards')
       ).toBe(true);
+      const memberListCards = encouragementSection!.content?.find(
+        (item) => item.subtitle === 'Member list cards'
+      );
+      expect(memberListCards?.text).toContain('after **Prompts**');
+      expect(memberListCards?.text).not.toContain('after **Total**');
       expect(
         encouragementSection!.content?.some((item) => item.subtitle === 'Prayer prompts')
       ).toBe(true);

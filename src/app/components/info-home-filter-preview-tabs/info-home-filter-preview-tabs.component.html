@@ -1,4 +1,4 @@
-<!-- Filter-style preview tabs (mock of home filters): Church, Personal, Prompts -->
+<!-- Filter-style preview tabs (mock of home filters): Church, Personal, Memorize -->
 <div class="flex w-full gap-1 mb-0">
   <div
     class="relative z-20 flex-1 min-w-0"
@@ -28,15 +28,16 @@
   </button>
   <button
     type="button"
-    (click)="setPreviewFilter('prompts')"
-    [class]="promptsTabClass()"
+    id="tour-filter-memorize"
+    (click)="setPreviewFilter('memorize')"
+    [class]="memorizeTabClass()"
   >
-    Prompts
+    Memorize
   </button>
 </div>
 
 @if (isPublicTabActive()) {
-<div [class]="publicSubFilterGroupClass + ' ' + chipRowClass">
+<div [class]="publicPanelGroupClass + ' ' + chipRowClass">
   <div [class]="chipHostClass">
     <button
       type="button"
@@ -76,10 +77,10 @@
   <div [class]="chipHostClass">
     <button
       type="button"
-      (click)="setPreviewFilter('members')"
-      [class]="subFilterChipClass('members')"
+      (click)="setPreviewFilter('prompts')"
+      [class]="subFilterChipClass('prompts')"
     >
-      Members (19)
+      Prompts (76)
     </button>
   </div>
 </div>
@@ -93,6 +94,39 @@
 
 @if (previewFilter === 'prompts') {
 <app-info-home-filter-preview-prompts-filters
+  [attachedUnderPublic]="true"
   (openPromptCategories)="openPromptCategories.emit()"
 />
+}
+
+@if (previewFilter === 'memorize') {
+<div [class]="memorizePanelGroupClass() + ' ' + chipRowClass">
+  <div [class]="chipHostClass">
+    <button
+      type="button"
+      [class]="memorizeChipClass(true)"
+      (click)="openMemorizeAction.emit('add-verses')"
+    >
+      Add Verses
+    </button>
+  </div>
+  <div [class]="chipHostClass">
+    <button
+      type="button"
+      [class]="memorizeChipClass(false)"
+      (click)="openMemorizeAction.emit('bible-books')"
+    >
+      Bible Books
+    </button>
+  </div>
+  <div [class]="chipHostClass">
+    <button
+      type="button"
+      [class]="memorizeChipClass(false)"
+      (click)="openMemorizeAction.emit('recommended')"
+    >
+      Recommended
+    </button>
+  </div>
+</div>
 }

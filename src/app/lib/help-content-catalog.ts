@@ -69,11 +69,11 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Accessing Prayer Prompts',
-            text: 'Tap the **Prompts** filter tab at the top (it fills the folder section below when active) to view prayer prompts. Type filters appear as text in that section; prompt cards list underneath.',
+            text: 'Tap **Church**, then the **Prompts** chip in that folder section to view prayer prompts. Type filters appear below the Church chips when Prompts is selected; prompt cards list underneath.',
           },
           {
             subtitle: 'Filtering by Type',
-            text: 'Each prompt has a type (such as Church, Family, Cities, Country, World, Bible, etc.). After you open **Prompts**, tap a **type** name in the folder section below the main tabs to show only that type. Names wrap to the next line when needed. Tap **All Types** to view every prompt again. You can also tap the type badge on a card to toggle that filter.',
+            text: 'Each prompt has a type (such as Church, Family, Cities, Country, World, Bible, etc.). After you open **Prompts** under **Church**, tap a **type** name below the Church chips to show only that type. Names wrap to the next line when needed. Tap **All Types** to view every prompt again. You can also tap the type badge on a card to toggle that filter.',
           },
           {
             subtitle: 'Using Prompts in Presentation Mode',
@@ -106,7 +106,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'When can I use Pray For?',
-            text: 'Pray For appears on community prayer cards (**Church** tab, especially **Current**), on your **Personal** tab cards, on **Members** cards under **Church** when you have a Planning Center list applied, on **Prompts** tab cards, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
+            text: 'Pray For appears on community prayer cards (**Church** tab, especially **Current**), on your **Personal** tab cards, on **Members** cards under **Church** when you have a Planning Center list applied, on **Prompts** cards under **Church**, and on congregation, personal, member, and prompt slides in **presentation mode**—when Prayer Encouragement is enabled and you have not hidden the button in Settings. If you don\'t see the button, your church may have the feature turned off, or you may have hidden it under Prayer encouragement on cards in Settings.',
           },
           {
             subtitle: 'Personal prayers',
@@ -114,11 +114,11 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Member list cards',
-            text: 'If admins have mapped a Planning Center list to your account, **Members** appears under the **Church** tab after **Total** and shows those people as prayer cards. Pray For on a member card increases a **shared** anonymous **{n} Prayers** count for that person (visible to everyone who can see the Members list). Your cooldown from Settings controls how soon you can tap Pray For again on the same member. Member lists still appear only for users who have a list applied—Pray For does not change who can see Members.',
+            text: 'If admins have mapped a Planning Center list to your account, **Members** appears under the **Church** tab after **Prompts** and shows those people as prayer cards. Pray For on a member card increases a **shared** anonymous **{n} Prayers** count for that person (visible to everyone who can see the Members list). Your cooldown from Settings controls how soon you can tap Pray For again on the same member. Member lists still appear only for users who have a list applied—Pray For does not change who can see Members.',
           },
           {
             subtitle: 'Prayer prompts',
-            text: 'On the **Prompts** tab (and prompt slides in presentation mode), Pray For tracks how often **you** have prayed with each prompt. Your **{n} Prayers** count is private to your account. The same Settings cooldown as personal and member Pray For applies.',
+            text: 'On **Prompts** under **Church** (and prompt slides in presentation mode), Pray For tracks how often **you** have prayed with each prompt. Your **{n} Prayers** count is private to your account. The same Settings cooldown as personal and member Pray For applies.',
           },
           {
             subtitle: 'Presentation mode',
@@ -259,7 +259,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Opening Memorize',
-            text: 'Tap the **Memorize** filter on Home (fourth tab after **Church**, **Personal**, and **Prompts**) to see your passages. Main filter tabs show the tab name only—your saved passages appear in the list below. Use the Home search field to filter your list by book, reference, or translation (for example **John**, **3:16**, or **kjv**). Switch between **Cards** and **Table** layouts on the action bar; the layout defaults to **Cards** until you change it, then your choice and the table’s column sort are remembered on this device. Table columns are Reference (Bible order), Sessions, and Mastery (Learning first by default).',
+            text: 'Tap the **Memorize** filter on Home (third tab after **Church** and **Personal**) to see your passages. Main filter tabs show the tab name only—your saved passages appear in the list below. Use the Home search field to filter your list by book, reference, or translation (for example **John**, **3:16**, or **kjv**). Switch between **Cards** and **Table** layouts on the action bar; the layout defaults to **Cards** until you change it, then your choice and the table’s column sort are remembered on this device. Table columns are Reference (Bible order), Sessions, and Mastery (Learning first by default).',
           },
           {
             subtitle: 'Adding verses',
@@ -267,7 +267,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Adding Bible books',
-            text: 'Tap **Bible Books** to add an entire book—or a defined scope of books—to memorize in order. This is helpful when you want to work through a book chapter by chapter rather than picking individual references.',
+            text: 'Tap **Bible Books** to memorize the names of the books of the Bible in order. Choose all 66 books, the Old Testament, or the New Testament, then practice with the same games as verse memorization.',
           },
           {
             subtitle: 'Recommended verses',
@@ -312,7 +312,7 @@ export function getDefaultHelpSections(): HelpSection[] {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'The main filter row has **Church**, **Personal**, **Prompts**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. If your church maps a Planning Center list, **Members** also appears after **Total**. **Personal**, **Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.',
+            text: 'The main filter row has **Church**, **Personal**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. **Prompts** shows prayer prompt cards under Church. If your church maps a Planning Center list, **Members** also appears after Prompts. **Personal** and **Memorize** each show their own filter chips in the tab section when selected.',
           },
           {
             subtitle: 'Personal Prayers Filter',
@@ -531,7 +531,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Notification Badges',
-            text: 'Badges appear on the main filter tabs and on the filter chips in each tab section to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge on a **Church**, **Prompts**, or community filter to clear all badges for that category at once.',
+            text: 'Badges appear on the main filter tabs and on the filter chips in each tab section to notify you of new prayers that haven\'t been read yet. You can dismiss badges by clicking directly on the badge number. Or, click the badge on **Church**, the **Prompts** chip, or a community filter to clear all badges for that category at once.',
           },
           {
             subtitle: 'Enabling Badges',

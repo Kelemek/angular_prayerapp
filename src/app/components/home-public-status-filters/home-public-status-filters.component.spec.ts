@@ -36,6 +36,7 @@ describe("HomePublicStatusFiltersComponent", () => {
         useValue: {
           getBadgeFunctionalityEnabled$: () => of(false),
           markAllAsReadByStatus: vi.fn(),
+          markAllAsRead: vi.fn(),
         },
       })
       .compileComponents();
@@ -46,8 +47,10 @@ describe("HomePublicStatusFiltersComponent", () => {
     fixture.componentInstance.answeredPrayersCount = 3;
     fixture.componentInstance.archivedPrayersCount = 15;
     fixture.componentInstance.totalPrayersCount = 22;
+    fixture.componentInstance.promptsCount = 8;
     fixture.componentInstance.currentPrayerBadge$ = of(0);
     fixture.componentInstance.answeredPrayerBadge$ = of(0);
+    fixture.componentInstance.promptBadge$ = of(0);
     fixture.componentInstance.showPlanningCenterMembersFilter = true;
     fixture.componentInstance.planningCenterMembersDisplayCount = 19;
     fixture.detectChanges();
@@ -63,6 +66,7 @@ describe("HomePublicStatusFiltersComponent", () => {
       "tour-filter-answered",
       "tour-filter-archived",
       "tour-filter-total",
+      "tour-filter-prompts",
       "tour-filter-members",
     ];
     for (const id of chipIds) {
@@ -77,5 +81,32 @@ describe("HomePublicStatusFiltersComponent", () => {
         HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS.split(" ")[0]
       );
     }
+  });
+
+  it("emits prompts when the Prompts chip is clicked", () => {
+    const emitted: string[] = [];
+    fixture.componentInstance.selectFilter.subscribe((value) =>
+      emitted.push(value)
+    );
+
+    const promptsChip = fixture.nativeElement.querySelector(
+      "#tour-filter-prompts"
+    ) as HTMLButtonElement;
+    expect(promptsChip.textContent?.replace(/\s+/g, " ").trim()).toBe(
+      "Prompts (8)"
+    );
+    promptsChip.click();
+
+    expect(emitted).toEqual(["prompts"]);
+  });
+
+  it("removes bottom rounding when prompts panel is expanded", () => {
+    fixture.componentRef.setInput("promptsPanelExpanded", true);
+    fixture.detectChanges();
+
+    const row = fixture.nativeElement.querySelector(
+      ".rounded-b-none"
+    ) as HTMLElement;
+    expect(row).toBeTruthy();
   });
 });

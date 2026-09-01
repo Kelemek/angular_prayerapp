@@ -48,7 +48,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: dom.escapeHtml('Church'),
         description:
-          'The <strong>Church</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, <strong>Archived</strong>, and <strong>Total</strong> filters in the row below to switch views. If a Planning Center list is mapped, <strong>Members</strong> also appears after <strong>Total</strong>.',
+          'The <strong>Church</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, <strong>Archived</strong>, <strong>Total</strong>, and <strong>Prompts</strong> filters in the row below to switch views. If a Planning Center list is mapped, <strong>Members</strong> also appears after <strong>Prompts</strong>.',
         side: 'bottom',
         align: 'start',
         nextBtnText: 'Next',
@@ -115,6 +115,23 @@ if (typeof document === 'undefined') {
     },
   });
 
+  const promptsPhrase = excerptForNamedFilter(overview, 'Prompts');
+  if (dom.getPromptsFilterEl()) {
+    steps.push({
+      element: () => dom.getPromptsFilterEl()!,
+      popover: {
+        title: dom.escapeHtml('Prompts'),
+        description: promptsPhrase
+          ? formatHelpContentHtml(promptsPhrase)
+          : formatHelpContentHtml('This filter shows prayer prompt cards under Church.'),
+        side: 'bottom',
+        align: 'start',
+        nextBtnText: 'Next',
+        onNextClick: host.advanceAfterOrKill(hooks.switchToPrompts),
+      },
+    });
+  }
+
   const membersPhrase = excerptForNamedFilter(overview, 'Members');
   if (dom.getMembersFilterEl()) {
     steps.push({
@@ -124,7 +141,7 @@ if (typeof document === 'undefined') {
         description: membersPhrase
           ? formatHelpContentHtml(membersPhrase)
           : formatHelpContentHtml(
-              'Members shows Planning Center list people as prayer cards under Church, after Total.'
+              'Members shows Planning Center list people as prayer cards under Church, after Prompts.'
             ),
         side: 'bottom',
         align: 'start',
@@ -151,23 +168,6 @@ if (typeof document === 'undefined') {
         align: 'start',
         nextBtnText: 'Next',
         onNextClick: host.advanceAfterOrKill(advancePersonal),
-      },
-    });
-  }
-
-  const promptsPhrase = excerptForNamedFilter(overview, 'Prompts');
-  if (dom.getPromptsFilterEl()) {
-    steps.push({
-      element: () => dom.getPromptsFilterEl()!,
-      popover: {
-        title: dom.escapeHtml('Prompts'),
-        description: promptsPhrase
-          ? formatHelpContentHtml(promptsPhrase)
-          : formatHelpContentHtml('This filter shows prayer prompt cards.'),
-        side: 'bottom',
-        align: 'start',
-        nextBtnText: 'Next',
-        onNextClick: host.advanceAfterOrKill(hooks.switchToPrompts),
       },
     });
   }

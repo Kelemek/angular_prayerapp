@@ -1,0 +1,62 @@
+@if (open) {
+<app-modal-shell
+  [showHeader]="false"
+  ariaLabel="How verse practice works"
+  panelClass="max-w-lg border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl"
+  (close)="closeModal.emit()"
+>
+  <div class="p-5 sm:p-6 space-y-3 text-gray-800 dark:text-gray-200">
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base pr-8">
+      Practice a verse
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Tap a saved verse to practice. Each mode hides a little more until you
+      can say the passage from memory.
+    </p>
+
+    <div class="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+      <img
+        [src]="currentSlide().lightSrc"
+        [alt]="currentSlide().alt"
+        class="block w-full h-auto dark:hidden"
+      />
+      <img
+        [src]="currentSlide().darkSrc"
+        [alt]="currentSlide().alt"
+        class="hidden w-full h-auto dark:block"
+      />
+    </div>
+
+    <div>
+      <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+        {{ currentSlide().title }}
+      </p>
+      <p class="text-sm text-gray-600 dark:text-gray-300">
+        {{ currentSlide().description }}
+      </p>
+    </div>
+
+    <div class="flex items-center justify-between gap-3 pt-1">
+      <button
+        type="button"
+        (click)="goPrevious()"
+        [disabled]="isFirstSlide()"
+        class="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+      >
+        Back
+      </button>
+      <p class="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+        {{ slideLabel() }}
+      </p>
+      <button
+        type="button"
+        (click)="goNext()"
+        [disabled]="isLastSlide()"
+        class="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</app-modal-shell>
+}

@@ -62,7 +62,7 @@ import { HomePersonalCategoryFiltersComponent } from "../../components/home-pers
 import { HomePublicStatusFiltersComponent } from "../../components/home-public-status-filters/home-public-status-filters.component";
 import { HomePrayerContentComponent } from "../../components/home-prayer-content/home-prayer-content.component";
 import { ScrollToTopButtonComponent } from "../../components/scroll-to-top-button/scroll-to-top-button.component";
-import { isPublicTabFilter, isCommunityPrayerFilter } from "../../lib/home-community-filter";
+import { isPublicAreaFilter, isPublicTabFilter, isCommunityPrayerFilter } from "../../lib/home-community-filter";
 import { HOME_SHELL_FOOTER_BORDER_TOP_CLASS } from "../../lib/home-sub-filter-chip-classes";
 import {
   createHomeCatalogBindings,
@@ -161,6 +161,7 @@ export class HomeComponent
     PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION;
 
   readonly isPublicTabFilter = isPublicTabFilter;
+  readonly isPublicAreaFilter = isPublicAreaFilter;
   readonly isCommunityPrayerFilter = isCommunityPrayerFilter;
   readonly bottomSafeBarClass = `bottom-safe-bar w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md ${HOME_SHELL_FOOTER_BORDER_TOP_CLASS} sticky bottom-0 z-50`;
 

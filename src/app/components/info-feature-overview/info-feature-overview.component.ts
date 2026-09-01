@@ -1,10 +1,12 @@
-import { Component, Input } from "@angular/core";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { InfoHomeFilterPreviewTabsComponent } from "../info-home-filter-preview-tabs/info-home-filter-preview-tabs.component";
 import { InfoHomeFilterPreviewPanelsComponent } from "../info-home-filter-preview-panels/info-home-filter-preview-panels.component";
-import { InfoPreviewModalsComponent } from "../info-preview-modals/info-preview-modals.component";
 import { InfoMockAppHeaderComponent } from "../info-mock-app-header/info-mock-app-header.component";
 import { InfoMockSearchBarComponent } from "../info-mock-search-bar/info-mock-search-bar.component";
-import type { InfoPreviewFilter } from "../../lib/info-home-filter-preview.types";
+import type {
+  InfoPreviewFilter,
+  InfoPreviewModalState,
+} from "../../lib/info-home-filter-preview.types";
 
 @Component({
   selector: "app-info-feature-overview",
@@ -12,7 +14,6 @@ import type { InfoPreviewFilter } from "../../lib/info-home-filter-preview.types
   imports: [
     InfoHomeFilterPreviewTabsComponent,
     InfoHomeFilterPreviewPanelsComponent,
-    InfoPreviewModalsComponent,
     InfoMockAppHeaderComponent,
     InfoMockSearchBarComponent,
   ],
@@ -21,5 +22,8 @@ import type { InfoPreviewFilter } from "../../lib/info-home-filter-preview.types
 })
 export class InfoFeatureOverviewComponent {
   @Input() brandingImageUrl = "";
+  @Output() openPreviewModal = new EventEmitter<InfoPreviewModalState>();
+
   previewFilter: InfoPreviewFilter = "current";
+  showSearchPanel = false;
 }

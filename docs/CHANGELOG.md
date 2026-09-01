@@ -4,6 +4,30 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — Filtering tour and Pray For help match Church chip order
+- The Filtering guided tour now visits **Prompts** before **Members**, matching the Church chip row ([`filtering-section-tour.ts`](src/app/lib/help-tour-catalog/filtering-section-tour.ts)). Pray For help for member list cards says **Members** appears after **Prompts**, not after **Total** ([`help-content-catalog.ts`](src/app/lib/help-content-catalog.ts)).
+
+### UI — Info Memorize verse card shows practice screenshots
+- Tapping the sample **John 3:16** card on the Info preview Memorize tab opens a modal with the five practice modes (Type, Initials, Word, Reorder, Recite), one screenshot at a time, with Back and Next ([`info-preview-memorize-practice-modal`](src/app/components/info-preview-memorize-practice-modal/info-preview-memorize-practice-modal.component.ts), [`info-home-filter-preview-memorize-card`](src/app/components/info-home-filter-preview-memorize-card/info-home-filter-preview-memorize-card.component.ts)). Light and dark screenshots follow the Info page theme (`html.dark`) from [`public/info/memorize-practice/light/`](public/info/memorize-practice/light/) and [`public/info/memorize-practice/dark/`](public/info/memorize-practice/dark/).
+
+### UI — Info Bible Books explanation
+- The Info preview **Bible Books** modal now says you practice the **names** of the books of the Bible (all 66, OT, or NT), not chapter-by-chapter passage work ([`info-preview-memorize-action-modal`](src/app/components/info-preview-memorize-action-modal/info-preview-memorize-action-modal.component.html)). Help and the Memorize tour use the same wording.
+
+### UI — Info Memorize chips open explanations
+- Tapping **Add Verses**, **Bible Books**, or **Recommended** in the Info preview now opens the same style of explanation modal as **Pray** and **Request** ([`info-preview-memorize-action-modal`](src/app/components/info-preview-memorize-action-modal/info-preview-memorize-action-modal.component.ts), [`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)).
+
+### Fix — Info preview explanation modals were off-screen
+- Clicking **Pray**, **Request**, **Settings**, **Help**, badges, and the other Info preview explainers still opened the modal, but the overlay sat inside the zoomed, overflow-clipped book frame so nothing appeared on screen. The modal host now lives outside `.info-page-body` on [`info.component.html`](src/app/pages/info/info.component.html).
+
+### UI — Info preview omits Members
+- The Info page Church chip row is **Current** → **Answered** → **Archived** → **Total** → **Prompts**. **Members** stays on Home when a Planning Center list is mapped, but the landing-page mock no longer includes that chip or its sample card ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)).
+
+### UI — Info preview Memorize tab and header search
+- The Info page interactive preview now matches Home’s main row (**Church** → **Personal** → **Memorize**) and Prayer_App’s header search chip. Tapping **Search** expands the mock search field; **Memorize** shows Add Verses / Bible Books / Recommended chips and a sample verse card ([`info-mock-app-header`](src/app/components/info-mock-app-header/info-mock-app-header.component.html), [`info-feature-overview`](src/app/components/info-feature-overview/info-feature-overview.component.html), [`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html), [`info-home-filter-preview-memorize-card`](src/app/components/info-home-filter-preview-memorize-card/info-home-filter-preview-memorize-card.component.ts)).
+
+### UI — Prompts is a Church chip
+- **Prompts** is no longer a main Home tab. It is a chip under **Church** (after **Total**, before **Members** when mapped). The main row is **Church** → **Personal** → **Memorize**. Internal slugs stay `activeFilter === 'prompts'` so older clients, `?promptId=` deep links, badge keys, and presentation handoff are unchanged. Tapping **Church** while on Prompts still returns to **Current**. Type chips attach under the Church panel ([`home-public-status-filters`](src/app/components/home-public-status-filters/home-public-status-filters.component.html), [`home-prompt-type-filters`](src/app/components/home-prompt-type-filters/home-prompt-type-filters.component.ts)). The Info preview, Help, and guided tours match ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html), [`help-content-catalog.ts`](src/app/lib/help-content-catalog.ts)).
+
 ### Fix — Info Church tab badge stacks above the folder tab
 - The Info preview unread badge sat under the selected **Church** folder tab because both used `z-10` and the tab came later in the DOM. The badge host is now `z-20`, and the count button follows the tab chrome so it paints on top ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)).
 

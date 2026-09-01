@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
   HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
@@ -26,6 +26,8 @@ export class InfoHomeFilterPreviewPromptsFiltersComponent {
   readonly promptsSubFilterGroupClass = HOME_PROMPTS_SUB_FILTER_GROUP_CLASS;
   readonly promptTypeActiveClass = PROMPT_TYPE_CHIP_ACTIVE_CLASS;
   readonly promptTypeInactiveClass = PROMPT_TYPE_CHIP_INACTIVE_CLASS;
+  /** When true, panel attaches below the Church status row (no top rounding). */
+  @Input() attachedUnderPublic = false;
 
   readonly previewChips = [
     { label: "All Types (76)", active: true },
@@ -43,5 +45,10 @@ export class InfoHomeFilterPreviewPromptsFiltersComponent {
       activeClass: this.promptTypeActiveClass,
       inactiveClass: this.promptTypeInactiveClass,
     });
+  }
+
+  get panelGroupClass(): string {
+    const shape = this.attachedUnderPublic ? "rounded-t-none" : "rounded-b-lg";
+    return `${this.promptsSubFilterGroupClass} ${shape}`;
   }
 }

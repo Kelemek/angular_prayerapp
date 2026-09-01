@@ -26,15 +26,18 @@ export function isPublicTabFilter(
   return isCommunityPrayerFilter(filter) || filter === "planning_center_list";
 }
 
+/** True when the Church top tab or its sub-chips (including Prompts) are active. */
+export function isPublicAreaFilter(filter: HomeActiveFilter): boolean {
+  return isPublicTabFilter(filter) || filter === "prompts";
+}
+
 /** True when Home renders a folder-tab panel (sub-filters) directly under the main tab row. */
 export function homeHasSubFilterRowBelowTabs(
-  filter: HomeActiveFilter,
-  hasPromptSubFilters: boolean
+  filter: HomeActiveFilter
 ): boolean {
   return (
-    isPublicTabFilter(filter) ||
+    isPublicAreaFilter(filter) ||
     filter === "personal" ||
-    filter === "memorize" ||
-    (filter === "prompts" && hasPromptSubFilters)
+    filter === "memorize"
   );
 }

@@ -10,6 +10,8 @@ import type { InfoHeaderPreviewAction } from "../../lib/info-home-filter-preview
 })
 export class InfoMockAppHeaderComponent {
   @Input() brandingImageUrl = "";
+  @Input() showSearchPanel = false;
 
   @Output() openHeaderPreview = new EventEmitter<InfoHeaderPreviewAction>();
+  @Output() toggleSearch = new EventEmitter<void>();
 }

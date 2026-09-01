@@ -70,6 +70,8 @@ describe("HomeHelpTourLauncher", () => {
     launcher.startSectionTour(makeSection("help_filtering"));
     vi.advanceTimersByTime(280);
     expect(host.closeHelp).toHaveBeenCalled();
+    expect(host.setFilter).toHaveBeenCalledWith("current");
+    vi.advanceTimersByTime(80);
     expect(helpDriverTourService.startFilteringHelpSectionTour).toHaveBeenCalled();
     vi.useRealTimers();
   });

@@ -89,6 +89,15 @@ describe("HomePromptTypeFiltersComponent", () => {
     }
   });
 
+  it("drops top rounding when attached under the Church panel", () => {
+    fixture.componentRef.setInput("attachedUnderPublic", true);
+    fixture.detectChanges();
+    const group = fixture.nativeElement.querySelector(
+      "#tour-prompt-type-filters > div"
+    ) as HTMLElement;
+    expect(group.className).toContain("rounded-t-none");
+  });
+
   it("uses outlined chips with an active ring on All Types when none selected", () => {
     const allTypesButton = fixture.nativeElement.querySelector(
       "button"

@@ -1,7 +1,8 @@
 <div [class]="sectionGapClass">
-  <div [class]="subFilterGroupClass + ' ' + chipRowClass">
+  <div [class]="panelGroupClass + ' ' + chipRowClass">
   @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
   @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
+  @let promptBadge = (promptBadge$ | async) ?? 0;
   @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
 
   <div [class]="chipHostClass">
@@ -73,6 +74,29 @@
     (chipClick)="selectFilter.emit('total')"
   >
     Total ({{ totalPrayersCount }})
+  </app-home-sub-filter-chip>
+  </div>
+
+  <div [class]="chipHostClass">
+  <app-home-sub-filter-chip
+    chipId="tour-filter-prompts"
+    [active]="activeFilter === 'prompts'"
+    [badgeOverlay]="true"
+    [layoutClass]="chipButtonClass"
+    [activeClass]="chipThemes.prompts.active"
+    [inactiveClass]="chipThemes.prompts.inactive"
+    (chipClick)="selectFilter.emit('prompts')"
+  >
+    Prompts@if (promptsCount > 0) { ({{ promptsCount }})}
+    @if (badgesEnabled && promptBadge > 0) {
+    <app-home-filter-badge-button
+      [count]="promptBadge"
+      [compact]="true"
+      title="Mark all prompts as read"
+      ariaLabel="Mark all prompts as read"
+      (markRead)="badgeService.markAllAsRead('prompts')"
+    />
+    }
   </app-home-sub-filter-chip>
   </div>
 

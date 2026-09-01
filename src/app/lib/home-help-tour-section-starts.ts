@@ -40,57 +40,67 @@ export function startCreatingPrayersTour(section: HelpSection, ctx: HomeHelpTour
 
 export function startFilteringTour(section: HelpSection, ctx: HomeHelpTourSectionStartContext): void {
   const host = requireHost(ctx);
-  ctx.helpDriverTourService.startFilteringHelpSectionTour(section, {
-    switchToCurrent: () => {
-      host.setFilter("current");
-      host.markForCheck();
-    },
-    switchToAnswered: () => {
-      host.setFilter("answered");
-      host.markForCheck();
-    },
-    switchToArchived: () => {
-      host.setFilter("archived");
-      host.markForCheck();
-    },
-    switchToTotal: () => {
-      host.setFilter("total");
-      host.markForCheck();
-    },
-    switchToMembers: () => {
-      host.setFilter("planning_center_list");
-      host.markForCheck();
-    },
-    switchToPrompts: () => {
-      host.setFilter("prompts");
-      host.markForCheck();
-    },
-    switchToPersonal: () => {
-      host.setFilter("personal");
-      host.markForCheck();
-    },
-    openSearchPanel: () => {
-      host.openSearchPanel();
-      host.markForCheck();
-    },
-  });
-}
-
-export function startPrayerPromptsTour(section: HelpSection, ctx: HomeHelpTourSectionStartContext): void {
-  const host = requireHost(ctx);
-  ctx.helpDriverTourService.startPrayerPromptsTour(
-    { title: section.title, description: section.description },
-    { hasPrompts: host.getPromptsCount() > 0 },
-    {
+  host.setFilter("current");
+  host.markForCheck();
+  window.setTimeout(() => {
+    ctx.helpDriverTourService.startFilteringHelpSectionTour(section, {
+      switchToCurrent: () => {
+        host.setFilter("current");
+        host.markForCheck();
+      },
+      switchToAnswered: () => {
+        host.setFilter("answered");
+        host.markForCheck();
+      },
+      switchToArchived: () => {
+        host.setFilter("archived");
+        host.markForCheck();
+      },
+      switchToTotal: () => {
+        host.setFilter("total");
+        host.markForCheck();
+      },
+      switchToMembers: () => {
+        host.setFilter("planning_center_list");
+        host.markForCheck();
+      },
       switchToPrompts: () => {
         host.setFilter("prompts");
         host.markForCheck();
       },
-      clearPromptTypes: () => {
-        host.clearSelectedPromptTypes();
+      switchToPersonal: () => {
+        host.setFilter("personal");
         host.markForCheck();
       },
-    }
+      openSearchPanel: () => {
+        host.openSearchPanel();
+        host.markForCheck();
+      },
+    });
+  }, 80);
+}
+
+export function startPrayerPromptsTour(section: HelpSection, ctx: HomeHelpTourSectionStartContext): void {
+  const host = requireHost(ctx);
+  host.setFilter("prompts");
+  host.markForCheck();
+  window.setTimeout(
+    () =>
+      ctx.helpDriverTourService.startPrayerPromptsTour(
+        { title: section.title, description: section.description },
+        { hasPrompts: host.getPromptsCount() > 0 },
+        {
+          switchToPrompts: () => {
+            host.setFilter("prompts");
+            host.markForCheck();
+          },
+          clearPromptTypes: () => {
+            host.clearSelectedPromptTypes();
+            host.markForCheck();
+          },
+        }
+      ),
+    80
   );
 }
 

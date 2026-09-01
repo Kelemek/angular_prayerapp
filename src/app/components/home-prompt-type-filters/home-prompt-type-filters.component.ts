@@ -46,6 +46,8 @@ export class HomePromptTypeFiltersComponent {
   readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
   readonly subFilterGroupClass = HOME_PROMPTS_SUB_FILTER_GROUP_CLASS;
   @Input() sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
+  /** When true, panel attaches below the Church status row (no top rounding). */
+  @Input() attachedUnderPublic = false;
 
   readonly badgeService = inject(BadgeService);
   private readonly destroyRef = inject(DestroyRef);
@@ -72,5 +74,10 @@ export class HomePromptTypeFiltersComponent {
       inactiveClass: this.promptTypeInactiveClass,
       relative: hasBadge,
     });
+  }
+
+  get panelGroupClass(): string {
+    const shape = this.attachedUnderPublic ? "rounded-t-none" : "rounded-b-lg";
+    return `${this.subFilterGroupClass} ${shape}`;
   }
 }

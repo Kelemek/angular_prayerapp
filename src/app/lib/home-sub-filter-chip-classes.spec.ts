@@ -134,6 +134,9 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
     expect(HOME_PUBLIC_STATUS_CHIP_THEMES.total.active).toContain(
       "border-gray-500"
     );
+    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.prompts.active).toContain(
+      "border-[#988F83]"
+    );
     expect(HOME_PUBLIC_STATUS_CHIP_THEMES.members.active).toContain(
       "border-[#0047AB]"
     );

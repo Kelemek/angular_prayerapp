@@ -33,19 +33,34 @@ export class HomePublicStatusFiltersComponent {
   @Input({ required: true }) totalPrayersCount!: number;
   @Input({ required: true }) currentPrayerBadge$!: Observable<number>;
   @Input({ required: true }) answeredPrayerBadge$!: Observable<number>;
+  @Input({ required: true }) promptBadge$!: Observable<number>;
+  @Input() promptsCount = 0;
+  /** When true, the Church panel uses square bottom corners so prompt type chips can attach. */
+  @Input() promptsPanelExpanded = false;
+  @Input() sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
   @Input({ required: true }) showPlanningCenterMembersFilter!: boolean;
   @Input({ required: true }) planningCenterMembersDisplayCount!: number | string;
   @Input() planningCenterMembersLoading = false;
 
   @Output() selectFilter = new EventEmitter<
-    "current" | "answered" | "archived" | "total" | "planning_center_list"
+    | "current"
+    | "answered"
+    | "archived"
+    | "total"
+    | "prompts"
+    | "planning_center_list"
   >();
 
   readonly chipThemes = HOME_PUBLIC_STATUS_CHIP_THEMES;
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS;
   readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
-  readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
   readonly subFilterGroupClass = HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;
   readonly badgeService = inject(BadgeService);
+
+  get panelGroupClass(): string {
+    const base = this.subFilterGroupClass.replace("rounded-b-lg", "").trim();
+    const shape = this.promptsPanelExpanded ? "rounded-b-none" : "rounded-b-lg";
+    return `${base} ${shape}`;
+  }
 }

@@ -54,7 +54,7 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
       ".flex.w-full.gap-1.mb-0"
     ) as HTMLElement;
     const publicTab = row.querySelector('[role="button"]') as HTMLElement;
-    const [personalBtn, promptsBtn] = row.querySelectorAll(
+    const topButtons = row.querySelectorAll(
       ":scope > button"
     ) as NodeListOf<HTMLButtonElement>;
     const normalize = (el: HTMLElement) =>
@@ -69,8 +69,26 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     expect(tabChrome.textContent?.trim()).toBe("Church");
     expect(badge.previousElementSibling).toBe(tabChrome);
     expect(badge.className).toContain("z-20");
-    expect(normalize(personalBtn)).toBe("Personal");
-    expect(normalize(promptsBtn)).toBe("Prompts");
+    expect(topButtons).toHaveLength(2);
+    expect(normalize(topButtons[0]!)).toBe("Personal");
+    expect(normalize(topButtons[1]!)).toBe("Memorize");
+  });
+
+  it("highlights Church and shows a Prompts chip when previewFilter is prompts", () => {
+    component.previewFilter = "prompts";
+    fixture.detectChanges();
+    const churchChrome = fixture.nativeElement.querySelector(
+      '[role="button"] > div'
+    ) as HTMLElement;
+    expect(churchChrome.className).toContain("bg-blue-200");
+    const promptsChip = [...fixture.nativeElement.querySelectorAll("button")].find(
+      (button: HTMLButtonElement) =>
+        button.textContent?.trim().startsWith("Prompts")
+    ) as HTMLButtonElement | undefined;
+    expect(promptsChip).toBeTruthy();
+    expect(promptsChip!.textContent?.replace(/\s+/g, " ").trim()).toBe(
+      "Prompts (76)"
+    );
   });
 
   it("wraps public preview chips with the same flex-wrap host as prompt types", () => {
@@ -79,7 +97,7 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
       "button"
     ) as NodeListOf<HTMLButtonElement>;
     const publicChips = [...buttons].filter((button) =>
-      /^(Current|Answered|Archived|Total|Members) \(/.test(
+      /^(Current|Answered|Archived|Total|Prompts) \(/.test(
         button.textContent?.trim() ?? ""
       )
     );
@@ -92,13 +110,64 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     }
   });
 
-  it("selectPublicPreviewTab does nothing when already on members public filter", () => {
+  it("does not show a Members chip", () => {
+    fixture.detectChanges();
+    const labels = [...fixture.nativeElement.querySelectorAll("button")].map(
+      (button: HTMLButtonElement) => button.textContent?.replace(/\s+/g, " ").trim()
+    );
+    expect(labels.some((label) => label?.startsWith("Members"))).toBe(false);
+  });
+
+  it("selectPublicPreviewTab does nothing when already on a community filter", () => {
     const emitted: string[] = [];
     component.previewFilterChange.subscribe((value) => emitted.push(value));
-    component.previewFilter = "members";
+    component.previewFilter = "total";
 
     component.selectPublicPreviewTab();
 
     expect(emitted).toEqual([]);
+  });
+
+  it("emits memorize action explanations when Memorize chips are clicked", () => {
+    const emitted: string[] = [];
+    component.openMemorizeAction.subscribe((value) => emitted.push(value));
+    component.previewFilter = "memorize";
+    fixture.detectChanges();
+
+    const clickChip = (label: string) => {
+      const button = [...fixture.nativeElement.querySelectorAll("button")].find(
+        (el: HTMLButtonElement) => el.textContent?.trim() === label
+      ) as HTMLButtonElement | undefined;
+      expect(button).toBeTruthy();
+      button!.click();
+    };
+
+    clickChip("Add Verses");
+    clickChip("Bible Books");
+    clickChip("Recommended");
+
+    expect(emitted).toEqual(["add-verses", "bible-books", "recommended"]);
+  });
+
+  it("shows memorize action chips when Memorize is selected", () => {
+    component.previewFilter = "memorize";
+    fixture.detectChanges();
+    const row = fixture.nativeElement.querySelector(
+      ".flex.w-full.gap-1.mb-0"
+    ) as HTMLElement;
+    expect(row.querySelector("#tour-filter-memorize")).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain("Add Verses");
+    expect(fixture.nativeElement.textContent).toContain("Bible Books");
+    expect(fixture.nativeElement.textContent).toContain("Recommended");
+  });
+
+  it("selectPublicPreviewTab emits current when Memorize is selected", () => {
+    const emitted: string[] = [];
+    component.previewFilterChange.subscribe((value) => emitted.push(value));
+    component.previewFilter = "memorize";
+
+    component.selectPublicPreviewTab();
+
+    expect(emitted).toEqual(["current"]);
   });
 });

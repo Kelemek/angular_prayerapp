@@ -2,13 +2,12 @@
         @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
         @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
         @let aggregateBadge = currentBadge + answeredBadge;
-        @let promptCount = (promptBadge$ | async) ?? 0;
         @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
         <button
           id="tour-filter-public"
           (click)="publicTabSelected.emit()"
           title="Show church prayers"
-          [class]="tabClass('public', isPublicTabFilter(activeFilter))"
+          [class]="tabClass('public', isPublicAreaFilter(activeFilter))"
         >
           @if (badgesEnabled && aggregateBadge > 0) {
           <app-home-filter-badge-button
@@ -30,23 +29,6 @@
           [class]="tabClass('personal', activeFilter === 'personal')"
         >
           Personal
-        </button>
-
-        <button
-          id="tour-filter-prompts"
-          (click)="tabSelected.emit('prompts')"
-          title="Show prayer prompts"
-          [class]="tabClass('prompts', activeFilter === 'prompts')"
-        >
-          @if (badgesEnabled && promptCount > 0) {
-          <app-home-filter-badge-button
-            [count]="promptCount"
-            title="Mark all prompts as read"
-            ariaLabel="Mark all prompts as read"
-            (markRead)="badgeService.markAllAsRead('prompts')"
-          />
-          }
-          Prompts
         </button>
 
         <button

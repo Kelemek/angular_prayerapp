@@ -1,0 +1,41 @@
+@if (previewAction !== null) {
+<app-modal-shell
+  [showHeader]="false"
+  [ariaLabel]="previewAriaLabel()"
+  panelClass="max-w-md border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl"
+  (close)="closeModal.emit()"
+>
+  <div class="p-5 sm:p-6 space-y-3 text-gray-800 dark:text-gray-200">
+    @if (previewAction === 'add-verses') {
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
+      Add Verses
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Open the passage picker to save a verse or short range to your private
+      Memorize list. Choose a translation (ESV, KJV, NASB, LSB, NIV, NLT, or
+      CSB), then pick a book, chapter, and verses. Your translation choice is
+      remembered for the next time you add a passage.
+    </p>
+    } @if (previewAction === 'bible-books') {
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
+      Bible Books
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Practice the names of the books of the Bible in order. Choose all 66
+      books, the Old Testament, or the New Testament, then use the same games as
+      verse memorization to learn the book names.
+    </p>
+    } @if (previewAction === 'recommended') {
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
+      Recommended
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Browse curated passages grouped by topic. Expand a category, then tap a
+      card to add it to your list. Verses you already saved show Already added.
+      On desktop, hover a verse (or long-press on a phone) to preview the text
+      before adding.
+    </p>
+    }
+  </div>
+</app-modal-shell>
+}

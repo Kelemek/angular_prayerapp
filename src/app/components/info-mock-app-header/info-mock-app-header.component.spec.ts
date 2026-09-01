@@ -79,7 +79,7 @@ describe("InfoMockAppHeaderComponent", () => {
     const buttons = fixture.nativeElement.querySelectorAll(
       "button"
     ) as NodeListOf<HTMLButtonElement>;
-    buttons[1].click();
+    buttons[2].click();
 
     expect(emitted).toEqual(["settings"]);
   });
@@ -94,5 +94,31 @@ describe("InfoMockAppHeaderComponent", () => {
     buttons[0].click();
 
     expect(emitted).toEqual(["help"]);
+  });
+
+  it("emits toggleSearch when the search chip is clicked", () => {
+    let toggled = false;
+    component.toggleSearch.subscribe(() => {
+      toggled = true;
+    });
+
+    const button = fixture.nativeElement.querySelector(
+      'button[title="Search"]'
+    ) as HTMLButtonElement;
+    button.click();
+
+    expect(toggled).toBe(true);
+  });
+
+  it("reflects showSearchPanel on the search chip aria-expanded", () => {
+    const button = fixture.nativeElement.querySelector(
+      'button[title="Search"]'
+    ) as HTMLButtonElement;
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+
+    fixture.componentRef.setInput("showSearchPanel", true);
+    fixture.detectChanges();
+
+    expect(button.getAttribute("aria-expanded")).toBe("true");
   });
 });

@@ -32,7 +32,7 @@ if (typeof document === 'undefined') {
     element: () => dom.getPromptsFilterEl()!,
     popover: {
       title: title0,
-      description: `${desc0}<br><br><strong>Prayer prompts</strong> are ideas to guide what you pray. The <strong>Prompts</strong> tab shows a colored border when active; type chips appear in the row below. Tap <strong>Show prompts</strong> to open the prompts view (or tap the tab yourself).`,
+      description: `${desc0}<br><br><strong>Prayer prompts</strong> are ideas to guide what you pray. The <strong>Prompts</strong> chip under <strong>Church</strong> shows a colored border when active; type chips appear in the row below. Tap <strong>Show prompts</strong> to open the prompts view (or tap the chip yourself).`,
       side: 'bottom',
       align: 'start',
       nextBtnText: 'Show prompts &rarr;',

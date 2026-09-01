@@ -210,6 +210,13 @@ export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
       HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
       " hover:border-gray-500 dark:hover:border-gray-400",
   },
+  prompts: {
+    active:
+      `border !border-[#988F83] dark:!border-[#988F83] ${HOME_PROMPTS_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
+    inactive:
+      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+      " hover:border-[#988F83] dark:hover:border-[#988F83]",
+  },
   members: {
     active:
       `border !border-[#0047AB] dark:!border-[#0047AB] ${HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,

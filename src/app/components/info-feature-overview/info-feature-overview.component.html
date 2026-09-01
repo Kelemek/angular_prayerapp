@@ -15,30 +15,45 @@
               <div
                 class="relative bg-gray-200/90 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-3xl p-4 sm:p-6 shadow-2xl shadow-[0_0_0_1px_rgba(57,112,77,0.2),0_0_20px_rgba(57,112,77,0.25)] dark:shadow-[0_0_0_1px_rgba(57,112,77,0.35),0_0_20px_rgba(57,112,77,0.35)] space-y-4"
               >
-                <app-info-mock-app-header
-                  [brandingImageUrl]="brandingImageUrl"
-                  (openHeaderPreview)="previewModals.openModal({ kind: 'header', action: $event })"
-                />
-
-                <app-info-mock-search-bar
-                  (openSearch)="previewModals.openModal({ kind: 'header', action: 'search' })"
-                />
+                <div>
+                  <app-info-mock-app-header
+                    [brandingImageUrl]="brandingImageUrl"
+                    [showSearchPanel]="showSearchPanel"
+                    (toggleSearch)="showSearchPanel = !showSearchPanel"
+                    (openHeaderPreview)="openPreviewModal.emit({ kind: 'header', action: $event })"
+                  />
+                  <div
+                    id="info-mock-search-panel"
+                    class="overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+                    [class.max-h-0]="!showSearchPanel"
+                    [class.opacity-0]="!showSearchPanel"
+                    [class.max-h-28]="showSearchPanel"
+                    [class.opacity-100]="showSearchPanel"
+                    [class.pointer-events-none]="!showSearchPanel"
+                    [attr.aria-hidden]="showSearchPanel ? 'false' : 'true'"
+                  >
+                    <app-info-mock-search-bar
+                      (openSearch)="openPreviewModal.emit({ kind: 'header', action: 'search' })"
+                    />
+                  </div>
+                </div>
 
                 <div class="mt-4 space-y-4">
                   <app-info-home-filter-preview-tabs
                     [previewFilter]="previewFilter"
                     (previewFilterChange)="previewFilter = $event"
-                    (openBadges)="previewModals.openModal({ kind: 'badges' })"
-                    (openPromptCategories)="previewModals.openModal({ kind: 'promptCategories' })"
-                    (openPersonalCategories)="previewModals.openModal({ kind: 'personalCategories' })"
+                    (openBadges)="openPreviewModal.emit({ kind: 'badges' })"
+                    (openPromptCategories)="openPreviewModal.emit({ kind: 'promptCategories' })"
+                    (openPersonalCategories)="openPreviewModal.emit({ kind: 'personalCategories' })"
+                    (openMemorizeAction)="openPreviewModal.emit({ kind: 'memorizeAction', action: $event })"
                   />
                   <app-info-home-filter-preview-panels
                     [previewFilter]="previewFilter"
-                    (openBadges)="previewModals.openModal({ kind: 'badges' })"
-                    (openPersonalAction)="previewModals.openModal({ kind: 'personalAction', action: $event })"
-                    (openHeaderPreview)="previewModals.openModal({ kind: 'header', action: $event })"
+                    (openBadges)="openPreviewModal.emit({ kind: 'badges' })"
+                    (openPersonalAction)="openPreviewModal.emit({ kind: 'personalAction', action: $event })"
+                    (openHeaderPreview)="openPreviewModal.emit({ kind: 'header', action: $event })"
+                    (openMemorizePractice)="openPreviewModal.emit({ kind: 'memorizePractice' })"
                   />
                 </div>
               </div>
-              <app-info-preview-modals #previewModals />
             </div>

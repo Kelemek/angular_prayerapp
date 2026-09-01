@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   homeHasSubFilterRowBelowTabs,
   isCommunityPrayerFilter,
+  isPublicAreaFilter,
   isPublicTabFilter,
 } from "./home-community-filter";
 
@@ -37,21 +38,31 @@ describe("isPublicTabFilter", () => {
   });
 });
 
-describe("homeHasSubFilterRowBelowTabs", () => {
-  it("returns true when a sub-filter row renders under the main tabs", () => {
-    expect(homeHasSubFilterRowBelowTabs("current", false)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("answered", false)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("archived", false)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("total", false)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("planning_center_list", false)).toBe(
-      true
-    );
-    expect(homeHasSubFilterRowBelowTabs("personal", false)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("memorize", false)).toBe(true);
-    expect(homeHasSubFilterRowBelowTabs("prompts", true)).toBe(true);
+describe("isPublicAreaFilter", () => {
+  it("returns true for community prayer filters, Members, and prompts", () => {
+    expect(isPublicAreaFilter("current")).toBe(true);
+    expect(isPublicAreaFilter("answered")).toBe(true);
+    expect(isPublicAreaFilter("archived")).toBe(true);
+    expect(isPublicAreaFilter("total")).toBe(true);
+    expect(isPublicAreaFilter("planning_center_list")).toBe(true);
+    expect(isPublicAreaFilter("prompts")).toBe(true);
   });
 
-  it("returns false when content follows tabs directly", () => {
-    expect(homeHasSubFilterRowBelowTabs("prompts", false)).toBe(false);
+  it("returns false for other home filters", () => {
+    expect(isPublicAreaFilter("personal")).toBe(false);
+    expect(isPublicAreaFilter("memorize")).toBe(false);
+  });
+});
+
+describe("homeHasSubFilterRowBelowTabs", () => {
+  it("returns true when a sub-filter row renders under the main tabs", () => {
+    expect(homeHasSubFilterRowBelowTabs("current")).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("answered")).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("archived")).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("total")).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("planning_center_list")).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("personal")).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("memorize")).toBe(true);
+    expect(homeHasSubFilterRowBelowTabs("prompts")).toBe(true);
   });
 });

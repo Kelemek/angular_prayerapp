@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { excerptForNamedFilter, isDescriptiveFilterTourExcerpt } from './help-filter-tour-excerpt';
 
 const FILTER_OPTIONS_HELP =
-  'The main filter row has **Church**, **Personal**, **Prompts**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. If your church maps a Planning Center list, **Members** also appears after **Total**. **Personal**, **Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.';
+  'The main filter row has **Church**, **Personal**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. **Prompts** shows prayer prompt cards under Church. If your church maps a Planning Center list, **Members** also appears after Prompts. **Personal** and **Memorize** each show their own filter chips in the tab section when selected.';
 
 describe('excerptForNamedFilter', () => {
   it('extracts markdown-bold filter clauses from Filter Options help', () => {
@@ -13,10 +13,10 @@ describe('excerptForNamedFilter', () => {
       '**Answered**, **Archived**, and **Total** filter chips in that section.'
     );
     expect(excerptForNamedFilter(FILTER_OPTIONS_HELP, 'Prompts')).toBe(
-      '**Prompts**, and **Memorize** each show their own filter chips in the tab section when selected.'
+      '**Prompts** shows prayer prompt cards under Church.'
     );
     expect(excerptForNamedFilter(FILTER_OPTIONS_HELP, 'Members')).toBe(
-      '**Members** also appears after **Total**.'
+      '**Members** also appears after Prompts.'
     );
   });
 

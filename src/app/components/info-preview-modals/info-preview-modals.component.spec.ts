@@ -62,6 +62,20 @@ describe("InfoPreviewModalsComponent", () => {
       expect(component.activeModal).toBeNull();
     });
 
+    it("opens and closes memorize action modal", () => {
+      component.openModal({ kind: "memorizeAction", action: "add-verses" });
+      expect(component.memorizePreviewAction()).toBe("add-verses");
+      component.closeModal();
+      expect(component.activeModal).toBeNull();
+    });
+
+    it("opens and closes memorize practice modal", () => {
+      component.openModal({ kind: "memorizePractice" });
+      expect(component.isModalOpen("memorizePractice")).toBe(true);
+      component.closeModal();
+      expect(component.activeModal).toBeNull();
+    });
+
     it("opens and closes personal categories modal", () => {
       component.openModal({ kind: "personalCategories" });
       expect(component.isModalOpen("personalCategories")).toBe(true);

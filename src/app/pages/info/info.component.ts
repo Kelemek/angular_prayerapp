@@ -13,6 +13,7 @@ import { BRANDING_SERVICE_TOKEN } from "../../components/app-logo/app-logo.compo
 import { ThemeToggleComponent } from "../../components/theme-toggle/theme-toggle.component";
 import { InfoHeroSectionComponent } from "../../components/info-hero-section/info-hero-section.component";
 import { InfoFeatureOverviewComponent } from "../../components/info-feature-overview/info-feature-overview.component";
+import { InfoPreviewModalsComponent } from "../../components/info-preview-modals/info-preview-modals.component";
 import { Subject, takeUntil } from "rxjs";
 
 @Component({
@@ -24,6 +25,7 @@ import { Subject, takeUntil } from "rxjs";
     ThemeToggleComponent,
     InfoHeroSectionComponent,
     InfoFeatureOverviewComponent,
+    InfoPreviewModalsComponent,
   ],
   styleUrl: "./info.component.css",
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -18,3 +18,11 @@
   [open]="isModalOpen('personalCategories')"
   (closeModal)="closeModal()"
 />
+<app-info-preview-memorize-action-modal
+  [previewAction]="memorizePreviewAction()"
+  (closeModal)="closeModal()"
+/>
+<app-info-preview-memorize-practice-modal
+  [open]="isModalOpen('memorizePractice')"
+  (closeModal)="closeModal()"
+/>

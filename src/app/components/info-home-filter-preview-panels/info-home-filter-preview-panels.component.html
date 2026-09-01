@@ -14,15 +14,17 @@
   @case ('total') {
     <app-info-home-filter-preview-public-total-panel />
   }
-  @case ('members') {
-    <app-info-home-filter-preview-public-members-panel />
-  }
   @case ('prompts') {
     <app-info-home-filter-preview-prompts-card />
   }
   @case ('personal') {
     <app-info-home-filter-preview-personal-card
       (openPersonalAction)="openPersonalAction.emit($event)"
+    />
+  }
+  @case ('memorize') {
+    <app-info-home-filter-preview-memorize-card
+      (openPracticePreview)="openMemorizePractice.emit()"
     />
   }
 }

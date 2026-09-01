@@ -15,6 +15,7 @@ import {
   TOUR_FILTER_TOTAL_ID,
   TOUR_FILTER_ANSWERED_ID,
   TOUR_FILTER_PROMPTS_ID,
+  TOUR_FILTER_MEMBERS_ID,
   TOUR_FILTER_MEMORIZE_ID,
   TOUR_MEMORIZE_SAMPLE_CARD_ID,
   TOUR_MEMORIZE_SAMPLE_TABLE_ID,
@@ -1026,7 +1027,7 @@ describe('HelpDriverTourService', () => {
       content: [
         {
           subtitle: 'Filter Options',
-          text: 'Use filters: under **Church**, **Current** shows active community prayers, **Answered** shows answered ones, and **Total** shows all. **Prompts** and **Personal** are main tabs with their own sub-chips below.',
+          text: 'Use filters: under **Church**, **Current** shows active community prayers, **Answered** shows answered ones, and **Total** shows all. **Prompts** shows prayer prompt cards under Church.',
           examples: [] as string[],
         },
         { subtitle: 'Personal Prayers Filter', text: 'Personal help body.', examples: [] },
@@ -1242,6 +1243,34 @@ describe('HelpDriverTourService', () => {
       const config = vi.mocked(driver).mock.calls[0][0];
       const titles = (config?.steps ?? []).map((step) => step.popover?.title);
       expect(titles).toContain('Members');
+    });
+
+    it('visits Prompts before Members to match the Church chip row', () => {
+      const publicTab = document.createElement('button');
+      publicTab.id = TOUR_FILTER_PUBLIC_ID;
+      document.body.appendChild(publicTab);
+      const prompts = document.createElement('button');
+      prompts.id = TOUR_FILTER_PROMPTS_ID;
+      document.body.appendChild(prompts);
+      const members = document.createElement('button');
+      members.id = TOUR_FILTER_MEMBERS_ID;
+      document.body.appendChild(members);
+
+      service.startFilteringHelpSectionTour(filteringSection as any, {
+        switchToCurrent,
+        switchToAnswered,
+        switchToArchived,
+        switchToTotal,
+        switchToMembers,
+        switchToPrompts,
+        switchToPersonal: switchToPersonalFilter,
+      });
+
+      const config = vi.mocked(driver).mock.calls[0][0];
+      const titles = (config?.steps ?? []).map((step) => step.popover?.title);
+      expect(titles.indexOf('Total')).toBeGreaterThan(-1);
+      expect(titles.indexOf('Prompts')).toBeGreaterThan(titles.indexOf('Total'));
+      expect(titles.indexOf('Members')).toBeGreaterThan(titles.indexOf('Prompts'));
     });
   });
 

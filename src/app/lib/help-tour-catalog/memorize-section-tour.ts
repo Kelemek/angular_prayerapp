@@ -47,7 +47,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Add passages',
         description:
-          'Use <strong>Add Verses</strong> to pick a Bible reference, or <strong>Bible Books</strong> to memorize whole books in order. Your list is private to your account.',
+          'Use <strong>Add Verses</strong> to pick a Bible reference, or <strong>Bible Books</strong> to memorize the names of the books of the Bible in order. Your list is private to your account.',
         side: 'bottom',
         align: 'start',
       },

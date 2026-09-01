@@ -42,10 +42,8 @@ describe("HomeFilterTabsComponent", () => {
 
     fixture = TestBed.createComponent(HomeFilterTabsComponent);
     fixture.componentInstance.activeFilter = "current";
-    fixture.componentInstance.hasPromptSubFilters = true;
     fixture.componentInstance.currentPrayerBadge$ = of(0);
     fixture.componentInstance.answeredPrayerBadge$ = of(0);
-    fixture.componentInstance.promptBadge$ = of(0);
     fixture.detectChanges();
   });
 
@@ -57,7 +55,6 @@ describe("HomeFilterTabsComponent", () => {
     const labels: Record<string, string> = {
       "tour-filter-public": "Church",
       "tour-filter-personal": "Personal",
-      "tour-filter-prompts": "Prompts",
       "tour-filter-memorize": "Memorize",
     };
     for (const [id, label] of Object.entries(labels)) {
@@ -67,5 +64,18 @@ describe("HomeFilterTabsComponent", () => {
       expect(button).toBeTruthy();
       expect(button.textContent?.replace(/\s+/g, " ").trim()).toBe(label);
     }
+    expect(
+      fixture.nativeElement.querySelector("#tour-filter-prompts")
+    ).toBeNull();
+  });
+
+  it("highlights Church when Prompts is the active filter", () => {
+    fixture.componentInstance.activeFilter = "prompts";
+    fixture.detectChanges();
+    const church = fixture.nativeElement.querySelector(
+      "#tour-filter-public"
+    ) as HTMLButtonElement;
+    expect(church.className).toContain("bg-blue-200");
+    expect(church.className).toContain("rounded-t-lg");
   });
 });

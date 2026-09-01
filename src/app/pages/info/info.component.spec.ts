@@ -168,7 +168,7 @@ describe("InfoComponent", () => {
       expect(el.textContent).toContain("Play Store");
     });
 
-    it("should show filter tabs with Church, Personal, Prompts and public sub-chips", async () => {
+    it("should show filter tabs with Church, Personal, Memorize, and Church chips including Prompts", async () => {
       await component.ngOnInit();
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
@@ -182,6 +182,7 @@ describe("InfoComponent", () => {
       expect(previewText).toContain("Total");
       expect(previewText).toContain("Prompts");
       expect(previewText).toContain("Personal");
+      expect(previewText).toContain("Memorize");
     });
 
     it("should open badges modal when badge button is clicked", async () => {
@@ -194,6 +195,116 @@ describe("InfoComponent", () => {
       badgeBtn.click();
       fixture.detectChanges();
       expect(previewModals().activeModal).toEqual({ kind: "badges" });
+      expect(
+        fixture.nativeElement.querySelector(".modal-shell-overlay")
+      ).toBeTruthy();
+    });
+
+    it("renders explanation modals outside the zoomed book frame", async () => {
+      await component.ngOnInit();
+      fixture.detectChanges();
+      const scaled = fixture.nativeElement.querySelector(
+        ".info-page-body-scaled"
+      ) as HTMLElement;
+      const modals = fixture.nativeElement.querySelector(
+        "app-info-preview-modals"
+      ) as HTMLElement;
+      expect(modals).toBeTruthy();
+      expect(scaled.contains(modals)).toBe(false);
+
+      const prayBtn = Array.from(
+        fixture.nativeElement.querySelectorAll("button")
+      ).find((button) => button.textContent?.trim() === "Pray") as
+        | HTMLButtonElement
+        | undefined;
+      expect(prayBtn).toBeTruthy();
+      prayBtn!.click();
+      fixture.detectChanges();
+
+      expect(previewModals().activeModal).toEqual({
+        kind: "header",
+        action: "pray",
+      });
+      expect(
+        fixture.nativeElement.querySelector(".modal-shell-overlay")
+      ).toBeTruthy();
+      expect(fixture.nativeElement.textContent).toContain("Pray view");
+    });
+
+    it("opens a Bible Books explanation about memorizing book names", async () => {
+      await component.ngOnInit();
+      fixture.detectChanges();
+      const memorizeTab = fixture.nativeElement.querySelector(
+        "#tour-filter-memorize"
+      ) as HTMLButtonElement;
+      memorizeTab.click();
+      fixture.detectChanges();
+
+      const bibleBooks = [
+        ...fixture.nativeElement.querySelectorAll("button"),
+      ].find(
+        (button: HTMLButtonElement) =>
+          button.textContent?.trim() === "Bible Books"
+      ) as HTMLButtonElement;
+      bibleBooks.click();
+      fixture.detectChanges();
+
+      expect(previewModals().activeModal).toEqual({
+        kind: "memorizeAction",
+        action: "bible-books",
+      });
+      expect(fixture.nativeElement.textContent).toContain(
+        "names of the books of the Bible"
+      );
+    });
+
+    it("opens practice screenshots when the Memorize verse card is clicked", async () => {
+      await component.ngOnInit();
+      fixture.detectChanges();
+      const memorizeTab = fixture.nativeElement.querySelector(
+        "#tour-filter-memorize"
+      ) as HTMLButtonElement;
+      memorizeTab.click();
+      fixture.detectChanges();
+
+      const verseCard = fixture.nativeElement.querySelector(
+        'app-info-home-filter-preview-memorize-card button[aria-label="See how verse practice works"]'
+      ) as HTMLButtonElement;
+      verseCard.click();
+      fixture.detectChanges();
+
+      expect(previewModals().activeModal).toEqual({
+        kind: "memorizePractice",
+      });
+      expect(fixture.nativeElement.textContent).toContain("Practice a verse");
+      expect(fixture.nativeElement.textContent).toContain("1 of 5");
+      expect(
+        fixture.nativeElement.querySelector(
+          'img[src="/info/memorize-practice/light/01-type.png"]'
+        )
+      ).toBeTruthy();
+    });
+
+    it("opens a Memorize explanation when Add Verses is clicked", async () => {
+      await component.ngOnInit();
+      fixture.detectChanges();
+      const memorizeTab = fixture.nativeElement.querySelector(
+        "#tour-filter-memorize"
+      ) as HTMLButtonElement;
+      memorizeTab.click();
+      fixture.detectChanges();
+
+      const addVerses = [...fixture.nativeElement.querySelectorAll("button")].find(
+        (button: HTMLButtonElement) => button.textContent?.trim() === "Add Verses"
+      ) as HTMLButtonElement;
+      addVerses.click();
+      fixture.detectChanges();
+
+      expect(previewModals().activeModal).toEqual({
+        kind: "memorizeAction",
+        action: "add-verses",
+      });
+      expect(fixture.nativeElement.textContent).toContain("passage picker");
     });
 
     it("should set previewFilter when filter tab is clicked", async () => {
