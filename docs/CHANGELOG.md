@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Release — native store version 2.22
+- iOS `MARKETING_VERSION` and Android `versionName` are **2.22** (Android `versionCode` **67**). [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) matches so PostHog `app_version` stays in sync with the stores.
+
 ### Fix — Filtering tour and Pray For help match Church chip order
 - The Filtering guided tour now visits **Prompts** before **Members**, matching the Church chip row ([`filtering-section-tour.ts`](src/app/lib/help-tour-catalog/filtering-section-tour.ts)). Pray For help for member list cards says **Members** appears after **Prompts**, not after **Total** ([`help-content-catalog.ts`](src/app/lib/help-content-catalog.ts)).
 
