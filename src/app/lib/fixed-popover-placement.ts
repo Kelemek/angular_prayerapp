@@ -19,6 +19,55 @@ export const shouldOpenFixedPopoverUp = (
   return spaceAbove > spaceBelow;
 };
 
+export interface FixedAnchoredMenuPosition {
+  left: number;
+  top: number;
+  width: number;
+  maxHeight: number;
+  openUp: boolean;
+}
+
+/**
+ * Place a `position: fixed` menu against its trigger.
+ * Use the CSS max-height (not the unconstrained list height) so a bottom-sheet
+ * flip-up does not leave a gap when overflow clips the panel.
+ */
+export const computeFixedAnchoredMenuPosition = (
+  triggerRect: Pick<DOMRect, 'top' | 'bottom' | 'left' | 'width'>,
+  unconstrainedHeight: number,
+  cssMaxHeight: number,
+  viewport: { top: number; bottom: number },
+  gap = 4
+): FixedAnchoredMenuPosition => {
+  const cssCapped = Math.max(
+    0,
+    Math.min(unconstrainedHeight, cssMaxHeight)
+  );
+  const openUp = shouldOpenFixedPopoverUp(
+    triggerRect.top,
+    triggerRect.bottom,
+    cssCapped,
+    viewport.bottom,
+    viewport.top,
+    gap
+  );
+  const available = openUp
+    ? triggerRect.top - viewport.top - gap
+    : viewport.bottom - triggerRect.bottom - gap;
+  const maxHeight = Math.max(0, Math.min(cssCapped, available));
+  const top = openUp
+    ? triggerRect.top - maxHeight - gap
+    : triggerRect.bottom + gap;
+
+  return {
+    left: triggerRect.left,
+    top,
+    width: triggerRect.width,
+    maxHeight,
+    openUp,
+  };
+};
+
 export interface SafeAreaViewportBounds {
   top: number;
   bottom: number;

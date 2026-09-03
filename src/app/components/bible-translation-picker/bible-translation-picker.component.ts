@@ -12,8 +12,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { MemorizationService } from '../../services/memorization.service';
 import {
+  computeFixedAnchoredMenuPosition,
   getSafeAreaViewportBounds,
-  shouldOpenFixedPopoverUp,
 } from '../../lib/fixed-popover-placement';
 import {
   BIBLE_TRANSLATION_CODES,
@@ -23,6 +23,18 @@ import {
 
 const TRANSLATION_OPTION_HEIGHT_PX = 44;
 const TRANSLATION_MENU_PADDING_PX = 8;
+/** Same 18rem / 40vh cap previously applied via Tailwind on the fixed menu. */
+const TRANSLATION_MENU_MAX_REM = 18;
+const TRANSLATION_MENU_MAX_VH_FRACTION = 0.4;
+
+const translationMenuCssMaxHeightPx = (
+  viewportHeight: number,
+  remPx = 16
+): number =>
+  Math.min(
+    TRANSLATION_MENU_MAX_REM * remPx,
+    TRANSLATION_MENU_MAX_VH_FRACTION * viewportHeight
+  );
 
 @Component({
   selector: 'app-bible-translation-picker',
@@ -81,11 +93,12 @@ const TRANSLATION_MENU_PADDING_PX = 8;
             role="listbox"
             aria-label="Bible translation options"
             [class]="escapeOverflowContainer
-              ? 'fixed z-[202] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800 overflow-y-auto max-h-[min(18rem,40vh)]'
+              ? 'fixed z-[202] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800 overflow-y-auto'
               : 'absolute left-0 right-0 z-[202] mt-1 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800'"
             [style.left.px]="escapeOverflowContainer ? fixedMenuPos.left : null"
             [style.top.px]="escapeOverflowContainer ? fixedMenuPos.top : null"
             [style.width.px]="escapeOverflowContainer ? fixedMenuPos.width : null"
+            [style.max-height.px]="escapeOverflowContainer ? fixedMenuPos.maxHeight : null"
           >
             @for (code of translationCodes; track code) {
               <button
@@ -126,7 +139,7 @@ export class BibleTranslationPickerComponent {
   readonly translationLabels = BIBLE_TRANSLATION_LABELS;
 
   showDropdown = false;
-  fixedMenuPos = { left: 0, top: 0, width: 0 };
+  fixedMenuPos = { left: 0, top: 0, width: 0, maxHeight: 0 };
 
   get isDropdownOpen(): boolean {
     return this.showDropdown;
@@ -152,24 +165,24 @@ export class BibleTranslationPickerComponent {
     }
 
     const rect = trigger.getBoundingClientRect();
-    const menuHeight =
+    const unconstrainedHeight =
       this.translationCodes.length * TRANSLATION_OPTION_HEIGHT_PX +
       TRANSLATION_MENU_PADDING_PX;
-    const gap = 4;
     const viewport = getSafeAreaViewportBounds(trigger);
-    const opensUp = shouldOpenFixedPopoverUp(
-      rect.top,
-      rect.bottom,
-      menuHeight,
-      viewport.bottom,
-      viewport.top,
-      gap
+    const remPx =
+      Number.parseFloat(getComputedStyle(document.documentElement).fontSize) ||
+      16;
+    const position = computeFixedAnchoredMenuPosition(
+      rect,
+      unconstrainedHeight,
+      translationMenuCssMaxHeightPx(viewport.bottom - viewport.top, remPx),
+      viewport
     );
-
     this.fixedMenuPos = {
-      left: rect.left,
-      width: rect.width,
-      top: opensUp ? rect.top - menuHeight - gap : rect.bottom + gap,
+      left: position.left,
+      top: position.top,
+      width: position.width,
+      maxHeight: position.maxHeight,
     };
   }
 

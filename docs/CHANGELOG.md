@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — Memorize translation list floated off the field on mobile
+- **Choose Bible translation** is a bottom sheet on small screens, so the version list opens upward. Placement used the full option-list height, then CSS `max-height` shortened the panel, leaving a gap above the field. The menu now sizes and positions from that cap so it stays attached ([`bible-translation-picker`](src/app/components/bible-translation-picker/bible-translation-picker.component.ts), [`fixed-popover-placement.ts`](src/app/lib/fixed-popover-placement.ts)).
+
 ### Release — native store version 2.22
 - iOS `MARKETING_VERSION` and Android `versionName` are **2.22** (Android `versionCode` **67**). [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) matches so PostHog `app_version` stays in sync with the stores.
 
