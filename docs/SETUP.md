@@ -527,11 +527,13 @@ Vercel automatically provides free SSL. No additional setup needed.
 
 ### Backups
 
-Supabase backs up daily. To restore:
+Supabase backs up daily. To restore from that product backup:
 
 1. Go to Supabase project
 2. Database > Backups
 3. Select backup and restore
+
+The app also runs a **GitHub Actions** JSON dump ([`.github/workflows/backup-database-api.yml`](../.github/workflows/backup-database-api.yml), 2 AM CST). That job installs only `@supabase/supabase-js` and `ws` in a temp directory (not a full `npm ci`) so native modules such as `sharp` are not compiled on the runner. Restore from an artifact with [`.github/workflows/restore-database.yml`](../.github/workflows/restore-database.yml).
 
 ---
 

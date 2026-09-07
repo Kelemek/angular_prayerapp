@@ -33,8 +33,15 @@ jobs:
         with:
           node-version: '22.22.3'
       
-      - name: Install dependencies
-        run: npm install @supabase/supabase-js
+      # Isolated install: `npm install` in the repo root also installs prayerapp
+      # deps, including sharp via @capacitor/assets, which has no Node 22
+      # prebuild and fails compiling libvips on ubuntu-latest.
+      - name: Install restore client libraries
+        run: |
+          mkdir -p "$RUNNER_TEMP/restore-npm"
+          printf '%s\n' '{"private":true}' > "$RUNNER_TEMP/restore-npm/package.json"
+          npm install --prefix "$RUNNER_TEMP/restore-npm" @supabase/supabase-js
+          ln -sfn "$RUNNER_TEMP/restore-npm/node_modules" "$GITHUB_WORKSPACE/node_modules"
       
       - name: Download backup artifact
         uses: actions/download-artifact@v4

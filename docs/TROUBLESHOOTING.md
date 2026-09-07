@@ -11,7 +11,7 @@ Solutions to common issues in the Prayer App.
 - [UI/Display Issues](#uidisplay-issues)
 - [Edge Functions](#edge-functions)
 - [Performance](#performance)
-- [Deployment](#deployment)
+- [Deployment](#deployment) (includes [Daily database backup fails on `sharp` / `vips/vips8`](#daily-database-backup-fails-on-sharp--vipsvips8))
 
 ## Build & Development
 
@@ -491,6 +491,14 @@ supabase secrets list # Verify
 4. Check environment variables set in hosting dashboard
 5. Clear build cache
 6. Check for dev dependencies in production code
+
+### Daily database backup fails on `sharp` / `vips/vips8`
+
+**Error**: GitHub Action **Daily Database Backup (API Method)** fails during `npm install` with `sharp: … No prebuilt binaries found` and `fatal error: vips/vips8: No such file or directory`, often with `EBADENGINE` that `prayerapp` wants Node `24.x` while the runner is `22.22.3`.
+
+**Cause**: `npm install @supabase/supabase-js ws` in the repo root also installs the full app, including `sharp` from `@capacitor/assets`. That native module has no Node 22 prebuild on the runner, so the compile step fails.
+
+**Solution**: Backup and restore workflows install those two packages in `$RUNNER_TEMP` and symlink `node_modules` into the workspace ([`.github/workflows/backup-database-api.yml`](../.github/workflows/backup-database-api.yml), [`.github/workflows/restore-database.yml`](../.github/workflows/restore-database.yml)). Do not run a full `npm install` / `npm ci` in those jobs.
 
 ### 404 on Routes
 

@@ -26,9 +26,15 @@ jobs:
           mkdir -p backups
           echo "BACKUP_DATE=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_ENV
       
-      - name: Install dependencies
+      # Isolated install: `npm install` in the repo root also installs prayerapp
+      # deps, including sharp via @capacitor/assets, which has no Node 22
+      # prebuild and fails compiling libvips on ubuntu-latest.
+      - name: Install backup client libraries
         run: |
-          npm install @supabase/supabase-js ws
+          mkdir -p "$RUNNER_TEMP/backup-npm"
+          printf '%s\n' '{"private":true}' > "$RUNNER_TEMP/backup-npm/package.json"
+          npm install --prefix "$RUNNER_TEMP/backup-npm" @supabase/supabase-js ws
+          ln -sfn "$RUNNER_TEMP/backup-npm/node_modules" "$GITHUB_WORKSPACE/node_modules"
       
       - name: Create backup script
         run: |

@@ -642,6 +642,8 @@ Agents: see [AGENTS.md](../AGENTS.md) and [`.cursor/skills/pre-handoff/SKILL.md`
 
 CI ([`.github/workflows/test.yml`](../.github/workflows/test.yml)) runs on Ubuntu, Windows, and macOS. Ubuntu also runs typecheck, lint, and `npm run test:coverage`, then uploads the `coverage-report` artifact. GitHub Checks are the PR status signal; the workflow does not post a PR comment (that step required `issues:write` the default `GITHUB_TOKEN` does not have, which made Ubuntu look failed after tests had already passed).
 
+Daily API backup ([`.github/workflows/backup-database-api.yml`](../.github/workflows/backup-database-api.yml)) and restore ([`.github/workflows/restore-database.yml`](../.github/workflows/restore-database.yml)) install only `@supabase/supabase-js` (and `ws` for backup) under `$RUNNER_TEMP`, not the full app tree. A repo-root `npm install` would pull `sharp` via `@capacitor/assets` and fail native compile on the Ubuntu runner.
+
 ### Running Tests
 
 ```bash

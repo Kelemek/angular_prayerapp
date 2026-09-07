@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — daily database backup CI failed installing sharp
+- [`.github/workflows/backup-database-api.yml`](../.github/workflows/backup-database-api.yml) (and restore) now install only `@supabase/supabase-js` and `ws` in a temp prefix, instead of `npm install` in the repo root. Root install pulled the full app tree, and `sharp` 0.32.6 (from `@capacitor/assets`) has no Node 22 prebuild, so the job died compiling `vips/vips8`. The `EBADENGINE` Node 24 warning was a side effect of that full install; CI stays on **22.22.3**.
+
 ### Fix — Memorize translation list floated off the field on mobile
 - **Choose Bible translation** is a bottom sheet on small screens, so the version list opens upward. Placement used the full option-list height, then CSS `max-height` shortened the panel, leaving a gap above the field. The menu now sizes and positions from that cap so it stays attached ([`bible-translation-picker`](src/app/components/bible-translation-picker/bible-translation-picker.component.ts), [`fixed-popover-placement.ts`](src/app/lib/fixed-popover-placement.ts)).
 
