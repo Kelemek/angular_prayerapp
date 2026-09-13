@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
  * Marketing version of the running JS bundle.
  * Keep in sync with iOS `MARKETING_VERSION` and Android `versionName` when shipping a store release.
  */
-export const APP_BUNDLE_VERSION = '2.22';
+export const APP_BUNDLE_VERSION = '2.23';
 
 export interface AppAnalyticsContext {
   app_version: string;

@@ -10,6 +10,9 @@ Major features and milestones for the Prayer App.
 - Client: [`github-feedback.service.ts`](../src/app/services/github-feedback.service.ts) uses `functions.invoke`; [`feedback-page-url.ts`](../src/app/lib/feedback-page-url.ts) supplies **Page URL**. [`messageFromFunctionsInvokeError`](src/app/lib/edge-function-invoke-error.ts) surfaces Edge Function JSON errors from `FunctionsHttpError.context`.
 - **Production builds** set `inAppFeedbackEnabled: true` in [`environment.prod.ts`](../src/environments/environment.prod.ts) after `submit-feedback` and `NOTION_TOKEN` are on the production Supabase project. When the flag is false, the Settings feedback section is omitted and help tours skip feedback ([`helpSectionHasUiTour`](src/app/lib/help-section-ids.ts), [`dispatchHomeHelpSectionTour`](src/app/lib/home-help-tour-dispatch.ts)).
 
+### Release — native store version 2.23
+- iOS `MARKETING_VERSION` and Android `versionName` are **2.23** (Android `versionCode` **68**). [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) matches so PostHog `app_version` stays in sync with the stores.
+
 ### Fix — daily database backup CI failed installing sharp
 - [`.github/workflows/backup-database-api.yml`](../.github/workflows/backup-database-api.yml) (and restore) now install only `@supabase/supabase-js` and `ws` in a temp prefix, instead of `npm install` in the repo root. Root install pulled the full app tree, and `sharp` 0.32.6 (from `@capacitor/assets`) has no Node 22 prebuild, so the job died compiling `vips/vips8`. The `EBADENGINE` Node 24 warning was a side effect of that full install; CI stays on **22.22.3**.
 
