@@ -50,8 +50,8 @@ describe('environment.prod', () => {
     expect(environment).toHaveProperty('inAppFeedbackEnabled');
   });
 
-  it('should disable in-app feedback until production Notion rollout', () => {
-    expect(environment.inAppFeedbackEnabled).toBe(false);
+  it('should enable in-app feedback in production', () => {
+    expect(environment.inAppFeedbackEnabled).toBe(true);
   });
 
   it('should have valid Supabase URL format', () => {

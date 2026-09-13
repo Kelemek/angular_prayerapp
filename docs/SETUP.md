@@ -416,7 +416,7 @@ supabase functions deploy submit-feedback --project-ref jcdhajfqtzipltvfslhu
 
 [`submit-feedback`](../supabase/functions/submit-feedback/index.ts) uses `verify_jwt: false` in [`deno.json`](../supabase/functions/submit-feedback/deno.json) so MFA/localStorage sign-in works (same pattern as scripture/recite). Do not deploy this function or `NOTION_TOKEN` to production until you intentionally roll out there.
 
-Production web/native builds use [`environment.prod.ts`](../src/environments/environment.prod.ts) with `inAppFeedbackEnabled: false` until that rollout; the **Send Feedback** block is hidden in Settings (no form, no placeholder copy). After deploying `submit-feedback` and `NOTION_TOKEN` on the production project, set `inAppFeedbackEnabled: true` in the same file and ship a release.
+Production web/native builds use [`environment.prod.ts`](../src/environments/environment.prod.ts) with `inAppFeedbackEnabled: true` once `submit-feedback` and `NOTION_TOKEN` are on the production Supabase project. Set the flag to `false` and ship if you need to hide **Send Feedback** without redeploying the function.
 
 ### OpenAI API (Memorize Recite mode)
 

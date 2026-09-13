@@ -11,5 +11,5 @@ export const environment = {
   /** Public URL for links in emails. Set to your deployed web app URL (e.g. https://prayer.yourchurch.org) so email links work from native app and mail clients. */
   appUrl: 'https://cpprayer.cp-church.org',
   /** Set true after deploy submit-feedback + NOTION_TOKEN on the production Supabase project. */
-  inAppFeedbackEnabled: false,
+  inAppFeedbackEnabled: true,
 };
