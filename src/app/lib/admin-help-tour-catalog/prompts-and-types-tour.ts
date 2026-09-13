@@ -16,7 +16,7 @@ export function buildPrayerPromptsAndTypesTourSteps(): DriveStep[] {
         popover: {
           title: 'Content tab',
           description:
-            'Open <strong>Content</strong> for prompts, types, branding, GitHub feedback, and related settings.',
+            'Open <strong>Content</strong> for prompts, types, branding, and related settings.',
           side: 'bottom',
           align: 'start',
         },

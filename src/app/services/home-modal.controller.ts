@@ -1,4 +1,6 @@
 import { Injectable } from "@angular/core";
+import { environment } from "../../environments/environment";
+import { TOUR_SETTINGS_FEEDBACK_SECTION_ID } from "../lib/help-tour-ids";
 import type { PrayerRequest, PrayerUpdate } from "./prayer.service";
 import type { AdminAuthService } from "./admin-auth.service";
 
@@ -81,7 +83,10 @@ export class HomeModalController {
   }
 
   openSettingsFromReciteFeedback(): void {
-    this.openUserSettings("tour-settings-feedback-section");
+    const scrollTarget = environment.inAppFeedbackEnabled
+      ? TOUR_SETTINGS_FEEDBACK_SECTION_ID
+      : null;
+    this.openUserSettings(scrollTarget);
   }
 
   closeUserSettings(): void {

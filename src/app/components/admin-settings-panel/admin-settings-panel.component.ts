@@ -15,7 +15,6 @@ import type { PrayerSearchComponent } from '../prayer-search/prayer-search.compo
 import { SecurityPolicySettingsComponent } from '../security-policy-settings/security-policy-settings.component';
 import { TestAccountSettingsComponent } from '../test-account-settings/test-account-settings.component';
 import { EmailVerificationSettingsComponent } from '../email-verification-settings/email-verification-settings.component';
-import { GitHubSettingsComponent } from '../github-settings/github-settings.component';
 import { PrayerEncouragementSettingsComponent } from '../prayer-encouragement-settings/prayer-encouragement-settings.component';
 import { RichTextEditorsSettingsComponent } from '../rich-text-editors-settings/rich-text-editors-settings.component';
 import { PlanningCenterListMapperComponent } from '../planning-center-list-mapper/planning-center-list-mapper.component';
@@ -41,7 +40,6 @@ import type { AnalyticsStats } from '../../services/analytics.service';
     SecurityPolicySettingsComponent,
     TestAccountSettingsComponent,
     EmailVerificationSettingsComponent,
-    GitHubSettingsComponent,
     PrayerEncouragementSettingsComponent,
     RichTextEditorsSettingsComponent,
     PlanningCenterListMapperComponent,
@@ -164,9 +162,6 @@ import type { AnalyticsStats } from '../../services/analytics.service';
           </div>
           <div class="mb-4">
             <app-rich-text-editors-settings></app-rich-text-editors-settings>
-          </div>
-          <div class="mb-4">
-            <app-github-settings></app-github-settings>
           </div>
           <div class="mb-4">
             <app-branding></app-branding>

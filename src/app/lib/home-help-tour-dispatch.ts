@@ -1,4 +1,5 @@
 import type { HelpSection } from '../types/help-content';
+import { environment } from '../../environments/environment';
 import {
   startAppSettingsTour,
   startCreatingPrayersTour,
@@ -54,6 +55,9 @@ export function dispatchHomeHelpSectionTour(
       void startPrayerRemindersTour(section, ctx);
       return true;
     case 'help_feedback':
+      if (!environment.inAppFeedbackEnabled) {
+        return false;
+      }
       startFeedbackTour(section, ctx);
       return true;
     case 'help_settings':

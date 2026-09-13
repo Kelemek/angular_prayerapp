@@ -1,3 +1,5 @@
+import { environment } from '../../environments/environment';
+
 /** Stable help section ids (must match `HelpContentService`). */
 export const HELP_SECTION_ID_PRAYERS = 'help_prayers';
 export const HELP_SECTION_ID_PROMPTS = 'help_prompts';
@@ -31,5 +33,8 @@ export const HELP_SECTION_IDS_WITH_UI_TOUR: ReadonlySet<string> = new Set([
 ]);
 
 export function helpSectionHasUiTour(sectionId: string): boolean {
+  if (sectionId === HELP_SECTION_ID_FEEDBACK && !environment.inAppFeedbackEnabled) {
+    return false;
+  }
   return HELP_SECTION_IDS_WITH_UI_TOUR.has(sectionId);
 }

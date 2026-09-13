@@ -7,5 +7,7 @@ export const environment = {
   posthogHost: 'https://t.cp-church.org',
   posthogUiHost: 'https://us.posthog.com',
   /** Public URL for links in emails (e.g. https://yourdomain.com). Leave empty to use current origin. Required for native/Capacitor so links are not capacitor://localhost. */
-  appUrl: 'http://localhost:4200'
+  appUrl: 'http://localhost:4200',
+  /** In-app Settings → Send Feedback (Notion via submit-feedback). False in prod until function + NOTION_TOKEN are deployed there. */
+  inAppFeedbackEnabled: true,
 };

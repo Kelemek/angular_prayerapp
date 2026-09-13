@@ -46,6 +46,11 @@ describe('environment', () => {
     expect(environment).toHaveProperty('posthogKey');
     expect(environment).toHaveProperty('posthogHost');
     expect(environment).toHaveProperty('posthogUiHost');
+    expect(environment).toHaveProperty('inAppFeedbackEnabled');
+  });
+
+  it('should enable in-app feedback in development', () => {
+    expect(environment.inAppFeedbackEnabled).toBe(true);
   });
 
   it('should have valid Supabase URL format', () => {

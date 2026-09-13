@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { environment } from '../../../environments/environment';
 import type { MemorizationPracticeSessionPanelContext } from '../../lib/memorization-practice-session-panel-context';
 
 @Component({
@@ -11,4 +12,6 @@ import type { MemorizationPracticeSessionPanelContext } from '../../lib/memoriza
 })
 export class MemorizationPracticeSessionReciteFeedbackComponent {
   @Input({ required: true }) ctx!: MemorizationPracticeSessionPanelContext;
+
+  readonly inAppFeedbackEnabled = environment.inAppFeedbackEnabled;
 }

@@ -396,6 +396,28 @@ Apply migration [`20260707120000_memorization_esv.sql`](../supabase/migrations/2
 
 Without `ESV_API_TOKEN`, ESV passages and listen mode fail until the secret is set. Without `API_BIBLE_KEY` and Bible IDs, non-ESV translations fail at fetch time; users can still manage lists in other translations if passages were previously cached.
 
+### In-app feedback (Notion Site issues)
+
+**Legacy native apps:** Store builds that users never update still read `admin_settings.github_token`, `github_repo_*`, and `enabled` for in-app GitHub feedback. **Keep those columns** in Postgres until you are willing to break feedback on those old binaries. New app versions use the Edge Function below and do not read the token.
+
+Apply migration [`20260912180000_disable_github_feedback_legacy.sql`](../supabase/migrations/20260912180000_disable_github_feedback_legacy.sql) on each project when Notion feedback is live: sets `enabled = false`, clears `github_token`, and empties repo fields. **Keep the columns** so old binaries can still run `getGitHubConfig()`; they see feedback disabled and no PAT. You cannot drop `github_repo_owner` / `github_repo_name` (or any of the four) while those clients remain — PostgREST errors if a selected column is missing.
+
+Deferred column drop (after long-tail native is gone): [`docs/migrations-future/drop_github_feedback_settings.sql`](migrations-future/drop_github_feedback_settings.sql).
+
+1. Create a Notion internal integration and share the **Site issues** data source (`collection://53537498-ea76-4f4c-b7f6-38116d48419b`) with it.
+2. On the **test** project only:
+
+```bash
+supabase secrets set NOTION_TOKEN=ntn_... --project-ref jcdhajfqtzipltvfslhu
+# Optional override (default is Site issues data source id):
+# supabase secrets set NOTION_SITE_ISSUES_DATA_SOURCE_ID=53537498-ea76-4f4c-b7f6-38116d48419b --project-ref jcdhajfqtzipltvfslhu
+supabase functions deploy submit-feedback --project-ref jcdhajfqtzipltvfslhu
+```
+
+[`submit-feedback`](../supabase/functions/submit-feedback/index.ts) uses `verify_jwt: false` in [`deno.json`](../supabase/functions/submit-feedback/deno.json) so MFA/localStorage sign-in works (same pattern as scripture/recite). Do not deploy this function or `NOTION_TOKEN` to production until you intentionally roll out there.
+
+Production web/native builds use [`environment.prod.ts`](../src/environments/environment.prod.ts) with `inAppFeedbackEnabled: false` until that rollout; the **Send Feedback** block is hidden in Settings (no form, no placeholder copy). After deploying `submit-feedback` and `NOTION_TOKEN` on the production project, set `inAppFeedbackEnabled: true` in the same file and ship a release.
+
 ### OpenAI API (Memorize Recite mode)
 
 Recite mode uses server-side **Whisper** transcription. Apply migration [`20260721120000_memorization_recite_mode.sql`](../supabase/migrations/20260721120000_memorization_recite_mode.sql) (includes `is_admin` fix, usage ledger, and admin usage RPC). The SQL is **idempotent** (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP … IF EXISTS`).

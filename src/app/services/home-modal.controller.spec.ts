@@ -1,6 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HomeModalController } from "./home-modal.controller";
 import type { PrayerRequest } from "./prayer.service";
+import { TOUR_SETTINGS_FEEDBACK_SECTION_ID } from "../lib/help-tour-ids";
+
+const envState = vi.hoisted(() => ({
+  inAppFeedbackEnabled: true,
+}));
+
+vi.mock("../../environments/environment", () => ({
+  environment: envState,
+}));
 
 describe("HomeModalController", () => {
   let controller: HomeModalController;
@@ -9,6 +18,7 @@ describe("HomeModalController", () => {
   let reloadMemberPrayerUpdates: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    envState.inAppFeedbackEnabled = true;
     controller = new HomeModalController();
     host = { markForCheck: vi.fn() };
     adminAuthService = { logout: vi.fn().mockResolvedValue(undefined) };
@@ -33,6 +43,25 @@ describe("HomeModalController", () => {
     vi.useRealTimers();
     focusSpy.mockRestore();
     input.remove();
+  });
+
+  afterEach(() => {
+    envState.inAppFeedbackEnabled = true;
+  });
+
+  it("opens settings from Recite feedback with feedback scroll when enabled", () => {
+    controller.openSettingsFromReciteFeedback();
+    expect(controller.showSettings).toBe(true);
+    expect(controller.settingsScrollToSectionId).toBe(
+      TOUR_SETTINGS_FEEDBACK_SECTION_ID
+    );
+  });
+
+  it("opens settings from Recite feedback without scroll when feedback disabled", () => {
+    envState.inAppFeedbackEnabled = false;
+    controller.openSettingsFromReciteFeedback();
+    expect(controller.showSettings).toBe(true);
+    expect(controller.settingsScrollToSectionId).toBeNull();
   });
 
   it("opens and closes user settings with scroll target", () => {

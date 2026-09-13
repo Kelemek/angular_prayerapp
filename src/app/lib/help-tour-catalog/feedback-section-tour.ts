@@ -10,6 +10,7 @@ import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
 import { TOUR_SETTINGS_FEEDBACK_SECTION_ID, TOUR_SETTINGS_FEEDBACK_TYPE_ID, TOUR_SETTINGS_FEEDBACK_DETAILS_ID } from '../help-tour-ids';
 import type { FeedbackHelpTourHooks } from '../help-tour-hooks';
+import { environment } from '../../../environments/environment';
 
 export function runFeedbackHelpSectionTour(
   host: HelpTourDriverHost,
@@ -21,6 +22,10 @@ if (typeof document === 'undefined') {
   }
 
   if (!dom.getSettingsHeaderButtonEl()) {
+    return;
+  }
+
+  if (!environment.inAppFeedbackEnabled) {
     return;
   }
 
@@ -63,8 +68,9 @@ if (typeof document === 'undefined') {
       element: () => feedbackCard(),
       popover: {
         title: 'Send Feedback',
-        description:
-          'When enabled for your church, you’ll see the full form here—**Suggestion**, **Feature request**, or **Bug report**. If you only see a short note, in-app feedback isn’t turned on for this app yet.',
+        description: formatHelpContentHtml(
+          'Use **Suggestion**, **Feature request**, or **Bug report** to tell the team what you need. Submissions go to the church’s feedback tracker.'
+        ),
         side: 'bottom',
         align: 'start',
       },
@@ -73,8 +79,9 @@ if (typeof document === 'undefined') {
       element: () => typeRow(),
       popover: {
         title: 'Feedback type',
-        description:
-          'Choose **Suggestion** for improvements, **Feature request** for new ideas, or **Bug report** if something broke.',
+        description: formatHelpContentHtml(
+          'Choose **Suggestion** for improvements, **Feature request** for new ideas, or **Bug report** if something broke.'
+        ),
         side: 'bottom',
         align: 'start',
       },
@@ -83,8 +90,9 @@ if (typeof document === 'undefined') {
       element: () => detailsBlock(),
       popover: {
         title: 'Title & description',
-        description:
-          'Give a clear **title** and enough **description** that the team can act on it. When the fields look good, tap <strong>Send Feedback</strong>.',
+        description: `${formatHelpContentHtml(
+          'Give a clear **title** and enough **description** that the team can act on it.'
+        )} When the fields look good, tap <strong>Send Feedback</strong>.`,
         side: 'top',
         align: 'start',
       },

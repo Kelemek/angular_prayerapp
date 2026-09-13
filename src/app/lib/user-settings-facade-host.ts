@@ -6,7 +6,6 @@ import type { PrintService } from '../services/print.service';
 import type { PrayerService } from '../services/prayer.service';
 import type { EmailNotificationService } from '../services/email-notification.service';
 import type { AdminAuthService } from '../services/admin-auth.service';
-import type { GitHubFeedbackService } from '../services/github-feedback.service';
 import type { UserSessionService } from '../services/user-session.service';
 import type { BadgeService } from '../services/badge.service';
 import type { PrayerEncouragementService } from '../services/prayer-encouragement.service';
@@ -20,7 +19,6 @@ export interface UserSettingsFacadeDeps {
   prayerService: PrayerService;
   emailNotification: EmailNotificationService;
   adminAuthService: AdminAuthService;
-  githubFeedbackService: GitHubFeedbackService;
   badgeService: BadgeService;
   userSessionService: UserSessionService;
   capacitorService: CapacitorService;

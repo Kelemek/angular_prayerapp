@@ -15,7 +15,7 @@ describe('GitHubFeedbackFormComponent', () => {
     vi.useFakeTimers();
 
     mockGitHubFeedbackService = {
-      createGitHubIssue: vi.fn()
+      submitFeedback: vi.fn()
     };
 
     mockUserSessionService = {
@@ -99,9 +99,8 @@ describe('GitHubFeedbackFormComponent', () => {
     });
   });  describe('Form Submission', () => {
     beforeEach(() => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
     });
 
@@ -112,7 +111,7 @@ describe('GitHubFeedbackFormComponent', () => {
       await component.onSubmit();
 
       expect(component.errorMessage).toContain('fill in all fields');
-      expect(mockGitHubFeedbackService.createGitHubIssue).not.toHaveBeenCalled();
+      expect(mockGitHubFeedbackService.submitFeedback).not.toHaveBeenCalled();
     });
 
     it('should set loading state during submission', async () => {
@@ -132,10 +131,10 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      expect(mockGitHubFeedbackService.createGitHubIssue).toHaveBeenCalledWith(
+      expect(mockGitHubFeedbackService.submitFeedback).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Test Bug',
-          body: 'Bug description',
+          description: 'Bug description',
           type: 'bug',
           userEmail: 'test@example.com'
         })
@@ -148,9 +147,9 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      const callArgs = mockGitHubFeedbackService.createGitHubIssue.mock.calls[0][0];
+      const callArgs = mockGitHubFeedbackService.submitFeedback.mock.calls[0][0];
       expect(callArgs.title).toBe('Test Title');
-      expect(callArgs.body).toBe('Test Description');
+      expect(callArgs.description).toBe('Test Description');
     });
 
     it('should call GitHub service with user data from session', async () => {
@@ -159,7 +158,7 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      const callArgs = mockGitHubFeedbackService.createGitHubIssue.mock.calls[0][0];
+      const callArgs = mockGitHubFeedbackService.submitFeedback.mock.calls[0][0];
       expect(callArgs.userName).toBe('John Doe');
       expect(callArgs.userEmail).toBe('test@example.com');
     });
@@ -172,7 +171,7 @@ describe('GitHubFeedbackFormComponent', () => {
       await component.onSubmit();
 
       expect(component.errorMessage).toContain('User session not available');
-      expect(mockGitHubFeedbackService.createGitHubIssue).not.toHaveBeenCalled();
+      expect(mockGitHubFeedbackService.submitFeedback).not.toHaveBeenCalled();
     });
 
     it('should reset form after successful submission', async () => {
@@ -196,13 +195,14 @@ describe('GitHubFeedbackFormComponent', () => {
       expect(component.isLoading).toBe(false);
     });
 
-    it('should include GitHub issue URL in response', async () => {
+    it('should include pageUrl in submit payload', async () => {
       component.feedbackTitle = 'Test';
       component.feedbackDescription = 'Description';
 
       await component.onSubmit();
 
-      expect(component.issueUrl).toBe('https://github.com/test/repo/issues/1');
+      const callArgs = mockGitHubFeedbackService.submitFeedback.mock.calls[0][0];
+      expect(callArgs.pageUrl).toBeTruthy();
     });
 
     it('should clear loading state after successful submission', async () => {
@@ -216,7 +216,7 @@ describe('GitHubFeedbackFormComponent', () => {
     });
 
     it('should handle submission failure gracefully', async () => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: false,
         error: 'GitHub not configured'
       });
@@ -231,7 +231,7 @@ describe('GitHubFeedbackFormComponent', () => {
     });
 
     it('should handle exceptions during submission', async () => {
-      mockGitHubFeedbackService.createGitHubIssue.mockRejectedValue(
+      mockGitHubFeedbackService.submitFeedback.mockRejectedValue(
         new Error('Network error')
       );
 
@@ -247,9 +247,8 @@ describe('GitHubFeedbackFormComponent', () => {
 
   describe('Success Message Handling', () => {
     beforeEach(() => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
     });
 
@@ -266,23 +265,14 @@ describe('GitHubFeedbackFormComponent', () => {
       expect(component.successMessage).toBe('');
     });
 
-    it('should store issue URL from service response', async () => {
-      component.feedbackTitle = 'Test';
-      component.feedbackDescription = 'Description';
-
-      await component.onSubmit();
-
-      expect(component.issueUrl).toBe('https://github.com/test/repo/issues/1');
-    });
   });
 
   describe('Error Handling', () => {
     it('should clear previous errors on new submission', async () => {
       component.errorMessage = 'Previous error';
 
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
 
       component.feedbackTitle = 'Test';
@@ -294,7 +284,7 @@ describe('GitHubFeedbackFormComponent', () => {
     });
 
     it('should display detailed error messages from service', async () => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: false,
         error: 'Invalid GitHub token: authentication failed'
       });
@@ -308,7 +298,7 @@ describe('GitHubFeedbackFormComponent', () => {
     });
 
     it('should handle API timeout errors', async () => {
-      mockGitHubFeedbackService.createGitHubIssue.mockRejectedValue(
+      mockGitHubFeedbackService.submitFeedback.mockRejectedValue(
         new Error('Request timeout')
       );
 
@@ -324,9 +314,8 @@ describe('GitHubFeedbackFormComponent', () => {
 
   describe('Change Detection', () => {
     it('should call markForCheck after setting loading state', async () => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
 
       component.feedbackTitle = 'Test';
@@ -338,9 +327,8 @@ describe('GitHubFeedbackFormComponent', () => {
     });
 
     it('should call markForCheck after success message', async () => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
 
       component.feedbackTitle = 'Test';
@@ -352,7 +340,7 @@ describe('GitHubFeedbackFormComponent', () => {
     });
 
     it('should call markForCheck on error', async () => {
-      mockGitHubFeedbackService.createGitHubIssue.mockRejectedValue(
+      mockGitHubFeedbackService.submitFeedback.mockRejectedValue(
         new Error('Error')
       );
 
@@ -508,9 +496,8 @@ describe('GitHubFeedbackFormComponent', () => {
 
   describe('Different Feedback Types', () => {
     beforeEach(() => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
     });
 
@@ -521,7 +508,7 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      expect(mockGitHubFeedbackService.createGitHubIssue).toHaveBeenCalledWith(
+      expect(mockGitHubFeedbackService.submitFeedback).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'bug' })
       );
     });
@@ -533,7 +520,7 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      expect(mockGitHubFeedbackService.createGitHubIssue).toHaveBeenCalledWith(
+      expect(mockGitHubFeedbackService.submitFeedback).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'feature' })
       );
     });
@@ -545,7 +532,7 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      expect(mockGitHubFeedbackService.createGitHubIssue).toHaveBeenCalledWith(
+      expect(mockGitHubFeedbackService.submitFeedback).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'suggestion' })
       );
     });
@@ -553,9 +540,8 @@ describe('GitHubFeedbackFormComponent', () => {
 
   describe('Edge Cases', () => {
     beforeEach(() => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
     });
 
@@ -595,9 +581,8 @@ describe('GitHubFeedbackFormComponent', () => {
       component.feedbackTitle = 'Test';
       component.feedbackDescription = 'Description';
 
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
 
       const submission1 = component.onSubmit();
@@ -605,7 +590,7 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await Promise.all([submission1, submission2]);
 
-      expect(mockGitHubFeedbackService.createGitHubIssue).toHaveBeenCalledTimes(2);
+      expect(mockGitHubFeedbackService.submitFeedback).toHaveBeenCalledTimes(2);
     });
 
     it('should use user email from session service', async () => {
@@ -614,16 +599,15 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      const callArgs = mockGitHubFeedbackService.createGitHubIssue.mock.calls[0][0];
+      const callArgs = mockGitHubFeedbackService.submitFeedback.mock.calls[0][0];
       expect(callArgs.userEmail).toBe('test@example.com');
     });
   });
 
   describe('User Interaction Scenarios', () => {
     beforeEach(() => {
-      mockGitHubFeedbackService.createGitHubIssue.mockResolvedValue({
+      mockGitHubFeedbackService.submitFeedback.mockResolvedValue({
         success: true,
-        url: 'https://github.com/test/repo/issues/1'
       });
     });
 
@@ -654,7 +638,7 @@ describe('GitHubFeedbackFormComponent', () => {
 
       await component.onSubmit();
 
-      expect(mockGitHubFeedbackService.createGitHubIssue).toHaveBeenCalledWith(
+      expect(mockGitHubFeedbackService.submitFeedback).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'feature' })
       );
     });

@@ -9,5 +9,7 @@ export const environment = {
   posthogHost: import.meta.env.VITE_POSTHOG_HOST || 'https://t.cp-church.org',
   posthogUiHost: import.meta.env.VITE_POSTHOG_UI_HOST || 'https://us.posthog.com',
   /** Public URL for links in emails (e.g. https://yourdomain.com). Leave empty to use current origin. Set for native/Capacitor builds so links are not capacitor://localhost. */
-  appUrl: ''
+  appUrl: '',
+  /** In-app Send Feedback (Notion Edge Function). Match your Supabase project rollout. */
+  inAppFeedbackEnabled: true,
 };

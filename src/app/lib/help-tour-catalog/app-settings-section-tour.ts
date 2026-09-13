@@ -10,6 +10,7 @@ import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
 import { TOUR_SETTINGS_PRINT_ROW_ID, TOUR_SETTINGS_THEME_ID, TOUR_SETTINGS_TEXT_SIZE_ID, TOUR_SETTINGS_EMAIL_SUBSCRIPTION_ID, TOUR_SETTINGS_PUSH_ID, TOUR_SETTINGS_BADGES_ID, TOUR_SETTINGS_PRAYER_ENCOURAGEMENT_ID, TOUR_SETTINGS_DEFAULT_VIEW_ID, TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID, TOUR_SETTINGS_PRAYER_REMINDERS_ID, TOUR_SETTINGS_FEEDBACK_SECTION_ID } from '../help-tour-ids';
 import type { AppSettingsHelpTourHooks } from '../help-tour-hooks';
+import { environment } from '../../../environments/environment';
 
 export function runAppSettingsHelpSectionTour(
   host: HelpTourDriverHost,
@@ -62,6 +63,24 @@ if (typeof document === 'undefined') {
     document.getElementById(TOUR_SETTINGS_PRAYER_REMINDERS_ID) ?? memorizationEl();
   const feedbackEl = (): HTMLElement =>
     document.getElementById(TOUR_SETTINGS_FEEDBACK_SECTION_ID) ?? remindersEl();
+
+  const inAppFeedbackEnabled = environment.inAppFeedbackEnabled;
+
+  const feedbackStep: DriveStep[] = inAppFeedbackEnabled
+    ? [
+        {
+          element: () => feedbackEl(),
+          popover: {
+            title: 'Feedback',
+            description: formatHelpContentHtml(
+              'Send suggestions, bugs, or feature ideas with **Send Feedback**—your church’s team reviews them in their tracker.'
+            ),
+            side: 'bottom',
+            align: 'start',
+          },
+        },
+      ]
+    : [];
 
   const steps: DriveStep[] = [
     {
@@ -174,21 +193,13 @@ if (typeof document === 'undefined') {
         align: 'start',
       },
     },
-    {
-      element: () => feedbackEl(),
-      popover: {
-        title: 'Feedback',
-        description:
-          'Send suggestions, bugs, or feature ideas when your church enables the form—or read the note if feedback isn’t turned on.',
-        side: 'bottom',
-        align: 'start',
-      },
-    },
+    ...feedbackStep,
     {
       popover: {
         title: 'Footer & account',
-        description:
-          'At the bottom: <strong>Logout</strong> and <strong>Close</strong>. You can also sign out from your email badge in the header (with confirmation). <strong>Delete your account</strong> is below feedback when you need it.',
+        description: inAppFeedbackEnabled
+          ? 'At the bottom: <strong>Logout</strong> and <strong>Close</strong>. You can also sign out from your email badge in the header (with confirmation). <strong>Delete your account</strong> is below feedback when you need it.'
+          : 'At the bottom: <strong>Logout</strong> and <strong>Close</strong>. You can also sign out from your email badge in the header (with confirmation). <strong>Delete your account</strong> is in Settings when you need it.',
         side: 'bottom',
         align: 'center',
       },

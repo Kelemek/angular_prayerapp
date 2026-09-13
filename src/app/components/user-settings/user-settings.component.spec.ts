@@ -116,10 +116,6 @@ describe('UserSettingsComponent', () => {
       markForCheck: vi.fn()
     };
 
-    const mockGitHubFeedbackService = {
-      getGitHubConfig: vi.fn(() => Promise.resolve(null))
-    };
-
     const { mockInjector } = createBadgeServiceInjectorMock({
       userSession$: new BehaviorSubject(null),
     });
@@ -136,7 +132,6 @@ describe('UserSettingsComponent', () => {
       mockPrayerService,
       mockEmailNotificationService,
       mockAdminAuthService,
-      mockGitHubFeedbackService as any,
       mockBadgeService as any,
       mockUserSessionService,
       mockCapacitorService as CapacitorService,
@@ -1085,52 +1080,6 @@ describe('UserSettingsComponent', () => {
       await component['loadPreferencesAutomatically']('test@example.com');
 
       expect(consoleSpy).toHaveBeenCalledWith('Error loading subscriber preferences:', expect.any(Error));
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('loadGitHubFeedbackStatus', () => {
-    it('should load GitHub feedback enabled status from config', async () => {
-      const mockGitHubFeedbackService = {
-        getGitHubConfig: vi.fn(() => Promise.resolve({ enabled: true }))
-      };
-
-      component['deps'].githubFeedbackService =
-        mockGitHubFeedbackService as any;
-
-      await component['loadGitHubFeedbackStatus']();
-
-      expect(component.githubFeedbackEnabled).toBe(true);
-      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalled();
-    });
-
-    it('should default to false when config is null', async () => {
-      const mockGitHubFeedbackService = {
-        getGitHubConfig: vi.fn(() => Promise.resolve(null))
-      };
-
-      component['deps'].githubFeedbackService =
-        mockGitHubFeedbackService as any;
-
-      await component['loadGitHubFeedbackStatus']();
-
-      expect(component.githubFeedbackEnabled).toBe(false);
-      expect(mockChangeDetectorRef.markForCheck).toHaveBeenCalled();
-    });
-
-    it('should handle error when loading GitHub config', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const mockGitHubFeedbackService = {
-        getGitHubConfig: vi.fn(() => Promise.reject(new Error('Network error')))
-      };
-
-      component['deps'].githubFeedbackService =
-        mockGitHubFeedbackService as any;
-
-      await component['loadGitHubFeedbackStatus']();
-
-      expect(component.githubFeedbackEnabled).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith('Error loading GitHub feedback status:', expect.any(Error));
       consoleSpy.mockRestore();
     });
   });

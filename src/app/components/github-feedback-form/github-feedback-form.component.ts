@@ -8,6 +8,7 @@ import { CommonModule, NgClass } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { GitHubFeedbackService } from "../../services/github-feedback.service";
 import { UserSessionService } from "../../services/user-session.service";
+import { getFeedbackPageUrl } from "../../lib/feedback-page-url";
 import { Subject, takeUntil } from "rxjs";
 
 type FeedbackType = "suggestion" | "feature" | "bug";
@@ -261,8 +262,6 @@ export class GitHubFeedbackFormComponent implements OnDestroy {
   isLoading: boolean = false;
   successMessage: string = "";
   errorMessage: string = "";
-  issueUrl: string = "";
-
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -338,7 +337,6 @@ export class GitHubFeedbackFormComponent implements OnDestroy {
     this.isLoading = true;
     this.successMessage = "";
     this.errorMessage = "";
-    this.issueUrl = "";
     this.cdr.markForCheck();
 
     try {
@@ -350,17 +348,22 @@ export class GitHubFeedbackFormComponent implements OnDestroy {
         return;
       }
 
-      const result = await this.githubFeedbackService.createGitHubIssue({
+      const pageUrl = getFeedbackPageUrl(
+        window.location.pathname + window.location.search,
+        window.location.href
+      );
+
+      const result = await this.githubFeedbackService.submitFeedback({
         title: this.feedbackTitle.trim(),
-        body: this.feedbackDescription.trim(),
+        description: this.feedbackDescription.trim(),
         type: this.feedbackType,
         userEmail: userSession.email,
         userName: userSession.fullName,
+        pageUrl,
       });
 
       if (result.success) {
         this.successMessage = "Thank you! Your feedback has been submitted.";
-        this.issueUrl = result.url || "";
         // Reset form after success
         this.feedbackTitle = "";
         this.feedbackDescription = "";

@@ -47,6 +47,11 @@ describe('environment.prod', () => {
     expect(environment).toHaveProperty('posthogKey');
     expect(environment).toHaveProperty('posthogHost');
     expect(environment).toHaveProperty('posthogUiHost');
+    expect(environment).toHaveProperty('inAppFeedbackEnabled');
+  });
+
+  it('should disable in-app feedback until production Notion rollout', () => {
+    expect(environment.inAppFeedbackEnabled).toBe(false);
   });
 
   it('should have valid Supabase URL format', () => {

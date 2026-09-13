@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { GitHubFeedbackFormComponent } from '../github-feedback-form/github-feedback-form.component';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import type { UserSettingsFacade } from '../../lib/user-settings-facade';
 
 @Component({
@@ -12,4 +13,6 @@ import type { UserSettingsFacade } from '../../lib/user-settings-facade';
 })
 export class UserSettingsFeedbackSectionComponent {
   @Input({ required: true }) host!: UserSettingsFacade;
+
+  readonly inAppFeedbackEnabled = environment.inAppFeedbackEnabled;
 }

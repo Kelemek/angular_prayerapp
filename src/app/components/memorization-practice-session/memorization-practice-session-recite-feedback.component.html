@@ -19,7 +19,12 @@
     </h2>
     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
       Thanks for trying Recite mode (beta). How did it go for you? If something felt off, or you have ideas to make it
-      better, share your thoughts in <strong>Settings → Send Feedback</strong>.
+      better,
+      @if (inAppFeedbackEnabled) {
+        share your thoughts in <strong>Settings → Send Feedback</strong>.
+      } @else {
+        contact your church admin with feedback about Recite mode.
+      }
     </p>
     <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
       <button

@@ -58,7 +58,7 @@ A comprehensive prayer request management and Scripture memorization system for 
 - ✅ **Per-prayer reminders**: Once / daily / weekly reminders on a specific prayer (community, personal, or Members) from the bell on the card; same 15-minute slots and email/push channels.
 - ✅ **Push notifications** (native app): Prayer updates, hourly reminders, memorization nudges, and admin alerts when enabled
 - ✅ **Delete account** (Settings): Users can remove their account; verification dialog offers to keep prayers (so they stay lifted up) or delete account and all their prayers, then sign out
-- ✅ **Send Feedback** (Settings): GitHub issue submission with Suggestion / Feature Request / Bug Report tiles
+- ✅ **Send Feedback** (Settings): Suggestion / Feature Request / Bug Report tiles; submissions go to the church’s Notion **Site issues** tracker via a server Edge Function (no GitHub token in the app)
 - ✅ **Info page** (`/info`) – Public landing/overview with app icon, CTAs (Web App, App Store, Android), and interactive feature preview (filters, modals)
 
 ## 🚀 Getting Started
@@ -163,7 +163,7 @@ The in-app **Help & Guidance** modal includes **Prayer Encouragement (Pray For)*
 ## 📞 Support & Issues
 
 - **Questions?** Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- **Found a bug?** Open an issue on GitHub or use **Send Feedback** in Settings
+- **Found a bug?** Use **Send Feedback** in Settings (or open a GitHub issue for code in this repo)
 - **Have a suggestion?** Start a discussion
 
 ---

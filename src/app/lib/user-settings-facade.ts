@@ -8,7 +8,6 @@ import {
   runUserSettingsLogout,
 } from './user-settings-account-run';
 import { runUserSettingsOpenChange } from './user-settings-facade-open';
-import { runUserSettingsGitHubFeedbackLoad } from './user-settings-github-fetch';
 import {
   runUserSettingsHandlePrint,
   runUserSettingsHandlePrintPersonalPrayers,
@@ -93,7 +92,6 @@ export class UserSettingsFacade {
   selectedPromptTypes: string[] = [];
   personalCategories: string[] = [];
   selectedPersonalCategories: string[] = [];
-  githubFeedbackEnabled = false;
   showDeleteAccountVerification = false;
   deletingAccount = false;
 
@@ -136,8 +134,6 @@ export class UserSettingsFacade {
       this.name = `${userInfo.firstName} ${userInfo.lastName}`;
     }
     this.email = userInfo.email;
-
-    void runUserSettingsGitHubFeedbackLoad(this);
 
     this.emailChange$
       .pipe(takeUntil(this.destroy$), debounceTime(800), distinctUntilChanged())
@@ -228,11 +224,6 @@ export class UserSettingsFacade {
   /** @internal Used by specs and preference-load runner */
   async loadPreferencesAutomatically(emailAddress: string): Promise<void> {
     return runUserSettingsPreferencesLoad(this, emailAddress);
-  }
-
-  /** @internal Used by specs */
-  async loadGitHubFeedbackStatus(): Promise<void> {
-    return runUserSettingsGitHubFeedbackLoad(this);
   }
 
   onEmailChange(): void {
