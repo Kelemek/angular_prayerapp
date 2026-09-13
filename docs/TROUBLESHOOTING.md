@@ -426,6 +426,22 @@ supabase functions deploy send-notification --no-verify-jwt
 3. Increase timeout (max 60s on free tier)
 4. Split into multiple functions
 
+### Reminder jobs return 504 / send the basic hourly email
+
+**Cause**: The three `*/15` reminder Edge Functions start together and can stampede PostgREST. A 504 on `admin_settings` used to be treated as “use the DEFAULT template,” so spotlight-configured production sent the basic prayer or memorization email.
+
+**What the functions do now** (after redeploy):
+1. Stagger startup: prayer 0ms, memorization 2.5s, per-prayer items 5s.
+2. Retry transient PostgREST 502/503/504s on settings, templates, due-now RPCs, and early batch reads.
+3. If `admin_settings` or the primary `email_templates` row still errors, return HTTP 500 and send nothing this run.
+
+**Deploy** (schedules unchanged):
+```bash
+supabase functions deploy send-user-hourly-prayer-reminders
+supabase functions deploy send-user-hourly-memorization-reminders
+supabase functions deploy send-user-prayer-item-reminders
+```
+
 ### Environment Variables Not Available
 
 **Error**: `undefined` when accessing `Deno.env.get()`

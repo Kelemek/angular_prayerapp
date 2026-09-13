@@ -510,6 +510,65 @@ function pickSpotlightCandidate(
   return pool[idx] ?? null;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+type QueryResult<T> = {
+  data: T | null;
+  error: { message: string; code?: string; status?: number } | null;
+};
+
+function isTransientPostgrestError(
+  err: { message?: string; code?: string; status?: number } | null
+): boolean {
+  if (!err) return false;
+  const msg = (err.message ?? '').toLowerCase();
+  const code = String(err.code ?? '');
+  const status = Number(err.status ?? 0);
+  return (
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    code === '502' ||
+    code === '503' ||
+    code === '504' ||
+    msg.includes('504') ||
+    msg.includes('502') ||
+    msg.includes('503') ||
+    msg.includes('timeout') ||
+    msg.includes('timed out') ||
+    msg.includes('fetch failed') ||
+    msg.includes('network') ||
+    msg.includes('connection') ||
+    msg.includes('gateway')
+  );
+}
+
+async function withRetry<T>(
+  label: string,
+  fn: () => PromiseLike<QueryResult<T>>,
+  opts: { attempts?: number; baseDelayMs?: number } = {}
+): Promise<QueryResult<T>> {
+  const attempts = opts.attempts ?? 4;
+  const baseDelayMs = opts.baseDelayMs ?? 400;
+  let last: QueryResult<T> = { data: null, error: { message: 'no attempt' } };
+  for (let i = 0; i < attempts; i++) {
+    last = await fn();
+    const responseStatus = Number((last as QueryResult<T> & { status?: number }).status ?? 0);
+    if (last.error && last.error.status == null && responseStatus) {
+      last = { data: last.data, error: { ...last.error, status: responseStatus } };
+    }
+    if (!last.error) return last;
+    if (!isTransientPostgrestError(last.error) || i === attempts - 1) {
+      console.error(`${label} failed (attempt ${i + 1}/${attempts}):`, last.error);
+      return last;
+    }
+    const delay = baseDelayMs * Math.pow(2, i);
+    console.warn(`${label} transient error; retrying in ${delay}ms:`, last.error);
+    await sleep(delay);
+  }
+  return last;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -538,39 +597,79 @@ Deno.serve(async (req: Request) => {
   const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
   const pushTitle = 'Prayer reminder';
 
+  await sleep(0);
+
   try {
-    const { data: adminRow, error: adminErr } = await supabase
-      .from('admin_settings')
-      .select('user_hourly_prayer_reminder_template_key')
-      .eq('id', 1)
-      .maybeSingle();
+    const { data: adminRow, error: adminErr } = await withRetry(
+      'admin_settings',
+      () =>
+        supabase
+          .from('admin_settings')
+          .select('user_hourly_prayer_reminder_template_key')
+          .eq('id', 1)
+          .maybeSingle()
+    );
 
     if (adminErr) {
-      console.error('admin_settings read failed:', adminErr);
+      return new Response(
+        JSON.stringify({ error: 'Failed to load admin settings', details: adminErr.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    const rawTemplateKey = (
+      adminRow as { user_hourly_prayer_reminder_template_key?: string | null } | null
+    )?.user_hourly_prayer_reminder_template_key;
     const requestedTemplateKey =
-      (adminRow as { user_hourly_prayer_reminder_template_key?: string } | null)
-        ?.user_hourly_prayer_reminder_template_key ?? DEFAULT_HOURLY_TEMPLATE_KEY;
+      typeof rawTemplateKey === 'string' && rawTemplateKey.trim()
+        ? rawTemplateKey.trim()
+        : DEFAULT_HOURLY_TEMPLATE_KEY;
 
     let hourlyTemplate: EmailTemplateRow | null = null;
     let activeTemplateKey = requestedTemplateKey;
 
-    const { data: primaryTpl } = await supabase
-      .from('email_templates')
-      .select('subject, text_body, html_body, template_key')
-      .eq('template_key', requestedTemplateKey)
-      .maybeSingle();
+    const { data: primaryTpl, error: primaryTplErr } = await withRetry(
+      'email_templates',
+      () =>
+        supabase
+          .from('email_templates')
+          .select('subject, text_body, html_body, template_key')
+          .eq('template_key', requestedTemplateKey)
+          .maybeSingle()
+    );
+
+    if (primaryTplErr) {
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to load email template',
+          details: primaryTplErr.message,
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (primaryTpl) {
       hourlyTemplate = primaryTpl as EmailTemplateRow;
-    } else {
+    } else if (requestedTemplateKey !== DEFAULT_HOURLY_TEMPLATE_KEY) {
       console.warn(`email_templates missing key ${requestedTemplateKey}; trying default.`);
-      const { data: fallbackTpl } = await supabase
-        .from('email_templates')
-        .select('subject, text_body, html_body')
-        .eq('template_key', DEFAULT_HOURLY_TEMPLATE_KEY)
-        .maybeSingle();
+      const { data: fallbackTpl, error: fallbackTplErr } = await withRetry(
+        'email_templates_default',
+        () =>
+          supabase
+            .from('email_templates')
+            .select('subject, text_body, html_body')
+            .eq('template_key', DEFAULT_HOURLY_TEMPLATE_KEY)
+            .maybeSingle()
+      );
+      if (fallbackTplErr) {
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to load email template',
+            details: fallbackTplErr.message,
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       if (fallbackTpl) {
         hourlyTemplate = fallbackTpl as EmailTemplateRow;
         activeTemplateKey = DEFAULT_HOURLY_TEMPLATE_KEY;
@@ -585,8 +684,9 @@ Deno.serve(async (req: Request) => {
 
     const useSpotlightVariables = activeTemplateKey === SPOTLIGHT_TEMPLATE_KEY;
 
-    const { data: dueRows, error: rpcError } = await supabase.rpc(
-      'get_user_prayer_hour_reminders_due_now'
+    const { data: dueRows, error: rpcError } = await withRetry(
+      'get_user_prayer_hour_reminders_due_now',
+      () => supabase.rpc('get_user_prayer_hour_reminders_due_now')
     );
 
     if (rpcError) {
@@ -617,10 +717,14 @@ Deno.serve(async (req: Request) => {
     }
     const uniqueEmails = [...byLower.values()];
 
-    const { data: subscribers, error: subErr } = await supabase
-      .from('email_subscribers')
-      .select('email, receive_push, is_active, is_blocked, hourly_reminder_last_spotlight_key')
-      .in('email', uniqueEmails);
+    const { data: subscribers, error: subErr } = await withRetry(
+      'email_subscribers',
+      () =>
+        supabase
+          .from('email_subscribers')
+          .select('email, receive_push, is_active, is_blocked, hourly_reminder_last_spotlight_key')
+          .in('email', uniqueEmails)
+    );
 
     if (subErr) {
       console.error('email_subscribers batch failed:', subErr);
@@ -634,10 +738,11 @@ Deno.serve(async (req: Request) => {
       (subscribers ?? []).map((s: { email: string }) => [s.email.toLowerCase(), s])
     );
 
-    const { data: tokenRows, error: tokErr } = await supabase
-      .from('device_tokens')
-      .select('user_email')
-      .in('user_email', uniqueEmails);
+    const { data: tokenRows, error: tokErr } = await withRetry(
+      'device_tokens',
+      () =>
+        supabase.from('device_tokens').select('user_email').in('user_email', uniqueEmails)
+    );
 
     if (tokErr) {
       console.error('device_tokens batch failed:', tokErr);

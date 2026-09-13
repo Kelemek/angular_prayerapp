@@ -660,6 +660,65 @@ async function loadLatestUpdatesByKind(
   return out;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+type QueryResult<T> = {
+  data: T | null;
+  error: { message: string; code?: string; status?: number } | null;
+};
+
+function isTransientPostgrestError(
+  err: { message?: string; code?: string; status?: number } | null
+): boolean {
+  if (!err) return false;
+  const msg = (err.message ?? '').toLowerCase();
+  const code = String(err.code ?? '');
+  const status = Number(err.status ?? 0);
+  return (
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    code === '502' ||
+    code === '503' ||
+    code === '504' ||
+    msg.includes('504') ||
+    msg.includes('502') ||
+    msg.includes('503') ||
+    msg.includes('timeout') ||
+    msg.includes('timed out') ||
+    msg.includes('fetch failed') ||
+    msg.includes('network') ||
+    msg.includes('connection') ||
+    msg.includes('gateway')
+  );
+}
+
+async function withRetry<T>(
+  label: string,
+  fn: () => PromiseLike<QueryResult<T>>,
+  opts: { attempts?: number; baseDelayMs?: number } = {}
+): Promise<QueryResult<T>> {
+  const attempts = opts.attempts ?? 4;
+  const baseDelayMs = opts.baseDelayMs ?? 400;
+  let last: QueryResult<T> = { data: null, error: { message: 'no attempt' } };
+  for (let i = 0; i < attempts; i++) {
+    last = await fn();
+    const responseStatus = Number((last as QueryResult<T> & { status?: number }).status ?? 0);
+    if (last.error && last.error.status == null && responseStatus) {
+      last = { data: last.data, error: { ...last.error, status: responseStatus } };
+    }
+    if (!last.error) return last;
+    if (!isTransientPostgrestError(last.error) || i === attempts - 1) {
+      console.error(`${label} failed (attempt ${i + 1}/${attempts}):`, last.error);
+      return last;
+    }
+    const delay = baseDelayMs * Math.pow(2, i);
+    console.warn(`${label} transient error; retrying in ${delay}ms:`, last.error);
+    await sleep(delay);
+  }
+  return last;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -687,17 +746,34 @@ Deno.serve(async (req: Request) => {
 
   const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
 
+  await sleep(5000);
+
   try {
-    const { data: tplRow } = await supabase
-      .from('email_templates')
-      .select('subject, text_body, html_body')
-      .eq('template_key', TEMPLATE_KEY)
-      .maybeSingle();
+    const { data: tplRow, error: tplErr } = await withRetry(
+      'email_templates',
+      () =>
+        supabase
+          .from('email_templates')
+          .select('subject, text_body, html_body')
+          .eq('template_key', TEMPLATE_KEY)
+          .maybeSingle()
+    );
+
+    if (tplErr) {
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to load email template',
+          details: tplErr.message,
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const template = tplRow as EmailTemplateRow | null;
 
-    const { data: dueRows, error: rpcError } = await supabase.rpc(
-      'get_user_prayer_item_reminders_due_now'
+    const { data: dueRows, error: rpcError } = await withRetry(
+      'get_user_prayer_item_reminders_due_now',
+      () => supabase.rpc('get_user_prayer_item_reminders_due_now')
     );
 
     if (rpcError) {
@@ -725,10 +801,14 @@ Deno.serve(async (req: Request) => {
       ...new Map(rows.map((r) => [r.user_email.toLowerCase(), r.user_email])).values(),
     ];
 
-    const { data: subscribers, error: subErr } = await supabase
-      .from('email_subscribers')
-      .select('email, receive_push, is_active, is_blocked')
-      .in('email', uniqueEmails);
+    const { data: subscribers, error: subErr } = await withRetry(
+      'email_subscribers',
+      () =>
+        supabase
+          .from('email_subscribers')
+          .select('email, receive_push, is_active, is_blocked')
+          .in('email', uniqueEmails)
+    );
 
     if (subErr) {
       console.error('email_subscribers batch failed:', subErr);
@@ -742,10 +822,11 @@ Deno.serve(async (req: Request) => {
       (subscribers ?? []).map((s: { email: string }) => [s.email.toLowerCase(), s])
     );
 
-    const { data: tokenRows, error: tokErr } = await supabase
-      .from('device_tokens')
-      .select('user_email')
-      .in('user_email', uniqueEmails);
+    const { data: tokenRows, error: tokErr } = await withRetry(
+      'device_tokens',
+      () =>
+        supabase.from('device_tokens').select('user_email').in('user_email', uniqueEmails)
+    );
 
     if (tokErr) {
       console.error('device_tokens batch failed:', tokErr);
@@ -773,10 +854,10 @@ Deno.serve(async (req: Request) => {
 
     const communityActive = new Set<string>();
     if (communityIds.length > 0) {
-      const { data: communityRows, error: communityErr } = await supabase
-        .from('prayers')
-        .select('id, status')
-        .in('id', communityIds);
+      const { data: communityRows, error: communityErr } = await withRetry(
+        'prayers_status',
+        () => supabase.from('prayers').select('id, status').in('id', communityIds)
+      );
       if (communityErr) {
         console.error('prayers status batch failed:', communityErr);
         return new Response(
@@ -797,10 +878,11 @@ Deno.serve(async (req: Request) => {
 
     const personalActive = new Set<string>();
     if (personalIds.length > 0) {
-      const { data: personalRows, error: personalErr } = await supabase
-        .from('personal_prayers')
-        .select('id, category')
-        .in('id', personalIds);
+      const { data: personalRows, error: personalErr } = await withRetry(
+        'personal_prayers_status',
+        () =>
+          supabase.from('personal_prayers').select('id, category').in('id', personalIds)
+      );
       if (personalErr) {
         console.error('personal_prayers status batch failed:', personalErr);
         return new Response(
@@ -821,10 +903,10 @@ Deno.serve(async (req: Request) => {
 
     const promptActive = new Set<string>();
     if (promptIds.length > 0) {
-      const { data: promptRows, error: promptErr } = await supabase
-        .from('prayer_prompts')
-        .select('id')
-        .in('id', promptIds);
+      const { data: promptRows, error: promptErr } = await withRetry(
+        'prayer_prompts',
+        () => supabase.from('prayer_prompts').select('id').in('id', promptIds)
+      );
       if (promptErr) {
         console.error('prayer_prompts batch failed:', promptErr);
         return new Response(
@@ -849,10 +931,14 @@ Deno.serve(async (req: Request) => {
           pcMemberRows.map((r) => [r.user_email.toLowerCase(), r.user_email])
         ).values(),
       ];
-      const { data: pcSubs, error: pcSubErr } = await supabase
-        .from('email_subscribers')
-        .select('email, planning_center_list_id')
-        .in('email', pcEmails);
+      const { data: pcSubs, error: pcSubErr } = await withRetry(
+        'email_subscribers_pc_list',
+        () =>
+          supabase
+            .from('email_subscribers')
+            .select('email, planning_center_list_id')
+            .in('email', pcEmails)
+      );
       if (pcSubErr) {
         console.error('email_subscribers pc list batch failed:', pcSubErr);
         for (const row of pcMemberRows) {

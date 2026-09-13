@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Fix — reminder jobs no longer send the basic template after a PostgREST 504
+- The three `*/15` pg_cron jobs (`send-user-hourly-prayer-reminders`, `send-user-hourly-memorization-reminders`, `send-user-prayer-item-reminders`) hit PostgREST at once; a 504 on `admin_settings` used to fall through to `DEFAULT_*` and send the basic hourly email while production was configured for spotlight.
+- Each function now waits before its first DB call (0ms / 2.5s / 5s) and retries transient PostgREST 502/503/504s on `admin_settings`, `email_templates`, due-now RPCs, `email_subscribers`, and `device_tokens`. After retries, a failed settings or primary template read returns HTTP 500 and sends nothing. `DEFAULT_*` / inline fallback is used only when the read succeeds and the row or key is truly missing.
+- **Redeploy** those three Edge Functions. Cron schedules and secrets are unchanged.
+
 ### Feedback — Notion Site issues via Edge Function (test)
 - **Send Feedback** in Settings calls the [`submit-feedback`](../supabase/functions/submit-feedback/index.ts) Edge Function instead of creating GitHub issues from the browser. Submissions create rows in the Notion **Site issues** data source (`collection://53537498-ea76-4f4c-b7f6-38116d48419b`) with **Task name**, **Description**, **Type**, **Email**, **User name**, **Page URL**, **Status** Not started, and **Priority** Medium.
 - Removed admin GitHub token/repo **UI**; new clients use Notion via Edge Function. Migration [`20260912180000_disable_github_feedback_legacy.sql`](../supabase/migrations/20260912180000_disable_github_feedback_legacy.sql) disables legacy GitHub feedback (`enabled`, cleared token/repos) while **keeping** columns for old native `getGitHubConfig()` SELECTs — see [SETUP.md](SETUP.md). Column drop deferred: [`docs/migrations-future/drop_github_feedback_settings.sql`](migrations-future/drop_github_feedback_settings.sql). Set `NOTION_TOKEN` on the **test** project; deploy `submit-feedback` there only.
