@@ -282,6 +282,7 @@ function buildPrayerUpdateBlockHtml(updateHtml: string): string {
  * Email when email_subscribers.is_active !== false.
  * Push when receive_push and a device_tokens row exists.
  * Template: email_templates.user_prayer_item_reminder.
+ * Cron invokes dispatch-user-reminders, which runs this function after prayer + memorization hourly phases.
  * Auth: Supabase Edge JWT verification only (same as other reminder jobs).
  */
 
@@ -745,8 +746,6 @@ Deno.serve(async (req: Request) => {
   });
 
   const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
-
-  await sleep(5000);
 
   try {
     const { data: tplRow, error: tplErr } = await withRetry(

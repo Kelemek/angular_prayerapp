@@ -4,6 +4,13 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Reminder dispatch — single cron, sequential Edge phases
+- **pg_cron** now runs one job **`invoke-dispatch-user-reminders`** (`*/15 * * * *`) instead of three parallel jobs. It POSTs to Edge Function [`dispatch-user-reminders`](../supabase/functions/dispatch-user-reminders/index.ts), which invokes **prayer hourly → memorization hourly → per-item reminders** in order (each function stays self-contained; no shared Edge modules).
+- Migration [`20260914183000_dispatch_user_reminders.sql`](../supabase/migrations/20260914183000_dispatch_user_reminders.sql). pg_net timeout **360s** for the dispatcher HTTP call.
+- Removed startup sleeps from the three phase functions (sequencing is handled by the dispatcher).
+- **Memorization spotlight**: `memorized_items` load uses `withRetry` on transient PostgREST errors; spotlight-template emails are **skipped** when that load fails (no more empty spotlight shell). Policy helper [`memorization-spotlight-reminder-email.ts`](../src/app/lib/memorization/memorization-spotlight-reminder-email.ts) mirrored inline in [`send-user-hourly-memorization-reminders`](../supabase/functions/send-user-hourly-memorization-reminders/index.ts).
+- **Deploy**: apply migration, then `supabase functions deploy dispatch-user-reminders` and redeploy the three phase functions. See [SETUP.md](SETUP.md) / [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
 ### Fix — reminder jobs no longer send the basic template after a PostgREST 504
 - The three `*/15` pg_cron jobs (`send-user-hourly-prayer-reminders`, `send-user-hourly-memorization-reminders`, `send-user-prayer-item-reminders`) hit PostgREST at once; a 504 on `admin_settings` used to fall through to `DEFAULT_*` and send the basic hourly email while production was configured for spotlight.
 - Each function now waits before its first DB call (0ms / 2.5s / 5s) and retries transient PostgREST 502/503/504s on `admin_settings`, `email_templates`, due-now RPCs, `email_subscribers`, and `device_tokens`. After retries, a failed settings or primary template read returns HTTP 500 and sends nothing. `DEFAULT_*` / inline fallback is used only when the read succeeds and the row or key is truly missing.

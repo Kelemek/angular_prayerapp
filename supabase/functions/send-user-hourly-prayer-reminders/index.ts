@@ -392,6 +392,7 @@ function buildSpotlightEmailTemplateVars(
  * Spotlight template: `{{appLink}}` = `APP_URL/?prayerId=` for the featured prayer when one is picked; push includes `prayerId` for tap-to-open.
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
  * If APP_URL is host-only (no https://), it is prefixed with https:// so mail clients do not rewrite links to x-webdoc://…
+ * Cron invokes dispatch-user-reminders, which runs this function first among sequential reminder phases.
  * Auth matches send-prayer-reminders: Supabase Edge JWT verification only.
  */
 
@@ -596,8 +597,6 @@ Deno.serve(async (req: Request) => {
 
   const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
   const pushTitle = 'Prayer reminder';
-
-  await sleep(0);
 
   try {
     const { data: adminRow, error: adminErr } = await withRetry(

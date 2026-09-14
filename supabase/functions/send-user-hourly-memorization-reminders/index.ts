@@ -8,6 +8,8 @@
  * Verse body: try scripture_cache by memorized_items.reference (legacy human-readable key), then call the
  * `scripture` Edge Function (USFM cache key + upstream fetch) so Learning / uncached passages still include text.
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
+ * Cron invokes dispatch-user-reminders, which runs this function after prayer hourly (sequential phases).
+ * Spotlight email send gate mirrors src/app/lib/memorization/memorization-spotlight-reminder-email.ts (keep in sync).
  * Spotlight selection logic is duplicated from src/app/lib/memorization/memorization-reminder-spotlight.ts
  * (single-file bundle required for Supabase Edge deploy; keep both in sync).
  * Email formatting helpers are duplicated from src/app/lib/memorization/memorization-email-format.ts
@@ -56,6 +58,19 @@ interface SpotlightResult {
   kindLabel: string;
   masteryLevel: string;
   verseText: string;
+}
+
+type MemorizationSpotlightLoadStatus = 'ok' | 'empty' | 'error';
+
+/** Mirror memorization-spotlight-reminder-email.ts — keep in sync. */
+function shouldSendHourlyMemorizationReminderEmail(
+  wantEmail: boolean,
+  useSpotlightTemplate: boolean,
+  spotlightLoadStatus: MemorizationSpotlightLoadStatus | null
+): boolean {
+  if (!wantEmail) return false;
+  if (!useSpotlightTemplate) return true;
+  return spotlightLoadStatus !== 'error';
 }
 
 interface MemorizationSpotlightCandidate {
@@ -442,8 +457,6 @@ Deno.serve(async (req: Request) => {
   const appLink = `${appUrl}/?filter=memorize`;
   const pushTitle = 'Memorization reminder';
 
-  await sleep(2500);
-
   try {
     const { data: adminRow, error: adminErr } = await withRetry(
       'admin_settings',
@@ -632,14 +645,19 @@ Deno.serve(async (req: Request) => {
       }
 
       let spotlight: SpotlightResult | null = null;
+      let spotlightLoadStatus: MemorizationSpotlightLoadStatus | null = null;
       if (useSpotlightVariables) {
-        spotlight = await loadSpotlightForRecipient(
+        const loadOutcome = await loadSpotlightForRecipient(
           supabase,
           supabaseUrl,
           serviceKey,
           recipient,
           sub.hourly_memorization_reminder_last_spotlight_key ?? null
         );
+        spotlightLoadStatus = loadOutcome.status;
+        if (loadOutcome.status === 'ok') {
+          spotlight = loadOutcome.spotlight;
+        }
       }
 
       const spotlightBlockHtml = buildSpotlightBlockHtml(spotlight);
@@ -722,7 +740,15 @@ Deno.serve(async (req: Request) => {
       }
 
       let emailDelivered = false;
-      if (wantEmail) {
+      const sendEmail = shouldSendHourlyMemorizationReminderEmail(
+        wantEmail,
+        useSpotlightVariables,
+        spotlightLoadStatus
+      );
+      if (wantEmail && !sendEmail && useSpotlightVariables && spotlightLoadStatus === 'error') {
+        errors.push(`${recipient} email: skipped (memorized_items load failed)`);
+      }
+      if (sendEmail) {
         let subject: string;
         let textBody: string;
         let htmlBody: string;
@@ -850,15 +876,23 @@ async function loadSpotlightForRecipient(
   serviceKey: string,
   recipientEmail: string,
   lastSpotlightId: string | null
-): Promise<SpotlightResult | null> {
-  const { data: rows, error } = await supabase
-    .from('memorized_items')
-    .select('id, reference, text, translation, kind, last_practiced_at, practice_sessions')
-    .ilike('user_email', recipientEmail);
+): Promise<
+  | { status: 'ok'; spotlight: SpotlightResult }
+  | { status: 'empty' }
+  | { status: 'error' }
+> {
+  const { data: rows, error } = await withRetry(
+    'memorized_items',
+    () =>
+      supabase
+        .from('memorized_items')
+        .select('id, reference, text, translation, kind, last_practiced_at, practice_sessions')
+        .ilike('user_email', recipientEmail)
+  );
 
   if (error) {
     console.error('memorized_items query failed', error);
-    return null;
+    return { status: 'error' };
   }
 
   const candidates: MemorizationSpotlightCandidate[] = (rows ?? []).map(
@@ -872,12 +906,12 @@ async function loadSpotlightForRecipient(
   );
 
   const picked = pickMemorizationSpotlightCandidate(candidates, lastSpotlightId);
-  if (!picked) return null;
+  if (!picked) return { status: 'empty' };
 
   const row = (rows ?? []).find((r: MemorizedItemRow) => r.id === picked.id) as
     | MemorizedItemRow
     | undefined;
-  if (!row) return null;
+  if (!row) return { status: 'empty' };
 
   let verseText = '';
   if (row.kind === 'bibleBooks') {
@@ -895,11 +929,14 @@ async function loadSpotlightForRecipient(
   const tier = masteryTierFromCompletedCount(picked.completedSessions);
 
   return {
-    id: picked.id,
-    reference: picked.reference,
-    kind: row.kind,
-    kindLabel: kindLabelForMemorizedItem(picked.kind),
-    masteryLevel: masteryLevelLabel(tier),
-    verseText,
+    status: 'ok',
+    spotlight: {
+      id: picked.id,
+      reference: picked.reference,
+      kind: row.kind,
+      kindLabel: kindLabelForMemorizedItem(picked.kind),
+      masteryLevel: masteryLevelLabel(tier),
+      verseText,
+    },
   };
 }

@@ -168,12 +168,13 @@ If these already exist from another setup, do not duplicate them—only the name
 Deploy Edge Functions after applying the migration:
 
 ```bash
+supabase functions deploy dispatch-user-reminders
 supabase functions deploy send-user-hourly-prayer-reminders
 supabase functions deploy send-user-hourly-memorization-reminders
 supabase functions deploy send-user-prayer-item-reminders
 ```
 
-Verify schedules: `select jobname, schedule from cron.job where jobname like 'invoke-user-%reminder%';` (expect `*/15 * * * *`).
+Verify schedule: `select jobname, schedule from cron.job where jobname like 'invoke-%reminder%';` (expect **`invoke-dispatch-user-reminders`** at `*/15 * * * *`; the three per-function cron jobs are removed by [`20260914183000_dispatch_user_reminders.sql`](../supabase/migrations/20260914183000_dispatch_user_reminders.sql)).
 
 **Admin → Settings → Email** still controls prayer/memorization **email templates** (spotlight vs simple). Per-prayer reminders use template key **`user_prayer_item_reminder`**.
 

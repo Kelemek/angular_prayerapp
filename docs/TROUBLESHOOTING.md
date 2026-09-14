@@ -426,21 +426,27 @@ supabase functions deploy send-notification --no-verify-jwt
 3. Increase timeout (max 60s on free tier)
 4. Split into multiple functions
 
-### Reminder jobs return 504 / send the basic hourly email
+### Reminder jobs return 504 / empty memorization spotlight / wrong template
 
-**Cause**: The three `*/15` reminder Edge Functions start together and can stampede PostgREST. A 504 on `admin_settings` used to be treated as “use the DEFAULT template,” so spotlight-configured production sent the basic prayer or memorization email.
+**Cause**: PostgREST can return **504 Gateway Timeout** when many reminder Edge calls hit the API at once. Older deployments used three parallel `*/15` crons; memorization spotlight also failed when a single **`memorized_items`** read timed out (email sent with an empty spotlight block).
 
-**What the functions do now** (after redeploy):
-1. Stagger startup: prayer 0ms, memorization 2.5s, per-prayer items 5s.
-2. Retry transient PostgREST 502/503/504s on settings, templates, due-now RPCs, and early batch reads.
-3. If `admin_settings` or the primary `email_templates` row still errors, return HTTP 500 and send nothing this run.
+**What production should use now** (migration [`20260914183000_dispatch_user_reminders.sql`](../supabase/migrations/20260914183000_dispatch_user_reminders.sql) + redeploy):
 
-**Deploy** (schedules unchanged):
+1. One pg_cron job **`invoke-dispatch-user-reminders`** → Edge **`dispatch-user-reminders`**, which runs **prayer hourly → memorization hourly → per-item reminders** sequentially.
+2. Phase functions retry transient PostgREST 502/503/504s on settings, templates, due-now RPCs, batch reads, and **`memorized_items`** (memorization).
+3. Memorization **spotlight-template email is skipped** if `memorized_items` still fails after retries (push may still use the generic body).
+4. Failed `admin_settings` or primary `email_templates` read after retries → HTTP 500 for that phase (no send).
+
+**Deploy**:
+
 ```bash
+supabase functions deploy dispatch-user-reminders
 supabase functions deploy send-user-hourly-prayer-reminders
 supabase functions deploy send-user-hourly-memorization-reminders
 supabase functions deploy send-user-prayer-item-reminders
 ```
+
+Verify cron: `select jobname, schedule from cron.job where jobname like 'invoke-%reminder%';` — expect **`invoke-dispatch-user-reminders`** at `*/15 * * * *`, not three separate `invoke-user-hourly-*` jobs.
 
 ### Environment Variables Not Available
 
