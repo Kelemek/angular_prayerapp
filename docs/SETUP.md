@@ -176,6 +176,8 @@ supabase functions deploy send-user-prayer-item-reminders
 
 Verify schedule: `select jobname, schedule from cron.job where jobname like 'invoke-%reminder%';` (expect **`invoke-dispatch-user-reminders`** at `*/15 * * * *`; the three per-function cron jobs are removed by [`20260914183000_dispatch_user_reminders.sql`](../supabase/migrations/20260914183000_dispatch_user_reminders.sql)).
 
+The dispatcher loads **`admin_settings` hourly template keys once** (with retry), passes them into prayer/memorization invokes, pauses **2.5s** between phases, and **retries each failed phase invoke once**—reducing duplicate `admin_settings` reads during PostgREST blips.
+
 **Admin → Settings → Email** still controls prayer/memorization **email templates** (spotlight vs simple). Per-prayer reminders use template key **`user_prayer_item_reminder`**.
 
 ### Community prayer reminders (`send-prayer-reminders`)

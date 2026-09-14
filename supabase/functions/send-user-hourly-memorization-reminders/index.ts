@@ -9,6 +9,7 @@
  * `scripture` Edge Function (USFM cache key + upstream fetch) so Learning / uncached passages still include text.
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
  * Cron invokes dispatch-user-reminders, which runs this function after prayer hourly (sequential phases).
+ * When invoked by the dispatcher with `userHourlyMemorizationReminderTemplateKey` in the POST body, skips reading admin_settings.
  * Spotlight email send gate mirrors src/app/lib/memorization/memorization-spotlight-reminder-email.ts (keep in sync).
  * Spotlight selection logic is duplicated from src/app/lib/memorization/memorization-reminder-spotlight.ts
  * (single-file bundle required for Supabase Edge deploy; keep both in sync).
@@ -27,6 +28,31 @@ const corsHeaders = {
 
 const DEFAULT_HOURLY_TEMPLATE_KEY = 'user_hourly_memorization_reminder';
 const SPOTLIGHT_TEMPLATE_KEY = 'user_hourly_memorization_reminder_with_spotlight';
+
+interface DispatchInvokeBody {
+  dispatchedBy?: string;
+  userHourlyMemorizationReminderTemplateKey?: string | null;
+}
+
+async function readDispatchInvokeBody(req: Request): Promise<DispatchInvokeBody> {
+  try {
+    const raw = await req.text();
+    if (!raw.trim()) return {};
+    return JSON.parse(raw) as DispatchInvokeBody;
+  } catch {
+    return {};
+  }
+}
+
+function requestedTemplateKeyFromDispatchBody(body: DispatchInvokeBody): string | null {
+  if (body.dispatchedBy !== 'dispatch-user-reminders') return null;
+  if (!Object.prototype.hasOwnProperty.call(body, 'userHourlyMemorizationReminderTemplateKey')) {
+    return null;
+  }
+  const rawKey = body.userHourlyMemorizationReminderTemplateKey;
+  if (typeof rawKey === 'string' && rawKey.trim()) return rawKey.trim();
+  return DEFAULT_HOURLY_TEMPLATE_KEY;
+}
 
 interface ReminderRow {
   id: string;
@@ -384,21 +410,26 @@ function isTransientPostgrestError(
   const code = String(err.code ?? '');
   const status = Number(err.status ?? 0);
   return (
+    status === 500 ||
     status === 502 ||
     status === 503 ||
     status === 504 ||
+    code === '500' ||
     code === '502' ||
     code === '503' ||
     code === '504' ||
     msg.includes('504') ||
     msg.includes('502') ||
     msg.includes('503') ||
+    msg.includes('500') ||
     msg.includes('timeout') ||
     msg.includes('timed out') ||
     msg.includes('fetch failed') ||
     msg.includes('network') ||
     msg.includes('connection') ||
-    msg.includes('gateway')
+    msg.includes('gateway') ||
+    msg.includes('failed to get project config') ||
+    msg.includes('internal server error')
   );
 }
 
@@ -456,32 +487,40 @@ Deno.serve(async (req: Request) => {
   const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
   const appLink = `${appUrl}/?filter=memorize`;
   const pushTitle = 'Memorization reminder';
+  const dispatchBody = await readDispatchInvokeBody(req);
 
   try {
-    const { data: adminRow, error: adminErr } = await withRetry(
-      'admin_settings',
-      () =>
-        supabase
-          .from('admin_settings')
-          .select('user_hourly_memorization_reminder_template_key')
-          .eq('id', 1)
-          .maybeSingle()
-    );
+    const dispatchTemplateKey = requestedTemplateKeyFromDispatchBody(dispatchBody);
+    let requestedTemplateKey: string;
 
-    if (adminErr) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to load admin settings', details: adminErr.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    if (dispatchTemplateKey !== null) {
+      requestedTemplateKey = dispatchTemplateKey;
+    } else {
+      const { data: adminRow, error: adminErr } = await withRetry(
+        'admin_settings',
+        () =>
+          supabase
+            .from('admin_settings')
+            .select('user_hourly_memorization_reminder_template_key')
+            .eq('id', 1)
+            .maybeSingle()
       );
-    }
 
-    const rawTemplateKey = (
-      adminRow as { user_hourly_memorization_reminder_template_key?: string | null } | null
-    )?.user_hourly_memorization_reminder_template_key;
-    const requestedTemplateKey =
-      typeof rawTemplateKey === 'string' && rawTemplateKey.trim()
-        ? rawTemplateKey.trim()
-        : DEFAULT_HOURLY_TEMPLATE_KEY;
+      if (adminErr) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to load admin settings', details: adminErr.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const rawTemplateKey = (
+        adminRow as { user_hourly_memorization_reminder_template_key?: string | null } | null
+      )?.user_hourly_memorization_reminder_template_key;
+      requestedTemplateKey =
+        typeof rawTemplateKey === 'string' && rawTemplateKey.trim()
+          ? rawTemplateKey.trim()
+          : DEFAULT_HOURLY_TEMPLATE_KEY;
+    }
 
     let hourlyTemplate: EmailTemplateRow | null = null;
     let activeTemplateKey = requestedTemplateKey;

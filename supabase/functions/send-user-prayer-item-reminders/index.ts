@@ -676,21 +676,26 @@ function isTransientPostgrestError(
   const code = String(err.code ?? '');
   const status = Number(err.status ?? 0);
   return (
+    status === 500 ||
     status === 502 ||
     status === 503 ||
     status === 504 ||
+    code === '500' ||
     code === '502' ||
     code === '503' ||
     code === '504' ||
     msg.includes('504') ||
     msg.includes('502') ||
     msg.includes('503') ||
+    msg.includes('500') ||
     msg.includes('timeout') ||
     msg.includes('timed out') ||
     msg.includes('fetch failed') ||
     msg.includes('network') ||
     msg.includes('connection') ||
-    msg.includes('gateway')
+    msg.includes('gateway') ||
+    msg.includes('failed to get project config') ||
+    msg.includes('internal server error')
   );
 }
 

@@ -393,6 +393,7 @@ function buildSpotlightEmailTemplateVars(
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
  * If APP_URL is host-only (no https://), it is prefixed with https:// so mail clients do not rewrite links to x-webdoc://…
  * Cron invokes dispatch-user-reminders, which runs this function first among sequential reminder phases.
+ * When invoked by the dispatcher with `userHourlyPrayerReminderTemplateKey` in the POST body, skips reading admin_settings.
  * Auth matches send-prayer-reminders: Supabase Edge JWT verification only.
  */
 
@@ -406,6 +407,31 @@ const corsHeaders = {
 
 const DEFAULT_HOURLY_TEMPLATE_KEY = 'user_hourly_prayer_reminder';
 const SPOTLIGHT_TEMPLATE_KEY = 'user_hourly_prayer_reminder_with_spotlight';
+
+interface DispatchInvokeBody {
+  dispatchedBy?: string;
+  userHourlyPrayerReminderTemplateKey?: string | null;
+}
+
+async function readDispatchInvokeBody(req: Request): Promise<DispatchInvokeBody> {
+  try {
+    const raw = await req.text();
+    if (!raw.trim()) return {};
+    return JSON.parse(raw) as DispatchInvokeBody;
+  } catch {
+    return {};
+  }
+}
+
+function requestedTemplateKeyFromDispatchBody(body: DispatchInvokeBody): string | null {
+  if (body.dispatchedBy !== 'dispatch-user-reminders') return null;
+  if (!Object.prototype.hasOwnProperty.call(body, 'userHourlyPrayerReminderTemplateKey')) {
+    return null;
+  }
+  const rawKey = body.userHourlyPrayerReminderTemplateKey;
+  if (typeof rawKey === 'string' && rawKey.trim()) return rawKey.trim();
+  return DEFAULT_HOURLY_TEMPLATE_KEY;
+}
 
 /** Push notification previews must stay on one line (email plain text keeps paragraph breaks). */
 function collapsePlainTextToSingleLine(text: string): string {
@@ -526,21 +552,26 @@ function isTransientPostgrestError(
   const code = String(err.code ?? '');
   const status = Number(err.status ?? 0);
   return (
+    status === 500 ||
     status === 502 ||
     status === 503 ||
     status === 504 ||
+    code === '500' ||
     code === '502' ||
     code === '503' ||
     code === '504' ||
     msg.includes('504') ||
     msg.includes('502') ||
     msg.includes('503') ||
+    msg.includes('500') ||
     msg.includes('timeout') ||
     msg.includes('timed out') ||
     msg.includes('fetch failed') ||
     msg.includes('network') ||
     msg.includes('connection') ||
-    msg.includes('gateway')
+    msg.includes('gateway') ||
+    msg.includes('failed to get project config') ||
+    msg.includes('internal server error')
   );
 }
 
@@ -597,32 +628,40 @@ Deno.serve(async (req: Request) => {
 
   const appUrl = normalizeAppUrl(Deno.env.get('APP_URL'), 'http://localhost:4200');
   const pushTitle = 'Prayer reminder';
+  const dispatchBody = await readDispatchInvokeBody(req);
 
   try {
-    const { data: adminRow, error: adminErr } = await withRetry(
-      'admin_settings',
-      () =>
-        supabase
-          .from('admin_settings')
-          .select('user_hourly_prayer_reminder_template_key')
-          .eq('id', 1)
-          .maybeSingle()
-    );
+    const dispatchTemplateKey = requestedTemplateKeyFromDispatchBody(dispatchBody);
+    let requestedTemplateKey: string;
 
-    if (adminErr) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to load admin settings', details: adminErr.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    if (dispatchTemplateKey !== null) {
+      requestedTemplateKey = dispatchTemplateKey;
+    } else {
+      const { data: adminRow, error: adminErr } = await withRetry(
+        'admin_settings',
+        () =>
+          supabase
+            .from('admin_settings')
+            .select('user_hourly_prayer_reminder_template_key')
+            .eq('id', 1)
+            .maybeSingle()
       );
-    }
 
-    const rawTemplateKey = (
-      adminRow as { user_hourly_prayer_reminder_template_key?: string | null } | null
-    )?.user_hourly_prayer_reminder_template_key;
-    const requestedTemplateKey =
-      typeof rawTemplateKey === 'string' && rawTemplateKey.trim()
-        ? rawTemplateKey.trim()
-        : DEFAULT_HOURLY_TEMPLATE_KEY;
+      if (adminErr) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to load admin settings', details: adminErr.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const rawTemplateKey = (
+        adminRow as { user_hourly_prayer_reminder_template_key?: string | null } | null
+      )?.user_hourly_prayer_reminder_template_key;
+      requestedTemplateKey =
+        typeof rawTemplateKey === 'string' && rawTemplateKey.trim()
+          ? rawTemplateKey.trim()
+          : DEFAULT_HOURLY_TEMPLATE_KEY;
+    }
 
     let hourlyTemplate: EmailTemplateRow | null = null;
     let activeTemplateKey = requestedTemplateKey;

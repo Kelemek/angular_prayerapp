@@ -432,8 +432,8 @@ supabase functions deploy send-notification --no-verify-jwt
 
 **What production should use now** (migration [`20260914183000_dispatch_user_reminders.sql`](../supabase/migrations/20260914183000_dispatch_user_reminders.sql) + redeploy):
 
-1. One pg_cron job **`invoke-dispatch-user-reminders`** → Edge **`dispatch-user-reminders`**, which runs **prayer hourly → memorization hourly → per-item reminders** sequentially.
-2. Phase functions retry transient PostgREST 502/503/504s on settings, templates, due-now RPCs, batch reads, and **`memorized_items`** (memorization).
+1. One pg_cron job **`invoke-dispatch-user-reminders`** → Edge **`dispatch-user-reminders`**, which loads **`admin_settings` template keys once** (with retry), pauses between phases, retries failed phase invokes once, and runs **prayer hourly → memorization hourly → per-item reminders** sequentially.
+2. Phase functions retry transient PostgREST **502/503/504/500** (including **`Failed to get project config`**) on settings, templates, due-now RPCs, batch reads, and **`memorized_items`** (memorization). Prayer/memorization skip their own `admin_settings` read when the dispatcher passes template keys in the invoke body.
 3. Memorization **spotlight-template email is skipped** if `memorized_items` still fails after retries (push may still use the generic body).
 4. Failed `admin_settings` or primary `email_templates` read after retries → HTTP 500 for that phase (no send).
 
