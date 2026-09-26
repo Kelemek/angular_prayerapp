@@ -1,14 +1,18 @@
 // @ts-nocheck - Deno Edge Function
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0'
+import { hashVerificationCode } from './verification-code-hash.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-// Generate a random code of specified length
 function generateCode(length: number = 6): string {
-  const min = Math.pow(10, length - 1);
-  const max = Math.pow(10, length) - 1;
-  return Math.floor(min + Math.random() * (max - min + 1)).toString();
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += (bytes[i] % 10).toString();
+  }
+  return code;
 }
 
 Deno.serve(async (req: Request) => {
@@ -133,17 +137,18 @@ Deno.serve(async (req: Request) => {
     // Calculate expiry time (15 minutes from now)
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    // Store verification code in database
+    // Store a hash. The email still contains the code; the table does not.
+    const codeHash = await hashVerificationCode(code, SUPABASE_SERVICE_ROLE_KEY);
     const { data: codeRecord, error: insertError } = await supabase
       .from('verification_codes')
       .insert({
         email: emailNormalized,
-        code,
+        code: codeHash,
         action_type: actionType,
         action_data: actionData,
         expires_at: expiresAt
       })
-      .select()
+      .select('id, expires_at')
       .single();
 
     if (insertError) {

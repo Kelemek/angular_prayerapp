@@ -1,7 +1,9 @@
 // @ts-nocheck - Deno Edge Function
+import { hashVerificationCode, verificationCodesMatch } from './verification-code-hash.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const CODE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req: Request) => {
   // Handle CORS
@@ -66,11 +68,23 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (!CODE_ID_PATTERN.test(codeId)) {
+      return new Response(JSON.stringify({
+        error: 'Invalid verification code',
+        details: 'The code you entered is incorrect'
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+
     console.log(`🔍 Looking up verification code: ${codeId}`);
 
-    // Fetch the verification code from database
     const fetchResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/verification_codes?id=eq.${codeId}&code=eq.${code}&select=*`,
+      `${SUPABASE_URL}/rest/v1/verification_codes?id=eq.${encodeURIComponent(codeId)}&select=id,email,code,action_type,action_data,expires_at,used_at`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_ROLE_KEY,
@@ -104,6 +118,20 @@ Deno.serve(async (req: Request) => {
     }
 
     const verificationRecord = records[0];
+    const computedHash = await hashVerificationCode(code, SUPABASE_SERVICE_ROLE_KEY);
+    if (!verificationCodesMatch(String(verificationRecord.code ?? ''), computedHash)) {
+      console.log('❌ Invalid code or code ID');
+      return new Response(JSON.stringify({
+        error: 'Invalid verification code',
+        details: 'The code you entered is incorrect'
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
 
     // Check if code has already been used
     if (verificationRecord.used_at) {

@@ -145,6 +145,17 @@ supabase db push
 # SQL Editor > Run migrations manually
 ```
 
+### Login verification codes
+
+Migration [`20260926170000_lock_verification_codes.sql`](../supabase/migrations/20260926170000_lock_verification_codes.sql) removes public access to `verification_codes`. It is applied on the **test** project `jcdhajfqtzipltvfslhu` ([`environment.ts`](../src/environments/environment.ts)). Production `eqiafsygvfaifhoaewxi` is unchanged until you apply the same migration there on purpose. After applying, redeploy the two functions that still use the table:
+
+```bash
+supabase functions deploy send-verification-code --project-ref jcdhajfqtzipltvfslhu
+supabase functions deploy verify-code --project-ref jcdhajfqtzipltvfslhu
+```
+
+Anyone with a code already on screen should request a new one. No new secret is required: the hash pepper is the existing service-role key.
+
 ### User prayer / memorization / per-prayer reminders (Vault + pg_cron)
 
 Migration `20260803160000_reminder_quarter_hour_and_prayer_item_reminders.sql` upgrades Settings prayer and memorization slots to **15-minute** matching, reschedules jobs **`invoke-user-hourly-prayer-reminders`** and **`invoke-user-hourly-memorization-reminders`** to **`*/15 * * * *` UTC**, adds **`invoke-user-prayer-item-reminders`** for per-prayer reminders (Edge Function `send-user-prayer-item-reminders`, including latest-update email HTML), and installs triggers that remove per-prayer reminder rows when a prayer is deleted, archived, or answered. It is **safe to re-run** in the SQL editor. Apply **`20260805120000_reminder_item_followups.sql`** after that (idempotent): prompt reminders, purge RPC lockdown, unique schedule indexes, per-channel delivery columns, and partial-retry due-now RPC. Redeploy `send-user-prayer-item-reminders` after applying.

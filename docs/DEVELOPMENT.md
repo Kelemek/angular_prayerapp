@@ -89,7 +89,7 @@ src/
 
 The **login page** (`/login`) handles MFA email verification and first-time subscriber registration:
 
-- **MFA flow**: Email → verification code → post-verify routing (existing subscriber, registration form, or pending approval).
+- **MFA flow**: Email → verification code → post-verify routing (existing subscriber, registration form, or pending approval). [`send-verification-code`](../supabase/functions/send-verification-code/index.ts) emails the code and stores an HMAC-SHA256 of it (pepper is the service-role key; see [`verification-code-hash.ts`](../src/lib/verification-code-hash.ts)). [`verify-code`](../supabase/functions/verify-code/index.ts) compares that hash. `verification_codes` has no anon or authenticated grants. Manual backup skips that table.
 - **Phase model**: [`login-phase.ts`](src/app/lib/login-phase.ts) defines `LoginPhase` (`email`, `mfa`, `registration`, `pending_approval`, `blocked`). The template switches on `phase.kind`; `?blocked=true` can show the blocked UI even on the email phase.
 - **Coordinators** (page-scoped providers on [`login.component.ts`](src/app/pages/login/login.component.ts)):
   - [`login-mfa.coordinator.ts`](src/app/services/login-mfa.coordinator.ts) — send/verify/resend MFA, `sessionStorage` restore, code sanitization, post-verify phase transitions.

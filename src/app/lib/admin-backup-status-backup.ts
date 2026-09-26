@@ -19,8 +19,12 @@ const FALLBACK_BACKUP_TABLES = [
   'prayers',
   'update_deletion_requests',
   'user_preferences',
-  'verification_codes',
 ];
+
+/** Login codes are service-role only. Manual backup uses the anon key. */
+export function tablesForManualBackup(tables: string[]): string[] {
+  return tables.filter((table) => table !== 'verification_codes');
+}
 
 export type ManualBackupSuccess = {
   ok: true;
@@ -99,6 +103,7 @@ export async function runManualBackup(
     console.warn('Falling back to hardcoded table list. Error:', error);
     tables = FALLBACK_BACKUP_TABLES;
   }
+  tables = tablesForManualBackup(tables);
 
   console.log(`Backing up ${tables.length} tables:`, tables);
 

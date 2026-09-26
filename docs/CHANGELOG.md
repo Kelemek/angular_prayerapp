@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Login codes are no longer readable with the public key
+- Migration [`20260926170000_lock_verification_codes.sql`](../supabase/migrations/20260926170000_lock_verification_codes.sql) drops the public `verification_codes` policies, revokes anon and authenticated grants, clears stored codes, and limits `cleanup_expired_verification_codes` to the service role.
+- [`send-verification-code`](../supabase/functions/send-verification-code/index.ts) stores an HMAC-SHA256 of the code (keyed with the service-role secret). [`verify-code`](../supabase/functions/verify-code/index.ts) compares that hash. The email still contains the code. Manual backup skips this table ([`admin-backup-status-backup.ts`](../src/app/lib/admin-backup-status-backup.ts)).
+- **Test database** [`jcdhajfqtzipltvfslhu`](https://jcdhajfqtzipltvfslhu.supabase.co) (see [`environment.ts`](../src/environments/environment.ts)): migration applied there. Redeploy `send-verification-code` and `verify-code` to that project. Production [`eqiafsygvfaifhoaewxi`](https://eqiafsygvfaifhoaewxi.supabase.co) is unchanged. Codes already issued on the updated database stop working; people request a new one. Rotating the service-role key does the same for codes still in the 15-minute window.
+
 ### Reminder dispatch — single cron, sequential Edge phases
 - **pg_cron** now runs one job **`invoke-dispatch-user-reminders`** (`*/15 * * * *`) instead of three parallel jobs. It POSTs to Edge Function [`dispatch-user-reminders`](../supabase/functions/dispatch-user-reminders/index.ts), which invokes **prayer hourly → memorization hourly → per-item reminders** in order (each function stays self-contained; no shared Edge modules).
 - Migration [`20260914183000_dispatch_user_reminders.sql`](../supabase/migrations/20260914183000_dispatch_user_reminders.sql). pg_net timeout **360s** for the dispatcher HTTP call.
