@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Bible passage picker — scripture hover preview on verses
+- Verse numbers in [`bible-passage-picker-modal`](src/app/components/bible-passage-picker-modal/bible-passage-picker-modal.component.ts) use the same [`scripture-hover-preview`](src/app/components/scripture-hover-preview/scripture-hover-preview.component.ts) as Memorize cards (desktop hover / mobile long-press). Tap still selects the verse range for Add Verses, Memorize Recommendations, and **Verse Memorization of the Week**. Escape closes the preview before the picker; touch scroll inside the portaled popover is allowed while the picker is open.
+
 ### Login codes are no longer readable with the public key
 - Migration [`20260926170000_lock_verification_codes.sql`](../supabase/migrations/20260926170000_lock_verification_codes.sql) drops the public `verification_codes` policies, revokes anon and authenticated grants, clears stored codes, and limits `cleanup_expired_verification_codes` to the service role.
 - [`send-verification-code`](../supabase/functions/send-verification-code/index.ts) stores an HMAC-SHA256 of the code (keyed with the service-role secret). [`verify-code`](../supabase/functions/verify-code/index.ts) compares that hash. The email still contains the code. Manual backup skips this table ([`admin-backup-status-backup.ts`](../src/app/lib/admin-backup-status-backup.ts)).

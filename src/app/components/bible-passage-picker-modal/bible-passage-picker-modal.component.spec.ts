@@ -1,9 +1,27 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { render, screen } from '@testing-library/angular';
+import userEvent from '@testing-library/user-event';
 import { BiblePassagePickerModalComponent } from './bible-passage-picker-modal.component';
 import { BIBLE_BOOKS_PUBLIC } from '../../lib/memorization/bibleCanonPublic';
 import { MemorizationService } from '../../services/memorization.service';
+import { ScriptureService } from '../../services/scripture.service';
+import { resolveScriptureHoverPreviewComponentResources } from '../scripture-hover-preview/scripture-hover-preview-component-resources.spec-helper';
+
+beforeAll(async () => {
+  await resolveScriptureHoverPreviewComponentResources();
+});
+
+const mockScriptureService = {
+  getPassage: vi.fn(() =>
+    Promise.resolve({
+      reference: 'Romans 8:1',
+      text: 'There is therefore now no condemnation',
+      translation: 'esv',
+    })
+  ),
+  getAudioUrl: vi.fn(),
+};
 
 const mockMemorization = {
   getPreferredTranslation: vi.fn(() => 'esv' as const),
@@ -14,7 +32,10 @@ function createPicker(): BiblePassagePickerModalComponent {
   TestBed.resetTestingModule();
   TestBed.configureTestingModule({
     imports: [BiblePassagePickerModalComponent],
-    providers: [{ provide: MemorizationService, useValue: mockMemorization }],
+    providers: [
+      { provide: MemorizationService, useValue: mockMemorization },
+      { provide: ScriptureService, useValue: mockScriptureService },
+    ],
   });
   return TestBed.createComponent(BiblePassagePickerModalComponent).componentInstance;
 }
@@ -191,6 +212,44 @@ describe('BiblePassagePickerModalComponent', () => {
     expect(close).not.toHaveBeenCalled();
   });
 
+  it('onEscape does not close modal while scripture hover popover is open', () => {
+    component.isOpen = true;
+    const popover = document.createElement('div');
+    popover.setAttribute('data-scripture-hover-popover', '');
+    document.body.appendChild(popover);
+    const close = vi.fn();
+    component.close.subscribe(close);
+    component.onEscape();
+    expect(close).not.toHaveBeenCalled();
+    popover.remove();
+  });
+
+  it('verseHoverReference builds a single-verse reference', () => {
+    component.selectedBookId = romans.id;
+    component.selectedBookName = romans.name;
+    component.selectedChapterNum = 8;
+    expect(component.verseHoverReference(28)).toBe('Romans 8:28');
+  });
+
+  it('verseHoverReference returns empty when chapter is not selected', () => {
+    expect(component.verseHoverReference(1)).toBe('');
+  });
+
+  it('allows touchmove inside a body-portaled scripture hover popover', () => {
+    component.isOpen = true;
+    const popover = document.createElement('div');
+    popover.setAttribute('data-scripture-hover-popover', '');
+    const inner = document.createElement('span');
+    popover.appendChild(inner);
+    document.body.appendChild(popover);
+    const event = new TouchEvent('touchmove', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'target', { value: inner, writable: false });
+    const preventSpy = vi.spyOn(event, 'preventDefault');
+    component.onModalTouchMove(event);
+    expect(preventSpy).not.toHaveBeenCalled();
+    popover.remove();
+  });
+
   it('scrolls expanded book row into view in the book list scroller', () => {
     const scroller = document.createElement('div');
     const row = document.createElement('div');
@@ -301,7 +360,10 @@ describe('BiblePassagePickerModalComponent', () => {
     const { fixture } = await render(BiblePassagePickerModalComponent, {
       componentInputs: { isOpen: true },
       container: viewport,
-      providers: [{ provide: MemorizationService, useValue: mockMemorization }],
+      providers: [
+        { provide: MemorizationService, useValue: mockMemorization },
+        { provide: ScriptureService, useValue: mockScriptureService },
+      ],
     });
 
     expect(viewport.style.overflow).toBe('hidden');
@@ -325,7 +387,10 @@ describe('BiblePassagePickerModalComponent', () => {
 
     const { fixture } = await render(BiblePassagePickerModalComponent, {
       componentInputs: { isOpen: true },
-      providers: [{ provide: MemorizationService, useValue: mockMemorization }],
+      providers: [
+        { provide: MemorizationService, useValue: mockMemorization },
+        { provide: ScriptureService, useValue: mockScriptureService },
+      ],
     });
 
     expect(document.documentElement.style.overflow).toBe('hidden');
@@ -341,7 +406,10 @@ describe('BiblePassagePickerModalComponent', () => {
   it('blocks touchmove on footer chrome (e.g. Add button) while open', async () => {
     const { fixture } = await render(BiblePassagePickerModalComponent, {
       componentInputs: { isOpen: true, confirmLabel: 'Add' },
-      providers: [{ provide: MemorizationService, useValue: mockMemorization }],
+      providers: [
+        { provide: MemorizationService, useValue: mockMemorization },
+        { provide: ScriptureService, useValue: mockScriptureService },
+      ],
     });
     const addButton = screen.getByRole('button', { name: 'Add' });
     const event = new TouchEvent('touchmove', { bubbles: true, cancelable: true });
@@ -356,10 +424,39 @@ describe('BiblePassagePickerModalComponent', () => {
   it('renders dialog when isOpen', async () => {
     await render(BiblePassagePickerModalComponent, {
       componentInputs: { isOpen: true, confirmLabel: 'Add' },
-      providers: [{ provide: MemorizationService, useValue: mockMemorization }],
+      providers: [
+        { provide: MemorizationService, useValue: mockMemorization },
+        { provide: ScriptureService, useValue: mockScriptureService },
+      ],
     });
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByText('Pick Chapter')).toBeTruthy();
+  });
+
+  it('wraps verse buttons in scripture hover preview after a chapter is selected', async () => {
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb(0);
+      return 0;
+    });
+    Element.prototype.scrollIntoView = vi.fn();
+    const user = userEvent.setup();
+    const { container, fixture } = await render(BiblePassagePickerModalComponent, {
+      componentInputs: { isOpen: true, confirmLabel: 'Add' },
+      providers: [
+        { provide: MemorizationService, useValue: mockMemorization },
+        { provide: ScriptureService, useValue: mockScriptureService },
+      ],
+    });
+    await user.click(screen.getByRole('tab', { name: 'New Testament' }));
+    await user.click(screen.getByRole('button', { name: 'Romans' }));
+    const ch = romans.chapters[0]!;
+    const chapterButton = container.querySelector<HTMLButtonElement>(
+      `[data-chapter-id="${ch.id}"]`
+    );
+    expect(chapterButton).toBeTruthy();
+    await user.click(chapterButton!);
+    fixture.detectChanges();
+    expect(container.querySelectorAll('app-scripture-hover-preview').length).toBe(ch.verseCount);
   });
   });
 });

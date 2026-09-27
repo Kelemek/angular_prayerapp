@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BibleTranslationPickerComponent } from '../bible-translation-picker/bible-translation-picker.component';
+import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scripture-hover-preview.component';
 import { BIBLE_BOOKS_PUBLIC } from '../../lib/memorization/bibleCanonPublic';
 import { buildBiblePassageReference } from '../../lib/memorization/buildBiblePassageReference';
 import type { BibleBookPublic } from '../../lib/memorization/bible-structure-types';
@@ -26,7 +27,7 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
 @Component({
   selector: 'app-bible-passage-picker-modal',
   standalone: true,
-  imports: [CommonModule, BibleTranslationPickerComponent],
+  imports: [CommonModule, BibleTranslationPickerComponent, ScriptureHoverPreviewComponent],
   styles: [
     `
       .picker-book-list {
@@ -162,16 +163,22 @@ const TESTAMENT_KEY = 'prayer_app_memorize_add_testament';
                     @if (verseNumbers.length > 0) {
                     <div class="grid grid-cols-[repeat(auto-fill,minmax(3.5rem,1fr))] gap-2">
                       @for (n of verseNumbers; track n) {
-                      <button
-                        type="button"
-                        (click)="onVerseClick(n)"
-                        class="w-full min-h-[44px] px-2 py-2 text-sm rounded-lg border cursor-pointer transition-colors inline-flex items-center justify-center touch-manipulation"
-                        [class]="inRange(n)
-                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-600 dark:border-blue-500'
-                          : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                      <app-scripture-hover-preview
+                        class="block w-full"
+                        [reference]="verseHoverReference(n)"
+                        [translation]="translation"
                       >
-                        {{ n }}
-                      </button>
+                        <button
+                          type="button"
+                          (click)="onVerseClick(n)"
+                          class="w-full min-h-[44px] px-2 py-2 text-sm rounded-lg border cursor-pointer transition-colors inline-flex items-center justify-center touch-manipulation"
+                          [class]="inRange(n)
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-600 dark:border-blue-500'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        >
+                          {{ n }}
+                        </button>
+                      </app-scripture-hover-preview>
                       }
                     </div>
                     }
@@ -219,7 +226,7 @@ export class BiblePassagePickerModalComponent implements OnChanges, OnDestroy {
   private htmlPreviousOverflow = '';
 
   private readonly blockModalTouchMove = (event: TouchEvent): void => {
-    if (!this.isOpen || this.isBookListTouch(event)) return;
+    if (!this.isOpen || this.isAllowedScrollTouch(event)) return;
     event.preventDefault();
   };
 
@@ -315,7 +322,27 @@ export class BiblePassagePickerModalComponent implements OnChanges, OnDestroy {
       this.translationPicker.closeDropdown();
       return;
     }
+    if (document.querySelector('[data-scripture-hover-popover]')) {
+      return;
+    }
     this.close.emit();
+  }
+
+  verseHoverReference(verseNum: number): string {
+    if (
+      this.selectedBookId === null ||
+      this.selectedChapterNum === null ||
+      !this.selectedBookName
+    ) {
+      return '';
+    }
+    return buildBiblePassageReference(
+      this.selectedBookId,
+      this.selectedBookName,
+      this.selectedChapterNum,
+      verseNum,
+      null
+    );
   }
 
   onTranslationChanged(next: BibleTranslation): void {
@@ -492,13 +519,19 @@ export class BiblePassagePickerModalComponent implements OnChanges, OnDestroy {
     document.documentElement.style.overflow = this.htmlPreviousOverflow;
   }
 
-  private isBookListTouch(event: TouchEvent): boolean {
+  /**
+   * Allow scroll inside the book list or a body-portaled scripture hover preview
+   * (long-press popover lives outside the modal panel).
+   */
+  private isAllowedScrollTouch(event: TouchEvent): boolean {
+    if (!(event.target instanceof Node)) return false;
     const scroller = this.bookListScroller?.nativeElement;
-    return !!(
-      scroller &&
-      event.target instanceof Node &&
-      scroller.contains(event.target)
-    );
+    if (scroller?.contains(event.target)) return true;
+    const el =
+      event.target instanceof Element
+        ? event.target
+        : event.target.parentElement;
+    return !!el?.closest('[data-scripture-hover-popover]');
   }
 
   private findPageScrollContainer(): HTMLElement {
