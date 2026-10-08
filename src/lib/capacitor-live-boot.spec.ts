@@ -1,16 +1,22 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   CAPACITOR_LIVE_ORIGIN,
   buildLiveRedirectUrl,
+  getBundledLiveRedirectAttemptsForTesting,
   isCapacitorBundledBootOrigin,
   isCapacitorDevWebViewOrigin,
   isOnCapacitorLiveHost,
   maybeRedirectNativeToLiveSite,
+  maybeReloadNativeLiveWebIfStale,
   probeLiveOriginReachable,
+  resetCapacitorLiveBootStateForTesting,
   shouldAttemptLiveRedirect,
 } from './capacitor-live-boot';
 
 describe('capacitor-live-boot', () => {
+  afterEach(() => {
+    resetCapacitorLiveBootStateForTesting();
+  });
   it('detects bundled Capacitor boot origins', () => {
     expect(isCapacitorBundledBootOrigin('capacitor://localhost', 'localhost')).toBe(
       true
@@ -117,5 +123,104 @@ describe('capacitor-live-boot', () => {
     });
     expect(redirected).toBe(true);
     expect(replace).toHaveBeenCalledWith('https://cpprayer.cp-church.org/');
+  });
+
+  it('maybeRedirectNativeToLiveSite does not increment attempts when redirect is in flight', async () => {
+    const fetchFn = vi.fn().mockImplementation(() => new Promise(() => {}));
+    const location = {
+      pathname: '/',
+      search: '',
+      hash: '',
+      replace: vi.fn(),
+    } as Location;
+    const opts = {
+      isNative: true,
+      origin: 'https://localhost',
+      hostname: 'localhost',
+      location,
+      liveOrigin: CAPACITOR_LIVE_ORIGIN,
+      fetchFn,
+      timeoutMs: 1000,
+    };
+    void maybeRedirectNativeToLiveSite(opts);
+    const second = await maybeRedirectNativeToLiveSite(opts);
+    expect(second).toBe(false);
+    expect(getBundledLiveRedirectAttemptsForTesting()).toBe(1);
+  });
+
+  it('maybeRedirectNativeToLiveSite skips reachability probe on second attempt when online', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    const replace = vi.fn();
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, type: 'basic' })
+      .mockResolvedValueOnce({ ok: false, type: 'opaque' });
+    const location = {
+      pathname: '/',
+      search: '',
+      hash: '',
+      replace,
+    } as Location;
+    const opts = {
+      isNative: true,
+      origin: 'https://localhost',
+      hostname: 'localhost',
+      location,
+      liveOrigin: CAPACITOR_LIVE_ORIGIN,
+      fetchFn,
+      timeoutMs: 1000,
+    };
+    await maybeRedirectNativeToLiveSite(opts);
+    expect(fetchFn).toHaveBeenCalled();
+    fetchFn.mockClear();
+    await maybeRedirectNativeToLiveSite({
+      ...opts,
+      location: { ...location, replace: vi.fn() },
+    });
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(getBundledLiveRedirectAttemptsForTesting()).toBe(2);
+    vi.unstubAllGlobals();
+  });
+
+  it('maybeRedirectNativeToLiveSite can skip reachability probe when requested', async () => {
+    const replace = vi.fn();
+    const fetchFn = vi.fn();
+    const redirected = await maybeRedirectNativeToLiveSite({
+      isNative: true,
+      origin: 'https://localhost',
+      hostname: 'localhost',
+      location: {
+        pathname: '/',
+        search: '',
+        hash: '',
+        replace,
+      } as Location,
+      liveOrigin: CAPACITOR_LIVE_ORIGIN,
+      fetchFn,
+      timeoutMs: 1000,
+      skipReachabilityProbe: true,
+    });
+    expect(redirected).toBe(true);
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith('https://cpprayer.cp-church.org/');
+  });
+
+  it('maybeReloadNativeLiveWebIfStale reloads when remote revision differs', async () => {
+    const reload = vi.fn();
+    vi.stubGlobal('location', { reload });
+    sessionStorage.clear();
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'newsha1\n',
+    });
+    const reloaded = await maybeReloadNativeLiveWebIfStale({
+      liveOrigin: CAPACITOR_LIVE_ORIGIN,
+      fetchFn,
+      timeoutMs: 1000,
+      currentRevision: 'oldsha1',
+    });
+    expect(reloaded).toBe(true);
+    expect(reload).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

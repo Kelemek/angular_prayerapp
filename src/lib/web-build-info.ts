@@ -1,7 +1,7 @@
 import { APP_BUNDLE_VERSION } from './app-analytics-context';
 
 /** Git short SHA (or `local`) baked in at build/serve time — see `scripts/write-web-build-info.mjs`. */
-export const WEB_BUILD_REVISION = '847998b';
+export const WEB_BUILD_REVISION = '0a9594b';
 
 export function formatWebBuildLabel(
   bundleVersion: string,

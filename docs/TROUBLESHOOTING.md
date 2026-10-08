@@ -317,6 +317,16 @@ VALUES ('prayer2024', 'admin@example.com');
 
 ## UI/Display Issues
 
+### Native app shows old UI but Safari shows the latest deploy
+
+The iOS/Android shell often boots from **bundled** web (`https://localhost` inside the app), not Vercel. It should redirect to `https://cpprayer.cp-church.org` when online; if that fails once, you can stay on an old bundle until a foreground retry or reload runs ([`capacitor-live-boot.ts`](../src/lib/capacitor-live-boot.ts)).
+
+**Check**: In Safari, open Settings and note the footer build string (`3.0.<sha>`). Compare to [`https://cpprayer.cp-church.org/build-revision.txt`](https://cpprayer.cp-church.org/build-revision.txt) after deploy.
+
+**Try**: Force-quit the app, reopen on Wi‑Fi, wait a few seconds, then **switch away and back** once (foreground retry). If you are already on the live host but stale, the app reloads when `/build-revision.txt` no longer matches the running bundle.
+
+**Still stuck**: Ship a new native build (`npm run cap:prod`) so the embedded bundle matches, or use Safari until redirect succeeds.
+
 ### Name Disappearing in Settings
 
 **Cause**: Race condition between localStorage and database

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outPath = join(__dirname, '../src/lib/web-build-info.ts');
+const publicRevisionPath = join(__dirname, '../public/build-revision.txt');
 
 function shortSha(fullSha) {
   if (!fullSha || typeof fullSha !== 'string') {
@@ -60,4 +61,5 @@ export function getWebBuildLabel(): string {
 `;
 
 writeFileSync(outPath, contents, 'utf8');
+writeFileSync(publicRevisionPath, `${revision}\n`, 'utf8');
 console.log(`[write-web-build-info] WEB_BUILD_REVISION=${revision}`);

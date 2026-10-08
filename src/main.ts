@@ -16,6 +16,7 @@ import { providePostHogErrorHandler } from "./app/posthog-error-handler";
 import {
   CAPACITOR_LIVE_ORIGIN,
   maybeRedirectNativeToLiveSite,
+  startCapacitorLiveBootWatch,
 } from "./lib/capacitor-live-boot";
 import {
   hydrateLocalStorageFromNativeAuthBridge,
@@ -176,16 +177,20 @@ void (async () => {
   if (!isNative) {
     return;
   }
-  void maybeRedirectNativeToLiveSite({
+  const liveBootOptions = {
     isNative,
-    origin: window.location.origin,
-    hostname: window.location.hostname,
-    location: window.location,
     liveOrigin: CAPACITOR_LIVE_ORIGIN,
     fetchFn: fetch,
     timeoutMs: 8000,
     beforeRedirect: () => syncNativeAuthBridgeBeforeLiveRedirect(),
+  };
+  void maybeRedirectNativeToLiveSite({
+    ...liveBootOptions,
+    origin: window.location.origin,
+    hostname: window.location.hostname,
+    location: window.location,
   }).catch((error) => {
     console.error("[AppInitialization] Live redirect failed:", error);
   });
+  startCapacitorLiveBootWatch(liveBootOptions);
 })();
