@@ -9,6 +9,7 @@ Major features and milestones for the Prayer App.
 
 ### Native iOS/Android — live web refresh after deploy
 - Capacitor retries **bundled → live** redirect when the app returns to foreground (second attempt skips the reachability probe when online). On the production host, compares [`/build-revision.txt`](../public/build-revision.txt) to the running bundle and reloads when Vercel has a newer deploy ([`capacitor-live-boot.ts`](../src/lib/capacitor-live-boot.ts)).
+- iOS `CURRENT_PROJECT_VERSION` is **5** (TestFlight build number; marketing version stays **3.0**). Shared Xcode Cloud workflow ids are in [`xcodecloud/manifest.json`](../ios/App/App.xcodeproj/xcshareddata/xcodecloud/manifest.json).
 
 ### Settings — account footer & web build label
 - Home header no longer shows the signed-in email / “Logged In” chip or **Admin** (sign-out stays in Settings). Settings modal footer: **Logout**, **Admin** (when `hasAdminEmail$`, same navigation as before via [`user-settings-admin-nav.ts`](src/app/lib/user-settings-admin-nav.ts)), then signed-in **name** and **email** from session (`getCurrentUserEmail()` prefers [`UserSessionService.getUserEmail()`](src/app/services/user-session.service.ts) over stale `prayerapp_user_email`), then web build `3.0.<git-short-sha>`. See [`web-build-info.ts`](src/lib/web-build-info.ts) and [`scripts/write-web-build-info.mjs`](scripts/write-web-build-info.mjs).
