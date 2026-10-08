@@ -33,8 +33,11 @@ import {
   clearNativeAuthBridge,
   isLocalAuthBridgeRevoked,
   isNativeAuthBridgeRevoked,
+  markLocalAuthSessionActive,
   mfaEmailConflictsWithSession,
   persistNativeAuthBridgeFromLocalStorage,
+  readLocalAuthSessionAt,
+  revokeLocalAuthBridge,
 } from '../../lib/native-auth-storage-bridge';
 
 /** getSession on the iOS WebView can hang; the site guard will not render until loading$ is false. */
@@ -77,6 +80,13 @@ export class AdminAuthService {
   private sessionStart: number | null = null;
   private adminSessionStart: number | null = null;
   private lastBlockedCheck = 0;
+  /**
+   * User tapped log out. Hung getSession/signOut must not sign them back in
+   * or bounce them off /login via leaveLoginAfterRestoredSession.
+   */
+  private ignoreSessionRestore = false;
+  /** Bumped on logout and on a successful code login so an older logout tail stops. */
+  private sessionEpoch = 0;
   private readonly subscriberAuthLinkByEmail = new Map<string, Promise<void>>();
   private restoreBudgetTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -132,9 +142,29 @@ export class AdminAuthService {
     this.leaveLoginAfterRestoredSession();
   }
 
+  /** Logout won, including a same-origin revoke stamped while init was awaiting native I/O. */
+  private logoutBlocksSessionRestore(): boolean {
+    return this.ignoreSessionRestore || isLocalAuthBridgeRevoked();
+  }
+
+  /** A logout must stick even if restore or onAuthStateChange still has a session. */
+  private acceptRestoredUser(user: User): void {
+    if (this.ignoreSessionRestore) {
+      return;
+    }
+    this.userSubject.next(user);
+  }
+
+  private acceptAuthenticated(value: boolean): void {
+    if (value && this.ignoreSessionRestore) {
+      return;
+    }
+    this.isAuthenticatedSubject.next(value);
+  }
+
   /** Returning native sessions often have MFA email before getSession answers. */
   private applyLocalMfaSessionIfPresent(): void {
-    if (isLocalAuthBridgeRevoked()) {
+    if (this.ignoreSessionRestore || isLocalAuthBridgeRevoked()) {
       return;
     }
     const mfaEmail =
@@ -142,8 +172,8 @@ export class AdminAuthService {
     if (!mfaEmail) {
       return;
     }
-    this.userSubject.next(buildMfaMockUser(mfaEmail));
-    this.isAuthenticatedSubject.next(true);
+    this.acceptRestoredUser(buildMfaMockUser(mfaEmail));
+    this.acceptAuthenticated(true);
     if (!this.sessionStart) {
       this.sessionStart = this.getPersistedSessionStart() || Date.now();
       this.persistSessionStart(this.sessionStart);
@@ -196,13 +226,15 @@ export class AdminAuthService {
       );
     }
 
-    const bridgeRevokedOnNative = await isNativeAuthBridgeRevoked();
-    if (bridgeRevokedOnNative) {
+    const nativeBridgeRevoked = await isNativeAuthBridgeRevoked();
+    const authBridgeRevoked =
+      isLocalAuthBridgeRevoked() || nativeBridgeRevoked;
+    if (authBridgeRevoked) {
       clearMfaAuthLocalStorage();
       this.clearRestoredSessionSubjects();
       if (session) {
         console.warn(
-          '[AdminAuth] Native auth bridge revoked; clearing Supabase session'
+          '[AdminAuth] Auth bridge revoked; clearing Supabase session'
         );
         await this.signOutBounded('signOut after revoke');
         session = null;
@@ -213,7 +245,7 @@ export class AdminAuthService {
       MFA_AUTHENTICATED_EMAIL_STORAGE_KEY
     );
     if (
-      !bridgeRevokedOnNative &&
+      !authBridgeRevoked &&
       session?.user &&
       mfaEmailConflictsWithSession(bridgedMfaEmail, session.user.email)
     ) {
@@ -225,7 +257,7 @@ export class AdminAuthService {
     }
 
     const mfaEmail = bridgedMfaEmail?.trim() ?? '';
-    if (!session && mfaEmail && !bridgeRevokedOnNative) {
+    if (!session && mfaEmail && !authBridgeRevoked) {
       let refreshed: { session: Session | null } = { session: null };
       let refreshError: { message: string } | null = null;
       try {
@@ -271,7 +303,7 @@ export class AdminAuthService {
 
     const linkTargetEmail = session?.user?.email?.trim() || mfaEmail;
 
-    if (linkTargetEmail) {
+    if (linkTargetEmail && !this.logoutBlocksSessionRestore()) {
       if (mfaEmail) {
         console.log(
           '[AdminAuth] Restoring MFA authenticated session for:',
@@ -297,34 +329,45 @@ export class AdminAuthService {
       } catch (error) {
         console.warn('[AdminAuth] getSession after link failed:', error);
       }
-      const restoredUser =
-        afterLink?.user ??
-        session?.user ??
-        (mfaEmail ? buildMfaMockUser(mfaEmail) : null);
+      if (this.logoutBlocksSessionRestore()) {
+        await this.signOutBounded('signOut after logout during restore');
+      } else {
+        const restoredUser =
+          afterLink?.user ??
+          session?.user ??
+          (mfaEmail ? buildMfaMockUser(mfaEmail) : null);
 
-      if (restoredUser) {
-        await this.completeRestoredAuthSession(restoredUser);
+        if (restoredUser) {
+          await this.completeRestoredAuthSession(restoredUser);
+        }
       }
     }
 
-    // Listen for auth state changes
-    this.supabase.client.auth.onAuthStateChange(async (event, session) => {
+    // Listen for auth state changes. Do not await Supabase inside this callback:
+    // it runs under the auth lock, and a nested call deadlocks signOut().
+    this.supabase.client.auth.onAuthStateChange((_event, session) => {
       
       if (session?.user) {
-        this.userSubject.next(session.user);
+        if (this.ignoreSessionRestore || isLocalAuthBridgeRevoked()) {
+          return;
+        }
+        this.acceptRestoredUser(session.user);
         // Check admin status but don't block on failure
         this.checkAdminStatus(session.user).catch(error => {
           console.error('[AdminAuth] Error checking admin status on state change:', error);
           this.isAdminSubject.next(false);
           this.hasAdminEmailSubject.next(false);
         });
-        this.isAuthenticatedSubject.next(true);
+        this.acceptAuthenticated(true);
         
         if (!this.sessionStart) {
           this.sessionStart = Date.now();
           this.persistSessionStart(this.sessionStart);
         }
       } else {
+        if (this.ignoreSessionRestore) {
+          return;
+        }
         // Only clear auth state if we don't have an MFA authenticated user
         // MFA users don't have Supabase sessions so this listener won't find them
         const mfaAuthenticatedEmail = localStorage.getItem(
@@ -333,8 +376,6 @@ export class AdminAuthService {
         if (!mfaAuthenticatedEmail) {
           // Get user email before clearing auth state
           const userEmail = this.userSubject.value?.email;
-
-          await this.clearBadgeReadStateForLogout(userEmail);
 
           this.userSubject.next(null);
           this.isAdminSubject.next(false);
@@ -352,6 +393,11 @@ export class AdminAuthService {
           if (userEmail) {
             localStorage.removeItem(`last_activity_update_${userEmail}`);
           }
+
+          // After the auth lock is released. Awaiting this here deadlocks signOut.
+          setTimeout(() => {
+            void this.clearBadgeReadStateForLogout(userEmail);
+          }, 0);
         }
       }
     });
@@ -413,7 +459,7 @@ export class AdminAuthService {
    * have opened /login if loading$ was cleared early.
    */
   private leaveLoginAfterRestoredSession(): void {
-    if (!this.isAuthenticatedSubject.value) {
+    if (this.ignoreSessionRestore || !this.isAuthenticatedSubject.value) {
       return;
     }
     const url = this.router.url;
@@ -455,13 +501,13 @@ export class AdminAuthService {
    */
   private async completeRestoredAuthSession(user: User): Promise<void> {
     await completeRestoredAuthSessionFlow(user, {
-      setUser: (next) => this.userSubject.next(next),
+      setUser: (next) => this.acceptRestoredUser(next),
       checkAdminStatus: (next) => this.checkAdminStatus(next),
       onAdminCheckFailed: () => {
         this.isAdminSubject.next(false);
         this.hasAdminEmailSubject.next(false);
       },
-      setAuthenticated: (value) => this.isAuthenticatedSubject.next(value),
+      setAuthenticated: (value) => this.acceptAuthenticated(value),
       getPersistedSessionStart: () => this.getPersistedSessionStart(),
       persistSessionStart: (timestamp) => {
         this.sessionStart = timestamp;
@@ -525,6 +571,9 @@ export class AdminAuthService {
         timeout: 10000
       });
 
+      if (this.ignoreSessionRestore) {
+        return;
+      }
       if (!error && data && data.length > 0) {
         this.isAdminSubject.next(true);
         this.hasAdminEmailSubject.next(true);
@@ -562,7 +611,7 @@ export class AdminAuthService {
       const isBlocked = data && Array.isArray(data) && data.length > 0 && data[0]?.is_blocked;
       if (isBlocked) {
         console.log('[AdminAuth] User is blocked - logging out');
-        this.logout();
+        void this.logout({ skipNavigation: true });
         this.router.navigate(['/login'], {
           queryParams: {
             returnUrl: returnUrl || '/',
@@ -751,19 +800,27 @@ export class AdminAuthService {
         return { success: false, error: errorMessage };
       }
 
+      this.sessionEpoch += 1;
+      markLocalAuthSessionActive();
       persistAuthResumeTokenFromVerifyResponse(data);
 
+      let linkedUser: User | null = null;
       if (typeof data.hashed_token === 'string' && data.hashed_token.trim()) {
         const linked = await linkAuthSessionAfterVerify(
           this.supabase.client,
           data.hashed_token
         );
         if (linked.ok) {
-          const {
-            data: { session },
-          } = await this.supabase.client.auth.getSession();
-          if (session?.user) {
-            this.userSubject.next(session.user);
+          try {
+            const {
+              data: { session },
+            } = await this.supabase.client.auth.getSession();
+            const sessionEmail = session?.user?.email?.toLowerCase().trim();
+            if (session?.user && sessionEmail === email.toLowerCase().trim()) {
+              linkedUser = session.user;
+            }
+          } catch (error) {
+            console.warn('[AdminAuth] getSession after MFA link failed:', error);
           }
         } else {
           console.warn(
@@ -772,6 +829,14 @@ export class AdminAuthService {
           );
         }
       }
+
+      localStorage.setItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY, email);
+      if (!linkedUser) {
+        this.removeStoredSupabaseSession();
+        await this.signOutBounded('signOut stale JWT after MFA');
+      }
+      this.ignoreSessionRestore = false;
+      this.acceptRestoredUser(linkedUser ?? buildMfaMockUser(email));
 
       // Check if user is an admin
       const isAdmin = await this.isEmailAdmin(email);
@@ -816,78 +881,244 @@ export class AdminAuthService {
 
 
   /**
-   * Logout current user
+   * Logout current user.
+   * Navigation happens as soon as the local session and shared caches are cleared.
+   * signOut and Preferences can hang on iOS; they must not leave the user on a wiped home page.
+   * A code login that finishes first cancels that tail so it cannot revoke the new session.
+   * skipNavigation is for the blocked-user path, which adds its own query params.
    */
-  async logout(): Promise<void> {
-    try {
-      // Get user email before clearing auth state
-      const userEmail =
-        this.userSubject.value?.email ||
-        localStorage.getItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY);
+  async logout(options?: { skipNavigation?: boolean }): Promise<void> {
+    const userEmail =
+      this.userSubject.value?.email ||
+      localStorage.getItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY);
+    const epoch = ++this.sessionEpoch;
+    this.ignoreSessionRestore = true;
+    const loggedOutToken = this.readStoredAccessToken();
+    const sessionAtLogout = readLocalAuthSessionAt();
 
+    const goToLogin = (): void => {
+      if (options?.skipNavigation) {
+        return;
+      }
+      void this.router.navigate(['/login']);
+    };
+
+    try {
       // Remove this device's push token so we don't send notifications after logout
       try {
         const pushService = this.injector.get(PushNotificationService);
-        await pushService.removeDeviceToken();
+        await withAuthStepDeadline(
+          pushService.removeDeviceToken(),
+          'remove device token'
+        );
       } catch {
-        // Ignore if push service not available (e.g. web) or remove fails
+        // Ignore if push service not available (e.g. web) or the call hangs
       }
 
-      await this.clearBadgeReadStateForLogout(userEmail);
+      try {
+        await withAuthStepDeadline(
+          this.clearBadgeReadStateForLogout(userEmail),
+          'badge flush'
+        );
+      } catch (error) {
+        console.warn('[AdminAuth] Badge flush before logout skipped:', error);
+      }
 
-      await this.supabase.client.auth.signOut();
+      if (this.sessionEpoch !== epoch) {
+        await this.revokeLoggedOutAccessToken(loggedOutToken, epoch);
+        return;
+      }
+
       this.userSubject.next(null);
       this.isAdminSubject.next(false);
       this.isAuthenticatedSubject.next(false);
       this.sessionStart = null;
       this.persistSessionStart(null);
-      
+
       // Clear approval code session data
       localStorage.removeItem('approvalAdminEmail');
       localStorage.removeItem('approvalSessionValidated');
       localStorage.removeItem('approvalApprovalType');
       localStorage.removeItem('approvalApprovalId');
-      
-      // Clear MFA authenticated session data
+
+      // Clear MFA authenticated session data before any further native await
       localStorage.removeItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY);
       localStorage.removeItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY);
-      await clearNativeAuthBridge();
-
-      // Clear user-specific caches to prevent next user from seeing previous user's data
-      this.cacheService.invalidateCategory('personalPrayers');
-      this.cacheService.invalidateCategory('prayers');
-      this.cacheService.invalidateCategory('prompts');
-      this.cacheService.invalidateCategory('planningCenterListData');
-      this.cacheService.invalidateCategory('memberPrayerUpdates');
-      this.cacheService.invalidateCategory('badgeReadState');
-      if (userEmail) {
-        try {
-          this.injector.get(PlanningCenterListService).invalidateForUser(userEmail);
-        } catch {
-          // Ignore if service not yet available
-        }
-      }
-
-      // Clear Pray For modal "do not show again" preference so next user sees the modal if desired
       localStorage.removeItem('prayer_encouragement_modal_do_not_show');
-
-      // Clear Pray For cooldown keys so next user doesn't see previous user's cooldowns
-      try {
-        const prayerEncouragement = this.injector.get(PrayerEncouragementService);
-        prayerEncouragement.clearCooldownKeys();
-      } catch {
-        // Ignore if service not available
-      }
-      
-      // Clear analytics activity tracking for this user
       if (userEmail) {
         localStorage.removeItem(`last_activity_update_${userEmail}`);
       }
-      
-      // Always redirect to login page after logout
-      this.router.navigate(['/login']);
+
+      this.invalidateLogoutCaches(userEmail);
+      if (this.sessionEpoch === epoch && this.ignoreSessionRestore) {
+        revokeLocalAuthBridge(sessionAtLogout);
+      }
+      goToLogin();
+
+      if (this.sessionEpoch !== epoch) {
+        if (!this.ignoreSessionRestore) {
+          markLocalAuthSessionActive();
+        }
+        await this.revokeLoggedOutAccessToken(loggedOutToken, epoch);
+        return;
+      }
+      await this.revokeLoggedOutAccessToken(loggedOutToken, epoch);
+      if (this.sessionEpoch !== epoch) {
+        return;
+      }
+      await clearNativeAuthBridge();
     } catch (error) {
       console.error('Error during logout:', error);
+      if (this.sessionEpoch === epoch) {
+        goToLogin();
+      }
+    }
+  }
+
+  /** Drop shared caches before /login so a fast re-login cannot read the previous account. */
+  private invalidateLogoutCaches(userEmail: string | null): void {
+    this.cacheService.invalidateCategory('personalPrayers');
+    this.cacheService.invalidateCategory('prayers');
+    this.cacheService.invalidateCategory('prompts');
+    this.cacheService.invalidateCategory('planningCenterListData');
+    this.cacheService.invalidateCategory('memberPrayerUpdates');
+    this.cacheService.invalidateCategory('badgeReadState');
+    if (userEmail) {
+      try {
+        this.injector.get(PlanningCenterListService).invalidateForUser(userEmail);
+      } catch {
+        // Ignore if service not yet available
+      }
+    }
+    try {
+      const prayerEncouragement = this.injector.get(PrayerEncouragementService);
+      prayerEncouragement.clearCooldownKeys();
+    } catch {
+      // Ignore if service not available
+    }
+  }
+
+  /**
+   * Revoke the access token captured when logout started. A newer login may
+   * still be exchanging its OTP, so signOut() runs only when that login has
+   * not started. Storage for the old token is removed either way.
+   */
+  private async revokeLoggedOutAccessToken(
+    loggedOutToken: string | null,
+    epoch: number
+  ): Promise<void> {
+    let token = loggedOutToken;
+    if (!token && this.sessionEpoch === epoch) {
+      token = await this.readSessionAccessToken();
+      if (this.sessionEpoch !== epoch) {
+        token = loggedOutToken;
+      }
+    }
+    if (token) {
+      await this.revokeAccessToken(token);
+    }
+    const current = this.readStoredAccessToken();
+    if (token && current === token) {
+      this.removeStoredSupabaseSession();
+    }
+    if (this.sessionEpoch !== epoch) {
+      return;
+    }
+    if (token && current && current !== token) {
+      return;
+    }
+    await this.signOutBounded('signOut on logout');
+  }
+
+  private removeStoredSupabaseSession(): void {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && /^sb-.+-auth-token(?:\.\d+)?$/.test(key)) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      localStorage.removeItem(key);
+    }
+  }
+
+  /** Supabase persists the session under `sb-*-auth-token` before any await. */
+  private readStoredAccessToken(): string | null {
+    try {
+      const bases = new Set<string>();
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        const match = key?.match(/^(sb-.+-auth-token)(?:\.\d+)?$/);
+        if (match?.[1]) {
+          bases.add(match[1]);
+        }
+      }
+      for (const base of bases) {
+        const direct = localStorage.getItem(base);
+        const raw = direct ?? this.readChunkedStorage(base);
+        const token = this.accessTokenFromStoredSession(raw);
+        if (token) {
+          return token;
+        }
+      }
+    } catch (error) {
+      console.warn('[AdminAuth] Could not read stored access token:', error);
+    }
+    return null;
+  }
+
+  private readChunkedStorage(base: string): string | null {
+    let joined = '';
+    for (let i = 0; i < 8; i += 1) {
+      const part = localStorage.getItem(`${base}.${i}`);
+      if (part == null) {
+        break;
+      }
+      joined += part;
+    }
+    return joined || null;
+  }
+
+  private accessTokenFromStoredSession(raw: string | null): string | null {
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as {
+      access_token?: unknown;
+      currentSession?: { access_token?: unknown };
+    };
+    const token = parsed.access_token ?? parsed.currentSession?.access_token;
+    return typeof token === 'string' && token.length > 0 ? token : null;
+  }
+
+  private async readSessionAccessToken(): Promise<string | null> {
+    try {
+      const { data } = await withAuthStepDeadline(
+        this.supabase.client.auth.getSession(),
+        'logout getSession'
+      );
+      return data.session?.access_token ?? null;
+    } catch (error) {
+      console.warn('[AdminAuth] logout getSession failed:', error);
+      return null;
+    }
+  }
+
+  private async revokeAccessToken(accessToken: string): Promise<void> {
+    try {
+      await withAuthStepDeadline(
+        fetch(`${this.supabase.getSupabaseUrl()}/auth/v1/logout`, {
+          method: 'POST',
+          headers: {
+            apikey: this.supabase.getSupabaseKey(),
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
+        'logout token'
+      );
+    } catch (error) {
+      console.warn('[AdminAuth] Token logout failed:', error);
     }
   }
 

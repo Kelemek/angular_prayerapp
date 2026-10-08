@@ -229,12 +229,78 @@ export function isLocalAuthBridgeRevoked(): boolean {
   );
 }
 
+/** A login on this origin is newer than the logout flag. */
+function loginWinsOverLogout(): boolean {
+  return readLocalSessionAt() != null && !isLocalAuthBridgeRevoked();
+}
+
+/** This origin's login timestamp, if a session marker is present. */
+export function readLocalAuthSessionAt(): number | null {
+  return readLocalSessionAt();
+}
+
+/**
+ * Same-origin logout marker. A session timestamp newer than `sessionAtLogout`
+ * belongs to a login that won while logout was in flight, and is left in place.
+ */
+export function revokeLocalAuthBridge(sessionAtLogout?: number | null): void {
+  const sessionNow = readLocalSessionAt();
+  const baseline = sessionAtLogout === undefined ? sessionNow : sessionAtLogout;
+  if (sessionNow != null && (baseline == null || sessionNow > baseline)) {
+    return;
+  }
+  markLocalAuthBridgeRevoked();
+  const after = readLocalSessionAt();
+  if (after != null && (baseline == null || after > baseline)) {
+    markLocalSessionActive();
+  }
+}
+
+/** Clears the same-origin logout marker. Call before a new session is saved. */
+export function markLocalAuthSessionActive(): void {
+  markLocalSessionActive();
+}
+
 function markLocalAuthBridgeRevoked(): string {
   const revokedAt = String(Date.now());
   localStorage.setItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY, revokedAt);
   localStorage.removeItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY);
   localStorage.removeItem(NATIVE_AUTH_LEGACY_REVOKE_SUPERSEDED_KEY);
   return revokedAt;
+}
+
+/**
+ * Stamp logout only when this origin has not already started a newer login.
+ * The session key is removed only after a second read, so a login that lands
+ * during the stamp keeps that session.
+ */
+function claimLocalLogout(): string | null {
+  if (loginWinsOverLogout()) {
+    return null;
+  }
+  const sessionBefore = readLocalSessionAt();
+  const revokedAt = String(Date.now());
+  localStorage.setItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY, revokedAt);
+  const sessionNow = readLocalSessionAt();
+  if (sessionNow != null && sessionNow !== sessionBefore) {
+    clearLocalAuthBridgeRevoked();
+    return null;
+  }
+  localStorage.removeItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY);
+  localStorage.removeItem(NATIVE_AUTH_LEGACY_REVOKE_SUPERSEDED_KEY);
+  if (readLocalSessionAt() != null) {
+    clearLocalAuthBridgeRevoked();
+    return null;
+  }
+  return revokedAt;
+}
+
+function releaseLocalLogoutIfLoginWon(): boolean {
+  if (!loginWinsOverLogout()) {
+    return false;
+  }
+  clearLocalAuthBridgeRevoked();
+  return true;
 }
 
 function clearLocalAuthBridgeRevoked(): void {
@@ -382,10 +448,33 @@ export async function syncNativeAuthBridgeBeforeLiveRedirect(): Promise<void> {
 
 const NATIVE_LOGOUT_WRITE_ATTEMPTS = 2;
 
+async function undoNativeRevokeIfLoginWon(
+  Preferences: PreferencesApi
+): Promise<void> {
+  if (!releaseLocalLogoutIfLoginWon()) {
+    return;
+  }
+  try {
+    await withNativeTimeout(
+      Preferences.remove({ key: NATIVE_AUTH_BRIDGE_REVOKED_KEY }),
+      'Preferences.remove revoked after login'
+    );
+  } catch (error) {
+    console.warn(
+      '[NativeAuthBridge] Failed to undo revoked flag after login:',
+      error
+    );
+  }
+}
+
 async function writeNativeLogout(
   Preferences: PreferencesApi,
   revokedAt: string
 ): Promise<boolean> {
+  if (loginWinsOverLogout()) {
+    await undoNativeRevokeIfLoginWon(Preferences);
+    return false;
+  }
   let revoked = false;
   let removed = false;
   for (
@@ -393,6 +482,10 @@ async function writeNativeLogout(
     attempt < NATIVE_LOGOUT_WRITE_ATTEMPTS && (!revoked || !removed);
     attempt += 1
   ) {
+    if (loginWinsOverLogout()) {
+      await undoNativeRevokeIfLoginWon(Preferences);
+      return false;
+    }
     if (!revoked) {
       try {
         await withNativeTimeout(
@@ -400,6 +493,10 @@ async function writeNativeLogout(
           'Preferences.set revoked'
         );
         revoked = true;
+        if (loginWinsOverLogout()) {
+          await undoNativeRevokeIfLoginWon(Preferences);
+          return false;
+        }
       } catch (error) {
         console.warn('[NativeAuthBridge] Failed to set revoked flag:', error);
         if (isCapacitorUnimplementedError(error)) {
@@ -407,6 +504,10 @@ async function writeNativeLogout(
           return false;
         }
       }
+    }
+    if (loginWinsOverLogout()) {
+      await undoNativeRevokeIfLoginWon(Preferences);
+      return false;
     }
     if (!removed) {
       try {
@@ -424,6 +525,10 @@ async function writeNativeLogout(
       }
     }
   }
+  if (loginWinsOverLogout()) {
+    await undoNativeRevokeIfLoginWon(Preferences);
+    return false;
+  }
   if (revoked) {
     preferencesNativeUnavailable = false;
   }
@@ -434,11 +539,20 @@ export async function clearNativeAuthBridge(): Promise<void> {
   if (!Capacitor.isNativePlatform()) {
     return;
   }
-  // Record logout on this origin before any native call so a hung Preferences
-  // write cannot be republished into localStorage on the next cold start.
-  const revokedAt = markLocalAuthBridgeRevoked();
+  // The dynamic import yields. A code login in that turn must be visible
+  // before this tail stamps a revoke over it.
   const Preferences = await getPreferencesApi({ force: true });
+  if (releaseLocalLogoutIfLoginWon()) {
+    return;
+  }
+  const revokedAt = claimLocalLogout();
+  if (revokedAt == null) {
+    return;
+  }
   if (!Preferences) {
+    if (releaseLocalLogoutIfLoginWon()) {
+      return;
+    }
     console.warn(
       '[NativeAuthBridge] Preferences unavailable; logout kept a local revoked flag only'
     );

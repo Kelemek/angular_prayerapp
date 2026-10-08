@@ -348,15 +348,30 @@ describe('AppComponent', () => {
     });
 
     it('should trigger change detection when page becomes visible', () => {
+      Object.defineProperty(document, 'hidden', { value: true, writable: true, configurable: true });
+      component.onVisibilityChange();
+      mockCdr.markForCheck.mockClear();
+
       Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
       component.onVisibilityChange();
       expect(mockCdr.markForCheck).toHaveBeenCalled();
     });
 
     it('should detect changes when visibility changes to visible', () => {
+      Object.defineProperty(document, 'hidden', { value: true, writable: true, configurable: true });
+      component.onVisibilityChange();
+      mockCdr.detectChanges.mockClear();
+
       Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
       component.onVisibilityChange();
       expect(mockCdr.detectChanges).toHaveBeenCalled();
+    });
+
+    it('should not recover when a visibility event fires while the page is already visible', () => {
+      Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
+      mockCdr.detectChanges.mockClear();
+      component.onVisibilityChange();
+      expect(mockCdr.detectChanges).not.toHaveBeenCalled();
     });
 
     it('should handle visibility change to hidden', () => {
@@ -365,6 +380,8 @@ describe('AppComponent', () => {
     });
 
     it('should check DOM integrity when becoming visible', () => {
+      Object.defineProperty(document, 'hidden', { value: true, writable: true, configurable: true });
+      component.onVisibilityChange();
       Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
       document.querySelector = vi.fn(() => ({ contains: vi.fn(() => true) }));
       component.onVisibilityChange();
@@ -728,6 +745,10 @@ describe('AppComponent', () => {
 
   describe('Browser Compatibility', () => {
     it('should work on Safari with automatic visibility handling', () => {
+      Object.defineProperty(document, 'hidden', { value: true, writable: true, configurable: true });
+      component.onVisibilityChange();
+      mockCdr.detectChanges.mockClear();
+
       Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
       component.onVisibilityChange();
       expect(mockCdr.detectChanges).toHaveBeenCalled();
@@ -742,11 +763,42 @@ describe('AppComponent', () => {
     it('should handle page visibility changes', () => {
       Object.defineProperty(document, 'hidden', { value: true, writable: true, configurable: true });
       component.onVisibilityChange();
+      mockCdr.detectChanges.mockClear();
 
       Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
       component.onVisibilityChange();
 
-      expect(component).toBeTruthy();
+      expect(mockCdr.detectChanges).toHaveBeenCalled();
+    });
+
+    it('repaints when Safari restores a visible page from the back-forward cache', () => {
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      mockCdr.detectChanges.mockClear();
+      component.onPageShow({ persisted: true } as PageTransitionEvent);
+      expect(mockCdr.detectChanges).toHaveBeenCalled();
+    });
+
+    it('repaints on the next show when a back-forward restore happens while hidden', () => {
+      Object.defineProperty(document, 'hidden', {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+      mockCdr.detectChanges.mockClear();
+      component.onPageShow({ persisted: true } as PageTransitionEvent);
+      expect(mockCdr.detectChanges).not.toHaveBeenCalled();
+
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      expect(mockCdr.detectChanges).toHaveBeenCalled();
     });
   });
 
@@ -959,10 +1011,12 @@ describe('AppComponent', () => {
 
     it('should handle navigation and visibility change together', () => {
       vi.useFakeTimers();
-      Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
+      Object.defineProperty(document, 'hidden', { value: true, writable: true, configurable: true });
+      component.onVisibilityChange();
       const navEnd = new NavigationEnd(1, '/test', '/test');
       routerEventsSubject.next(navEnd);
 
+      Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
       component.onVisibilityChange();
       vi.runAllTimers();
 

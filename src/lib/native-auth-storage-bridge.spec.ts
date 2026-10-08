@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Capacitor } from '@capacitor/core';
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
@@ -175,6 +176,71 @@ describe('native-auth-storage-bridge', () => {
       expect.stringMatching(/^\d+$/)
     );
     vi.useRealTimers();
+  });
+
+  it('does not revoke the native bridge after a newer local login', async () => {
+    localStorage.setItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY, '9999999999999');
+    await clearNativeAuthBridge();
+    expect(preferences.set).not.toHaveBeenCalled();
+    expect(localStorage.getItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY)).toBeNull();
+    expect(localStorage.getItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY)).toBe(
+      '9999999999999'
+    );
+  });
+
+  it('does not stamp logout when a login lands while Preferences is loading', async () => {
+    vi.spyOn(Capacitor, 'isPluginAvailable').mockImplementation(() => {
+      queueMicrotask(() => {
+        localStorage.setItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY, String(Date.now() + 10));
+        localStorage.removeItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY);
+      });
+      return true;
+    });
+    preferences.set.mockResolvedValue(undefined);
+    await clearNativeAuthBridge();
+    expect(preferences.set).not.toHaveBeenCalled();
+    expect(localStorage.getItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY)).toBeNull();
+    expect(localStorage.getItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY)).toEqual(
+      expect.stringMatching(/^\d+$/)
+    );
+    vi.mocked(Capacitor.isPluginAvailable).mockRestore();
+  });
+
+  it('drops a revoke stamp when a login session appears before the session key is removed', async () => {
+    const nativeSetItem = localStorage.setItem.bind(localStorage);
+    const setItemSpy = vi
+      .spyOn(localStorage, 'setItem')
+      .mockImplementation((key: string, value: string) => {
+        nativeSetItem(key, value);
+        if (key !== NATIVE_AUTH_BRIDGE_REVOKED_KEY) {
+          return;
+        }
+        nativeSetItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY, String(Number(value) + 5));
+        localStorage.removeItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY);
+      });
+    preferences.set.mockResolvedValue(undefined);
+    await clearNativeAuthBridge();
+    setItemSpy.mockRestore();
+    expect(preferences.set).not.toHaveBeenCalled();
+    expect(localStorage.getItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY)).toBeNull();
+    expect(localStorage.getItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY)).toEqual(
+      expect.stringMatching(/^\d+$/)
+    );
+  });
+
+  it('undoes a revoked write when a login wins during the Preferences call', async () => {
+    preferences.set.mockImplementation(async () => {
+      localStorage.setItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY, String(Date.now() + 5));
+      localStorage.removeItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY);
+    });
+    preferences.remove.mockResolvedValue(undefined);
+    await clearNativeAuthBridge();
+    expect(preferences.remove).toHaveBeenCalledWith({
+      key: NATIVE_AUTH_BRIDGE_REVOKED_KEY,
+    });
+    expect(preferences.remove).not.toHaveBeenCalledWith({
+      key: NATIVE_AUTH_BRIDGE_PREFS_KEY,
+    });
   });
 
   it('sets the revoked flag when removing the bridge payload fails', async () => {

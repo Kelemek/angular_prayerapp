@@ -6,6 +6,10 @@ import { PrayerEncouragementService } from './prayer-encouragement.service';
 import { PushNotificationService } from './push-notification.service';
 import { BadgeReadStateService } from './badge-read-state.service';
 import { firstValueFrom } from 'rxjs';
+import {
+  NATIVE_AUTH_BRIDGE_REVOKED_KEY,
+  NATIVE_AUTH_LOCAL_SESSION_AT_KEY,
+} from '../../lib/native-auth-storage-bridge';
 import type { User } from '@supabase/supabase-js';
 
 // Mock environment
@@ -190,9 +194,7 @@ describe('AdminAuthService', () => {
       // Should not throw even when signOut fails
       await expect(service.logout()).resolves.not.toThrow();
       
-      // When signOut fails, navigation won't happen because we're in catch block
-      // This is the current behavior - it just logs the error
-      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
     });
 
     it('should call PrayerEncouragementService.clearCooldownKeys on logout', async () => {
@@ -260,6 +262,164 @@ describe('AdminAuthService', () => {
       expect(flushBeforeLogout).toHaveBeenCalledWith('logout-user@example.com');
       expect(authAtFlush).toBe(true);
       expect(await firstValueFrom(service.isAuthenticated$)).toBe(false);
+    });
+
+    it('navigates to login even when signOut never resolves', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      service.isAuthenticatedSubject.next(true);
+      service.userSubject.next({ email: 'ios-user@example.com' } as User);
+      localStorage.setItem('mfa_authenticated_email', 'ios-user@example.com');
+      mockSupabaseClient.auth.signOut = vi.fn().mockReturnValue(new Promise(() => {}));
+
+      const pending = service.logout();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(service.isAuthenticatedSubject.value).toBe(false);
+      expect(localStorage.getItem('mfa_authenticated_email')).toBeNull();
+      expect(mockCacheService.invalidateCategory).toHaveBeenCalledWith('prayers');
+      expect(mockCacheService.invalidateCategory).toHaveBeenCalledWith('prompts');
+
+      await vi.advanceTimersByTimeAsync(2000);
+      await pending;
+    });
+
+    it('does not sign the user back in when a session event arrives after logout', async () => {
+      let authCallback: ((event: string, session: { user: User } | null) => void) | undefined;
+      mockSupabaseClient.auth.onAuthStateChange = vi.fn(
+        (callback: (event: string, session: { user: User } | null) => void) => {
+          authCallback = callback;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        }
+      );
+      mockRouter.url = '/login';
+      mockRouter.navigateByUrl = vi.fn().mockResolvedValue(true);
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      newService.userSubject.next({ email: 'ios-user@example.com' } as User);
+      newService.isAuthenticatedSubject.next(true);
+      await newService.logout();
+
+      authCallback?.('SIGNED_IN', {
+        user: { email: 'ios-user@example.com', id: 'late-session' } as User,
+      });
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(newService.isAuthenticatedSubject.value).toBe(false);
+      expect(newService.getUser()).toBeNull();
+      expect(mockRouter.navigateByUrl).not.toHaveBeenCalled();
+    });
+
+    it('does not sign out a session created after logout redirects', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      mockRouter.navigate.mockImplementation(() => {
+        service.sessionEpoch += 1;
+        service.ignoreSessionRestore = false;
+        return Promise.resolve(true);
+      });
+
+      await service.logout();
+
+      expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+      expect(mockCacheService.invalidateCategory).toHaveBeenCalledWith('prayers');
+      expect(mockCacheService.invalidateCategory).toHaveBeenCalledWith('personalPrayers');
+      expect(localStorage.getItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY)).toBeNull();
+    });
+
+    it('does not revoke a newer local login that appears during logout', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      service.userSubject.next({ email: 'old@example.com' } as User);
+      localStorage.setItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY, '1000');
+      mockInjector.get.mockImplementation((token: unknown) => {
+        if (token === BadgeReadStateService) {
+          return {
+            flushBeforeLogout: async () => {
+              localStorage.setItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY, '9999999999999');
+              localStorage.removeItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY);
+            },
+          };
+        }
+        if (token === PushNotificationService) {
+          return { removeDeviceToken: async () => undefined };
+        }
+        if (token === PrayerEncouragementService) {
+          return { clearCooldownKeys: () => undefined };
+        }
+        return null;
+      });
+
+      await service.logout();
+
+      expect(localStorage.getItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY)).toBeNull();
+      expect(localStorage.getItem(NATIVE_AUTH_LOCAL_SESSION_AT_KEY)).toBe(
+        '9999999999999'
+      );
+    });
+
+    it('revokes the previous access token when a code login does not replace it', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      localStorage.setItem(
+        'sb-test-auth-token',
+        JSON.stringify({ access_token: 'old-token' })
+      );
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response(null, { status: 204 }));
+      mockRouter.navigate.mockImplementation(() => {
+        service.sessionEpoch += 1;
+        service.ignoreSessionRestore = false;
+        return Promise.resolve(true);
+      });
+
+      await service.logout();
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://test.supabase.co/auth/v1/logout',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer old-token',
+          }),
+        })
+      );
+      expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+      expect(localStorage.getItem('sb-test-auth-token')).toBeNull();
+    });
+
+    it('does not sign out a replacement access token from a code login', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      localStorage.setItem(
+        'sb-test-auth-token',
+        JSON.stringify({ access_token: 'old-token' })
+      );
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response(null, { status: 204 }));
+      mockRouter.navigate.mockImplementation(() => {
+        service.sessionEpoch += 1;
+        service.ignoreSessionRestore = false;
+        localStorage.setItem(
+          'sb-test-auth-token',
+          JSON.stringify({ access_token: 'new-token' })
+        );
+        return Promise.resolve(true);
+      });
+
+      await service.logout();
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://test.supabase.co/auth/v1/logout',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer old-token',
+          }),
+        })
+      );
+      expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+      expect(localStorage.getItem('sb-test-auth-token')).toContain('new-token');
     });
   });
 
@@ -449,6 +609,46 @@ describe('AdminAuthService', () => {
       expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
         'link_email_subscriber_auth'
       );
+    });
+
+    it('keeps the previous JWT ignored until the new code login finishes', async () => {
+      service.ignoreSessionRestore = true;
+      localStorage.setItem('mfa_code_id', 'code123');
+      localStorage.setItem('mfa_user_email', 'new@example.com');
+      localStorage.setItem(
+        'sb-test-auth-token',
+        JSON.stringify({ access_token: 'old-token' })
+      );
+      let restoreIgnoredDuringLink = false;
+      mockSupabaseClient.functions.invoke = vi.fn()
+        .mockResolvedValueOnce({
+          data: { success: true, hashed_token: 'minted-hash' },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { is_admin: false },
+          error: null,
+        });
+      mockSupabaseClient.auth.verifyOtp = vi.fn().mockImplementation(async () => {
+        restoreIgnoredDuringLink = service.ignoreSessionRestore === true;
+        return { error: null };
+      });
+      mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: { user: { id: 'old-user', email: 'old@example.com' } },
+        },
+        error: null,
+      });
+
+      const result = await service.verifyMfaCode('1234');
+
+      expect(result.success).toBe(true);
+      expect(restoreIgnoredDuringLink).toBe(true);
+      expect(service.ignoreSessionRestore).toBe(false);
+      expect(localStorage.getItem('sb-test-auth-token')).toBeNull();
+      expect(service.getUser()?.email).toBe('new@example.com');
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
     });
 
     it('should verify MFA code successfully for non-admin', async () => {
@@ -1597,6 +1797,95 @@ describe('AdminAuthService', () => {
 
       expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
       expect(newService.getUser()).toBeNull();
+    });
+
+    it('signs out when logout stamps the local bridge during the native revoke read', async () => {
+      bridgeRevokedSpy.mockImplementation(async () => {
+        localStorage.setItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY, String(Date.now()));
+        return false;
+      });
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: {
+            user: { email: 'user@example.com', id: 'still-there' },
+          },
+        },
+        error: null,
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+      expect(newService.getUser()).toBeNull();
+    });
+
+    it('does not finish subscriber link after logout', async () => {
+      let releaseLink: (value: { error: null }) => void = () => {};
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: {
+            user: { email: 'user@example.com', id: 'live-user' },
+          },
+        },
+        error: null,
+      });
+      mockSupabaseClient.rpc = vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            releaseLink = resolve;
+          })
+      );
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(0);
+      newService.ignoreSessionRestore = true;
+      releaseLink({ error: null });
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(newService.getUser()).toBeNull();
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+    });
+
+    it('signs out a stored JWT when this origin already revoked the bridge', async () => {
+      localStorage.setItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY, String(Date.now()));
+      let authCallback: (event: string, session: unknown) => void = () => {};
+      mockSupabaseClient.auth.onAuthStateChange = vi.fn(
+        (cb: (event: string, session: unknown) => void) => {
+          authCallback = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        }
+      );
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: {
+            user: { email: 'user@example.com', id: 'still-there' },
+          },
+        },
+        error: null,
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      authCallback('SIGNED_IN', {
+        user: { email: 'user@example.com', id: 'still-there' },
+      });
+
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+      expect(newService.getUser()).toBeNull();
+      expect(mockRouter.navigate).not.toHaveBeenCalledWith(['/']);
     });
 
     it('signs out stale JWT when bridged MFA email disagrees', async () => {

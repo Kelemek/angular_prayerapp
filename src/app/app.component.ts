@@ -162,8 +162,8 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Handle window focus event - Edge on iOS needs explicit change detection trigger
-   * Safari handles this automatically, but Edge doesn't always
+   * Handle window focus event - Edge on iOS needs explicit change detection trigger.
+   * Safari often does not fire focus when a background tab is opened again.
    */
   @HostListener("window:focus")
   onWindowFocus(): void {
@@ -171,32 +171,64 @@ export class AppComponent implements OnInit {
       "[AppComponent] Window regained focus, triggering change detection"
     );
     this.lastVisibilityState = !document.hidden;
-    // Force change detection on focus
-    this.cdr.markForCheck();
-    this.cdr.detectChanges();
-    this.triggerDOMRecoveryIfNeeded();
+    this.recoverVisiblePage();
   }
 
   /**
-   * Handle visibility change - critical for Edge on iOS
-   * When app returns from background, manually trigger recovery
+   * Safari restores a background tab with visibilitychange and often skips focus.
+   * Recover only on the hidden → visible edge. A change while already visible
+   * used to be the only path that ran, so returning to the tab did nothing.
    */
   @HostListener("document:visibilitychange")
   onVisibilityChange(): void {
-    if (!document.hidden && this.lastVisibilityState === true) {
-      console.log(
-        "[AppComponent] Page became visible, triggering change detection and recovery"
-      );
-      this.lastVisibilityState = !document.hidden;
+    const visible = !document.hidden;
+    const becameVisible = visible && !this.lastVisibilityState;
+    this.lastVisibilityState = visible;
+    if (!becameVisible) {
+      return;
+    }
+    console.log(
+      "[AppComponent] Page became visible, triggering change detection and recovery"
+    );
+    this.recoverVisiblePage();
+  }
 
-      // Force change detection
+  /**
+   * Back-forward cache restore. Safari can show a blank page until the next load.
+   */
+  @HostListener("window:pageshow", ["$event"])
+  onPageShow(event: PageTransitionEvent): void {
+    if (!event.persisted) {
+      return;
+    }
+    console.log("[AppComponent] Page restored from back-forward cache");
+    const visible = !document.hidden;
+    this.lastVisibilityState = visible;
+    if (!visible) {
+      return;
+    }
+    this.recoverVisiblePage();
+  }
+
+  private recoverVisiblePage(): void {
+    this.ngZone.run(() => {
       this.cdr.markForCheck();
       this.cdr.detectChanges();
-
-      // Check DOM integrity
+      this.repaintAfterResume();
       this.triggerDOMRecoveryIfNeeded();
+    });
+  }
+
+  /** WebKit can drop the composited layer while a tab is frozen. A reflow paints it again. */
+  private repaintAfterResume(): void {
+    const body = document.body;
+    if (!body) {
+      return;
     }
-    this.lastVisibilityState = !document.hidden;
+    const previous = body.style.opacity;
+    body.style.opacity = "0.999";
+    void body.offsetHeight;
+    body.style.opacity = previous;
   }
 
   /**

@@ -531,6 +531,22 @@ Then in Xcode: **Product → Clean Build Folder**, then Run. You should get the 
 
 An older bug skipped Angular bootstrap entirely when a live redirect was attempted. That path is also fixed in `main.ts`.
 
+### iOS: Log out clears the lists but stays on home
+
+**Symptoms**: Tap **Logged In**, confirm log out. Personal and church lists go empty, and the app stays on home instead of the login page.
+
+**Cause**: [`logout()`](../src/app/services/admin-auth.service.ts) used to clear the session (that empties the lists) and only then navigate to `/login`. On iOS, `auth.signOut()` or the Preferences revoke write can hang, so the navigation never ran. The home guard does not re-run on an already open page.
+
+**Fix**: Logout opens `/login` as soon as the local session is cleared. A reload before `signOut()` finishes stays on login, because the same-origin revoked flag clears a Supabase session that is still in storage. Rebuild the simulator bundle (`npm run cap:prod`, then Run in Xcode). The production site inside the WebView only gets this after that web build is deployed.
+
+### Safari: tab is blank until you refresh
+
+**Symptoms**: You leave the site open in Safari, come back later, and the page is a blank cream or dark screen. Refresh shows the app again.
+
+**Cause**: [`AppComponent`](../src/app/app.component.ts) treated a visibility change as “already visible,” so it never ran when Safari brought a background tab forward. WebKit can also drop the painted layer while the tab is frozen, so the document is still there but nothing is drawn. Refresh loads the page from scratch.
+
+**Fix**: Coming back to the tab runs change detection and forces a reflow so Safari paints again. A back-forward cache restore does the same when the tab is visible. A restore while the tab is still hidden waits for the next show. This ships with the web deploy. If the tab was killed and JavaScript is no longer running, only a refresh can bring it back.
+
 ### iOS: `⚡️ [error] - {"code":"UNIMPLEMENTED"}`
 
 **Symptoms**: Xcode console shows Capacitor `UNIMPLEMENTED` after `WebView loaded`; Preferences or push may not work; UI can stay blank if startup depends on a plugin call.

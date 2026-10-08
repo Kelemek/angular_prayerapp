@@ -81,6 +81,8 @@ src/
 └── main.ts                           # Bootstrap
 ```
 
+Returning to a background Safari tab runs change detection in [`app.component.ts`](src/app/app.component.ts) on the hidden-to-visible edge, and again when the back-forward cache restores a visible page. A restore while the document is still hidden leaves that edge armed for the next show. A short reflow makes WebKit paint a layer it dropped while the tab was frozen.
+
 ### Public Routes
 
 | Path | Guard | Purpose |
@@ -850,10 +852,11 @@ Users can opt in to **personal** reminders at selected clock times in **15-minut
 - **App**: [`PrayerItemReminderService`](src/app/services/prayer-item-reminder.service.ts); cache `UserSessionData.prayerItemReminders` (cleared on logout with session).
 
 Both logout methods call `adminAuthService.logout()` which:
-- Signs out from Supabase Auth
-- Clears all session data and localStorage
-- Invalidates all caches (prayers, prompts, personal prayers, etc.)
-- Automatically redirects to `/login` page
+- Flushes badge read state while the user is still authenticated
+- Clears the local session (subjects, MFA email, shared caches) before the redirect, so a fast re-login cannot read the previous account
+- Redirects to `/login` as soon as that local session is cleared. `signOut()` and the native Preferences revoke run after the redirect so a hung iOS call cannot leave the user on home with empty lists
+- Stops that tail if a code login wins first, so the older `signOut()` cannot revoke the new session. The native revoke is stamped only after Preferences loads, and that stamp is dropped if a login session key appears first. The same-origin revoke is skipped when a newer login marker appears while logout is still in flight. A reload while `signOut()` is still running stays signed out: the same-origin revoked flag clears a Supabase session that is still in storage. The access token from logout start is revoked on the server even if a code login wins first, and that token is removed from storage. `signOut()` does not run once the login has started. The login keeps ignoring session restore until its own Supabase user matches the code email, then drops a stored JWT for a different email. Startup re-reads the same-origin revoked flag after the native check. A logout during startup cancels the subscriber link instead of finishing it
+- Ignores a later auth session event until the next successful code login, so restore cannot bounce the user off `/login`
 
 **Implementation Example**:
 ```typescript
