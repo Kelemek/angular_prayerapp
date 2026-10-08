@@ -23,6 +23,11 @@ describe('getPrayerCardVariantLayout', () => {
     expect(layout.usePresentationWrapper).toBe(false);
     expect(layout.showUnreadBadges).toBe(true);
     expect(layout.updateRowSize).toBe('sm');
+    expect(layout.updateContentClass).toBe(
+      'block text-gray-600 dark:text-gray-300'
+    );
+    expect(layout.updateContentClass).not.toContain('text-sm');
+    expect(layout.descriptionClasses).toContain('text-gray-600');
     expect(getUpdateRowHeaderBandRoundedClasses(layout.updateShellClass)).toContain(
       'shell-radius-lg'
     );

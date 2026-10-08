@@ -112,7 +112,8 @@ describe("homeFilterTabClass", () => {
       hasSubRow: true,
     });
     expect(cls).toContain("rounded-t-lg");
-    expect(cls).toContain("bg-church-surface-inactive");
+    expect(cls).toContain("bg-home-filter-tab-inactive");
+    expect(cls).not.toContain("dark:bg-gray-800");
     expect(cls).toContain("border-church-surface-inactive-tab-border");
     expect(cls).not.toContain("border-[2px]");
     expect(cls).not.toContain("z-10");

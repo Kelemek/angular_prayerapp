@@ -2,12 +2,12 @@
 export const HOME_FILTER_TAB_BASE_CLASS =
   "flex-1 min-w-0 px-3 py-2 text-center text-base font-semibold leading-tight text-gray-700 dark:text-gray-300 transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center";
 
-/** Slightly tinted off-white for inactive tabs/chips (not pure white on cream canvas). */
+/** Slightly tinted off-white for inactive chips (not pure white on cream canvas). */
 export const HOME_INACTIVE_SURFACE_BG_CLASS =
   "bg-church-surface-inactive dark:bg-gray-800";
 
-export const HOME_INACTIVE_SURFACE_HOVER_BG_CLASS =
-  "hover:bg-church-surface-inactive-hover dark:hover:bg-gray-700";
+/** Rest + hover fill for unselected folder tabs (see bg-home-filter-tab-inactive). */
+export const HOME_FILTER_TAB_INACTIVE_BG_CLASS = "bg-home-filter-tab-inactive";
 
 /** Slightly darker than gray-300 so borders read on tinted inactive fills. */
 export const HOME_INACTIVE_SURFACE_BORDER_CLASS =
@@ -17,9 +17,8 @@ export const HOME_FILTER_TAB_INACTIVE_BORDER_CLASS =
   "border border-church-surface-inactive-tab-border dark:border-gray-700";
 
 export const HOME_FILTER_TAB_INACTIVE_CLASS = [
-  HOME_INACTIVE_SURFACE_BG_CLASS,
+  HOME_FILTER_TAB_INACTIVE_BG_CLASS,
   HOME_FILTER_TAB_INACTIVE_BORDER_CLASS,
-  HOME_INACTIVE_SURFACE_HOVER_BG_CLASS,
 ].join(" ");
 
 /** Church green medium edge on Home shell chrome (header bottom / native footer top). */

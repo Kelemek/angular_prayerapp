@@ -77,7 +77,7 @@ export class PrayerUpdateRowComponent {
   @Input() size = 'sm' as const;
   @Input() showUpdatedBy = false;
   @Input() shellClass = 'rounded-lg';
-  @Input() contentClass = 'block text-sm text-gray-700 dark:text-gray-300';
+  @Input() contentClass = 'block text-gray-600 dark:text-gray-300';
   /**
    * Bleed matches this row's shell padding (px-4 sm:px-6), not the outer presentation card.
    */

@@ -65,6 +65,12 @@
   --color-church-green-chip-fill-dark-hover: rgb(20 83 45 / 0.33);
   --color-church-gray-warm: #988f83;
   --color-church-cream: #e8e5e1;
+  /* bg-inset-surface (60% gray-700) composited on dark card fill (#1f2937), not page bg. */
+  --color-inset-surface-on-card-dark: color-mix(
+    in srgb,
+    rgb(55 65 81) 60%,
+    #1f2937
+  );
   /* Inactive tab/chip fill — warm off-white, not pure white on cream canvas. */
   --color-church-surface-inactive: color-mix(
     in srgb,
@@ -194,6 +200,23 @@
   background-color: #e8e5e1 !important;
   .dark & {
     background-color: rgb(55 65 81 / 0.6) !important;
+  }
+}
+/*
+  Inactive Home folder tabs: rest fill + hover. Do not pair this with
+  dark:bg-gray-800 — that utility uses !important and wins over :hover.
+  Dark hover is the same solid as bg-inset-surface over a prayer card.
+*/
+@utility bg-home-filter-tab-inactive {
+  background-color: var(--color-church-surface-inactive) !important;
+  .dark & {
+    background-color: #1f2937 !important;
+  }
+  &:hover {
+    background-color: var(--color-church-cream) !important;
+  }
+  .dark &:hover {
+    background-color: var(--color-inset-surface-on-card-dark) !important;
   }
 }
 @utility bg-inset-surface-muted {

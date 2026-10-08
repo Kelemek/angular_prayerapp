@@ -200,7 +200,7 @@ const HOME_PRAYER_CARD_VARIANT_LAYOUT: PrayerCardVariantLayout = {
     'w-20 h-20 rounded-full object-cover border border-gray-300 dark:border-gray-600 flex-shrink-0',
   updateRowSize: 'sm',
   updateShellClass: 'rounded-lg',
-  updateContentClass: 'block text-sm text-gray-700 dark:text-gray-300',
+  updateContentClass: 'block text-gray-600 dark:text-gray-300',
   updateSectionSpacing: 'space-y-3',
   updateToggleButtonClasses:
     'cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1',
