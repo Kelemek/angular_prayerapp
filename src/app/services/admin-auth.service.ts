@@ -108,6 +108,28 @@ export class AdminAuthService {
     }
 
     const mfaEmail = bridgedMfaEmail?.trim() ?? '';
+    if (!session && mfaEmail && !bridgeRevokedOnNative) {
+      const { data: refreshed, error: refreshError } =
+        await this.supabase.client.auth.refreshSession();
+      if (refreshError) {
+        console.debug(
+          '[AdminAuth] No Supabase session to refresh for MFA user:',
+          refreshError.message
+        );
+      } else if (refreshed.session) {
+        const refreshedEmail = refreshed.session.user.email?.toLowerCase().trim();
+        if (refreshedEmail === mfaEmail.toLowerCase()) {
+          session = refreshed.session;
+        } else {
+          console.warn(
+            '[AdminAuth] Refreshed JWT email does not match MFA; clearing session'
+          );
+          await this.supabase.client.auth.signOut();
+          session = null;
+        }
+      }
+    }
+
     const linkTargetEmail = session?.user?.email?.trim() || mfaEmail;
 
     if (linkTargetEmail) {

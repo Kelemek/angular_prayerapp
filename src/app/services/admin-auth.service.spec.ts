@@ -83,6 +83,10 @@ describe('AdminAuthService', () => {
           data: { subscription: { unsubscribe: vi.fn() } }
         }),
         signOut: vi.fn().mockResolvedValue({ error: null }),
+        refreshSession: vi.fn().mockResolvedValue({
+          data: { session: null },
+          error: null,
+        }),
         verifyOtp: vi.fn().mockResolvedValue({ error: null }),
       },
       rpc: vi.fn().mockResolvedValue({ error: null }),
@@ -1534,6 +1538,40 @@ describe('AdminAuthService', () => {
 
     afterEach(() => {
       bridgeRevokedSpy?.mockRestore();
+    });
+
+    it('refreshes Supabase session on load when MFA is set but getSession is empty', async () => {
+      localStorage.setItem('mfa_authenticated_email', 'user@example.com');
+      mockSupabaseClient.auth.getSession = vi
+        .fn()
+        .mockResolvedValueOnce({ data: { session: null }, error: null })
+        .mockResolvedValue({
+          data: {
+            session: {
+              user: { email: 'user@example.com', id: 'refreshed-user' },
+            },
+          },
+          error: null,
+        });
+      mockSupabaseClient.auth.refreshSession = vi.fn().mockResolvedValue({
+        data: {
+          session: {
+            user: { email: 'user@example.com', id: 'refreshed-user' },
+          },
+        },
+        error: null,
+      });
+      mockSupabaseService.directQuery.mockResolvedValue({
+        data: [{ is_admin: false }],
+        error: null,
+      });
+      mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      new AdminAuthService(mockSupabaseService, mockCacheService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(mockSupabaseClient.auth.refreshSession).toHaveBeenCalled();
     });
 
     it('signs out live-origin JWT when native bridge was revoked on logout', async () => {
