@@ -4,6 +4,67 @@ import {
   MFA_AUTH_RESUME_TOKEN_STORAGE_KEY,
   MFA_AUTHENTICATED_EMAIL_STORAGE_KEY,
 } from './auth-storage-keys';
+import { isCapacitorUnimplementedError } from './capacitor-unimplemented';
+
+type PreferencesApi = typeof import('@capacitor/preferences').Preferences;
+
+/** If native never answers, do not leave boot or auth init waiting. */
+const NATIVE_PREFERENCES_TIMEOUT_MS = 800;
+
+let preferencesNativeUnavailable = false;
+
+/** Test-only. Production boot keeps the flag for the page lifetime. */
+export function resetNativePreferencesAvailabilityForTests(): void {
+  preferencesNativeUnavailable = false;
+}
+
+function withNativeTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out`));
+    }, NATIVE_PREFERENCES_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+async function getPreferencesApi(): Promise<PreferencesApi | null> {
+  if (!Capacitor.isNativePlatform() || preferencesNativeUnavailable) {
+    return null;
+  }
+  try {
+    if (!Capacitor.isPluginAvailable('Preferences')) {
+      console.warn(
+        '[NativeAuthBridge] Preferences plugin not registered — run npx cap sync and rebuild the native app'
+      );
+      return null;
+    }
+    const { Preferences } = await import('@capacitor/preferences');
+    return Preferences;
+  } catch (error) {
+    console.warn('[NativeAuthBridge] Preferences unavailable:', error);
+    return null;
+  }
+}
+
+function markPreferencesNativeUnavailable(error: unknown): void {
+  preferencesNativeUnavailable = true;
+  if (isCapacitorUnimplementedError(error)) {
+    console.warn(
+      '[NativeAuthBridge] Preferences UNIMPLEMENTED in native binary — rebuild iOS after npx cap sync'
+    );
+    return;
+  }
+  console.warn('[NativeAuthBridge] Preferences call failed; skipping native bridge:', error);
+}
 
 export const NATIVE_AUTH_BRIDGE_PREFS_KEY = 'prayerapp_native_auth_bridge';
 
@@ -80,11 +141,23 @@ function applyBridgePayloadToLocalStorage(payload: NativeAuthBridgePayload): voi
 
 /** True after native logout until the next MFA session is bridged again. */
 export async function isNativeAuthBridgeRevoked(): Promise<boolean> {
-  const { Preferences } = await import('@capacitor/preferences');
-  const { value: revokedFlag } = await Preferences.get({
-    key: NATIVE_AUTH_BRIDGE_REVOKED_KEY,
-  });
-  return revokedFlag === 'true';
+  const Preferences = await getPreferencesApi();
+  if (!Preferences) {
+    return false;
+  }
+  try {
+    const { value: revokedFlag } = await withNativeTimeout(
+      Preferences.get({
+        key: NATIVE_AUTH_BRIDGE_REVOKED_KEY,
+      }),
+      'Preferences.get revoked'
+    );
+    return revokedFlag === 'true';
+  } catch (error) {
+    markPreferencesNativeUnavailable(error);
+    console.warn('[NativeAuthBridge] Failed to read revoked flag:', error);
+    return false;
+  }
 }
 
 /** Copy native-backed auth keys into this WebView origin (bundled vs live). */
@@ -96,8 +169,22 @@ export async function hydrateLocalStorageFromNativeAuthBridge(): Promise<void> {
     clearMfaAuthLocalStorage();
     return;
   }
-  const { Preferences } = await import('@capacitor/preferences');
-  const { value } = await Preferences.get({ key: NATIVE_AUTH_BRIDGE_PREFS_KEY });
+  const Preferences = await getPreferencesApi();
+  if (!Preferences) {
+    return;
+  }
+  let value: string | null | undefined;
+  try {
+    const result = await withNativeTimeout(
+      Preferences.get({ key: NATIVE_AUTH_BRIDGE_PREFS_KEY }),
+      'Preferences.get bridge'
+    );
+    value = result.value;
+  } catch (error) {
+    markPreferencesNativeUnavailable(error);
+    console.warn('[NativeAuthBridge] Failed to read auth bridge:', error);
+    return;
+  }
   if (!value) {
     return;
   }
@@ -124,12 +211,25 @@ export async function persistNativeAuthBridgeFromLocalStorage(): Promise<void> {
   if (!payload.mfaEmail && !payload.authResumeToken) {
     return;
   }
-  const { Preferences } = await import('@capacitor/preferences');
-  await Preferences.set({
-    key: NATIVE_AUTH_BRIDGE_PREFS_KEY,
-    value: JSON.stringify(payload),
-  });
-  await Preferences.remove({ key: NATIVE_AUTH_BRIDGE_REVOKED_KEY });
+  const Preferences = await getPreferencesApi();
+  if (!Preferences) {
+    return;
+  }
+  try {
+    await withNativeTimeout(
+      Preferences.set({
+        key: NATIVE_AUTH_BRIDGE_PREFS_KEY,
+        value: JSON.stringify(payload),
+      }),
+      'Preferences.set bridge'
+    );
+    await withNativeTimeout(
+      Preferences.remove({ key: NATIVE_AUTH_BRIDGE_REVOKED_KEY }),
+      'Preferences.remove revoked'
+    );
+  } catch (error) {
+    console.warn('[NativeAuthBridge] Failed to persist auth bridge:', error);
+  }
 }
 
 /**
@@ -150,7 +250,20 @@ export async function clearNativeAuthBridge(): Promise<void> {
   if (!Capacitor.isNativePlatform()) {
     return;
   }
-  const { Preferences } = await import('@capacitor/preferences');
-  await Preferences.remove({ key: NATIVE_AUTH_BRIDGE_PREFS_KEY });
-  await Preferences.set({ key: NATIVE_AUTH_BRIDGE_REVOKED_KEY, value: 'true' });
+  const Preferences = await getPreferencesApi();
+  if (!Preferences) {
+    return;
+  }
+  try {
+    await withNativeTimeout(
+      Preferences.remove({ key: NATIVE_AUTH_BRIDGE_PREFS_KEY }),
+      'Preferences.remove bridge'
+    );
+    await withNativeTimeout(
+      Preferences.set({ key: NATIVE_AUTH_BRIDGE_REVOKED_KEY, value: 'true' }),
+      'Preferences.set revoked'
+    );
+  } catch (error) {
+    console.warn('[NativeAuthBridge] Failed to clear auth bridge:', error);
+  }
 }

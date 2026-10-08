@@ -58,12 +58,6 @@ const config: CapacitorConfig = {
   appName: 'Prayer App',
   webDir: 'dist/prayerapp/browser',
   server: serverConfig,
-  plugins: {
-    Badge: {
-      persist: true,
-      autoClear: false,
-    },
-  },
 };
 
 export default config;

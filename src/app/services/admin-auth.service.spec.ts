@@ -1630,6 +1630,101 @@ describe('AdminAuthService', () => {
   });
 
   describe('initializeAuth error handling', () => {
+    it('keeps loading true until a slow admin check finishes the restored session', async () => {
+      let resolveAdmin: (value: { data: Array<{ is_admin: boolean }>; error: null }) => void =
+        () => {};
+      mockSupabaseService.directQuery.mockReturnValue(
+        new Promise((resolve) => {
+          resolveAdmin = resolve;
+        })
+      );
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: {
+            user: { email: 'user@example.com', id: 'restored-user' },
+          },
+        },
+        error: null,
+      });
+      mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      let authenticated = false;
+      newService.isAuthenticated$.subscribe((value) => {
+        authenticated = value;
+      });
+      const readyStates: boolean[] = [];
+      newService.loading$.subscribe((loading) => {
+        if (!loading) {
+          readyStates.push(authenticated);
+        }
+      });
+
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(newService.isLoading()).toBe(true);
+      expect(newService.getUser()?.email).toBe('user@example.com');
+      expect(authenticated).toBe(false);
+
+      resolveAdmin({ data: [{ is_admin: false }], error: null });
+      await vi.advanceTimersByTimeAsync(50);
+
+      expect(newService.isLoading()).toBe(false);
+      expect(readyStates).toEqual([true]);
+    });
+
+    it('leaves the login page when a restored session is already authenticated', async () => {
+      mockRouter.url = '/login?returnUrl=%2Fprayers';
+      mockRouter.navigateByUrl = vi.fn().mockResolvedValue(true);
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: {
+            user: { email: 'user@example.com', id: 'restored-user' },
+          },
+        },
+        error: null,
+      });
+      mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseService.directQuery.mockResolvedValue({
+        data: [{ is_admin: false }],
+        error: null,
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      new AdminAuthService(mockSupabaseService, mockCacheService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(mockRouter.navigateByUrl).toHaveBeenCalledWith('/prayers');
+    });
+
+    it('unblocks navigation when getSession never resolves', async () => {
+      mockSupabaseClient.auth.getSession = vi.fn(
+        () =>
+          new Promise(() => {
+            /* native getSession hang */
+          })
+      );
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+
+      expect(newService.isLoading()).toBe(true);
+      await vi.advanceTimersByTimeAsync(0);
+      mockSupabaseClient.auth.onAuthStateChange.mockClear();
+      await vi.advanceTimersByTimeAsync(3000);
+
+      expect(newService.isLoading()).toBe(false);
+      expect(mockSupabaseClient.auth.onAuthStateChange).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
     it('should catch and handle initializeAuth errors', async () => {
       const mockSupabaseServiceError = {
         client: {

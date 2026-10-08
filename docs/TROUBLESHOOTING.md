@@ -497,6 +497,70 @@ supabase secrets list # Verify
 
 ## Deployment
 
+### iOS TestFlight crashes on launch
+
+**Symptoms**: App closes immediately after tapping the icon (no UI).
+
+**Common causes after hybrid boot / auth bridge changes**:
+
+1. **Native binary out of date** — JS calls `@capacitor/preferences` but the TestFlight build was archived before `npm run cap:prod` (or `npx cap sync`). `ios/App/CapApp-SPM/Package.swift` must list `CapacitorPreferences`.
+2. **Fix**: On a Mac with Xcode, from repo root:
+   ```bash
+   npm ci
+   npm run cap:prod
+   ```
+   Open `ios/App/App.xcworkspace`, bump build number, **Product → Archive**, upload a new build to TestFlight.
+3. **Confirm in Xcode**: **File → Packages → Resolve Package Versions** succeeds (needs `node_modules/@capacitor/preferences` on disk).
+4. **Device logs**: Mac **Console.app** → select the iPhone → filter `Prayer` or `Capacitor`; or Xcode **Window → Devices and Simulators** → Open Console while launching the app.
+
+Bundled startup should fall back to the local Angular app if Preferences or live redirect fails; a hard instant quit usually means a **native** crash or a build missing the plugin — not a normal JS error.
+
+### iOS simulator: blank cream screen after `WebView loaded`
+
+**Symptoms**: Capacitor logs `Loading app at capacitor://localhost`, `WebView loaded`, branding, `[AppInitialization] AdminAuthService initialization timed out after 5s`, then prayers and push. The screen stays the cream page background. There is no `[SiteAuthGuard]` line.
+
+**Cause**: [`siteAuthGuard`](../src/app/guards/site-auth.guard.ts) will not activate home until auth `loading$` becomes false. `getSession()` can hang in the iOS WebView, so loading stays true after the 5s initializer gives up. Prayer and push logs still run because those services do not wait on the guard. Keyboard, `UIKBDynamicRenderFactory`, `RTIInputSystemClient`, and `Could not resolve UID for user "mobile"` lines are simulator noise.
+
+**Fix**: Current [`admin-auth.service.ts`](../src/app/services/admin-auth.service.ts) stops waiting on a hung `getSession()` and only clears `loading$` after session restore settles, so a returning user is not left on the login screen. Rebuild so the simulator is not running an older `ios/App/App/public` bundle:
+
+```bash
+npm run cap:prod
+```
+
+Then in Xcode: **Product → Clean Build Folder**, then Run. You should get the login screen (no session) or home, then a redirect to production when online.
+
+An older bug skipped Angular bootstrap entirely when a live redirect was attempted. That path is also fixed in `main.ts`.
+
+### iOS: `⚡️ [error] - {"code":"UNIMPLEMENTED"}`
+
+**Symptoms**: Xcode console shows Capacitor `UNIMPLEMENTED` after `WebView loaded`; Preferences or push may not work; UI can stay blank if startup depends on a plugin call.
+
+**Cause**: With **Swift Package Manager**, `NSClassFromString` does not see plugin classes, so native returns `UNIMPLEMENTED`. The JS promise for that call often **never settles** (WKWebView reports `JS Eval error` / `A JavaScript exception occurred` and drops the callback). Startup used to `await` that call before `bootstrapApplication`, so `app-root` stayed empty on the cream page background.
+
+**Fix** (in repo): [`AppBridgeViewController`](../ios/App/App/AppDelegate.swift) registers Preferences, Push, and Printer in `capacitorDidLoad`. JS also stops waiting after a short timeout ([`native-auth-storage-bridge.ts`](../src/lib/native-auth-storage-bridge.ts), [`main.ts`](../src/main.ts)).
+
+`Could not resolve UID for user "mobile"` is a simulator WebKit message and is not the blank screen.
+
+**Fix** (in repo): [`CapApp-SPM.swift`](../ios/App/CapApp-SPM/Sources/CapApp-SPM/CapApp-SPM.swift) imports `PreferencesPlugin`, `PushNotificationsPlugin`, and `PrinterPlugin`, and [`AppDelegate.swift`](../ios/App/App/AppDelegate.swift) calls `CapacitorAppPlugins.ensureLinked()` at launch.
+
+**On your Mac**:
+
+```bash
+npm run cap:prod
+```
+
+In Xcode: **Product → Clean Build Folder**, **File → Packages → Reset Package Caches**, then Run.
+
+**Noise you can ignore** in the simulator: `UIKBDynamicRenderFactory`, keyboard constraint warnings, `RTIInputSystemClient`, `WebContent` missing Accessibility plist — they are iOS 27 simulator quirks, not app bugs.
+
+**If you also see** `⚡️ JS Eval error`: open Safari **Develop → Simulator → [your WebView]** and check the **Console** for the real JavaScript stack (Capacitor only prints a generic message in Xcode).
+
+### iOS: “UIScene life cycle is required” (Xcode 16+ / iOS 26 SDK)
+
+**Symptoms**: App fails to launch on simulator or device; runtime issue about scene lifecycle adoption.
+
+**Fix**: The project includes [`SceneDelegate.swift`](../ios/App/App/SceneDelegate.swift) and `UIApplicationSceneManifest` in [`Info.plist`](../ios/App/App/Info.plist). Rebuild after pulling; do not remove `UIMainStoryboardFile` without the scene manifest (storyboard is referenced as `UISceneStoryboardFile` = `Main`).
+
 ### Build Fails in Production
 
 **Error**: Build succeeds locally but fails on hosting

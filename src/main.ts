@@ -21,7 +21,7 @@ import {
   hydrateLocalStorageFromNativeAuthBridge,
   syncNativeAuthBridgeBeforeLiveRedirect,
 } from "./lib/native-auth-storage-bridge";
-import { runPreBootstrapGate } from "./lib/app-boot-gate";
+import { runPreBootstrapHydrate } from "./lib/app-boot-gate";
 
 // Add a global visibility check to ensure content stays visible during background refresh
 const setupVisibilityRecovery = () => {
@@ -135,6 +135,9 @@ bootstrapApplication(AppComponent, {
                 console.warn(
                   "[AppInitialization] AdminAuthService initialization timed out after 5s"
                 );
+                // Do not clear loading$ here. The guard treats the first false
+                // as the final session, so an early clear sends a restoring
+                // user to /login and leaves them there.
                 subscription.unsubscribe();
                 resolve(true);
               }
@@ -168,27 +171,36 @@ bootstrapApplication(AppComponent, {
 });
 }
 
+const NATIVE_HYDRATE_BUDGET_MS = 1200;
+
 void (async () => {
   const isNative = Capacitor.isNativePlatform();
-  const redirected = await runPreBootstrapGate({
-    isNative,
-    hydrateNativeAuth: hydrateLocalStorageFromNativeAuthBridge,
-    maybeRedirectToLiveSite: () =>
-      maybeRedirectNativeToLiveSite({
+  if (isNative) {
+    // A hung Capacitor callback (JS Eval error / UNIMPLEMENTED) must not block first paint.
+    await Promise.race([
+      runPreBootstrapHydrate({
         isNative,
-        origin: window.location.origin,
-        hostname: window.location.hostname,
-        location: window.location,
-        liveOrigin: CAPACITOR_LIVE_ORIGIN,
-        fetchFn: fetch,
-        timeoutMs: 8000,
-        beforeRedirect: isNative
-          ? () => syncNativeAuthBridgeBeforeLiveRedirect()
-          : undefined,
+        hydrateNativeAuth: hydrateLocalStorageFromNativeAuthBridge,
       }),
-  });
-  if (redirected) {
-    return;
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, NATIVE_HYDRATE_BUDGET_MS);
+      }),
+    ]);
   }
   bootstrapApp();
+  if (!isNative) {
+    return;
+  }
+  void maybeRedirectNativeToLiveSite({
+    isNative,
+    origin: window.location.origin,
+    hostname: window.location.hostname,
+    location: window.location,
+    liveOrigin: CAPACITOR_LIVE_ORIGIN,
+    fetchFn: fetch,
+    timeoutMs: 8000,
+    beforeRedirect: () => syncNativeAuthBridgeBeforeLiveRedirect(),
+  }).catch((error) => {
+    console.error("[AppInitialization] Live redirect failed:", error);
+  });
 })();

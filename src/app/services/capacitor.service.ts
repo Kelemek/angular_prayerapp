@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Capacitor, CapacitorException } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
+import { isCapacitorUnimplementedError } from '../../lib/capacitor-unimplemented';
 import { PushNotifications, PushNotificationSchema, ActionPerformed } from '@capacitor/push-notifications';
 import { ToastService } from './toast.service';
 import { BehaviorSubject, Subject, Observable } from 'rxjs';
@@ -63,10 +64,19 @@ export class CapacitorService {
     try {
       console.log(`Initializing Capacitor on ${this.currentPlatform}`);
       
-      if (this.currentPlatform === 'ios' || this.currentPlatform === 'android') {
+      if (
+        (this.currentPlatform === 'ios' || this.currentPlatform === 'android') &&
+        Capacitor.isPluginAvailable('PushNotifications')
+      ) {
         await this.setupPushNotifications();
       }
     } catch (error) {
+      if (isCapacitorUnimplementedError(error)) {
+        console.warn(
+          '[Capacitor] PushNotifications UNIMPLEMENTED — rebuild native app after npx cap sync'
+        );
+        return;
+      }
       console.error('Error initializing Capacitor:', error);
       this.toastService.error('Failed to initialize push notifications');
     }
@@ -144,6 +154,10 @@ export class CapacitorService {
         console.warn('Notification permissions not granted');
       }
     } catch (error) {
+      if (isCapacitorUnimplementedError(error)) {
+        console.warn('[Capacitor] PushNotifications not available in this build');
+        return;
+      }
       console.error('Error setting up push notifications:', error);
     }
   }

@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@capacitor/core', () => ({
-  Capacitor: { isNativePlatform: vi.fn(() => true) },
+  Capacitor: {
+    isNativePlatform: vi.fn(() => true),
+    isPluginAvailable: vi.fn(() => true),
+  },
 }));
 
 const preferences = {
@@ -17,6 +20,7 @@ vi.mock('@capacitor/preferences', () => ({
 import {
   hydrateLocalStorageFromNativeAuthBridge,
   mfaEmailConflictsWithSession,
+  resetNativePreferencesAvailabilityForTests,
   persistNativeAuthBridgeFromLocalStorage,
   syncNativeAuthBridgeBeforeLiveRedirect,
   NATIVE_AUTH_BRIDGE_PREFS_KEY,
@@ -27,6 +31,8 @@ describe('native-auth-storage-bridge', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    resetNativePreferencesAvailabilityForTests();
+    vi.useRealTimers();
   });
 
   it('mfaEmailConflictsWithSession detects mismatched emails', () => {
@@ -75,6 +81,16 @@ describe('native-auth-storage-bridge', () => {
     });
     await hydrateLocalStorageFromNativeAuthBridge();
     expect(localStorage.getItem('mfa_auth_resume_token')).toBeNull();
+  });
+
+  it('finishes hydrate when Preferences.get never settles', async () => {
+    vi.useFakeTimers();
+    preferences.get.mockImplementation(() => new Promise(() => {}));
+    const pending = hydrateLocalStorageFromNativeAuthBridge();
+    await vi.advanceTimersByTimeAsync(1000);
+    await pending;
+    expect(localStorage.getItem('mfa_authenticated_email')).toBeNull();
+    vi.useRealTimers();
   });
 
   it('hydrates MFA email from native preferences when localStorage is empty', async () => {

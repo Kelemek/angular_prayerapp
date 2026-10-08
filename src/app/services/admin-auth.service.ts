@@ -11,7 +11,7 @@ import {
   BADGE_READ_PRAYERS_DATA_KEY,
   BADGE_READ_PROMPTS_DATA_KEY,
 } from '../lib/badge-cache';
-import type { User } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 import {
   VERIFY_CODE_LINK_AUTH_SESSION,
   linkAuthSessionAfterVerify,
@@ -35,6 +35,25 @@ import {
   mfaEmailConflictsWithSession,
   persistNativeAuthBridgeFromLocalStorage,
 } from '../../lib/native-auth-storage-bridge';
+
+/** getSession on the iOS WebView can hang; the site guard will not render until loading$ is false. */
+const AUTH_INIT_STEP_MS = 1500;
+
+function withAuthStepDeadline<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new Error(`[AdminAuth] ${label} timed out after ${AUTH_INIT_STEP_MS}ms`)
+      );
+    }, AUTH_INIT_STEP_MS);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+  });
+}
 
 @Injectable({
   providedIn: 'root'
@@ -75,10 +94,23 @@ export class AdminAuthService {
   }
 
   private async initializeAuth(): Promise<void> {
+    // siteAuthGuard reads the first loading$ false. Clearing it before
+    // completeRestoredAuthSession sets isAuthenticated sends returning users
+    // to /login and leaves them there.
     try {
-    let {
-      data: { session },
-    } = await this.supabase.client.auth.getSession();
+    let session: Session | null = null;
+    try {
+      const sessionResult = await withAuthStepDeadline(
+        this.supabase.client.auth.getSession(),
+        'getSession'
+      );
+      session = sessionResult.data.session;
+    } catch (error) {
+      console.warn(
+        '[AdminAuth] getSession failed; continuing signed out:',
+        error
+      );
+    }
 
     const bridgeRevokedOnNative = await isNativeAuthBridgeRevoked();
     if (bridgeRevokedOnNative) {
@@ -109,8 +141,21 @@ export class AdminAuthService {
 
     const mfaEmail = bridgedMfaEmail?.trim() ?? '';
     if (!session && mfaEmail && !bridgeRevokedOnNative) {
-      const { data: refreshed, error: refreshError } =
-        await this.supabase.client.auth.refreshSession();
+      let refreshed: { session: Session | null } = { session: null };
+      let refreshError: { message: string } | null = null;
+      try {
+        const refreshResult = await withAuthStepDeadline(
+          this.supabase.client.auth.refreshSession(),
+          'refreshSession'
+        );
+        refreshed = refreshResult.data;
+        refreshError = refreshResult.error;
+      } catch (error) {
+        console.warn('[AdminAuth] refreshSession failed:', error);
+        refreshError = {
+          message: error instanceof Error ? error.message : 'refreshSession failed',
+        };
+      }
       if (refreshError) {
         console.debug(
           '[AdminAuth] No Supabase session to refresh for MFA user:',
@@ -139,13 +184,29 @@ export class AdminAuthService {
           mfaEmail
         );
       }
-      await this.ensureSubscriberAuthOnLoad(linkTargetEmail);
+      try {
+        await withAuthStepDeadline(
+          this.ensureSubscriberAuthOnLoad(linkTargetEmail),
+          'subscriber link'
+        );
+      } catch (error) {
+        console.warn('[AdminAuth] Subscriber link skipped:', error);
+      }
 
-      const {
-        data: { session: afterLink },
-      } = await this.supabase.client.auth.getSession();
+      let afterLink: Session | null = null;
+      try {
+        const afterResult = await withAuthStepDeadline(
+          this.supabase.client.auth.getSession(),
+          'getSession after link'
+        );
+        afterLink = afterResult.data.session;
+      } catch (error) {
+        console.warn('[AdminAuth] getSession after link failed:', error);
+      }
       const restoredUser =
-        afterLink?.user ?? (mfaEmail ? buildMfaMockUser(mfaEmail) : null);
+        afterLink?.user ??
+        session?.user ??
+        (mfaEmail ? buildMfaMockUser(mfaEmail) : null);
 
       if (restoredUser) {
         await this.completeRestoredAuthSession(restoredUser);
@@ -246,10 +307,46 @@ export class AdminAuthService {
 
     // Set up session timeout checks
     this.setupSessionTimeouts();
+    this.leaveLoginAfterRestoredSession();
     } finally {
       // Ensure loading is cleared on all code paths (success/error)
       this.loadingSubject.next(false);
     }
+  }
+
+  /**
+   * A restored session must not sit on the login page. The guard may already
+   * have opened /login if loading$ was cleared early.
+   */
+  private leaveLoginAfterRestoredSession(): void {
+    if (!this.isAuthenticatedSubject.value) {
+      return;
+    }
+    const url = this.router.url;
+    if (typeof url !== 'string' || !url.startsWith('/login')) {
+      return;
+    }
+    const query = url.includes('?') ? url.slice(url.indexOf('?') + 1) : '';
+    const params = new URLSearchParams(query);
+    if (
+      params.get('sessionExpired') === 'true' ||
+      params.get('blocked') === 'true'
+    ) {
+      return;
+    }
+    const returnUrl = params.get('returnUrl') ?? '/';
+    void this.router.navigateByUrl(this.safeInternalReturnUrl(returnUrl));
+  }
+
+  private safeInternalReturnUrl(returnUrl: string): string {
+    if (
+      !returnUrl.startsWith('/') ||
+      returnUrl.startsWith('//') ||
+      returnUrl.startsWith('/login')
+    ) {
+      return '/';
+    }
+    return returnUrl;
   }
 
   /**

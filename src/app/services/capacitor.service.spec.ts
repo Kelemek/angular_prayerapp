@@ -8,6 +8,7 @@ vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: vi.fn(() => false),
     getPlatform: vi.fn(() => 'web'),
+    isPluginAvailable: vi.fn(() => true),
   },
 }));
 

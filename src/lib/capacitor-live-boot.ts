@@ -108,6 +108,20 @@ export async function probeLiveOriginReachable(options: {
   }
 }
 
+/** Let the Capacitor WebView finish its first paint before cross-origin navigation. */
+export async function waitForCapacitorWebViewReady(): Promise<void> {
+  if (typeof document !== 'undefined' && document.readyState === 'loading') {
+    await new Promise<void>((resolve) => {
+      document.addEventListener('DOMContentLoaded', () => resolve(), {
+        once: true,
+      });
+    });
+  }
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 export async function maybeRedirectNativeToLiveSite(options: {
   isNative: boolean;
   origin: string;
@@ -128,6 +142,8 @@ export async function maybeRedirectNativeToLiveSite(options: {
     return false;
   }
 
+  await waitForCapacitorWebViewReady();
+
   const reachable = await probeLiveOriginReachable({
     liveOrigin: options.liveOrigin,
     fetchFn: options.fetchFn,
@@ -142,6 +158,11 @@ export async function maybeRedirectNativeToLiveSite(options: {
   }
 
   const target = buildLiveRedirectUrl(options.liveOrigin, options.location);
-  options.location.replace(target);
+  try {
+    options.location.replace(target);
+  } catch (error) {
+    console.error('[CapacitorLiveBoot] location.replace failed:', error);
+    options.location.href = target;
+  }
   return true;
 }
