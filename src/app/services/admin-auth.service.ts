@@ -31,6 +31,7 @@ import {
 import {
   clearMfaAuthLocalStorage,
   clearNativeAuthBridge,
+  isLocalAuthBridgeRevoked,
   isNativeAuthBridgeRevoked,
   mfaEmailConflictsWithSession,
   persistNativeAuthBridgeFromLocalStorage,
@@ -38,6 +39,12 @@ import {
 
 /** getSession on the iOS WebView can hang; the site guard will not render until loading$ is false. */
 const AUTH_INIT_STEP_MS = 1500;
+
+/**
+ * siteAuthGuard paints nothing while loading$ stays true. Restore may still be
+ * in flight (hung signOut, Preferences, subscriber link). Open the shell anyway.
+ */
+const AUTH_RESTORE_BUDGET_MS = 2500;
 
 function withAuthStepDeadline<T>(promise: Promise<T>, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -71,6 +78,7 @@ export class AdminAuthService {
   private adminSessionStart: number | null = null;
   private lastBlockedCheck = 0;
   private readonly subscriberAuthLinkByEmail = new Map<string, Promise<void>>();
+  private restoreBudgetTimer: ReturnType<typeof setTimeout> | undefined;
 
   public user$ = this.userSubject.asObservable();
   public isAdmin$ = this.isAdminSubject.asObservable();
@@ -89,15 +97,91 @@ export class AdminAuthService {
   ) {
     this.initializeAuth().catch(error => {
       console.error('[AdminAuth] initializeAuth failed:', error);
-      this.loadingSubject.next(false);
+      this.releaseAuthShell();
     });
   }
 
-  private async initializeAuth(): Promise<void> {
-    // siteAuthGuard reads the first loading$ false. Clearing it before
-    // completeRestoredAuthSession sets isAuthenticated sends returning users
-    // to /login and leaves them there.
+  private armRestoreBudget(): void {
+    this.restoreBudgetTimer = setTimeout(() => {
+      if (!this.loadingSubject.value) {
+        return;
+      }
+      console.warn(
+        '[AdminAuth] Session restore budget elapsed; opening the shell'
+      );
+      this.loadingSubject.next(false);
+    }, AUTH_RESTORE_BUDGET_MS);
+  }
+
+  private disarmRestoreBudget(): void {
+    if (this.restoreBudgetTimer !== undefined) {
+      clearTimeout(this.restoreBudgetTimer);
+      this.restoreBudgetTimer = undefined;
+    }
+  }
+
+  /**
+   * The home route stays blank until loading$ is false. Call this as soon as
+   * the signed-in bit is known, and again from the restore finally.
+   */
+  private releaseAuthShell(): void {
+    this.disarmRestoreBudget();
+    if (this.loadingSubject.value) {
+      this.loadingSubject.next(false);
+    }
+    this.leaveLoginAfterRestoredSession();
+  }
+
+  /** Returning native sessions often have MFA email before getSession answers. */
+  private applyLocalMfaSessionIfPresent(): void {
+    if (isLocalAuthBridgeRevoked()) {
+      return;
+    }
+    const mfaEmail =
+      localStorage.getItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY)?.trim() ?? '';
+    if (!mfaEmail) {
+      return;
+    }
+    this.userSubject.next(buildMfaMockUser(mfaEmail));
+    this.isAuthenticatedSubject.next(true);
+    if (!this.sessionStart) {
+      this.sessionStart = this.getPersistedSessionStart() || Date.now();
+      this.persistSessionStart(this.sessionStart);
+    }
+  }
+
+  private clearRestoredSessionSubjects(): void {
+    const shellAlreadyOpen = !this.loadingSubject.value;
+    this.userSubject.next(null);
+    this.isAdminSubject.next(false);
+    this.hasAdminEmailSubject.next(false);
+    this.isAuthenticatedSubject.next(false);
+    this.sessionStart = null;
+    this.persistSessionStart(null);
+    if (shellAlreadyOpen) {
+      void this.router.navigate(['/login']);
+    }
+  }
+
+  private async signOutBounded(label: string): Promise<void> {
     try {
+      await withAuthStepDeadline(this.supabase.client.auth.signOut(), label);
+    } catch (error) {
+      console.warn(`[AdminAuth] ${label} failed:`, error);
+    }
+  }
+
+  private async initializeAuth(): Promise<void> {
+    // siteAuthGuard reads the first loading$ false. A local MFA session is
+    // marked signed in before that, so the shell opens on home. A later
+    // restore still calls leaveLoginAfterRestoredSession if the guard
+    // already sent the user to /login.
+    this.armRestoreBudget();
+    try {
+    this.applyLocalMfaSessionIfPresent();
+    if (this.isAuthenticatedSubject.value) {
+      this.releaseAuthShell();
+    }
     let session: Session | null = null;
     try {
       const sessionResult = await withAuthStepDeadline(
@@ -115,11 +199,12 @@ export class AdminAuthService {
     const bridgeRevokedOnNative = await isNativeAuthBridgeRevoked();
     if (bridgeRevokedOnNative) {
       clearMfaAuthLocalStorage();
+      this.clearRestoredSessionSubjects();
       if (session) {
         console.warn(
           '[AdminAuth] Native auth bridge revoked; clearing Supabase session'
         );
-        await this.supabase.client.auth.signOut();
+        await this.signOutBounded('signOut after revoke');
         session = null;
       }
     }
@@ -135,7 +220,7 @@ export class AdminAuthService {
       console.warn(
         '[AdminAuth] Supabase session does not match bridged MFA email; clearing stale JWT'
       );
-      await this.supabase.client.auth.signOut();
+      await this.signOutBounded('signOut stale JWT');
       session = null;
     }
 
@@ -169,10 +254,19 @@ export class AdminAuthService {
           console.warn(
             '[AdminAuth] Refreshed JWT email does not match MFA; clearing session'
           );
-          await this.supabase.client.auth.signOut();
+          await this.signOutBounded('signOut mismatched refresh');
           session = null;
         }
       }
+    }
+
+    if (
+      this.isAuthenticatedSubject.value ||
+      (!session?.user && !mfaEmail)
+    ) {
+      // Saved MFA is already signed in, or there is nothing to restore.
+      // Do not wait on the subscriber link before the route can paint.
+      this.releaseAuthShell();
     }
 
     const linkTargetEmail = session?.user?.email?.trim() || mfaEmail;
@@ -307,10 +401,10 @@ export class AdminAuthService {
 
     // Set up session timeout checks
     this.setupSessionTimeouts();
-    this.leaveLoginAfterRestoredSession();
     } finally {
       // Ensure loading is cleared on all code paths (success/error)
-      this.loadingSubject.next(false);
+      this.releaseAuthShell();
+      console.log('[AdminAuth] Session restore finished');
     }
   }
 

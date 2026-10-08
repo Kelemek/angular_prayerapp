@@ -222,7 +222,7 @@ export async function isNativeAuthBridgeRevoked(): Promise<boolean> {
   return (await readNativeAuthBridgeRevoked()) === 'revoked';
 }
 
-function isLocalAuthBridgeRevoked(): boolean {
+export function isLocalAuthBridgeRevoked(): boolean {
   return (
     classifyRevokedFlag(localStorage.getItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY), false) ===
     'revoked'

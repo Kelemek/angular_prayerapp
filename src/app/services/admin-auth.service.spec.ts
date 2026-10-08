@@ -1630,7 +1630,7 @@ describe('AdminAuthService', () => {
   });
 
   describe('initializeAuth error handling', () => {
-    it('keeps loading true until a slow admin check finishes the restored session', async () => {
+    it('opens a restored session while a slow admin check is still pending', async () => {
       let resolveAdmin: (value: { data: Array<{ is_admin: boolean }>; error: null }) => void =
         () => {};
       mockSupabaseService.directQuery.mockReturnValue(
@@ -1664,16 +1664,58 @@ describe('AdminAuthService', () => {
         }
       });
 
-      await vi.advanceTimersByTimeAsync(2000);
-      expect(newService.isLoading()).toBe(true);
+      await vi.advanceTimersByTimeAsync(50);
+      expect(newService.isLoading()).toBe(false);
       expect(newService.getUser()?.email).toBe('user@example.com');
-      expect(authenticated).toBe(false);
+      expect(authenticated).toBe(true);
+      expect(readyStates).toEqual([true]);
 
       resolveAdmin({ data: [{ is_admin: false }], error: null });
       await vi.advanceTimersByTimeAsync(50);
 
       expect(newService.isLoading()).toBe(false);
-      expect(readyStates).toEqual([true]);
+      expect(authenticated).toBe(true);
+    });
+
+    it('opens a saved MFA session while getSession never returns', async () => {
+      localStorage.setItem('mfa_authenticated_email', 'markdlarson@me.com');
+      mockSupabaseClient.auth.getSession = vi
+        .fn()
+        .mockReturnValue(new Promise(() => {}));
+      mockSupabaseClient.auth.refreshSession = vi
+        .fn()
+        .mockReturnValue(new Promise(() => {}));
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+
+      expect(newService.isLoading()).toBe(false);
+      expect(newService.getUser()?.email).toBe('markdlarson@me.com');
+      let authenticated = false;
+      newService.isAuthenticated$.subscribe((value: boolean) => {
+        authenticated = value;
+      });
+      expect(authenticated).toBe(true);
+    });
+
+    it('opens the shell when getSession never returns and there is no saved session', async () => {
+      mockSupabaseClient.auth.getSession = vi
+        .fn()
+        .mockReturnValue(new Promise(() => {}));
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+
+      await vi.advanceTimersByTimeAsync(2000);
+
+      expect(newService.isLoading()).toBe(false);
+      expect(newService.getUser()).toBeNull();
     });
 
     it('leaves the login page when a restored session is already authenticated', async () => {

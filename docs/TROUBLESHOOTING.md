@@ -519,9 +519,9 @@ Bundled startup should fall back to the local Angular app if Preferences or live
 
 **Symptoms**: Capacitor logs `Loading app at capacitor://localhost`, `WebView loaded`, branding, `[AppInitialization] AdminAuthService initialization timed out after 5s`, then prayers and push. The screen stays the cream page background. There is no `[SiteAuthGuard]` line.
 
-**Cause**: [`siteAuthGuard`](../src/app/guards/site-auth.guard.ts) will not activate home until auth `loading$` becomes false. `getSession()` can hang in the iOS WebView, so loading stays true after the 5s initializer gives up. Prayer and push logs still run because those services do not wait on the guard. Keyboard, `UIKBDynamicRenderFactory`, `RTIInputSystemClient`, and `Could not resolve UID for user "mobile"` lines are simulator noise.
+**Cause**: [`siteAuthGuard`](../src/app/guards/site-auth.guard.ts) will not activate home until auth `loading$` becomes false. `getSession()` can hang in the iOS WebView, so loading stays true after the 5s initializer gives up. Prayer and push logs still run because those services do not wait on the guard. If a saved session clears `loading$` before that initializer subscribes, unsubscribing in the same turn throws `Cannot access 'subscription' before initialization` and Angular never creates `app-root` (still an empty dark or cream page). Keyboard, `UIKBDynamicRenderFactory`, `RTIInputSystemClient`, and `Could not resolve UID for user "mobile"` lines are simulator noise.
 
-**Fix**: Current [`admin-auth.service.ts`](../src/app/services/admin-auth.service.ts) stops waiting on a hung `getSession()` and only clears `loading$` after session restore settles, so a returning user is not left on the login screen. Rebuild so the simulator is not running an older `ios/App/App/public` bundle:
+**Fix**: Current [`admin-auth.service.ts`](../src/app/services/admin-auth.service.ts) marks a saved MFA email signed in before `getSession()`, and opens the shell within 2.5s if restore is still hung, so the guard can show home or login. A restore that finishes after login was opened navigates back into the app. Rebuild so the simulator is not running an older `ios/App/App/public` bundle:
 
 ```bash
 npm run cap:prod

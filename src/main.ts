@@ -22,6 +22,7 @@ import {
   syncNativeAuthBridgeBeforeLiveRedirect,
 } from "./lib/native-auth-storage-bridge";
 import { runPreBootstrapHydrate } from "./lib/app-boot-gate";
+import { whenAuthLoadingFinishes } from "./lib/auth-loading-gate";
 
 // Add a global visibility check to ensure content stays visible during background refresh
 const setupVisibilityRecovery = () => {
@@ -109,39 +110,23 @@ bootstrapApplication(AppComponent, {
           console.log(
             "[AppInitialization] Initializing AdminAuthService for session restoration"
           );
-          // Wait for the loading state to complete (loading goes from true -> false)
-          return new Promise((resolve) => {
-            let resolved = false;
-
-            // Subscribe to loading state
-            const subscription = adminAuthService.loading$.subscribe(
-              (isLoading) => {
-                // Once loading completes (becomes false), resolve
-                if (!isLoading && !resolved) {
-                  resolved = true;
-                  console.log(
-                    "[AppInitialization] AdminAuthService initialization complete"
-                  );
-                  subscription.unsubscribe();
-                  resolve(true);
-                }
-              }
-            );
-
-            // Safety timeout in case loading never completes
-            setTimeout(() => {
-              if (!resolved) {
-                resolved = true;
-                console.warn(
-                  "[AppInitialization] AdminAuthService initialization timed out after 5s"
-                );
-                // Do not clear loading$ here. The guard treats the first false
-                // as the final session, so an early clear sends a restoring
-                // user to /login and leaves them there.
-                subscription.unsubscribe();
-                resolve(true);
-              }
-            }, 5000);
+          // A saved session clears loading$ before this subscribe runs. The
+          // callback must not unsubscribe until that binding exists.
+          return whenAuthLoadingFinishes(adminAuthService.loading$, {
+            timeoutMs: 5000,
+            onReady: () => {
+              console.log(
+                "[AppInitialization] AdminAuthService initialization complete"
+              );
+            },
+            onTimeout: () => {
+              console.warn(
+                "[AppInitialization] AdminAuthService initialization timed out after 5s"
+              );
+              // Do not clear loading$ here. The guard treats the first false
+              // as the final session, so an early clear sends a restoring
+              // user to /login and leaves them there.
+            },
           });
         };
       },

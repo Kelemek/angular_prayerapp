@@ -51,13 +51,13 @@ export async function completeRestoredAuthSession(
   handlers: CompleteRestoredAuthSessionHandlers
 ): Promise<void> {
   handlers.setUser(user);
-  try {
-    await handlers.checkAdminStatus(user);
-  } catch (error) {
-    console.error('[AdminAuth] Error checking admin status during session restore:', error);
-    handlers.onAdminCheckFailed();
-  }
   handlers.setAuthenticated(true);
   const sessionStart = handlers.getPersistedSessionStart() || Date.now();
   handlers.persistSessionStart(sessionStart);
+  // The home route only needs isAuthenticated. The admin query can take the
+  // full directQuery timeout and must not leave the WebView on an empty page.
+  void handlers.checkAdminStatus(user).catch((error: unknown) => {
+    console.error('[AdminAuth] Error checking admin status during session restore:', error);
+    handlers.onAdminCheckFailed();
+  });
 }
