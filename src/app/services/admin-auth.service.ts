@@ -22,10 +22,12 @@ import {
 } from '../../lib/auth-session-link';
 import {
   ADMIN_SESSION_START_STORAGE_KEY,
+  LOGIN_PATH,
   MFA_AUTHENTICATED_EMAIL_STORAGE_KEY,
   MFA_LOGIN_CODE_ID_KEY,
   MFA_LOGIN_CODE_USER_EMAIL_KEY,
   clearPendingLoginMfaSession,
+  openLoginPageNow,
 } from '../../lib/auth-storage-keys';
 import {
   buildMfaMockUser,
@@ -905,7 +907,12 @@ export class AdminAuthService {
         return;
       }
       const navigate = (): void => {
-        void this.router.navigate(['/login'], { replaceUrl: true });
+        void this.router.navigate([LOGIN_PATH], { replaceUrl: true }).then((opened) => {
+          if (opened) {
+            return;
+          }
+          openLoginPageNow();
+        });
       };
       // Capacitor plugin callbacks resume outside Angular. Without this, iOS
       // can change the URL and leave the wiped home page on screen.
@@ -917,25 +924,10 @@ export class AdminAuthService {
     };
 
     try {
-      // Remove this device's push token so we don't send notifications after logout
-      try {
-        const pushService = this.injector.get(PushNotificationService);
-        await withAuthStepDeadline(
-          pushService.removeDeviceToken(),
-          'remove device token'
-        );
-      } catch {
-        // Ignore if push service not available (e.g. web) or the call hangs
-      }
-
-      try {
-        await withAuthStepDeadline(
-          this.clearBadgeReadStateForLogout(userEmail),
-          'badge flush'
-        );
-      } catch (error) {
-        console.warn('[AdminAuth] Badge flush before logout skipped:', error);
-      }
+      // Do not wait on native I/O before leaving home. Push and badge flush
+      // can hang on iOS and leave the wiped personal tab on screen.
+      void this.removeDeviceTokenInBackground();
+      void this.clearBadgeReadStateForLogout(userEmail);
 
       if (this.sessionEpoch !== epoch) {
         await this.revokeLoggedOutAccessToken(loggedOutToken, epoch);
@@ -1134,6 +1126,18 @@ export class AdminAuthService {
       );
     } catch (error) {
       console.warn('[AdminAuth] Token logout failed:', error);
+    }
+  }
+
+  private removeDeviceTokenInBackground(): void {
+    try {
+      const pushService = this.injector.get(PushNotificationService);
+      void withAuthStepDeadline(
+        pushService.removeDeviceToken(),
+        'remove device token'
+      );
+    } catch {
+      // Ignore if push service not available (e.g. web)
     }
   }
 

@@ -256,16 +256,13 @@ describe('AdminAuthService', () => {
       expect(localStorage.getItem('prayer_encouragement_modal_do_not_show')).toBeNull();
     });
 
-    it('flushes badge read state before clearing authentication on logout', async () => {
+    it('starts badge flush on logout without waiting for it to finish', async () => {
       await vi.advanceTimersByTimeAsync(100);
 
       service.userSubject.next({ email: 'logout-user@example.com' } as User);
       service.isAuthenticatedSubject.next(true);
 
-      let authAtFlush: boolean | undefined;
-      const flushBeforeLogout = vi.fn().mockImplementation(async () => {
-        authAtFlush = service.isAuthenticatedSubject.value;
-      });
+      const flushBeforeLogout = vi.fn().mockResolvedValue(undefined);
       const invalidateForEmail = vi.fn();
 
       mockInjector.get.mockImplementation((token: any) => {
@@ -284,8 +281,59 @@ describe('AdminAuthService', () => {
       await service.logout();
 
       expect(flushBeforeLogout).toHaveBeenCalledWith('logout-user@example.com');
-      expect(authAtFlush).toBe(true);
       expect(await firstValueFrom(service.isAuthenticated$)).toBe(false);
+    });
+
+    it('opens login even when a hung push token removal never finishes', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      mockInjector.get.mockImplementation((token: unknown) => {
+        if (token === PushNotificationService) {
+          return { removeDeviceToken: () => new Promise(() => {}) };
+        }
+        if (token === BadgeReadStateService) {
+          return {
+            flushBeforeLogout: async () => undefined,
+            invalidateForEmail: () => undefined,
+          };
+        }
+        if (token === PrayerEncouragementService) {
+          return { clearCooldownKeys: () => undefined };
+        }
+        return null;
+      });
+
+      const pending = service.logout();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login'], {
+        replaceUrl: true,
+      });
+      expect(service.isAuthenticatedSubject.value).toBe(false);
+      await pending;
+    });
+
+    it('hard-opens login when the router does not leave home', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      mockRouter.navigate = vi.fn().mockResolvedValue(false);
+      const originalLocation = window.location;
+      const replace = vi.fn();
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: {
+          pathname: '/',
+          search: '',
+          replace,
+        },
+      });
+
+      try {
+        await service.logout();
+        expect(replace).toHaveBeenCalledWith('/login');
+      } finally {
+        Object.defineProperty(window, 'location', {
+          configurable: true,
+          value: originalLocation,
+        });
+      }
     });
 
     it('navigates to login even when signOut never resolves', async () => {

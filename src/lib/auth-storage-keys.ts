@@ -21,3 +21,17 @@ export function clearPendingLoginMfaSession(): void {
 export const MFA_AUTH_RESUME_TOKEN_STORAGE_KEY = 'mfa_auth_resume_token';
 
 export const ADMIN_SESSION_START_STORAGE_KEY = 'adminSessionStart';
+
+export const LOGIN_PATH = '/login';
+
+/** Hard navigation when Angular's router does not leave a wiped home page. */
+export function openLoginPageNow(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const path = `${window.location.pathname}${window.location.search}`;
+  if (path === LOGIN_PATH || path.startsWith(`${LOGIN_PATH}?`)) {
+    return;
+  }
+  window.location.replace(LOGIN_PATH);
+}

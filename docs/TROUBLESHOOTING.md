@@ -537,7 +537,7 @@ An older bug skipped Angular bootstrap entirely when a live redirect was attempt
 
 **Cause**: [`logout()`](../src/app/services/admin-auth.service.ts) used to clear the session (that empties the lists) and only then navigate to `/login`. On iOS, `auth.signOut()` or the Preferences revoke write can hang, so the navigation never ran. The home guard does not re-run on an already open page. A verification code left in the app session was also restored on `/login`, and iOS could autofill it and sign the user back in.
 
-**Fix**: Logout opens `/login` as soon as the local session is cleared, and it drops any verification code that is still open so the email form stays up. A reload before `signOut()` finishes stays on login, because the same-origin revoked flag clears a Supabase session that is still in storage. Rebuild the simulator bundle (`npm run cap:prod`, then Run in Xcode). The production site inside the WebView only gets this after that web build is deployed.
+**Fix**: Logout opens `/login` as soon as the local session is cleared, without waiting on push or badge native I/O, and it drops any verification code that is still open so the email form stays up. If the router does not leave home, logout loads `/login` with a document replace. A reload before `signOut()` finishes stays on login, because the same-origin revoked flag clears a Supabase session that is still in storage. Rebuild the simulator bundle (`npm run cap:prod`, then Run in Xcode). The production site inside the WebView only gets this after that web build is deployed.
 
 ### Safari: tab is blank until you refresh
 
