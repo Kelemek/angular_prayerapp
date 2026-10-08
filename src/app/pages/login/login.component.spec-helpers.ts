@@ -10,10 +10,13 @@ import type { LoginPageBindings } from "../../services/login-page-bindings";
 export const makeMocks = () => {
   const requireSiteLogin$ = new BehaviorSubject(false);
   const isAdmin$ = new BehaviorSubject(false);
+  const isAuthenticated$ = new BehaviorSubject(false);
 
   const adminAuthService: any = {
     requireSiteLogin$,
     isAdmin$,
+    isAuthenticated$,
+    getIsAdmin: () => isAdmin$.value,
     sendMfaCode: vi.fn(async () => ({ success: true })),
     verifyMfaCode: vi.fn(async () => ({ success: true, isAdmin: false })),
     logout: vi.fn(async () => {}),
@@ -73,7 +76,7 @@ export const makeMocks = () => {
   const queryParams$ = new BehaviorSubject<Record<string, string | undefined>>(
     {}
   );
-  const router: any = { navigate: vi.fn() };
+  const router: any = { navigate: vi.fn(), url: "/login" };
   const route: any = { queryParams: queryParams$ };
   const cdr: any = { markForCheck: vi.fn() };
 

@@ -1,4 +1,4 @@
-import { Injectable, inject, Injector } from '@angular/core';
+import { Injectable, inject, Injector, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, Subscription, interval, timer } from 'rxjs';
 import { SupabaseService } from './supabase.service';
@@ -23,6 +23,9 @@ import {
 import {
   ADMIN_SESSION_START_STORAGE_KEY,
   MFA_AUTHENTICATED_EMAIL_STORAGE_KEY,
+  MFA_LOGIN_CODE_ID_KEY,
+  MFA_LOGIN_CODE_USER_EMAIL_KEY,
+  clearPendingLoginMfaSession,
 } from '../../lib/auth-storage-keys';
 import {
   buildMfaMockUser,
@@ -100,6 +103,7 @@ export class AdminAuthService {
 
   private router = inject(Router);
   private injector = inject(Injector);
+  private ngZone = inject(NgZone, { optional: true });
 
   constructor(
     private supabase: SupabaseService,
@@ -720,8 +724,8 @@ export class AdminAuthService {
       // Store the code ID for verification
       const codeId = data.codeId;
       if (codeId) {
-        localStorage.setItem('mfa_code_id', codeId);
-        localStorage.setItem('mfa_user_email', email);
+        localStorage.setItem(MFA_LOGIN_CODE_ID_KEY, codeId);
+        localStorage.setItem(MFA_LOGIN_CODE_USER_EMAIL_KEY, email);
       }
 
       console.log('[AdminAuth] MFA code sent successfully via Graph API');
@@ -764,8 +768,8 @@ export class AdminAuthService {
     try {
       console.log('[AdminAuth] Verifying MFA code');
       
-      const codeId = localStorage.getItem('mfa_code_id');
-      const email = localStorage.getItem('mfa_user_email');
+      const codeId = localStorage.getItem(MFA_LOGIN_CODE_ID_KEY);
+      const email = localStorage.getItem(MFA_LOGIN_CODE_USER_EMAIL_KEY);
       
       if (!codeId || !email) {
         return { success: false, error: 'No MFA session found. Please request a code again.' };
@@ -864,8 +868,8 @@ export class AdminAuthService {
       this.cacheService.invalidateCategory('personalPrayers');
 
       // Clean up
-      localStorage.removeItem('mfa_code_id');
-      localStorage.removeItem('mfa_user_email');
+      localStorage.removeItem(MFA_LOGIN_CODE_ID_KEY);
+      localStorage.removeItem(MFA_LOGIN_CODE_USER_EMAIL_KEY);
 
       console.log('[AdminAuth] MFA verification successful, session created (isAdmin:', isAdmin, ')');
       return { success: true, isAdmin };
@@ -900,7 +904,16 @@ export class AdminAuthService {
       if (options?.skipNavigation) {
         return;
       }
-      void this.router.navigate(['/login']);
+      const navigate = (): void => {
+        void this.router.navigate(['/login'], { replaceUrl: true });
+      };
+      // Capacitor plugin callbacks resume outside Angular. Without this, iOS
+      // can change the URL and leave the wiped home page on screen.
+      if (this.ngZone) {
+        this.ngZone.run(navigate);
+      } else {
+        navigate();
+      }
     };
 
     try {
@@ -931,6 +944,7 @@ export class AdminAuthService {
 
       this.userSubject.next(null);
       this.isAdminSubject.next(false);
+      this.hasAdminEmailSubject.next(false);
       this.isAuthenticatedSubject.next(false);
       this.sessionStart = null;
       this.persistSessionStart(null);
@@ -944,6 +958,7 @@ export class AdminAuthService {
       // Clear MFA authenticated session data before any further native await
       localStorage.removeItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY);
       localStorage.removeItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY);
+      clearPendingLoginMfaSession();
       localStorage.removeItem('prayer_encouragement_modal_do_not_show');
       if (userEmail) {
         localStorage.removeItem(`last_activity_update_${userEmail}`);

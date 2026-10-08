@@ -165,7 +165,9 @@ describe('AdminAuthService', () => {
       await service.logout();
 
       expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login'], {
+        replaceUrl: true,
+      });
       
       const user = await firstValueFrom(service.user$);
       const isAdmin = await firstValueFrom(service.isAdmin$);
@@ -194,7 +196,29 @@ describe('AdminAuthService', () => {
       // Should not throw even when signOut fails
       await expect(service.logout()).resolves.not.toThrow();
       
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login'], {
+        replaceUrl: true,
+      });
+    });
+
+    it('clears a pending verification code so logout stays on the email form', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      service.hasAdminEmailSubject.next(true);
+      sessionStorage.setItem('mfa_email_sent', 'true');
+      sessionStorage.setItem('mfa_email', 'user@example.com');
+      localStorage.setItem('mfa_code_id', 'code123');
+      localStorage.setItem('mfa_user_email', 'user@example.com');
+
+      await service.logout();
+
+      expect(sessionStorage.getItem('mfa_email_sent')).toBeNull();
+      expect(sessionStorage.getItem('mfa_email')).toBeNull();
+      expect(localStorage.getItem('mfa_code_id')).toBeNull();
+      expect(localStorage.getItem('mfa_user_email')).toBeNull();
+      expect(service.hasAdminEmailSubject.value).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login'], {
+        replaceUrl: true,
+      });
     });
 
     it('should call PrayerEncouragementService.clearCooldownKeys on logout', async () => {
@@ -273,7 +297,9 @@ describe('AdminAuthService', () => {
 
       const pending = service.logout();
       await vi.advanceTimersByTimeAsync(0);
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login'], {
+        replaceUrl: true,
+      });
       expect(service.isAuthenticatedSubject.value).toBe(false);
       expect(localStorage.getItem('mfa_authenticated_email')).toBeNull();
       expect(mockCacheService.invalidateCategory).toHaveBeenCalledWith('prayers');

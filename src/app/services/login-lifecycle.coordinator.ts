@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subject, takeUntil } from "rxjs";
+import { combineLatest, Subject, takeUntil } from "rxjs";
 import type { LoginPhase } from "../lib/login-phase";
 import { AdminAuthService } from "./admin-auth.service";
 import { BrandingService } from "./branding.service";
@@ -74,10 +74,20 @@ export class LoginLifecycleCoordinator {
       setTimeout(() => focusMfa(), 100);
     }
 
-    this.adminAuthService.isAdmin$
+    combineLatest([
+      this.adminAuthService.isAdmin$,
+      this.adminAuthService.isAuthenticated$,
+    ])
       .pipe(takeUntil(destroy$))
-      .subscribe(async (isAdmin) => {
-        if (!isAdmin) {
+      .subscribe(async ([isAdmin, isAuthenticated]) => {
+        if (!isAdmin || !isAuthenticated) {
+          return;
+        }
+        const url = this.router.url;
+        if (
+          typeof url === "string" &&
+          (url.includes("sessionExpired=true") || url.includes("blocked=true"))
+        ) {
           return;
         }
 
@@ -91,6 +101,9 @@ export class LoginLifecycleCoordinator {
           }
         } catch (sessionError) {
           console.warn("[AdminLogin] Failed to load user session:", sessionError);
+        }
+        if (!this.adminAuthService.getIsAdmin()) {
+          return;
         }
         await this.router.navigate(["/"]);
       });

@@ -1,12 +1,14 @@
 import { Injectable } from "@angular/core";
 import { Router } from "@angular/router";
+import {
+  MFA_LOGIN_CODE_EMAIL_KEY,
+  MFA_LOGIN_CODE_SENT_KEY,
+  clearPendingLoginMfaSession,
+} from "../../lib/auth-storage-keys";
 import type { LoginPhase } from "../lib/login-phase";
 import { AdminAuthService } from "./admin-auth.service";
 import { LoginAuthCoordinator } from "./login-auth.coordinator";
 import type { LoginPageBindings } from "./login-page-bindings";
-
-const MFA_SESSION_SENT_KEY = "mfa_email_sent";
-const MFA_SESSION_EMAIL_KEY = "mfa_email";
 
 @Injectable()
 export class LoginMfaCoordinator {
@@ -24,8 +26,8 @@ export class LoginMfaCoordinator {
 
   restorePendingSession(): boolean {
     const host = this.requireHost();
-    const mfaSent = sessionStorage.getItem(MFA_SESSION_SENT_KEY);
-    const savedEmail = sessionStorage.getItem(MFA_SESSION_EMAIL_KEY);
+    const mfaSent = sessionStorage.getItem(MFA_LOGIN_CODE_SENT_KEY);
+    const savedEmail = sessionStorage.getItem(MFA_LOGIN_CODE_EMAIL_KEY);
     if (mfaSent !== "true" || !savedEmail) {
       return false;
     }
@@ -38,8 +40,7 @@ export class LoginMfaCoordinator {
 
   resetToEmail(): void {
     const host = this.requireHost();
-    sessionStorage.removeItem(MFA_SESSION_SENT_KEY);
-    sessionStorage.removeItem(MFA_SESSION_EMAIL_KEY);
+    clearPendingLoginMfaSession();
     host.phase = { kind: "email" };
     host.email = "";
     host.mfaCodeInput = "";
@@ -82,8 +83,8 @@ export class LoginMfaCoordinator {
 
       if (result.success) {
         host.phase = { kind: "mfa" };
-        sessionStorage.setItem(MFA_SESSION_SENT_KEY, "true");
-        sessionStorage.setItem(MFA_SESSION_EMAIL_KEY, host.email);
+        sessionStorage.setItem(MFA_LOGIN_CODE_SENT_KEY, "true");
+        sessionStorage.setItem(MFA_LOGIN_CODE_EMAIL_KEY, host.email);
       } else {
         host.error =
           result.error || "Failed to send MFA code. Please try again.";
@@ -133,8 +134,8 @@ export class LoginMfaCoordinator {
 
       host.isAdmin = result.isAdmin || false;
       const userEmail = host.email;
-      sessionStorage.removeItem(MFA_SESSION_SENT_KEY);
-      sessionStorage.removeItem(MFA_SESSION_EMAIL_KEY);
+      sessionStorage.removeItem(MFA_LOGIN_CODE_SENT_KEY);
+      sessionStorage.removeItem(MFA_LOGIN_CODE_EMAIL_KEY);
 
       setTimeout(async () => {
         try {

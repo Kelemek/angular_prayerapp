@@ -42,6 +42,8 @@ describe("LoginLifecycleCoordinator", () => {
   let adminAuthService: {
     requireSiteLogin$: BehaviorSubject<boolean>;
     isAdmin$: BehaviorSubject<boolean>;
+    isAuthenticated$: BehaviorSubject<boolean>;
+    getIsAdmin: () => boolean;
   };
   let supabaseService: {
     client: {
@@ -56,7 +58,7 @@ describe("LoginLifecycleCoordinator", () => {
   let loginAuth: {
     fetchVerificationCodeLength: ReturnType<typeof vi.fn>;
   };
-  let router: { navigate: ReturnType<typeof vi.fn> };
+  let router: { navigate: ReturnType<typeof vi.fn>; url: string };
   let route: { queryParams: BehaviorSubject<Record<string, string | undefined>> };
   let lifecycle: LoginLifecycleCoordinator;
   let destroy$: Subject<void>;
@@ -80,6 +82,8 @@ describe("LoginLifecycleCoordinator", () => {
     adminAuthService = {
       requireSiteLogin$: new BehaviorSubject(false),
       isAdmin$: new BehaviorSubject(false),
+      isAuthenticated$: new BehaviorSubject(true),
+      getIsAdmin: () => adminAuthService.isAdmin$.value,
     };
     supabaseService = {
       client: {
@@ -96,7 +100,7 @@ describe("LoginLifecycleCoordinator", () => {
     loginAuth = {
       fetchVerificationCodeLength: vi.fn(async () => 6),
     };
-    router = { navigate: vi.fn() };
+    router = { navigate: vi.fn(), url: "/login" };
     route = {
       queryParams: new BehaviorSubject<Record<string, string | undefined>>({}),
     };
@@ -163,6 +167,26 @@ describe("LoginLifecycleCoordinator", () => {
       expect(userSessionService.loadUserSession).toHaveBeenCalledWith("admin@test.com");
       expect(router.navigate).toHaveBeenCalledWith(["/"]);
     });
+  });
+
+  it("stays on login after logout even if the admin flag is still set", async () => {
+    adminAuthService.isAdmin$.next(true);
+    adminAuthService.isAuthenticated$.next(false);
+
+    await lifecycle.initialize(destroy$, mfa as unknown as LoginMfaCoordinator, vi.fn());
+    await Promise.resolve();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it("stays on login when an admin must enter a new verification code", async () => {
+    adminAuthService.isAdmin$.next(true);
+    router.url = "/login?sessionExpired=true";
+
+    await lifecycle.initialize(destroy$, mfa as unknown as LoginMfaCoordinator, vi.fn());
+    await Promise.resolve();
+
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it("focuses MFA input when a pending session is restored", async () => {
