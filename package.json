@@ -47,6 +47,7 @@
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@capacitor/ios": "^8.4.1",
+    "@capacitor/preferences": "^8.0.1",
     "@capacitor/push-notifications": "^8.1.1",
     "@capgo/capacitor-printer": "^8.1.0",
     "@dnd-kit/core": "^6.3.1",

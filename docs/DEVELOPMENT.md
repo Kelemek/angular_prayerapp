@@ -33,6 +33,10 @@ For developers working on the Prayer App codebase.
 
 After Capacitor dependency bumps, run **`npm run cap:sync`** (or `cap:dev` / `cap:prod`) before native builds.
 
+**Native hybrid boot**: On a cold start, the installed app loads bundled `webDir`, then [`maybeRedirectNativeToLiveSite`](../src/lib/capacitor-live-boot.ts) in [`main.ts`](../src/main.ts) probes production `appUrl` and navigates there when online so most UI changes ship via web deploy without a store update. [`capacitor.config.ts`](../capacitor.config.ts) sets `allowNavigation` for `cpprayer.cp-church.org`; optional `.env.capacitor` `CAPACITOR_SERVER_URL` points a dev build at `ng serve`.
+
+**Auth dual-run (Supabase user link)**: [`verify-code`](../supabase/functions/verify-code/index.ts) returns `auth_resume_token` after successful `admin_login` MFA; clients store it via [`auth-storage-keys.ts`](../src/lib/auth-storage-keys.ts). [`resume-auth-link`](../supabase/functions/resume-auth-link/index.ts) requires that token; both edge handlers mint magic links through [`mint-subscriber-magic-link.ts`](../supabase/functions/shared/mint-subscriber-magic-link.ts). Init restore flow: [`admin-auth-session-restore.ts`](../src/lib/admin-auth-session-restore.ts) + [`AdminAuthService`](../src/app/services/admin-auth.service.ts). Optional env `AUTH_RESUME_HMAC_SECRET`. Native: [`native-auth-storage-bridge.ts`](../src/lib/native-auth-storage-bridge.ts). Track legacy clients with `auth_linked_at IS NULL`.
+
 ### Project Structure
 
 ```

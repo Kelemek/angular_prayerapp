@@ -11,7 +11,17 @@ import { AdminAuthService } from "./app/services/admin-auth.service";
 import { BrandingService } from "./app/services/branding.service";
 import { BRANDING_SERVICE_TOKEN } from "./app/components/app-logo/app-logo.component";
 
+import { Capacitor } from "@capacitor/core";
 import { providePostHogErrorHandler } from "./app/posthog-error-handler";
+import {
+  CAPACITOR_LIVE_ORIGIN,
+  maybeRedirectNativeToLiveSite,
+} from "./lib/capacitor-live-boot";
+import {
+  hydrateLocalStorageFromNativeAuthBridge,
+  syncNativeAuthBridgeBeforeLiveRedirect,
+} from "./lib/native-auth-storage-bridge";
+import { runPreBootstrapGate } from "./lib/app-boot-gate";
 
 // Add a global visibility check to ensure content stays visible during background refresh
 const setupVisibilityRecovery = () => {
@@ -49,6 +59,7 @@ const setupVisibilityRecovery = () => {
 
 setupVisibilityRecovery();
 
+function bootstrapApp(): void {
 bootstrapApplication(AppComponent, {
   providers: [
     providePostHogErrorHandler(),
@@ -155,3 +166,29 @@ bootstrapApplication(AppComponent, {
     window.location.reload();
   }, 3000);
 });
+}
+
+void (async () => {
+  const isNative = Capacitor.isNativePlatform();
+  const redirected = await runPreBootstrapGate({
+    isNative,
+    hydrateNativeAuth: hydrateLocalStorageFromNativeAuthBridge,
+    maybeRedirectToLiveSite: () =>
+      maybeRedirectNativeToLiveSite({
+        isNative,
+        origin: window.location.origin,
+        hostname: window.location.hostname,
+        location: window.location,
+        liveOrigin: CAPACITOR_LIVE_ORIGIN,
+        fetchFn: fetch,
+        timeoutMs: 8000,
+        beforeRedirect: isNative
+          ? () => syncNativeAuthBridgeBeforeLiveRedirect()
+          : undefined,
+      }),
+  });
+  if (redirected) {
+    return;
+  }
+  bootstrapApp();
+})();

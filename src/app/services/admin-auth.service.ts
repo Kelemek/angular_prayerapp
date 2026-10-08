@@ -12,6 +12,29 @@ import {
   BADGE_READ_PROMPTS_DATA_KEY,
 } from '../lib/badge-cache';
 import type { User } from '@supabase/supabase-js';
+import {
+  VERIFY_CODE_LINK_AUTH_SESSION,
+  linkAuthSessionAfterVerify,
+  MFA_AUTH_RESUME_TOKEN_STORAGE_KEY,
+  persistAuthResumeTokenFromVerifyResponse,
+  resumeMfaSubscriberAuthLink,
+  stampSubscriberAuthLink,
+} from '../../lib/auth-session-link';
+import {
+  ADMIN_SESSION_START_STORAGE_KEY,
+  MFA_AUTHENTICATED_EMAIL_STORAGE_KEY,
+} from '../../lib/auth-storage-keys';
+import {
+  buildMfaMockUser,
+  completeRestoredAuthSession as completeRestoredAuthSessionFlow,
+} from '../../lib/admin-auth-session-restore';
+import {
+  clearMfaAuthLocalStorage,
+  clearNativeAuthBridge,
+  isNativeAuthBridgeRevoked,
+  mfaEmailConflictsWithSession,
+  persistNativeAuthBridgeFromLocalStorage,
+} from '../../lib/native-auth-storage-bridge';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +51,7 @@ export class AdminAuthService {
   private sessionStart: number | null = null;
   private adminSessionStart: number | null = null;
   private lastBlockedCheck = 0;
+  private readonly subscriberAuthLinkByEmail = new Map<string, Promise<void>>();
 
   public user$ = this.userSubject.asObservable();
   public isAdmin$ = this.isAdminSubject.asObservable();
@@ -52,57 +76,57 @@ export class AdminAuthService {
 
   private async initializeAuth(): Promise<void> {
     try {
-    // Check current session
-    const { data: { session } } = await this.supabase.client.auth.getSession();
-    
-    if (session?.user) {
-      this.userSubject.next(session.user);
-      // Check admin status and wait for it to complete
-      try {
-        await this.checkAdminStatus(session.user);
-      } catch (error) {
-        console.error('[AdminAuth] Error checking admin status during init:', error);
-        this.isAdminSubject.next(false);
-        this.hasAdminEmailSubject.next(false);
+    let {
+      data: { session },
+    } = await this.supabase.client.auth.getSession();
+
+    const bridgeRevokedOnNative = await isNativeAuthBridgeRevoked();
+    if (bridgeRevokedOnNative) {
+      clearMfaAuthLocalStorage();
+      if (session) {
+        console.warn(
+          '[AdminAuth] Native auth bridge revoked; clearing Supabase session'
+        );
+        await this.supabase.client.auth.signOut();
+        session = null;
       }
-      // Set authenticated regardless of admin status check
-      this.isAuthenticatedSubject.next(true);
-      this.sessionStart = this.getPersistedSessionStart() || Date.now();
-      this.persistSessionStart(this.sessionStart);
-    } else {
-      // Check if user has an MFA-based session stored in localStorage
-      const mfaAuthenticatedEmail = localStorage.getItem('mfa_authenticated_email');
-      if (mfaAuthenticatedEmail) {
-        console.log('[AdminAuth] Restoring MFA authenticated session for:', mfaAuthenticatedEmail);
-        // Create a mock user object to satisfy the type system
-        const mockUser: User = {
-          id: 'mfa-auth-' + mfaAuthenticatedEmail.replace(/[^a-zA-Z0-9]/g, ''),
-          email: mfaAuthenticatedEmail,
-          user_metadata: {},
-          app_metadata: {},
-          aud: 'authenticated',
-          created_at: localStorage.getItem('adminSessionStart')
-            ? new Date(Number(localStorage.getItem('adminSessionStart'))).toISOString()
-            : new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          email_confirmed_at: new Date().toISOString(),
-          phone: '',
-          confirmed_at: new Date().toISOString()
-        } as User;
-        
-        this.userSubject.next(mockUser);
-        // Check admin status and wait for it to complete
-        try {
-          await this.checkAdminStatus(mockUser);
-        } catch (error) {
-          console.error('[AdminAuth] Error checking admin status for restored MFA session:', error);
-          this.isAdminSubject.next(false);
-          this.hasAdminEmailSubject.next(false);
-        }
-        // Set authenticated for MFA session
-        this.isAuthenticatedSubject.next(true);
-        this.sessionStart = this.getPersistedSessionStart() || Date.now();
-        this.persistSessionStart(this.sessionStart);
+    }
+
+    const bridgedMfaEmail = localStorage.getItem(
+      MFA_AUTHENTICATED_EMAIL_STORAGE_KEY
+    );
+    if (
+      !bridgeRevokedOnNative &&
+      session?.user &&
+      mfaEmailConflictsWithSession(bridgedMfaEmail, session.user.email)
+    ) {
+      console.warn(
+        '[AdminAuth] Supabase session does not match bridged MFA email; clearing stale JWT'
+      );
+      await this.supabase.client.auth.signOut();
+      session = null;
+    }
+
+    const mfaEmail = bridgedMfaEmail?.trim() ?? '';
+    const linkTargetEmail = session?.user?.email?.trim() || mfaEmail;
+
+    if (linkTargetEmail) {
+      if (mfaEmail) {
+        console.log(
+          '[AdminAuth] Restoring MFA authenticated session for:',
+          mfaEmail
+        );
+      }
+      await this.ensureSubscriberAuthOnLoad(linkTargetEmail);
+
+      const {
+        data: { session: afterLink },
+      } = await this.supabase.client.auth.getSession();
+      const restoredUser =
+        afterLink?.user ?? (mfaEmail ? buildMfaMockUser(mfaEmail) : null);
+
+      if (restoredUser) {
+        await this.completeRestoredAuthSession(restoredUser);
       }
     }
 
@@ -126,7 +150,9 @@ export class AdminAuthService {
       } else {
         // Only clear auth state if we don't have an MFA authenticated user
         // MFA users don't have Supabase sessions so this listener won't find them
-        const mfaAuthenticatedEmail = localStorage.getItem('mfa_authenticated_email');
+        const mfaAuthenticatedEmail = localStorage.getItem(
+          MFA_AUTHENTICATED_EMAIL_STORAGE_KEY
+        );
         if (!mfaAuthenticatedEmail) {
           // Get user email before clearing auth state
           const userEmail = this.userSubject.value?.email;
@@ -209,6 +235,65 @@ export class AdminAuthService {
    */
   public clearLoading(): void {
     this.loadingSubject.next(false);
+  }
+
+  /**
+   * Dual-run: create/link Supabase Auth for MFA-only sessions without forcing re-login.
+   */
+  private async completeRestoredAuthSession(user: User): Promise<void> {
+    await completeRestoredAuthSessionFlow(user, {
+      setUser: (next) => this.userSubject.next(next),
+      checkAdminStatus: (next) => this.checkAdminStatus(next),
+      onAdminCheckFailed: () => {
+        this.isAdminSubject.next(false);
+        this.hasAdminEmailSubject.next(false);
+      },
+      setAuthenticated: (value) => this.isAuthenticatedSubject.next(value),
+      getPersistedSessionStart: () => this.getPersistedSessionStart(),
+      persistSessionStart: (timestamp) => {
+        this.sessionStart = timestamp;
+        this.persistSessionStart(timestamp);
+      },
+    });
+  }
+
+  private async ensureSubscriberAuthOnLoad(email: string): Promise<void> {
+    const normalized = email.toLowerCase().trim();
+    if (!normalized) {
+      return;
+    }
+
+    const existing = this.subscriberAuthLinkByEmail.get(normalized);
+    if (existing) {
+      await existing;
+      return;
+    }
+
+    const run = async (): Promise<void> => {
+      const {
+        data: { session },
+      } = await this.supabase.client.auth.getSession();
+      const result =
+        session?.user?.email?.toLowerCase().trim() === normalized
+          ? await stampSubscriberAuthLink(this.supabase.client)
+          : await resumeMfaSubscriberAuthLink(
+              this.supabase.client,
+              normalized
+            );
+
+      if (!result.ok) {
+        console.warn(
+          '[AdminAuth] Subscriber auth link on load failed:',
+          result.error
+        );
+      }
+    };
+
+    const pending = run().finally(() => {
+      this.subscriberAuthLinkByEmail.delete(normalized);
+    });
+    this.subscriberAuthLinkByEmail.set(normalized, pending);
+    await pending;
   }
 
   private async checkAdminStatus(user: User): Promise<void> {
@@ -302,7 +387,7 @@ export class AdminAuthService {
 
   private getPersistedSessionStart(): number | null {
     try {
-      const stored = localStorage.getItem('adminSessionStart');
+      const stored = localStorage.getItem(ADMIN_SESSION_START_STORAGE_KEY);
       if (stored) {
         const timestamp = parseInt(stored, 10);
         if (!isNaN(timestamp)) return timestamp;
@@ -316,9 +401,9 @@ export class AdminAuthService {
   private persistSessionStart(timestamp: number | null): void {
     try {
       if (timestamp === null) {
-        localStorage.removeItem('adminSessionStart');
+        localStorage.removeItem(ADMIN_SESSION_START_STORAGE_KEY);
       } else {
-        localStorage.setItem('adminSessionStart', timestamp.toString());
+        localStorage.setItem(ADMIN_SESSION_START_STORAGE_KEY, timestamp.toString());
       }
     } catch (e) {
       console.error('Error persisting session start:', e);
@@ -428,7 +513,8 @@ export class AdminAuthService {
       const { data, error } = await this.supabase.client.functions.invoke('verify-code', {
         body: {
           codeId,
-          code
+          code,
+          [VERIFY_CODE_LINK_AUTH_SESSION]: true,
         }
       });
 
@@ -452,6 +538,28 @@ export class AdminAuthService {
         return { success: false, error: errorMessage };
       }
 
+      persistAuthResumeTokenFromVerifyResponse(data);
+
+      if (typeof data.hashed_token === 'string' && data.hashed_token.trim()) {
+        const linked = await linkAuthSessionAfterVerify(
+          this.supabase.client,
+          data.hashed_token
+        );
+        if (linked.ok) {
+          const {
+            data: { session },
+          } = await this.supabase.client.auth.getSession();
+          if (session?.user) {
+            this.userSubject.next(session.user);
+          }
+        } else {
+          console.warn(
+            '[AdminAuth] Supabase auth link failed; continuing with MFA session:',
+            linked.error
+          );
+        }
+      }
+
       // Check if user is an admin
       const isAdmin = await this.isEmailAdmin(email);
 
@@ -470,7 +578,8 @@ export class AdminAuthService {
       this.isAuthenticatedSubject.next(true);
 
       // Store MFA authenticated email for session restoration after browser restart
-      localStorage.setItem('mfa_authenticated_email', email);
+      localStorage.setItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY, email);
+      void persistNativeAuthBridgeFromLocalStorage();
 
       // Invalidate personal prayers cache on login to ensure fresh data
       // This prevents stale personal prayer data from being displayed if cache wasn't properly cleared on previous logout
@@ -499,7 +608,9 @@ export class AdminAuthService {
   async logout(): Promise<void> {
     try {
       // Get user email before clearing auth state
-      const userEmail = this.userSubject.value?.email || localStorage.getItem('mfa_authenticated_email');
+      const userEmail =
+        this.userSubject.value?.email ||
+        localStorage.getItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY);
 
       // Remove this device's push token so we don't send notifications after logout
       try {
@@ -525,8 +636,10 @@ export class AdminAuthService {
       localStorage.removeItem('approvalApprovalId');
       
       // Clear MFA authenticated session data
-      localStorage.removeItem('mfa_authenticated_email');
-      
+      localStorage.removeItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY);
+      localStorage.removeItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY);
+      await clearNativeAuthBridge();
+
       // Clear user-specific caches to prevent next user from seeing previous user's data
       this.cacheService.invalidateCategory('personalPrayers');
       this.cacheService.invalidateCategory('prayers');

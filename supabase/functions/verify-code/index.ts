@@ -1,5 +1,8 @@
 // @ts-nocheck - Deno Edge Function
-import { hashVerificationCode, verificationCodesMatch } from './verification-code-hash.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hashVerificationCode, verificationCodesMatch } from './verification-code-hash.ts';
+import { mintAuthResumeToken } from '../shared/auth-resume-token.ts';
+import { mintSubscriberMagicLinkToken } from '../shared/mint-subscriber-magic-link.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -38,7 +41,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { codeId, code } = await req.json();
+    const { codeId, code, linkAuthSession } = await req.json();
 
     // Validate inputs
     if (!codeId || !code) {
@@ -273,13 +276,46 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    let auth_resume_token: string | undefined;
+    if (verificationRecord.action_type === 'admin_login' && emailNormalized) {
+      try {
+        auth_resume_token = await mintAuthResumeToken(emailNormalized);
+      } catch (resumeErr) {
+        console.warn('⚠️ auth resume token mint failed (non-critical):', resumeErr);
+      }
+    }
+
+    let hashed_token: string | undefined;
+    if (
+      linkAuthSession === true &&
+      verificationRecord.action_type === 'admin_login' &&
+      emailNormalized
+    ) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+        const minted = await mintSubscriberMagicLinkToken(supabase, emailNormalized);
+        if (minted.ok) {
+          hashed_token = minted.hashed_token;
+          console.log('✅ Auth link token minted for dual-run session');
+        } else {
+          console.error('❌ Auth link mint failed:', minted.error);
+        }
+      } catch (authLinkErr) {
+        console.warn('⚠️ Auth link mint failed (non-critical):', authLinkErr);
+      }
+    }
+
     // Return the action data
     return new Response(JSON.stringify({
       success: true,
       actionType: verificationRecord.action_type,
       actionData: verificationRecord.action_data,
       email: verificationRecord.email,
-      message: 'Email verified successfully'
+      message: 'Email verified successfully',
+      ...(hashed_token ? { hashed_token } : {}),
+      ...(auth_resume_token ? { auth_resume_token } : {}),
     }), {
       status: 200,
       headers: {

@@ -82,8 +82,10 @@ describe('AdminAuthService', () => {
         onAuthStateChange: vi.fn().mockReturnValue({
           data: { subscription: { unsubscribe: vi.fn() } }
         }),
-        signOut: vi.fn().mockResolvedValue({ error: null })
+        signOut: vi.fn().mockResolvedValue({ error: null }),
+        verifyOtp: vi.fn().mockResolvedValue({ error: null }),
       },
+      rpc: vi.fn().mockResolvedValue({ error: null }),
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -403,6 +405,46 @@ describe('AdminAuthService', () => {
       expect(result.success).toBe(true);
       expect(result.isAdmin).toBe(true);
       expect(localStorage.getItem('mfa_code_id')).toBe(null);
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith(
+        'verify-code',
+        expect.objectContaining({
+          body: expect.objectContaining({ linkAuthSession: true }),
+        })
+      );
+    });
+
+    it('should link Supabase auth when verify-code returns hashed_token', async () => {
+      localStorage.setItem('mfa_code_id', 'code123');
+      localStorage.setItem('mfa_user_email', 'user@example.com');
+
+      mockSupabaseClient.functions.invoke = vi.fn()
+        .mockResolvedValueOnce({
+          data: { success: true, hashed_token: 'minted-hash' },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { is_admin: false },
+          error: null,
+        });
+      mockSupabaseClient.auth.verifyOtp = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseClient.auth.getSession = vi
+        .fn()
+        .mockResolvedValue({
+          data: { session: { user: { id: 'uuid-1', email: 'user@example.com' } } },
+          error: null,
+        });
+
+      const result = await service.verifyMfaCode('1234');
+
+      expect(result.success).toBe(true);
+      expect(mockSupabaseClient.auth.verifyOtp).toHaveBeenCalledWith({
+        token_hash: 'minted-hash',
+        type: 'email',
+      });
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'link_email_subscriber_auth'
+      );
     });
 
     it('should verify MFA code successfully for non-admin', async () => {
@@ -1426,14 +1468,14 @@ describe('AdminAuthService', () => {
         app_metadata: {},
       };
 
-      mockSupabaseClient.auth.getSession.mockResolvedValueOnce({
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
         data: { session: { user: mockUser } },
-        error: null
+        error: null,
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
       const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
-      
+
       await vi.advanceTimersByTimeAsync(100);
 
       const user = newService.getUser();
@@ -1477,6 +1519,75 @@ describe('AdminAuthService', () => {
       
       // Just verify no error is thrown and method completes
       expect(time2).toBeGreaterThanOrEqual(time1);
+    });
+  });
+
+  describe('initializeAuth bridged MFA reconciliation', () => {
+    let bridgeRevokedSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(async () => {
+      const bridge = await import('../../lib/native-auth-storage-bridge');
+      bridgeRevokedSpy = vi
+        .spyOn(bridge, 'isNativeAuthBridgeRevoked')
+        .mockResolvedValue(false);
+    });
+
+    afterEach(() => {
+      bridgeRevokedSpy?.mockRestore();
+    });
+
+    it('signs out live-origin JWT when native bridge was revoked on logout', async () => {
+      bridgeRevokedSpy.mockResolvedValue(true);
+      mockSupabaseClient.auth.getSession = vi
+        .fn()
+        .mockResolvedValueOnce({
+          data: {
+            session: {
+              user: { email: 'user@example.com', id: 'live-jwt-user' },
+            },
+          },
+          error: null,
+        })
+        .mockResolvedValue({ data: { session: null }, error: null });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+      expect(newService.getUser()).toBeNull();
+    });
+
+    it('signs out stale JWT when bridged MFA email disagrees', async () => {
+      localStorage.setItem('mfa_authenticated_email', 'bridged@example.com');
+      mockSupabaseClient.auth.getSession = vi
+        .fn()
+        .mockResolvedValueOnce({
+          data: {
+            session: {
+              user: { email: 'stale@example.com', id: 'stale-user' },
+            },
+          },
+          error: null,
+        })
+        .mockResolvedValue({ data: { session: null }, error: null });
+      mockSupabaseService.directQuery.mockResolvedValue({
+        data: [{ is_admin: false }],
+        error: null,
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+      expect(newService.getUser()?.email).toBe('bridged@example.com');
     });
   });
 

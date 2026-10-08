@@ -1,4 +1,6 @@
-export const MFA_AUTHENTICATED_EMAIL_STORAGE_KEY = 'mfa_authenticated_email';
+import { MFA_AUTHENTICATED_EMAIL_STORAGE_KEY } from '../../lib/auth-storage-keys';
+
+export { MFA_AUTHENTICATED_EMAIL_STORAGE_KEY };
 
 export type PrayerServiceSessionReader = () => Promise<{
   data: { session: { user: { email?: string | null } } | null };

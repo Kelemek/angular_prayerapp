@@ -1,3 +1,5 @@
+import { PRODUCTION_APP_ORIGIN } from '../lib/production-app-origin';
+
 export const environment = {
   production: true,
   supabaseUrl: 'https://eqiafsygvfaifhoaewxi.supabase.co',
@@ -9,7 +11,7 @@ export const environment = {
   /** PostHog app URL for toolbar / session replay UI (not proxied). */
   posthogUiHost: 'https://us.posthog.com',
   /** Public URL for links in emails. Set to your deployed web app URL (e.g. https://prayer.yourchurch.org) so email links work from native app and mail clients. */
-  appUrl: 'https://cpprayer.cp-church.org',
+  appUrl: PRODUCTION_APP_ORIGIN,
   /** Set true after deploy submit-feedback + NOTION_TOKEN on the production Supabase project. */
   inAppFeedbackEnabled: true,
 };
