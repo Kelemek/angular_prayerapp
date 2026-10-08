@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Admin — Settings footer on native
+- Admin eligibility in Settings uses the `check-admin-status` edge function (not REST `directQuery`, which can fail from the Capacitor bundled origin) and re-checks when Settings opens with the session-resolved email ([`admin-auth.service.ts`](../src/app/services/admin-auth.service.ts)).
+
 ### Native iOS/Android — live web refresh after deploy
 - Capacitor retries **bundled → live** redirect when the app returns to foreground (second attempt skips the reachability probe when online). On the production host, compares [`/build-revision.txt`](../public/build-revision.txt) to the running bundle and reloads when Vercel has a newer deploy ([`capacitor-live-boot.ts`](../src/lib/capacitor-live-boot.ts)).
 

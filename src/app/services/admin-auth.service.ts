@@ -561,32 +561,60 @@ export class AdminAuthService {
     await pending;
   }
 
+  /** Prefer session email, then MFA / cached login email (native often has the latter first). */
+  private resolveAdminCheckEmail(user?: User | null): string {
+    const fromUser = user?.email?.trim();
+    if (fromUser) {
+      return fromUser;
+    }
+    const mfaEmail = localStorage
+      .getItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY)
+      ?.trim();
+    if (mfaEmail) {
+      return mfaEmail;
+    }
+    return localStorage.getItem('prayerapp_user_email')?.trim() ?? '';
+  }
+
+  /**
+   * Re-check whether the signed-in email is an admin (edge function; works from Capacitor origins).
+   * Optional `preferredEmail` matches Settings footer resolution when auth user email is stale.
+   */
+  public refreshAdminEmailEligibility(preferredEmail?: string): void {
+    const email =
+      preferredEmail?.trim() ||
+      this.resolveAdminCheckEmail(this.userSubject.value);
+    if (!email || this.ignoreSessionRestore) {
+      return;
+    }
+    void this.applyAdminEmailEligibility(email).catch((error: unknown) => {
+      console.error('[AdminAuth] Error refreshing admin email eligibility:', error);
+    });
+  }
+
   private async checkAdminStatus(user: User): Promise<void> {
-    if (!user?.email) {
+    const email = this.resolveAdminCheckEmail(user);
+    if (!email) {
       this.isAdminSubject.next(false);
       this.hasAdminEmailSubject.next(false);
-      this.isAuthenticatedSubject.next(false);
+      if (!user?.email) {
+        this.isAuthenticatedSubject.next(false);
+      }
       return;
     }
 
+    await this.applyAdminEmailEligibility(email);
+  }
+
+  private async applyAdminEmailEligibility(email: string): Promise<void> {
     try {
-      const { data, error } = await this.supabase.directQuery<Array<{ is_admin: boolean }>>('email_subscribers', {
-        select: 'is_admin',
-        eq: { email: user.email, is_admin: true },
-        limit: 1,
-        timeout: 10000
-      });
+      const isAdmin = await this.isEmailAdmin(email);
 
       if (this.ignoreSessionRestore) {
         return;
       }
-      if (!error && data && data.length > 0) {
-        this.isAdminSubject.next(true);
-        this.hasAdminEmailSubject.next(true);
-      } else {
-        this.isAdminSubject.next(false);
-        this.hasAdminEmailSubject.next(false);
-      }
+      this.isAdminSubject.next(isAdmin);
+      this.hasAdminEmailSubject.next(isAdmin);
     } catch (error) {
       console.error('Error checking admin status:', error);
       this.isAdminSubject.next(false);

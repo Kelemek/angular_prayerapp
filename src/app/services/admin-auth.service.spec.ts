@@ -1135,14 +1135,11 @@ describe('AdminAuthService', () => {
       });
       mockSupabaseClient.auth.onAuthStateChange = tempOnAuthStateChange;
 
-      // Use a flexible mock that returns admin data for admin checks
-      mockSupabaseService.directQuery = vi.fn().mockImplementation((table, options) => {
-        // Check if this is an admin status check
-        if (options?.eq?.email === 'admin@example.com') {
-          return Promise.resolve({ data: [{ is_admin: true }], error: null });
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.resolve({ data: { is_admin: true }, error: null });
         }
-        // For other queries (timeout settings, etc.), return empty
-        return Promise.resolve({ data: null, error: null });
+        return Promise.resolve({ data: {}, error: null });
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
@@ -1182,10 +1179,12 @@ describe('AdminAuthService', () => {
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       });
 
-      mockSupabaseService.directQuery = vi.fn()
-        .mockResolvedValueOnce({ data: null, error: null }) // initial
-        .mockResolvedValueOnce({ data: null, error: null }) // refresh
-        .mockRejectedValueOnce(new Error('Network error')); // admin check fails
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.reject(new Error('Network error'));
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
 
       const { AdminAuthService } = await import('./admin-auth.service');
       const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
@@ -1437,12 +1436,11 @@ describe('AdminAuthService', () => {
       });
       mockSupabaseClient.auth.onAuthStateChange = tempOnAuthStateChange;
 
-      mockSupabaseService.directQuery = vi.fn().mockImplementation((table, options) => {
-        // Return empty data for admin check
-        if (options?.eq?.email) {
-          return Promise.resolve({ data: [], error: null });
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.resolve({ data: { is_admin: false }, error: null });
         }
-        return Promise.resolve({ data: null, error: null });
+        return Promise.resolve({ data: {}, error: null });
       });
 
       const { AdminAuthService } = await import('./admin-auth.service');
@@ -1459,6 +1457,28 @@ describe('AdminAuthService', () => {
         expect(isAdmin).toBe(false);
         expect(hasAdminEmail).toBe(false);
       }
+    });
+
+    it('refreshAdminEmailEligibility checks admin via edge function for preferred email', async () => {
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.resolve({ data: { is_admin: true }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      newService.refreshAdminEmailEligibility('admin@example.com');
+      await vi.advanceTimersByTimeAsync(50);
+
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith(
+        'check-admin-status',
+        { body: { email: 'admin@example.com' } }
+      );
+      expect(await firstValueFrom(newService.hasAdminEmail$)).toBe(true);
     });
   });
 
@@ -1491,10 +1511,12 @@ describe('AdminAuthService', () => {
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       });
 
-      // Mock directQuery to return admin status
-      mockSupabaseService.directQuery = vi.fn()
-        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }) // first checkAdminStatus
-        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }); // focus event admin re-validation
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.resolve({ data: { is_admin: true }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
 
       const { AdminAuthService } = await import('./admin-auth.service');
       const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
@@ -1511,12 +1533,10 @@ describe('AdminAuthService', () => {
         await vi.advanceTimersByTimeAsync(200); // Wait longer for async operations
       }
 
-      // Verify checkAdminStatus was called again during focus
-      // Should have been called at least twice (initial + focus event)
-      expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
-        'email_subscribers',
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith(
+        'check-admin-status',
         expect.objectContaining({
-          eq: { email: 'admin@example.com', is_admin: true }
+          body: { email: 'admin@example.com' },
         })
       );
     });
@@ -1547,9 +1567,12 @@ describe('AdminAuthService', () => {
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       });
 
-      mockSupabaseService.directQuery = vi.fn()
-        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }) // first checkAdminStatus
-        .mockResolvedValueOnce({ data: [{ is_admin: true }], error: null }); // visibilitychange re-validation
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.resolve({ data: { is_admin: true }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
 
       Object.defineProperty(document, 'hidden', {
         writable: true,
@@ -1570,11 +1593,10 @@ describe('AdminAuthService', () => {
         await vi.advanceTimersByTimeAsync(200); // Wait for async operations
       }
 
-      // Verify admin status was re-checked
-      expect(mockSupabaseService.directQuery).toHaveBeenCalledWith(
-        'email_subscribers',
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith(
+        'check-admin-status',
         expect.objectContaining({
-          eq: { email: 'admin@example.com', is_admin: true }
+          body: { email: 'admin@example.com' },
         })
       );
     });

@@ -83,7 +83,8 @@ describe('UserSettingsComponent', () => {
     mockEmailNotificationService = {};
 
     mockAdminAuthService = {
-      logout: vi.fn(() => Promise.resolve())
+      logout: vi.fn(() => Promise.resolve()),
+      refreshAdminEmailEligibility: vi.fn(),
     };
 
     mockUserSessionService = {

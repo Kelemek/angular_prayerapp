@@ -34,6 +34,9 @@ export function runUserSettingsOpenChange(
   changes: SimpleChanges,
 ): void {
   if (changes['isOpen'] && host.isOpen) {
+    host.deps.adminAuthService.refreshAdminEmailEligibility(
+      host.getCurrentUserEmail()
+    );
     host.theme = host.deps.themeService.getTheme() as ThemeOption;
     host.textSize = host.deps.textSizeService.getTextSize();
     void runUserSettingsLoadPromptTypes(host);
