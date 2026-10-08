@@ -2,33 +2,11 @@
       [class]="headerShellClass"
     >
       <div class="w-full max-w-6xl mx-auto px-4 py-2 sm:py-3">
-        <!-- Mobile layout: indicator in top row with logo -->
+        <!-- Mobile layout -->
         <div class="sm:hidden flex items-start justify-between mb-3">
-          <!-- Logo on left -->
           <div class="flex items-center gap-3">
             <app-logo (logoStatusChange)="logoStatusChange.emit($event)"></app-logo>
           </div>
-
-          <!-- Email Indicator - Top Right -->
-          @if ((userSessionService.userSession$ | async); as session) {
-          <button
-            (click)="handlers.openLogoutConfirmation()"
-            class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
-            title="Click to log out"
-          >
-            <span class="hidden xs:inline">{{ session.email }}</span>
-            <span class="xs:hidden">Logged In</span>
-          </button>
-          } @else {
-          <button
-            (click)="handlers.openLogoutConfirmation()"
-            class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
-            title="Click to log out"
-          >
-            <span class="hidden xs:inline">{{ userEmailFallback }}</span>
-            <span class="xs:hidden">Logged In</span>
-          </button>
-          }
         </div>
 
         <!-- Mobile buttons row - flex-nowrap so title/buttons stay on one line on smallest screens -->
@@ -126,60 +104,15 @@
           >
             <span>Request</span>
           </button>
-          @if (hasAdminEmail$ | async) {
-          <button
-            (click)="handlers.navigateToAdmin()"
-            class="flex items-center gap-1 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-2 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-sm cursor-pointer"
-            title="Admin Portal"
-          >
-            <span>Admin</span>
-          </button>
-          }
         </div>
 
         <!-- Desktop layout: Logo on left, controls on right -->
-        <div class="hidden sm:flex items-start justify-between">
-          <!-- Logo on left -->
+        <div class="hidden sm:flex items-center justify-between">
           <div class="flex items-center gap-3">
             <app-logo (logoStatusChange)="logoStatusChange.emit($event)"></app-logo>
           </div>
 
-          <!-- Right side: Email and controls -->
-          <div class="flex flex-col items-end gap-2">
-            <!-- Top row: Admin button and Email Indicator -->
-            <div class="flex items-center gap-2">
-              @if (hasAdminEmail$ | async) {
-              <button
-                (click)="handlers.navigateToAdmin()"
-                class="flex items-center gap-1 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-2 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-xs cursor-pointer"
-                title="Admin Portal"
-              >
-                <span>Admin</span>
-              </button>
-              } @if ((userSessionService.userSession$ | async); as session)
-              {
-              <button
-                (click)="handlers.openLogoutConfirmation()"
-                class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
-                title="Click to log out"
-              >
-                <span class="hidden sm:inline">{{ session.email }}</span>
-                <span class="sm:hidden">Logged In</span>
-              </button>
-              } @else {
-              <button
-                (click)="handlers.openLogoutConfirmation()"
-                class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 px-2 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors cursor-pointer"
-                title="Click to log out"
-              >
-                <span class="hidden sm:inline">{{ userEmailFallback }}</span>
-                <span class="sm:hidden">Logged In</span>
-              </button>
-              }
-            </div>
-
-            <!-- Controls: Desktop only - h-12 for uniform button height -->
-            <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2">
               <button
                 (click)="handlers.openHelp()"
                 class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-gray"
@@ -273,7 +206,6 @@
               >
                 <span>Request</span>
               </button>
-            </div>
           </div>
         </div>
       </div>

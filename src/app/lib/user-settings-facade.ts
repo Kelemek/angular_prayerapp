@@ -40,6 +40,7 @@ import {
   getUserSettingsUserInfo,
 } from './user-settings-user-info';
 import type { UserSettingsFacadeDeps } from './user-settings-facade-host';
+import { runUserSettingsNavigateToAdmin } from './user-settings-admin-nav';
 
 export class UserSettingsFacade {
   isOpen = false;
@@ -119,6 +120,14 @@ export class UserSettingsFacade {
 
   get badgeService() {
     return this.deps.badgeService;
+  }
+
+  get hasAdminEmail$() {
+    return this.deps.adminAuthService.hasAdminEmail$;
+  }
+
+  navigateToAdmin(): void {
+    runUserSettingsNavigateToAdmin(this);
   }
 
   markForCheck(): void {
@@ -349,8 +358,15 @@ export class UserSettingsFacade {
   }
 
   getCurrentUserEmail(): string {
+    const sessionEmail = this.deps.userSessionService.getUserEmail();
+    if (sessionEmail?.trim()) {
+      return sessionEmail.trim();
+    }
+    if (this.email?.trim()) {
+      return this.email.trim();
+    }
     const userInfo = getUserSettingsUserInfo();
-    return userInfo.email || this.email || '';
+    return userInfo.email || '';
   }
 
   getCurrentUserName(): string {

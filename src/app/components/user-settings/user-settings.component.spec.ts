@@ -87,6 +87,7 @@ describe('UserSettingsComponent', () => {
     };
 
     mockUserSessionService = {
+      getUserEmail: vi.fn(() => 'test@example.com'),
       getCurrentSession: vi.fn(() => ({
         email: 'test@example.com',
         fullName: 'Test User',
@@ -136,6 +137,8 @@ describe('UserSettingsComponent', () => {
       mockUserSessionService,
       mockCapacitorService as CapacitorService,
       mockPrayerEncouragementService as PrayerEncouragementService,
+      { navigate: vi.fn() } as any,
+      { error: vi.fn() } as any,
       mockChangeDetectorRef as ChangeDetectorRef
     );
   });
@@ -1085,13 +1088,23 @@ describe('UserSettingsComponent', () => {
   });
 
   describe('getCurrentUserEmail', () => {
-    it('should return email from userInfo when available', () => {
+    it('should prefer session email over stale prayerapp_user_email in localStorage', () => {
+      localStorage.setItem('prayerapp_user_email', 'stale@example.com');
+      mockUserSessionService.getUserEmail = vi.fn(() => 'current@example.com');
+      const email = component.getCurrentUserEmail();
+      expect(email).toBe('current@example.com');
+    });
+
+    it('should return email from userInfo when session and host email are empty', () => {
+      mockUserSessionService.getUserEmail = vi.fn(() => null);
       localStorage.setItem('prayerapp_user_email', 'user@example.com');
+      component.email = '';
       const email = component.getCurrentUserEmail();
       expect(email).toBe('user@example.com');
     });
 
-    it('should return fallback email from component property when userInfo email is empty', () => {
+    it('should return fallback email from component property when session email is empty', () => {
+      mockUserSessionService.getUserEmail = vi.fn(() => null);
       localStorage.removeItem('prayerapp_user_email');
       component.email = 'fallback@example.com';
       const email = component.getCurrentUserEmail();
@@ -1099,6 +1112,7 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should return empty string when no email available', () => {
+      mockUserSessionService.getUserEmail = vi.fn(() => null);
       localStorage.removeItem('prayerapp_user_email');
       component.email = '';
       const email = component.getCurrentUserEmail();

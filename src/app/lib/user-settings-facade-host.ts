@@ -1,5 +1,7 @@
 import type { ChangeDetectorRef } from '@angular/core';
+import type { Router } from '@angular/router';
 import type { ThemeService } from '../services/theme.service';
+import type { ToastService } from '../services/toast.service';
 import type { TextSizeService } from '../services/text-size.service';
 import type { SupabaseService } from '../services/supabase.service';
 import type { PrintService } from '../services/print.service';
@@ -23,6 +25,8 @@ export interface UserSettingsFacadeDeps {
   userSessionService: UserSessionService;
   capacitorService: CapacitorService;
   prayerEncouragementService: PrayerEncouragementService;
+  router: Router;
+  toastService: ToastService;
   cdr: ChangeDetectorRef;
   markForCheck: () => void;
   emitScrollToSectionComplete?: () => void;

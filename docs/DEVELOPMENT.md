@@ -824,6 +824,13 @@ Users can delete their account from the main site settings modal:
 - **Implementation**: `user-settings.component.ts` — `showDeleteAccountVerification`, `deletingAccount`, `closeDeleteAccountVerification()`, `deleteAccountKeepPrayers()`, `deleteAccountAndPrayers()`. On any delete failure, error is set and logout is not called.
 - **Help**: App Settings section in `help-content.service.ts` includes a "Delete your account" content item describing the two choices.
 
+#### Settings footer (account, admin, web build)
+
+- **Home header**: No signed-in email chip or **Admin** button ([`home-header.component.html`](src/app/components/home-header/home-header.component.html)).
+- **Settings footer**: **Logout** and **Admin** (when [`hasAdminEmail$`](src/app/services/admin-auth.service.ts); [`navigateToAdmin()`](src/app/lib/user-settings-facade.ts) / [`user-settings-admin-nav.ts`](src/app/lib/user-settings-admin-nav.ts)) on the left; bottom right shows signed-in **name** and **email** (from [`getUserInfo()`](src/utils/userInfoStorage.ts) via `getCurrentUserName()` / `getCurrentUserEmail()` — no new API call), then the web build string.
+- **Format**: `{APP_BUNDLE_VERSION}.{git-short-sha}` (for example `3.0.847998b`) — identifies the **web** bundle (Vercel deploy or local `ng serve`), not the native store build number.
+- **Implementation**: [`scripts/write-web-build-info.mjs`](../scripts/write-web-build-info.mjs) sets [`WEB_BUILD_REVISION`](../src/lib/web-build-info.ts) before `npm start` / `npm run build` (Vercel: `VERCEL_GIT_COMMIT_SHA`; locally: `git rev-parse --short=7 HEAD`). [`UserSettingsPanelComponent`](../src/app/components/user-settings-panel/user-settings-panel.component.ts) displays [`getWebBuildLabel()`](../src/lib/web-build-info.ts).
+
 #### Text Size (Settings)
 
 Users can change on-screen text size from the Settings modal:

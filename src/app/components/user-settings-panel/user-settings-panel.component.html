@@ -38,8 +38,9 @@
   <app-user-settings-account-section [host]="host" />
 </div>
 <div
-  class="settings-modal-footer flex shrink-0 flex-row gap-2 p-4 sm:gap-3 sm:p-6"
+  class="settings-modal-footer flex shrink-0 flex-row items-center justify-between gap-2 p-4 sm:gap-3 sm:p-6"
 >
+  <div class="flex flex-wrap items-center gap-2">
   <button
     (click)="host.logout()"
     title="Sign out of your account"
@@ -62,4 +63,37 @@
     </svg>
     <span>Logout</span>
   </button>
+  @if (host.hasAdminEmail$ | async) {
+  <button
+    type="button"
+    (click)="host.navigateToAdmin()"
+    class="flex items-center justify-center gap-2 border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-500 dark:text-red-500 dark:hover:bg-red-900/30 sm:py-2.5 sm:text-base cursor-pointer rounded-lg"
+    title="Admin Portal"
+    aria-label="Admin Portal"
+    data-testid="settings-admin-button"
+  >
+    <span>Admin</span>
+  </button>
+  }
+  </div>
+  <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
+    @if (host.getCurrentUserName()) {
+    <span
+      class="max-w-[12rem] truncate text-xs font-medium text-gray-600 dark:text-gray-300 sm:max-w-[16rem]"
+      data-testid="settings-footer-user-name"
+    >{{ host.getCurrentUserName() }}</span>
+    }
+    @if (host.getCurrentUserEmail()) {
+    <span
+      class="max-w-[12rem] truncate select-all text-[10px] text-gray-500 dark:text-gray-400 sm:max-w-[16rem]"
+      data-testid="settings-footer-user-email"
+    >{{ host.getCurrentUserEmail() }}</span>
+    }
+    <span
+      class="shrink-0 select-all text-[10px] tabular-nums text-gray-400 dark:text-gray-500"
+      [attr.title]="'Web build ' + webBuildLabel"
+      [attr.aria-label]="'Web build ' + webBuildLabel"
+      data-testid="settings-web-build-label"
+    >{{ webBuildLabel }}</span>
+  </div>
 </div>

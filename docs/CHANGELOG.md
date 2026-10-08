@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Settings — account footer & web build label
+- Home header no longer shows the signed-in email / “Logged In” chip or **Admin** (sign-out stays in Settings). Settings modal footer: **Logout**, **Admin** (when `hasAdminEmail$`, same navigation as before via [`user-settings-admin-nav.ts`](src/app/lib/user-settings-admin-nav.ts)), then signed-in **name** and **email** from session (`getCurrentUserEmail()` prefers [`UserSessionService.getUserEmail()`](src/app/services/user-session.service.ts) over stale `prayerapp_user_email`), then web build `3.0.<git-short-sha>`. See [`web-build-info.ts`](src/lib/web-build-info.ts) and [`scripts/write-web-build-info.mjs`](scripts/write-web-build-info.mjs).
+
 ### Release — native store version 3.0
 - iOS `MARKETING_VERSION` and Android `versionName` are **3.0** (Android `versionCode` **69**). [`APP_BUNDLE_VERSION`](src/lib/app-analytics-context.ts) matches so PostHog `app_version` stays in sync with the stores.
 

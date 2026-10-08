@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HourReminderSettingsSectionComponent } from '../hour-reminder-settings-section/hour-reminder-settings-section.component';
 import { UserSettingsPrintSectionComponent } from '../user-settings-print-section/user-settings-print-section.component';
 import { UserSettingsAppearanceSectionComponent } from '../user-settings-appearance-section/user-settings-appearance-section.component';
@@ -10,11 +11,13 @@ import { UserSettingsErrorBannerComponent } from '../user-settings-error-banner/
 import { UserSettingsFeedbackSectionComponent } from '../user-settings-feedback-section/user-settings-feedback-section.component';
 import { UserSettingsAccountSectionComponent } from '../user-settings-account-section/user-settings-account-section.component';
 import type { UserSettingsFacade } from '../../lib/user-settings-facade';
+import { getWebBuildLabel } from '../../../lib/web-build-info';
 
 @Component({
   selector: 'app-user-settings-panel',
   standalone: true,
   imports: [
+    CommonModule,
     HourReminderSettingsSectionComponent,
     UserSettingsPrintSectionComponent,
     UserSettingsAppearanceSectionComponent,
@@ -34,4 +37,6 @@ import type { UserSettingsFacade } from '../../lib/user-settings-facade';
 })
 export class UserSettingsPanelComponent {
   @Input({ required: true }) host!: UserSettingsFacade;
+
+  readonly webBuildLabel = getWebBuildLabel();
 }

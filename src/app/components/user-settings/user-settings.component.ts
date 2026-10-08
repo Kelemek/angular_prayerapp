@@ -21,6 +21,8 @@ import { UserSessionService } from '../../services/user-session.service';
 import { BadgeService } from '../../services/badge.service';
 import { PrayerEncouragementService } from '../../services/prayer-encouragement.service';
 import { CapacitorService } from '../../services/capacitor.service';
+import { Router } from '@angular/router';
+import { ToastService } from '../../services/toast.service';
 import { UserSettingsFacade } from '../../lib/user-settings-facade';
 import { UserSettingsPanelComponent } from '../user-settings-panel/user-settings-panel.component';
 import { UserSettingsDeleteAccountDialogComponent } from '../user-settings-delete-account-dialog/user-settings-delete-account-dialog.component';
@@ -54,6 +56,8 @@ export class UserSettingsComponent
     userSessionService: UserSessionService,
     capacitorService: CapacitorService,
     prayerEncouragementService: PrayerEncouragementService,
+    router: Router,
+    toastService: ToastService,
     cdr: ChangeDetectorRef,
   ) {
     const scrollCallbacks = {
@@ -71,6 +75,8 @@ export class UserSettingsComponent
       userSessionService,
       capacitorService,
       prayerEncouragementService,
+      router,
+      toastService,
       cdr,
       markForCheck: () => cdr.markForCheck(),
       emitScrollToSectionComplete: () =>
