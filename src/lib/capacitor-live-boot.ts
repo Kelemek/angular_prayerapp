@@ -1,8 +1,8 @@
 import { PRODUCTION_APP_ORIGIN } from './production-app-origin';
-import { WEB_BUILD_REVISION } from './web-build-info';
-
-const NATIVE_LIVE_REVISION_CHECK_KEY = 'native-live-revision-check';
-const LIVE_REVISION_RELOAD_THROTTLE_MS = 60_000;
+import {
+  liveBuildRevisionUrl,
+  maybeReloadIfWebRevisionStale,
+} from './web-revision-reload';
 
 /** Production web app loaded when the native shell is online (hybrid boot). */
 export const CAPACITOR_LIVE_ORIGIN = PRODUCTION_APP_ORIGIN;
@@ -212,10 +212,6 @@ export async function maybeRedirectNativeToLiveSite(
   }
 }
 
-function liveBuildRevisionUrl(liveOrigin: string): string {
-  return `${liveOrigin.replace(/\/$/, '')}/build-revision.txt`;
-}
-
 /** When already on production, reload if the deployed web revision moved ahead of this bundle. */
 export async function maybeReloadNativeLiveWebIfStale(options: {
   liveOrigin: string;
@@ -223,45 +219,12 @@ export async function maybeReloadNativeLiveWebIfStale(options: {
   timeoutMs: number;
   currentRevision?: string;
 }): Promise<boolean> {
-  const currentRevision = options.currentRevision ?? WEB_BUILD_REVISION;
-  if (typeof sessionStorage !== 'undefined') {
-    const lastCheck = Number(
-      sessionStorage.getItem(NATIVE_LIVE_REVISION_CHECK_KEY) || 0
-    );
-    if (Date.now() - lastCheck < LIVE_REVISION_RELOAD_THROTTLE_MS) {
-      return false;
-    }
-    sessionStorage.setItem(
-      NATIVE_LIVE_REVISION_CHECK_KEY,
-      String(Date.now())
-    );
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
-  try {
-    const response = await options.fetchFn(liveBuildRevisionUrl(options.liveOrigin), {
-      cache: 'no-store',
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      return false;
-    }
-    const remoteRevision = (await response.text()).trim();
-    if (
-      !remoteRevision ||
-      remoteRevision === 'local' ||
-      remoteRevision === currentRevision
-    ) {
-      return false;
-    }
-    window.location.reload();
-    return true;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return maybeReloadIfWebRevisionStale({
+    revisionUrl: liveBuildRevisionUrl(options.liveOrigin),
+    fetchFn: options.fetchFn,
+    timeoutMs: options.timeoutMs,
+    currentRevision: options.currentRevision,
+  });
 }
 
 /** Retry bundled → live redirect and stale live reload when the app returns to foreground. */

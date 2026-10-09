@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Web — stale tab after deploy and Safari resume
+- Open Safari/web tabs compare [`/build-revision.txt`](../public/build-revision.txt) to the running JS bundle on resume and every two minutes while visible. When the deploy SHA moved, the page reloads **once** for that SHA (sessionStorage loop guard) so Pray and other controls pick up the new hashed chunks without a manual refresh ([`web-revision-reload.ts`](../src/lib/web-revision-reload.ts), [`app.component.ts`](../src/app/app.component.ts)). Local `ng serve` is skipped. The reload is **deferred** while the user is typing in a form or a memorize practice session (`app-memorization-practice-session`) is open, then runs on the next idle check.
+- Returning to a frozen Safari tab always dispatches `app-became-visible`, treats `pageshow` as resume even without bfcache, and briefly disables `content-visibility` on cards. A blank-page reload runs only if a routed page had already painted and `router-outlet` is gone — not during first load, auth, or a lazy route swap ([`visible-page-recovery.ts`](../src/lib/visible-page-recovery.ts)).
+
 ### Web — recover stale hashed chunks after deploy
 - Tabs left open across a Vercel deploy that request an old `chunk-*.js` or lazy route module now get a **single** full-page reload when the failure matches stale-chunk errors (dynamic import, `ChunkLoadError`, or Safari’s invalid MIME type for module script). PostHog capture still runs first; a `sessionStorage` guard prevents reload loops until Angular bootstrap succeeds ([`stale-chunk-recovery.ts`](../src/lib/stale-chunk-recovery.ts), [`posthog-error-handler.ts`](../src/app/posthog-error-handler.ts), [`app.component.ts`](../src/app/app.component.ts), [`main.ts`](../src/main.ts)).
 - [`vercel.json`](../vercel.json) SPA rewrites skip paths with a file extension so **missing** hashed assets 404 instead of returning `index.html` as `text/html`.

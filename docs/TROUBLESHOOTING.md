@@ -331,7 +331,7 @@ The iOS/Android shell often boots from **bundled** web (`https://localhost` insi
 
 If a tab stayed open while Vercel shipped a new hashed bundle, lazy routes can fail with **Failed to fetch dynamically imported module** or Safari’s **not a valid JavaScript MIME type for module script** (missing `chunk-*.js` was served as HTML).
 
-**Expected**: The app reloads once automatically and should recover on the new deploy. A `sessionStorage` guard blocks further stale-chunk reloads until Angular bootstrap succeeds, so a persistently broken chunk cannot spin reload forever. Confirm the new bundle in Settings footer (`3.0.<sha>`) or [`/build-revision.txt`](https://cpprayer.cp-church.org/build-revision.txt).
+**Expected**: Coming back to the tab (or waiting up to two minutes while it stays open) fetches [`/build-revision.txt`](https://cpprayer.cp-church.org/build-revision.txt). If that SHA does not match the running bundle, the page reloads once and should pick up the new JS, unless you are in the middle of a form or a memorize session — then it waits until you leave that work. Stale-chunk MIME / dynamic-import errors also reload once. Confirm the new bundle in Settings footer (`3.0.<sha>`).
 
 **If it loops or stays broken**: Hard-refresh once, or close the tab and reopen the site.
 
@@ -561,9 +561,9 @@ An older bug skipped Angular bootstrap entirely when a live redirect was attempt
 
 **Symptoms**: You leave the site open in Safari, come back later, and the page is a blank cream or dark screen. Refresh shows the app again.
 
-**Cause**: [`AppComponent`](../src/app/app.component.ts) treated a visibility change as “already visible,” so it never ran when Safari brought a background tab forward. WebKit can also drop the painted layer while the tab is frozen, so the document is still there but nothing is drawn. Refresh loads the page from scratch.
+**Cause**: WebKit can freeze the tab and drop composited layers (`content-visibility: auto` cards included). `pageshow` without bfcache used to skip recovery. If iOS killed the tab, JavaScript is not running at all.
 
-**Fix**: Coming back to the tab runs change detection and forces a reflow so Safari paints again. A back-forward cache restore does the same when the tab is visible. A restore while the tab is still hidden waits for the next show. This ships with the web deploy. If the tab was killed and JavaScript is no longer running, only a refresh can bring it back.
+**Fix**: Coming back to the tab runs change detection, a reflow, and `app-became-visible`. `pageshow` recovers whenever the document is visible. A one-shot reload runs only if a routed page had already painted and the Angular shell (`router-outlet`) is gone — not while login, a lazy route, or a form/memorize session is still working. If the tab process was killed, only a user refresh can bring it back.
 
 ### iOS: `⚡️ [error] - {"code":"UNIMPLEMENTED"}`
 

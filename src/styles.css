@@ -1062,6 +1062,12 @@ html.dark .help-driver-popover .driver-popover-close-btn:focus,
   background-color: transparent !important;
 }
 
+/* Safari can leave content-visibility subtrees unpainted after a tab freeze. */
+html.cp-resume-paint .prayer-card,
+html.cp-resume-paint .prompt-card {
+  content-visibility: visible;
+}
+
 @media print {
   @page {
     margin: 0.5in;

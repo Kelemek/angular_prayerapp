@@ -1,6 +1,7 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   Injector,
   NgZone,
   ChangeDetectorRef,
@@ -11,6 +12,19 @@ import { Router, RouterOutlet, NavigationEnd } from "@angular/router";
 import { CommonModule } from "@angular/common";
 import { Capacitor } from "@capacitor/core";
 import { maybeReloadForStaleChunk } from "../lib/stale-chunk-recovery";
+import { WEB_BUILD_REVISION } from "../lib/web-build-info";
+import {
+  liveBuildRevisionUrl,
+  maybeReloadIfWebRevisionStale,
+  shouldSkipWebRevisionCheck,
+} from "../lib/web-revision-reload";
+import {
+  applyResumePaintHint,
+  dispatchAppBecameVisible,
+  isAppShellAttached,
+  isRoutedPagePainted,
+  maybeReloadBlankVisiblePage,
+} from "../lib/visible-page-recovery";
 import { ToastContainerComponent } from "./components/toast-container/toast-container.component";
 import { HelpDriverTourService } from "./services/help-driver-tour.service";
 import { AdminDataService } from "./services/admin-data.service";
@@ -68,10 +82,14 @@ import {
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [],
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = "prayerapp";
   private lastVisibilityState = !document.hidden;
+  private hasBeenHidden = document.hidden;
+  private hadPaintedRoutedPage = false;
   private lastNavigationPath: string | null = null;
+  private blankResumeCheckTimeoutId: ReturnType<typeof setTimeout> | null =
+    null;
 
   constructor(
     private router: Router,
@@ -123,6 +141,7 @@ export class AppComponent implements OnInit {
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event) => {
         const urlAfterRedirects = (event as NavigationEnd).urlAfterRedirects;
+        this.noteRoutedPagePaintedIfPresent();
         if (
           shouldSkipAppScrollResetOnNavigation(
             urlAfterRedirects,
@@ -135,9 +154,16 @@ export class AppComponent implements OnInit {
         this.lastNavigationPath = extractNavigationPath(urlAfterRedirects);
         // Small delay to ensure DOM is updated (home safe-area viewport may mount after route)
         setTimeout(() => {
+          this.noteRoutedPagePaintedIfPresent();
           scrollAppContainerToTop(findAppScrollContainer(), "instant");
         }, 0);
       });
+  }
+
+  private noteRoutedPagePaintedIfPresent(): void {
+    if (isRoutedPagePainted()) {
+      this.hadPaintedRoutedPage = true;
+    }
   }
 
   /**
@@ -172,7 +198,7 @@ export class AppComponent implements OnInit {
       "[AppComponent] Window regained focus, triggering change detection"
     );
     this.lastVisibilityState = !document.hidden;
-    this.recoverVisiblePage();
+    this.recoverVisiblePage({ allowBlankReload: this.hasBeenHidden });
   }
 
   /**
@@ -183,6 +209,9 @@ export class AppComponent implements OnInit {
   @HostListener("document:visibilitychange")
   onVisibilityChange(): void {
     const visible = !document.hidden;
+    if (!visible) {
+      this.hasBeenHidden = true;
+    }
     const becameVisible = visible && !this.lastVisibilityState;
     this.lastVisibilityState = visible;
     if (!becameVisible) {
@@ -191,32 +220,57 @@ export class AppComponent implements OnInit {
     console.log(
       "[AppComponent] Page became visible, triggering change detection and recovery"
     );
-    this.recoverVisiblePage();
+    this.recoverVisiblePage({ allowBlankReload: true });
   }
 
   /**
-   * Back-forward cache restore. Safari can show a blank page until the next load.
+   * Safari can fire pageshow without bfcache (`persisted` false) when a tab
+   * is brought back. Recover whenever the document is visible.
    */
   @HostListener("window:pageshow", ["$event"])
   onPageShow(event: PageTransitionEvent): void {
-    if (!event.persisted) {
-      return;
-    }
-    console.log("[AppComponent] Page restored from back-forward cache");
     const visible = !document.hidden;
     this.lastVisibilityState = visible;
     if (!visible) {
       return;
     }
-    this.recoverVisiblePage();
+    if (event.persisted) {
+      console.log("[AppComponent] Page restored from back-forward cache");
+    }
+    this.recoverVisiblePage({
+      allowBlankReload: event.persisted || this.hasBeenHidden,
+    });
   }
 
-  private recoverVisiblePage(): void {
+  private recoverVisiblePage(options?: { allowBlankReload?: boolean }): void {
     this.ngZone.run(() => {
       this.cdr.markForCheck();
       this.cdr.detectChanges();
+      applyResumePaintHint();
       this.repaintAfterResume();
-      this.triggerDOMRecoveryIfNeeded();
+      dispatchAppBecameVisible();
+      this.triggerDOMRecoveryIfNeeded(options?.allowBlankReload === true);
+      this.checkWebRevision();
+    });
+  }
+
+  private checkWebRevision(): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (
+      shouldSkipWebRevisionCheck({
+        hostname: window.location.hostname,
+        currentRevision: WEB_BUILD_REVISION,
+      })
+    ) {
+      return;
+    }
+    void maybeReloadIfWebRevisionStale({
+      revisionUrl: liveBuildRevisionUrl(window.location.origin),
+      fetchFn: fetch,
+      timeoutMs: 4000,
+      hidden: document.hidden,
     });
   }
 
@@ -236,33 +290,46 @@ export class AppComponent implements OnInit {
    * Check if router-outlet is still attached to DOM
    * On Edge/iOS, the DOM can be detached during background suspension
    */
-  private triggerDOMRecoveryIfNeeded(): void {
+  private triggerDOMRecoveryIfNeeded(allowBlankReload: boolean): void {
     try {
-      const appRoot = document.querySelector("app-root");
-      const routerOutlet = document.querySelector("router-outlet");
-
-      if (appRoot && routerOutlet) {
-        // Check if router outlet is actually in the DOM tree
-        if (!appRoot.contains(routerOutlet)) {
-          console.warn(
-            "[AppComponent] RouterOutlet detached from DOM, triggering recovery"
-          );
-          // Dispatch recovery event for services to listen to
-          window.dispatchEvent(new CustomEvent("app-became-visible"));
+      const painted = isRoutedPagePainted();
+      if (painted) {
+        this.noteRoutedPagePaintedIfPresent();
+        maybeReloadBlankVisiblePage({
+          hidden: document.hidden,
+          painted: true,
+          previouslyPainted: true,
+          shellAttached: true,
+        });
+        return;
+      }
+      if (
+        document.hidden ||
+        !allowBlankReload ||
+        !this.hadPaintedRoutedPage ||
+        isAppShellAttached()
+      ) {
+        return;
+      }
+      console.warn("[AppComponent] No routed page painted after resume");
+      this.cdr.detectChanges();
+      if (this.blankResumeCheckTimeoutId != null) {
+        clearTimeout(this.blankResumeCheckTimeoutId);
+      }
+      this.blankResumeCheckTimeoutId = setTimeout(() => {
+        this.blankResumeCheckTimeoutId = null;
+        if (document.hidden) {
+          return;
         }
-      }
-
-      // Also check if any content is actually being rendered
-      const content = document.querySelector(
-        '[role="main"], main, .content, [class*="prayer"], [class*="card"]'
-      );
-      if (!content && !document.hidden) {
-        console.warn("[AppComponent] No content detected, may need recovery");
-        // Give a small delay for async data loading
-        setTimeout(() => {
-          this.cdr.detectChanges();
-        }, 100);
-      }
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        maybeReloadBlankVisiblePage({
+          hidden: document.hidden,
+          painted: isRoutedPagePainted(),
+          previouslyPainted: this.hadPaintedRoutedPage,
+          shellAttached: isAppShellAttached(),
+        });
+      }, 300);
     } catch (err) {
       console.debug("[AppComponent] DOM recovery check failed:", err);
     }
@@ -271,6 +338,13 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     this.handleApprovalCode();
     this.setupPushRefreshListener();
+  }
+
+  ngOnDestroy(): void {
+    if (this.blankResumeCheckTimeoutId != null) {
+      clearTimeout(this.blankResumeCheckTimeoutId);
+      this.blankResumeCheckTimeoutId = null;
+    }
   }
 
   /**

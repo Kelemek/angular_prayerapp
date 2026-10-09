@@ -25,6 +25,7 @@ import {
 import { runPreBootstrapHydrate } from "./lib/app-boot-gate";
 import { whenAuthLoadingFinishes } from "./lib/auth-loading-gate";
 import { clearStaleChunkReloadGuard } from "./lib/stale-chunk-recovery";
+import { startWebRevisionWatch } from "./lib/web-revision-reload";
 
 // Add a global visibility check to ensure content stays visible during background refresh
 const setupVisibilityRecovery = () => {
@@ -139,6 +140,7 @@ function bootstrapApp(): void {
 })
   .then(() => {
     clearStaleChunkReloadGuard();
+    startWebRevisionWatch();
   })
   .catch((err) => {
     console.error("[AppInitialization] Bootstrap error:", err);

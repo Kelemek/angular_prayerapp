@@ -28,6 +28,7 @@ import { AppComponent } from './app.component';
 import { Router, NavigationEnd } from '@angular/router';
 import { Injector, ChangeDetectorRef, NgZone } from '@angular/core';
 import { Subject, of } from 'rxjs';
+import { ROUTED_PAGE_SELECTOR } from '../lib/visible-page-recovery';
 
 const decodeAccountCodeMock = vi.fn();
 const supabaseDirectQueryMock = vi.fn();
@@ -194,6 +195,7 @@ describe('AppComponent', () => {
 
   afterEach(() => {
     mockRouter.navigate.mockClear();
+    component.ngOnDestroy();
   });
 
   describe('Component Initialization', () => {
@@ -426,27 +428,19 @@ describe('AppComponent', () => {
   });
 
   describe('triggerDOMRecoveryIfNeeded', () => {
-    it('should check for app-root element', () => {
-      const appRoot = { contains: vi.fn(() => true) };
+    it('should check for a painted routed page', () => {
       document.querySelector = vi.fn((selector) => {
-        if (selector === 'app-root') return appRoot;
+        if (selector === ROUTED_PAGE_SELECTOR) {
+          return {
+            scrollHeight: 400,
+            getBoundingClientRect: () => ({ height: 400 }),
+          };
+        }
         return null;
       });
 
       component.onWindowFocus();
-      expect(document.querySelector).toHaveBeenCalledWith('app-root');
-    });
-
-    it('should check for router-outlet element', () => {
-      const appRoot = { contains: vi.fn(() => true) };
-      document.querySelector = vi.fn((selector) => {
-        if (selector === 'app-root') return appRoot;
-        if (selector === 'router-outlet') return {};
-        return null;
-      });
-
-      component.onWindowFocus();
-      expect(document.querySelector).toHaveBeenCalledWith('router-outlet');
+      expect(document.querySelector).toHaveBeenCalledWith(ROUTED_PAGE_SELECTOR);
     });
 
     it('should dispatch app-became-visible event when router-outlet is detached', () => {
@@ -816,6 +810,151 @@ describe('AppComponent', () => {
       mockCdr.detectChanges.mockClear();
       component.onPageShow({ persisted: true } as PageTransitionEvent);
       expect(mockCdr.detectChanges).toHaveBeenCalled();
+    });
+
+    it('repaints on pageshow even when the restore is not from the back-forward cache', () => {
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      mockCdr.detectChanges.mockClear();
+      component.onPageShow({ persisted: false } as PageTransitionEvent);
+      expect(mockCdr.detectChanges).toHaveBeenCalled();
+    });
+
+    it('does not schedule a blank-page reload on the initial pageshow', () => {
+      vi.useFakeTimers();
+      const reload = vi.fn();
+      vi.stubGlobal('location', { ...window.location, reload, hostname: 'localhost' });
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      component.onPageShow({ persisted: false } as PageTransitionEvent);
+      vi.runAllTimers();
+      expect(reload).not.toHaveBeenCalled();
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('arms blank-page reload after NavigationEnd paints a routed page', () => {
+      vi.useFakeTimers();
+      const reload = vi.fn();
+      vi.stubGlobal('location', { ...window.location, reload, hostname: 'localhost' });
+      document.querySelector = vi.fn((selector) => {
+        if (selector === ROUTED_PAGE_SELECTOR) {
+          return {
+            scrollHeight: 400,
+            getBoundingClientRect: () => ({ height: 400 }),
+          };
+        }
+        return null;
+      });
+      routerEventsSubject.next(new NavigationEnd(1, '/', '/'));
+      vi.runAllTimers();
+      document.querySelector = vi.fn().mockReturnValue(null);
+      Object.defineProperty(document, 'hidden', {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      vi.advanceTimersByTime(300);
+      expect(reload).toHaveBeenCalledTimes(1);
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('does not blank-reload on first resume before a routed page has painted', () => {
+      vi.useFakeTimers();
+      const reload = vi.fn();
+      vi.stubGlobal('location', { ...window.location, reload, hostname: 'localhost' });
+      document.querySelector = vi.fn().mockReturnValue(null);
+      Object.defineProperty(document, 'hidden', {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      vi.advanceTimersByTime(300);
+      expect(reload).not.toHaveBeenCalled();
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('does not blank-reload after resume when router-outlet is still attached', () => {
+      vi.useFakeTimers();
+      const reload = vi.fn();
+      vi.stubGlobal('location', { ...window.location, reload, hostname: 'localhost' });
+      document.querySelector = vi.fn().mockReturnValue({
+        scrollHeight: 400,
+        getBoundingClientRect: () => ({ height: 400 }),
+      });
+      component.onWindowFocus();
+      document.querySelector = vi.fn((selector) => {
+        if (selector === 'router-outlet') {
+          return {};
+        }
+        return null;
+      });
+      Object.defineProperty(document, 'hidden', {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      vi.advanceTimersByTime(300);
+      expect(reload).not.toHaveBeenCalled();
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('schedules a blank-page reload after resume when a previously painted page is gone', () => {
+      vi.useFakeTimers();
+      const reload = vi.fn();
+      vi.stubGlobal('location', { ...window.location, reload, hostname: 'localhost' });
+      document.querySelector = vi.fn().mockReturnValue({
+        scrollHeight: 400,
+        getBoundingClientRect: () => ({ height: 400 }),
+      });
+      component.onWindowFocus();
+      document.querySelector = vi.fn().mockReturnValue(null);
+      Object.defineProperty(document, 'hidden', {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      component.onVisibilityChange();
+      vi.advanceTimersByTime(300);
+      expect(reload).toHaveBeenCalledTimes(1);
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
     });
 
     it('repaints on the next show when a back-forward restore happens while hidden', () => {
