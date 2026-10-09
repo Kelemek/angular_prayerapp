@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Tooling — remove Playwright e2e
+- Removed unused Playwright e2e tests (`e2e/`, `playwright.config.ts`, `npm run e2e*`, `@playwright/test`) and the manual GitHub workflow `e2e-tests.yml`. Unit tests remain Vitest + Testing Library (`npm test` / `npm run verify`).
+
 ### Home — mobile header
 - Logo and main header actions share **one responsive toolbar** ([`home-header`](src/app/components/home-header/home-header.component.html)): fluid logo slot (`HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS`) shrinks the image/title on narrow widths; help-tour anchors use single ids ([`help-tour-ids.ts`](src/app/lib/help-tour-ids.ts)).
 

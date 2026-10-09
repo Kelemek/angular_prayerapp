@@ -21,7 +21,7 @@ A comprehensive prayer request management and Scripture memorization system for 
 - **Auth**: Supabase Auth with email verification (MFA email-code flow for subscribers)
 - **Email**: Microsoft 365 Graph API
 - **Sync**: Planning Center integration
-- **Testing**: Vitest with 6,280+ unit tests; Playwright for E2E
+- **Testing**: Vitest with 6,280+ unit tests
 
 ## 🎯 Core Capabilities
 
@@ -152,7 +152,7 @@ The in-app **Help & Guidance** modal includes **Prayer Encouragement (Pray For)*
 | **Backend** | Supabase (PostgreSQL, Edge Functions) |
 | **Auth** | Supabase Auth, email verification, MFA email-code |
 | **Email** | Microsoft 365 Graph API |
-| **Testing** | Vitest 4, Playwright (E2E) |
+| **Testing** | Vitest 4 |
 | **Hosting** | Vercel (Node 24.x) |
 | **Monitoring** | PostHog (analytics, session replay, web vitals, error tracking) |
 

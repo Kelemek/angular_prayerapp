@@ -34,11 +34,6 @@ dist-ssr
 
 # Environment files kept for reference, credentials are not sensitive for dev
 
-# Playwright
-test-results/
-test-results.json
-playwright-report/
-playwright/.cache/
 # Database backups - not synced to repository
 backups/
 

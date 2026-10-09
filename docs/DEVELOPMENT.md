@@ -28,7 +28,6 @@ For developers working on the Prayer App codebase.
 | Capacitor | 8.4.x (iOS/Android) |
 | Tailwind | 4.3.x |
 | Unit tests | Vitest 4.1 + @testing-library/angular |
-| E2E | Playwright 1.61 |
 | Edge Functions | Deno (`Deno.serve`; `supabase-js` pinned in [`supabase/functions/deno.json`](../supabase/functions/deno.json)) |
 
 After Capacitor dependency bumps, run **`npm run cap:sync`** (or `cap:dev` / `cap:prod`) before native builds.

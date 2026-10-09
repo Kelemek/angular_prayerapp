@@ -1,6 +1,6 @@
 ---
-description: Unit and e2e testing with Vitest and Playwright
-globs: **/*.spec.ts, **/*.spec.tsx, e2e/**/*
+description: Unit testing with Vitest
+globs: **/*.spec.ts, **/*.spec.tsx
 alwaysApply: false
 ---
 
@@ -26,11 +26,6 @@ describe('MyComponent', () => {
   });
 });
 ```
-
-## E2E (Playwright)
-
-- E2E tests live under **e2e/**. Run with `npm run e2e` or `npm run e2e:ui`.
-- Use Playwright APIs: `page.goto()`, `page.getByRole()`, `expect(locator).toBeVisible()`.
 
 ## Coverage
 

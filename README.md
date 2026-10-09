@@ -20,7 +20,7 @@ Quick links:
 - **Mobile**: Capacitor 8.4 (iOS/Android native apps)
 - **Backend**: Supabase (PostgreSQL + Edge Functions + RLS)
 - **Real-time**: RxJS observables and Supabase real-time subscriptions
-- **Testing**: Vitest with 6,280+ unit tests; Playwright for E2E
+- **Testing**: Vitest with 6,280+ unit tests
 - **Analytics & errors**: PostHog (product analytics, session replay, error tracking)
 - **Deployment**: Vercel (Node 24.x)
 
