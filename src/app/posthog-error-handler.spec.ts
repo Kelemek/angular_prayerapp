@@ -3,6 +3,10 @@ import { ErrorHandler } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { providePostHogErrorHandler } from './posthog-error-handler';
+import {
+  STALE_CHUNK_RELOAD_GUARD_KEY,
+  clearStaleChunkReloadGuard,
+} from '../lib/stale-chunk-recovery';
 
 const capturePostHogExceptionMock = vi.fn();
 
@@ -13,9 +17,13 @@ vi.mock('../lib/posthog', () => ({
 describe('PostHogErrorHandler', () => {
   let errorHandler: ErrorHandler;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  const reload = vi.fn();
 
   beforeEach(() => {
     capturePostHogExceptionMock.mockClear();
+    reload.mockClear();
+    sessionStorage.clear();
+    vi.stubGlobal('location', { reload });
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     TestBed.configureTestingModule({
@@ -26,6 +34,8 @@ describe('PostHogErrorHandler', () => {
 
   afterEach(() => {
     consoleErrorSpy.mockRestore();
+    vi.unstubAllGlobals();
+    sessionStorage.clear();
   });
 
   function handleError(error: unknown): void {
@@ -125,6 +135,51 @@ describe('PostHogErrorHandler', () => {
       handleError({ foo: 'bar' });
 
       expect(capturePostHogExceptionMock).toHaveBeenCalledWith('Unknown error');
+    });
+
+    it('does not reload for a normal Error', () => {
+      handleError(new Error('plain error'));
+
+      expect(reload).not.toHaveBeenCalled();
+    });
+
+    it('reloads once for MIME module script TypeError', () => {
+      const err = new TypeError(
+        "'text/html' is not a valid JavaScript MIME type for module script 'https://x/chunk.js'"
+      );
+      handleError(err);
+
+      expect(capturePostHogExceptionMock).toHaveBeenCalledWith(err);
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(sessionStorage.getItem(STALE_CHUNK_RELOAD_GUARD_KEY)).toBe('1');
+    });
+
+    it('reloads once for dynamic import TypeError', () => {
+      const err = new TypeError('Failed to fetch dynamically imported module: https://x/chunk.js');
+      handleError(err);
+
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not reload again while guard is set', () => {
+      const err = new TypeError('Failed to fetch dynamically imported module');
+      handleError(err);
+      reload.mockClear();
+
+      handleError(err);
+
+      expect(reload).not.toHaveBeenCalled();
+    });
+
+    it('can reload again after guard is cleared', () => {
+      const err = new TypeError('Failed to fetch dynamically imported module');
+      handleError(err);
+      reload.mockClear();
+      clearStaleChunkReloadGuard();
+
+      handleError(err);
+
+      expect(reload).toHaveBeenCalledTimes(1);
     });
   });
 });

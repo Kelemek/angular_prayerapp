@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Web — recover stale hashed chunks after deploy
+- Tabs left open across a Vercel deploy that request an old `chunk-*.js` or lazy route module now get a **single** full-page reload when the failure matches stale-chunk errors (dynamic import, `ChunkLoadError`, or Safari’s invalid MIME type for module script). PostHog capture still runs first; a `sessionStorage` guard prevents reload loops until Angular bootstrap succeeds ([`stale-chunk-recovery.ts`](../src/lib/stale-chunk-recovery.ts), [`posthog-error-handler.ts`](../src/app/posthog-error-handler.ts), [`app.component.ts`](../src/app/app.component.ts), [`main.ts`](../src/main.ts)).
+- [`vercel.json`](../vercel.json) SPA rewrites skip paths with a file extension so **missing** hashed assets 404 instead of returning `index.html` as `text/html`.
+
 ### Admin — Settings footer on native
 - Admin eligibility in Settings uses the `check-admin-status` edge function (not REST `directQuery`, which can fail from the Capacitor bundled origin) and re-checks when Settings opens with the session-resolved email ([`admin-auth.service.ts`](../src/app/services/admin-auth.service.ts)).
 

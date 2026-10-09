@@ -327,6 +327,14 @@ The iOS/Android shell often boots from **bundled** web (`https://localhost` insi
 
 **Still stuck**: Ship a new native build (`npm run cap:prod`) so the embedded bundle matches, or use Safari until redirect succeeds.
 
+### Browser tab breaks after a deploy (MIME type / failed to fetch chunk)
+
+If a tab stayed open while Vercel shipped a new hashed bundle, lazy routes can fail with **Failed to fetch dynamically imported module** or Safari’s **not a valid JavaScript MIME type for module script** (missing `chunk-*.js` was served as HTML).
+
+**Expected**: The app reloads once automatically and should recover on the new deploy. A `sessionStorage` guard blocks further stale-chunk reloads until Angular bootstrap succeeds, so a persistently broken chunk cannot spin reload forever. Confirm the new bundle in Settings footer (`3.0.<sha>`) or [`/build-revision.txt`](https://cpprayer.cp-church.org/build-revision.txt).
+
+**If it loops or stays broken**: Hard-refresh once, or close the tab and reopen the site.
+
 ### Name Disappearing in Settings
 
 **Cause**: Race condition between localStorage and database
@@ -622,10 +630,15 @@ In Xcode: **Product → Clean Build Folder**, **File → Packages → Reset Pack
 ```json
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!.*\\.[a-zA-Z0-9]+$).*)",
+      "destination": "/index.html"
+    }
   ]
 }
 ```
+
+Extensionless routes (for example `/login`) still serve the SPA. Paths with a file extension (for example `chunk-*.js`, `main-*.js`, `build-revision.txt`) are not rewritten to `index.html`, so a missing hashed file returns 404 instead of HTML with a 200 status.
 
 **Netlify** (`netlify.toml`):
 ```toml

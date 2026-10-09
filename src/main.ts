@@ -24,6 +24,7 @@ import {
 } from "./lib/native-auth-storage-bridge";
 import { runPreBootstrapHydrate } from "./lib/app-boot-gate";
 import { whenAuthLoadingFinishes } from "./lib/auth-loading-gate";
+import { clearStaleChunkReloadGuard } from "./lib/stale-chunk-recovery";
 
 // Add a global visibility check to ensure content stays visible during background refresh
 const setupVisibilityRecovery = () => {
@@ -62,7 +63,7 @@ const setupVisibilityRecovery = () => {
 setupVisibilityRecovery();
 
 function bootstrapApp(): void {
-bootstrapApplication(AppComponent, {
+  bootstrapApplication(AppComponent, {
   providers: [
     providePostHogErrorHandler(),
     provideRouter(
@@ -135,12 +136,16 @@ bootstrapApplication(AppComponent, {
       multi: true,
     },
   ],
-}).catch((err) => {
-  console.error("[AppInitialization] Bootstrap error:", err);
-  // Ensure user sees something instead of blank page
-  const rootElement = document.querySelector("app-root");
-  if (rootElement) {
-    rootElement.innerHTML = `
+})
+  .then(() => {
+    clearStaleChunkReloadGuard();
+  })
+  .catch((err) => {
+    console.error("[AppInitialization] Bootstrap error:", err);
+    // Ensure user sees something instead of blank page
+    const rootElement = document.querySelector("app-root");
+    if (rootElement) {
+      rootElement.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui, -apple-system, sans-serif;">
         <div style="text-align: center; padding: 2rem; background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <h1 style="color: #374151; margin-bottom: 1rem;">Oops, something went wrong</h1>
@@ -149,12 +154,12 @@ bootstrapApplication(AppComponent, {
         </div>
       </div>
     `;
-  }
-  // Attempt automatic reload
-  setTimeout(() => {
-    window.location.reload();
-  }, 3000);
-});
+    }
+    // Attempt automatic reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 3000);
+  });
 }
 
 const NATIVE_HYDRATE_BUDGET_MS = 1200;

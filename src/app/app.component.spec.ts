@@ -262,6 +262,42 @@ describe('AppComponent', () => {
       }
       consoleErrorSpy.mockRestore();
     });
+
+    it('reloads once for stale chunk unhandledrejection', () => {
+      const reload = vi.fn();
+      vi.stubGlobal('location', { reload });
+      sessionStorage.clear();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const listenerCalls = (window.addEventListener as any).mock.calls;
+      const unhandledRejectionListener = listenerCalls.find(
+        (call: any) => call[0] === 'unhandledrejection'
+      )?.[1];
+
+      const reason = new TypeError('Failed to fetch dynamically imported module');
+      unhandledRejectionListener?.({ reason });
+
+      expect(reload).toHaveBeenCalledTimes(1);
+      consoleErrorSpy.mockRestore();
+      vi.unstubAllGlobals();
+      sessionStorage.clear();
+    });
+
+    it('does not reload for unrelated unhandledrejection', () => {
+      const reload = vi.fn();
+      vi.stubGlobal('location', { reload });
+      sessionStorage.clear();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const listenerCalls = (window.addEventListener as any).mock.calls;
+      const unhandledRejectionListener = listenerCalls.find(
+        (call: any) => call[0] === 'unhandledrejection'
+      )?.[1];
+
+      unhandledRejectionListener?.({ reason: new Error('unrelated') });
+
+      expect(reload).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+      vi.unstubAllGlobals();
+    });
   });
 
   describe('setupScrollToTopOnNavigation', () => {

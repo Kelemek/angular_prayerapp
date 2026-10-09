@@ -10,6 +10,7 @@ import {
 import { Router, RouterOutlet, NavigationEnd } from "@angular/router";
 import { CommonModule } from "@angular/common";
 import { Capacitor } from "@capacitor/core";
+import { maybeReloadForStaleChunk } from "../lib/stale-chunk-recovery";
 import { ToastContainerComponent } from "./components/toast-container/toast-container.component";
 import { HelpDriverTourService } from "./services/help-driver-tour.service";
 import { AdminDataService } from "./services/admin-data.service";
@@ -150,13 +151,13 @@ export class AppComponent implements OnInit {
           "[GlobalErrorHandler] Unhandled promise rejection:",
           event.reason
         );
-        // Don't auto-reload - let the app handle recovery gracefully
+        maybeReloadForStaleChunk(event.reason);
       });
 
       // Catch global errors
       window.addEventListener("error", (event) => {
         console.error("[GlobalErrorHandler] Global error:", event.error);
-        // Don't auto-reload - let the app handle recovery gracefully
+        maybeReloadForStaleChunk(event.error, event.message);
       });
     });
   }

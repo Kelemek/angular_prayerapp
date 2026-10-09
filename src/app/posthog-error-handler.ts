@@ -1,6 +1,7 @@
 import { ErrorHandler, Injectable, Provider } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { capturePostHogException } from '../lib/posthog';
+import { maybeReloadForStaleChunk } from '../lib/stale-chunk-recovery';
 
 @Injectable({ providedIn: 'root' })
 class PostHogErrorHandler implements ErrorHandler {
@@ -8,6 +9,11 @@ class PostHogErrorHandler implements ErrorHandler {
     const extractedError = this.extractError(error) ?? 'Unknown error';
     capturePostHogException(extractedError);
     console.error(error);
+    if (extractedError === 'Unknown error') {
+      maybeReloadForStaleChunk(error);
+    } else {
+      maybeReloadForStaleChunk(extractedError, error);
+    }
   }
 
   private extractError(errorCandidate: unknown): unknown {
