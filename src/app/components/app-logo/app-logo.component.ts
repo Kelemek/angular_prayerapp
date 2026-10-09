@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, Inject, Optional, InjectionToken } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, Inject, InjectionToken } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BrandingService } from '../../services/branding.service';
+import { BrandingService, type BrandingData } from '../../services/branding.service';
 import { Subject, takeUntil } from 'rxjs';
 
 export const BRANDING_SERVICE_TOKEN = new InjectionToken<BrandingService>('BrandingService');
@@ -82,7 +82,7 @@ export class AppLogoComponent implements OnInit, OnDestroy {
   appSubtitle: string = 'Keeping our community connected in prayer';
   churchWebsiteHref: string | null = null;
   @Output() logoStatusChange = new EventEmitter<boolean>();
-  
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -101,7 +101,7 @@ export class AppLogoComponent implements OnInit, OnDestroy {
 
   private async initializeBranding() {
     await this.brandingService.initialize();
-    
+
     this.brandingService.branding$
       .pipe(takeUntil(this.destroy$))
       .subscribe(branding => {
@@ -114,7 +114,7 @@ export class AppLogoComponent implements OnInit, OnDestroy {
       });
   }
 
-  private updateImageUrl(branding: any) {
+  private updateImageUrl(branding: BrandingData) {
     if (!this.useLogo) {
       this.imageUrl = '';
       this.logoStatusChange.emit(false);

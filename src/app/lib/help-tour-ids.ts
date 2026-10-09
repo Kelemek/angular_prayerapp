@@ -1,5 +1,7 @@
-export const TOUR_REQUEST_BTN_MOBILE_ID = 'tour-btn-new-prayer-request-mobile';
-export const TOUR_REQUEST_BTN_DESKTOP_ID = 'tour-btn-new-prayer-request-desktop';
+/** Home header — new prayer request (single toolbar; mobile/desktop aliases). */
+export const TOUR_REQUEST_BTN_ID = 'tour-btn-new-prayer-request';
+export const TOUR_REQUEST_BTN_MOBILE_ID = TOUR_REQUEST_BTN_ID;
+export const TOUR_REQUEST_BTN_DESKTOP_ID = TOUR_REQUEST_BTN_ID;
 export const TOUR_FILTER_PERSONAL_ID = 'tour-filter-personal';
 export const TOUR_FILTER_PUBLIC_ID = 'tour-filter-public';
 export const TOUR_FILTER_CURRENT_ID = 'tour-filter-current';
@@ -18,10 +20,12 @@ export const TOUR_MEMORIZE_EMPTY_STATE_ID = 'tour-memorize-empty-state';
 export const TOUR_PROMPT_TYPE_FILTERS_ID = 'tour-prompt-type-filters';
 export const TOUR_PROMPT_EMPTY_ID = 'tour-prompt-empty-state';
 export const TOUR_PROMPT_CARD_SAMPLE_ID = 'tour-prompt-card-sample';
-export const TOUR_PRAYER_MODE_MOBILE_ID = 'tour-btn-prayer-mode-mobile';
-export const TOUR_PRAYER_MODE_DESKTOP_ID = 'tour-btn-prayer-mode-desktop';
-export const TOUR_SETTINGS_BTN_MOBILE_ID = 'tour-btn-settings-mobile';
-export const TOUR_SETTINGS_BTN_DESKTOP_ID = 'tour-btn-settings-desktop';
+export const TOUR_PRAYER_MODE_BTN_ID = 'tour-btn-prayer-mode';
+export const TOUR_PRAYER_MODE_MOBILE_ID = TOUR_PRAYER_MODE_BTN_ID;
+export const TOUR_PRAYER_MODE_DESKTOP_ID = TOUR_PRAYER_MODE_BTN_ID;
+export const TOUR_SETTINGS_BTN_ID = 'tour-btn-settings';
+export const TOUR_SETTINGS_BTN_MOBILE_ID = TOUR_SETTINGS_BTN_ID;
+export const TOUR_SETTINGS_BTN_DESKTOP_ID = TOUR_SETTINGS_BTN_ID;
 export const TOUR_SETTINGS_PRINT_ROW_ID = 'tour-settings-print-buttons';
 export const TOUR_SETTINGS_PRINT_PRAYERS_ID = 'tour-settings-print-prayers';
 export const TOUR_SETTINGS_PRINT_MEMORIZATION_ID = 'tour-settings-print-memorization';
@@ -45,8 +49,9 @@ export const TOUR_PRAYER_PRAY_FOR_ID = 'tour-prayer-pray-for';
 /** Reminder row in the first community prayer card menu (see `PrayerCardComponent.tourPrayerReminderBellAnchors`). */
 export const TOUR_PRAYER_REMINDER_BELL_ID = 'tour-prayer-reminder-bell';
 /** Home prayer list search field (`PrayerFiltersComponent`). */
-export const TOUR_BTN_SEARCH_MOBILE_ID = 'tour-btn-search-mobile';
-export const TOUR_BTN_SEARCH_DESKTOP_ID = 'tour-btn-search-desktop';
+export const TOUR_BTN_SEARCH_ID = 'tour-btn-search';
+export const TOUR_BTN_SEARCH_MOBILE_ID = TOUR_BTN_SEARCH_ID;
+export const TOUR_BTN_SEARCH_DESKTOP_ID = TOUR_BTN_SEARCH_ID;
 export const TOUR_PRAYER_SEARCH_ID = 'tour-prayer-search';
 
 /** Hands-on Personal Prayers help tour — sample prayer (must match `PrayerFormComponent` + Home helpers). */

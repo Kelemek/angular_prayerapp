@@ -102,6 +102,7 @@ describe('AppLogoComponent', () => {
     it('should have default appSubtitle', () => {
       expect(component.appSubtitle).toBe('Keeping our community connected in prayer');
     });
+
   });
 
   describe('ngOnInit', () => {

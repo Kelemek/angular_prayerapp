@@ -581,16 +581,9 @@ describe('HelpDriverTourService', () => {
     const samplePromptsSection = { title: 'Using Prayer Prompts', description: 'Get inspired with our prayer prompts' };
 
     function mountPrayerModeButtons() {
-      const desk = document.createElement('button');
-      desk.id = TOUR_PRAYER_MODE_DESKTOP_ID;
-      document.body.appendChild(desk);
-      const mob = document.createElement('button');
-      mob.id = TOUR_PRAYER_MODE_MOBILE_ID;
-      document.body.appendChild(mob);
-      vi.stubGlobal(
-        'matchMedia',
-        vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })
-      );
+      const btn = document.createElement('button');
+      btn.id = TOUR_PRAYER_MODE_DESKTOP_ID;
+      document.body.appendChild(btn);
     }
 
     it('does not call driver when prompts filter tile is missing', () => {

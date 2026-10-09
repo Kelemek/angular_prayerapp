@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Home — mobile header
+- Logo and main header actions share **one responsive toolbar** ([`home-header`](src/app/components/home-header/home-header.component.html)): fluid logo slot (`HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS`) shrinks the image/title on narrow widths; help-tour anchors use single ids ([`help-tour-ids.ts`](src/app/lib/help-tour-ids.ts)).
+
 ### Settings — Print (Prayers / Verses modals)
 - Settings **Print** row is a **two-column** grid (**Prayers**, **Verses**) instead of three split buttons with chevron dropdowns. Each tile opens an [`app-modal-shell`](src/app/components/modal-shell/modal-shell.component.ts) wizard: **Prayers** → Church (time range), Personal (category + time range), or Prompts (types); **Verses** → duplex or foldable memorization card sheets ([`user-settings-print-section`](src/app/components/user-settings-print-section/user-settings-print-section.component.ts), [`print-memorization-cards.ts`](src/app/lib/print-memorization-cards.ts), [`PrintService.downloadPrintableMemorizationCards`](src/app/services/print.service.ts)). Help tours updated (`tour-settings-print-memorization`).
 - [`ModalShellComponent`](src/app/components/modal-shell/modal-shell.component.ts) uses `display: contents` and portals its overlay to `document.body` by default so nested dialogs (e.g. Print options inside Settings) do not expand the settings scroll layout; scroll lock is refcounted ([`modal-shell-scroll-lock.ts`](src/app/components/modal-shell/modal-shell-scroll-lock.ts)). Print section loads prompt types via [`PromptService.getActivePromptTypeNames`](src/app/services/prompt.service.ts); choice tile classes live in [`settings-choice-ui.ts`](src/app/lib/settings-choice-ui.ts) (print section only).

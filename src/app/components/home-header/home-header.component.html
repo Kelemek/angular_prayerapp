@@ -2,210 +2,111 @@
       [class]="headerShellClass"
     >
       <div class="w-full max-w-6xl mx-auto px-4 py-2 sm:py-3">
-        <!-- Mobile layout -->
-        <div class="sm:hidden flex items-start justify-between mb-3">
-          <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 min-w-0 sm:justify-between">
+          <div
+            data-testid="home-header-logo-slot"
+            [class]="logoToolbarSlotClass"
+          >
             <app-logo (logoStatusChange)="logoStatusChange.emit($event)"></app-logo>
           </div>
-        </div>
 
-        <!-- Mobile buttons row - flex-nowrap so title/buttons stay on one line on smallest screens -->
-        <div class="sm:hidden flex items-center gap-2 flex-nowrap">
-          <button
-            (click)="handlers.openHelp()"
-            class="flex items-center gap-1 px-2 py-2 text-sm font-medium btn-chip btn-chip-gray"
-            title="Help"
-          >
-            <svg
-              class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
+          <div class="flex items-center gap-1 sm:gap-2 flex-nowrap shrink-0">
+            <button
+              type="button"
+              (click)="handlers.openHelp()"
+              [class]="headerChipClass + ' btn-chip btn-chip-gray'"
+              title="Help & Guidance"
             >
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
+              <svg
+                [class]="headerIconClass"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                ></circle>
+                <text
+                  x="12"
+                  y="16"
+                  text-anchor="middle"
+                  fill="currentColor"
+                  font-size="14"
+                  font-weight="bold"
+                >
+                  ?
+                </text>
+              </svg>
+            </button>
+            <button
+              [id]="tourSearchBtnId"
+              type="button"
+              (click)="handlers.toggleSearchPanel()"
+              [attr.aria-expanded]="showSearchPanel"
+              aria-controls="home-search-panel"
+              [class]="headerChipClass + ' btn-chip btn-chip-gray'"
+              title="Search"
+            >
+              <svg
+                [class]="headerIconClass"
+                viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
-              ></circle>
-              <text
-                x="12"
-                y="16"
-                text-anchor="middle"
-                fill="currentColor"
-                font-size="14"
-                font-weight="bold"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
               >
-                ?
-              </text>
-            </svg>
-          </button>
-          <button
-            id="tour-btn-search-mobile"
-            type="button"
-            (click)="handlers.toggleSearchPanel()"
-            [attr.aria-expanded]="showSearchPanel"
-            aria-controls="home-search-panel"
-            class="flex items-center gap-1 px-2 py-2 text-sm font-medium btn-chip btn-chip-gray"
-            title="Search"
-          >
-            <svg
-              class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+            </button>
+            <button
+              [id]="tourSettingsBtnId"
+              type="button"
+              (click)="handlers.openUserSettings()"
+              [class]="headerChipClass + ' btn-chip btn-chip-gray'"
+              title="Settings"
             >
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.3-4.3"></path>
-            </svg>
-          </button>
-          <button
-            id="tour-btn-settings-mobile"
-            (click)="handlers.openUserSettings()"
-            class="flex items-center gap-1 px-2 py-2 text-sm font-medium btn-chip btn-chip-gray"
-            title="Settings"
-          >
-            <svg
-              class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
+              <svg
+                [class]="headerIconClass"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                ></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <a
+              [id]="tourPrayerModeBtnId"
+              routerLink="/presentation"
+              [queryParams]="presentationHandoffQueryParams"
+              (click)="handlers.onPresentationLinkClick($event)"
+              [class]="headerChipClass + ' btn-chip btn-chip-green'"
+              title="Prayer Mode"
             >
-              <path
-                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-              ></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          </button>
-          <a
-            id="tour-btn-prayer-mode-mobile"
-            routerLink="/presentation"
-            [queryParams]="presentationHandoffQueryParams"
-            (click)="handlers.onPresentationLinkClick($event)"
-            class="flex items-center gap-1 px-3 py-2 text-sm font-medium btn-chip btn-chip-green"
-            title="Prayer Mode"
-          >
-            <span>Pray</span>
-          </a>
-          <button
-            id="tour-btn-new-prayer-request-mobile"
-            (click)="handlers.openPrayerForm()"
-            class="flex items-center gap-1 px-3 py-2 text-sm font-medium btn-chip btn-chip-blue"
-          >
-            <span>Request</span>
-          </button>
-        </div>
-
-        <!-- Desktop layout: Logo on left, controls on right -->
-        <div class="hidden sm:flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <app-logo (logoStatusChange)="logoStatusChange.emit($event)"></app-logo>
-          </div>
-
-          <div class="flex items-center gap-2">
-              <button
-                (click)="handlers.openHelp()"
-                class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-gray"
-                title="Help & Guidance"
-              >
-                <svg
-                  class="w-6 h-6 flex-shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  ></circle>
-                  <text
-                    x="12"
-                    y="16"
-                    text-anchor="middle"
-                    fill="currentColor"
-                    font-size="14"
-                    font-weight="bold"
-                  >
-                    ?
-                  </text>
-                </svg>
-              </button>
-              <button
-                id="tour-btn-search-desktop"
-                type="button"
-                (click)="handlers.toggleSearchPanel()"
-                [attr.aria-expanded]="showSearchPanel"
-                aria-controls="home-search-panel"
-                class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-gray"
-                title="Search"
-              >
-                <svg
-                  class="w-6 h-6 flex-shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.3-4.3"></path>
-                </svg>
-              </button>
-              <button
-                id="tour-btn-settings-desktop"
-                (click)="handlers.openUserSettings()"
-                class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-gray"
-                title="Settings"
-              >
-                <svg
-                  class="w-6 h-6 flex-shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-                  ></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-              <a
-                id="tour-btn-prayer-mode-desktop"
-                routerLink="/presentation"
-                [queryParams]="presentationHandoffQueryParams"
-                (click)="handlers.onPresentationLinkClick($event)"
-                class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-green"
-                title="Prayer Mode"
-              >
-                <span>Pray</span>
-              </a>
-              <button
-                id="tour-btn-new-prayer-request-desktop"
-                (click)="handlers.openPrayerForm()"
-                class="flex items-center justify-center h-12 gap-1 px-3 text-sm font-medium btn-chip btn-chip-blue"
-              >
-                <span>Request</span>
-              </button>
+              <span>Pray</span>
+            </a>
+            <button
+              [id]="tourRequestBtnId"
+              type="button"
+              (click)="handlers.openPrayerForm()"
+              [class]="headerChipClass + ' btn-chip btn-chip-blue'"
+            >
+              <span>Request</span>
+            </button>
           </div>
         </div>
       </div>

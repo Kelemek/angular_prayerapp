@@ -3,8 +3,7 @@ import {
   openCardActionsOverflowMenu,
 } from './help-card-actions-menu-tour';
 import {
-  TOUR_REQUEST_BTN_MOBILE_ID,
-  TOUR_REQUEST_BTN_DESKTOP_ID,
+  TOUR_REQUEST_BTN_ID,
   TOUR_FILTER_PERSONAL_ID,
   TOUR_FILTER_PUBLIC_ID,
   TOUR_FILTER_CURRENT_ID,
@@ -23,10 +22,8 @@ import {
   TOUR_PROMPT_TYPE_FILTERS_ID,
   TOUR_PROMPT_EMPTY_ID,
   TOUR_PROMPT_CARD_SAMPLE_ID,
-  TOUR_PRAYER_MODE_MOBILE_ID,
-  TOUR_PRAYER_MODE_DESKTOP_ID,
-  TOUR_SETTINGS_BTN_MOBILE_ID,
-  TOUR_SETTINGS_BTN_DESKTOP_ID,
+  TOUR_PRAYER_MODE_BTN_ID,
+  TOUR_SETTINGS_BTN_ID,
   TOUR_SETTINGS_PRINT_ROW_ID,
   TOUR_SETTINGS_PRINT_PRAYERS_ID,
   TOUR_SETTINGS_PRINT_MEMORIZATION_ID,
@@ -46,8 +43,6 @@ import {
   TOUR_ADD_UPDATE_BTN_ID,
   TOUR_PRAYER_PRAY_FOR_ID,
   TOUR_PRAYER_REMINDER_BELL_ID,
-  TOUR_BTN_SEARCH_MOBILE_ID,
-  TOUR_BTN_SEARCH_DESKTOP_ID,
   TOUR_PRAYER_SEARCH_ID,
   PERSONAL_PRAYER_WALKTHROUGH_PRAYER_FOR,
   PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION,
@@ -95,19 +90,10 @@ export function getPresentationToolbarEl(): HTMLElement | null {
 }
 
 export function getNewPrayerRequestButtonEl(): HTMLElement | null {
-  if (typeof document === 'undefined' || typeof window === 'undefined') {
+  if (typeof document === 'undefined') {
     return null;
   }
-  const desktop = document.getElementById(TOUR_REQUEST_BTN_DESKTOP_ID);
-  const mobile = document.getElementById(TOUR_REQUEST_BTN_MOBILE_ID);
-  if (!desktop && !mobile) {
-    return null;
-  }
-  const wide = window.matchMedia('(min-width: 640px)').matches;
-  if (wide) {
-    return desktop ?? mobile;
-  }
-  return mobile ?? desktop;
+  return document.getElementById(TOUR_REQUEST_BTN_ID);
 }
 
 export function escapeHtml(text: string): string {
@@ -275,19 +261,10 @@ export function getSamplePromptCardEl(): HTMLElement | null {
 }
 
 export function getPrayerModeButtonEl(): HTMLElement | null {
-  if (typeof document === 'undefined' || typeof window === 'undefined') {
+  if (typeof document === 'undefined') {
     return null;
   }
-  const desktop = document.getElementById(TOUR_PRAYER_MODE_DESKTOP_ID);
-  const mobile = document.getElementById(TOUR_PRAYER_MODE_MOBILE_ID);
-  if (!desktop && !mobile) {
-    return null;
-  }
-  const wide = window.matchMedia('(min-width: 640px)').matches;
-  if (wide) {
-    return desktop ?? mobile;
-  }
-  return mobile ?? desktop;
+  return document.getElementById(TOUR_PRAYER_MODE_BTN_ID);
 }
 
 export function getTourAddUpdateButtonEl(): HTMLElement | null {
@@ -343,18 +320,9 @@ export function getPrayerSearchInputEl(): HTMLElement | null {
 }
 
 export function getSettingsHeaderButtonEl(): HTMLElement | null {
-  if (typeof document === 'undefined' || typeof window === 'undefined') {
+  if (typeof document === 'undefined') {
     return null;
   }
-  const desktop = document.getElementById(TOUR_SETTINGS_BTN_DESKTOP_ID);
-  const mobile = document.getElementById(TOUR_SETTINGS_BTN_MOBILE_ID);
-  if (!desktop && !mobile) {
-    return null;
-  }
-  const wide = window.matchMedia('(min-width: 640px)').matches;
-  if (wide) {
-    return desktop ?? mobile;
-  }
-  return mobile ?? desktop;
+  return document.getElementById(TOUR_SETTINGS_BTN_ID);
 }
 
