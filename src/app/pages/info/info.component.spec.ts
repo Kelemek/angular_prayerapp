@@ -9,6 +9,11 @@ import { InfoComponent } from "./info.component";
 import { BRANDING_SERVICE_TOKEN } from "../../components/app-logo/app-logo.component";
 import { BrandingData } from "../../services/branding.service";
 import { setupInfoPreviewComponentResources } from "../../components/info-preview-component-resources.spec-helper";
+import {
+  modalShellOverlayRoot,
+  modalShellOverlayText,
+  modalShellQuery,
+} from "../../components/modal-shell/modal-shell-test-dom";
 
 describe("InfoComponent", () => {
   beforeAll(async () => {
@@ -195,9 +200,7 @@ describe("InfoComponent", () => {
       badgeBtn.click();
       fixture.detectChanges();
       expect(previewModals().activeModal).toEqual({ kind: "badges" });
-      expect(
-        fixture.nativeElement.querySelector(".modal-shell-overlay")
-      ).toBeTruthy();
+      expect(modalShellOverlayRoot()).toBeTruthy();
     });
 
     it("renders explanation modals outside the zoomed book frame", async () => {
@@ -225,10 +228,8 @@ describe("InfoComponent", () => {
         kind: "header",
         action: "pray",
       });
-      expect(
-        fixture.nativeElement.querySelector(".modal-shell-overlay")
-      ).toBeTruthy();
-      expect(fixture.nativeElement.textContent).toContain("Pray view");
+      expect(modalShellOverlayRoot()).toBeTruthy();
+      expect(modalShellOverlayText()).toContain("Pray view");
     });
 
     it("opens a Bible Books explanation about memorizing book names", async () => {
@@ -253,7 +254,7 @@ describe("InfoComponent", () => {
         kind: "memorizeAction",
         action: "bible-books",
       });
-      expect(fixture.nativeElement.textContent).toContain(
+      expect(modalShellOverlayText()).toContain(
         "names of the books of the Bible"
       );
     });
@@ -276,10 +277,10 @@ describe("InfoComponent", () => {
       expect(previewModals().activeModal).toEqual({
         kind: "memorizePractice",
       });
-      expect(fixture.nativeElement.textContent).toContain("Practice a verse");
-      expect(fixture.nativeElement.textContent).toContain("1 of 5");
+      expect(modalShellOverlayText()).toContain("Practice a verse");
+      expect(modalShellOverlayText()).toContain("1 of 5");
       expect(
-        fixture.nativeElement.querySelector(
+        modalShellQuery(
           'img[src="/info/memorize-practice/light/01-type.png"]'
         )
       ).toBeTruthy();
@@ -304,7 +305,7 @@ describe("InfoComponent", () => {
         kind: "memorizeAction",
         action: "add-verses",
       });
-      expect(fixture.nativeElement.textContent).toContain("passage picker");
+      expect(modalShellOverlayText()).toContain("passage picker");
     });
 
     it("should set previewFilter when filter tab is clicked", async () => {

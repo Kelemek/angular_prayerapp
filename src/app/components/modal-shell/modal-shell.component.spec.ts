@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { TestBed } from "@angular/core/testing";
 import { ModalShellComponent } from "./modal-shell.component";
+import {
+  modalShellOverlayRoot,
+  modalShellQuery,
+} from "./modal-shell-test-dom";
+import { resetModalShellScrollLockForTests } from "./modal-shell-scroll-lock";
 
 describe("ModalShellComponent", () => {
   let fixture: ReturnType<typeof TestBed.createComponent<ModalShellComponent>> | null = null;
 
   beforeEach(() => {
+    resetModalShellScrollLockForTests();
     document.body.style.overflow = "";
     document.documentElement.style.overflow = "";
     document.querySelectorAll(".safe-area-viewport").forEach((el) => {
@@ -26,6 +32,7 @@ describe("ModalShellComponent", () => {
       fixture.destroy();
       fixture = null;
     }
+    resetModalShellScrollLockForTests();
     document.body.style.overflow = "";
     document.documentElement.style.overflow = "";
     document.querySelectorAll(".safe-area-viewport").forEach((el) => {
@@ -102,6 +109,20 @@ describe("ModalShellComponent", () => {
     viewport.remove();
   });
 
+  it("keeps scroll locked until all nested shells are destroyed", () => {
+    const outer = TestBed.createComponent(ModalShellComponent);
+    const inner = TestBed.createComponent(ModalShellComponent);
+    outer.componentInstance.ngOnInit();
+    inner.componentInstance.ngOnInit();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    outer.destroy();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    inner.destroy();
+    expect(document.body.style.overflow).toBe("");
+  });
+
   it("restores overflow on destroy when no safe-area-viewport", () => {
     fixture = TestBed.createComponent(ModalShellComponent);
     const component = fixture.componentInstance;
@@ -119,9 +140,7 @@ describe("ModalShellComponent", () => {
     fixture = TestBed.createComponent(ModalShellComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance;
-    const scroller = fixture.nativeElement.querySelector(
-      ".modal-shell-body"
-    ) as HTMLElement;
+    const scroller = modalShellQuery<HTMLElement>(".modal-shell-body")!;
     const button = document.createElement("button");
     scroller.appendChild(button);
     button.scrollIntoView = vi.fn();
@@ -135,9 +154,7 @@ describe("ModalShellComponent", () => {
     fixture = TestBed.createComponent(ModalShellComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance;
-    const scroller = fixture.nativeElement.querySelector(
-      ".modal-shell-body"
-    ) as HTMLElement;
+    const scroller = modalShellQuery<HTMLElement>(".modal-shell-body")!;
     const input = document.createElement("input");
     scroller.appendChild(input);
     Object.defineProperty(scroller, "scrollTop", {
@@ -175,11 +192,31 @@ describe("ModalShellComponent", () => {
     expect(scroller.scrollTop).toBeGreaterThan(0);
   });
 
+  it("moves overlay to document.body when appendToBody is true", () => {
+    fixture = TestBed.createComponent(ModalShellComponent);
+    fixture.detectChanges();
+    const overlay = modalShellOverlayRoot()!;
+    expect(overlay.parentElement).toBe(document.body);
+
+    fixture.destroy();
+    expect(document.body.contains(overlay)).toBe(false);
+  });
+
+  it("keeps overlay in component host when appendToBody is false", () => {
+    fixture = TestBed.createComponent(ModalShellComponent);
+    fixture.componentInstance.appendToBody = false;
+    fixture.detectChanges();
+    const overlay = fixture.nativeElement.querySelector(
+      ".modal-shell-overlay"
+    ) as HTMLElement;
+    expect(overlay.parentElement).toBe(fixture.nativeElement);
+  });
+
   it("onOverlayTouchMove prevents default outside modal body", () => {
     fixture = TestBed.createComponent(ModalShellComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance;
-    const scroller = fixture.nativeElement.querySelector(".modal-shell-body");
+    const scroller = modalShellQuery(".modal-shell-body");
     const outside = document.createElement("div");
     const event = {
       target: outside,

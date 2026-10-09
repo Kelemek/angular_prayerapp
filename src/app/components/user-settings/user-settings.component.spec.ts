@@ -222,38 +222,6 @@ describe('UserSettingsComponent', () => {
   });
 
   describe('ngOnChanges', () => {
-    it('should load prompt types when modal opens', async () => {
-      const mockData = [
-        { name: 'Type1', display_order: 1 },
-        { name: 'Type2', display_order: 2 }
-      ];
-      
-      mockSupabaseService.client.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: mockData, error: null }))
-          }))
-        }))
-      });
-      
-      component.isOpen = false; // Set to false first
-
-      const changes: SimpleChanges = {
-        isOpen: {
-          currentValue: true,
-          previousValue: false,
-          firstChange: false,
-          isFirstChange: () => false
-        }
-      };
-
-      component.isOpen = true; // Now set to true
-      component.ngOnChanges(changes);
-      await vi.runAllTimersAsync();
-
-      expect(component.promptTypes).toEqual(['Type1', 'Type2']);
-    });
-
     it('should load user info from localStorage when modal opens', () => {
       localStorage.clear(); // Clear defaults
       localStorage.setItem('prayerapp_user_first_name', 'Jane');
@@ -385,41 +353,6 @@ describe('UserSettingsComponent', () => {
     });
   });
 
-  describe('loadPromptTypes', () => {
-    it('should load active prayer types ordered by display_order', async () => {
-      const mockData = [
-        { name: 'Prayer', display_order: 1 },
-        { name: 'Praise', display_order: 2 }
-      ];
-
-      mockSupabaseService.client.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: mockData, error: null }))
-          }))
-        }))
-      });
-
-      await component.loadPromptTypes();
-
-      expect(component.promptTypes).toEqual(['Prayer', 'Praise']);
-    });
-
-    it('should handle errors when loading prompt types', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      // Mock error by making the function throw
-      mockSupabaseService.client.from.mockImplementation(() => {
-        throw new Error('DB error');
-      });
-
-      await component.loadPromptTypes();
-
-      expect(consoleSpy).toHaveBeenCalledWith('Error fetching prayer types:', expect.any(Error));
-      consoleSpy.mockRestore();
-    });
-  });
-
   describe('ngOnDestroy', () => {
     it('should complete destroy subject', () => {
       const nextSpy = vi.spyOn(component['destroy$'], 'next');
@@ -475,147 +408,6 @@ describe('UserSettingsComponent', () => {
 
       expect(component.textSize).toBe('largest');
       expect(mockTextSizeService.setTextSize).toHaveBeenCalledWith('largest');
-    });
-  });
-
-  describe('setPrintRange', () => {
-    it('should update print range', () => {
-      component.setPrintRange('month');
-      expect(component.printRange).toBe('month');
-    });
-
-    it('should handle all print range options', () => {
-      const ranges: Array<'week' | 'twoweeks' | 'month' | 'year' | 'all'> = ['week', 'twoweeks', 'month', 'year', 'all'];
-      
-      ranges.forEach(range => {
-        component.setPrintRange(range);
-        expect(component.printRange).toBe(range);
-      });
-    });
-  });
-
-  describe('handlePrint', () => {
-    it('should open new window and call print service', async () => {
-      const mockWindow = {} as Window;
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(mockWindow);
-
-      await component.handlePrint();
-
-      expect(openSpy).toHaveBeenCalledWith('', '_blank');
-      expect(mockPrintService.downloadPrintablePrayerList).toHaveBeenCalledWith('week', mockWindow);
-      expect(component.isPrinting).toBe(false);
-      
-      openSpy.mockRestore();
-    });
-
-    it('should set isPrinting to true during print', async () => {
-      const mockWindow = {} as Window;
-      vi.spyOn(window, 'open').mockReturnValue(mockWindow);
-
-      const printPromise = component.handlePrint();
-      expect(component.isPrinting).toBe(true);
-      
-      await printPromise;
-      expect(component.isPrinting).toBe(false);
-    });
-
-    it('should handle print errors and close window', async () => {
-      const mockWindow = { close: vi.fn() };
-      vi.spyOn(window, 'open').mockReturnValue(mockWindow as any);
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      mockPrintService.downloadPrintablePrayerList.mockRejectedValue(new Error('Print error'));
-
-      await component.handlePrint();
-
-      expect(consoleSpy).toHaveBeenCalledWith('Error printing prayer list:', expect.any(Error));
-      expect(mockWindow.close).toHaveBeenCalled();
-      expect(component.isPrinting).toBe(false);
-      
-      consoleSpy.mockRestore();
-    });
-
-    it('should use current printRange setting', async () => {
-      const mockWindow = {} as Window;
-      vi.spyOn(window, 'open').mockReturnValue(mockWindow);
-
-      component.printRange = 'year';
-      await component.handlePrint();
-
-      expect(mockPrintService.downloadPrintablePrayerList).toHaveBeenCalledWith('year', mockWindow);
-    });
-  });
-
-  describe('handlePrintPrompts', () => {
-    it('should open new window and call print service', async () => {
-      const mockWindow = {} as Window;
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(mockWindow);
-
-      component.selectedPromptTypes = ['Type1'];
-      await component.handlePrintPrompts();
-
-      expect(openSpy).toHaveBeenCalledWith('', '_blank');
-      expect(mockPrintService.downloadPrintablePromptList).toHaveBeenCalledWith(['Type1'], mockWindow);
-      expect(component.isPrintingPrompts).toBe(false);
-      
-      openSpy.mockRestore();
-    });
-
-    it('should set isPrintingPrompts to true during print', async () => {
-      const mockWindow = {} as Window;
-      vi.spyOn(window, 'open').mockReturnValue(mockWindow);
-
-      const printPromise = component.handlePrintPrompts();
-      expect(component.isPrintingPrompts).toBe(true);
-      
-      await printPromise;
-      expect(component.isPrintingPrompts).toBe(false);
-    });
-
-    it('should handle print errors and close window', async () => {
-      const mockWindow = { close: vi.fn() };
-      vi.spyOn(window, 'open').mockReturnValue(mockWindow as any);
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      mockPrintService.downloadPrintablePromptList.mockRejectedValue(new Error('Print error'));
-
-      await component.handlePrintPrompts();
-
-      expect(consoleSpy).toHaveBeenCalledWith('Error printing prompts:', expect.any(Error));
-      expect(mockWindow.close).toHaveBeenCalled();
-      expect(component.isPrintingPrompts).toBe(false);
-      
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('togglePromptType', () => {
-    it('should add prompt type if not selected', () => {
-      component.selectedPromptTypes = [];
-      component.togglePromptType('Type1');
-      
-      expect(component.selectedPromptTypes).toContain('Type1');
-    });
-
-    it('should remove prompt type if already selected', () => {
-      component.selectedPromptTypes = ['Type1', 'Type2'];
-      component.togglePromptType('Type1');
-      
-      expect(component.selectedPromptTypes).not.toContain('Type1');
-      expect(component.selectedPromptTypes).toContain('Type2');
-    });
-
-    it('should handle multiple toggles', () => {
-      component.selectedPromptTypes = [];
-      
-      component.togglePromptType('Type1');
-      expect(component.selectedPromptTypes).toEqual(['Type1']);
-      
-      component.togglePromptType('Type2');
-      expect(component.selectedPromptTypes).toEqual(['Type1', 'Type2']);
-      
-      component.togglePromptType('Type1');
-      expect(component.selectedPromptTypes).toEqual(['Type2']);
     });
   });
 
@@ -1165,119 +957,6 @@ describe('UserSettingsComponent', () => {
     });
   });
 
-  describe('handlePrint', () => {
-    it('should set isPrinting to true during print', async () => {
-      mockPrintService.downloadPrintablePrayerList.mockImplementation(() => new Promise<void>(resolve => {
-        expect(component.isPrinting).toBe(true);
-        resolve(void 0);
-      }));
-      
-      await component.handlePrint();
-      
-      expect(component.isPrinting).toBe(false);
-    });
-
-    it('should close window on error during print', async () => {
-      const mockWindow = { close: vi.fn() } as unknown as Window;
-      window.open = vi.fn(() => mockWindow) as any;
-      mockPrintService.downloadPrintablePrayerList.mockRejectedValue(new Error('Print failed'));
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      await component.handlePrint();
-
-      expect(mockWindow.close).toHaveBeenCalled();
-      expect(component.isPrinting).toBe(false);
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle print without error', async () => {
-      window.open = vi.fn(() => ({} as unknown as Window)) as any;
-      mockPrintService.downloadPrintablePrayerList.mockResolvedValue(undefined);
-
-      await component.handlePrint();
-
-      expect(component.isPrinting).toBe(false);
-      expect(mockPrintService.downloadPrintablePrayerList).toHaveBeenCalledWith('week', {});
-    });
-  });
-
-  describe('handlePrintPrompts', () => {
-    it('should set isPrintingPrompts to true during print', async () => {
-      mockPrintService.downloadPrintablePromptList.mockImplementation(() => new Promise<void>(resolve => {
-        expect(component.isPrintingPrompts).toBe(true);
-        resolve(void 0);
-      }));
-      
-      await component.handlePrintPrompts();
-      
-      expect(component.isPrintingPrompts).toBe(false);
-    });
-
-    it('should close window on error during print prompts', async () => {
-      const mockWindow = { close: vi.fn() } as unknown as Window;
-      window.open = vi.fn(() => mockWindow) as any;
-      mockPrintService.downloadPrintablePromptList.mockRejectedValue(new Error('Print failed'));
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      await component.handlePrintPrompts();
-
-      expect(mockWindow.close).toHaveBeenCalled();
-      expect(component.isPrintingPrompts).toBe(false);
-      consoleSpy.mockRestore();
-    });
-
-    it('should pass selected prompt types to print service', async () => {
-      window.open = vi.fn(() => ({} as unknown as Window)) as any;
-      component.selectedPromptTypes = ['Healing', 'Protection'];
-      mockPrintService.downloadPrintablePromptList.mockResolvedValue(undefined);
-
-      await component.handlePrintPrompts();
-
-      expect(mockPrintService.downloadPrintablePromptList).toHaveBeenCalledWith(['Healing', 'Protection'], {});
-    });
-  });
-
-  describe('togglePromptType', () => {
-    it('should add prompt type when not selected', () => {
-      component.selectedPromptTypes = [];
-      component.togglePromptType('Healing');
-      expect(component.selectedPromptTypes).toContain('Healing');
-    });
-
-    it('should remove prompt type when already selected', () => {
-      component.selectedPromptTypes = ['Healing', 'Protection'];
-      component.togglePromptType('Healing');
-      expect(component.selectedPromptTypes).not.toContain('Healing');
-      expect(component.selectedPromptTypes).toContain('Protection');
-    });
-
-    it('should handle multiple toggles correctly', () => {
-      component.selectedPromptTypes = [];
-      component.togglePromptType('A');
-      component.togglePromptType('B');
-      component.togglePromptType('C');
-      expect(component.selectedPromptTypes).toEqual(['A', 'B', 'C']);
-      
-      component.togglePromptType('B');
-      expect(component.selectedPromptTypes).toEqual(['A', 'C']);
-    });
-  });
-
-  describe('setPrintRange', () => {
-    it('should update printRange property', () => {
-      component.setPrintRange('month');
-      expect(component.printRange).toBe('month');
-    });
-
-    it('should accept all valid print ranges', () => {
-      const ranges: Array<'week' | 'twoweeks' | 'month' | 'year' | 'all'> = ['week', 'twoweeks', 'month', 'year', 'all'];
-      ranges.forEach(range => {
-        component.setPrintRange(range);
-        expect(component.printRange).toBe(range);
-      });
-    });
-  });
-
   describe('handleThemeChange', () => {
     it('should update component theme and call service', () => {
       component.handleThemeChange('dark');
@@ -1306,98 +985,11 @@ describe('UserSettingsComponent', () => {
     });
   });
 
-  describe('loadPromptTypes', () => {
-    it('should load and set prompt types from database', async () => {
-      mockSupabaseService.client.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({
-              data: [
-                { name: 'Healing', display_order: 1 },
-                { name: 'Protection', display_order: 2 }
-              ],
-              error: null
-            }))
-          }))
-        }))
-      });
-
-      await component.loadPromptTypes();
-
-      expect(component.promptTypes).toEqual(['Healing', 'Protection']);
-    });
-
-    it('should handle empty prompt types', async () => {
-      mockSupabaseService.client.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: [], error: null }))
-          }))
-        }))
-      });
-
-      await component.loadPromptTypes();
-
-      expect(component.promptTypes).toEqual([]);
-    });
-
-    it('should handle database error when loading prompt types', async () => {
-      mockSupabaseService.client.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
-          }))
-        }))
-      });
-
-      await component.loadPromptTypes();
-
-      // Should keep existing promptTypes when error occurs
-      expect(component.promptTypes).toBeDefined();
-    });
-
-    it('should handle exception when loading prompt types', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockSupabaseService.client.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => Promise.reject(new Error('Network error')))
-          }))
-        }))
-      });
-
-      await component.loadPromptTypes();
-
-      expect(consoleSpy).toHaveBeenCalledWith('Error fetching prayer types:', expect.any(Error));
-      consoleSpy.mockRestore();
-    });
-  });
-
   describe('ngOnDestroy', () => {
     it('should complete and unsubscribe from destroy$ subject', () => {
       const destroySpy = vi.spyOn(component['destroy$'], 'complete');
       component.ngOnDestroy();
       expect(destroySpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('Dropdown visibility', () => {
-    it('should toggle print dropdown visibility', () => {
-      component.showPrintDropdown = false;
-      component.showPrintDropdown = !component.showPrintDropdown;
-      expect(component.showPrintDropdown).toBe(true);
-
-      component.showPrintDropdown = !component.showPrintDropdown;
-      expect(component.showPrintDropdown).toBe(false);
-    });
-
-    it('should toggle prompt types dropdown visibility', () => {
-      component.showPromptTypesDropdown = false;
-      component.showPromptTypesDropdown = !component.showPromptTypesDropdown;
-      expect(component.showPromptTypesDropdown).toBe(true);
-
-      component.showPromptTypesDropdown = !component.showPromptTypesDropdown;
-      expect(component.showPromptTypesDropdown).toBe(false);
     });
   });
 
@@ -1407,11 +999,6 @@ describe('UserSettingsComponent', () => {
       expect(component.saving).toBe(false);
       expect(component.error).toBe(null);
       expect(component.success).toBe(null);
-      expect(component.isPrinting).toBe(false);
-      expect(component.isPrintingPrompts).toBe(false);
-      expect(component.printRange).toBe('week');
-      expect(component.showPrintDropdown).toBe(false);
-      expect(component.showPromptTypesDropdown).toBe(false);
     });
   });
 
@@ -1421,13 +1008,6 @@ describe('UserSettingsComponent', () => {
       expect(component.themeOptions[0].value).toBe('light');
       expect(component.themeOptions[1].value).toBe('dark');
       expect(component.themeOptions[2].value).toBe('system');
-    });
-  });
-
-  describe('Print range options', () => {
-    it('should have all five print range options defined', () => {
-      expect(component.printRangeOptions.length).toBe(5);
-      expect(component.printRangeOptions.map(o => o.value)).toEqual(['week', 'twoweeks', 'month', 'year', 'all']);
     });
   });
 
@@ -1485,7 +1065,6 @@ describe('UserSettingsComponent', () => {
       expect(component.saving).toBe(false);
       expect(component.error).toBeNull();
       expect(component.success).toBeNull();
-      expect(component.isPrinting).toBe(false);
     });
 
     it('should track error state', () => {
@@ -1512,14 +1091,6 @@ describe('UserSettingsComponent', () => {
       expect(component.saving).toBe(false);
     });
 
-    it('should manage print state', () => {
-      component.isPrinting = false;
-      expect(component.isPrinting).toBe(false);
-      
-      component.isPrinting = true;
-      expect(component.isPrinting).toBe(true);
-    });
-
     it('should manage open state', () => {
       component.isOpen = false;
       expect(component.isOpen).toBe(false);
@@ -1538,45 +1109,6 @@ describe('UserSettingsComponent', () => {
       const destroySpy = vi.spyOn(component['destroy$'], 'complete');
       component.ngOnDestroy();
       expect(destroySpy).toHaveBeenCalled();
-    });
-
-    it('should handle dropdown toggle for print', () => {
-      component.showPrintDropdown = false;
-      component.showPrintDropdown = true;
-      expect(component.showPrintDropdown).toBe(true);
-      
-      component.showPrintDropdown = false;
-      expect(component.showPrintDropdown).toBe(false);
-    });
-
-    it('should handle dropdown toggle for prompt types', () => {
-      component.showPromptTypesDropdown = false;
-      component.showPromptTypesDropdown = true;
-      expect(component.showPromptTypesDropdown).toBe(true);
-      
-      component.showPromptTypesDropdown = false;
-      expect(component.showPromptTypesDropdown).toBe(false);
-    });
-
-    it('should maintain independent dropdown states', () => {
-      component.showPrintDropdown = true;
-      component.showPromptTypesDropdown = true;
-      
-      component.showPrintDropdown = false;
-      
-      expect(component.showPrintDropdown).toBe(false);
-      expect(component.showPromptTypesDropdown).toBe(true);
-    });
-
-    it('should handle print range changes', () => {
-      component.printRange = 'week';
-      expect(component.printRange).toBe('week');
-      
-      component.printRange = 'month';
-      expect(component.printRange).toBe('month');
-      
-      component.printRange = 'year';
-      expect(component.printRange).toBe('year');
     });
 
     it('should handle theme selection', () => {
@@ -1619,10 +1151,6 @@ describe('UserSettingsComponent', () => {
       expect(component.themeOptions.length).toBeGreaterThan(0);
     });
 
-    it('should handle print range options', () => {
-      expect(component.printRangeOptions).toBeDefined();
-      expect(component.printRangeOptions.length).toBeGreaterThan(0);
-    });
   });
 
   describe('Additional Coverage - Badge and Advanced Features', () => {
@@ -1709,11 +1237,6 @@ describe('UserSettingsComponent', () => {
       expect(Array.isArray(component.themeOptions)).toBe(true);
     });
 
-    it('should have printRangeOptions available', () => {
-      expect(component.printRangeOptions).toBeDefined();
-      expect(Array.isArray(component.printRangeOptions)).toBe(true);
-    });
-
     it('should track saving states independently', () => {
       component.saving = true;
       component.savingNotification = false;
@@ -1730,15 +1253,6 @@ describe('UserSettingsComponent', () => {
 
     it('should have correct email property type', () => {
       expect(typeof component.email).toBe('string');
-    });
-
-    it('should have printRange property', () => {
-      expect(component.printRange === 'week' || component.printRange === 'month' || component.printRange === 'year').toBe(true);
-    });
-
-    it('should have dropdown visibility properties', () => {
-      expect(typeof component.showPrintDropdown).toBe('boolean');
-      expect(typeof component.showPromptTypesDropdown).toBe('boolean');
     });
 
     it('should have notification preferences', () => {
@@ -1820,10 +1334,6 @@ describe('UserSettingsComponent', () => {
       expect(component.themeOptions.length).toBeGreaterThan(0);
     });
 
-    it('should handle date range options', () => {
-      expect(component.printRangeOptions.length).toBeGreaterThan(0);
-    });
-
     it('should track component initialization state', () => {
       // Component should be initialized from beforeEach
       expect(component).toBeDefined();
@@ -1858,14 +1368,6 @@ describe('UserSettingsComponent', () => {
   });
 
   describe('User Settings - Extended Coverage Tests', () => {
-    it('should handle printRange state changes', () => {
-      const ranges: string[] = ['week', 'twoweeks', 'month', 'year', 'all'];
-      ranges.forEach(range => {
-        component.printRange = range as any;
-        expect(component.printRange).toBe(range);
-      });
-    });
-
     it('should handle theme state changes', () => {
       component.theme = 'light';
       expect(component.theme).toBe('light');
@@ -1917,13 +1419,6 @@ describe('UserSettingsComponent', () => {
       expect((component as any).saveReminder).toBe(false);
     });
 
-    it('should manage printing state', () => {
-      component.isPrinting = true;
-      expect(component.isPrinting).toBe(true);
-      component.isPrinting = false;
-      expect(component.isPrinting).toBe(false);
-    });
-
     it('should manage modal open state', () => {
       component.isOpen = true;
       expect(component.isOpen).toBe(true);
@@ -1937,12 +1432,6 @@ describe('UserSettingsComponent', () => {
       expect(component.error).toBe('Test error');
       component.error = null;
       expect(component.error).toBeNull();
-    });
-
-    it('should verify print range options exist', () => {
-      expect(component.printRangeOptions).toBeDefined();
-      expect(Array.isArray(component.printRangeOptions)).toBe(true);
-      expect(component.printRangeOptions.length).toBeGreaterThan(0);
     });
 
     it('should verify theme options exist', () => {
@@ -1973,7 +1462,6 @@ describe('UserSettingsComponent', () => {
       (component as any).lastName = 'Johnson';
       component.email = 'alice@example.com';
       component.theme = 'dark';
-      component.printRange = 'month';
       (component as any).saveReminder = true;
       component.receiveNotifications = true;
       (component as any).receiveAdminEmails = false;
@@ -1982,7 +1470,6 @@ describe('UserSettingsComponent', () => {
       expect((component as any).lastName).toBe('Johnson');
       expect(component.email).toBe('alice@example.com');
       expect(component.theme).toBe('dark');
-      expect(component.printRange).toBe('month');
       expect((component as any).saveReminder).toBe(true);
       expect(component.receiveNotifications).toBe(true);
       expect((component as any).receiveAdminEmails).toBe(false);
@@ -2001,11 +1488,6 @@ describe('UserSettingsComponent', () => {
       expect(component.email).not.toBe(originalEmail);
       component.email = originalEmail;
       expect(component.email).toBe(originalEmail);
-    });
-
-    it('should handle print action call', () => {
-      component.handlePrint();
-      expect(component).toBeDefined();
     });
 
     it('should track localStorage values', () => {
@@ -2076,13 +1558,11 @@ describe('UserSettingsComponent', () => {
       (component as any).lastName = 'Test2';
       component.email = 'test@test.com';
       component.theme = 'light';
-      component.printRange = 'month';
       
       expect((component as any).firstName).toBe('Test1');
       expect((component as any).lastName).toBe('Test2');
       expect(component.email).toBe('test@test.com');
       expect(component.theme).toBe('light');
-      expect(component.printRange).toBe('month');
     });
 
     it('should handle null/undefined error transitions', () => {
@@ -2936,50 +2416,6 @@ describe('UserSettingsComponent', () => {
 
       expect(component.error).toBeTruthy();
       expect(component.showPrayForButton).toBe(true);
-    });
-  });
-
-  describe('personal prayer print and categories', () => {
-    it('loadPersonalCategories loads categories from prayer service', async () => {
-      mockPrayerService.getUniqueCategoriesForUser.mockResolvedValue(['Health', 'Family']);
-      await component.loadPersonalCategories();
-      expect(component.personalCategories).toEqual(['Health', 'Family']);
-    });
-
-    it('loadPersonalCategories logs error on failure', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockPrayerService.getUniqueCategoriesForUser.mockRejectedValue(new Error('load failed'));
-      await component.loadPersonalCategories();
-      expect(consoleSpy).toHaveBeenCalledWith('Error loading personal categories:', expect.any(Error));
-      consoleSpy.mockRestore();
-    });
-
-    it('togglePersonalCategory adds and removes categories', () => {
-      component.selectedPersonalCategories = [];
-      component.togglePersonalCategory('Health');
-      expect(component.selectedPersonalCategories).toEqual(['Health']);
-      component.togglePersonalCategory('Health');
-      expect(component.selectedPersonalCategories).toEqual([]);
-    });
-
-    it('handlePrintPersonalPrayers opens window and passes selected categories', async () => {
-      const mockWindow = {} as Window;
-      vi.spyOn(window, 'open').mockReturnValue(mockWindow);
-      component.selectedPersonalCategories = ['Health'];
-      await component.handlePrintPersonalPrayers();
-      expect(mockPrintService.downloadPrintablePersonalPrayerList).toHaveBeenCalledWith(['Health'], mockWindow);
-      expect(component.isPrintingPersonal).toBe(false);
-    });
-
-    it('handlePrintPersonalPrayers closes window on error', async () => {
-      const mockWindow = { close: vi.fn() };
-      vi.spyOn(window, 'open').mockReturnValue(mockWindow as unknown as Window);
-      mockPrintService.downloadPrintablePersonalPrayerList.mockRejectedValue(new Error('print failed'));
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      await component.handlePrintPersonalPrayers();
-      expect(mockWindow.close).toHaveBeenCalled();
-      expect(component.isPrintingPersonal).toBe(false);
-      consoleSpy.mockRestore();
     });
   });
 

@@ -1,22 +1,20 @@
 import type { DriveStep, DriverHook } from 'driver.js';
 import { formatHelpContentHtml } from '../help-content-html';
-import { excerptForNamedFilter, isDescriptiveFilterTourExcerpt } from '../help-filter-tour-excerpt';
-import {
-  getCardActionsOverflowTriggerEl,
-  openCardActionsOverflowMenu,
-} from '../help-card-actions-menu-tour';
 import * as dom from '../help-tour-dom';
-import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
-import { TOUR_SETTINGS_PRINT_ROW_ID, TOUR_SETTINGS_PRINT_PRAYERS_ID, TOUR_SETTINGS_PRINT_PROMPTS_ID, TOUR_SETTINGS_PRINT_PERSONAL_ID } from '../help-tour-ids';
+import {
+  TOUR_SETTINGS_PRINT_ROW_ID,
+  TOUR_SETTINGS_PRINT_PRAYERS_ID,
+  TOUR_SETTINGS_PRINT_MEMORIZATION_ID,
+} from '../help-tour-ids';
 import type { PrintingHelpTourHooks } from '../help-tour-hooks';
 
 export function runPrintingHelpSectionTour(
   host: HelpTourDriverHost,
   section: { title: string; description: string },
-    hooks: PrintingHelpTourHooks
+  hooks: PrintingHelpTourHooks,
 ): void {
-if (typeof document === 'undefined') {
+  if (typeof document === 'undefined') {
     return;
   }
 
@@ -45,10 +43,8 @@ if (typeof document === 'undefined') {
     document.getElementById(TOUR_SETTINGS_PRINT_ROW_ID) ?? gear();
   const printPrayers = (): HTMLElement =>
     document.getElementById(TOUR_SETTINGS_PRINT_PRAYERS_ID) ?? row();
-  const printPrompts = (): HTMLElement =>
-    document.getElementById(TOUR_SETTINGS_PRINT_PROMPTS_ID) ?? row();
-  const printPersonal = (): HTMLElement =>
-    document.getElementById(TOUR_SETTINGS_PRINT_PERSONAL_ID) ?? row();
+  const printVerses = (): HTMLElement =>
+    document.getElementById(TOUR_SETTINGS_PRINT_MEMORIZATION_ID) ?? row();
 
   const steps: DriveStep[] = [
     {
@@ -66,7 +62,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Print options',
         description:
-          'Three print actions—<strong>Prayers</strong> (community list), <strong>Prompts</strong>, and <strong>Personal</strong>—in soft blue bordered cards (Prayer_App style). Each has a <strong>chevron</strong> to narrow what gets included (time range, prompt types, or personal categories).',
+          'Two actions—<strong>Prayers</strong> and <strong>Verses</strong>—in soft blue bordered tiles. Each opens a short wizard to choose what to include before printing.',
         side: 'bottom',
         align: 'center',
       },
@@ -76,27 +72,17 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Print Prayers',
         description:
-          'Prints <strong>community prayers</strong> to match what you see on the home list—your <strong>filter</strong> (Current, Answered, Total, …) and <strong>search</strong> apply. Use the <strong>chevron</strong> on the right to choose how far back in time to include.',
+          'Opens a menu for <strong>Church</strong> (community list with a time range), <strong>Personal</strong> prayers (category and time range), or <strong>Prompts</strong> (by type).',
         side: 'bottom',
         align: 'start',
       },
     },
     {
-      element: () => printPrompts(),
+      element: () => printVerses(),
       popover: {
-        title: 'Print Prompts',
+        title: 'Print Verses',
         description:
-          'Print prayer <strong>prompts</strong> for groups or study. The chevron lets you print <strong>all types</strong> or pick specific categories.',
-        side: 'bottom',
-        align: 'start',
-      },
-    },
-    {
-      element: () => printPersonal(),
-      popover: {
-        title: 'Print Personal',
-        description:
-          'Print your <strong>private</strong> personal prayers as they appear when you use the Personal filter. The chevron limits output to selected <strong>categories</strong> or all.',
+          'Print cut-out <strong>memorization verse cards</strong> from your Memorize list—choose duplex (two-sided) or foldable (one-sided) layout.',
         side: 'bottom',
         align: 'start',
       },

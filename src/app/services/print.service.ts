@@ -40,6 +40,14 @@ import {
   setPrintStartDateForTimeRange,
 } from '../lib/print-time-range';
 import type { BookletTimeRange, Prayer, TimeRange } from '../lib/print-types';
+import { isBibleBooksMemorizationItem } from '../lib/memorization/bibleBooksMemorization';
+import {
+  buildMemorizationCardsPrintHtml,
+  type MemorizationPrintCard,
+  type MemorizationPrintSheetStyle,
+} from '../lib/print-memorization-cards';
+import { MemorizationService } from './memorization.service';
+import { ScriptureService } from './scripture.service';
 
 export type { BookletTimeRange, Prayer, TimeRange } from '../lib/print-types';
 
@@ -53,7 +61,32 @@ export class PrintService {
     private emailNotificationService: EmailNotificationService,
     private brandingService: BrandingService,
     private toast: ToastService,
+    private memorizationService: MemorizationService,
+    private scriptureService: ScriptureService,
   ) {}
+
+  private filterPrayersByPrintRange<
+    T extends {
+      created_at: string;
+      updates?: Array<{ created_at: string }> | null;
+      prayer_updates?: Array<{ created_at: string }> | null;
+    },
+  >(items: T[], timeRange: TimeRange): T[] {
+    const endDate = new Date();
+    const startDate = new Date();
+    setPrintStartDateForTimeRange(startDate, endDate, timeRange);
+    return items.filter((item) => {
+      const created = new Date(item.created_at);
+      if (created >= startDate && created <= endDate) {
+        return true;
+      }
+      const updates = item.updates ?? item.prayer_updates ?? [];
+      return updates.some((update) => {
+        const updateDate = new Date(update.created_at);
+        return updateDate >= startDate && updateDate <= endDate;
+      });
+    });
+  }
 
   static readonly BOOKLET_MARKDOWN_CHARS_PER_PANEL = PRINT_BOOKLET_MARKDOWN_CHARS_PER_PANEL;
   static readonly BOOKLET_CARD_FRAME_CHARS = PRINT_BOOKLET_CARD_FRAME_CHARS;
@@ -515,7 +548,11 @@ export class PrintService {
     }
   }
 
-  async downloadPrintablePersonalPrayerList(categories?: string[], newWindow: Window | null = null): Promise<void> {
+  async downloadPrintablePersonalPrayerList(
+    categories?: string[],
+    newWindow: Window | null = null,
+    timeRange?: TimeRange,
+  ): Promise<void> {
     try {
       const allPersonalPrayers = await this.prayerService.getPersonalPrayers();
 
@@ -525,15 +562,23 @@ export class PrintService {
         return;
       }
 
-      const personalPrayers =
+      let personalPrayers =
         categories && categories.length > 0
           ? allPersonalPrayers.filter((prayer: any) => categories.includes(prayer.category || ''))
           : allPersonalPrayers;
 
+      if (timeRange) {
+        personalPrayers = this.filterPrayersByPrintRange(personalPrayers, timeRange);
+      }
+
       if (personalPrayers.length === 0) {
-        const categoryText =
-          categories && categories.length > 0 ? `in the selected categories` : 'with the selected filters';
-        alert(`No personal prayers found ${categoryText}.`);
+        if (timeRange) {
+          alert(getPrintEmptyRangeUserMessage(timeRange));
+        } else {
+          const categoryText =
+            categories && categories.length > 0 ? `in the selected categories` : 'with the selected filters';
+          alert(`No personal prayers found ${categoryText}.`);
+        }
         if (newWindow) newWindow.close();
         return;
       }
@@ -588,6 +633,107 @@ export class PrintService {
       console.error('Error generating personal prayers list:', error);
       alert('Failed to generate personal prayers list. Please try again.');
       if (newWindow) newWindow.close();
+    }
+  }
+
+  /**
+   * Generate cut-out memorization verse cards (reference front, text back).
+   */
+  async downloadPrintableMemorizationCards(
+    newWindow: Window | null = null,
+    sheetStyle: MemorizationPrintSheetStyle = 'duplex',
+  ): Promise<void> {
+    try {
+      await this.memorizationService.loadItems();
+      const verseItems = this.memorizationService.items.filter(
+        (item) => !isBibleBooksMemorizationItem(item),
+      );
+
+      if (verseItems.length === 0) {
+        this.toast.info('Add verses on the Memorize tab first.');
+        if (newWindow) {
+          newWindow.close();
+        }
+        return;
+      }
+
+      const cards: MemorizationPrintCard[] = [];
+      for (const item of verseItems) {
+        let text = item.text?.trim() ?? '';
+        if (!text) {
+          try {
+            const passage = await this.scriptureService.getPassage(
+              item.reference,
+              item.translation,
+            );
+            text = passage.text?.trim() ?? '';
+          } catch (error) {
+            console.error(
+              '[PrintService] Failed to load passage for memorization card:',
+              item.reference,
+              error,
+            );
+          }
+        }
+        if (!text) {
+          continue;
+        }
+        cards.push({
+          reference: item.reference,
+          text,
+          translation: item.translation,
+        });
+      }
+
+      if (cards.length === 0) {
+        this.toast.info('Add verses on the Memorize tab first.');
+        if (newWindow) {
+          newWindow.close();
+        }
+        return;
+      }
+
+      const platform = (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
+      const html = buildMemorizationCardsPrintHtml(cards, sheetStyle, {
+        iosNativeMarkup: platform === 'ios',
+      });
+
+      if (isPrintNativeApp()) {
+        const today = new Date().toISOString().split('T')[0];
+        await sharePrintHtmlOnNativeApp(
+          html,
+          `memorization-verse-cards-${today}.html`,
+          'Memorization verse cards',
+        );
+        return;
+      }
+
+      const targetWindow = newWindow || window.open('', '_blank');
+
+      if (!targetWindow) {
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const today = new Date().toISOString().split('T')[0];
+        link.download = `memorization-verse-cards-${today}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        this.toast.info('Verse cards downloaded. Open the file to view and print.');
+      } else {
+        targetWindow.document.open();
+        targetWindow.document.write(html);
+        targetWindow.document.close();
+        targetWindow.focus();
+      }
+    } catch (error) {
+      console.error('Error generating memorization verse cards:', error);
+      this.toast.error('Failed to generate verse cards. Please try again.');
+      if (newWindow) {
+        newWindow.close();
+      }
     }
   }
 }

@@ -181,6 +181,7 @@ describe('PromptService', () => {
       expect(prompts).toHaveLength(2);
       expect(prompts[0].type).toBe('Healing');
       expect(prompts[1].type).toBe('Guidance');
+      expect(await service.getActivePromptTypeNames()).toEqual(['Healing', 'Guidance']);
     });
 
     it('should filter out prompts with inactive types', async () => {

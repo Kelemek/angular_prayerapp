@@ -130,20 +130,20 @@ describe('PresentationSettingsModalComponent (template)', () => {
   });
 
   it('renders the modal shell and all settings sections', () => {
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('#tour-presentation-settings-modal')).toBeTruthy();
-    expect(el.textContent).toContain('Presentation Settings');
-    expect(el.querySelector('app-presentation-settings-theme-section')).toBeTruthy();
-    expect(el.querySelector('app-presentation-settings-filters-panel')).toBeTruthy();
-    expect(el.querySelector('app-presentation-settings-display-section')).toBeTruthy();
-    expect(el.querySelector('app-presentation-settings-timer-section')).toBeTruthy();
+    const panel = document.querySelector('#tour-presentation-settings-modal');
+    expect(panel).toBeTruthy();
+    expect(document.body.textContent).toContain('Presentation Settings');
+    expect(panel?.querySelector('app-presentation-settings-theme-section')).toBeTruthy();
+    expect(panel?.querySelector('app-presentation-settings-filters-panel')).toBeTruthy();
+    expect(panel?.querySelector('app-presentation-settings-display-section')).toBeTruthy();
+    expect(panel?.querySelector('app-presentation-settings-timer-section')).toBeTruthy();
   });
 
   it('emits close when the shell close button is clicked', () => {
     const closeSpy = vi.fn();
     component.close.subscribe(closeSpy);
 
-    const closeButton = fixture.nativeElement.querySelector(
+    const closeButton = document.querySelector(
       '[aria-label="Close settings"]'
     ) as HTMLButtonElement;
     closeButton.click();
@@ -156,7 +156,7 @@ describe('PresentationSettingsModalComponent (template)', () => {
     component.themeChange.subscribe((value) => emitted.push(value));
 
     const lightButton = Array.from(
-      fixture.nativeElement.querySelectorAll('button')
+      document.querySelectorAll('button')
     ).find((el: Element) => el.textContent?.includes('Light')) as HTMLButtonElement;
     lightButton.click();
 

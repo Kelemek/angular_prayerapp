@@ -34,6 +34,28 @@ export class PromptService {
     return this.promptsSubject.value;
   }
 
+  /** Active `prayer_types.name` values in `display_order` (loads from DB when not yet cached). */
+  async getActivePromptTypeNames(): Promise<string[]> {
+    if (this.activePromptCategories.length > 0) {
+      return [...this.activePromptCategories];
+    }
+    try {
+      const { data, error } = await this.supabase.client
+        .from('prayer_types')
+        .select('name, display_order')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      if (error || !data) {
+        return [];
+      }
+      this.activePromptCategories = data.map((row) => row.name);
+      return [...this.activePromptCategories];
+    } catch (err) {
+      console.error('Error fetching prayer types:', err);
+      return [];
+    }
+  }
+
   getActivePromptCategories(): string[] {
     if (this.activePromptCategories.length) {
       return this.activePromptCategories;

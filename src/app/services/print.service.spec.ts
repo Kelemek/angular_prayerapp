@@ -28,6 +28,14 @@ const mockToastService = {
   info: vi.fn(),
 };
 
+const sharedMemorizationMock = {
+  loadItems: vi.fn().mockResolvedValue(undefined),
+  items: [] as unknown[],
+};
+const sharedScriptureMock = {
+  getPassage: vi.fn(),
+};
+
 /** Booklet HTML embeds a measuring script whose source repeats `booklet-chunk`; count only markup before the base64 payload. */
 function bookletHtmlBeforePackScript(html: string): string {
   const marker = '<script type="application/x-booklet-b64"';
@@ -191,6 +199,10 @@ describe('PrintService', () => {
       getPersonalPrayers: vi.fn()
     };
 
+    sharedMemorizationMock.items = [];
+    sharedMemorizationMock.loadItems.mockClear();
+    sharedScriptureMock.getPassage.mockReset();
+
     spyCreateElementAnchorOnly();
 
     service = new PrintService(
@@ -198,7 +210,9 @@ describe('PrintService', () => {
       mockPrayerService,
       mockEmailNotificationService,
       mockBrandingService as any,
-      mockToastService as any
+      mockToastService as any,
+      sharedMemorizationMock,
+      sharedScriptureMock,
     );
   });
 
@@ -1355,7 +1369,9 @@ describe('PrintService', () => {
         mockPrayerService,
         mockEmailNotificationService,
         mockBrandingService as any,
-        mockToastService as any
+        mockToastService as any,
+        sharedMemorizationMock,
+        sharedScriptureMock,
       );
     });
 
@@ -1443,7 +1459,9 @@ describe('PrintService', () => {
         mockPrayerService,
         mockEmailNotificationService,
         mockBrandingService as any,
-        mockToastService as any
+        mockToastService as any,
+        sharedMemorizationMock,
+        sharedScriptureMock,
       );
     });
 
@@ -1519,7 +1537,9 @@ describe('PrintService', () => {
         mockPrayerService,
         mockEmailNotificationService,
         mockBrandingService as any,
-        mockToastService as any
+        mockToastService as any,
+        sharedMemorizationMock,
+        sharedScriptureMock,
       );
     });
 
@@ -1608,7 +1628,9 @@ describe('PrintService', () => {
         mockPrayerService,
         mockEmailNotificationService,
         mockBrandingService as any,
-        mockToastService as any
+        mockToastService as any,
+        sharedMemorizationMock,
+        sharedScriptureMock,
       );
     });
 
@@ -1686,7 +1708,9 @@ describe('PrintService', () => {
         mockPrayerService,
         mockEmailNotificationService,
         mockBrandingService as any,
-        mockToastService as any
+        mockToastService as any,
+        sharedMemorizationMock,
+        sharedScriptureMock,
       );
     });
 
@@ -1747,6 +1771,43 @@ describe('PrintService', () => {
       
       const results = await Promise.all(promises);
       expect(results.length).toBe(3);
+    });
+  });
+
+  describe('downloadPrintableMemorizationCards', () => {
+    it('shows toast when no verse items', async () => {
+      sharedMemorizationMock.items = [];
+      await service.downloadPrintableMemorizationCards(null, 'duplex');
+      expect(mockToastService.info).toHaveBeenCalledWith(
+        'Add verses on the Memorize tab first.',
+      );
+    });
+
+    it('builds cards and opens print window when verses exist', async () => {
+      sharedMemorizationMock.items = [
+        {
+          reference: 'John 3:16',
+          translation: 'esv',
+          text: 'For God so loved the world.',
+          kind: 'verse',
+        },
+      ];
+      const mockWindow = {
+        document: {
+          open: vi.fn(),
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+      };
+      (global.window.open as any).mockReturnValue(mockWindow);
+
+      await service.downloadPrintableMemorizationCards(mockWindow as any, 'duplex');
+
+      expect(sharedMemorizationMock.loadItems).toHaveBeenCalled();
+      expect(mockWindow.document.write).toHaveBeenCalled();
+      const html = mockWindow.document.write.mock.calls[0][0] as string;
+      expect(html).toContain('John 3:16');
     });
   });
 
@@ -2305,7 +2366,9 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockPrayerService,
       mockEmailNotificationService,
       mockBrandingService as any,
-      mockToastService as any
+      mockToastService as any,
+      sharedMemorizationMock,
+      sharedScriptureMock,
     );
 
       global.window.open = vi.fn(() => ({
@@ -2947,7 +3010,9 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockPrayerService,
       mockEmailNotificationService,
       mockBrandingService as any,
-      mockToastService as any
+      mockToastService as any,
+      sharedMemorizationMock,
+      sharedScriptureMock,
     );
 
       global.window.open = vi.fn(() => ({
@@ -3204,7 +3269,9 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockPrayerService,
       mockEmailNotificationService,
       mockBrandingService as any,
-      mockToastService as any
+      mockToastService as any,
+      sharedMemorizationMock,
+      sharedScriptureMock,
     );
       
       global.window.open = vi.fn(() => ({
@@ -3443,7 +3510,9 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockPrayerService,
       mockEmailNotificationService,
       mockBrandingService as any,
-      mockToastService as any
+      mockToastService as any,
+      sharedMemorizationMock,
+      sharedScriptureMock,
     );
     });
 
@@ -3608,12 +3677,14 @@ describe('PrintService - Advanced Coverage Tests', () => {
       };
 
       service = new PrintService(
-      mockSupabaseService,
-      mockPrayerService,
-      mockEmailNotificationService,
-      mockBrandingService as any,
-      mockToastService as any
-    );
+        mockSupabaseService,
+        mockPrayerService,
+        mockEmailNotificationService,
+        mockBrandingService as any,
+        mockToastService as any,
+        sharedMemorizationMock,
+        sharedScriptureMock,
+      );
 
       global.window.open = vi.fn(() => ({
         document: {
@@ -3847,6 +3918,4 @@ describe('PrintService - Advanced Coverage Tests', () => {
       expect(mockWindow.document.write).toHaveBeenCalled();
     });
   });
-
-
 });

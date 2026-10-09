@@ -3,10 +3,6 @@ import type { ThemeOption } from './user-settings-types';
 import type { UserSettingsFacade } from './user-settings-facade';
 import { runUserSettingsPreferencesLoad } from './user-settings-preferences-load';
 import {
-  runUserSettingsLoadPersonalCategories,
-  runUserSettingsLoadPromptTypes,
-} from './user-settings-print';
-import {
   getUserSettingsDisplayName,
   getUserSettingsUserInfo,
 } from './user-settings-user-info';
@@ -39,8 +35,6 @@ export function runUserSettingsOpenChange(
     );
     host.theme = host.deps.themeService.getTheme() as ThemeOption;
     host.textSize = host.deps.textSizeService.getTextSize();
-    void runUserSettingsLoadPromptTypes(host);
-    void runUserSettingsLoadPersonalCategories(host);
 
     host.isInitialLoad = true;
     host.personalPrayerCooldownEdited = false;

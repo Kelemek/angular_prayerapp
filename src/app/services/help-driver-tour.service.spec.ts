@@ -26,8 +26,7 @@ import {
   TOUR_SETTINGS_BTN_MOBILE_ID,
   TOUR_SETTINGS_PRINT_ROW_ID,
   TOUR_SETTINGS_PRINT_PRAYERS_ID,
-  TOUR_SETTINGS_PRINT_PROMPTS_ID,
-  TOUR_SETTINGS_PRINT_PERSONAL_ID,
+  TOUR_SETTINGS_PRINT_MEMORIZATION_ID,
   TOUR_SETTINGS_EMAIL_SUBSCRIPTION_ID,
   TOUR_SETTINGS_PRAYER_REMINDERS_ID,
   TOUR_SETTINGS_PRAYER_REMINDER_CONTROLS_ID,
@@ -1710,21 +1709,20 @@ describe('HelpDriverTourService', () => {
       mountSettingsGear(true);
       mountEl(TOUR_SETTINGS_PRINT_ROW_ID, 'div');
       mountEl(TOUR_SETTINGS_PRINT_PRAYERS_ID);
-      mountEl(TOUR_SETTINGS_PRINT_PROMPTS_ID);
-      mountEl(TOUR_SETTINGS_PRINT_PERSONAL_ID);
+      mountEl(TOUR_SETTINGS_PRINT_MEMORIZATION_ID);
       const h = settingsTourHooks();
       vi.useFakeTimers();
       service.startPrintingHelpSectionTour(section, h);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(7);
-      resolveStepElements(config, [0, 1, 2, 3, 4, 5, 6]);
+      expect(config?.steps?.length).toBe(6);
+      resolveStepElements(config, [0, 1, 2, 3, 4, 5]);
       const { refresh, moveNext } = fireStepNext(config, 0);
       expect(h.openSettings).toHaveBeenCalled();
       vi.advanceTimersByTime(420);
       expect(h.markForCheck).toHaveBeenCalled();
       expect(refresh).toHaveBeenCalled();
       expect(moveNext).toHaveBeenCalled();
-      fireStepNext(config, 6);
+      fireStepNext(config, 5);
       expect(h.closeSettings).toHaveBeenCalled();
       vi.useRealTimers();
       vi.unstubAllGlobals();

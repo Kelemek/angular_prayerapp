@@ -9,15 +9,6 @@ import {
 } from './user-settings-account-run';
 import { runUserSettingsOpenChange } from './user-settings-facade-open';
 import {
-  runUserSettingsHandlePrint,
-  runUserSettingsHandlePrintPersonalPrayers,
-  runUserSettingsHandlePrintPrompts,
-  runUserSettingsLoadPersonalCategories,
-  runUserSettingsLoadPromptTypes,
-  toggleUserSettingsPersonalCategory,
-  toggleUserSettingsPromptType,
-} from './user-settings-print';
-import {
   runUserSettingsBadgeFunctionalityToggle,
   runUserSettingsDefaultViewChange,
   runUserSettingsMemorizationStrictModeToggle,
@@ -30,9 +21,7 @@ import {
 import { markUserSettingsAllItemsAsRead } from './user-settings-badge-mark-read';
 import { runUserSettingsPreferencesLoad } from './user-settings-preferences-load';
 import {
-  USER_SETTINGS_PRINT_RANGE_OPTIONS,
   USER_SETTINGS_THEME_OPTIONS,
-  type PrintRange,
   type ThemeOption,
 } from './user-settings-types';
 import {
@@ -82,17 +71,6 @@ export class UserSettingsFacade {
   memorizationStrictMode = false;
   savingMemorizationStrictMode = false;
 
-  isPrinting = false;
-  isPrintingPrompts = false;
-  isPrintingPersonal = false;
-  printRange: PrintRange = 'week';
-  showPrintDropdown = false;
-  showPromptTypesDropdown = false;
-  showPrintPersonalDropdown = false;
-  promptTypes: string[] = [];
-  selectedPromptTypes: string[] = [];
-  personalCategories: string[] = [];
-  selectedPersonalCategories: string[] = [];
   showDeleteAccountVerification = false;
   deletingAccount = false;
 
@@ -102,7 +80,6 @@ export class UserSettingsFacade {
   scrollToSectionTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly themeOptions = USER_SETTINGS_THEME_OPTIONS;
-  readonly printRangeOptions = USER_SETTINGS_PRINT_RANGE_OPTIONS;
 
   constructor(public readonly deps: UserSettingsFacadeDeps) {}
 
@@ -184,38 +161,6 @@ export class UserSettingsFacade {
   handleTextSizeChange(size: TextSize): void {
     this.textSize = size;
     this.deps.textSizeService.setTextSize(size);
-  }
-
-  setPrintRange(range: PrintRange): void {
-    this.printRange = range;
-  }
-
-  handlePrint(): Promise<void> {
-    return runUserSettingsHandlePrint(this);
-  }
-
-  handlePrintPrompts(): Promise<void> {
-    return runUserSettingsHandlePrintPrompts(this);
-  }
-
-  handlePrintPersonalPrayers(): Promise<void> {
-    return runUserSettingsHandlePrintPersonalPrayers(this);
-  }
-
-  togglePromptType(type: string): void {
-    toggleUserSettingsPromptType(this, type);
-  }
-
-  togglePersonalCategory(category: string): void {
-    toggleUserSettingsPersonalCategory(this, category);
-  }
-
-  loadPromptTypes(): Promise<void> {
-    return runUserSettingsLoadPromptTypes(this);
-  }
-
-  loadPersonalCategories(): Promise<void> {
-    return runUserSettingsLoadPersonalCategories(this);
   }
 
   getUserInfo(): {
