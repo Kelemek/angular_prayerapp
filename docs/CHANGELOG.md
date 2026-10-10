@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Admin — prayer editor status field
+- Inline prayer edit **Status** uses [`app-admin-filter-select`](src/app/components/admin-filter-select/admin-filter-select.component.ts) instead of a native `<select>`, matching other Admin filter dropdowns ([`admin-prayer-editor-card-edit-form`](src/app/components/admin-prayer-editor-card/admin-prayer-editor-card-edit-form.component.html)).
+
 ### UI — Help modal colors
 - Help and Admin Help modals use the same panel (`dark:bg-gray-800`), cream scroll body (`.settings-modal-body`), and white section cards (`.settings-modal-section-card`) as Settings ([`help-modal.component.html`](src/app/components/help-modal/help-modal.component.html), [`admin-help-modal.component.ts`](src/app/components/admin-help-modal/admin-help-modal.component.ts)).
 - Settings modal header drops the gear icon; the **Settings** title uses the same `text-2xl font-bold` typography as **Help & Guidance** ([`user-settings.component.html`](src/app/components/user-settings/user-settings.component.html)).
