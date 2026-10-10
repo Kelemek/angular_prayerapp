@@ -1,5 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { of, throwError } from 'rxjs';
+
+const helpModalComponentDir = dirname(fileURLToPath(import.meta.url));
+
+function readHelpModalResource(url: string): string {
+  const path = join(helpModalComponentDir, url);
+  if (existsSync(path)) {
+    return readFileSync(path, 'utf-8');
+  }
+  throw new Error(`Component resource not found: ${url}`);
+}
 
 describe('HelpModalComponent - Core Logic', () => {
   describe('Search and Filtering', () => {
@@ -2514,5 +2527,17 @@ describe('HelpModalComponent - Angular Integration Tests', () => {
       
       expect(result.length).toBe(1);
     });
+  });
+});
+
+describe('HelpModalComponent - Settings modal chrome', () => {
+  it('template uses settings panel, body, and section card classes', () => {
+    const html = readHelpModalResource('./help-modal.component.html');
+
+    expect(html).toContain('dark:bg-gray-800');
+    expect(html).not.toContain('dark:bg-gray-900');
+    expect(html).toContain('settings-modal-body');
+    expect(html).toContain('settings-modal-section-card');
+    expect(html).not.toContain('bg-inset-surface-interactive');
   });
 });

@@ -33,7 +33,7 @@ import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tou
         aria-modal="true"
         aria-labelledby="admin-help-modal-title"
       >
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col pointer-events-auto modal-panel-edge">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col pointer-events-auto modal-panel-edge">
           <div class="sticky top-0 modal-chrome-header p-4 sm:p-6 rounded-t-lg z-10">
             <div class="flex items-start justify-between mb-4">
               <div>
@@ -74,7 +74,7 @@ import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tou
             </div>
           </div>
 
-          <div class="overflow-y-auto flex-1 p-4 sm:p-6" #contentArea>
+          <div class="settings-modal-body overflow-y-auto flex-1 p-4 sm:p-6" #contentArea>
             @if (allSections.length === 0) {
               <div class="flex flex-col items-center justify-center py-12 text-center px-2">
                 <p class="text-gray-600 dark:text-gray-400">No tutorial topics yet.</p>
@@ -89,12 +89,12 @@ import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tou
                   @for (section of filteredSections; track section.id) {
                     @if (section.kind === 'tour') {
                       <div
-                        class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                        class="settings-modal-section-card rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                       >
                         <button
                           type="button"
                           (click)="onStartSectionTour(section.id, $event)"
-                          class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                          class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-start justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                           [attr.aria-label]="'Start guided tour: ' + section.title"
                         >
                           <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -120,12 +120,12 @@ import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tou
                       </div>
                     } @else {
                         <div
-                          class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                          class="settings-modal-section-card rounded-lg overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                         >
                           <button
                             type="button"
                             (click)="toggleSection(section.id)"
-                            class="w-full px-4 sm:px-6 py-3 sm:py-4 bg-inset-surface-interactive flex items-start justify-between focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
+                            class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-start justify-between focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors text-left cursor-pointer"
                             [attr.aria-expanded]="isSectionExpanded(section.id)"
                             [attr.aria-controls]="'admin-section-content-' + section.id"
                           >
@@ -153,7 +153,7 @@ import { AdminHelpDriverTourService } from '../../services/admin-help-driver-tou
                           @if (isSectionExpanded(section.id)) {
                             <div
                               [id]="'admin-section-content-' + section.id"
-                              class="px-4 sm:px-6 py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
+                              class="px-4 sm:px-6 py-4 modal-chrome-border-t"
                             >
                               <div class="space-y-4">
                                 @for (block of section.content; track $index; let i = $index) {

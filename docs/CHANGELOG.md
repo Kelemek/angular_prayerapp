@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### UI — Help modal colors
+- Help and Admin Help modals use the same panel (`dark:bg-gray-800`), cream scroll body (`.settings-modal-body`), and white section cards (`.settings-modal-section-card`) as Settings ([`help-modal.component.html`](src/app/components/help-modal/help-modal.component.html), [`admin-help-modal.component.ts`](src/app/components/admin-help-modal/admin-help-modal.component.ts)).
+- Settings modal header drops the gear icon; the **Settings** title uses the same `text-2xl font-bold` typography as **Help & Guidance** ([`user-settings.component.html`](src/app/components/user-settings/user-settings.component.html)).
+- Help modal header removes the “Learn how to use the Prayer App” subtitle ([`help-modal.component.html`](src/app/components/help-modal/help-modal.component.html)).
+
 ### Tooling — remove Playwright e2e
 - Removed unused Playwright e2e tests (`e2e/`, `playwright.config.ts`, `npm run e2e*`, `@playwright/test`) and the manual GitHub workflow `e2e-tests.yml`. Unit tests remain Vitest + Testing Library (`npm test` / `npm run verify`).
 
