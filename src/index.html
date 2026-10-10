@@ -24,8 +24,52 @@
       input[type="text"], input[type="email"], textarea, select {
         font-size: 16px;
       }
+
+      /* Boot splash — matches login MFA dual emerald spinner (no Tailwind yet) */
+      #cp-boot-splash {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+      .cp-boot-spinner {
+        position: relative;
+        width: 3rem;
+        height: 3rem;
+      }
+      .cp-boot-spinner-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 4px solid transparent;
+        animation: cp-boot-spin 1s linear infinite;
+      }
+      .cp-boot-spinner-ring-outer {
+        border-top-color: #10b981;
+        border-right-color: #10b981;
+      }
+      html.dark .cp-boot-spinner-ring-outer {
+        border-top-color: #34d399;
+        border-right-color: #34d399;
+      }
+      .cp-boot-spinner-ring-inner {
+        inset: 4px;
+        border-bottom-color: #6ee7b7;
+        animation-direction: reverse;
+        animation-duration: 1.5s;
+      }
+      html.dark .cp-boot-spinner-ring-inner {
+        border-bottom-color: #059669;
+      }
+      @keyframes cp-boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
     </style>
     <title>Cross Pointe Church - Prayer Requests</title>
+    <script src="/boot-recovery.js"></script>
     <script>
       // Apply theme immediately to prevent flash and sync theme-color with header
       (function() {
@@ -93,6 +137,13 @@
     </script>
   </head>
   <body>
-    <app-root></app-root>
+    <app-root>
+      <div id="cp-boot-splash" aria-busy="true" aria-live="polite">
+        <div class="cp-boot-spinner">
+          <div class="cp-boot-spinner-ring cp-boot-spinner-ring-outer"></div>
+          <div class="cp-boot-spinner-ring cp-boot-spinner-ring-inner"></div>
+        </div>
+      </div>
+    </app-root>
   </body>
 </html>

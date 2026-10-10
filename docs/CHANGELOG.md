@@ -22,6 +22,10 @@ Major features and milestones for the Prayer App.
 - Tabs left open across a Vercel deploy that request an old `chunk-*.js` or lazy route module now get a **single** full-page reload when the failure matches stale-chunk errors (dynamic import, `ChunkLoadError`, or Safari’s invalid MIME type for module script). PostHog capture still runs first; a `sessionStorage` guard prevents reload loops until Angular bootstrap succeeds ([`stale-chunk-recovery.ts`](../src/lib/stale-chunk-recovery.ts), [`posthog-error-handler.ts`](../src/app/posthog-error-handler.ts), [`app.component.ts`](../src/app/app.component.ts), [`main.ts`](../src/main.ts)).
 - [`vercel.json`](../vercel.json) SPA rewrites skip paths with a file extension so **missing** hashed assets 404 instead of returning `index.html` as `text/html`.
 
+### Web / native — boot guard when entry script fails after deploy
+- [`index.html`](../src/index.html) shows the same dual emerald boot spinner as login MFA verify while Angular initializes (inline CSS, no “Loading…” text). Boot recovery still treats splash-only `app-root` as not mounted.
+- Unhashed [`public/boot-recovery.js`](../public/boot-recovery.js) loads from [`index.html`](../src/index.html) before Angular’s hashed bundles. If `main-*.js`, `polyfills-*.js`, or `chunk-*.js` fails to load, the page reloads **once** (same `cp_chunk_reload` guard as stale-chunk recovery), then shows a **Reload** panel instead of a blank cream screen. If `app-root` is still empty after ~22s on a cold start (slow `APP_INITIALIZER`), it reloads once; when the guard is already set, the panel appears only after ~30s total so bootstrap can finish. Bootstrap failures in [`main.ts`](../src/main.ts) reuse that guard so the 3s auto-reload cannot loop. Pure decision helpers live in [`boot-recovery.ts`](../src/lib/boot-recovery.ts).
+
 ### Admin — Settings footer on native
 - Admin eligibility in Settings uses the `check-admin-status` edge function (not REST `directQuery`, which can fail from the Capacitor bundled origin) and re-checks when Settings opens with the session-resolved email ([`admin-auth.service.ts`](../src/app/services/admin-auth.service.ts)).
 

@@ -24,7 +24,15 @@ import {
 } from "./lib/native-auth-storage-bridge";
 import { runPreBootstrapHydrate } from "./lib/app-boot-gate";
 import { whenAuthLoadingFinishes } from "./lib/auth-loading-gate";
-import { clearStaleChunkReloadGuard } from "./lib/stale-chunk-recovery";
+import {
+  bootstrapFailureRecoveryAction,
+  renderBootRecoveryPanel,
+  trySetStaleChunkReloadGuard,
+} from "./lib/boot-recovery";
+import {
+  clearStaleChunkReloadGuard,
+  STALE_CHUNK_RELOAD_GUARD_KEY,
+} from "./lib/stale-chunk-recovery";
 import { startWebRevisionWatch } from "./lib/web-revision-reload";
 
 // Add a global visibility check to ensure content stays visible during background refresh
@@ -144,23 +152,22 @@ function bootstrapApp(): void {
   })
   .catch((err) => {
     console.error("[AppInitialization] Bootstrap error:", err);
-    // Ensure user sees something instead of blank page
     const rootElement = document.querySelector("app-root");
-    if (rootElement) {
-      rootElement.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui, -apple-system, sans-serif;">
-        <div style="text-align: center; padding: 2rem; background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <h1 style="color: #374151; margin-bottom: 1rem;">Oops, something went wrong</h1>
-          <p style="color: #6b7280; margin-bottom: 1.5rem;">The application encountered an error. Attempting to recover...</p>
-          <button onclick="window.location.reload()" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;">Reload Page</button>
-        </div>
-      </div>
-    `;
+    const guardAlreadySet =
+      typeof sessionStorage !== "undefined" &&
+      sessionStorage.getItem(STALE_CHUNK_RELOAD_GUARD_KEY) === "1";
+    const action = bootstrapFailureRecoveryAction(guardAlreadySet);
+    if (rootElement instanceof HTMLElement) {
+      renderBootRecoveryPanel(rootElement);
     }
-    // Attempt automatic reload
-    setTimeout(() => {
-      window.location.reload();
-    }, 3000);
+    if (action === "reload-once") {
+      if (!trySetStaleChunkReloadGuard(sessionStorage)) {
+        return;
+      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    }
   });
 }
 

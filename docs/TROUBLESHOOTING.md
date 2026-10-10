@@ -333,7 +333,11 @@ If a tab stayed open while Vercel shipped a new hashed bundle, lazy routes can f
 
 **Expected**: Coming back to the tab (or waiting up to two minutes while it stays open) fetches [`/build-revision.txt`](https://cpprayer.cp-church.org/build-revision.txt). If that SHA does not match the running bundle, the page reloads once and should pick up the new JS, unless you are in the middle of a form or a memorize session — then it waits until you leave that work. Stale-chunk MIME / dynamic-import errors also reload once. Confirm the new bundle in Settings footer (`3.0.<sha>`).
 
+**If `main-*.js` never loads** (stale tab right after a deploy, or HTML served for a missing hash): [`boot-recovery.js`](../public/boot-recovery.js) runs before Angular. You should see one automatic reload, then a **Having trouble loading** panel with **Reload** instead of an empty cream page.
+
 **If it loops or stays broken**: Hard-refresh once, or close the tab and reopen the site.
+
+**Production Vercel** ([cp-church `angular-prayerapp`](https://vercel.com/cp-churchs-projects/angular-prayerapp)): the repo’s [`vercel.json`](../vercel.json) already skips extension paths in SPA rewrites. If live still returns `200 text/html` for a missing `.js`, that is usually the Vercel Angular preset or project settings on the cp-church team — fix there or accept boot-recovery as the client-side mitigation until hosting is tightened.
 
 ### Name Disappearing in Settings
 
