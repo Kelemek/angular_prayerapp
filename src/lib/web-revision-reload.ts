@@ -139,6 +139,7 @@ function readSessionStore(): Storage | null {
 }
 
 let pendingRemoteRevision: string | null = null;
+let revisionCheckInFlight: Promise<boolean> | null = null;
 
 function readHidden(options: {
   hidden?: boolean;
@@ -191,11 +192,20 @@ function reloadOrDeferPending(options: {
   return performRevisionReload(options);
 }
 
+function isRevisionCheckThrottled(store: Storage | null, nowMs: number): boolean {
+  if (!store) {
+    return false;
+  }
+  const lastCheck = Number(store.getItem(WEB_REVISION_CHECK_AT_KEY) || 0);
+  return lastCheck > 0 && nowMs - lastCheck < WEB_REVISION_CHECK_THROTTLE_MS;
+}
+
 /**
  * Reload once when the deployed `/build-revision.txt` no longer matches this
- * JS bundle. Throttled, and the same remote SHA cannot trigger a second reload.
- * Defers while a form is being edited or a memorize session is open; the next
- * idle check (blur, resume, or two-minute tick) reloads without looping.
+ * JS bundle. Foreground polls are throttled; becoming active passes
+ * `bypassThrottle` so a short visit still reloads. The same remote SHA cannot
+ * trigger a second reload. Defers while a form is being edited or a memorize
+ * session is open; the next idle check reloads without looping.
  */
 export async function maybeReloadIfWebRevisionStale(options: {
   revisionUrl: string;
@@ -208,6 +218,8 @@ export async function maybeReloadIfWebRevisionStale(options: {
   hidden?: boolean;
   isHidden?: () => boolean;
   defer?: boolean;
+  /** Skip the 60s poll throttle. Used when the app or tab becomes active. */
+  bypassThrottle?: boolean;
 }): Promise<boolean> {
   if (readHidden(options)) {
     return false;
@@ -227,13 +239,39 @@ export async function maybeReloadIfWebRevisionStale(options: {
   }
 
   const now = options.nowMs ?? Date.now();
-  if (store) {
-    const lastCheck = Number(store.getItem(WEB_REVISION_CHECK_AT_KEY) || 0);
-    if (lastCheck > 0 && now - lastCheck < WEB_REVISION_CHECK_THROTTLE_MS) {
-      return false;
-    }
-    store.setItem(WEB_REVISION_CHECK_AT_KEY, String(now));
+  if (!options.bypassThrottle && isRevisionCheckThrottled(store, now)) {
+    return false;
   }
+
+  if (revisionCheckInFlight) {
+    return revisionCheckInFlight;
+  }
+
+  const run = fetchAndMaybeReload(options, store, now);
+  revisionCheckInFlight = run;
+  void run.finally(() => {
+    if (revisionCheckInFlight === run) {
+      revisionCheckInFlight = null;
+    }
+  });
+  return run;
+}
+
+async function fetchAndMaybeReload(
+  options: {
+    revisionUrl: string;
+    fetchFn: typeof fetch;
+    timeoutMs: number;
+    currentRevision?: string;
+    reload?: () => void;
+    hidden?: boolean;
+    isHidden?: () => boolean;
+    defer?: boolean;
+  },
+  store: Storage | null,
+  nowMs: number
+): Promise<boolean> {
+  store?.setItem(WEB_REVISION_CHECK_AT_KEY, String(nowMs));
 
   const currentRevision = options.currentRevision ?? WEB_BUILD_REVISION;
   const controller = new AbortController();
@@ -274,7 +312,9 @@ export async function maybeReloadIfWebRevisionStale(options: {
 let webRevisionWatchStarted = false;
 let webRevisionWatchIntervalId: ReturnType<typeof setInterval> | null = null;
 let focusOutFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let visibleRevisionCheckTimer: ReturnType<typeof setTimeout> | null = null;
 let documentFocusOutBound = false;
+let appActiveRevisionListenersBound = false;
 
 function onDocumentFocusOut(): void {
   if (focusOutFlushTimer != null) {
@@ -286,9 +326,52 @@ function onDocumentFocusOut(): void {
   }, 0);
 }
 
+function onAppBecameActive(): void {
+  checkCurrentOriginRevision({ bypassThrottle: true });
+}
+
+function onVisibilityForRevision(): void {
+  if (typeof document !== 'undefined' && document.hidden) {
+    return;
+  }
+  onAppBecameActive();
+}
+
+function onUserInteraction(): void {
+  checkCurrentOriginRevision();
+}
+
+function bindAppActiveRevisionListeners(): void {
+  if (appActiveRevisionListenersBound || typeof document === 'undefined') {
+    return;
+  }
+  document.addEventListener('visibilitychange', onVisibilityForRevision);
+  document.addEventListener('resume', onAppBecameActive);
+  window.addEventListener('focus', onAppBecameActive);
+  window.addEventListener('pageshow', onAppBecameActive);
+  document.addEventListener('pointerdown', onUserInteraction, true);
+  document.addEventListener('keydown', onUserInteraction, true);
+  appActiveRevisionListenersBound = true;
+}
+
+function unbindAppActiveRevisionListeners(): void {
+  if (!appActiveRevisionListenersBound || typeof document === 'undefined') {
+    appActiveRevisionListenersBound = false;
+    return;
+  }
+  document.removeEventListener('visibilitychange', onVisibilityForRevision);
+  document.removeEventListener('resume', onAppBecameActive);
+  window.removeEventListener('focus', onAppBecameActive);
+  window.removeEventListener('pageshow', onAppBecameActive);
+  document.removeEventListener('pointerdown', onUserInteraction, true);
+  document.removeEventListener('keydown', onUserInteraction, true);
+  appActiveRevisionListenersBound = false;
+}
+
 export function stopWebRevisionWatchForTesting(): void {
   webRevisionWatchStarted = false;
   pendingRemoteRevision = null;
+  revisionCheckInFlight = null;
   if (webRevisionWatchIntervalId != null) {
     clearInterval(webRevisionWatchIntervalId);
     webRevisionWatchIntervalId = null;
@@ -297,14 +380,41 @@ export function stopWebRevisionWatchForTesting(): void {
     clearTimeout(focusOutFlushTimer);
     focusOutFlushTimer = null;
   }
+  if (visibleRevisionCheckTimer != null) {
+    clearTimeout(visibleRevisionCheckTimer);
+    visibleRevisionCheckTimer = null;
+  }
   if (documentFocusOutBound && typeof document !== 'undefined') {
     document.removeEventListener('focusout', onDocumentFocusOut, true);
     documentFocusOutBound = false;
   }
+  unbindAppActiveRevisionListeners();
 }
 
-function checkCurrentOriginRevision(): void {
-  if (typeof window === 'undefined' || document.hidden) {
+function queueRevisionCheckWhenVisible(): void {
+  if (visibleRevisionCheckTimer != null) {
+    return;
+  }
+  visibleRevisionCheckTimer = setTimeout(() => {
+    visibleRevisionCheckTimer = null;
+    checkCurrentOriginRevision({
+      bypassThrottle: true,
+      fromVisibilityQueue: true,
+    });
+  }, 0);
+}
+
+function checkCurrentOriginRevision(options?: {
+  bypassThrottle?: boolean;
+  fromVisibilityQueue?: boolean;
+}): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  if (document.hidden) {
+    if (options?.bypassThrottle && !options.fromVisibilityQueue) {
+      queueRevisionCheckWhenVisible();
+    }
     return;
   }
   if (
@@ -320,12 +430,14 @@ function checkCurrentOriginRevision(): void {
     fetchFn: fetch,
     timeoutMs: 4000,
     hidden: document.hidden,
+    bypassThrottle: options?.bypassThrottle,
   });
 }
 
 /**
- * When a tab stays open across a Vercel deploy, compare `/build-revision.txt`
- * on resume and every two minutes while visible.
+ * When a tab or native WebView stays open across a deploy, compare
+ * `/build-revision.txt` as soon as it becomes active, on the next tap once the
+ * 60s throttle has passed, and every two minutes while visible.
  */
 export function startWebRevisionWatch(): void {
   if (webRevisionWatchStarted || typeof window === 'undefined') {
@@ -344,6 +456,7 @@ export function startWebRevisionWatch(): void {
     document.addEventListener('focusout', onDocumentFocusOut, true);
     documentFocusOutBound = true;
   }
+  bindAppActiveRevisionListeners();
   checkCurrentOriginRevision();
   webRevisionWatchIntervalId = setInterval(() => {
     checkCurrentOriginRevision();

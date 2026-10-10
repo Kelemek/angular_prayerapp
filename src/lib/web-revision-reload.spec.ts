@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MEMORIZATION_SESSION_SELECTOR,
   WEB_REVISION_CHECK_AT_KEY,
+  WEB_REVISION_CHECK_THROTTLE_MS,
   WEB_REVISION_RELOADED_FOR_KEY,
   isMemorizationSessionActive,
   liveBuildRevisionUrl,
   maybeReloadIfWebRevisionStale,
   shouldDeferWebRevisionReload,
   shouldSkipWebRevisionCheck,
+  startWebRevisionWatch,
   stopWebRevisionWatchForTesting,
 } from './web-revision-reload';
 
@@ -19,6 +21,7 @@ describe('web-revision-reload', () => {
   afterEach(() => {
     sessionStorage.clear();
     stopWebRevisionWatchForTesting();
+    vi.unstubAllGlobals();
     document.querySelectorAll(MEMORIZATION_SESSION_SELECTOR).forEach((el) => el.remove());
     document.querySelectorAll('textarea').forEach((el) => el.remove());
   });
@@ -138,6 +141,27 @@ describe('web-revision-reload', () => {
     });
     expect(reloaded).toBe(true);
     expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('bypasses the 60s throttle when the app becomes active', async () => {
+    sessionStorage.setItem(WEB_REVISION_CHECK_AT_KEY, '100000');
+    const reload = vi.fn();
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'newsha1',
+    });
+    const reloaded = await maybeReloadIfWebRevisionStale({
+      revisionUrl: 'https://example.com/build-revision.txt',
+      fetchFn,
+      timeoutMs: 1000,
+      currentRevision: 'oldsha1',
+      reload,
+      nowMs: 130_000,
+      bypassThrottle: true,
+    });
+    expect(reloaded).toBe(true);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it('throttles checks within 60s', async () => {
@@ -287,5 +311,51 @@ describe('web-revision-reload', () => {
     });
     expect(reloaded).toBe(false);
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('reloads on window focus inside the throttle window', async () => {
+    sessionStorage.setItem(WEB_REVISION_CHECK_AT_KEY, String(Date.now()));
+    const reload = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'deployed1',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('location', {
+      hostname: 'cpprayer.cp-church.org',
+      origin: 'https://cpprayer.cp-church.org',
+      reload,
+    });
+    startWebRevisionWatch();
+    expect(fetchMock).not.toHaveBeenCalled();
+    window.dispatchEvent(new Event('focus'));
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+  });
+
+  it('checks on the next tap after the throttle window without waiting two minutes', async () => {
+    sessionStorage.setItem(WEB_REVISION_CHECK_AT_KEY, String(Date.now()));
+    const reload = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'deployed1',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('location', {
+      hostname: 'cpprayer.cp-church.org',
+      origin: 'https://cpprayer.cp-church.org',
+      reload,
+    });
+    startWebRevisionWatch();
+    document.dispatchEvent(new Event('pointerdown'));
+    await Promise.resolve();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    sessionStorage.setItem(
+      WEB_REVISION_CHECK_AT_KEY,
+      String(Date.now() - WEB_REVISION_CHECK_THROTTLE_MS - 1)
+    );
+    document.dispatchEvent(new Event('pointerdown'));
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

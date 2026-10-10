@@ -145,6 +145,7 @@ let bundledLiveRedirectAttempts = 0;
 export function resetCapacitorLiveBootStateForTesting(): void {
   bundledLiveRedirectInFlight = false;
   bundledLiveRedirectAttempts = 0;
+  stopCapacitorLiveBootWatchForTesting();
 }
 
 export function getBundledLiveRedirectAttemptsForTesting(): number {
@@ -218,14 +219,18 @@ export async function maybeReloadNativeLiveWebIfStale(options: {
   fetchFn: typeof fetch;
   timeoutMs: number;
   currentRevision?: string;
+  bypassThrottle?: boolean;
 }): Promise<boolean> {
   return maybeReloadIfWebRevisionStale({
     revisionUrl: liveBuildRevisionUrl(options.liveOrigin),
     fetchFn: options.fetchFn,
     timeoutMs: options.timeoutMs,
     currentRevision: options.currentRevision,
+    bypassThrottle: options.bypassThrottle,
   });
 }
+
+let liveBootForegroundHandler: (() => void) | null = null;
 
 /** Retry bundled → live redirect and stale live reload when the app returns to foreground. */
 export function startCapacitorLiveBootWatch(
@@ -257,9 +262,22 @@ export function startCapacitorLiveBootWatch(
         liveOrigin: options.liveOrigin,
         fetchFn: options.fetchFn,
         timeoutMs: options.timeoutMs,
+        bypassThrottle: true,
       });
     }
   };
 
+  if (liveBootForegroundHandler) {
+    return;
+  }
+  liveBootForegroundHandler = onForeground;
   window.addEventListener('app-became-visible', onForeground);
+}
+
+/** Removes the foreground listener between Vitest cases. */
+export function stopCapacitorLiveBootWatchForTesting(): void {
+  if (liveBootForegroundHandler && typeof window !== 'undefined') {
+    window.removeEventListener('app-became-visible', liveBootForegroundHandler);
+  }
+  liveBootForegroundHandler = null;
 }

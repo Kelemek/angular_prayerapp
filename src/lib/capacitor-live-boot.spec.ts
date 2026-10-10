@@ -11,7 +11,9 @@ import {
   probeLiveOriginReachable,
   resetCapacitorLiveBootStateForTesting,
   shouldAttemptLiveRedirect,
+  startCapacitorLiveBootWatch,
 } from './capacitor-live-boot';
+import { WEB_REVISION_CHECK_AT_KEY } from './web-revision-reload';
 
 describe('capacitor-live-boot', () => {
   afterEach(() => {
@@ -221,6 +223,35 @@ describe('capacitor-live-boot', () => {
     });
     expect(reloaded).toBe(true);
     expect(reload).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('reloads a stale live bundle when the app becomes active inside the throttle window', async () => {
+    sessionStorage.clear();
+    sessionStorage.setItem(WEB_REVISION_CHECK_AT_KEY, String(Date.now()));
+    const reload = vi.fn();
+    vi.stubGlobal('location', {
+      hostname: 'cpprayer.cp-church.org',
+      origin: 'https://cpprayer.cp-church.org',
+      pathname: '/',
+      search: '',
+      hash: '',
+      reload,
+      replace: vi.fn(),
+    });
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'newsha1\n',
+    });
+    startCapacitorLiveBootWatch({
+      isNative: true,
+      liveOrigin: CAPACITOR_LIVE_ORIGIN,
+      fetchFn,
+      timeoutMs: 1000,
+    });
+    window.dispatchEvent(new CustomEvent('app-became-visible'));
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    expect(fetchFn).toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 });

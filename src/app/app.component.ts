@@ -271,6 +271,7 @@ export class AppComponent implements OnInit, OnDestroy {
       fetchFn: fetch,
       timeoutMs: 4000,
       hidden: document.hidden,
+      bypassThrottle: true,
     });
   }
 
