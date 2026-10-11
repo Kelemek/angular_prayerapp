@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Settings — Print tile border
+- Settings **Prayers** and **Verses** tiles use the same 2px border as the other choice buttons in the modal ([`settings-choice-ui.ts`](src/app/lib/settings-choice-ui.ts)).
+
 ### Admin — prayer editor status field
 - Inline prayer edit **Status** uses [`app-admin-filter-select`](src/app/components/admin-filter-select/admin-filter-select.component.ts) instead of a native `<select>`, matching other Admin filter dropdowns ([`admin-prayer-editor-card-edit-form`](src/app/components/admin-prayer-editor-card/admin-prayer-editor-card-edit-form.component.html)).
 

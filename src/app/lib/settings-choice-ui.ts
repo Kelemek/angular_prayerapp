@@ -6,7 +6,7 @@ export const SETTINGS_CHOICE_UNSELECTED_CLASS =
   'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20';
 
 export const SETTINGS_CHOICE_DROPDOWN_SHELL_CLASS =
-  'flex w-full min-w-0 rounded-lg border overflow-hidden transition-colors duration-150 ease-out';
+  'flex w-full min-w-0 rounded-lg border-2 overflow-hidden transition-colors duration-150 ease-out';
 
 export const SETTINGS_CHOICE_ACTION_ROW_CLASS =
   `w-full min-w-0 flex flex-row items-center justify-center gap-2 p-2 sm:p-3 rounded-lg border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${SETTINGS_CHOICE_UNSELECTED_CLASS} transition-colors duration-150 ease-out active:scale-[0.96] active:disabled:scale-100`;
