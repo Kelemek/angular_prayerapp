@@ -2104,6 +2104,34 @@ describe('UserSessionService', () => {
       expect(service.getCurrentSession()?.personalPrayerCooldownHours).toBe(12);
     });
 
+    it('should preserve client preferences when loadUserSession fails', async () => {
+      (service as any).userSessionSubject.next({
+        email: 'test@example.com',
+        fullName: 'John Doe',
+        isActive: true,
+        memorizationStrictMode: false,
+        clientPreferences: { theme: 'dark' },
+        clientPreferencesNeedsDbSeed: false,
+      });
+
+      mockSupabaseService.client.from = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockRejectedValue(new Error('network error'))
+          })
+        })
+      });
+
+      await service.loadUserSession('test@example.com');
+
+      expect(service.getCurrentSession()?.clientPreferences).toEqual({
+        theme: 'dark',
+      });
+      expect(service.getCurrentSession()?.clientPreferencesNeedsDbSeed).toBe(
+        false
+      );
+    });
+
     it('should map memorization_strict_mode from database', async () => {
       mockSupabaseService.client.from = vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({

@@ -2,13 +2,17 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   EventEmitter,
   Input,
   OnInit,
   Output,
   inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { distinctUntilChanged, map } from 'rxjs/operators';
+import { UserSessionService } from '../../services/user-session.service';
 import {
   bibleBooksCountLabel,
   isBibleBooksMemorizationItem,
@@ -184,8 +188,33 @@ export class MemorizedVersesTableComponent implements OnInit {
   readonly memorizeCardShellBorder = MEMORIZE_CARD_SHELL_BORDER_CLASS;
 
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly userSession = inject(UserSessionService);
 
   ngOnInit(): void {
+    this.applyTableSortFromLocal();
+    this.userSession.userSession$
+      .pipe(
+        map((session) => session?.clientPreferences?.memorizeTableSort),
+        distinctUntilChanged(
+          (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((sort) => {
+        if (!sort) {
+          return;
+        }
+        if (this.sortBy === sort.sortBy && this.sortDirection === sort.sortDirection) {
+          return;
+        }
+        this.sortBy = sort.sortBy;
+        this.sortDirection = sort.sortDirection;
+        this.cdr.markForCheck();
+      });
+  }
+
+  private applyTableSortFromLocal(): void {
     const prefs = loadMemorizeTableSort();
     this.sortBy = prefs.sortBy;
     this.sortDirection = prefs.sortDirection;

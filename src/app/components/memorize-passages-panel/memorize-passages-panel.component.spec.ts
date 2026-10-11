@@ -5,6 +5,8 @@ import { MEMORIZE_LIST_VIEW_KEY } from '../../lib/memorization/memorization-list
 import type { MemorizedItem } from '../../types/memorization';
 import { MemorizePassagesPanelComponent } from './memorize-passages-panel.component';
 import { ScriptureService } from '../../services/scripture.service';
+import { UserSessionService } from '../../services/user-session.service';
+import { provideUserSessionTestMock } from '../../testing/user-session-test.mock';
 import { resolveScriptureHoverPreviewComponentResources } from '../scripture-hover-preview/scripture-hover-preview-component-resources.spec-helper';
 
 beforeAll(async () => {
@@ -61,6 +63,10 @@ describe('MemorizePassagesPanelComponent', () => {
         loading: inputs.loading ?? false,
       },
       providers: [
+        {
+          provide: UserSessionService,
+          useValue: provideUserSessionTestMock(),
+        },
         {
           provide: ScriptureService,
           useValue: {

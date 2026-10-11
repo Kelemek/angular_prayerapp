@@ -1,6 +1,5 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, fromEvent, Subscription } from 'rxjs';
-
 export type TextSize = 'normal' | 'large' | 'largest';
 
 const STORAGE_KEY = 'textSize';

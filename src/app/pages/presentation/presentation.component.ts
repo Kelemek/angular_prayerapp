@@ -55,6 +55,7 @@ import {
 } from "../../lib/presentation-slide-item";
 import { shuffleCopy } from "../../lib/shuffle-copy";
 import type { PrayerRequest } from "../../services/prayer.service";
+import { wirePresentationClientPreferencesSync } from "../../lib/presentation-client-preferences-sync";
 
 @Component({
   selector: "app-presentation",
@@ -121,6 +122,9 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   homeReturnContext: HomeReturnContext | null = null;
 
+  private homeHandoffActive = false;
+  private presentationSettingsEditedThisVisit = false;
+
   /** Completes on destroy so prompt count sync unsubscribes. */
   private readonly destroy$ = new Subject<void>();
 
@@ -175,11 +179,23 @@ export class PresentationComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.wireControllers();
     this.settingsCoordinator.loadInto(this);
-    this.homeHandoffCoordinator.consumeAndApplyFromRoute(
+    const handoff = this.homeHandoffCoordinator.consumeAndApplyFromRoute(
       this,
       this.router,
       this.route
     );
+    this.homeHandoffActive = handoff != null;
+    wirePresentationClientPreferencesSync({
+      userSession$: this.userSessionService.userSession$,
+      destroy$: this.destroy$,
+      page: this,
+      getHandoffActive: () => this.homeHandoffActive,
+      getEditedThisVisit: () => this.presentationSettingsEditedThisVisit,
+      markForCheck: () => this.cdr.markForCheck(),
+      snapshotPageSettings: () => this.settingsCoordinator.snapshotFrom(this),
+      afterRemoteSettingsApplied: () =>
+        this.reloadContentAfterRemotePresentationSettings(),
+    });
     // Presentation slide prompts mirror PromptService (single source of truth).
     this.promptService.prompts$
       .pipe(takeUntil(this.destroy$))
@@ -293,23 +309,38 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   persistSettings(): void {
+    this.markPresentationSettingsEdited();
     this.settingsCoordinator.persistFrom(this);
   }
 
   handleSmartModeChange(enabled: boolean): void {
+    this.markPresentationSettingsEdited();
     this.settingsCoordinator.applyAndPersist(this, { smartMode: enabled });
   }
 
   handleDisplayDurationChange(seconds: number): void {
+    this.markPresentationSettingsEdited();
     this.settingsCoordinator.applyAndPersist(this, { displayDuration: seconds });
   }
 
   handlePrayerTimerMinutesChange(minutes: number): void {
+    this.markPresentationSettingsEdited();
     this.settingsCoordinator.applyAndPersist(this, { prayerTimerMinutes: minutes });
   }
 
   handleLoopChange(enabled: boolean): void {
+    this.markPresentationSettingsEdited();
     this.settingsCoordinator.applyAndPersist(this, { loop: enabled });
+  }
+
+  private markPresentationSettingsEdited(): void {
+    this.presentationSettingsEditedThisVisit = true;
+  }
+
+  private async reloadContentAfterRemotePresentationSettings(): Promise<void> {
+    this.currentIndex = 0;
+    await this.scheduleFilterReload(() => this.loadContent());
+    this.cdr.markForCheck();
   }
 
   async loadPlanningCenterMembers(): Promise<void> {

@@ -2,12 +2,16 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   EventEmitter,
   Input,
   Output,
   inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { distinctUntilChanged, map } from 'rxjs/operators';
+import { UserSessionService } from '../../services/user-session.service';
 import {
   loadMemorizeListView,
   saveMemorizeListView,
@@ -141,6 +145,24 @@ export class MemorizePassagesPanelComponent {
     'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
 
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly userSession = inject(UserSessionService);
+
+  constructor() {
+    this.userSession.userSession$
+      .pipe(
+        map((session) => session?.clientPreferences?.memorizeListView),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((view) => {
+        if (!view || this.listView === view) {
+          return;
+        }
+        this.listView = view;
+        this.cdr.markForCheck();
+      });
+  }
 
   get hasSearchTerm(): boolean {
     return !!this.searchTerm.trim();

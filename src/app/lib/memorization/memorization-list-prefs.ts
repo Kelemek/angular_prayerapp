@@ -1,3 +1,5 @@
+import { emitClientPreferencesLocalChange } from '../client-preferences-notify';
+
 export type MemorizeListView = 'cards' | 'table';
 
 export type MemorizeTableSortBy = 'reference' | 'sessions' | 'mastery';
@@ -55,6 +57,7 @@ export function loadMemorizeListView(): MemorizeListView {
 export function saveMemorizeListView(view: MemorizeListView): void {
   try {
     localStorage.setItem(MEMORIZE_LIST_VIEW_KEY, view);
+    emitClientPreferencesLocalChange();
   } catch {
     /* ignore */
   }
@@ -91,6 +94,7 @@ export function saveMemorizeTableSort(prefs: MemorizeTableSortPrefs): void {
         sortDirection: prefs.sortDirection,
       })
     );
+    emitClientPreferencesLocalChange();
   } catch {
     /* ignore */
   }

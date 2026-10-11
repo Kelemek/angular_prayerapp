@@ -29,6 +29,7 @@ import { ToastContainerComponent } from "./components/toast-container/toast-cont
 import { HelpDriverTourService } from "./services/help-driver-tour.service";
 import { AdminDataService } from "./services/admin-data.service";
 import { PosthogService } from "./services/posthog.service";
+import { ClientPreferencesService } from "./services/client-preferences.service";
 import { filter } from "rxjs";
 import {
   findAppScrollContainer,
@@ -97,7 +98,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef,
     readonly helpDriverTour: HelpDriverTourService,
-    _posthog: PosthogService
+    _posthog: PosthogService,
+    _clientPreferences: ClientPreferencesService
   ) {
     // Add native-app class immediately so bottom blur strip shows before first paint
     if (Capacitor.isNativePlatform()) {

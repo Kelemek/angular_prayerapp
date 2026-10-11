@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, fromEvent } from 'rxjs';
-
 export type Theme = 'light' | 'dark' | 'system';
 
 @Injectable({

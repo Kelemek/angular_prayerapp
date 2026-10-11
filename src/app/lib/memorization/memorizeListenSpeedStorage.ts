@@ -1,3 +1,5 @@
+import { emitClientPreferencesLocalChange } from '../client-preferences-notify';
+
 /** Pause between repeated plays (memorize listen). */
 export const MEMORIZE_LISTEN_REPEAT_GAP_MS = 650;
 
@@ -46,6 +48,7 @@ export function writeMemorizeListenSpeedToStorage(rate: MemorizeListenSpeed): vo
   }
   try {
     window.localStorage.setItem(MEMORIZE_LISTEN_SPEED_STORAGE_KEY, String(rate));
+    emitClientPreferencesLocalChange();
   } catch {
     // ignore
   }

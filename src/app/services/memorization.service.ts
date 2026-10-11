@@ -17,6 +17,7 @@ import type {
   MemorizedItemRow,
 } from '../types/memorization';
 import { isBibleTranslation } from '../types/memorization';
+import { emitClientPreferencesLocalChange } from '../lib/client-preferences-notify';
 
 export type AddMemorizedItemOutcome =
   | { ok: true; item: MemorizedItem }
@@ -74,6 +75,7 @@ export class MemorizationService {
   setPreferredTranslation(translation: BibleTranslation): void {
     try {
       localStorage.setItem(PREFERRED_TRANSLATION_KEY, translation);
+      emitClientPreferencesLocalChange();
     } catch {
       /* ignore */
     }

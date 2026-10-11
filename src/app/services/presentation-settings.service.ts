@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { Subject } from 'rxjs';
+import { getPresentationSettingsDefaults } from '../lib/presentation-settings-defaults';
 import {
   DefaultPrayerView,
   HomePresentationFilter,
@@ -12,7 +14,9 @@ import {
   PRESENTATION_STATUS_FILTERS_DEFAULT,
 } from '../types/presentation';
 
-const STORAGE_KEY = 'prayer_app_presentation_settings';
+export const PRESENTATION_SETTINGS_STORAGE_KEY = 'prayer_app_presentation_settings';
+
+const STORAGE_KEY = PRESENTATION_SETTINGS_STORAGE_KEY;
 
 const TIME_FILTERS: readonly PresentationTimeFilter[] = [
   'week',
@@ -72,7 +76,7 @@ function parseContentTypes(
   return null;
 }
 
-function parseStoredSettings(
+export function parsePresentationSettingsJson(
   value: unknown,
   defaults: PresentationSettings
 ): PresentationSettings | null {
@@ -160,17 +164,13 @@ function parseStoredSettings(
   providedIn: 'root',
 })
 export class PresentationSettingsService {
+  private readonly savedSubject = new Subject<void>();
+
+  /** Emits after `save()` writes localStorage (not on `load()`). */
+  readonly saved$ = this.savedSubject.asObservable();
+
   getDefaults(): PresentationSettings {
-    return {
-      contentTypes: ['prayers'],
-      randomize: false,
-      smartMode: true,
-      displayDuration: 10,
-      loop: true,
-      timeFilter: 'all',
-      statusFilters: { ...PRESENTATION_STATUS_FILTERS_DEFAULT },
-      prayerTimerMinutes: 10,
-    };
+    return getPresentationSettingsDefaults();
   }
 
   load(): PresentationSettings {
@@ -182,7 +182,7 @@ export class PresentationSettingsService {
       }
 
       const parsed: unknown = JSON.parse(raw);
-      const settings = parseStoredSettings(parsed, defaults);
+      const settings = parsePresentationSettingsJson(parsed, defaults);
       if (!settings) {
         return defaults;
       }
@@ -196,6 +196,7 @@ export class PresentationSettingsService {
   save(settings: PresentationSettings): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      this.savedSubject.next();
     } catch {
       /* ignore quota / private mode */
     }

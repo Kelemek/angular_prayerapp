@@ -1,3 +1,5 @@
+import { emitClientPreferencesLocalChange } from './client-preferences-notify';
+
 export const PRAY_FOR_MODAL_DO_NOT_SHOW_KEY = 'prayer_encouragement_modal_do_not_show';
 
 export function shouldSkipPrayForExplanationModal(): boolean {
@@ -11,6 +13,7 @@ export function shouldSkipPrayForExplanationModal(): boolean {
 export function persistPrayForModalDoNotShowAgain(): void {
   try {
     localStorage.setItem(PRAY_FOR_MODAL_DO_NOT_SHOW_KEY, 'true');
+    emitClientPreferencesLocalChange();
   } catch {
     // Ignore quota or disabled localStorage
   }

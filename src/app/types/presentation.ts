@@ -125,6 +125,13 @@ export interface PresentationSettings {
   prayerTimerMinutes: number;
 }
 
+export function presentationSettingsEqual(
+  a: PresentationSettings | null | undefined,
+  b: PresentationSettings | null | undefined
+): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
 export type HomePresentationFilter =
   | 'current'
   | 'answered'

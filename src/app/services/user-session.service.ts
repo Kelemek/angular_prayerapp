@@ -5,6 +5,9 @@ import { AdminAuthService } from './admin-auth.service';
 import { distinctUntilChanged, first, map } from 'rxjs/operators';
 import type { UserHourReminderSlot } from '../types/user-hour-reminder';
 import type { PrayerItemReminder } from '../types/prayer-item-reminder';
+import type { ClientPreferences } from '../types/client-preferences';
+import { clientPreferencesLoadState } from '../lib/client-preferences-load-state';
+import { resolveClientPreferencesFromSubscriberRow } from '../lib/client-preferences-session';
 
 export const PRAYER_COOLDOWN_MIN_HOURS = 1;
 export const PRAYER_COOLDOWN_MAX_HOURS = 168;
@@ -54,6 +57,10 @@ export interface UserSessionData {
   /** Cached per-prayer reminders; undefined = never fetched this session. */
   prayerItemReminders?: PrayerItemReminder[];
   prayerItemRemindersFetchedAt?: number;
+  /** Theme, Pray page, memorization UI, Pray For modal skip — synced via `client_preferences`. */
+  clientPreferences?: ClientPreferences;
+  /** DB column was null; prefs were built from local mirrors — persist once via ClientPreferencesService. */
+  clientPreferencesNeedsDbSeed?: boolean;
 }
 
 /**
@@ -145,11 +152,48 @@ export class UserSessionService {
 
     this.isLoadingSubject.next(true);
 
+    const normalizedEmail = email.toLowerCase().trim();
+    const preservedClientPreferences = (): ClientPreferences | undefined => {
+      const current = this.userSessionSubject.value;
+      if (
+        clientPreferencesLoadState.dirtyDuringLoad &&
+        current?.email === normalizedEmail &&
+        current.clientPreferences
+      ) {
+        return current.clientPreferences;
+      }
+      return undefined;
+    };
+
     const preservedPersonalCooldownHours = (): number =>
       clampPrayerCooldownHours(
         this.userSessionSubject.value?.personalPrayerCooldownHours ??
           this.loadFromCache(email)?.personalPrayerCooldownHours
       );
+
+    const preservedClientPreferencesOnFallback = (): Pick<
+      UserSessionData,
+      'clientPreferences' | 'clientPreferencesNeedsDbSeed'
+    > => {
+      const fromDirty = preservedClientPreferences();
+      const cached = this.loadFromCache(email);
+      const current =
+        this.userSessionSubject.value?.email === normalizedEmail
+          ? this.userSessionSubject.value
+          : cached?.email === normalizedEmail
+            ? cached
+            : undefined;
+      const clientPreferences =
+        fromDirty ?? current?.clientPreferences;
+      const clientPreferencesNeedsDbSeed =
+        current?.clientPreferencesNeedsDbSeed;
+      return {
+        ...(clientPreferences !== undefined ? { clientPreferences } : {}),
+        ...(clientPreferencesNeedsDbSeed !== undefined
+          ? { clientPreferencesNeedsDbSeed }
+          : {}),
+      };
+    };
 
     try {
       // Use directQuery with timeout to prevent hanging
@@ -157,9 +201,9 @@ export class UserSessionService {
         this.supabase.client
           .from('email_subscribers')
           .select(
-            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode'
+            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode, client_preferences'
           )
-          .eq('email', email.toLowerCase().trim())
+          .eq('email', normalizedEmail)
           .maybeSingle(),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('User session query timeout')), 5000)
@@ -186,7 +230,18 @@ export class UserSessionService {
             data.personal_prayer_cooldown_hours
           ),
           defaultPrayerView: data.default_prayer_view || 'current',
-          memorizationStrictMode: data.memorization_strict_mode ?? false
+          memorizationStrictMode: data.memorization_strict_mode ?? false,
+          ...(() => {
+            const resolved = resolveClientPreferencesFromSubscriberRow(
+              data,
+              normalizedEmail,
+              preservedClientPreferences()
+            );
+            return {
+              clientPreferences: resolved.preferences,
+              clientPreferencesNeedsDbSeed: resolved.seedToDatabase != null,
+            };
+          })(),
         };
         this.userSessionSubject.next(sessionData);
         this.saveToCache(sessionData);
@@ -224,7 +279,8 @@ export class UserSessionService {
         showPrayingCount: true,
         personalPrayerCooldownHours: preservedPersonalCooldownHours(),
         defaultPrayerView: 'current',
-        memorizationStrictMode: false
+        memorizationStrictMode: false,
+        ...preservedClientPreferencesOnFallback(),
       };
       this.userSessionSubject.next(sessionData);
       this.saveToCache(sessionData);
