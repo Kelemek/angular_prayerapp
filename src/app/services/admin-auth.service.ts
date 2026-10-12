@@ -93,7 +93,11 @@ export class AdminAuthService {
   private ignoreSessionRestore = false;
   /** Bumped on logout and on a successful code login so an older logout tail stops. */
   private sessionEpoch = 0;
+  /** Latest admin eligibility check; stale in-flight results must not overwrite newer ones. */
+  private adminEligibilityEpoch = 0;
+  private static readonly ADMIN_CHECK_RETRY_MS = 1500;
   private readonly subscriberAuthLinkByEmail = new Map<string, Promise<boolean>>();
+  private readonly inFlightAdminEligibility = new Map<string, Promise<boolean>>();
   private restoreBudgetTimer: ReturnType<typeof setTimeout> | undefined;
 
   public user$ = this.userSubject.asObservable();
@@ -185,10 +189,17 @@ export class AdminAuthService {
       this.sessionStart = this.getPersistedSessionStart() || Date.now();
       this.persistSessionStart(this.sessionStart);
     }
+    this.refreshAdminEmailEligibility(mfaEmail);
+  }
+
+  private invalidateAdminEligibilityChecks(): void {
+    this.adminEligibilityEpoch += 1;
+    this.inFlightAdminEligibility.clear();
   }
 
   private clearRestoredSessionSubjects(): void {
     const shellAlreadyOpen = !this.loadingSubject.value;
+    this.invalidateAdminEligibilityChecks();
     this.userSubject.next(null);
     this.isAdminSubject.next(false);
     this.hasAdminEmailSubject.next(false);
@@ -376,8 +387,6 @@ export class AdminAuthService {
         // Check admin status but don't block on failure
         this.checkAdminStatus(session.user).catch(error => {
           console.error('[AdminAuth] Error checking admin status on state change:', error);
-          this.isAdminSubject.next(false);
-          this.hasAdminEmailSubject.next(false);
         });
         this.acceptAuthenticated(true);
         
@@ -525,8 +534,8 @@ export class AdminAuthService {
       setUser: (next) => this.acceptRestoredUser(next),
       checkAdminStatus: (next) => this.checkAdminStatus(next),
       onAdminCheckFailed: () => {
-        this.isAdminSubject.next(false);
-        this.hasAdminEmailSubject.next(false);
+        const epoch = ++this.adminEligibilityEpoch;
+        this.publishAdminEligibility(false, epoch);
       },
       setAuthenticated: (value) => this.acceptAuthenticated(value),
       getPersistedSessionStart: () => this.getPersistedSessionStart(),
@@ -665,16 +674,116 @@ export class AdminAuthService {
     if (!email || this.ignoreSessionRestore) {
       return;
     }
-    void this.applyAdminEmailEligibility(email).catch((error: unknown) => {
-      console.error('[AdminAuth] Error refreshing admin email eligibility:', error);
+    void this.applyAdminEmailEligibility(email);
+  }
+
+  private shouldPublishAdminEligibility(epoch: number): boolean {
+    if (epoch !== this.adminEligibilityEpoch || this.ignoreSessionRestore) {
+      return false;
+    }
+    if (this.logoutBlocksSessionRestore()) {
+      return false;
+    }
+    if (!this.isAuthenticatedSubject.value && !this.userSubject.value) {
+      return false;
+    }
+    return true;
+  }
+
+  private publishAdminEligibility(isAdmin: boolean, epoch: number): void {
+    if (!this.shouldPublishAdminEligibility(epoch)) {
+      return;
+    }
+    const emit = (): void => {
+      this.isAdminSubject.next(isAdmin);
+      this.hasAdminEmailSubject.next(isAdmin);
+    };
+    if (this.ngZone) {
+      this.ngZone.run(emit);
+    } else {
+      emit();
+    }
+  }
+
+  private async fetchAdminStatusFromEdge(email: string): Promise<boolean> {
+    const { data, error } = await this.supabase.client.functions.invoke(
+      'check-admin-status',
+      { body: { email } }
+    );
+
+    if (error) {
+      console.error('[AdminAuth] Error checking admin status:', error);
+      throw error;
+    }
+
+    console.log('[AdminAuth] Admin check result:', data);
+    return data?.is_admin === true;
+  }
+
+  private async applyAdminEmailEligibility(email: string): Promise<boolean> {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      return false;
+    }
+
+    const inFlight = this.inFlightAdminEligibility.get(normalizedEmail);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const epoch = ++this.adminEligibilityEpoch;
+    const run = this.runAdminEligibilityCheck(normalizedEmail, epoch);
+    const shared = run.finally(() => {
+      if (this.inFlightAdminEligibility.get(normalizedEmail) === shared) {
+        this.inFlightAdminEligibility.delete(normalizedEmail);
+      }
     });
+    this.inFlightAdminEligibility.set(normalizedEmail, shared);
+    return shared;
+  }
+
+  private async runAdminEligibilityCheck(
+    normalizedEmail: string,
+    epoch: number
+  ): Promise<boolean> {
+    const runCheck = async (): Promise<boolean> =>
+      this.fetchAdminStatusFromEdge(normalizedEmail);
+
+    try {
+      const isAdmin = await runCheck();
+      this.publishAdminEligibility(isAdmin, epoch);
+      return isAdmin;
+    } catch (firstError) {
+      if (epoch !== this.adminEligibilityEpoch) {
+        return false;
+      }
+      console.warn(
+        '[AdminAuth] Admin check failed; retrying once:',
+        firstError
+      );
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, AdminAuthService.ADMIN_CHECK_RETRY_MS);
+      });
+      if (epoch !== this.adminEligibilityEpoch) {
+        return false;
+      }
+      try {
+        const isAdmin = await runCheck();
+        this.publishAdminEligibility(isAdmin, epoch);
+        return isAdmin;
+      } catch (retryError) {
+        console.error('[AdminAuth] Admin status retry failed:', retryError);
+        this.publishAdminEligibility(false, epoch);
+        return false;
+      }
+    }
   }
 
   private async checkAdminStatus(user: User): Promise<void> {
     const email = this.resolveAdminCheckEmail(user);
     if (!email) {
-      this.isAdminSubject.next(false);
-      this.hasAdminEmailSubject.next(false);
+      const epoch = ++this.adminEligibilityEpoch;
+      this.publishAdminEligibility(false, epoch);
       if (!user?.email) {
         this.isAuthenticatedSubject.next(false);
       }
@@ -682,22 +791,6 @@ export class AdminAuthService {
     }
 
     await this.applyAdminEmailEligibility(email);
-  }
-
-  private async applyAdminEmailEligibility(email: string): Promise<void> {
-    try {
-      const isAdmin = await this.isEmailAdmin(email);
-
-      if (this.ignoreSessionRestore) {
-        return;
-      }
-      this.isAdminSubject.next(isAdmin);
-      this.hasAdminEmailSubject.next(isAdmin);
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      this.isAdminSubject.next(false);
-      this.hasAdminEmailSubject.next(false);
-    }
   }
 
   checkBlockedStatusInBackground(returnUrl?: string): void {
@@ -852,17 +945,7 @@ export class AdminAuthService {
    */
   private async isEmailAdmin(email: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.client.functions.invoke('check-admin-status', {
-        body: { email }
-      });
-
-      if (error) {
-        console.error('[AdminAuth] Error checking admin status:', error);
-        return false;
-      }
-
-      console.log('[AdminAuth] Admin check result:', data);
-      return data?.is_admin === true;
+      return await this.fetchAdminStatusFromEdge(email);
     } catch (error) {
       console.error('[AdminAuth] Exception checking admin status:', error);
       return false;
@@ -949,23 +1032,14 @@ export class AdminAuthService {
       }
       this.ignoreSessionRestore = false;
       this.acceptRestoredUser(linkedUser ?? buildMfaMockUser(email));
-
-      // Check if user is an admin
-      const isAdmin = await this.isEmailAdmin(email);
-
-      // Code verified successfully - mark admin status and authenticated
-      if (isAdmin) {
-        this.isAdminSubject.next(true);
-        this.hasAdminEmailSubject.next(true);
-        this.adminSessionStart = Date.now(); // Start admin session timer
-        this.adminSessionExpiredSubject.next(false);
-      } else {
-        this.isAdminSubject.next(false);
-        this.hasAdminEmailSubject.next(false);
-      }
-
-      // Mark user as authenticated (required for siteAuthGuard)
       this.isAuthenticatedSubject.next(true);
+
+      const isAdmin = await this.applyAdminEmailEligibility(email);
+
+      if (isAdmin) {
+        this.adminSessionStart = Date.now();
+        this.adminSessionExpiredSubject.next(false);
+      }
 
       // Store MFA authenticated email for session restoration after browser restart
       localStorage.setItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY, email);
@@ -1040,6 +1114,7 @@ export class AdminAuthService {
         return;
       }
 
+      this.invalidateAdminEligibilityChecks();
       this.userSubject.next(null);
       this.isAdminSubject.next(false);
       this.hasAdminEmailSubject.next(false);

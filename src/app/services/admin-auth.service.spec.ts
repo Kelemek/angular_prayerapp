@@ -1192,10 +1192,212 @@ describe('AdminAuthService', () => {
 
       // Trigger sign in
       authCallback('SIGNED_IN', { user: mockUser });
-      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(1600);
 
       const isAdmin = await firstValueFrom(newService.isAdmin$);
       expect(isAdmin).toBe(false);
+    });
+  });
+
+  describe('admin eligibility on boot and races', () => {
+    it('checks admin when a saved MFA session opens before getSession returns', async () => {
+      localStorage.setItem('mfa_authenticated_email', 'admin@example.com');
+      mockSupabaseClient.auth.getSession = vi
+        .fn()
+        .mockReturnValue(new Promise(() => {}));
+      mockSupabaseClient.auth.refreshSession = vi
+        .fn()
+        .mockReturnValue(new Promise(() => {}));
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.resolve({ data: { is_admin: true }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(await firstValueFrom(newService.isAdmin$)).toBe(true);
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith(
+        'check-admin-status',
+        { body: { email: 'admin@example.com' } }
+      );
+    });
+
+    it('does not let a stale admin check overwrite a newer result', async () => {
+      let slowResolve: (value: { data: { is_admin: boolean }; error: null }) => void =
+        () => {};
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return new Promise((resolve) => {
+            slowResolve = resolve;
+          });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
+      await vi.advanceTimersByTimeAsync(100);
+      newService.userSubject.next({
+        id: '1',
+        email: 'admin@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: '',
+      } as User);
+      newService.isAuthenticatedSubject.next(true);
+
+      newService.refreshAdminEmailEligibility('first@example.com');
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return Promise.resolve({ data: { is_admin: true }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+      newService.refreshAdminEmailEligibility('admin@example.com');
+      await vi.advanceTimersByTimeAsync(50);
+
+      slowResolve({ data: { is_admin: false }, error: null });
+      await vi.advanceTimersByTimeAsync(50);
+
+      expect(await firstValueFrom(newService.isAdmin$)).toBe(true);
+    });
+
+    it('retries once after a transient edge error then succeeds', async () => {
+      let attempts = 0;
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          attempts += 1;
+          if (attempts === 1) {
+            return Promise.reject(new Error('Network error'));
+          }
+          return Promise.resolve({ data: { is_admin: true }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
+      await vi.advanceTimersByTimeAsync(100);
+      newService.userSubject.next({
+        id: '1',
+        email: 'admin@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: '',
+      } as User);
+      newService.isAuthenticatedSubject.next(true);
+
+      newService.refreshAdminEmailEligibility('admin@example.com');
+      await vi.advanceTimersByTimeAsync(1600);
+
+      expect(attempts).toBe(2);
+      expect(await firstValueFrom(newService.isAdmin$)).toBe(true);
+    });
+
+    it('does not apply a late admin check after the session is cleared for a revoked bridge', async () => {
+      const bridge = await import('../../lib/native-auth-storage-bridge');
+      const bridgeRevokedSpy = vi
+        .spyOn(bridge, 'isNativeAuthBridgeRevoked')
+        .mockImplementation(async () => {
+          localStorage.setItem(NATIVE_AUTH_BRIDGE_REVOKED_KEY, String(Date.now()));
+          return false;
+        });
+
+      localStorage.setItem('mfa_authenticated_email', 'admin@example.com');
+      let releaseAdmin: (value: {
+        data: { is_admin: boolean };
+        error: null;
+      }) => void = () => {};
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          return new Promise((resolve) => {
+            releaseAdmin = resolve;
+          });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(newService.getUser()).toBeNull();
+      releaseAdmin({ data: { is_admin: true }, error: null });
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(await firstValueFrom(newService.isAdmin$)).toBe(false);
+      bridgeRevokedSpy.mockRestore();
+    });
+
+    it('coalesces duplicate admin checks for the same email', async () => {
+      let attempts = 0;
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          attempts += 1;
+          return Promise.resolve({ data: { is_admin: true }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(
+        mockSupabaseService,
+        mockCacheService
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      newService.userSubject.next({
+        id: '1',
+        email: 'admin@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: '',
+      } as User);
+      newService.isAuthenticatedSubject.next(true);
+
+      newService.refreshAdminEmailEligibility('admin@example.com');
+      newService.refreshAdminEmailEligibility('admin@example.com');
+      await vi.advanceTimersByTimeAsync(50);
+
+      expect(await firstValueFrom(newService.isAdmin$)).toBe(true);
+      expect(attempts).toBe(1);
+    });
+
+    it('does not retry when the edge function returns is_admin false', async () => {
+      let attempts = 0;
+      mockSupabaseClient.functions.invoke = vi.fn().mockImplementation((name) => {
+        if (name === 'check-admin-status') {
+          attempts += 1;
+          return Promise.resolve({ data: { is_admin: false }, error: null });
+        }
+        return Promise.resolve({ data: {}, error: null });
+      });
+
+      const { AdminAuthService } = await import('./admin-auth.service');
+      const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
+      await vi.advanceTimersByTimeAsync(100);
+
+      newService.refreshAdminEmailEligibility('user@example.com');
+      await vi.advanceTimersByTimeAsync(1600);
+
+      expect(attempts).toBe(1);
+      expect(await firstValueFrom(newService.isAdmin$)).toBe(false);
     });
   });
 
@@ -1470,6 +1672,15 @@ describe('AdminAuthService', () => {
       const { AdminAuthService } = await import('./admin-auth.service');
       const newService = new AdminAuthService(mockSupabaseService, mockCacheService);
       await vi.advanceTimersByTimeAsync(100);
+      newService.userSubject.next({
+        id: '1',
+        email: 'admin@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: '',
+      } as User);
+      newService.isAuthenticatedSubject.next(true);
 
       newService.refreshAdminEmailEligibility('admin@example.com');
       await vi.advanceTimersByTimeAsync(50);

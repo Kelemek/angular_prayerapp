@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Home — admin prayed-for count on first load
+- Community prayer **“N Praying”** counts for admins no longer wait until Settings is opened. [`AdminAuthService`](src/app/services/admin-auth.service.ts) runs the same admin eligibility check at MFA session restore, coalesces duplicate in-flight checks for one email, invalidates stale results when the session is cleared or logged out, and retries once on transient edge errors.
+
 ### Settings — sync local UI preferences to the database
 - Per-user **client preferences** (theme, text size, Pray page settings including loop, memorization list/sort/listen speed, preferred Bible translation, and “don’t show” Pray For explanation modal) persist on **`email_subscribers.client_preferences`** (`jsonb`) while still reading existing **localStorage** keys first for instant UI. Loaded with the same **`UserSessionService`** `email_subscribers` select as other Settings fields; changes call **`updateUserSession`** and a debounced write (no extra read). **`ClientPreferencesService`** observes theme/text size/presentation saves and handles first-time DB seed when the column was null; shared-device persist merges session baseline with mirrors via [`buildClientPreferencesFromLocalForPersist`](src/app/lib/client-preferences-local.ts). Pray page live sync reloads content when remote presentation settings change ([`presentation-client-preferences-sync.ts`](src/app/lib/presentation-client-preferences-sync.ts)). Migration: [`20261011120000_email_subscribers_client_preferences.sql`](supabase/migrations/20261011120000_email_subscribers_client_preferences.sql). Code: [`client-preferences.service.ts`](src/app/services/client-preferences.service.ts), [`client-preferences-local.ts`](src/app/lib/client-preferences-local.ts), [`user-session.service.ts`](src/app/services/user-session.service.ts).
 
