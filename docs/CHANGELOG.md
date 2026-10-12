@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Presentation — controls input lifecycle
+- [`PresentationComponent`](src/app/pages/presentation/presentation.component.ts) wires presentation host adapters in the constructor and no-ops window/touch HostListeners when hosts are unset, fixing a rare `controlsInputHost` TypeError on `/presentation` before `ngOnInit` (PostHog `01a12d32-a035-7ea3-9277-e177299bac44`).
+
 ### Home — admin prayed-for count on first load
 - Community prayer **“N Praying”** counts for admins no longer wait until Settings is opened. [`AdminAuthService`](src/app/services/admin-auth.service.ts) runs the same admin eligibility check at MFA session restore, coalesces duplicate in-flight checks for one email, invalidates stale results when the session is cleared or logged out, and retries once on transient edge errors.
 

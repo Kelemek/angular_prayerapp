@@ -147,23 +147,29 @@ export class PresentationComponent implements OnInit, OnDestroy {
     private readonly helpTourLauncher: PresentationHelpTourLauncher,
     private readonly homeHandoffCoordinator: PresentationHomeHandoffCoordinator,
     private readonly settingsCoordinator: PresentationSettingsCoordinator
-  ) {}
+  ) {
+    this.wireControllers();
+  }
 
-  private presentationHosts!: WiredPresentationHosts;
+  private presentationHosts?: WiredPresentationHosts;
 
   readonly slidePrayerFromItem = prayerFromSlideItem;
   readonly slidePromptFromItem = promptFromSlideItem;
 
+  private presentationHostsReady(): boolean {
+    return this.presentationHosts != null;
+  }
+
   private get prayerTimerHost() {
-    return this.presentationHosts.prayerTimerHost;
+    return this.presentationHosts?.prayerTimerHost;
   }
 
   private get controlsInputHost() {
-    return this.presentationHosts.controlsInputHost;
+    return this.presentationHosts?.controlsInputHost;
   }
 
   private get helpTourHost() {
-    return this.presentationHosts.helpTourHost;
+    return this.presentationHosts?.helpTourHost;
   }
 
   private wireControllers(): void {
@@ -177,7 +183,6 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.wireControllers();
     this.settingsCoordinator.loadInto(this);
     const handoff = this.homeHandoffCoordinator.consumeAndApplyFromRoute(
       this,
@@ -280,17 +285,35 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   setupControlsAutoHide(): void {
-    this.controlsInput.setupAutoHide(this.controlsInputHost);
+    const host = this.controlsInputHost;
+    if (!host) {
+      return;
+    }
+    this.controlsInput.setupAutoHide(host);
   }
 
   @HostListener("window:mousemove", ["$event"])
   handleMouseMove(event: MouseEvent): void {
-    this.controlsInput.handleMouseMove(event, this.controlsInputHost);
+    if (!this.presentationHostsReady()) {
+      return;
+    }
+    const host = this.controlsInputHost;
+    if (!host) {
+      return;
+    }
+    this.controlsInput.handleMouseMove(event, host);
   }
 
   @HostListener("touchstart", ["$event"])
   onTouchStart(event: TouchEvent): void {
-    this.controlsInput.onTouchStart(event, this.controlsInputHost);
+    if (!this.presentationHostsReady()) {
+      return;
+    }
+    const host = this.controlsInputHost;
+    if (!host) {
+      return;
+    }
+    this.controlsInput.onTouchStart(event, host);
   }
 
   @HostListener("touchmove", ["$event"])
@@ -300,12 +323,26 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   @HostListener("touchend")
   onTouchEnd(): void {
-    this.controlsInput.onTouchEnd(this.controlsInputHost);
+    if (!this.presentationHostsReady()) {
+      return;
+    }
+    const host = this.controlsInputHost;
+    if (!host) {
+      return;
+    }
+    this.controlsInput.onTouchEnd(host);
   }
 
   @HostListener("window:keydown", ["$event"])
   handleKeyboard(event: KeyboardEvent): void {
-    this.controlsInput.handleKeyboard(event, this.controlsInputHost);
+    if (!this.presentationHostsReady()) {
+      return;
+    }
+    const host = this.controlsInputHost;
+    if (!host) {
+      return;
+    }
+    this.controlsInput.handleKeyboard(event, host);
   }
 
   persistSettings(): void {
@@ -369,7 +406,11 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   private maybeStartPresentationHelpTourFromSession(): void {
-    this.helpTourLauncher.maybeStartFromSession(this.helpTourHost, this.cdr);
+    const host = this.helpTourHost;
+    if (!host) {
+      return;
+    }
+    this.helpTourLauncher.maybeStartFromSession(host, this.cdr);
   }
 
   markForCheck(): void {
@@ -503,7 +544,11 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   startPrayerTimer(): void {
-    this.prayerTimer.start(this.prayerTimerMinutes, this.prayerTimerHost);
+    const host = this.prayerTimerHost;
+    if (!host) {
+      return;
+    }
+    this.prayerTimer.start(this.prayerTimerMinutes, host);
   }
 
   exitPresentation(): void {

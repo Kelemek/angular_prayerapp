@@ -180,7 +180,6 @@ describe('PresentationComponent', () => {
       homeHandoffCoordinator,
       settingsCoordinator
     );
-    (component as unknown as { wireControllers: () => void }).wireControllers();
   });
 
   afterEach(() => {
@@ -442,6 +441,32 @@ describe('PresentationComponent', () => {
     component.handleMouseMove({ clientY: 90 } as MouseEvent);
     // still false because initialPeriodElapsed guard prevents change
     expect(component.showControls).toBe(false);
+  });
+
+  it('HostListeners no-op when presentation hosts are not wired', () => {
+    const controlsInput = (component as unknown as { controlsInput: PresentationControlsInputController })
+      .controlsInput;
+    const handleMouseMoveSpy = vi.spyOn(controlsInput, 'handleMouseMove');
+    const handleKeyboardSpy = vi.spyOn(controlsInput, 'handleKeyboard');
+    const onTouchStartSpy = vi.spyOn(controlsInput, 'onTouchStart');
+    const onTouchEndSpy = vi.spyOn(controlsInput, 'onTouchEnd');
+
+    (component as unknown as { presentationHosts?: unknown }).presentationHosts =
+      undefined;
+
+    expect(() =>
+      component.handleMouseMove({ clientY: 90 } as MouseEvent)
+    ).not.toThrow();
+    expect(() =>
+      component.handleKeyboard({ key: 'ArrowRight', preventDefault: () => {} } as KeyboardEvent)
+    ).not.toThrow();
+    expect(() => component.onTouchStart({} as TouchEvent)).not.toThrow();
+    expect(() => component.onTouchEnd()).not.toThrow();
+
+    expect(handleMouseMoveSpy).not.toHaveBeenCalled();
+    expect(handleKeyboardSpy).not.toHaveBeenCalled();
+    expect(onTouchStartSpy).not.toHaveBeenCalled();
+    expect(onTouchEndSpy).not.toHaveBeenCalled();
   });
 
   it('handleKeyboard uppercase P toggles play', () => {
