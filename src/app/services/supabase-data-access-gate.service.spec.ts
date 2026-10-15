@@ -69,4 +69,29 @@ describe('SupabaseDataAccessGateService', () => {
     auth$.next(true);
     await vi.waitFor(() => expect(service.isReady).toBe(false));
   });
+
+  it('waitForReady invokes timeout handler when JWT never arrives', async () => {
+    vi.useFakeTimers();
+    const onTimeout = vi.fn().mockResolvedValue(undefined);
+    service.registerTimeoutHandler(onTimeout);
+    await service.syncAuthenticated(true);
+    expect(service.isReady).toBe(false);
+
+    const wait = service.waitForReady();
+    await vi.advanceTimersByTimeAsync(20_000);
+    await wait;
+
+    expect(onTimeout).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('re-subscribes when bindAuthenticatedStream is called again', async () => {
+    const first$ = new BehaviorSubject(false);
+    const second$ = new BehaviorSubject(false);
+    service.bindAuthenticatedStream(first$);
+    await vi.waitFor(() => expect(service.isReady).toBe(true));
+    service.bindAuthenticatedStream(second$);
+    second$.next(true);
+    await vi.waitFor(() => expect(service.isReady).toBe(false));
+  });
 });
