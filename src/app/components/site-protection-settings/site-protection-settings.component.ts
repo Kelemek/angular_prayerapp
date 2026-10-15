@@ -108,7 +108,7 @@ export class SiteProtectionSettingsComponent implements OnInit {
     this.cdr.markForCheck();
 
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('require_site_login')
         .eq('id', 1)
@@ -133,7 +133,7 @@ export class SiteProtectionSettingsComponent implements OnInit {
     this.cdr.markForCheck();
 
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('admin_settings')
         .update({ 
           require_site_login: this.requireSiteLogin 

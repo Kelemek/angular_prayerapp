@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import {
   generateAdminNotificationDeletionHTML,
   generateAdminNotificationPrayerHTML,
@@ -49,13 +50,13 @@ describe("EmailNotificationService", () => {
   let mockPushNotification: any;
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         functions: { invoke: vi.fn() },
         from: vi.fn(),
       },
       directQuery: vi.fn(),
-    };
+    });
 
     mockPushNotification = {
       sendPushToAdmins: vi.fn().mockResolvedValue(undefined),
@@ -1080,13 +1081,13 @@ describe("EmailNotificationService - Additional Logic", () => {
   let mockPushNotification: any;
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         functions: { invoke: vi.fn() },
         from: vi.fn(),
       },
       directQuery: vi.fn(),
-    };
+    });
 
     mockPushNotification = {
       sendPushToAdmins: vi.fn().mockResolvedValue(undefined),
@@ -1559,13 +1560,13 @@ describe("EmailNotificationService - Additional Logic", () => {
     let mockPushNotification: any;
 
     beforeEach(() => {
-      mockSupabase = {
+      mockSupabase = wireGatedSupabaseMock({
         client: {
           functions: { invoke: vi.fn() },
           from: vi.fn(),
         },
         directQuery: vi.fn(),
-      };
+      });
 
       mockPushNotification = {
         sendPushToAdmins: vi.fn().mockResolvedValue(undefined),
@@ -2014,13 +2015,13 @@ describe("EmailNotificationService - Additional Logic", () => {
     let mockPushNotification: any;
 
     beforeEach(() => {
-      mockSupabase = {
+      mockSupabase = wireGatedSupabaseMock({
         client: {
           functions: { invoke: vi.fn() },
           from: vi.fn(),
         },
         directQuery: vi.fn(),
-      };
+      });
 
       mockPushNotification = {
         sendPushToAdmins: vi.fn().mockResolvedValue(undefined),

@@ -217,7 +217,7 @@ export class BadgeReadStateService {
     }
 
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('user_badge_read_state')
         .select('prayers_data, prompts_data')
         .ilike('user_email', loadForEmail)
@@ -296,11 +296,11 @@ export class BadgeReadStateService {
     const persistForEmail = email.toLowerCase().trim();
 
     try {
-      const { error } = await this.supabase.client.rpc('upsert_user_badge_read_state', {
+      const { error } = await (await this.supabase.rpc('upsert_user_badge_read_state', {
         p_user_email: persistForEmail,
         p_prayers_data: snapshot.prayersData,
         p_prompts_data: snapshot.promptsData,
-      });
+      }));
 
       if (error) {
         throw error;

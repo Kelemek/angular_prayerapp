@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { BackupJsonFile } from './admin-backup-status';
+import { supabaseRestJsonHeaders } from '../../lib/supabase-rest-bearer';
 
 const FALLBACK_BACKUP_TABLES = [
   'account_approval_requests',
@@ -21,7 +22,7 @@ const FALLBACK_BACKUP_TABLES = [
   'user_preferences',
 ];
 
-/** Login codes are service-role only. Manual backup uses the anon key. */
+/** Login codes are service-role only. Manual backup uses the admin JWT (see resolveSupabaseRestBearer). */
 export function tablesForManualBackup(tables: string[]): string[] {
   return tables.filter((table) => table !== 'verification_codes');
 }
@@ -42,7 +43,8 @@ export type ManualBackupResult = ManualBackupSuccess | ManualBackupFailure;
 
 async function discoverBackupTables(
   supabaseUrl: string,
-  supabaseKey: string,
+  supabaseAnonKey: string,
+  authorizationBearer: string,
 ): Promise<string[]> {
   const tableParams = new URLSearchParams();
   tableParams.set('select', 'table_name');
@@ -51,11 +53,7 @@ async function discoverBackupTables(
   const tableResponse = await fetch(
     `${supabaseUrl}/rest/v1/backup_tables?${tableParams.toString()}`,
     {
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: supabaseRestJsonHeaders(supabaseAnonKey, authorizationBearer),
     },
   );
 
@@ -92,13 +90,18 @@ function downloadBackupJson(backup: BackupJsonFile): void {
 
 export async function runManualBackup(
   supabaseUrl: string,
-  supabaseKey: string,
+  supabaseAnonKey: string,
+  authorizationBearer: string,
   client: SupabaseClient,
 ): Promise<ManualBackupResult> {
   let tables: string[];
 
   try {
-    tables = await discoverBackupTables(supabaseUrl, supabaseKey);
+    tables = await discoverBackupTables(
+      supabaseUrl,
+      supabaseAnonKey,
+      authorizationBearer,
+    );
   } catch (error) {
     console.warn('Falling back to hardcoded table list. Error:', error);
     tables = FALLBACK_BACKUP_TABLES;
@@ -122,11 +125,7 @@ export async function runManualBackup(
       const response = await fetch(
         `${supabaseUrl}/rest/v1/${table}?${tableParams.toString()}`,
         {
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers: supabaseRestJsonHeaders(supabaseAnonKey, authorizationBearer),
         },
       );
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { PlanningCenterListMapperComponent } from './planning-center-list-mapper.component';
 import { ChangeDetectorRef } from '@angular/core';
 
@@ -17,6 +18,7 @@ describe('PlanningCenterListMapperComponent', () => {
   let mockSupabaseService: any;
   let mockToastService: any;
   let mockPlanningCenterListService: any;
+  let mockPlanningCenterRest: any;
   let mockCdr: any;
 
   const createMockSupabaseClient = () => ({
@@ -46,7 +48,7 @@ describe('PlanningCenterListMapperComponent', () => {
   });
 
   beforeEach(() => {
-    mockSupabaseService = createMockSupabaseClient();
+    mockSupabaseService = wireGatedSupabaseMock(createMockSupabaseClient());
 
     mockToastService = {
       success: vi.fn(),
@@ -61,10 +63,20 @@ describe('PlanningCenterListMapperComponent', () => {
       markForCheck: vi.fn()
     };
 
+    mockPlanningCenterRest = {
+      fetchPlanningCenterLists: vi.fn().mockResolvedValue({
+        lists: [
+          { id: 'list-1', name: 'Sunday Service', description: 'Main service attendees' },
+          { id: 'list-2', name: 'Prayer Team', description: 'Prayer warriors' },
+        ],
+      }),
+    };
+
     component = new PlanningCenterListMapperComponent(
       mockSupabaseService,
       mockToastService,
       mockPlanningCenterListService,
+      mockPlanningCenterRest,
       mockCdr as ChangeDetectorRef
     );
   });
@@ -142,10 +154,10 @@ describe('PlanningCenterListMapperComponent', () => {
     });
 
     it('should handle error loading lists', async () => {
-      const { fetchPlanningCenterLists } = await import('../../../lib/planning-center');
-      vi.mocked(fetchPlanningCenterLists).mockResolvedValueOnce({
-        error: 'Failed to fetch lists'
-      } as any);
+      mockPlanningCenterRest.fetchPlanningCenterLists.mockResolvedValueOnce({
+        lists: [],
+        error: 'Failed to fetch lists',
+      });
 
       await component.loadLists();
 

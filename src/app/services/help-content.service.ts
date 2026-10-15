@@ -53,7 +53,7 @@ export class HelpContentService {
     };
 
     try {
-      const { error } = await this.supabaseService.getClient().from('help_sections').insert([newSection]);
+      const { error } = await (await this.supabaseService.from('help_sections')).insert([newSection]);
 
       if (error) {
         throw error;
@@ -88,9 +88,7 @@ export class HelpContentService {
     };
 
     try {
-      const { error } = await this.supabaseService
-        .getClient()
-        .from('help_sections')
+      const { error } = await (await this.supabaseService.from('help_sections'))
         .update(updatedSection)
         .eq('id', id);
 
@@ -124,9 +122,7 @@ export class HelpContentService {
     };
 
     try {
-      const { error } = await this.supabaseService
-        .getClient()
-        .from('help_sections')
+      const { error } = await (await this.supabaseService.from('help_sections'))
         .update({ isActive: false, updatedAt: new Date() })
         .eq('id', id);
 
@@ -157,7 +153,7 @@ export class HelpContentService {
     }
 
     try {
-      const { error } = await this.supabaseService.getClient().from('help_sections').delete().eq('id', id);
+      const { error } = await (await this.supabaseService.from('help_sections')).delete().eq('id', id);
 
       if (error) {
         throw error;
@@ -185,9 +181,7 @@ export class HelpContentService {
       }));
 
       for (const section of updates) {
-        const { error } = await this.supabaseService
-          .getClient()
-          .from('help_sections')
+        const { error } = await (await this.supabaseService.from('help_sections'))
           .update({ order: section.order, updatedAt: section.updatedAt })
           .eq('id', section.id);
 

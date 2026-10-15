@@ -74,7 +74,7 @@ export class PersonalCategoryColorService {
     }
 
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('personal_prayer_category_colors')
         .select('category, color')
         .ilike('user_email', userEmail);
@@ -129,7 +129,7 @@ export class PersonalCategoryColorService {
     const setForEmail = userEmail.toLowerCase().trim();
 
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('personal_prayer_category_colors')
         .upsert(
           {
@@ -184,7 +184,7 @@ export class PersonalCategoryColorService {
     const color = currentMap[oldName];
 
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('personal_prayer_category_colors')
         .update({
           category: newName,

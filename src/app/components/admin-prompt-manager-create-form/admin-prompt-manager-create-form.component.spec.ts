@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ApplicationRef, ChangeDetectorRef } from '@angular/core';
 import { AdminPromptManagerCreateFormComponent } from './admin-prompt-manager-create-form.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -10,13 +11,13 @@ describe('AdminPromptManagerCreateFormComponent', () => {
   let mockToast: { warning: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(() => ({
           insert: vi.fn(() => Promise.resolve({ error: null })),
         })),
       },
-    };
+    });
     mockToast = {
       warning: vi.fn(),
       success: vi.fn(),

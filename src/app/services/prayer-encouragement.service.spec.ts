@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { firstValueFrom, of, BehaviorSubject } from 'rxjs';
 import { skip, take } from 'rxjs/operators';
 import { PrayerEncouragementService } from './prayer-encouragement.service';
@@ -19,7 +20,7 @@ describe('PrayerEncouragementService', () => {
     vi.clearAllMocks();
     localStorage.clear();
 
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -32,7 +33,7 @@ describe('PrayerEncouragementService', () => {
           })
         })
       }
-    };
+    });
 
     mockUserSessionService = {
       getPersonalPrayerCooldownHours: vi.fn().mockReturnValue(2),
@@ -304,8 +305,13 @@ describe('PrayerEncouragementService', () => {
         })
       });
       const newService = new PrayerEncouragementService(mockSupabase, mockUserSessionService as unknown as UserSessionService);
-      await firstValueFrom(newService.getCooldownHours$().pipe(take(1)));
-      expect(warn).toHaveBeenCalledWith('[PrayerEncouragement] Error loading flag', expect.any(Error));
+      newService.getCooldownHours$().subscribe();
+      await vi.waitFor(() =>
+        expect(warn).toHaveBeenCalledWith(
+          '[PrayerEncouragement] Error loading flag',
+          expect.any(Error)
+        )
+      );
       warn.mockRestore();
     });
 

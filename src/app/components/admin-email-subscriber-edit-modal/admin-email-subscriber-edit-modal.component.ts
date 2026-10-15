@@ -58,7 +58,7 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
       this.editError = null;
       this.cdr.markForCheck();
 
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('email_subscribers')
         .update({ name: trimmedName })
         .eq('id', this.subscriber.id);

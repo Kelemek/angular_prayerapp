@@ -284,7 +284,7 @@ export class PrayerEncouragementSettingsComponent {
     this.isLoading = true;
     this.cdr.markForCheck();
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from("admin_settings")
         .select(
           "prayer_encouragement_enabled, prayer_encouragement_cooldown_hours"
@@ -317,7 +317,7 @@ export class PrayerEncouragementSettingsComponent {
         168,
         Math.max(1, Math.round(this.cooldownHours))
       );
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from("admin_settings")
         .update({
           prayer_encouragement_enabled: this.prayerEncouragementEnabled,

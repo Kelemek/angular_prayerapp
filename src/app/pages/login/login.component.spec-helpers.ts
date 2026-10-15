@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { wireGatedSupabaseMock } from "../../testing/supabase-service-mock";
 import { BehaviorSubject } from "rxjs";
 import { LoginComponent } from "./login.component";
 import { LoginAuthCoordinator } from "../../services/login-auth.coordinator";
@@ -48,6 +49,7 @@ export const makeMocks = () => {
     })),
     directMutation: vi.fn(async () => ({ data: [{ id: "1" }], error: null })),
   };
+  wireGatedSupabaseMock(supabaseService);
 
   const emailNotificationService: any = {
     sendAccountApprovalNotification: vi.fn(async () => true),

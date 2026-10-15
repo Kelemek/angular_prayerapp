@@ -5,6 +5,7 @@ import { prayerEditorSearchResultsState } from './admin-prayer-editor-pagination
 export interface PrayerEditorSearchRunParams {
   supabaseUrl: string;
   supabaseKey: string;
+  authorizationBearer: string;
   searchTerm: string;
   statusFilter: string;
   approvalFilter: string;
@@ -34,6 +35,7 @@ export async function runPrayerEditorSearchWithOutcome(
     const results = await runPrayerEditorSearch({
       supabaseUrl: params.supabaseUrl,
       supabaseKey: params.supabaseKey,
+      authorizationBearer: params.authorizationBearer,
       searchTerm: params.searchTerm,
       statusFilter: params.statusFilter,
       approvalFilter: params.approvalFilter,

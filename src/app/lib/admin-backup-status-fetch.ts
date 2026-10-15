@@ -1,8 +1,10 @@
 import type { BackupLog } from './admin-backup-status';
+import { supabaseRestJsonHeaders } from '../../lib/supabase-rest-bearer';
 
 export async function fetchBackupStatusLogs(
   supabaseUrl: string,
-  supabaseKey: string,
+  supabaseAnonKey: string,
+  authorizationBearer: string,
 ): Promise<BackupLog[]> {
   const params = new URLSearchParams();
   params.set('select', '*');
@@ -16,11 +18,7 @@ export async function fetchBackupStatusLogs(
 
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      'Content-Type': 'application/json',
-    },
+    headers: supabaseRestJsonHeaders(supabaseAnonKey, authorizationBearer),
     signal: controller.signal,
   });
 

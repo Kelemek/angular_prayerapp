@@ -71,7 +71,7 @@ export class PushNotificationService {
       }
 
       // Try to find existing token for this device
-      const { data: existing, error: fetchError } = await this.supabase.client
+      const { data: existing, error: fetchError } = await (await this.supabase.db())
         .from('device_tokens')
         .select('id')
         .eq('token', token.token)
@@ -85,7 +85,7 @@ export class PushNotificationService {
 
       if (existing) {
         // Update existing token with new timestamp
-        const { error: updateError } = await this.supabase.client
+        const { error: updateError } = await (await this.supabase.db())
           .from('device_tokens')
           .update({
             last_seen_at: new Date().toISOString()
@@ -100,7 +100,7 @@ export class PushNotificationService {
         }
       } else {
         // Insert new token
-        const { error: insertError } = await this.supabase.client
+        const { error: insertError } = await (await this.supabase.db())
           .from('device_tokens')
           .insert({
             user_email: userEmail,
@@ -127,7 +127,7 @@ export class PushNotificationService {
    * Called with true when we successfully store a device token.
    */
   private async setReceivePushForEmail(email: string, value: boolean): Promise<void> {
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('email_subscribers')
       .update({ receive_push: value })
       .eq('email', email.trim().toLowerCase());
@@ -142,7 +142,7 @@ export class PushNotificationService {
    */
   async getDeviceTokensForUser(email: string): Promise<any[]> {
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('device_tokens')
         .select('token, platform')
         .eq('user_email', email);
@@ -168,7 +168,7 @@ export class PushNotificationService {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('device_tokens')
         .delete()
         .lt('last_seen_at', thirtyDaysAgo.toISOString())
@@ -198,7 +198,7 @@ export class PushNotificationService {
     data?: Record<string, string>;
   }): Promise<void> {
     try {
-      const { data: subscribers, error: fetchError } = await this.supabase.client
+      const { data: subscribers, error: fetchError } = await (await this.supabase.db())
         .from('email_subscribers')
         .select('email')
         .eq('is_blocked', false)
@@ -243,7 +243,7 @@ export class PushNotificationService {
     const normalized = emails.map((e) => e?.trim().toLowerCase()).filter(Boolean);
     if (!normalized.length) return;
     try {
-      const { data: rows, error: fetchError } = await this.supabase.client
+      const { data: rows, error: fetchError } = await (await this.supabase.db())
         .from('email_subscribers')
         .select('email')
         .in('email', normalized)
@@ -286,7 +286,7 @@ export class PushNotificationService {
     data?: Record<string, string>;
   }): Promise<void> {
     try {
-      const { data: admins, error: fetchError } = await this.supabase.client
+      const { data: admins, error: fetchError } = await (await this.supabase.db())
         .from('email_subscribers')
         .select('email')
         .eq('is_admin', true)
@@ -327,7 +327,7 @@ export class PushNotificationService {
       const token = this.capacitor.getPushToken();
       if (!token) return;
 
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('device_tokens')
         .delete()
         .eq('token', token.token);

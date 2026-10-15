@@ -1,17 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrayerService } from './prayer.service';
 
-const makeSupabase = (overrides: any = {}) => ({
-  client: {
+const makeSupabase = (overrides: any = {}) => {
+  const client = {
     from: vi.fn(() => ({
       select: vi.fn(() => ({ eq: vi.fn(() => ({ order: vi.fn(() => Promise.resolve({ data: [], error: null }) ) })) }))
     })),
     channel: vi.fn(() => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn(() => ({})) })),
     removeChannel: vi.fn()
-  },
-  ensureConnected: vi.fn().mockResolvedValue(undefined),
-  ...overrides
-});
+  };
+  return {
+    client,
+    getClientWhenReady: vi.fn().mockResolvedValue(client),
+    from: vi.fn().mockImplementation(async () => client.from()),
+    ensureConnected: vi.fn().mockResolvedValue(undefined),
+    ...overrides
+  };
+};
+
+const mockAdminAuth = { isUserAuthenticated: () => true };
+const mockDataAccessGate = {
+  waitForReady: vi.fn().mockResolvedValue(undefined),
+  ready$: new (require('rxjs').BehaviorSubject)(true).asObservable(),
+};
 
 const noopToast = { success: vi.fn(), error: vi.fn() };
 const noopEmail = { sendAdminNotification: vi.fn().mockResolvedValue(undefined) };
@@ -23,6 +34,9 @@ const noopUserSessionService = { userSession$: new (require('rxjs').BehaviorSubj
 describe('PrayerService extra coverage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(PrayerService.prototype as any, 'initializePrayers').mockResolvedValue(
+      undefined
+    );
   });
 
   it('setupRealtimeSubscription handles multiple subscribe statuses without throwing', () => {
@@ -39,9 +53,9 @@ describe('PrayerService extra coverage', () => {
 
     const supabase = makeSupabase({ client: { from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ order: vi.fn(() => Promise.resolve({ data: [], error: null }) ) })) })) })), channel: vi.fn(() => fakeChannel), removeChannel: vi.fn() } });
 
-    expect(() => new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, noopCache as any, noopBadgeService as any, noopUserSessionService as any)).not.toThrow();
+    expect(() => new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, noopCache as any, noopBadgeService as any, noopUserSessionService as any, mockAdminAuth, mockDataAccessGate)).not.toThrow();
     // constructing the service should not throw and subscription logic runs
-    const svc = new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, noopCache as any, noopBadgeService as any, noopUserSessionService as any);
+    const svc = new (PrayerService as any)(supabase, noopToast as any, noopEmail as any, noopVerify as any, noopCache as any, noopBadgeService as any, noopUserSessionService as any, mockAdminAuth, mockDataAccessGate);
     expect(svc).toBeTruthy();
   });
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { BehaviorSubject } from 'rxjs';
 import { BadgeReadStateService } from './badge-read-state.service';
 import {
@@ -50,12 +51,12 @@ describe('BadgeReadStateService', () => {
       return userSessionSubject.value?.email ?? null;
     });
 
-    const supabase = {
+    const supabase = wireGatedSupabaseMock({
       client: {
         from: fromMock,
         rpc: rpcMock,
       },
-    };
+    });
 
     const userSessionService = {
       resolveUserEmail,

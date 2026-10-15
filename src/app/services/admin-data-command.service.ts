@@ -1,6 +1,4 @@
 import { Injectable } from '@angular/core';
-import { lookupPersonByEmail } from '../../lib/planning-center';
-import { environment } from '../../environments/environment';
 import {
   prayerStatusAfterApprovedUpdate,
   type AdminPendingUpdateRow,
@@ -8,14 +6,18 @@ import {
 } from '../lib/admin-data-map';
 import type { AccountApprovalRequest } from '../types/admin-data';
 import type { PrayerRequest, PrayerUpdate } from '../types/prayer';
+import { PlanningCenterRestService } from './planning-center-rest.service';
 import { SupabaseService } from './supabase.service';
 
 @Injectable({ providedIn: 'root' })
 export class AdminDataCommandService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly planningCenterRest: PlanningCenterRestService
+  ) {}
 
   async approvePrayer(id: string): Promise<void> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { error } = await client
       .from('prayers')
       .update({
@@ -39,14 +41,20 @@ export class AdminDataCommandService {
   }
 
   async fetchPrayerById(id: string): Promise<AdminPrayerRow> {
-    const { data, error } = await this.supabase.client.from('prayers').select('*').eq('id', id).single();
+    const { data, error } = await (await this.supabase.from('prayers'))
+      .select('*')
+      .eq('id', id)
+      .single();
     if (error) throw error;
     if (!data) throw new Error('Prayer not found');
     return data as AdminPrayerRow;
   }
 
   async tryFetchPrayerById(id: string): Promise<AdminPrayerRow | null> {
-    const { data, error } = await this.supabase.client.from('prayers').select('*').eq('id', id).single();
+    const { data, error } = await (await this.supabase.from('prayers'))
+      .select('*')
+      .eq('id', id)
+      .single();
     if (error || !data) {
       console.error('[AdminDataCommandService] Error fetching prayer:', error);
       return null;
@@ -55,7 +63,7 @@ export class AdminDataCommandService {
   }
 
   async denyPrayer(id: string, reason: string): Promise<AdminPrayerRow> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { data: prayer, error: fetchError } = await client.from('prayers').select('*').eq('id', id).single();
     if (fetchError) throw fetchError;
     if (!prayer) throw new Error('Prayer not found');
@@ -90,12 +98,14 @@ export class AdminDataCommandService {
     if (updates.prayer_for) {
       dataToUpdate.title = `Prayer for ${updates.prayer_for}`;
     }
-    const { error } = await this.supabase.client.from('prayers').update(dataToUpdate).eq('id', id);
+    const { error } = await (await this.supabase.from('prayers'))
+      .update(dataToUpdate)
+      .eq('id', id);
     if (error) throw error;
   }
 
   async approveUpdate(id: string): Promise<AdminPendingUpdateRow | null> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { data: updateInitial, error: fetchInitialError } = await client
       .from('prayer_updates')
       .select('*, prayers(title, status)')
@@ -143,7 +153,7 @@ export class AdminDataCommandService {
   }
 
   async denyUpdate(id: string, reason: string): Promise<AdminPendingUpdateRow> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { data: update, error: fetchError } = await client
       .from('prayer_updates')
       .select('*, prayers(title, description)')
@@ -166,13 +176,14 @@ export class AdminDataCommandService {
   }
 
   async editUpdate(id: string, updates: Partial<PrayerUpdate>): Promise<void> {
-    const { error } = await this.supabase.client.from('prayer_updates').update(updates).eq('id', id);
+    const { error } = await (await this.supabase.from('prayer_updates'))
+      .update(updates)
+      .eq('id', id);
     if (error) throw error;
   }
 
   async fetchUpdateForBroadcast(id: string): Promise<AdminPendingUpdateRow> {
-    const { data: update, error } = await this.supabase.client
-      .from('prayer_updates')
+    const { data: update, error } = await (await this.supabase.from('prayer_updates'))
       .select('*, prayers(title, description, status)')
       .eq('id', id)
       .single();
@@ -188,8 +199,7 @@ export class AdminDataCommandService {
     if (!newPrayerStatus) {
       return null;
     }
-    const { error: prayerError } = await this.supabase.client
-      .from('prayers')
+    const { error: prayerError } = await (await this.supabase.from('prayers'))
       .update({ status: newPrayerStatus })
       .eq('id', update.prayer_id);
     if (prayerError) {
@@ -199,7 +209,7 @@ export class AdminDataCommandService {
   }
 
   async approveDeletionRequest(id: string): Promise<void> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { data: deletionRequest, error: fetchError } = await client
       .from('deletion_requests')
       .select('prayer_id')
@@ -222,8 +232,7 @@ export class AdminDataCommandService {
   }
 
   async denyDeletionRequest(id: string, reason: string): Promise<void> {
-    const { error } = await this.supabase.client
-      .from('deletion_requests')
+    const { error } = await (await this.supabase.from('deletion_requests'))
       .update({
         approval_status: 'denied',
         reviewed_at: new Date().toISOString(),
@@ -234,7 +243,7 @@ export class AdminDataCommandService {
   }
 
   async approveUpdateDeletionRequest(id: string): Promise<void> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { data: deletionRequest, error: fetchError } = await client
       .from('update_deletion_requests')
       .select('update_id')
@@ -260,8 +269,7 @@ export class AdminDataCommandService {
   }
 
   async denyUpdateDeletionRequest(id: string, reason: string): Promise<void> {
-    const { error } = await this.supabase.client
-      .from('update_deletion_requests')
+    const { error } = await (await this.supabase.from('update_deletion_requests'))
       .update({
         approval_status: 'denied',
         reviewed_at: new Date().toISOString(),
@@ -272,7 +280,7 @@ export class AdminDataCommandService {
   }
 
   async approveAccountRequest(id: string): Promise<AccountApprovalRequest> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { data: request, error: fetchError } = await client
       .from('account_approval_requests')
       .select('*')
@@ -284,10 +292,9 @@ export class AdminDataCommandService {
     let inPlanningCenter: boolean | null = null;
     let planningCenterCheckedAt: string | null = null;
     try {
-      const pcResult = await lookupPersonByEmail(
+      const pcResult = await this.planningCenterRest.lookupPersonByEmail(
         request.email.toLowerCase(),
-        environment.supabaseUrl,
-        environment.supabaseAnonKey,
+        false
       );
       inPlanningCenter = pcResult.count > 0;
       planningCenterCheckedAt = new Date().toISOString();
@@ -313,7 +320,7 @@ export class AdminDataCommandService {
   }
 
   async denyAccountRequest(id: string): Promise<AccountApprovalRequest> {
-    const client = this.supabase.client;
+    const client = await this.supabase.getClientWhenReady();
     const { data: request, error: fetchError } = await client
       .from('account_approval_requests')
       .select('*')

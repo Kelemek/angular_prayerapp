@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { MemorizationReciteSettingsService } from './memorization-recite-settings.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
@@ -14,7 +15,7 @@ describe('MemorizationReciteSettingsService', () => {
     directQuery = vi.fn();
     maybeSingle = vi.fn();
     rpc = vi.fn();
-    const supabase = {
+    const supabase = wireGatedSupabaseMock({
       directQuery,
       getSupabaseUrl: vi.fn(() => 'https://test.supabase.co'),
       getSupabaseKey: vi.fn(() => 'test-anon-key'),
@@ -32,7 +33,7 @@ describe('MemorizationReciteSettingsService', () => {
           getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
         },
       },
-    };
+    });
     const userSession = {
       getCurrentSession: vi.fn(() => null),
     };
@@ -140,7 +141,7 @@ describe('MemorizationReciteSettingsService', () => {
       getCurrentSession: vi.fn(() => ({ email: 'member@example.com', fullName: 'Member', isActive: true })),
     };
     const freshService = new MemorizationReciteSettingsService(
-      {
+      wireGatedSupabaseMock({
         directQuery: vi.fn(),
         getSupabaseUrl: vi.fn(() => 'https://test.supabase.co'),
         getSupabaseKey: vi.fn(() => 'test-anon-key'),
@@ -152,7 +153,7 @@ describe('MemorizationReciteSettingsService', () => {
             getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
           },
         },
-      } as unknown as SupabaseService,
+      }) as unknown as SupabaseService,
       userSession as unknown as UserSessionService
     );
     rpc.mockResolvedValue({

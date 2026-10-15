@@ -131,7 +131,7 @@ export class AnalyticsService {
       }
 
       // Track the page view in analytics table
-      await this.supabase.client
+      await (await this.supabase.db())
         .from('analytics')
         .insert({
           event_type: 'page_view',
@@ -142,7 +142,7 @@ export class AnalyticsService {
         });
 
       // Update the user's last activity date in email_subscribers
-      await this.supabase.client
+      await (await this.supabase.db())
         .from('email_subscribers')
         .update({ last_activity_date: new Date().toISOString() })
         .eq('email', userEmail);
@@ -219,69 +219,69 @@ export class AnalyticsService {
         memorizedItemsResult
       ] = await Promise.all([
         // Total page views
-        this.supabase.client
+        (await this.supabase.db())
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view'),
 
         // Today's page views
-        this.supabase.client
+        (await this.supabase.db())
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view')
           .gte('created_at', todayStartISO),
 
         // Week's page views (current calendar week - Sunday to now)
-        this.supabase.client
+        (await this.supabase.db())
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view')
           .gte('created_at', weekStartISO),
 
         // Month's page views (current calendar month - 1st to now)
-        this.supabase.client
+        (await this.supabase.db())
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view')
           .gte('created_at', monthStartISO),
 
         // Year's page views (current year - Jan 1 to now)
-        this.supabase.client
+        (await this.supabase.db())
           .from('analytics')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'page_view')
           .gte('created_at', yearStartISO),
 
         // Total prayers count
-        this.supabase.client
+        (await this.supabase.db())
           .from('prayers')
           .select('*', { count: 'exact', head: true }),
 
         // Current prayers (status = 'current')
-        this.supabase.client
+        (await this.supabase.db())
           .from('prayers')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'current'),
 
         // Answered prayers (status = 'answered')
-        this.supabase.client
+        (await this.supabase.db())
           .from('prayers')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'answered'),
 
         // Archived prayers (status = 'archived')
-        this.supabase.client
+        (await this.supabase.db())
           .from('prayers')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'archived'),
 
         // Total subscribers
-        this.supabase.client
+        (await this.supabase.db())
           .from('email_subscribers')
           .select('*', { count: 'exact', head: true }),
 
         // Memorization mastery (site-wide; levels derived from practice_sessions)
-        this.supabase.client.from('memorized_items').select('practice_sessions')
+        (await this.supabase.db()).from('memorized_items').select('practice_sessions')
       ]);
 
       // Process results
@@ -385,12 +385,12 @@ export class AnalyticsService {
     const pEnd = rangeEnd.toISOString();
 
     const [pvResult, apResult] = await Promise.all([
-      this.supabase.client.rpc('analytics_page_view_buckets', {
+      (await this.supabase.db()).rpc('analytics_page_view_buckets', {
         p_start: pStart,
         p_end: pEnd,
         p_bucket: bucket
       }),
-      this.supabase.client.rpc('analytics_approval_buckets', {
+      (await this.supabase.db()).rpc('analytics_approval_buckets', {
         p_start: pStart,
         p_end: pEnd,
         p_bucket: bucket

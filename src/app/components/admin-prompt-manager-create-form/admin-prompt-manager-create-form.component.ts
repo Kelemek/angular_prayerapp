@@ -76,7 +76,7 @@ export class AdminPromptManagerCreateFormComponent {
       this.appRef.tick();
       await Promise.resolve();
 
-      const { error } = await this.supabase.client.from('prayer_prompts').insert({
+      const { error } = await (await this.supabase.from('prayer_prompts')).insert({
         title: this.title.trim(),
         type: this.type,
         description: this.description.trim(),

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { GitHubFeedbackService } from './github-feedback.service';
 
@@ -16,6 +17,7 @@ describe('GitHubFeedbackService', () => {
         },
       },
     };
+    wireGatedSupabaseMock(mockSupabaseService);
     service = new GitHubFeedbackService(mockSupabaseService as never);
   });
 

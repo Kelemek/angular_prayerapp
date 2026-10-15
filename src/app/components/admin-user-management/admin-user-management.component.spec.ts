@@ -5,6 +5,7 @@ import { ToastService } from '../../services/toast.service';
 import { EmailNotificationService } from '../../services/email-notification.service';
 import { ChangeDetectorRef } from '@angular/core';
 import { vi, describe, it, beforeEach, expect } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 
 vi.mock('../../lib/admin-user-management-invitation', () => ({
   sendAdminInvitationEmail: vi.fn().mockResolvedValue(undefined),
@@ -57,10 +58,10 @@ describe('AdminUserManagementComponent', () => {
 
   beforeEach(() => {
     mockClient = createMockClient();
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: mockClient,
       getClient: () => mockSupabase.client,
-    };
+    });
 
     mockToast = {
       success: vi.fn()

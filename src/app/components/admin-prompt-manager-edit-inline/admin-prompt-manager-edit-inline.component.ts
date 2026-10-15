@@ -79,7 +79,7 @@ export class AdminPromptManagerEditInlineComponent implements OnChanges {
       this.appRef.tick();
       await Promise.resolve();
 
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('prayer_prompts')
         .update({
           title: this.title.trim(),

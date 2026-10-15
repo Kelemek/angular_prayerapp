@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { BehaviorSubject } from 'rxjs';
 import { PersonalCategoryColorService } from '../../app/services/personal-category-color.service';
 
@@ -57,7 +58,7 @@ describe('PersonalCategoryColorService', () => {
 
     toast = { error: vi.fn() };
 
-    const supabase = {
+    const supabase = wireGatedSupabaseMock({
       client: {
         auth: {
           getSession: vi.fn().mockResolvedValue({
@@ -66,7 +67,7 @@ describe('PersonalCategoryColorService', () => {
         },
         from: fromMock,
       },
-    };
+    });
 
     service = new PersonalCategoryColorService(
       supabase as any,

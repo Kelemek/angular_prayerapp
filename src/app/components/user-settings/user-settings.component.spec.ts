@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { UserSettingsComponent } from './user-settings.component';
 import { ThemeService } from '../../services/theme.service';
 import { TextSizeService } from '../../services/text-size.service';
@@ -69,6 +70,7 @@ describe('UserSettingsComponent', () => {
         }))
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     mockPrintService = {
       downloadPrintablePrayerList: vi.fn(() => Promise.resolve()),

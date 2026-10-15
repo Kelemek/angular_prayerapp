@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { EmailTemplatesManagerComponent } from './email-templates-manager.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
@@ -43,6 +44,7 @@ describe('EmailTemplatesManagerComponent', () => {
         })
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     mockToastService = {
       success: vi.fn(),

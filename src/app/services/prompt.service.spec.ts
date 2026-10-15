@@ -7,6 +7,8 @@ import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
 import { PrayerItemReminderService } from './prayer-item-reminder.service';
+import { of } from 'rxjs';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 
 describe('PromptService', () => {
   let service: PromptService;
@@ -17,6 +19,12 @@ describe('PromptService', () => {
   let mockUserSessionService: any;
   let mockPrayerItemReminderService: { dropRemindersForPrayer: ReturnType<typeof vi.fn> };
   let userSessionSubject: BehaviorSubject<{ email: string } | null>;
+  let mockAdminAuth: {
+    isUserAuthenticated: ReturnType<typeof vi.fn>;
+  };
+  let mockDataAccessGate: {
+    waitForReady: ReturnType<typeof vi.fn>;
+  };
   let consoleErrorSpy: any;
 
   beforeEach(() => {
@@ -50,6 +58,12 @@ describe('PromptService', () => {
     };
 
     userSessionSubject = new BehaviorSubject<{ email: string } | null>(null);
+    mockAdminAuth = {
+      isUserAuthenticated: vi.fn(() => true),
+    };
+    mockDataAccessGate = {
+      waitForReady: vi.fn().mockResolvedValue(undefined),
+    };
     mockUserSessionService = {
       userSession$: userSessionSubject.asObservable(),
       getUserEmail: vi.fn(() => userSessionSubject.value?.email ?? null),
@@ -107,6 +121,7 @@ describe('PromptService', () => {
         })
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     service = new PromptService(
       mockSupabaseService,
@@ -114,7 +129,12 @@ describe('PromptService', () => {
       mockCacheService,
       mockBadgeService,
       mockUserSessionService,
-      mockPrayerItemReminderService as unknown as PrayerItemReminderService
+      mockPrayerItemReminderService as unknown as PrayerItemReminderService,
+      {
+        waitForReady: mockDataAccessGate.waitForReady,
+        ready$: of(true),
+      } as any,
+      mockAdminAuth as any
     );
   });
 
@@ -126,9 +146,11 @@ describe('PromptService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should call loadPrompts on construction', () => {
-    expect(mockSupabaseService.client.from).toHaveBeenCalledWith('prayer_types');
-    expect(mockSupabaseService.client.from).toHaveBeenCalledWith('prayer_prompts');
+  it('should call loadPrompts on construction', async () => {
+    await vi.waitFor(() =>
+      expect(mockSupabaseService.from).toHaveBeenCalledWith('prayer_types')
+    );
+    expect(mockSupabaseService.from).toHaveBeenCalledWith('prayer_prompts');
   });
 
   describe('observables', () => {
@@ -146,6 +168,14 @@ describe('PromptService', () => {
   });
 
   describe('loadPrompts', () => {
+    it('skips database fetch when the user is logged out', async () => {
+      mockAdminAuth.isUserAuthenticated.mockReturnValue(false);
+      mockSupabaseService.client.from.mockClear();
+      await service.loadPrompts();
+      expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
+      expect(mockToastService.error).not.toHaveBeenCalled();
+    });
+
     it('should load prompts from database', async () => {
       const mockPrompts = [
         { id: '1', type: 'Healing', title: 'Test 1', created_at: '2024-01-01' },

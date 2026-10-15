@@ -85,7 +85,7 @@ export class UserHourReminderService {
   ): Promise<UserHourReminderSlot[]> {
     const generation = ++this.fetchGeneration[kind];
     const { table, slotsKey, fetchedAtKey } = CONFIG[kind];
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from(table)
       .select('id, iana_timezone, local_hour, local_minute')
       .eq('user_email', email)
@@ -127,7 +127,7 @@ export class UserHourReminderService {
   ): Promise<UserHourReminderSlot[]> {
     this.fetchGeneration[kind]++;
     const { table } = CONFIG[kind];
-    const { error } = await this.supabase.client.from(table).insert({
+    const { error } = await (await this.supabase.from(table)).insert({
       user_email: email.trim(),
       iana_timezone: ianaTimezone,
       local_hour: localHour,
@@ -146,7 +146,7 @@ export class UserHourReminderService {
   ): Promise<UserHourReminderSlot[]> {
     this.fetchGeneration[kind]++;
     const { table } = CONFIG[kind];
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from(table)
       .delete()
       .eq('id', id)

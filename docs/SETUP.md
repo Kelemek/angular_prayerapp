@@ -53,6 +53,8 @@ supabase db push
 # 2. Run migration files in supabase/migrations/
 ```
 
+**RLS Phase 2:** Migration [`20261015180000_rls_phase2_jwt_lockdown.sql`](../supabase/migrations/20261015180000_rls_phase2_jwt_lockdown.sql) is idempotent and is applied on **test** `jcdhajfqtzipltvfslhu`. Ship the matching web/native build (JWT gate + backup bearer) before production. To apply or refresh (linked project): `supabase db query -f supabase/migrations/20261015180000_rls_phase2_jwt_lockdown.sql --linked`, then `supabase migration repair --status applied 20261015180000` on first apply only. If you previously applied a separate `20261015190000` file locally, delete that row from `supabase_migrations.schema_migrations` or mark it reverted before pushing. Details: [`RLS_PHASE2_ANON_AUDIT.md`](RLS_PHASE2_ANON_AUDIT.md).
+
 ### PWA Icons & Favicon
 
 The app uses a PWA (Progressive Web App) with custom icons. To regenerate icons:

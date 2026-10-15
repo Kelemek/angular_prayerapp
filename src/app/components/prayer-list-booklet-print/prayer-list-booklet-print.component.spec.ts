@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef } from '@angular/core';
 import { PrayerListBookletPrintComponent } from './prayer-list-booklet-print.component';
 import { PrintService } from '../../services/print.service';
@@ -16,7 +17,7 @@ describe('PrayerListBookletPrintComponent', () => {
     mockPrint = {
       downloadPrintableBookletPrayerList: vi.fn().mockResolvedValue(undefined),
     };
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -44,7 +45,7 @@ describe('PrayerListBookletPrintComponent', () => {
           }),
         }),
       },
-    };
+    });
     mockCdr = {
       markForCheck: vi.fn(),
     };

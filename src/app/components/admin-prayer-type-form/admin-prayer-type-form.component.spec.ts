@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ApplicationRef, ChangeDetectorRef } from '@angular/core';
 import { AdminPrayerTypeFormComponent } from './admin-prayer-type-form.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -11,7 +12,7 @@ describe('AdminPrayerTypeFormComponent', () => {
   let mockPromptService: { loadPrompts: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(() => ({
           insert: vi.fn(() => Promise.resolve({ error: null })),
@@ -20,7 +21,7 @@ describe('AdminPrayerTypeFormComponent', () => {
           })),
         })),
       },
-    };
+    });
     mockPromptService = { loadPrompts: vi.fn(() => Promise.resolve()) };
 
     const cdr = { markForCheck: vi.fn(), detectChanges: vi.fn() } as unknown as ChangeDetectorRef;

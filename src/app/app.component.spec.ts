@@ -33,6 +33,7 @@ import { ROUTED_PAGE_SELECTOR } from '../lib/visible-page-recovery';
 const decodeAccountCodeMock = vi.fn();
 const supabaseDirectQueryMock = vi.fn();
 const supabaseDirectMutationMock = vi.fn();
+const supabaseRpcMock = vi.fn();
 const lookupPersonByEmailMock = vi.fn();
 const emailGetTemplateMock = vi.fn();
 const emailApplyTemplateVariablesMock = vi.fn();
@@ -52,12 +53,32 @@ vi.mock('./services/approval-links.service', () => {
 vi.mock('./services/supabase.service', () => {
   return {
     SupabaseService: class {
+      client = {
+        rpc: (...args: unknown[]) => supabaseRpcMock(...args),
+      };
+
+      rpc(...args: unknown[]) {
+        return supabaseRpcMock(...args);
+      }
+
+      async db() {
+        return this.client;
+      }
+
+      async getClientWhenReady() {
+        return this.client;
+      }
+
       directQuery(...args: unknown[]) {
         return supabaseDirectQueryMock(...args);
       }
 
       directMutation(...args: unknown[]) {
         return supabaseDirectMutationMock(...args);
+      }
+
+      getRestAuthorizationBearer() {
+        return Promise.resolve('admin-jwt');
       }
     }
   };
@@ -1506,8 +1527,10 @@ describe('AppComponent', () => {
   describe('handleAccountApprovalCode (integration)', () => {
     const approvalServices = () => ({
       decodeAccountCode: decodeAccountCodeMock,
+      client: { rpc: (...args: unknown[]) => supabaseRpcMock(...args) },
       directQuery: supabaseDirectQueryMock,
       directMutation: supabaseDirectMutationMock,
+      getRestAuthorizationBearer: () => Promise.resolve('admin-jwt'),
       getTemplate: emailGetTemplateMock,
       applyTemplateVariables: emailApplyTemplateVariablesMock,
       sendEmail: emailSendEmailMock,
@@ -1517,7 +1540,43 @@ describe('AppComponent', () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
-      mockInjector.get = vi.fn(() => approvalServices());
+      mockInjector.get = vi.fn((token: { name?: string }) => {
+        const name = typeof token?.name === 'string' ? token.name : '';
+        if (name === 'PlanningCenterRestService') {
+          return { lookupPersonByEmail: lookupPersonByEmailMock };
+        }
+        if (name === 'ApprovalLinksService') {
+          return { decodeAccountCode: decodeAccountCodeMock };
+        }
+        if (name === 'SupabaseService') {
+          const client = {
+            rpc: (...args: unknown[]) => supabaseRpcMock(...args),
+          };
+          return {
+            ...client,
+            rpc: (...args: unknown[]) => supabaseRpcMock(...args),
+            client,
+            directQuery: supabaseDirectQueryMock,
+            directMutation: supabaseDirectMutationMock,
+            getRestAuthorizationBearer: () => Promise.resolve('admin-jwt'),
+            db: async () => client,
+            getClientWhenReady: async () => client,
+            from: async () => client,
+          };
+        }
+        if (name === 'EmailNotificationService') {
+          return {
+            getTemplate: emailGetTemplateMock,
+            applyTemplateVariables: emailApplyTemplateVariablesMock,
+            sendEmail: emailSendEmailMock,
+            getEmailBaseUrl: () => 'https://example.com',
+          };
+        }
+        if (name === 'ToastService') {
+          return { showToast: toastShowToastMock };
+        }
+        return approvalServices();
+      });
       emailApplyTemplateVariablesMock.mockImplementation(
         (template: string, vars: Record<string, string> = {}) => {
           let result = template;
@@ -1534,6 +1593,7 @@ describe('AppComponent', () => {
       });
       emailSendEmailMock.mockResolvedValue({});
       supabaseDirectMutationMock.mockResolvedValue({ error: null });
+      supabaseRpcMock.mockResolvedValue({ error: null });
       lookupPersonByEmailMock.mockResolvedValue({ count: 1 });
     });
 
@@ -1559,7 +1619,10 @@ describe('AppComponent', () => {
 
       await (component as any).handleAccountApprovalCode('account_approve_user@example.com');
 
-      expect(supabaseDirectMutationMock).toHaveBeenCalled();
+      expect(supabaseRpcMock).toHaveBeenCalledWith(
+        'complete_account_approval_from_link',
+        expect.objectContaining({ p_email: 'user@example.com' })
+      );
       expect(emailSendEmailMock).toHaveBeenCalled();
       expect(toastShowToastMock).toHaveBeenCalledWith(
         'Account approved for Jane Doe',
@@ -1640,7 +1703,7 @@ describe('AppComponent', () => {
 
       await (component as any).handleAccountApprovalCode('account_approve_user@example.com');
 
-      expect(supabaseDirectMutationMock).toHaveBeenCalled();
+      expect(supabaseRpcMock).toHaveBeenCalled();
       expect(toastShowToastMock).toHaveBeenCalledWith(
         'Account approved for Alex Kim',
         'success'

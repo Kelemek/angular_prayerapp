@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { ScriptureService } from './scripture.service';
 
 describe('ScriptureService', () => {
@@ -19,6 +20,7 @@ describe('ScriptureService', () => {
         },
       },
     };
+    wireGatedSupabaseMock(supabase);
     service = new ScriptureService(supabase as never);
     vi.stubGlobal('fetch', vi.fn());
   });

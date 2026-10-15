@@ -91,11 +91,11 @@ export class MemorizationRecommendationsService {
 
     try {
       const [categoriesRes, itemsRes] = await Promise.all([
-        this.supabase.client
+        (await this.supabase.db())
           .from('memorization_recommendation_categories')
           .select('*')
           .order('display_order', { ascending: true }),
-        this.supabase.client
+        (await this.supabase.db())
           .from('memorization_recommendations')
           .select('*')
           .order('display_order', { ascending: true }),
@@ -142,7 +142,7 @@ export class MemorizationRecommendationsService {
         -1
       ) + 1;
 
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('memorization_recommendation_categories')
       .insert({ name: normalized, display_order: nextOrder })
       .select('*')
@@ -169,7 +169,7 @@ export class MemorizationRecommendationsService {
     const normalized = name.trim();
     if (!normalized) return { ok: false, reason: 'empty_name' };
 
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('memorization_recommendation_categories')
       .update({ name: normalized })
       .eq('id', id)
@@ -195,7 +195,7 @@ export class MemorizationRecommendationsService {
     const hasVerses = this.itemsSubject.value.some((i) => i.categoryId === id);
     if (hasVerses) return { ok: false, reason: 'not_empty' };
 
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('memorization_recommendation_categories')
       .delete()
       .eq('id', id);
@@ -217,10 +217,10 @@ export class MemorizationRecommendationsService {
   async reorderCategories(idsInOrder: string[]): Promise<boolean> {
     if (idsInOrder.length === 0) return true;
     try {
-      const { error } = await this.supabase.client.rpc(
+      const { error } = await (await this.supabase.rpc(
         'reorder_memorization_recommendation_categories',
         { p_ordered_ids: idsInOrder }
-      );
+      ));
       if (error) throw error;
 
       // Keep UI/service in sync even if the follow-up reload fails.
@@ -251,7 +251,7 @@ export class MemorizationRecommendationsService {
         .filter((i) => i.categoryId === categoryId)
         .reduce((max, item) => Math.max(max, item.displayOrder), -1) + 1;
 
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('memorization_recommendations')
       .insert({
         reference: normalizedRef,
@@ -276,7 +276,7 @@ export class MemorizationRecommendationsService {
   }
 
   async removeRecommendation(id: string): Promise<boolean> {
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('memorization_recommendations')
       .delete()
       .eq('id', id);
@@ -319,7 +319,7 @@ export class MemorizationRecommendationsService {
   ): Promise<boolean> {
     if (placements.length === 0) return true;
     try {
-      const { error } = await this.supabase.client.rpc(
+      const { error } = await (await this.supabase.rpc(
         'apply_memorization_recommendation_placements',
         {
           p_placements: placements.map((p) => ({
@@ -328,7 +328,7 @@ export class MemorizationRecommendationsService {
             display_order: p.displayOrder,
           })),
         }
-      );
+      ));
       if (error) throw error;
 
       // Apply locally before reload so a failed load(true) cannot leave stale

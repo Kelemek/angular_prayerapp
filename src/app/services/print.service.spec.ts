@@ -3,6 +3,7 @@ import { PrintService, Prayer, TimeRange } from './print.service';
 import type { EmailNotificationService } from './email-notification.service';
 import { SupabaseService } from './supabase.service';
 import { getPrintRangeFileLabel } from '../lib/print-time-range';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 
 const mockEmailNotificationService = {
   getEmailBaseUrl: vi.fn().mockReturnValue('https://example.com')
@@ -191,13 +192,13 @@ describe('PrintService', () => {
       return originalFrom(table);
     });
 
-    mockSupabaseService = {
-      client: mockSupabaseClient
-    } as any;
+    mockSupabaseService = wireGatedSupabaseMock({
+      client: mockSupabaseClient,
+    }) as any;
 
     mockPrayerService = {
-      getPersonalPrayers: vi.fn()
-    };
+      getPersonalPrayers: vi.fn(),
+    } as any;
 
     sharedMemorizationMock.items = [];
     sharedMemorizationMock.loadItems.mockClear();
@@ -1360,9 +1361,9 @@ describe('PrintService', () => {
         from: vi.fn(() => createMockChain())
       };
 
-      mockSupabaseService = {
+      mockSupabaseService = wireGatedSupabaseMock({
         client: mockSupabaseClient
-      };
+      }) as unknown as SupabaseService;
 
       service = new PrintService(
         mockSupabaseService as any,
@@ -1453,6 +1454,7 @@ describe('PrintService', () => {
           from: vi.fn(() => createMockChain())
         }
       };
+      wireGatedSupabaseMock(mockSupabaseService);
 
       service = new PrintService(
         mockSupabaseService as any,
@@ -1531,6 +1533,7 @@ describe('PrintService', () => {
           from: vi.fn(() => createMockChain())
         }
       };
+      wireGatedSupabaseMock(mockSupabaseService);
 
       service = new PrintService(
         mockSupabaseService as any,
@@ -1622,6 +1625,7 @@ describe('PrintService', () => {
           from: vi.fn(() => createMockChain())
         }
       };
+      wireGatedSupabaseMock(mockSupabaseService);
 
       service = new PrintService(
         mockSupabaseService as any,
@@ -1702,6 +1706,7 @@ describe('PrintService', () => {
           from: vi.fn(() => createMockChain())
         }
       };
+      wireGatedSupabaseMock(mockSupabaseService);
 
       service = new PrintService(
         mockSupabaseService as any,
@@ -1818,7 +1823,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
   let mockSupabase: any;
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -1829,7 +1834,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           })
         })
       }
-    };
+    });
 
     service = {
       supabase: mockSupabase,
@@ -2359,8 +2364,10 @@ describe('PrintService - Advanced Coverage Tests', () => {
         })
       };
 
-      mockSupabaseService = { client: mockSupabaseClient } as any;
-      mockPrayerService = { getPersonalPrayers: vi.fn() };
+      mockSupabaseService = wireGatedSupabaseMock({
+        client: mockSupabaseClient,
+      }) as any;
+      mockPrayerService = { getPersonalPrayers: vi.fn() } as any;
       service = new PrintService(
       mockSupabaseService,
       mockPrayerService,
@@ -3003,8 +3010,10 @@ describe('PrintService - Advanced Coverage Tests', () => {
         })
       };
 
-      mockSupabaseService = { client: mockSupabaseClient } as any;
-      mockPrayerService = { getPersonalPrayers: vi.fn() };
+      mockSupabaseService = wireGatedSupabaseMock({
+        client: mockSupabaseClient,
+      }) as any;
+      mockPrayerService = { getPersonalPrayers: vi.fn() } as any;
       service = new PrintService(
       mockSupabaseService,
       mockPrayerService,
@@ -3264,6 +3273,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           from: vi.fn()
         }
       } as any;
+      wireGatedSupabaseMock(mockSupabaseService);
       service = new PrintService(
       mockSupabaseService,
       mockPrayerService,
@@ -3505,6 +3515,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
       mockSupabaseService = {
         client: { from: vi.fn() }
       } as any;
+      wireGatedSupabaseMock(mockSupabaseService);
       service = new PrintService(
       mockSupabaseService,
       mockPrayerService,
@@ -3671,6 +3682,7 @@ describe('PrintService - Advanced Coverage Tests', () => {
           from: vi.fn()
         }
       } as any;
+      wireGatedSupabaseMock(mockSupabaseService);
 
       mockPrayerService = {
         getPersonalPrayers: vi.fn()

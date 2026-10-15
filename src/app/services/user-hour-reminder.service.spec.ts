@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { UserHourReminderService } from './user-hour-reminder.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
@@ -41,7 +42,7 @@ describe('UserHourReminderService', () => {
         error: null,
       })
     );
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(() => ({
           select: vi.fn(() => ({
@@ -59,7 +60,7 @@ describe('UserHourReminderService', () => {
           })),
         })),
       },
-    };
+    });
     mockUserSession = {
       getCurrentSession: vi.fn(() => ({
         email: 'user@example.com',

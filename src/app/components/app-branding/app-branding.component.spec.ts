@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef } from '@angular/core';
 import { AppBrandingComponent } from './app-branding.component';
 
@@ -20,6 +21,7 @@ describe('AppBrandingComponent', () => {
         }))
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     mockChangeDetectorRef = {
       detectChanges: vi.fn(),

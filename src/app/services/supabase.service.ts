@@ -1,13 +1,19 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { capturePostHogException } from '../../lib/posthog';
+import {
+  resolveSupabaseRestBearer,
+  supabaseRestJsonHeaders,
+} from '../../lib/supabase-rest-bearer';
+import { SupabaseDataAccessGateService } from './supabase-data-access-gate.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SupabaseService {
   private supabase: SupabaseClient;
+  private readonly injector = inject(Injector);
 
   constructor() {
     const supabaseUrl = environment.supabaseUrl;
@@ -57,6 +63,10 @@ export class SupabaseService {
     this.setupVisibilityRecovery();
   }
 
+  /**
+   * Raw Supabase client — use for `auth`, `functions`, and `realtime` only.
+   * PostgREST: `from()`, `rpc()`, or `db()` / `getClientWhenReady()`.
+   */
   get client(): SupabaseClient {
     return this.supabase;
   }
@@ -76,8 +86,42 @@ export class SupabaseService {
     return environment.supabaseAnonKey;
   }
 
+  /** JWT access token when signed in; otherwise the anon key (login branding only). */
+  async getRestAuthorizationBearer(): Promise<string> {
+    await this.injector.get(SupabaseDataAccessGateService).waitForReady();
+    return resolveSupabaseRestBearer(this.supabase, environment.supabaseAnonKey);
+  }
+
+  private async ensureDataAccessReady(): Promise<void> {
+    await this.injector.get(SupabaseDataAccessGateService).waitForReady();
+  }
+
   getClient(): SupabaseClient {
     return this.supabase;
+  }
+
+  /** PostgREST — waits for JWT when the user is signed in. */
+  async getClientWhenReady(): Promise<SupabaseClient> {
+    await this.ensureDataAccessReady();
+    return this.supabase;
+  }
+
+  /** Alias for {@link getClientWhenReady}. */
+  async db(): Promise<SupabaseClient> {
+    return this.getClientWhenReady();
+  }
+
+  async from(relation: string): Promise<ReturnType<SupabaseClient['from']>> {
+    await this.ensureDataAccessReady();
+    return this.supabase.from(relation);
+  }
+
+  async rpc<T = unknown>(
+    fn: string,
+    args?: Record<string, unknown>
+  ): Promise<ReturnType<SupabaseClient['rpc']>> {
+    await this.ensureDataAccessReady();
+    return this.supabase.rpc(fn, args);
   }
 
   isNetworkError(error: unknown): boolean {
@@ -162,6 +206,7 @@ export class SupabaseService {
       });
       
       console.log('[SupabaseService] Reconnected successfully');
+      await this.injector.get(SupabaseDataAccessGateService).refresh();
     } catch (err) {
       console.error('[SupabaseService] Reconnection failed:', err);
       throw err;
@@ -273,6 +318,7 @@ export class SupabaseService {
       timeout?: number;
     } = {}
   ): Promise<{ data: T | null; error: Error | null; count?: number }> {
+    await this.ensureDataAccessReady();
     const { select = '*', eq = {}, order, limit, count, head = false, timeout = 30000 } = options;
     
     const params = new URLSearchParams();
@@ -294,16 +340,18 @@ export class SupabaseService {
       params.set('limit', String(limit));
     }
     
-    // Add count preference
+    const authorizationBearer = await this.getRestAuthorizationBearer();
     const headers: Record<string, string> = {
-      'apikey': environment.supabaseAnonKey,
-      'Authorization': `Bearer ${environment.supabaseAnonKey}`
+      ...supabaseRestJsonHeaders(
+        environment.supabaseAnonKey,
+        authorizationBearer,
+      ),
     };
-    
+
     if (count) {
       headers['Prefer'] = `count=${count}`;
     }
-    
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -351,6 +399,7 @@ export class SupabaseService {
       timeout?: number;
     }
   ): Promise<{ data: T | null; error: Error | null }> {
+    await this.ensureDataAccessReady();
     const { method, body, eq = {}, returning = false, timeout = 30000 } = options;
     
     const params = new URLSearchParams();
@@ -362,16 +411,18 @@ export class SupabaseService {
       }
     }
     
+    const authorizationBearer = await this.getRestAuthorizationBearer();
     const headers: Record<string, string> = {
-      'apikey': environment.supabaseAnonKey,
-      'Authorization': `Bearer ${environment.supabaseAnonKey}`,
-      'Content-Type': 'application/json'
+      ...supabaseRestJsonHeaders(
+        environment.supabaseAnonKey,
+        authorizationBearer,
+      ),
     };
-    
+
     if (returning) {
       headers['Prefer'] = 'return=representation';
     }
-    
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);

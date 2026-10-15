@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
 import { SupabaseService } from './supabase.service';
@@ -50,6 +51,7 @@ describe('BadgeService', () => {
         }
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     // Mock Injector
     // (mockInjector set from createBadgeServiceInjectorMock above)
@@ -546,6 +548,7 @@ describe('BadgeService', () => {
       mockSupabaseService = {
         client: {}
       };
+      wireGatedSupabaseMock(mockSupabaseService);
       mockUserSessionService = {
         userSession$: {
           pipe: vi.fn().mockReturnValue({
@@ -633,6 +636,7 @@ describe('BadgeService', () => {
       mockSupabaseService = {
         client: {}
       };
+      wireGatedSupabaseMock(mockSupabaseService);
       mockUserSessionService = {
         userSession$: {
           pipe: vi.fn().mockReturnValue({
@@ -1087,7 +1091,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
   let mockUserSession: any;
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -1103,7 +1107,7 @@ describe('BadgeService - Additional Coverage Tests', () => {
           })
         })
       }
-    };
+    });
 
     mockUserSession = {
       getSession: vi.fn().mockReturnValue({ user: { id: 'user-1' } }),

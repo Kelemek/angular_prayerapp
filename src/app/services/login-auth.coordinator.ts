@@ -1,7 +1,6 @@
 import { Injectable } from "@angular/core";
-import { lookupPersonByEmail } from "../../lib/planning-center";
-import { environment } from "../../environments/environment";
 import { AdminAuthService } from "./admin-auth.service";
+import { PlanningCenterRestService } from "./planning-center-rest.service";
 import { EmailNotificationService } from "./email-notification.service";
 import { SupabaseService } from "./supabase.service";
 import { UserSessionService } from "./user-session.service";
@@ -31,13 +30,15 @@ export class LoginAuthCoordinator {
     private readonly supabaseService: SupabaseService,
     private readonly emailNotificationService: EmailNotificationService,
     private readonly adminAuthService: AdminAuthService,
-    private readonly userSessionService: UserSessionService
+    private readonly userSessionService: UserSessionService,
+    private readonly planningCenterRest: PlanningCenterRestService
   ) {}
 
   async fetchVerificationCodeLength(): Promise<number> {
     try {
-      const { data, error } = await this.supabaseService.client
-        .from("admin_settings")
+      const { data, error } = await (
+        await this.supabaseService.from("admin_settings")
+      )
         .select("verification_code_length")
         .eq("id", 1)
         .maybeSingle();
@@ -55,6 +56,8 @@ export class LoginAuthCoordinator {
     userEmail: string,
     returnUrl: string
   ): Promise<LoginPostVerificationResult> {
+    await this.adminAuthService.prepareLoginDataAccess(userEmail);
+
     const hasPendingApproval = await this.hasPendingApprovalRequest(userEmail);
     if (hasPendingApproval) {
       await this.adminAuthService.logout();
@@ -92,7 +95,7 @@ export class LoginAuthCoordinator {
     }
 
     if (input.requiresApproval) {
-      const { data, error } = await this.supabaseService.client.rpc(
+      const { data, error } = await (await this.supabaseService.rpc(
         "create_account_approval_request",
         {
           p_email: email,
@@ -100,7 +103,7 @@ export class LoginAuthCoordinator {
           p_last_name: lastName,
           p_affiliation_reason: affiliationReason,
         }
-      );
+      ));
 
       if (error) {
         console.error("[AdminLogin] Error creating approval request:", error);
@@ -195,29 +198,26 @@ export class LoginAuthCoordinator {
 
   private async isEmailSubscriber(email: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabaseService.directQuery<{
-        id: string;
-        email: string;
-        is_blocked: boolean;
-      }>("email_subscribers", {
-        select: "id, email, is_blocked",
-        eq: { email: email.toLowerCase() },
-        limit: 1,
-      });
+      const client = await this.supabaseService.getClientWhenReady();
+      const { data, error } = await client
+        .from("email_subscribers")
+        .select("id, email, is_blocked")
+        .eq("email", email.toLowerCase())
+        .maybeSingle();
 
       if (error) {
         console.error("[AdminLogin] Error checking subscriber status:", error);
         return false;
       }
 
-      const isSubscriber = data && Array.isArray(data) && data.length > 0;
-      if (isSubscriber && data[0]?.is_blocked) {
+      const isSubscriber = !!data;
+      if (isSubscriber && data?.is_blocked) {
         throw new Error(
           "This account has been blocked. Please contact an administrator."
         );
       }
 
-      return isSubscriber || false;
+      return isSubscriber;
     } catch (err) {
       console.error("[AdminLogin] Exception checking subscriber:", err);
       if (err instanceof Error && err.message.includes("blocked")) {
@@ -229,21 +229,20 @@ export class LoginAuthCoordinator {
 
   private async hasPendingApprovalRequest(email: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabaseService.directQuery<{
-        id: string;
-        approval_status: string;
-      }>("account_approval_requests", {
-        select: "id, approval_status",
-        eq: { email: email.toLowerCase(), approval_status: "pending" },
-        limit: 1,
-      });
+      const client = await this.supabaseService.getClientWhenReady();
+      const { data, error } = await client
+        .from("account_approval_requests")
+        .select("id, approval_status")
+        .eq("email", email.toLowerCase())
+        .eq("approval_status", "pending")
+        .maybeSingle();
 
       if (error) {
         console.error("[AdminLogin] Error checking pending approval:", error);
         return false;
       }
 
-      return !!(data && Array.isArray(data) && data.length > 0);
+      return !!data;
     } catch (err) {
       console.error("[AdminLogin] Exception checking pending approval:", err);
       return false;
@@ -251,10 +250,9 @@ export class LoginAuthCoordinator {
   }
 
   private async isInPlanningCenter(email: string): Promise<boolean> {
-    const pcResult = await lookupPersonByEmail(
+    const pcResult = await this.planningCenterRest.lookupPersonByEmail(
       email,
-      environment.supabaseUrl,
-      environment.supabaseAnonKey
+      true
     );
     return pcResult.count > 0;
   }

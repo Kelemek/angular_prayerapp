@@ -206,7 +206,7 @@ export class TestAccountSettingsComponent {
       this.error = null;
       this.cdr.markForCheck();
 
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('test_account_email, test_account_code_4, test_account_code_6, test_account_code_8')
         .eq('id', 1)
@@ -239,7 +239,7 @@ export class TestAccountSettingsComponent {
       this.error = null;
       this.cdr.markForCheck();
 
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('admin_settings')
         .update({
           test_account_email: this.testAccountEmail.trim() || null,

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef } from '@angular/core';
 import { AdminEmailPrayerRemindersSectionComponent } from './admin-email-prayer-reminders-section.component';
 
@@ -25,6 +26,7 @@ describe('AdminEmailPrayerRemindersSectionComponent', () => {
         })),
       },
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     mockToastService = {
       success: vi.fn(),

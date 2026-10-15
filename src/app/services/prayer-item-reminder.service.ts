@@ -95,7 +95,7 @@ export class PrayerItemReminderService {
 
   private async fetchAndUpdateSession(email: string): Promise<PrayerItemReminder[]> {
     const generation = ++this.fetchGeneration;
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('user_prayer_item_reminders')
       .select(SELECT_COLS)
       .eq('user_email', email)
@@ -151,7 +151,7 @@ export class PrayerItemReminderService {
       local_date: input.mode === 'once' ? input.local_date ?? null : null,
       local_weekday: input.mode === 'weekly' ? input.local_weekday ?? null : null,
     };
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('user_prayer_item_reminders')
       .insert(row);
     if (error) {
@@ -167,7 +167,7 @@ export class PrayerItemReminderService {
 
   async removeReminder(email: string, id: string): Promise<PrayerItemReminder[]> {
     this.fetchGeneration++;
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('user_prayer_item_reminders')
       .delete()
       .eq('id', id)

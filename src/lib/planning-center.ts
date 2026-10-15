@@ -1,7 +1,17 @@
+import { supabaseRestJsonHeaders } from './supabase-rest-bearer';
+
 /**
  * Planning Center People API Integration
  * Used to validate email addresses against Planning Center member database
  */
+
+function planningCenterAuthHeaders(
+  supabaseAnonKey: string,
+  authorizationBearer?: string,
+): Record<string, string> {
+  const bearer = authorizationBearer?.trim() || supabaseAnonKey;
+  return supabaseRestJsonHeaders(supabaseAnonKey, bearer);
+}
 
 export interface PlanningCenterAttributes {
   first_name: string;
@@ -31,17 +41,18 @@ export interface EmailLookupResult {
  * Check database for cached Planning Center status
  * Returns null if not cached, true if in Planning Center, false if not
  */
-export async function checkCachedPlanningCenterStatus(email: string, supabaseUrl: string, supabaseKey: string): Promise<boolean | null> {
+export async function checkCachedPlanningCenterStatus(
+  email: string,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authorizationBearer?: string,
+): Promise<boolean | null> {
   try {
     const response = await fetch(
       `${supabaseUrl}/rest/v1/email_subscribers?email=eq.${encodeURIComponent(email)}&select=in_planning_center,planning_center_checked_at`,
       {
         method: 'GET',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
+        headers: planningCenterAuthHeaders(supabaseAnonKey, authorizationBearer),
       }
     );
 
@@ -66,17 +77,21 @@ export async function checkCachedPlanningCenterStatus(email: string, supabaseUrl
 /**
  * Save Planning Center lookup result to database
  */
-export async function savePlanningCenterStatus(email: string, isInPlanningCenter: boolean, supabaseUrl: string, supabaseKey: string): Promise<void> {
+export async function savePlanningCenterStatus(
+  email: string,
+  isInPlanningCenter: boolean,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authorizationBearer?: string,
+): Promise<void> {
   try {
     const response = await fetch(
       `${supabaseUrl}/rest/v1/email_subscribers?email=eq.${encodeURIComponent(email)}`,
       {
         method: 'PATCH',
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
+          ...planningCenterAuthHeaders(supabaseAnonKey, authorizationBearer),
+          Prefer: 'return=minimal',
         },
         body: JSON.stringify({
           in_planning_center: isInPlanningCenter,
@@ -100,7 +115,13 @@ export async function savePlanningCenterStatus(email: string, isInPlanningCenter
  * First checks database cache, then calls API if needed
  * Uses Supabase Edge Function to call Planning Center API with proper authentication
  */
-export async function lookupPersonByEmail(email: string, supabaseUrl: string, supabaseKey: string, skipCache: boolean = false): Promise<EmailLookupResult> {
+export async function lookupPersonByEmail(
+  email: string,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  skipCache: boolean = false,
+  authorizationBearer?: string,
+): Promise<EmailLookupResult> {
   if (!email || email.trim() === '') {
     return {
       people: [],
@@ -111,7 +132,12 @@ export async function lookupPersonByEmail(email: string, supabaseUrl: string, su
 
   // Check cache first unless skipCache is true
   if (!skipCache) {
-    const cachedStatus = await checkCachedPlanningCenterStatus(email, supabaseUrl, supabaseKey);
+    const cachedStatus = await checkCachedPlanningCenterStatus(
+      email,
+      supabaseUrl,
+      supabaseAnonKey,
+      authorizationBearer,
+    );
     if (cachedStatus !== null) {
       return {
         people: cachedStatus ? [{ id: 'cached', type: 'Person', attributes: { first_name: '', last_name: '', name: '', avatar: '', status: '', created_at: '', updated_at: '' } }] : [],
@@ -128,10 +154,7 @@ export async function lookupPersonByEmail(email: string, supabaseUrl: string, su
       `${supabaseUrl}/functions/v1/planning-center-lookup`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        },
+        headers: planningCenterAuthHeaders(supabaseAnonKey, authorizationBearer),
         body: JSON.stringify({ email: email.trim() })
       }
     );
@@ -154,7 +177,13 @@ export async function lookupPersonByEmail(email: string, supabaseUrl: string, su
 
     // Save result to database for future lookups
     const isInPlanningCenter = result.count > 0;
-    await savePlanningCenterStatus(email, isInPlanningCenter, supabaseUrl, supabaseKey);
+    await savePlanningCenterStatus(
+      email,
+      isInPlanningCenter,
+      supabaseUrl,
+      supabaseAnonKey,
+      authorizationBearer,
+    );
 
     return result;
   } catch (error) {
@@ -176,6 +205,8 @@ export interface BatchLookupOptions {
   maxRetries?: number; // Max retry attempts per email (default: 3)
   retryDelayMs?: number; // Initial retry delay in ms (default: 1000)
   onProgress?: (completed: number, total: number) => void; // Progress callback
+  /** Admin JWT for email_subscribers cache + Edge Functions (RLS Phase 2). */
+  authorizationBearer?: string;
 }
 
 export interface BatchLookupResult {
@@ -195,7 +226,8 @@ export async function batchLookupPlanningCenter(
     concurrency = 5,
     maxRetries = 3,
     retryDelayMs = 1000,
-    onProgress
+    onProgress,
+    authorizationBearer,
   } = options;
 
   const results: BatchLookupResult[] = [];
@@ -212,7 +244,13 @@ export async function batchLookupPlanningCenter(
       // Retry logic with exponential backoff
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          const result = await lookupPersonByEmail(email, supabaseUrl, supabaseKey);
+          const result = await lookupPersonByEmail(
+            email,
+            supabaseUrl,
+            supabaseKey,
+            false,
+            authorizationBearer,
+          );
           completed++;
           onProgress?.(completed, emails.length);
 
@@ -268,7 +306,12 @@ export function formatPersonName(person: PlanningCenterPerson): string {
  * Search for people by name in Planning Center
  * Uses Supabase Edge Function to call Planning Center API
  */
-export async function searchPlanningCenterByName(name: string, supabaseUrl: string, supabaseKey: string): Promise<EmailLookupResult> {
+export async function searchPlanningCenterByName(
+  name: string,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authorizationBearer?: string,
+): Promise<EmailLookupResult> {
   if (!name || name.trim() === '') {
     return {
       people: [],
@@ -284,10 +327,7 @@ export async function searchPlanningCenterByName(name: string, supabaseUrl: stri
       `${supabaseUrl}/functions/v1/planning-center-lookup`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        },
+        headers: planningCenterAuthHeaders(supabaseAnonKey, authorizationBearer),
         body: JSON.stringify({ email: name.trim() })
       }
     );
@@ -329,16 +369,17 @@ export interface PlanningCenterList {
 /**
  * Fetch all Planning Center lists from the organization
  */
-export async function fetchPlanningCenterLists(supabaseUrl: string, supabaseKey: string): Promise<{ lists: PlanningCenterList[]; error?: string }> {
+export async function fetchPlanningCenterLists(
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authorizationBearer?: string,
+): Promise<{ lists: PlanningCenterList[]; error?: string }> {
   try {
     const response = await fetch(
       `${supabaseUrl}/functions/v1/planning-center-lists`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        },
+        headers: planningCenterAuthHeaders(supabaseAnonKey, authorizationBearer),
         body: JSON.stringify({ action: 'lists' })
       }
     );
@@ -368,7 +409,12 @@ export async function fetchPlanningCenterLists(supabaseUrl: string, supabaseKey:
 /**
  * Fetch member names from a specific Planning Center list
  */
-export async function fetchListMembers(listId: string, supabaseUrl: string, supabaseKey: string): Promise<{ members: Array<{ id: string; name: string; avatar?: string | null }>; error?: string }> {
+export async function fetchListMembers(
+  listId: string,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authorizationBearer?: string,
+): Promise<{ members: Array<{ id: string; name: string; avatar?: string | null }>; error?: string }> {
   if (!listId || listId.trim() === '') {
     return {
       members: [],
@@ -381,10 +427,7 @@ export async function fetchListMembers(listId: string, supabaseUrl: string, supa
       `${supabaseUrl}/functions/v1/planning-center-lists`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        },
+        headers: planningCenterAuthHeaders(supabaseAnonKey, authorizationBearer),
         body: JSON.stringify({ action: 'members', listId })
       }
     );

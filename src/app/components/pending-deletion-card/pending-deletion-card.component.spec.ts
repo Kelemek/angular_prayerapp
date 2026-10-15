@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { PendingDeletionCardComponent } from './pending-deletion-card.component';
-import { SupabaseService } from '../../services/supabase.service';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 import * as planningCenter from '../../../lib/planning-center';
 
 describe('PendingDeletionCardComponent', () => {
@@ -17,16 +17,20 @@ describe('PendingDeletionCardComponent', () => {
     prayer_title: 'Prayer for healing'
   };
 
-  const mockSupabaseService = {
-    getClient: vi.fn()
+  const mockPlanningCenterRest = {
+    lookupPersonByEmail: vi.fn().mockResolvedValue({
+      people: [],
+      count: 0,
+      error: null,
+    }),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock the lookupPersonByEmail function
-    vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+    mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
       people: [],
-      error: null
+      count: 0,
+      error: null,
     });
     vi.spyOn(planningCenter, 'formatPersonName').mockReturnValue('John Smith');
   });
@@ -37,7 +41,7 @@ describe('PendingDeletionCardComponent', () => {
         deletionRequest: mockDeletionRequest
       },
       providers: [
-        { provide: SupabaseService, useValue: mockSupabaseService }
+        { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
       ]
     });
 
@@ -51,7 +55,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -64,7 +68,7 @@ describe('PendingDeletionCardComponent', () => {
     });
 
     it('should call lookupPlanningCenterPerson on init', async () => {
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -74,21 +78,17 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
       await waitFor(() => {
-        expect(lookupSpy).toHaveBeenCalledWith(
-          'john@example.com',
-          expect.any(String),
-          expect.any(String)
-        );
+        expect(lookupSpy).toHaveBeenCalledWith('john@example.com', false);
       });
     });
 
     it('should not lookup Planning Center person when email is not provided', async () => {
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail');
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail;
       const requestWithoutEmail = {
         ...mockDeletionRequest,
         requested_email: undefined
@@ -99,7 +99,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: requestWithoutEmail
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -116,7 +116,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -129,7 +129,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -142,7 +142,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -155,7 +155,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -168,7 +168,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -186,7 +186,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: requestWithoutTitle
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -204,7 +204,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: requestWithoutReason
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -222,7 +222,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: requestWithoutEmail
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -232,7 +232,7 @@ describe('PendingDeletionCardComponent', () => {
 
   describe('Planning Center verification', () => {
     it('should show verifying status while loading', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockImplementation(() => 
+      mockPlanningCenterRest.lookupPersonByEmail.mockImplementation(() => 
         new Promise(resolve => setTimeout(() => resolve({ people: [], error: null }), 100))
       );
 
@@ -241,7 +241,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -258,7 +258,7 @@ describe('PendingDeletionCardComponent', () => {
         }
       };
 
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [mockPerson],
         error: null
       });
@@ -268,7 +268,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -285,7 +285,7 @@ describe('PendingDeletionCardComponent', () => {
     });
 
     it('should display not found badge when person is not found', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -295,7 +295,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -312,7 +312,7 @@ describe('PendingDeletionCardComponent', () => {
     });
 
     it('should display error badge when lookup fails', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: null,
         error: 'API Error'
       });
@@ -322,7 +322,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -339,14 +339,14 @@ describe('PendingDeletionCardComponent', () => {
 
     it('should handle unexpected errors during lookup', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockRejectedValue(new Error('Network error'));
+      mockPlanningCenterRest.lookupPersonByEmail.mockRejectedValue(new Error('Network error'));
 
       const { fixture } = await render(PendingDeletionCardComponent, {
         componentProperties: {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -367,7 +367,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -384,7 +384,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -413,7 +413,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -430,7 +430,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -449,7 +449,7 @@ describe('PendingDeletionCardComponent', () => {
           } as any
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -467,7 +467,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -490,7 +490,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -515,7 +515,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -530,7 +530,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -550,7 +550,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -573,7 +573,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -592,7 +592,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -616,7 +616,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -648,7 +648,7 @@ describe('PendingDeletionCardComponent', () => {
           } as any
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -681,7 +681,7 @@ describe('PendingDeletionCardComponent', () => {
           } as any
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -708,7 +708,7 @@ describe('PendingDeletionCardComponent', () => {
           deletionRequest: mockDeletionRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -739,7 +739,7 @@ describe('PendingDeletionCardComponent', () => {
           } as any
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -764,7 +764,7 @@ describe('PendingDeletionCardComponent', () => {
           } as any
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -784,7 +784,7 @@ describe('PendingDeletionCardComponent', () => {
           } as any
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -804,7 +804,7 @@ describe('PendingDeletionCardComponent', () => {
           } as any
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 

@@ -8,6 +8,7 @@ import { PrayerService } from './prayer.service';
 import { EmailNotificationService } from './email-notification.service';
 import { PushNotificationService } from './push-notification.service';
 import { firstValueFrom } from 'rxjs';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 
 // Mock the planning-center module
 vi.mock('../../lib/planning-center', () => ({
@@ -76,9 +77,9 @@ describe('AdminDataService', () => {
     };
 
     // Create mock SupabaseService
-    mockSupabaseService = {
-      client: mockSupabaseClient
-    } as unknown as SupabaseService;
+    mockSupabaseService = wireGatedSupabaseMock({
+      client: mockSupabaseClient,
+    }) as unknown as SupabaseService;
 
     // Create mock PrayerService
     mockPrayerService = {

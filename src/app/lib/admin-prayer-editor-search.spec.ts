@@ -140,11 +140,20 @@ describe('admin-prayer-editor-search', () => {
 
       const results = await fetchPrayerEditorPrayers({
         supabaseUrl: 'https://test.supabase.co',
-        supabaseKey: 'key',
+        supabaseKey: 'anon-key',
+        authorizationBearer: 'admin-jwt',
         searchTerm: 'needle',
         statusFilter: '',
         approvalFilter: '',
       });
+
+      const firstPrayersCall = fetchMock.mock.calls.find((call) =>
+        String(call[0]).includes('/rest/v1/prayers'),
+      );
+      expect(firstPrayersCall?.[1]?.headers?.Authorization).toBe(
+        'Bearer admin-jwt',
+      );
+      expect(firstPrayersCall?.[1]?.headers?.apikey).toBe('anon-key');
 
       expect(results.map((p) => p.id)).toEqual(['main', 'from-update']);
       vi.unstubAllGlobals();

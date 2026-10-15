@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { TestBed } from '@angular/core/testing';
 import { screen } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
@@ -18,7 +19,7 @@ describe('PrayerEncouragementSettingsComponent', () => {
       data: { prayer_encouragement_enabled: true, prayer_encouragement_cooldown_hours: 4 },
       error: null
     });
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -27,7 +28,7 @@ describe('PrayerEncouragementSettingsComponent', () => {
           update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
         })
       }
-    };
+    });
 
     mockPrayerEncouragementService = {
       invalidateFlagCache: vi.fn()

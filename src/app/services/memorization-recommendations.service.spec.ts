@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MemorizationRecommendationsService } from './memorization-recommendations.service';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 
 const CAT_ID = 'cat-general';
 
@@ -37,7 +38,7 @@ describe('MemorizationRecommendationsService', () => {
     invalidate: ReturnType<typeof vi.fn>;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fromMock = vi.fn();
     rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
     cache = {
@@ -52,8 +53,12 @@ describe('MemorizationRecommendationsService', () => {
       update: vi.fn(),
       delete: vi.fn(),
     });
-    const supabase = { client: { from: fromMock, rpc: rpcMock } };
+    const supabase = wireGatedSupabaseMock({
+      client: { from: fromMock, rpc: rpcMock },
+    });
     service = new MemorizationRecommendationsService(supabase as any, cache as any);
+    await Promise.resolve();
+    await Promise.resolve();
     fromMock.mockClear();
     rpcMock.mockClear();
     cache.get.mockClear();

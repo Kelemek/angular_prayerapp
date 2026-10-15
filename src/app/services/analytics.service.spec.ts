@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AnalyticsService } from './analytics.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 
 describe('AnalyticsService', () => {
   let service: AnalyticsService;
@@ -44,9 +45,9 @@ describe('AnalyticsService', () => {
     };
 
     // Create mock SupabaseService
-    mockSupabaseService = {
+    mockSupabaseService = wireGatedSupabaseMock({
       client: mockSupabaseClient
-    } as unknown as SupabaseService;
+    }) as unknown as SupabaseService;
 
     // Create mock UserSessionService
     mockUserSessionService = {

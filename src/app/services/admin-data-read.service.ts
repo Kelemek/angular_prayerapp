@@ -44,7 +44,7 @@ export class AdminDataReadService {
   constructor(private readonly supabase: SupabaseService) {}
 
   async fetchPendingSnapshot(): Promise<AdminPendingSnapshot> {
-    const supabaseClient = this.supabase.client;
+    const supabaseClient = await this.supabase.getClientWhenReady();
 
     const [
       pendingPrayersResult,
@@ -113,7 +113,7 @@ export class AdminDataReadService {
   }
 
   async fetchApprovedDeniedSnapshot(): Promise<AdminApprovedDeniedSnapshot> {
-    const supabaseClient = this.supabase.client;
+    const supabaseClient = await this.supabase.getClientWhenReady();
 
     const [
       approvedPrayersCountResult,
@@ -193,7 +193,7 @@ export class AdminDataReadService {
     }
 
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('email_subscribers')
         .select('email, in_planning_center')
         .in('email', emails.map((email) => email.toLowerCase()));

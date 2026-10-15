@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { BehaviorSubject, Subject } from "rxjs";
 import { LoginLifecycleCoordinator } from "./login-lifecycle.coordinator";
 import { LoginAuthCoordinator } from "./login-auth.coordinator";
@@ -85,7 +86,7 @@ describe("LoginLifecycleCoordinator", () => {
       isAuthenticated$: new BehaviorSubject(true),
       getIsAdmin: () => adminAuthService.isAdmin$.value,
     };
-    supabaseService = {
+    supabaseService = wireGatedSupabaseMock({
       client: {
         auth: {
           getSession: vi.fn(async () => ({
@@ -93,7 +94,7 @@ describe("LoginLifecycleCoordinator", () => {
           })),
         },
       },
-    };
+    }) as unknown as SupabaseService;
     userSessionService = {
       loadUserSession: vi.fn(async () => {}),
     };

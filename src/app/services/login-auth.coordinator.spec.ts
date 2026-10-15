@@ -1,15 +1,54 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { LoginAuthCoordinator } from "./login-auth.coordinator";
 
-vi.mock("../../lib/planning-center", () => ({
-  lookupPersonByEmail: vi.fn(),
-}));
+function mockLoginFromTables(
+  supabaseService: { client: { from: ReturnType<typeof vi.fn> } },
+  options: {
+    approvalRow?: Record<string, unknown> | null;
+    subscriberRow?: Record<string, unknown> | null;
+  } = {}
+) {
+  const approvalRow = options.approvalRow ?? null;
+  const subscriberRow = options.subscriberRow ?? null;
+  supabaseService.client.from = vi.fn((table: string) => {
+    if (table === "account_approval_requests") {
+      const chain = {
+        eq: vi.fn(function eq() {
+          return chain;
+        }),
+        maybeSingle: vi.fn(async () => ({ data: approvalRow, error: null })),
+      };
+      return { select: vi.fn(() => chain) };
+    }
+    if (table === "email_subscribers") {
+      const chain = {
+        eq: vi.fn(function eq() {
+          return chain;
+        }),
+        maybeSingle: vi.fn(async () => ({ data: subscriberRow, error: null })),
+      };
+      return { select: vi.fn(() => chain) };
+    }
+    return {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(async () => ({
+            data: { verification_code_length: 6 },
+            error: null,
+          })),
+        })),
+      })),
+    };
+  }) as any;
+}
 
 const makeDeps = () => {
   const adminAuthService = {
     logout: vi.fn(async () => undefined),
+    prepareLoginDataAccess: vi.fn(async () => undefined),
   };
-  const supabaseService = {
+  const supabaseService = wireGatedSupabaseMock({
     client: {
       from: vi.fn(() => ({
         select: vi.fn(() => ({
@@ -25,7 +64,8 @@ const makeDeps = () => {
     },
     directQuery: vi.fn(async () => ({ data: [], error: null })),
     directMutation: vi.fn(async () => ({ data: [{ id: "1" }], error: null })),
-  };
+  }) as unknown as SupabaseService;
+  wireGatedSupabaseMock(supabaseService);
   const emailNotificationService = {
     sendAccountApprovalNotification: vi.fn(async () => true),
     sendSubscriberWelcomeNotification: vi.fn(async () => true),
@@ -33,18 +73,23 @@ const makeDeps = () => {
   const userSessionService = {
     loadUserSession: vi.fn(async () => undefined),
   };
+  const planningCenterRest = {
+    lookupPersonByEmail: vi.fn(async () => ({ count: 0, people: [] })),
+  };
 
   return {
     coordinator: new LoginAuthCoordinator(
       supabaseService as any,
       emailNotificationService as any,
       adminAuthService as any,
-      userSessionService as any
+      userSessionService as any,
+      planningCenterRest as any
     ),
     adminAuthService,
     supabaseService,
     emailNotificationService,
     userSessionService,
+    planningCenterRest,
   };
 };
 
@@ -72,10 +117,9 @@ describe("LoginAuthCoordinator", () => {
 
   it("resolvePostVerificationFlow returns pending approval and logs out", async () => {
     const { coordinator, supabaseService, adminAuthService } = makeDeps();
-    supabaseService.directQuery = vi.fn(async () => ({
-      data: [{ id: "pending" }],
-      error: null,
-    }));
+    mockLoginFromTables(supabaseService, {
+      approvalRow: { id: "pending", approval_status: "pending" },
+    });
 
     const result = await coordinator.resolvePostVerificationFlow(
       "user@example.com",
@@ -87,9 +131,9 @@ describe("LoginAuthCoordinator", () => {
   });
 
   it("resolvePostVerificationFlow returns registration when not a subscriber", async () => {
-    const { coordinator } = makeDeps();
-    const pc = await import("../../lib/planning-center");
-    vi.mocked(pc.lookupPersonByEmail).mockResolvedValue({
+    const { coordinator, supabaseService, planningCenterRest } = makeDeps();
+    mockLoginFromTables(supabaseService, { subscriberRow: null });
+    planningCenterRest.lookupPersonByEmail.mockResolvedValue({
       count: 0,
       people: [],
     } as any);
@@ -107,11 +151,8 @@ describe("LoginAuthCoordinator", () => {
 
   it("resolvePostVerificationFlow navigates existing subscribers", async () => {
     const { coordinator, supabaseService, userSessionService } = makeDeps();
-    supabaseService.directQuery = vi.fn(async (table: string) => {
-      if (table === "account_approval_requests") {
-        return { data: [], error: null };
-      }
-      return { data: [{ id: "sub", is_blocked: false }], error: null };
+    mockLoginFromTables(supabaseService, {
+      subscriberRow: { id: "sub", email: "user@example.com", is_blocked: false },
     });
 
     const result = await coordinator.resolvePostVerificationFlow(
@@ -130,11 +171,12 @@ describe("LoginAuthCoordinator", () => {
 
   it("resolvePostVerificationFlow throws when subscriber is blocked", async () => {
     const { coordinator, supabaseService } = makeDeps();
-    supabaseService.directQuery = vi.fn(async (table: string) => {
-      if (table === "account_approval_requests") {
-        return { data: [], error: null };
-      }
-      return { data: [{ id: "1", is_blocked: true }], error: null };
+    mockLoginFromTables(supabaseService, {
+      subscriberRow: {
+        id: "1",
+        email: "blocked@example.com",
+        is_blocked: true,
+      },
     });
 
     await expect(

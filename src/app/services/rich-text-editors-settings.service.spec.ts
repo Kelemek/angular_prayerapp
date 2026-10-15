@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { firstValueFrom } from 'rxjs';
 import { skip, take } from 'rxjs/operators';
 import { RichTextEditorsSettingsService } from './rich-text-editors-settings.service';
@@ -11,7 +12,7 @@ describe('RichTextEditorsSettingsService', () => {
     vi.clearAllMocks();
     localStorage.clear();
 
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -24,7 +25,7 @@ describe('RichTextEditorsSettingsService', () => {
           }),
         }),
       },
-    };
+    });
 
     service = new RichTextEditorsSettingsService(mockSupabase);
   });
@@ -147,10 +148,12 @@ describe('RichTextEditorsSettingsService', () => {
         }),
       });
       const newService = new RichTextEditorsSettingsService(mockSupabase);
-      await firstValueFrom(newService.getRichTextEditorsEnabled$().pipe(take(1)));
-      expect(warn).toHaveBeenCalledWith(
-        '[RichTextEditorsSettings] Error loading flag',
-        expect.any(Error)
+      newService.getRichTextEditorsEnabled$().subscribe();
+      await vi.waitFor(() =>
+        expect(warn).toHaveBeenCalledWith(
+          '[RichTextEditorsSettings] Error loading flag',
+          expect.any(Error)
+        )
       );
       warn.mockRestore();
     });
@@ -218,7 +221,7 @@ describe('RichTextEditorsSettingsService', () => {
       const newService = new RichTextEditorsSettingsService(mockSupabase);
       newService.getRichTextEditorsEnabled$().subscribe();
       newService.getRichTextEditorsEnabled$().subscribe();
-      expect(mockSupabase.client.from).toHaveBeenCalledTimes(1);
+      expect(mockSupabase.db).toHaveBeenCalledTimes(1);
       resolveFetch!({ data: { rich_text_editors_enabled: true }, error: null });
     });
   });

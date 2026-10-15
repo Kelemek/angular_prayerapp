@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { AdminEmailSubscribersAddFormComponent } from './admin-email-subscribers-add-form.component';
 import { SupabaseService } from '../../services/supabase.service';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 import { ToastService } from '../../services/toast.service';
 import { ChangeDetectorRef, ApplicationRef } from '@angular/core';
 
@@ -12,7 +14,7 @@ describe('AdminEmailSubscribersAddFormComponent', () => {
   let mockAppRef: { tick: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(() => ({
           select: vi.fn(() => ({
@@ -23,13 +25,19 @@ describe('AdminEmailSubscribersAddFormComponent', () => {
           insert: vi.fn().mockResolvedValue({ error: null }),
         })),
       },
-    };
+    });
     mockToast = { error: vi.fn(), info: vi.fn() };
     mockCdr = { markForCheck: vi.fn(), detectChanges: vi.fn() };
     mockAppRef = { tick: vi.fn() };
 
+    const mockPlanningCenterRest = {
+      lookupPersonByEmail: vi.fn().mockResolvedValue({ count: 0, people: [] }),
+      searchPlanningCenterByName: vi.fn().mockResolvedValue({ people: [], count: 0 }),
+    };
+
     component = new AdminEmailSubscribersAddFormComponent(
       mockSupabase as unknown as SupabaseService,
+      mockPlanningCenterRest as unknown as PlanningCenterRestService,
       mockToast as unknown as ToastService,
       mockCdr as unknown as ChangeDetectorRef,
       mockAppRef as unknown as ApplicationRef,

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { firstValueFrom } from 'rxjs';
 import { VerificationService } from './verification.service';
 import { SupabaseService } from './supabase.service';
@@ -52,11 +53,11 @@ describe('VerificationService', () => {
       }) as typeof globalThis.setTimeout,
     );
 
-    supabaseService = {
+    supabaseService = wireGatedSupabaseMock({
       client: {
         from: mockAdminSettingsFrom(),
       },
-    } as unknown as SupabaseService;
+    }) as unknown as SupabaseService;
 
     service = new VerificationService(supabaseService);
   });
@@ -83,11 +84,11 @@ describe('VerificationService', () => {
         }))
       }));
 
-      const mockSupabase = {
+      const mockSupabase = wireGatedSupabaseMock({
         client: {
-          from: fromMock
-        }
-      } as unknown as SupabaseService;
+          from: fromMock,
+        },
+      }) as unknown as SupabaseService;
 
       new VerificationService(mockSupabase);
 
@@ -739,7 +740,7 @@ describe('VerificationService', () => {
       const expired = {
         email: 'expired@example.com',
         verifiedAt: now - 20000,
-        expiresAt: now - 10000
+        expiresAt: now - 10000,
       };
       localStorage.setItem('prayer_app_verified_sessions', JSON.stringify([...sessions, expired]));
 

@@ -29,7 +29,7 @@ export class VerificationService {
     try {
       
       // Fetch admin settings using the admin_settings table
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('require_email_verification, verification_code_expiry_minutes')
         .eq('id', 1)
@@ -213,7 +213,7 @@ export class VerificationService {
 
   async getCodeLength(): Promise<number> {
     try {
-      const { data } = await this.supabase.client
+      const { data } = await (await this.supabase.db())
         .from('admin_settings')
         .select('verification_code_length')
         .eq('id', 1)

@@ -72,7 +72,8 @@ describe('planning-center', () => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email: 'john.doe@example.com' }),
@@ -695,6 +696,26 @@ describe('planning-center', () => {
   });
 
   describe('checkCachedPlanningCenterStatus', () => {
+    it('uses admin JWT for PostgREST when authorizationBearer is provided', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ in_planning_center: true }],
+      } as unknown as Response);
+
+      await checkCachedPlanningCenterStatus(
+        'john@example.com',
+        'https://test.supabase.co',
+        'anon-key',
+        'admin-jwt',
+      );
+
+      expect(fetchMock.mock.calls[0][1].headers).toEqual({
+        apikey: 'anon-key',
+        Authorization: 'Bearer admin-jwt',
+        'Content-Type': 'application/json',
+      });
+    });
+
     it('should return true when cached as in Planning Center', async () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,

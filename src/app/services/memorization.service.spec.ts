@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { BehaviorSubject } from 'rxjs';
 import { MemorizationService } from './memorization.service';
 
@@ -45,6 +46,7 @@ describe('MemorizationService', () => {
         },
       },
     };
+    wireGatedSupabaseMock(supabase);
     toast = { success: vi.fn(), error: vi.fn() };
     userSession = {
       userSession$: new BehaviorSubject<{ email: string } | null>({ email: 'user@test.com' }),

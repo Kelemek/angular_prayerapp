@@ -1,5 +1,6 @@
 import { DestroyRef } from '@angular/core';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { BehaviorSubject } from 'rxjs';
 import { PrayerArchiveTimelineComponent } from './prayer-archive-timeline.component';
 
@@ -729,7 +730,7 @@ describe('PrayerArchiveTimelineComponent - Component Integration Tests', () => {
       updatePrayer: vi.fn().mockResolvedValue({ success: true })
     };
 
-    supabaseService = {
+    supabaseService = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -742,7 +743,7 @@ describe('PrayerArchiveTimelineComponent - Component Integration Tests', () => {
         archive_threshold_days: 7,
         timezone: 'UTC'
       })
-    };
+    }) as unknown as SupabaseService;
 
     // Create component-like object with key methods
     component = {
@@ -1490,7 +1491,7 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
       allPrayers$: new BehaviorSubject<unknown[]>([])
     };
 
-    supabaseService = {
+    supabaseService = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -1516,7 +1517,7 @@ describe('PrayerArchiveTimelineComponent - Angular Component Tests', () => {
           error: null
         })
       }
-    };
+    }) as unknown as SupabaseService;
 
     // Import the actual component
     const { PrayerArchiveTimelineComponent } = await import('./prayer-archive-timeline.component');

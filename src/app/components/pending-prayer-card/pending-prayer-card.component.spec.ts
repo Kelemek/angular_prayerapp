@@ -3,8 +3,7 @@ import { render, screen, waitFor } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { PendingPrayerCardComponent } from './pending-prayer-card.component';
 import { PrayerRequest, PrayerStatus } from '../../types/prayer';
-import { SupabaseService } from '../../services/supabase.service';
-import * as planningCenter from '../../../lib/planning-center';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 
 describe('PendingPrayerCardComponent', () => {
   const mockPrayer: PrayerRequest = {
@@ -21,16 +20,20 @@ describe('PendingPrayerCardComponent', () => {
     updated_at: '2024-01-01T00:00:00Z'
   };
 
-  const mockSupabaseService = {
-    getClient: vi.fn()
+  const mockPlanningCenterRest = {
+    lookupPersonByEmail: vi.fn().mockResolvedValue({
+      people: [],
+      count: 0,
+      error: null,
+    }),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock the lookupPersonByEmail function
-    vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+    mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
       people: [],
-      error: null
+      count: 0,
+      error: null,
     });
   });
 
@@ -40,7 +43,7 @@ describe('PendingPrayerCardComponent', () => {
         prayer: mockPrayer
       },
       providers: [
-        { provide: SupabaseService, useValue: mockSupabaseService }
+        { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
       ]
     });
 
@@ -54,7 +57,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -71,7 +74,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -89,7 +92,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -102,7 +105,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -115,7 +118,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -128,7 +131,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -142,7 +145,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: anonymousPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -155,7 +158,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -168,7 +171,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -179,14 +182,14 @@ describe('PendingPrayerCardComponent', () => {
   describe('Planning Center verification', () => {
     it('should not lookup Planning Center for anonymous prayers', async () => {
       const anonymousPrayer = { ...mockPrayer, is_anonymous: true };
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail');
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail;
 
       await render(PendingPrayerCardComponent, {
         componentProperties: {
           prayer: anonymousPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -195,14 +198,14 @@ describe('PendingPrayerCardComponent', () => {
 
     it('should not lookup Planning Center when email is missing', async () => {
       const noEmailPrayer = { ...mockPrayer, email: '' };
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail');
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail;
 
       await render(PendingPrayerCardComponent, {
         componentProperties: {
           prayer: noEmailPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -210,7 +213,7 @@ describe('PendingPrayerCardComponent', () => {
     });
 
     it('should lookup Planning Center for non-anonymous prayers with email', async () => {
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -220,16 +223,12 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
       await waitFor(() => {
-        expect(lookupSpy).toHaveBeenCalledWith(
-          mockPrayer.email,
-          expect.any(String),
-          expect.any(String)
-        );
+        expect(lookupSpy).toHaveBeenCalledWith(mockPrayer.email, false);
       });
     });
 
@@ -241,7 +240,7 @@ describe('PendingPrayerCardComponent', () => {
           last_name: 'Smith'
         }
       };
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [mockPerson],
         error: null
       });
@@ -251,7 +250,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -262,7 +261,7 @@ describe('PendingPrayerCardComponent', () => {
     });
 
     it('should display not found badge when person not found', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -272,7 +271,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -283,7 +282,7 @@ describe('PendingPrayerCardComponent', () => {
     });
 
     it('should display error badge when lookup fails', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: 'API Error'
       });
@@ -293,7 +292,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -304,14 +303,14 @@ describe('PendingPrayerCardComponent', () => {
     });
 
     it('should handle lookup exception', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockRejectedValue(new Error('Network error'));
+      mockPlanningCenterRest.lookupPersonByEmail.mockRejectedValue(new Error('Network error'));
 
       const { fixture } = await render(PendingPrayerCardComponent, {
         componentProperties: {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -329,7 +328,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -343,7 +342,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -363,7 +362,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -391,7 +390,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -405,7 +404,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -424,7 +423,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -446,7 +445,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -482,7 +481,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -507,7 +506,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -521,7 +520,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -540,7 +539,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -558,7 +557,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -579,7 +578,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -599,7 +598,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -626,7 +625,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -651,7 +650,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -667,7 +666,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -691,7 +690,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -712,7 +711,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -725,7 +724,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -738,7 +737,7 @@ describe('PendingPrayerCardComponent', () => {
           prayer: mockPrayer
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 

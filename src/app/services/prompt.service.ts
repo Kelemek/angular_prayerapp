@@ -6,6 +6,8 @@ import { ToastService } from './toast.service';
 import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
+import { AdminAuthService } from './admin-auth.service';
+import { SupabaseDataAccessGateService } from './supabase-data-access-gate.service';
 import { PrayerItemReminderService } from './prayer-item-reminder.service';
 import { PrayerPrompt } from '../components/prompt-card/prompt-card.component';
 
@@ -40,8 +42,7 @@ export class PromptService {
       return [...this.activePromptCategories];
     }
     try {
-      const { data, error } = await this.supabase.client
-        .from('prayer_types')
+      const { data, error } = await (await this.supabase.from('prayer_types'))
         .select('name, display_order')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
@@ -77,7 +78,9 @@ export class PromptService {
     private cache: CacheService,
     private badgeService: BadgeService,
     private userSessionService: UserSessionService,
-    private prayerItemReminderService: PrayerItemReminderService
+    private prayerItemReminderService: PrayerItemReminderService,
+    private dataAccessGate: SupabaseDataAccessGateService,
+    private adminAuth: AdminAuthService
   ) {
     this.loadPrompts();
     this.userSessionService.userSession$
@@ -93,6 +96,11 @@ export class PromptService {
    * Load prompts from database with caching, then attach the current user's Pray For counts.
    */
   async loadPrompts(forceRefresh = false): Promise<void> {
+    if (!this.adminAuth.isUserAuthenticated()) {
+      this.loadingSubject.next(false);
+      return;
+    }
+    await this.dataAccessGate.waitForReady();
     try {
       this.loadingSubject.next(true);
       this.errorSubject.next(null);
@@ -105,9 +113,9 @@ export class PromptService {
       let sortedPrompts = this.cache.get<PrayerPrompt[]>('prompts');
 
       if (!sortedPrompts) {
-        // Fetch prayer types for ordering
-        const { data: typesData, error: typesError } = await this.supabase.client
-          .from('prayer_types')
+        const { data: typesData, error: typesError } = await (
+          await this.supabase.from('prayer_types')
+        )
           .select('name, display_order')
           .eq('is_active', true)
           .order('display_order', { ascending: true });
@@ -123,8 +131,7 @@ export class PromptService {
         const typeOrderMap = new Map(typesData?.map((t: any) => [t.name, t.display_order]) || []);
 
         // Fetch all prompts
-        const { data, error } = await this.supabase.client
-          .from('prayer_prompts')
+        const { data, error } = await (await this.supabase.from('prayer_prompts'))
           .select('*')
           .order('created_at', { ascending: false });
 
@@ -247,13 +254,13 @@ export class PromptService {
         return {};
       }
 
-      const { data, error } = await this.supabase.client.rpc(
+      const { data, error } = await (await this.supabase.rpc(
         'get_prompt_prayed_for_counts',
         {
           p_prompt_ids: promptIds,
           p_user_email: email,
         }
-      );
+      ));
 
       if (error) throw error;
 
@@ -307,13 +314,13 @@ export class PromptService {
 
       const generationAtStart = this.countsHydrateGeneration;
 
-      const { data: newCount, error } = await this.supabase.client.rpc(
+      const { data: newCount, error } = await (await this.supabase.rpc(
         'increment_prompt_prayed_for_count',
         {
           p_prompt_id: promptId,
           p_user_email: userEmail,
         }
-      );
+      ));
 
       if (error) throw error;
       const count = typeof newCount === 'number' && newCount > 0 ? newCount : null;
@@ -347,8 +354,7 @@ export class PromptService {
    */
   async addPrompt(prompt: Omit<PrayerPrompt, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from('prayer_prompts')
+      const { error } = await (await this.supabase.from('prayer_prompts'))
         .insert({
           title: prompt.title,
           type: prompt.type,
@@ -372,8 +378,7 @@ export class PromptService {
    */
   async updatePrompt(id: string, updates: Partial<PrayerPrompt>): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from('prayer_prompts')
+      const { error } = await (await this.supabase.from('prayer_prompts'))
         .update(updates)
         .eq('id', id);
 
@@ -394,8 +399,7 @@ export class PromptService {
    */
   async deletePrompt(id: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.client
-        .from('prayer_prompts')
+      const { error } = await (await this.supabase.from('prayer_prompts'))
         .delete()
         .eq('id', id);
 

@@ -292,7 +292,7 @@ export class PrayerEncouragementService {
 
   private async fetchAndCacheFlag(): Promise<void> {
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('prayer_encouragement_enabled, prayer_encouragement_cooldown_hours')
         .eq('id', 1)

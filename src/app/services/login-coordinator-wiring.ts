@@ -39,6 +39,7 @@ export function createLoginCoordinators(deps: {
   supabaseService: ConstructorParameters<typeof LoginAuthCoordinator>[0];
   emailNotificationService: ConstructorParameters<typeof LoginAuthCoordinator>[1];
   userSessionService: ConstructorParameters<typeof LoginAuthCoordinator>[3];
+  planningCenterRest?: ConstructorParameters<typeof LoginAuthCoordinator>[4];
   brandingService: ConstructorParameters<typeof LoginLifecycleCoordinator>[0];
   router: Router;
   route: ActivatedRoute;
@@ -47,7 +48,10 @@ export function createLoginCoordinators(deps: {
     deps.supabaseService,
     deps.emailNotificationService,
     deps.adminAuthService,
-    deps.userSessionService
+    deps.userSessionService,
+    (deps.planningCenterRest ?? {
+      lookupPersonByEmail: async () => ({ count: 0, people: [] }),
+    }) as ConstructorParameters<typeof LoginAuthCoordinator>[4]
   );
   const mfa = new LoginMfaCoordinator(
     deps.adminAuthService,

@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { PendingAccountApprovalCardComponent, AccountApprovalRequest } from './pending-account-approval-card.component';
-import { SupabaseService } from '../../services/supabase.service';
-import * as planningCenter from '../../../lib/planning-center';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 
 describe('PendingAccountApprovalCardComponent', () => {
   const mockRequest: AccountApprovalRequest = {
@@ -16,16 +15,20 @@ describe('PendingAccountApprovalCardComponent', () => {
     updated_at: '2024-01-01T00:00:00Z'
   };
 
-  const mockSupabaseService = {
-    getClient: vi.fn()
+  const mockPlanningCenterRest = {
+    lookupPersonByEmail: vi.fn().mockResolvedValue({
+      people: [],
+      count: 0,
+      error: null,
+    }),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock the lookupPersonByEmail function
-    vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+    mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
       people: [],
-      error: null
+      count: 0,
+      error: null,
     });
   });
 
@@ -35,7 +38,7 @@ describe('PendingAccountApprovalCardComponent', () => {
         request: mockRequest
       },
       providers: [
-        { provide: SupabaseService, useValue: mockSupabaseService }
+        { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
       ]
     });
 
@@ -49,7 +52,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -60,7 +63,7 @@ describe('PendingAccountApprovalCardComponent', () => {
     });
 
     it('should call lookupPlanningCenterPerson on init', async () => {
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -70,7 +73,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -87,7 +90,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -100,7 +103,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -113,7 +116,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -126,7 +129,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -137,14 +140,14 @@ describe('PendingAccountApprovalCardComponent', () => {
   describe('Planning Center verification', () => {
     it('should not lookup Planning Center when email is missing', async () => {
       const noEmailRequest = { ...mockRequest, email: '' };
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail');
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail;
 
       await render(PendingAccountApprovalCardComponent, {
         componentProperties: {
           request: noEmailRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -152,7 +155,7 @@ describe('PendingAccountApprovalCardComponent', () => {
     });
 
     it('should lookup Planning Center with email', async () => {
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -162,16 +165,12 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
       await waitFor(() => {
-        expect(lookupSpy).toHaveBeenCalledWith(
-          mockRequest.email,
-          expect.any(String),
-          expect.any(String)
-        );
+        expect(lookupSpy).toHaveBeenCalledWith(mockRequest.email, false);
       });
     });
 
@@ -183,7 +182,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           last_name: 'Doe'
         }
       };
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [mockPerson],
         error: null
       });
@@ -193,7 +192,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -204,7 +203,7 @@ describe('PendingAccountApprovalCardComponent', () => {
     });
 
     it('should keep pcPerson null when not found', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -214,7 +213,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -225,7 +224,7 @@ describe('PendingAccountApprovalCardComponent', () => {
     });
 
     it('should set pcError when lookup fails', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: 'API Error'
       });
@@ -235,7 +234,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -246,14 +245,14 @@ describe('PendingAccountApprovalCardComponent', () => {
     });
 
     it('should handle lookup exception', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockRejectedValue(new Error('Network error'));
+      mockPlanningCenterRest.lookupPersonByEmail.mockRejectedValue(new Error('Network error'));
 
       const { fixture } = await render(PendingAccountApprovalCardComponent, {
         componentProperties: {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -271,7 +270,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -285,7 +284,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -305,7 +304,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -327,7 +326,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -346,7 +345,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -360,7 +359,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -379,7 +378,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -396,7 +395,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -419,7 +418,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -441,7 +440,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -461,7 +460,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -486,7 +485,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -501,7 +500,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -517,7 +516,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -539,7 +538,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -555,7 +554,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -568,7 +567,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -583,7 +582,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -596,7 +595,7 @@ describe('PendingAccountApprovalCardComponent', () => {
           request: mockRequest
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 

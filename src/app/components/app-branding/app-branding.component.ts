@@ -323,7 +323,7 @@ export class AppBrandingComponent {
     this.error = null;
 
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('app_title, app_subtitle, church_website_url, use_logo, light_mode_logo_blob, dark_mode_logo_blob')
         .eq('id', 1)
@@ -384,7 +384,7 @@ export class AppBrandingComponent {
     this.success = false;
 
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('admin_settings')
         .upsert({
           id: 1,

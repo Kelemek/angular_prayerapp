@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef } from '@angular/core';
 import { HourlyReminderTemplateSectionComponent } from './hourly-reminder-template-section.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -11,7 +12,7 @@ describe('HourlyReminderTemplateSectionComponent', () => {
   let mockCdr: { markForCheck: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(() => ({
           select: vi.fn(() => ({
@@ -32,7 +33,7 @@ describe('HourlyReminderTemplateSectionComponent', () => {
           })),
         })),
       },
-    };
+    });
     mockToast = { success: vi.fn(), error: vi.fn() };
     mockCdr = { markForCheck: vi.fn() };
 

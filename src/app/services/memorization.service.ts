@@ -91,7 +91,7 @@ export class MemorizationService {
 
     this.loadingSubject.next(true);
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('memorized_items')
         .select('*')
         .ilike('user_email', userEmail)
@@ -126,7 +126,7 @@ export class MemorizationService {
     const userEmail = await this.getUserEmail();
     if (!userEmail) return { ok: false, reason: 'no_user' };
 
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('memorized_items')
       .insert({
         user_email: userEmail,
@@ -164,7 +164,7 @@ export class MemorizationService {
     const userEmail = await this.getUserEmail();
     if (!userEmail) return { ok: false, reason: 'no_user' };
 
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('memorized_items')
       .insert({
         user_email: userEmail,
@@ -190,7 +190,9 @@ export class MemorizationService {
   }
 
   async removeItem(id: string): Promise<boolean> {
-    const { error } = await this.supabase.client.from('memorized_items').delete().eq('id', id);
+    const { error } = await (await this.supabase.from('memorized_items'))
+      .delete()
+      .eq('id', id);
     if (error) {
       console.error('[MemorizationService] removeItem failed:', error);
       this.toast.error('Failed to remove item');
@@ -218,7 +220,7 @@ export class MemorizationService {
       practiceSessions: [...existing.practiceSessions, session],
     };
 
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('memorized_items')
       .update({
         practice_sessions: updated.practiceSessions,
@@ -241,7 +243,7 @@ export class MemorizationService {
       ...payload,
       updatedAt: Date.now(),
     };
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('memorized_items')
       .update({ in_progress_practice: inProgress })
       .eq('id', id);
@@ -257,7 +259,7 @@ export class MemorizationService {
   }
 
   async clearInProgress(id: string): Promise<void> {
-    const { error } = await this.supabase.client
+    const { error } = await (await this.supabase.db())
       .from('memorized_items')
       .update({ in_progress_practice: null })
       .eq('id', id);

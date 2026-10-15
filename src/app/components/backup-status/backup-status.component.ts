@@ -86,14 +86,20 @@ export class BackupStatusComponent {
     this.loading = true;
     this.cdr.markForCheck();
     try {
+      const authorizationBearer =
+        await this.supabaseService.getRestAuthorizationBearer();
       const data = await fetchBackupStatusLogs(
         this.supabaseService.getSupabaseUrl(),
         this.supabaseService.getSupabaseKey(),
+        authorizationBearer,
       );
 
       if (data.length > 0) {
         this.latestBackup = data[0];
         this.allBackups = data;
+      } else {
+        this.latestBackup = null;
+        this.allBackups = [];
       }
     } catch (error) {
       console.error('Error fetching backup logs:', error);
@@ -143,9 +149,12 @@ export class BackupStatusComponent {
     this.backingUp = true;
     this.cdr.markForCheck();
     try {
+      const authorizationBearer =
+        await this.supabaseService.getRestAuthorizationBearer();
       const result = await runManualBackup(
         this.supabaseService.getSupabaseUrl(),
         this.supabaseService.getSupabaseKey(),
+        authorizationBearer,
         this.supabaseService.getClient(),
       );
 

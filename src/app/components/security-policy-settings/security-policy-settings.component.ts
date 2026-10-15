@@ -202,7 +202,7 @@ export class SecurityPolicySettingsComponent {
       this.error = null;
       this.cdr.markForCheck();
 
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('deletions_allowed, updates_allowed')
         .eq('id', 1)
@@ -233,7 +233,7 @@ export class SecurityPolicySettingsComponent {
       this.error = null;
       this.cdr.markForCheck();
 
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('admin_settings')
         .update({
           deletions_allowed: this.deletionsAllowed,

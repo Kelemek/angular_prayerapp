@@ -284,7 +284,7 @@ export class HourlyReminderTemplateSectionComponent implements OnInit {
     this.loadError = null;
     this.cdr.markForCheck();
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select(this.settingsColumn)
         .eq('id', 1)
@@ -316,7 +316,7 @@ export class HourlyReminderTemplateSectionComponent implements OnInit {
     this.loadError = null;
     this.cdr.markForCheck();
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('admin_settings')
         .update({ [this.settingsColumn]: this.selectedKey })
         .eq('id', 1);

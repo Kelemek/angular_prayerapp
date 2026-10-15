@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { AdminAuthService } from './admin-auth.service';
+import { SupabaseDataAccessGateService } from './supabase-data-access-gate.service';
 import { distinctUntilChanged, first, map } from 'rxjs/operators';
 import type { UserHourReminderSlot } from '../types/user-hour-reminder';
 import type { PrayerItemReminder } from '../types/prayer-item-reminder';
@@ -88,7 +89,8 @@ export class UserSessionService {
 
   constructor(
     private supabase: SupabaseService,
-    private adminAuth: AdminAuthService
+    private adminAuth: AdminAuthService,
+    private dataAccessGate: SupabaseDataAccessGateService
   ) {
     // Restore cached session immediately if available (skip pre-upgrade entries missing strict mode).
     const cachedUserSession = localStorage.getItem('userSession');
@@ -120,14 +122,17 @@ export class UserSessionService {
         const email = session?.user?.email || approvalEmail || mfaEmail;
 
         if (email) {
-          // Try to load from localStorage first for instant availability
-          const cachedSession = this.loadFromCache(email);
+          const emailAtAuth = email;
+          await this.dataAccessGate.waitForReady();
+          if (this.adminAuth.isUserAuthenticated?.() === false) {
+            this.hasInitializedSubject.next(true);
+            return;
+          }
+          const cachedSession = this.loadFromCache(emailAtAuth);
           if (cachedSession && this.shouldPublishCachedSession(cachedSession)) {
             this.userSessionSubject.next(cachedSession);
           }
-          
-          // Then load from database to refresh data
-          await this.loadUserSession(email);
+          await this.loadUserSession(emailAtAuth);
           this.hasInitializedSubject.next(true);
         } else {
           // No email found, mark as initialized with null session
@@ -197,8 +202,9 @@ export class UserSessionService {
 
     try {
       // Use directQuery with timeout to prevent hanging
+      const client = await this.supabase.getClientWhenReady();
       const { data, error } = await Promise.race([
-        this.supabase.client
+        client
           .from('email_subscribers')
           .select(
             'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode, client_preferences'

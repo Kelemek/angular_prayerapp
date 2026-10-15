@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import {
   UserSessionService,
   clampPrayerCooldownHours,
@@ -12,6 +13,7 @@ describe('UserSessionService', () => {
   let service: UserSessionService;
   let mockSupabaseService: any;
   let mockAdminAuthService: any;
+  let mockDataAccessGate: { waitForReady: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     // Create mock for Supabase Service
@@ -39,16 +41,27 @@ describe('UserSessionService', () => {
         })
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     // Create mock for Admin Auth Service
     mockAdminAuthService = {
-      isAuthenticated$: new BehaviorSubject(true)
+      isAuthenticated$: new BehaviorSubject(true),
+      isUserAuthenticated: vi.fn(() => true),
+      waitForDataAccessReady: vi.fn().mockResolvedValue(undefined),
+    };
+
+    mockDataAccessGate = {
+      waitForReady: vi.fn().mockResolvedValue(undefined),
     };
 
     // Clear localStorage before each test
     localStorage.clear();
 
-    service = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+    service = new UserSessionService(
+      mockSupabaseService,
+      mockAdminAuthService,
+      mockDataAccessGate as never
+    );
   });
 
   afterEach(() => {
@@ -418,7 +431,7 @@ describe('UserSessionService', () => {
       });
 
       // Create new service instance
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       
       // The cached session should be loaded immediately
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -511,7 +524,7 @@ describe('UserSessionService', () => {
   describe('initializeSession - initialization with various scenarios', () => {
     it('should initialize with email from session auth', async () => {
       // Create new service with authenticated user
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       
       // Give initialization time to complete
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -530,7 +543,7 @@ describe('UserSessionService', () => {
       localStorage.setItem('approvalAdminEmail', 'fallback@example.com');
       
       // Create new service
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       
       // Give initialization time to complete
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -551,7 +564,7 @@ describe('UserSessionService', () => {
       localStorage.removeItem('mfa_authenticated_email');
       
       // Create new service
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       
       // Give initialization time to complete
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -593,7 +606,7 @@ describe('UserSessionService', () => {
       });
       
       // Create new service
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       
       // Give initialization time to complete - should use cache first then update from DB
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -781,8 +794,15 @@ describe('UserSessionService', () => {
           })
         }
       };
+      newMockSupabase.getClientWhenReady = vi
+        .fn()
+        .mockResolvedValue(newMockSupabase.client);
       
-      const newService = new UserSessionService(newMockSupabase, newMockAuth);
+      const newService = new UserSessionService(
+        newMockSupabase,
+        newMockAuth,
+        mockDataAccessGate as never
+      );
       
       // Emit true to trigger initialization
       newMockAuth.isAuthenticated$.next(true);
@@ -816,7 +836,7 @@ describe('UserSessionService', () => {
   describe('authorization status changes', () => {
     it('should initialize with authenticated true', async () => {
       // Should start with authenticated state from setup
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       
       await new Promise(resolve => setTimeout(resolve, 100));
       
@@ -862,7 +882,7 @@ describe('UserSessionService', () => {
 
     it('should trigger hasInitialized when authenticated is false', async () => {
       // Create new service and ensure it initializes
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       await new Promise(resolve => setTimeout(resolve, 50));
       
       // Send false
@@ -1323,7 +1343,7 @@ describe('UserSessionService', () => {
         data: { session: { user: { email: 'wait-test@example.com' } } }
       });
       
-      const waitService = new UserSessionService(mockSupabaseService, mockAuth);
+      const waitService = new UserSessionService(mockSupabaseService, mockAuth, mockDataAccessGate as never);
       
       // Start waiting (will wait for initialization)
       const waitPromise = waitService.waitForSession();
@@ -1394,7 +1414,7 @@ describe('UserSessionService', () => {
       // Clear any cached session from localStorage
       localStorage.removeItem('userSession');
       
-      const timeoutService = new UserSessionService(mockSupabaseService, mockAuth);
+      const timeoutService = new UserSessionService(mockSupabaseService, mockAuth, mockDataAccessGate as never);
       
       // Call waitForSession with a timeout test
       // This will wait up to 10 seconds
@@ -1626,7 +1646,7 @@ describe('UserSessionService', () => {
         data: { session: { user: { email: 'auth-test@example.com' } } }
       });
 
-      const authService = new UserSessionService(mockSupabaseService, mockAuth);
+      const authService = new UserSessionService(mockSupabaseService, mockAuth, mockDataAccessGate as never);
 
       // Should have loaded initially
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -1665,7 +1685,7 @@ describe('UserSessionService', () => {
         data: { session: { user: { email: 'subscribe-test@example.com' } } }
       });
 
-      const newService = new UserSessionService(mockSupabaseService, mockAuth);
+      const newService = new UserSessionService(mockSupabaseService, mockAuth, mockDataAccessGate as never);
 
       // Call waitForSession before initialization completes
       const resultPromise = newService.waitForSession();
@@ -1803,7 +1823,7 @@ describe('UserSessionService', () => {
       const authSubject = new BehaviorSubject(false);
       const mockAuth = { isAuthenticated$: authSubject };
 
-      const waitService = new UserSessionService(mockSupabaseService, mockAuth);
+      const waitService = new UserSessionService(mockSupabaseService, mockAuth, mockDataAccessGate as never);
 
       // Call waitForSession - should wait for initialization
       const waitPromise = waitService.waitForSession();
@@ -1862,7 +1882,7 @@ describe('UserSessionService', () => {
         data: { session: { user: { email: 'transition-test@example.com' } } }
       });
 
-      const newService = new UserSessionService(mockSupabaseService, mockAuth);
+      const newService = new UserSessionService(mockSupabaseService, mockAuth, mockDataAccessGate as never);
 
       // Start waiting
       const waitPromise = newService.waitForSession();
@@ -2171,7 +2191,7 @@ describe('UserSessionService', () => {
         }),
       );
 
-      const freshService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const freshService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       expect(freshService.getCurrentSession()).toBeNull();
     });
 
@@ -2202,7 +2222,7 @@ describe('UserSessionService', () => {
         }),
       });
 
-      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService);
+      const newService = new UserSessionService(mockSupabaseService, mockAdminAuthService, mockDataAccessGate as never);
       await new Promise((resolve) => setTimeout(resolve, 20));
 
       expect(newService.getCurrentSession()?.memorizationStrictMode).toBe(false);

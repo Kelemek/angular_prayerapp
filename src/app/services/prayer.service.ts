@@ -1,5 +1,12 @@
 import { Injectable, Optional } from "@angular/core";
-import { distinctUntilChanged, type Subscription } from "rxjs";
+import { SupabaseDataAccessGateService } from "./supabase-data-access-gate.service";
+import {
+  distinctUntilChanged,
+  filter,
+  pairwise,
+  type Subscription,
+} from "rxjs";
+import { AdminAuthService } from "./admin-auth.service";
 import { SupabaseService } from "./supabase.service";
 import { ToastService } from "./toast.service";
 import { EmailNotificationService } from "./email-notification.service";
@@ -66,6 +73,8 @@ export class PrayerService {
     private cache: CacheService,
     badgeService: BadgeService,
     private userSessionService: UserSessionService,
+    private adminAuthService: AdminAuthService,
+    private dataAccessGate: SupabaseDataAccessGateService,
     @Optional() private prayerItemReminderService?: PrayerItemReminderService
   ) {
     this.community = new PrayerCommunityService(
@@ -131,21 +140,74 @@ export class PrayerService {
     });
   }
 
+  private prayerLifecycleWired = false;
+
   private async initializePrayers(): Promise<void> {
-    await this.loadPrayers();
+    this.wirePrayerLifecycle();
+    await this.loadPrayerCatalogsWhenDataAccessReady(false, false);
+  }
+
+  private async loadPrayerCatalogsWhenDataAccessReady(
+    silentRefresh = false,
+    includePersonal = true
+  ): Promise<void> {
+    if (!this.adminAuthService.isUserAuthenticated()) {
+      return;
+    }
+    await this.dataAccessGate.waitForReady();
+    if (!this.adminAuthService.isUserAuthenticated()) {
+      return;
+    }
+    await this.loadPrayers(silentRefresh);
+    if (!includePersonal) {
+      return;
+    }
+    const userEmail =
+      typeof this.userSessionService.getUserEmail === 'function'
+        ? this.userSessionService.getUserEmail()
+        : '';
+    if (userEmail) {
+      this.personal.personalPrayersDbFetchComplete = false;
+      await this.loadPersonalPrayers(silentRefresh);
+    }
+  }
+
+  private wirePrayerLifecycle(): void {
+    if (this.prayerLifecycleWired) {
+      return;
+    }
+    this.prayerLifecycleWired = true;
+
+    this.dataAccessGate.ready$
+      .pipe(
+        distinctUntilChanged(),
+        pairwise(),
+        filter(([wasReady, isReady]) => !wasReady && isReady)
+      )
+      .subscribe(() => {
+        void this.loadPrayerCatalogsWhenDataAccessReady(true);
+      });
 
     this.userSessionService.userSession$
       .pipe(distinctUntilChanged(userSessionEmailDistinctEqual))
       .subscribe((session) => {
         const action = personalPrayerSessionAction(session);
         if (action === "load") {
-          this.personal.personalPrayersDbFetchComplete = false;
-          this.loadPersonalPrayers().catch((err) =>
-            console.error(
-              "[PrayerService] Error loading personal prayers on session change:",
-              err
-            )
-          );
+          void (async () => {
+            try {
+              await this.dataAccessGate.waitForReady();
+              if (!this.adminAuthService.isUserAuthenticated()) {
+                return;
+              }
+              this.personal.personalPrayersDbFetchComplete = false;
+              await this.loadPersonalPrayers();
+            } catch (err) {
+              console.error(
+                "[PrayerService] Error loading personal prayers on session change:",
+                err
+              );
+            }
+          })();
         } else {
           this.personal.clearCatalogOnLogout();
         }
@@ -154,6 +216,7 @@ export class PrayerService {
     this.setupRealtimeSubscription();
     this.setupResumeListeners();
   }
+
 
   async loadPrayers(silentRefresh = false): Promise<void> {
     return this.community.loadPrayers(silentRefresh);

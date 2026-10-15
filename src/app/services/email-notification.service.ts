@@ -118,7 +118,7 @@ export class EmailNotificationService {
    * Get email template by key
    */
   async getTemplate(templateKey: string): Promise<EmailTemplate | null> {
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from("email_templates")
       .select("*")
       .eq("template_key", templateKey)
@@ -153,7 +153,7 @@ export class EmailNotificationService {
   ): Promise<void> {
     const stringifiedVariables = stringifyEmailTemplateVariables(variables);
 
-    const { error } = await this.supabase.client.from("email_queue").insert({
+    const { error } = await (await this.supabase.from("email_queue")).insert({
       recipient,
       template_key: templateKey,
       template_variables: stringifiedVariables,
@@ -238,7 +238,7 @@ export class EmailNotificationService {
    * Tester email from Admin → Security → Test Account (excluded from manual subscriber broadcasts).
    */
   private async getConfiguredTestAccountEmailLower(): Promise<string | null> {
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from("admin_settings")
       .select("test_account_email")
       .eq("id", 1)
@@ -259,7 +259,7 @@ export class EmailNotificationService {
    */
   async getManualBroadcastRecipientEmails(): Promise<string[]> {
     const excludeLower = await this.getConfiguredTestAccountEmailLower();
-    const { data: rows, error } = await this.supabase.client
+    const { data: rows, error } = await (await this.supabase.db())
       .from("email_subscribers")
       .select("email")
       .eq("is_blocked", false);
@@ -357,7 +357,7 @@ export class EmailNotificationService {
     variables: Record<string, string | null | undefined>,
     logLabel: string
   ): Promise<void> {
-    const { data: subscribers, error: fetchError } = await this.supabase.client
+    const { data: subscribers, error: fetchError } = await (await this.supabase.db())
       .from("email_subscribers")
       .select("email")
       .eq("is_active", true)
@@ -749,7 +749,7 @@ export class EmailNotificationService {
   ): Promise<void> {
     try {
       // Get admin emails from email_subscribers table (receive_admin_emails only; not tied to is_active)
-      const { data: admins, error: adminsError } = await this.supabase.client
+      const { data: admins, error: adminsError } = await (await this.supabase.db())
         .from("email_subscribers")
         .select("email")
         .eq("is_admin", true)

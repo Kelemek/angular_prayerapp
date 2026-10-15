@@ -97,7 +97,7 @@ export class AdminPromptManagerCsvPanelComponent {
       this.uploadingCSV = true;
       this.cdr.markForCheck();
 
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('prayer_prompts')
         .insert(
           validRows.map((r) => ({

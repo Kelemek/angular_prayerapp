@@ -113,7 +113,7 @@ export class PrintService {
     const startDate = new Date();
     setPrintStartDateForTimeRange(startDate, endDate, timeRange);
 
-    const { data: allPrayers, error: prayersError } = await this.supabase.client
+    const { data: allPrayers, error: prayersError } = await (await this.supabase.db())
       .from('prayers')
       .select('*')
       .eq('approval_status', 'approved')
@@ -129,7 +129,7 @@ export class PrintService {
       return null;
     }
 
-    const { data: allUpdates, error: updatesError } = await this.supabase.client
+    const { data: allUpdates, error: updatesError } = await (await this.supabase.db())
       .from('prayer_updates')
       .select('*');
 
@@ -325,7 +325,7 @@ export class PrintService {
   }
 
   private async loadBookletPromptSectionsOrdered(): Promise<Array<{ typeName: string; prompts: any[] }>> {
-    const { data: typesRows, error: typesErr } = await this.supabase.client
+    const { data: typesRows, error: typesErr } = await (await this.supabase.db())
       .from('prayer_types')
       .select('name, display_order')
       .eq('is_active', true)
@@ -341,7 +341,7 @@ export class PrintService {
     }
 
     const names = typesRows.map((t: { name: string }) => t.name);
-    const { data: promptsData, error: promptsErr } = await this.supabase.client
+    const { data: promptsData, error: promptsErr } = await (await this.supabase.db())
       .from('prayer_prompts')
       .select('*')
       .in('type', names)
@@ -378,7 +378,7 @@ export class PrintService {
   }
 
   async loadBookletInsertPagesOrdered(): Promise<BookletInsertPage[]> {
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('booklet_insert_pages')
       .select('id, sort_order, label, mime_type, image_data')
       .order('sort_order', { ascending: true });
@@ -452,7 +452,7 @@ export class PrintService {
 
   async downloadPrintablePromptList(selectedTypes: string[] = [], newWindow: Window | null = null): Promise<void> {
     try {
-      const { data: promptsData, error: promptsError } = await this.supabase.client
+      const { data: promptsData, error: promptsError } = await (await this.supabase.db())
         .from('prayer_prompts')
         .select('*')
         .order('created_at', { ascending: false });
@@ -470,7 +470,7 @@ export class PrintService {
         return;
       }
 
-      const { data: typesData, error: typesError } = await this.supabase.client
+      const { data: typesData, error: typesError } = await (await this.supabase.db())
         .from('prayer_types')
         .select('name, display_order')
         .eq('is_active', true)

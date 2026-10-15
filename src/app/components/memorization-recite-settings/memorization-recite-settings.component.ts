@@ -241,7 +241,7 @@ export class MemorizationReciteSettingsComponent {
     this.isLoading = true;
     this.cdr.markForCheck();
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('memorization_recite_enabled')
         .eq('id', 1)
@@ -270,7 +270,7 @@ export class MemorizationReciteSettingsComponent {
     this.cdr.markForCheck();
 
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('admin_settings')
         .update({ memorization_recite_enabled: this.reciteEnabled })
         .eq('id', 1);

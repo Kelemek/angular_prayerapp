@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { PlanningCenterListService } from '../../services/planning-center-list.service';
 import { ToastService } from '../../services/toast.service';
-import { fetchPlanningCenterLists, type PlanningCenterList } from '../../../lib/planning-center';
-import { environment } from '../../../environments/environment';
+import type { PlanningCenterList } from '../../../lib/planning-center';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 
 interface EmailSubscriber {
   id: string;
@@ -237,6 +237,7 @@ export class PlanningCenterListMapperComponent {
     private supabaseService: SupabaseService,
     private toastService: ToastService,
     private planningCenterListService: PlanningCenterListService,
+    private planningCenterRest: PlanningCenterRestService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -257,7 +258,7 @@ export class PlanningCenterListMapperComponent {
 
   async loadSubscribers() {
     try {
-      const { data, error } = await this.supabaseService.client
+      const { data, error } = await (await this.supabaseService.db())
         .from('email_subscribers')
         .select('id, name, email, planning_center_list_id')
         .order('name');
@@ -278,7 +279,7 @@ export class PlanningCenterListMapperComponent {
     this.cdr.markForCheck();
     
     try {
-      const result = await fetchPlanningCenterLists(environment.supabaseUrl, environment.supabaseAnonKey);
+      const result = await this.planningCenterRest.fetchPlanningCenterLists();
       if (result.error) {
         throw new Error(result.error);
       }
@@ -362,7 +363,7 @@ export class PlanningCenterListMapperComponent {
     this.cdr.markForCheck();
 
     try {
-      const { error } = await this.supabaseService.client
+      const { error } = await (await this.supabaseService.db())
         .from('email_subscribers')
         .update({ planning_center_list_id: this.selectedList.id })
         .eq('id', this.selectedSubscriber.id);
@@ -392,7 +393,7 @@ export class PlanningCenterListMapperComponent {
       ?? this.subscribers.find(s => s.id === subscriberId)?.email;
 
     try {
-      const { data, error } = await this.supabaseService.client
+      const { data, error } = await (await this.supabaseService.db())
         .from('email_subscribers')
         .update({ planning_center_list_id: null })
         .eq('id', subscriberId)

@@ -67,6 +67,7 @@ describe('BackupStatusComponent', () => {
     supabaseService = {
       getSupabaseUrl: vi.fn().mockReturnValue('https://supabase.test'),
       getSupabaseKey: vi.fn().mockReturnValue('test-key'),
+      getRestAuthorizationBearer: vi.fn().mockResolvedValue('admin-jwt'),
       getClient: vi.fn().mockReturnValue(makeMockSupabaseClient()),
     };
 
@@ -338,6 +339,7 @@ describe('BackupStatusComponent - extra branches', () => {
     supabaseService = {
       getSupabaseUrl: vi.fn().mockReturnValue('https://supabase.test'),
       getSupabaseKey: vi.fn().mockReturnValue('test-key'),
+      getRestAuthorizationBearer: vi.fn().mockResolvedValue('admin-jwt'),
       getClient: vi.fn().mockReturnValue(makeMockSupabaseClient()),
     };
 
@@ -468,6 +470,7 @@ describe('BackupStatusComponent', () => {
     mockSupabaseService = {
       getSupabaseUrl: vi.fn().mockReturnValue('https://test.supabase.co'),
       getSupabaseKey: vi.fn().mockReturnValue('test-key'),
+      getRestAuthorizationBearer: vi.fn().mockResolvedValue('admin-jwt'),
       getClient: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           insert: vi.fn().mockReturnValue({ error: null }),

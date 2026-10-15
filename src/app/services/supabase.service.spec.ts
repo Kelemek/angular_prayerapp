@@ -3,9 +3,51 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 // Ensure we can mock modules before importing the service
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
-    auth: { getSession: vi.fn(() => ({ data: null, error: null })) }
-  }))
+    auth: {
+      getSession: vi.fn(() =>
+        Promise.resolve({ data: { session: null }, error: null }),
+      ),
+    },
+  })),
 }));
+
+const mockDataAccessGate = {
+  waitForReady: vi.fn().mockResolvedValue(undefined),
+  refresh: vi.fn().mockResolvedValue(undefined),
+  bindAuthenticatedStream: vi.fn(),
+  syncAuthenticated: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock('@angular/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@angular/core')>();
+  return {
+    ...actual,
+    inject: vi.fn((token: unknown) => {
+      if (
+        token &&
+        typeof token === 'function' &&
+        token.name === 'SupabaseDataAccessGateService'
+      ) {
+        return mockDataAccessGate;
+      }
+      if (token === actual.Injector) {
+        return {
+          get: (t: unknown) => {
+            if (
+              t &&
+              typeof t === 'function' &&
+              t.name === 'SupabaseDataAccessGateService'
+            ) {
+              return mockDataAccessGate;
+            }
+            throw new Error('Unexpected injector token');
+          },
+        };
+      }
+      return actual.inject(token as never);
+    }),
+  };
+});
 
 describe('SupabaseService', () => {
   let env: any;
@@ -68,6 +110,42 @@ describe('SupabaseService', () => {
     expect(res.error).toBeNull();
     expect(res.data).toEqual(json);
     expect(res.count).toBe(10);
+    const fetchInit = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(fetchInit.headers.apikey).toBe('anon-key');
+    expect(fetchInit.headers.Authorization).toBe('Bearer anon-key');
+  });
+
+  it('directQuery sends user JWT as Authorization when session exists', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue({
+      auth: {
+        getSession: vi.fn().mockResolvedValue({
+          data: {
+            session: {
+              access_token: 'user-jwt',
+              user: { email: 'admin@example.com' },
+            },
+          },
+          error: null,
+        }),
+      },
+    });
+
+    globalThis.fetch = vi.fn(() => Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => [],
+      headers: { get: () => null },
+      text: async () => '',
+    } as any));
+
+    const mod = await import('./supabase.service');
+    const svc = new mod.SupabaseService();
+    await svc.directQuery('prayer_prompts');
+
+    const fetchInit = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(fetchInit.headers.apikey).toBe('anon-key');
+    expect(fetchInit.headers.Authorization).toBe('Bearer user-jwt');
   });
 
   it('directQuery handles HEAD requests', async () => {
@@ -271,8 +349,11 @@ describe('SupabaseService', () => {
   it('reconnect succeeds and replaces the client instance', async () => {
     const createClient = (await import('@supabase/supabase-js')).createClient as any;
 
-    const clientA = { id: 'A', auth: { getSession: vi.fn() } };
-    const clientB = { id: 'B', auth: { getSession: vi.fn() } };
+    const emptySession = vi.fn(() =>
+      Promise.resolve({ data: { session: null }, error: null }),
+    );
+    const clientA = { id: 'A', auth: { getSession: emptySession } };
+    const clientB = { id: 'B', auth: { getSession: emptySession } };
 
     // First call returns clientA (used by constructor), subsequent reconnect returns clientB
     createClient.mockImplementationOnce(() => clientA).mockImplementationOnce(() => clientB);
@@ -295,7 +376,13 @@ describe('SupabaseService', () => {
 
     try {
       const createClient = (await import('@supabase/supabase-js')).createClient as any;
-      createClient.mockImplementation(() => ({ auth: { getSession: vi.fn() } }));
+      createClient.mockImplementation(() => ({
+        auth: {
+          getSession: vi.fn(() =>
+            Promise.resolve({ data: { session: null }, error: null }),
+          ),
+        },
+      }));
 
       const mod = await import('./supabase.service');
       expect(() => new mod.SupabaseService()).not.toThrow();

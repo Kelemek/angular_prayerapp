@@ -126,7 +126,7 @@ export class PrayerArchiveTimelineComponent {
 
   private async loadSettings(): Promise<void> {
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('reminder_interval_days, days_before_archive')
         .eq('id', 1)

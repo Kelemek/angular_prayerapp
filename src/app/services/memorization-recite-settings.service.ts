@@ -68,14 +68,14 @@ export class MemorizationReciteSettingsService {
     end: Date
   ): Promise<MemorizationReciteUsageSummary> {
     const adminEmail = await this.getAdminCallerEmail();
-    const { data, error } = await this.supabase.client.rpc(
+    const { data, error } = await (await this.supabase.rpc(
       'get_memorization_recite_usage_summary',
       {
         p_start: start.toISOString(),
         p_end: end.toISOString(),
         p_email: adminEmail,
       }
-    );
+    ));
 
     if (error) {
       throw error;
@@ -268,7 +268,7 @@ export class MemorizationReciteSettingsService {
         console.warn('[MemorizationReciteSettings] directQuery failed, retrying client', error);
       }
 
-      const { data: clientData, error: clientError } = await this.supabase.client
+      const { data: clientData, error: clientError } = await (await this.supabase.db())
         .from('admin_settings')
         .select('memorization_recite_enabled')
         .eq('id', 1)

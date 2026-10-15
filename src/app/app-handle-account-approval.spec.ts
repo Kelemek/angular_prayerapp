@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { wireGatedSupabaseMock } from './testing/supabase-service-mock';
 import { AppComponent } from './app.component';
 import { NavigationEnd } from '@angular/router';
 import { Subject, of } from 'rxjs';
@@ -6,6 +7,7 @@ import { Subject, of } from 'rxjs';
 const decodeAccountCodeMock = vi.fn();
 const supabaseDirectQueryMock = vi.fn();
 const supabaseDirectMutationMock = vi.fn();
+const supabaseRpcMock = vi.fn();
 const lookupPersonByEmailMock = vi.fn();
 const emailGetTemplateMock = vi.fn();
 const emailApplyTemplateVariablesMock = vi.fn();
@@ -22,11 +24,30 @@ vi.mock('./services/approval-links.service', () => ({
 
 vi.mock('./services/supabase.service', () => ({
   SupabaseService: class {
+    client = {
+      rpc: (...args: unknown[]) => supabaseRpcMock(...args),
+    };
+
+    rpc(...args: unknown[]) {
+      return supabaseRpcMock(...args);
+    }
+
+    async db() {
+      return this.client;
+    }
+
+    async getClientWhenReady() {
+      return this.client;
+    }
+
     directQuery(...args: unknown[]) {
       return supabaseDirectQueryMock(...args);
     }
     directMutation(...args: unknown[]) {
       return supabaseDirectMutationMock(...args);
+    }
+    getRestAuthorizationBearer() {
+      return Promise.resolve('admin-jwt');
     }
   },
 }));
@@ -56,8 +77,12 @@ vi.mock('./services/toast.service', () => ({
   },
 }));
 
-vi.mock('../lib/planning-center', () => ({
-  lookupPersonByEmail: lookupPersonByEmailMock,
+vi.mock('./services/planning-center-rest.service', () => ({
+  PlanningCenterRestService: class {
+    lookupPersonByEmail(...args: unknown[]) {
+      return lookupPersonByEmailMock(...args);
+    }
+  },
 }));
 
 vi.mock('../environments/environment', () => ({
@@ -82,14 +107,23 @@ describe('AppComponent handleAccountApprovalCode', () => {
   const mockInjector = {
     get: vi.fn((token: { name?: string }) => {
       const name = typeof token?.name === 'string' ? token.name : '';
+      if (name === 'PlanningCenterRestService') {
+        return {
+          lookupPersonByEmail: (...args: unknown[]) =>
+            lookupPersonByEmailMock(...args),
+        };
+      }
       if (name === 'ApprovalLinksService') {
         return { decodeAccountCode: () => decodeAccountCodeMock() };
       }
       if (name === 'SupabaseService') {
-        return {
+        const client = { rpc: (...args: unknown[]) => supabaseRpcMock(...args) };
+        return wireGatedSupabaseMock({
+          client,
           directQuery: (...args: unknown[]) => supabaseDirectQueryMock(...args),
           directMutation: (...args: unknown[]) => supabaseDirectMutationMock(...args),
-        };
+          getRestAuthorizationBearer: () => Promise.resolve('admin-jwt'),
+        });
       }
       if (name === 'EmailNotificationService') {
         return {
@@ -141,6 +175,7 @@ describe('AppComponent handleAccountApprovalCode', () => {
       error: null,
     });
     supabaseDirectMutationMock.mockReset().mockResolvedValue({ error: null });
+    supabaseRpcMock.mockReset().mockResolvedValue({ error: null });
     lookupPersonByEmailMock.mockReset().mockResolvedValue({ count: 0 });
     emailGetTemplateMock.mockReset().mockResolvedValue({
       subject: 'Welcome {{firstName}}',

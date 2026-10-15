@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { VerseMemorizationPrayerService } from './verse-memorization-prayer.service';
 
 describe('VerseMemorizationPrayerService', () => {
@@ -17,11 +18,11 @@ describe('VerseMemorizationPrayerService', () => {
   let mockUserSession: { getUserEmail: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(),
       },
-    };
+    });
     mockScripture = {
       getPassage: vi.fn().mockResolvedValue({ text: 'For God so loved the world.' }),
     };

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef, DestroyRef, SimpleChanges } from '@angular/core';
 import { PrayerFormComponent } from './prayer-form.component';
 import { PrayerService } from '../../services/prayer.service';
@@ -101,6 +102,7 @@ describe('PrayerFormComponent', () => {
         from: defaultFrom
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     mockToastService = {
       error: vi.fn(),

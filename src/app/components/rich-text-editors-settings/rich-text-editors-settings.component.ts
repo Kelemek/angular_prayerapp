@@ -204,7 +204,7 @@ export class RichTextEditorsSettingsComponent {
     this.isLoading = true;
     this.cdr.markForCheck();
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from("admin_settings")
         .select("rich_text_editors_enabled")
         .eq("id", 1)
@@ -229,7 +229,7 @@ export class RichTextEditorsSettingsComponent {
     this.errorMessage = "";
 
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from("admin_settings")
         .update({ rich_text_editors_enabled: this.richTextEditorsEnabled })
         .eq("id", 1);

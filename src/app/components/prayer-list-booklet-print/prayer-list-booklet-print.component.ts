@@ -258,7 +258,7 @@ export class PrayerListBookletPrintComponent {
     this.insertPagesError = '';
     this.cdr.markForCheck();
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('booklet_insert_pages')
         .select('id, sort_order, label, mime_type, image_data')
         .order('sort_order', { ascending: true });
@@ -328,7 +328,7 @@ export class PrayerListBookletPrintComponent {
   ): Promise<void> {
     try {
       const sortOrder = this.insertPages.length;
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('booklet_insert_pages')
         .insert({
           sort_order: sortOrder,
@@ -360,8 +360,8 @@ export class PrayerListBookletPrintComponent {
     this.cdr.markForCheck();
 
     try {
-      const updates = this.insertPages.map((page, idx) =>
-        this.supabase.client.from('booklet_insert_pages').update({ sort_order: idx }).eq('id', page.id)
+      const updates = this.insertPages.map(async (page, idx) =>
+        (await this.supabase.from('booklet_insert_pages')).update({ sort_order: idx }).eq('id', page.id)
       );
       const results = await Promise.all(updates);
       const failed = results.find(r => r.error);
@@ -382,7 +382,7 @@ export class PrayerListBookletPrintComponent {
     this.insertPagesError = '';
     this.cdr.markForCheck();
     try {
-      const { error } = await this.supabase.client.from('booklet_insert_pages').delete().eq('id', page.id);
+      const { error } = await (await this.supabase.from('booklet_insert_pages')).delete().eq('id', page.id);
       if (error) throw error;
       this.insertPages = this.insertPages.filter(p => p.id !== page.id);
       await this.normalizeInsertPageSortOrders();
@@ -396,8 +396,8 @@ export class PrayerListBookletPrintComponent {
   }
 
   private async normalizeInsertPageSortOrders(): Promise<void> {
-    const updates = this.insertPages.map((page, idx) =>
-      this.supabase.client.from('booklet_insert_pages').update({ sort_order: idx }).eq('id', page.id)
+    const updates = this.insertPages.map(async (page, idx) =>
+      (await this.supabase.from('booklet_insert_pages')).update({ sort_order: idx }).eq('id', page.id)
     );
     const results = await Promise.all(updates);
     const failed = results.find(r => r.error);

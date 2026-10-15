@@ -1,9 +1,46 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { firstValueFrom, BehaviorSubject } from 'rxjs';
+import { firstValueFrom, BehaviorSubject, of } from 'rxjs';
 import { PrayerService, PrayerRequest } from './prayer.service';
+import {
+  createDataAccessGateStub,
+  createPrayerServiceTestAdminAuthStub,
+  createLoggedOutAdminAuthStub,
+} from '../testing/auth-test-stubs';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
+
+function createPrayerService(
+  s: unknown,
+  t: unknown,
+  e: unknown,
+  v: unknown,
+  c: unknown,
+  b: unknown,
+  us: unknown,
+  admin = createPrayerServiceTestAdminAuthStub(),
+  gate = createDataAccessGateStub(),
+  reminder?: unknown
+): PrayerService {
+  return new PrayerService(
+    s as never,
+    t as never,
+    e as never,
+    v as never,
+    c as never,
+    b as never,
+    us as never,
+    admin as never,
+    gate as never,
+    reminder as never
+  );
+}
 
 describe('PrayerService', () => {
   let service: PrayerService;
+  let mockAdminAuth: { isUserAuthenticated: () => boolean };
+  let mockDataAccessGate: {
+    waitForReady: ReturnType<typeof vi.fn>;
+    ready$: ReturnType<typeof of>;
+  };
   let supabase: any;
   let toast: any;
   let emailNotification: any;
@@ -35,7 +72,13 @@ describe('PrayerService', () => {
     supabase = {
       client: {
         from: vi.fn(),
-        channel: vi.fn(() => ({ on: () => ({ on: () => ({ subscribe: () => ({}) }) }) })),
+        channel: vi.fn(() => ({
+          on: vi.fn(() => ({
+            on: vi.fn(() => ({
+              on: vi.fn(() => ({ subscribe: vi.fn(() => ({})) })),
+            })),
+          })),
+        })),
         removeChannel: vi.fn()
       }
     };
@@ -58,8 +101,23 @@ describe('PrayerService', () => {
     }));
     supabase.client.rpc = vi.fn().mockResolvedValue({ data: null, error: null });
     supabase.ensureConnected = vi.fn().mockResolvedValue(undefined);
+    wireGatedSupabaseMock(supabase);
 
-    service = new PrayerService(supabase, toast, emailNotification, verificationService as any, cache, badgeService, userSessionService);
+    mockAdminAuth = { isUserAuthenticated: () => true };
+    mockDataAccessGate = {
+      waitForReady: vi.fn().mockResolvedValue(undefined),
+      ready$: new BehaviorSubject(true).asObservable(),
+    };
+
+    service = createPrayerService(
+      supabase,
+      toast,
+      emailNotification,
+      verificationService,
+      cache,
+      badgeService,
+      userSessionService
+    );
   });
 
   describe('incrementPrayedFor', () => {
@@ -752,8 +810,9 @@ describe('PrayerService', () => {
       },
       ensureConnected: vi.fn().mockResolvedValue(undefined),
     } as any;
+    wireGatedSupabaseMock(realtimeSupabase);
 
-    const localService = new PrayerService(
+    const localService = createPrayerService(
       realtimeSupabase,
       toast,
       emailNotification,
@@ -761,6 +820,8 @@ describe('PrayerService', () => {
       cache,
       badgeService,
       userSessionService,
+      mockAdminAuth,
+      mockDataAccessGate,
       reminderMock as any
     );
     vi.spyOn(localService as any, 'loadPrayers').mockImplementation(loadSpy);
@@ -810,7 +871,18 @@ describe('PrayerService', () => {
 
     // Instantiating service will call setupRealtimeSubscription which will invoke our subscribe
     const userSessionServiceMock = { userSession$: new BehaviorSubject<any>(null).asObservable() };
-    const localService = new (PrayerService as any)(closedSupabase, toast, emailNotification, verificationService, cache, badgeService, userSessionServiceMock);
+    wireGatedSupabaseMock(closedSupabase);
+    const localService = createPrayerService(
+      closedSupabase,
+      toast,
+      emailNotification,
+      verificationService,
+      cache,
+      badgeService,
+      userSessionServiceMock,
+      createLoggedOutAdminAuthStub(),
+      createDataAccessGateStub()
+    );
     // allow any async setup to run
     await new Promise((res) => setTimeout(res, 0));
     expect(closedSupabase.client.channel).toHaveBeenCalled();
@@ -834,7 +906,16 @@ describe('PrayerService', () => {
       }
     } as any;
 
-    const localService = new (PrayerService as any)(existingEmailSupabase, toast, emailNotification, verificationService, cache, badgeService, userSessionService);
+    wireGatedSupabaseMock(existingEmailSupabase);
+    const localService = createPrayerService(
+      existingEmailSupabase,
+      toast,
+      emailNotification,
+      verificationService,
+      cache,
+      badgeService,
+      userSessionService
+    );
 
     const result = await localService.addPrayer({ title: 'T', description: 'D', status: 'current', requester: 'R', prayer_for: 'P', email: 'already@exists.com', is_anonymous: false });
     expect(result).toBe(true);
@@ -1223,6 +1304,7 @@ describe('PrayerService - Integration Tests', () => {
       },
       ensureConnected: vi.fn().mockResolvedValue(undefined)
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     // Mock Toast Service
     mockToastService = {
@@ -1278,7 +1360,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('initialization', () => {
     it('should create the service', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1291,7 +1373,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should have observable properties', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1310,7 +1392,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('loadPrayers', () => {
     it('should load prayers successfully', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1329,7 +1411,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should set loading state during load', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1344,7 +1426,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should format prayers correctly', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1369,7 +1451,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should cache prayers after loading', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1396,7 +1478,7 @@ describe('PrayerService - Integration Tests', () => {
         }))
       }));
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1415,7 +1497,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should filter only approved prayers', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1448,7 +1530,7 @@ describe('PrayerService - Integration Tests', () => {
         }))
       }));
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1467,7 +1549,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should sort prayers by latest activity', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1519,7 +1601,7 @@ describe('PrayerService - Integration Tests', () => {
         }))
       }));
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1542,7 +1624,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('listeners and cleanup (additional branches)', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1581,7 +1663,7 @@ describe('PrayerService - Integration Tests', () => {
         // construct a new instance to run setupRealtimeSubscription
         // use local variables to avoid replacing global mocks
         // Note: this will call initializePrayers which calls loadPrayers; keep from throwing by mocking
-        const s = new PrayerService(mockSupabaseService, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService, mockBadgeService,
+        const s = createPrayerService(mockSupabaseService, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService, mockBadgeService,
       userSessionService
     );
         expect(s).toBeTruthy();
@@ -1617,10 +1699,21 @@ describe('PrayerService - Integration Tests', () => {
           channel: vi.fn(() => fakeChannel)
         }
       } as any;
+      wireGatedSupabaseMock(localSupabase);
 
       // constructing service will call initializePrayers which sets up realtime subscription
       expect(() => {
-        const s = new (PrayerService as any)(localSupabase, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService, {}, { userSession$: new BehaviorSubject(null).asObservable() });
+        const s = createPrayerService(
+          localSupabase,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          {},
+          { userSession$: new BehaviorSubject(null).asObservable() },
+          createLoggedOutAdminAuthStub(),
+          createDataAccessGateStub()
+        );
         expect(s).toBeTruthy();
       }).not.toThrow();
     });
@@ -1654,7 +1747,7 @@ describe('PrayerService - Integration Tests', () => {
       trig.mockRestore();
     });
 
-    it('window app-became-visible addEventListener callback triggers recovery using cache', () => {
+    it('window app-became-visible addEventListener callback triggers recovery using cache', async () => {
       // Capture the addEventListener callback for the custom event by temporarily overriding
       // the global `addEventListener` so we reliably capture the handler even if other tests mocked it.
       let capturedCallback: any = null;
@@ -1667,8 +1760,12 @@ describe('PrayerService - Integration Tests', () => {
       const cached = [mockPrayerData[0]];
       mockCacheService.get = vi.fn(() => cached);
 
+      const initStub = vi
+        .spyOn(PrayerService.prototype as any, 'initializePrayers')
+        .mockResolvedValue(undefined);
+
       // construct service which registers the listener (our override will capture the callback)
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1677,6 +1774,11 @@ describe('PrayerService - Integration Tests', () => {
         mockBadgeService,
       userSessionService
     );
+      initStub.mockRestore();
+
+      const loadSpy = vi.spyOn(service as any, 'loadPrayers').mockResolvedValue(undefined);
+
+      vi.useFakeTimers();
 
       // If we couldn't capture the handler (other tests may have mocked addEventListener),
       // fall back to directly triggering the recovery to assert the same behavior.
@@ -1694,9 +1796,15 @@ describe('PrayerService - Integration Tests', () => {
         (service as any).triggerBackgroundRecovery();
       }
 
-      // recovery should use cached data synchronously
+      await vi.advanceTimersByTimeAsync(400);
+      await Promise.resolve();
+
       expect(mockCacheService.get).toHaveBeenCalledWith('prayers');
       expect((service as any).community.allPrayersSubject.value).toEqual(cached);
+      expect(loadSpy).toHaveBeenCalledWith(true);
+
+      loadSpy.mockRestore();
+      vi.useRealTimers();
 
       // restore previous addEventListener to avoid side effects
       (window as any).addEventListener = previousAdd;
@@ -1717,9 +1825,20 @@ describe('PrayerService - Integration Tests', () => {
           channel: vi.fn(() => fakeChannel)
         }
       } as any;
+      wireGatedSupabaseMock(localSupabase);
 
       expect(() => {
-        const s = new (PrayerService as any)(localSupabase, mockToastService, mockEmailNotificationService, mockVerificationService, mockCacheService, {}, { userSession$: new BehaviorSubject(null).asObservable() });
+        const s = createPrayerService(
+          localSupabase,
+          mockToastService,
+          mockEmailNotificationService,
+          mockVerificationService,
+          mockCacheService,
+          {},
+          { userSession$: new BehaviorSubject(null).asObservable() },
+          createLoggedOutAdminAuthStub(),
+          createDataAccessGateStub()
+        );
         expect(s).toBeTruthy();
       }).not.toThrow();
     });
@@ -1775,7 +1894,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('edge cases and notification branches', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1963,7 +2082,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('filters', () => {
     it('should have current filters', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1979,7 +2098,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('observables', () => {
     it('should emit values from allPrayers$', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -1994,7 +2113,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should emit values from prayers$', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2009,7 +2128,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should emit values from loading$', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2024,7 +2143,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('should emit values from error$', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2041,7 +2160,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('updatePrayerStatus', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2077,7 +2196,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('addPrayerUpdate', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2113,7 +2232,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('deletePrayer', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2149,7 +2268,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('deletePrayerUpdate', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2185,7 +2304,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('applyFilters', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2220,7 +2339,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('loadPrayers', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2276,7 +2395,7 @@ describe('PrayerService - Integration Tests', () => {
       }));
       mockCacheService.get = vi.fn(() => null);
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2304,7 +2423,7 @@ describe('PrayerService - Integration Tests', () => {
         }))
       }));
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2326,7 +2445,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('ngOnDestroy edge cases', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2349,7 +2468,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('additional coverage targets', () => {
     it('setupBackgroundRecoveryListener does not throw when registered', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2364,7 +2483,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('setupVisibilityListener registers without throwing and silent refresh can be invoked', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2383,7 +2502,7 @@ describe('PrayerService - Integration Tests', () => {
     it('inactivity listener registers and provides an inactivity timeout value', () => {
       vi.useFakeTimers();
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2403,7 +2522,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deleteUpdate returns true on success and reloads prayers', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2430,7 +2549,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deleteUpdate returns false on error and shows error toast', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2453,7 +2572,7 @@ describe('PrayerService - Integration Tests', () => {
     it('cleanup successfully removes realtime channel and clears timeout', async () => {
       mockSupabaseService.client.removeChannel = vi.fn().mockResolvedValue(undefined);
       
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2475,7 +2594,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('cleanup handles error gracefully when removeChannel fails', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2498,7 +2617,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('setupRealtimeSubscription handles realtime channel errors and CHANNEL_ERROR status', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2527,7 +2646,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('setupRealtimeSubscription handles errors in setup and continues without realtime', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2550,7 +2669,7 @@ describe('PrayerService - Integration Tests', () => {
 
     it('triggerBackgroundRecovery with no cached data and silently reloads', async () => {
       vi.useFakeTimers();
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2601,7 +2720,7 @@ describe('PrayerService - Integration Tests', () => {
 
       mockCacheService.get = vi.fn(() => cachedPrayers);
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2656,7 +2775,7 @@ describe('PrayerService - Integration Tests', () => {
 
       mockCacheService.get = vi.fn(() => cachedPrayers);
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2700,7 +2819,7 @@ describe('PrayerService - Integration Tests', () => {
         }))
       }));
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2716,7 +2835,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('background recovery listener triggers when app comes to foreground', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2746,7 +2865,7 @@ describe('PrayerService - Integration Tests', () => {
     it('inactivity listener triggers callback after threshold time', async () => {
       vi.useFakeTimers();
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2773,7 +2892,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestUpdateDeletion handles missing update details gracefully', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2806,7 +2925,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addPrayer with no email does not attempt email subscription', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2847,7 +2966,7 @@ describe('PrayerService - Integration Tests', () => {
         }))
       }));
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2884,7 +3003,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deletePrayer returns false on database error', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2905,7 +3024,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestUpdateDeletion returns false on insert error', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2935,7 +3054,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addUpdate returns false on database error', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2963,7 +3082,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('getFilteredPrayers returns empty array for non-matching filters', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -2997,7 +3116,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('applyFilters handles empty filter object', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3031,7 +3150,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('applyFilters with type prompt filter', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3092,7 +3211,7 @@ describe('PrayerService - Integration Tests', () => {
         return { insert: () => Promise.resolve({ data: null, error: null }) };
       });
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3117,7 +3236,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('updatePrayerStatus sets date_answered when status is answered', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3207,7 +3326,7 @@ describe('PrayerService - Integration Tests', () => {
         }))
       }));
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3225,7 +3344,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addPrayerUpdate returns false when fetching prayer fails after successful insert', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3254,7 +3373,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deletePrayerUpdate handles loadPrayers error gracefully', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3281,7 +3400,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestDeletion with no prayer details still succeeds', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3314,7 +3433,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('cleanup clears inactivity timeout', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3336,7 +3455,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('applyFilters filters by search in all fields', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3379,7 +3498,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('getFilteredPrayers searches in prayer_for field', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3413,7 +3532,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addUpdate logs error when notification fails', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3450,7 +3569,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestUpdateDeletion logs error when notification fails for update deletion', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3487,7 +3606,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestDeletion returns false when insert fails', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3518,7 +3637,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addUpdate succeeds when notification succeeds', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3552,7 +3671,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('getFilteredPrayers returns empty when filters match nothing', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3584,7 +3703,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addPrayerUpdate returns false when insert fails', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3604,7 +3723,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deleteUpdate returns false when delete fails', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3626,7 +3745,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('updatePrayerStatus returns false when update has date_answered set', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3648,7 +3767,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deletePrayerUpdate handles success properly', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3675,7 +3794,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addUpdate returns false when insert fails', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3702,7 +3821,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addUpdate succeeds even when prayer title fetch fails', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3734,7 +3853,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deleteUpdate succeeds with valid ID', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3756,7 +3875,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('ngOnDestroy completes without error', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3771,7 +3890,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('loadPrayers formats prayers with multiple updates correctly', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3823,7 +3942,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('loadPrayers handles null prayer description gracefully', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3869,7 +3988,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('loadPrayers handles missing prayer updates array', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3916,7 +4035,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addPrayerUpdate with valid data returns true', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3941,7 +4060,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('observables emit correct values through filtering pipeline', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -3979,7 +4098,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('applyFilters with only search filter returns matching prayers', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4016,7 +4135,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deletePrayer also updates local state immediately', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4049,7 +4168,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('searchByContent filters prayers by matching content text', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4086,7 +4205,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestUpdateDeletion submits deletion request and sends notification', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4130,7 +4249,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('deleteUpdate deletes prayer update successfully', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4163,7 +4282,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('cleanup removes realtime channel when it exists', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4184,7 +4303,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestDeletion with valid data returns true on success', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4232,7 +4351,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('requestDeletion handles errors gracefully', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4263,7 +4382,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('applyFilters with type filter sets correct filter values', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4300,7 +4419,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('addUpdate with mark_as_answered true updates prayer status', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4345,7 +4464,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('getFilteredPrayers with all filter types applied', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4381,7 +4500,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('triggers visibility change event listener on document', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4421,7 +4540,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('loads prayers with no approval status in response', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4449,7 +4568,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('cleanup removes inactivity timeout if it exists', async () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4470,7 +4589,7 @@ describe('PrayerService - Integration Tests', () => {
     });
 
     it('applyFilters clears filters when all undefined', () => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4496,7 +4615,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('Personal Prayers Coverage', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4738,7 +4857,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('getPrayersByMonth', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4806,7 +4925,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('loadPersonalPrayers edge cases', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -4942,7 +5061,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('Personal prayer deletion', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5000,7 +5119,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('getPersonalPrayers', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5101,7 +5220,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('deletePersonalPrayerUpdate', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5138,7 +5257,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('markPersonalPrayerUpdateAsAnswered', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5172,7 +5291,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('addPersonalPrayerUpdate error cases', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5221,7 +5340,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('getPrayersByMonth error cases', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5252,7 +5371,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('loadPrayers with personal prayers sorting', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5347,7 +5466,7 @@ describe('PrayerService - Integration Tests', () => {
 
   describe('deletePersonalPrayer error cases', () => {
     beforeEach(() => {
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -5544,7 +5663,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5581,7 +5700,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5616,7 +5735,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5640,7 +5759,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5684,7 +5803,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5723,7 +5842,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5772,7 +5891,11 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        const initStub = vi
+          .spyOn(PrayerService.prototype as any, 'initializePrayers')
+          .mockResolvedValue(undefined);
+
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5781,6 +5904,8 @@ describe('PrayerService - Integration Tests', () => {
           mockBadgeService,
       userSessionService
     );
+
+        initStub.mockRestore();
 
         const cachedPrayers = [
           { 
@@ -5817,7 +5942,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5868,7 +5993,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5892,7 +6017,7 @@ describe('PrayerService - Integration Tests', () => {
         const mfaEmail = 'mfa@example.com';
         localStorage.setItem('mfa_authenticated_email', mfaEmail);
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5915,7 +6040,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -5934,7 +6059,7 @@ describe('PrayerService - Integration Tests', () => {
           getSession: vi.fn().mockRejectedValue(new Error('Session error'))
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6003,7 +6128,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6026,7 +6151,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6060,7 +6185,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6100,7 +6225,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6133,7 +6258,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6160,7 +6285,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6189,7 +6314,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6290,7 +6415,7 @@ describe('PrayerService - Integration Tests', () => {
           select: selectMock,
         });
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6348,7 +6473,7 @@ describe('PrayerService - Integration Tests', () => {
           select: vi.fn().mockReturnValue({ eq: selectEq }),
         });
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6391,7 +6516,7 @@ describe('PrayerService - Integration Tests', () => {
           }),
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6423,7 +6548,7 @@ describe('PrayerService - Integration Tests', () => {
           }),
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6463,7 +6588,7 @@ describe('PrayerService - Integration Tests', () => {
           error: null
         });
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6502,7 +6627,7 @@ describe('PrayerService - Integration Tests', () => {
           error: { message: 'Function not found' }
         });
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6539,7 +6664,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6564,7 +6689,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6604,7 +6729,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6649,7 +6774,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6857,7 +6982,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6899,7 +7024,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -6951,7 +7076,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7010,7 +7135,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7043,7 +7168,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7078,7 +7203,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7113,7 +7238,7 @@ describe('PrayerService - Integration Tests', () => {
 
     describe('markPersonalPrayerUpdateAsAnswered', () => {
       it('should mark prayer as answered via update', async () => {
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7135,7 +7260,7 @@ describe('PrayerService - Integration Tests', () => {
       });
 
       it('should handle errors when marking as answered', async () => {
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7178,7 +7303,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7260,7 +7385,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7305,7 +7430,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7372,7 +7497,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7411,7 +7536,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7435,7 +7560,7 @@ describe('PrayerService - Integration Tests', () => {
           })
         };
 
-        service = new PrayerService(
+        service = createPrayerService(
           mockSupabaseService,
           mockToastService,
           mockEmailNotificationService,
@@ -7485,7 +7610,7 @@ describe('PrayerService - Integration Tests', () => {
         })
       };
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -7526,7 +7651,7 @@ describe('PrayerService - Integration Tests', () => {
         })
       };
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -7565,7 +7690,7 @@ describe('PrayerService - Integration Tests', () => {
         })
       };
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,
@@ -7604,7 +7729,7 @@ describe('PrayerService - Integration Tests', () => {
         })
       };
 
-      service = new PrayerService(
+      service = createPrayerService(
         mockSupabaseService,
         mockToastService,
         mockEmailNotificationService,

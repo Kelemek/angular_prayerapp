@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { fetchListMembers } from '../../lib/planning-center';
-import { environment } from '../../environments/environment';
+import { PlanningCenterRestService } from './planning-center-rest.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
 
@@ -47,7 +46,8 @@ export class PlanningCenterListService {
 
   constructor(
     private supabase: SupabaseService,
-    private userSessionService: UserSessionService
+    private userSessionService: UserSessionService,
+    private planningCenterRest: PlanningCenterRestService
   ) {
     const email = this.resolveEmail();
     if (email) {
@@ -241,7 +241,7 @@ export class PlanningCenterListService {
     }
 
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('email_subscribers')
         .select('planning_center_list_id')
         .eq('email', normalizedEmail)
@@ -297,11 +297,7 @@ export class PlanningCenterListService {
         return;
       }
 
-      const result = await fetchListMembers(
-        listId,
-        environment.supabaseUrl,
-        environment.supabaseAnonKey
-      );
+      const result = await this.planningCenterRest.fetchListMembers(listId);
 
       if (!this.isActiveLoad(normalizedEmail)) {
         return;

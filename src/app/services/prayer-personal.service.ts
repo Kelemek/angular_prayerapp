@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { BehaviorSubject } from "rxjs";
 import { SupabaseService } from "./supabase.service";
 import { ToastService } from "./toast.service";
@@ -104,6 +105,10 @@ export class PrayerPersonalService {
     private readonly facadeHooks: PrayerPersonalFacadeHooks
   ) {}
 
+  private db(): Promise<SupabaseClient> {
+    return this.supabase.getClientWhenReady();
+  }
+
   getPersonalPrayersSnapshot(): PrayerRequest[] {
     return this.allPersonalPrayersSubject.value;
   }
@@ -142,8 +147,8 @@ export class PrayerPersonalService {
 
   private categoryQueryDeps(): PersonalCategoryQueryWireDeps {
     return {
-      client: this.supabase.client,
-      getUserEmail: () => this.getUserEmail(),
+      getClient: () => this.supabase.getClientWhenReady(),
+      getUserEmail: async () => this.getUserEmail(),
     };
   }
 
@@ -169,7 +174,7 @@ export class PrayerPersonalService {
     userEmail: string
   ): Promise<PrayerRequest[]> {
     const { data, error } = await fetchPersonalPrayersList(
-      this.supabase.client,
+      (await this.db()),
       userEmail
     );
     if (error) throw error;
@@ -220,7 +225,7 @@ export class PrayerPersonalService {
       }
 
       const { data: newCount, error } = await rpcIncrementPersonalPrayedFor(
-        this.supabase.client,
+        (await this.db()),
         prayerId,
         userEmail
       );
@@ -330,7 +335,7 @@ export class PrayerPersonalService {
       );
 
       const { data, error } = await insertPersonalPrayerRow(
-        this.supabase.client,
+        (await this.db()),
         prayerData
       );
       if (error) throw error;
@@ -370,7 +375,7 @@ export class PrayerPersonalService {
       }
 
       const { error } = await deletePersonalPrayerRow(
-        this.supabase.client,
+        (await this.db()),
         id,
         userEmail
       );
@@ -441,7 +446,7 @@ export class PrayerPersonalService {
       if (clearingAnswered) {
         const { error: clearFlagsError } =
           await clearPersonalPrayerUpdateAnsweredFlags(
-            this.supabase.client,
+            (await this.db()),
             id
           );
 
@@ -466,7 +471,7 @@ export class PrayerPersonalService {
       const updatedAt = updateData["updated_at"] as string;
 
       const { error } = await updatePersonalPrayerRow(
-        this.supabase.client,
+        (await this.db()),
         id,
         userEmail,
         updateData
@@ -527,7 +532,7 @@ export class PrayerPersonalService {
       const updateData = personalPrayerUpdatePatchWithTimestamp(updates);
 
       const { error } = await updatePersonalPrayerUpdateRow(
-        this.supabase.client,
+        (await this.db()),
         updateId,
         updateData
       );
@@ -592,7 +597,7 @@ export class PrayerPersonalService {
 
       const { data: categoryRows, error: selectError } =
         await fetchPersonalPrayerCategoryIdRows(
-          this.supabase.client,
+          (await this.db()),
           userEmail
         );
       if (selectError) {
@@ -606,7 +611,7 @@ export class PrayerPersonalService {
 
       if (hasPersonalCategoryRenameTargets(matchingIds)) {
         const { error } = await renamePersonalPrayerCategoriesByIds(
-          this.supabase.client,
+          (await this.db()),
           userEmail,
           matchingIds,
           newName
@@ -660,7 +665,7 @@ export class PrayerPersonalService {
       console.log("Adding personal prayer update with data:", updateData);
 
       const { data, error } = await insertPersonalPrayerUpdateRow(
-        this.supabase.client,
+        (await this.db()),
         updateData
       );
       if (error) throw error;
@@ -698,7 +703,7 @@ export class PrayerPersonalService {
       }
 
       const { error: deleteError } = await deletePersonalPrayerUpdateRow(
-        this.supabase.client,
+        (await this.db()),
         updateId,
         userEmail
       );
@@ -722,7 +727,7 @@ export class PrayerPersonalService {
   async markPersonalPrayerUpdateAsAnswered(updateId: string): Promise<boolean> {
     try {
       const { error } = await markPersonalPrayerUpdateAnsweredRow(
-        this.supabase.client,
+        (await this.db()),
         updateId
       );
       if (error) throw error;

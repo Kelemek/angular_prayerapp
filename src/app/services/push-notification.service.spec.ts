@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { PushNotificationService } from './push-notification.service';
 
 describe('PushNotificationService', () => {
@@ -10,13 +11,13 @@ describe('PushNotificationService', () => {
   let sessionCallback: (s: any) => void;
 
   beforeEach(() => {
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(),
         functions: { invoke: vi.fn() },
         auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
       },
-    };
+    });
     mockUserSession = {
       getCurrentSession: vi.fn().mockReturnValue(null),
       userSession$: {

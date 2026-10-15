@@ -7,8 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
-import { batchLookupPlanningCenter } from '../../../lib/planning-center';
-import { environment } from '../../../environments/environment';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 import type { EmailSubscriberCsvRow } from '../../lib/admin-email-subscribers';
 
 export interface EmailSubscribersCsvUploadResult {
@@ -36,6 +35,7 @@ export class AdminEmailSubscribersCsvPanelComponent {
 
   constructor(
     private readonly supabase: SupabaseService,
+    private readonly planningCenterRest: PlanningCenterRestService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
@@ -114,7 +114,7 @@ export class AdminEmailSubscribersCsvPanelComponent {
       this.cdr.markForCheck();
 
       const emails = validRows.map((r) => r.email.toLowerCase());
-      const { data: existing } = await this.supabase.client
+      const { data: existing } = await (await this.supabase.db())
         .from('email_subscribers')
         .select('email')
         .in('email', emails);
@@ -131,10 +131,8 @@ export class AdminEmailSubscribersCsvPanelComponent {
 
       const newEmails = newRows.map((r) => r.email.toLowerCase());
 
-      const batchResults = await batchLookupPlanningCenter(
+      const batchResults = await this.planningCenterRest.batchLookupPlanningCenter(
         newEmails,
-        environment.supabaseUrl,
-        environment.supabaseAnonKey,
         {
           concurrency: 5,
           maxRetries: 3,
@@ -144,7 +142,7 @@ export class AdminEmailSubscribersCsvPanelComponent {
             this.csvImportTotal = total;
             this.cdr.markForCheck();
           },
-        },
+        }
       );
 
       const resultMap = new Map(batchResults.map((r) => [r.email, r]));
@@ -178,7 +176,7 @@ export class AdminEmailSubscribersCsvPanelComponent {
         };
       });
 
-      const { error: insertError } = await this.supabase.client
+      const { error: insertError } = await (await this.supabase.db())
         .from('email_subscribers')
         .insert(subscribersToInsert);
 

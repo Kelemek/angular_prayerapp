@@ -3,8 +3,7 @@ import { render, screen, waitFor } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { PendingUpdateCardComponent } from './pending-update-card.component';
 import { PrayerUpdate } from '../../types/prayer';
-import { SupabaseService } from '../../services/supabase.service';
-import * as planningCenter from '../../../lib/planning-center';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 
 describe('PendingUpdateCardComponent', () => {
   const mockUpdate: PrayerUpdate = {
@@ -17,16 +16,20 @@ describe('PendingUpdateCardComponent', () => {
     created_at: '2024-01-01T00:00:00Z'
   };
 
-  const mockSupabaseService = {
-    getClient: vi.fn()
+  const mockPlanningCenterRest = {
+    lookupPersonByEmail: vi.fn().mockResolvedValue({
+      people: [],
+      count: 0,
+      error: null,
+    }),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock the lookupPersonByEmail function
-    vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+    mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
       people: [],
-      error: null
+      count: 0,
+      error: null,
     });
   });
 
@@ -36,7 +39,7 @@ describe('PendingUpdateCardComponent', () => {
         update: mockUpdate
       },
       providers: [
-        { provide: SupabaseService, useValue: mockSupabaseService }
+        { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
       ]
     });
 
@@ -50,7 +53,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -67,7 +70,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -76,7 +79,7 @@ describe('PendingUpdateCardComponent', () => {
     });
 
     it('should call lookupPlanningCenterPerson on init', async () => {
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -86,7 +89,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -103,7 +106,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -116,7 +119,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -129,7 +132,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -143,7 +146,7 @@ describe('PendingUpdateCardComponent', () => {
           update: answeredUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -156,7 +159,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -170,7 +173,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -183,7 +186,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -194,14 +197,14 @@ describe('PendingUpdateCardComponent', () => {
   describe('Planning Center verification', () => {
     it('should not lookup Planning Center when email is missing', async () => {
       const noEmailUpdate = { ...mockUpdate, author_email: '' };
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail');
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail;
 
       await render(PendingUpdateCardComponent, {
         componentProperties: {
           update: noEmailUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -209,7 +212,7 @@ describe('PendingUpdateCardComponent', () => {
     });
 
     it('should lookup Planning Center with email', async () => {
-      const lookupSpy = vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      const lookupSpy = mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -219,16 +222,12 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
       await waitFor(() => {
-        expect(lookupSpy).toHaveBeenCalledWith(
-          mockUpdate.author_email,
-          expect.any(String),
-          expect.any(String)
-        );
+        expect(lookupSpy).toHaveBeenCalledWith(mockUpdate.author_email, false);
       });
     });
 
@@ -240,7 +239,7 @@ describe('PendingUpdateCardComponent', () => {
           last_name: 'Doe'
         }
       };
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [mockPerson],
         error: null
       });
@@ -250,7 +249,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -261,7 +260,7 @@ describe('PendingUpdateCardComponent', () => {
     });
 
     it('should keep pcPerson null when not found', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: null
       });
@@ -271,7 +270,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -282,7 +281,7 @@ describe('PendingUpdateCardComponent', () => {
     });
 
     it('should set pcError when lookup fails', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      mockPlanningCenterRest.lookupPersonByEmail.mockResolvedValue({
         people: [],
         error: 'API Error'
       });
@@ -292,7 +291,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -303,14 +302,14 @@ describe('PendingUpdateCardComponent', () => {
     });
 
     it('should handle lookup exception', async () => {
-      vi.spyOn(planningCenter, 'lookupPersonByEmail').mockRejectedValue(new Error('Network error'));
+      mockPlanningCenterRest.lookupPersonByEmail.mockRejectedValue(new Error('Network error'));
 
       const { fixture } = await render(PendingUpdateCardComponent, {
         componentProperties: {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -328,7 +327,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -342,7 +341,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -361,7 +360,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -380,7 +379,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -394,7 +393,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -413,7 +412,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -433,7 +432,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -467,7 +466,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -492,7 +491,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -506,7 +505,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -525,7 +524,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -543,7 +542,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -564,7 +563,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -583,7 +582,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -608,7 +607,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -633,7 +632,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -649,7 +648,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -673,7 +672,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -693,7 +692,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -706,7 +705,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -719,7 +718,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -734,7 +733,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -747,7 +746,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -783,7 +782,7 @@ describe('PendingUpdateCardComponent', () => {
           update: updateWithPrayerDetails
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -809,7 +808,7 @@ describe('PendingUpdateCardComponent', () => {
           update: updateWithPrayerDetails
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -834,7 +833,7 @@ describe('PendingUpdateCardComponent', () => {
           update: updateWithPrayerDetails
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -859,7 +858,7 @@ describe('PendingUpdateCardComponent', () => {
           update: updateWithPrayerDetails
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -872,7 +871,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -889,7 +888,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -903,7 +902,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -917,7 +916,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -931,7 +930,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 
@@ -945,7 +944,7 @@ describe('PendingUpdateCardComponent', () => {
           update: mockUpdate
         },
         providers: [
-          { provide: SupabaseService, useValue: mockSupabaseService }
+          { provide: PlanningCenterRestService, useValue: mockPlanningCenterRest }
         ]
       });
 

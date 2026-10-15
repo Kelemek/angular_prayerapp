@@ -10,12 +10,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
-import {
-  lookupPersonByEmail,
-  searchPlanningCenterByName,
-  type PlanningCenterPerson,
-} from '../../../lib/planning-center';
-import { environment } from '../../../environments/environment';
+import type { PlanningCenterPerson } from '../../../lib/planning-center';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 import {
   EMAIL_SUBSCRIBER_PC_SEARCH_DEBOUNCE_MS,
   EMAIL_SUBSCRIBER_PC_SEARCH_MIN_CHARS,
@@ -58,6 +54,7 @@ export class AdminEmailSubscribersAddFormComponent {
 
   constructor(
     private readonly supabase: SupabaseService,
+    private readonly planningCenterRest: PlanningCenterRestService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
     private readonly appRef: ApplicationRef,
@@ -202,7 +199,7 @@ export class AdminEmailSubscribersAddFormComponent {
       await Promise.resolve();
 
       const normalizedEmail = this.newEmail.toLowerCase().trim();
-      const { data: existing } = await this.supabase.client
+      const { data: existing } = await (await this.supabase.db())
         .from('email_subscribers')
         .select('email')
         .eq('email', normalizedEmail)
@@ -221,10 +218,9 @@ export class AdminEmailSubscribersAddFormComponent {
       let planningCenterCheckedAt: string | null = null;
 
       try {
-        const pcResult = await lookupPersonByEmail(
+        const pcResult = await this.planningCenterRest.lookupPersonByEmail(
           normalizedEmail,
-          environment.supabaseUrl,
-          environment.supabaseAnonKey,
+          false
         );
         inPlanningCenter = pcResult.count > 0;
         planningCenterCheckedAt = new Date().toISOString();
@@ -232,7 +228,7 @@ export class AdminEmailSubscribersAddFormComponent {
         console.error('[Email Subscribers] Planning Center check failed:', pcError);
       }
 
-      const { error } = await this.supabase.client.from('email_subscribers').insert({
+      const { error } = await (await this.supabase.from('email_subscribers')).insert({
         name: this.newName.trim(),
         email: normalizedEmail,
         is_active: true,
@@ -285,10 +281,8 @@ export class AdminEmailSubscribersAddFormComponent {
     this.cdr.markForCheck();
 
     try {
-      const result = await searchPlanningCenterByName(
-        trimmed,
-        environment.supabaseUrl,
-        environment.supabaseAnonKey,
+      const result = await this.planningCenterRest.searchPlanningCenterByName(
+        trimmed
       );
 
       if (result.error) {

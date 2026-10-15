@@ -6,11 +6,14 @@ import { PrayerEncouragementService } from './prayer-encouragement.service';
 import { PushNotificationService } from './push-notification.service';
 import { BadgeReadStateService } from './badge-read-state.service';
 import { firstValueFrom } from 'rxjs';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import {
   NATIVE_AUTH_BRIDGE_REVOKED_KEY,
   NATIVE_AUTH_LOCAL_SESSION_AT_KEY,
 } from '../../lib/native-auth-storage-bridge';
 import type { User } from '@supabase/supabase-js';
+import { BehaviorSubject } from 'rxjs';
+import { SupabaseDataAccessGateService } from './supabase-data-access-gate.service';
 
 // Mock environment
 vi.mock('../../environments/environment', () => ({
@@ -41,6 +44,7 @@ vi.mock('@supabase/supabase-js', () => ({
 let mockRouter: any;
 let mockSupabaseService: any;
 let mockInjector: any;
+let mockDataAccessGate: any;
 vi.mock('@angular/core', async () => {
   const actual = await vi.importActual('@angular/core');
   return {
@@ -54,6 +58,12 @@ vi.mock('@angular/core', async () => {
       }
       if (token === Injector || token?.name === 'Injector') {
         return mockInjector;
+      }
+      if (
+        token === SupabaseDataAccessGateService ||
+        token?.name === 'SupabaseDataAccessGateService'
+      ) {
+        return mockDataAccessGate;
       }
       return null;
     })
@@ -105,12 +115,12 @@ describe('AdminAuthService', () => {
     };
 
     // Create mock SupabaseService
-    mockSupabaseService = {
+    mockSupabaseService = wireGatedSupabaseMock({
       client: mockSupabaseClient,
       directQuery: vi.fn().mockResolvedValue({ data: null, error: null }),
       getSupabaseUrl: () => 'https://test.supabase.co',
       getSupabaseKey: () => 'test-anon-key-123'
-    };
+    }) as unknown as SupabaseService;
 
     // Create mock CacheService
     mockCacheService = {
@@ -124,6 +134,26 @@ describe('AdminAuthService', () => {
     // Mock Injector used in logout for PushNotificationService and PrayerEncouragementService
     mockInjector = {
       get: vi.fn().mockReturnValue(null)
+    };
+
+    const gateReadySubject = new BehaviorSubject(true);
+    mockDataAccessGate = {
+      ready$: gateReadySubject.asObservable(),
+      isReady: true,
+      waitForReady: vi.fn().mockResolvedValue(undefined),
+      syncAuthenticated: vi.fn().mockImplementation(async (auth: boolean) => {
+        mockDataAccessGate.isReady = !auth;
+        gateReadySubject.next(!auth);
+      }),
+      refresh: vi.fn().mockImplementation(async () => {
+        gateReadySubject.next(mockDataAccessGate.isReady);
+      }),
+      registerTimeoutHandler: vi.fn(),
+      bindAuthenticatedStream: vi.fn().mockImplementation((isAuthenticated$: { subscribe: (fn: (v: boolean) => void) => void }) => {
+        isAuthenticated$.subscribe((auth: boolean) => {
+          void mockDataAccessGate.syncAuthenticated(auth);
+        });
+      }),
     };
 
     // Dynamically import the service after mocks are set up
@@ -176,6 +206,20 @@ describe('AdminAuthService', () => {
       expect(user).toBe(null);
       expect(isAdmin).toBe(false);
       expect(isAuthenticated).toBe(false);
+    });
+
+    it('refreshes dataAccessReady on logout when signed in without a Supabase JWT', async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+      service.isAuthenticatedSubject.next(true);
+      mockDataAccessGate.isReady = false;
+
+      await service.logout();
+      expect(mockDataAccessGate.syncAuthenticated).toHaveBeenCalledWith(false);
+      await expect(service.waitForDataAccessReady()).resolves.toBeUndefined();
     });
 
     it('should clear session data on logout', async () => {
@@ -629,14 +673,22 @@ describe('AdminAuthService', () => {
       localStorage.setItem('mfa_user_email', 'admin@example.com');
 
       mockSupabaseClient.functions.invoke = vi.fn()
-        .mockResolvedValueOnce({ // verify-code
-          data: { success: true },
-          error: null
+        .mockResolvedValueOnce({
+          data: { success: true, hashed_token: 'minted-hash' },
+          error: null,
         })
-        .mockResolvedValueOnce({ // check-admin-status
+        .mockResolvedValueOnce({
           data: { is_admin: true },
-          error: null
+          error: null,
         });
+      mockSupabaseClient.auth.verifyOtp = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: { user: { id: 'admin-1', email: 'admin@example.com' } },
+        },
+        error: null,
+      });
 
       const result = await service.verifyMfaCode('123456');
 
@@ -710,7 +762,7 @@ describe('AdminAuthService', () => {
       mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
       mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
         data: {
-          session: { user: { id: 'old-user', email: 'old@example.com' } },
+          session: { user: { id: 'new-user', email: 'new@example.com' } },
         },
         error: null,
       });
@@ -720,9 +772,7 @@ describe('AdminAuthService', () => {
       expect(result.success).toBe(true);
       expect(restoreIgnoredDuringLink).toBe(true);
       expect(service.ignoreSessionRestore).toBe(false);
-      expect(localStorage.getItem('sb-test-auth-token')).toBeNull();
       expect(service.getUser()?.email).toBe('new@example.com');
-      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
     });
 
     it('should verify MFA code successfully for non-admin', async () => {
@@ -730,14 +780,22 @@ describe('AdminAuthService', () => {
       localStorage.setItem('mfa_user_email', 'user@example.com');
 
       mockSupabaseClient.functions.invoke = vi.fn()
-        .mockResolvedValueOnce({ // verify-code
-          data: { success: true },
-          error: null
+        .mockResolvedValueOnce({
+          data: { success: true, hashed_token: 'minted-hash' },
+          error: null,
         })
-        .mockResolvedValueOnce({ // check-admin-status
+        .mockResolvedValueOnce({
           data: { is_admin: false },
-          error: null
+          error: null,
         });
+      mockSupabaseClient.auth.verifyOtp = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseClient.rpc = vi.fn().mockResolvedValue({ error: null });
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: {
+          session: { user: { id: 'uuid-1', email: 'user@example.com' } },
+        },
+        error: null,
+      });
 
       const result = await service.verifyMfaCode('123456');
 
@@ -2049,17 +2107,22 @@ describe('AdminAuthService', () => {
 
     it('refreshes Supabase session on load when MFA is set but getSession is empty', async () => {
       localStorage.setItem('mfa_authenticated_email', 'user@example.com');
-      mockSupabaseClient.auth.getSession = vi
-        .fn()
-        .mockResolvedValueOnce({ data: { session: null }, error: null })
-        .mockResolvedValue({
-          data: {
-            session: {
-              user: { email: 'user@example.com', id: 'refreshed-user' },
+      mockSupabaseClient.auth.getSession = vi.fn().mockImplementation(async () => {
+        const refreshed = mockSupabaseClient.auth.refreshSession as ReturnType<
+          typeof vi.fn
+        >;
+        if (refreshed.mock.calls.length > 0) {
+          return {
+            data: {
+              session: {
+                user: { email: 'user@example.com', id: 'refreshed-user' },
+              },
             },
-          },
-          error: null,
-        });
+            error: null,
+          };
+        }
+        return { data: { session: null }, error: null };
+      });
       mockSupabaseClient.auth.refreshSession = vi.fn().mockResolvedValue({
         data: {
           session: {
@@ -2076,7 +2139,7 @@ describe('AdminAuthService', () => {
 
       const { AdminAuthService } = await import('./admin-auth.service');
       new AdminAuthService(mockSupabaseService, mockCacheService);
-      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(3000);
 
       expect(mockSupabaseClient.auth.refreshSession).toHaveBeenCalled();
     });

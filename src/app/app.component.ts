@@ -444,15 +444,13 @@ export class AppComponent implements OnInit, OnDestroy {
         let planningCenterCheckedAt: string | null = null;
 
         try {
-          const { lookupPersonByEmail } = await import(
-            "../lib/planning-center"
+          const { PlanningCenterRestService } = await import(
+            "./services/planning-center-rest.service"
           );
-          const { environment } = await import("../environments/environment");
-
-          const pcResult = await lookupPersonByEmail(
+          const planningCenterRest = this.injector.get(PlanningCenterRestService);
+          const pcResult = await planningCenterRest.lookupPersonByEmail(
             request.email.toLowerCase(),
-            environment.supabaseUrl,
-            environment.supabaseAnonKey
+            false
           );
           inPlanningCenter = pcResult.count > 0;
           planningCenterCheckedAt = new Date().toISOString();
@@ -467,23 +465,16 @@ export class AppComponent implements OnInit, OnDestroy {
           // Continue with null values if check fails - don't block approval
         }
 
-        // Approve the account - add to email_subscribers
-        const { error: insertError } = await supabase.directMutation(
-          "email_subscribers",
+        const { error: insertError } = await (await supabase.rpc(
+          "complete_account_approval_from_link",
           {
-            method: "POST",
-            body: {
-              email: request.email.toLowerCase(),
-              name: `${request.first_name} ${request.last_name}`,
-              is_active: true,
-              is_admin: false,
-              receive_admin_emails: false,
-              in_planning_center: inPlanningCenter,
-              planning_center_checked_at: planningCenterCheckedAt,
-            },
-            returning: false,
+            p_email: request.email.toLowerCase(),
+            p_first_name: request.first_name,
+            p_last_name: request.last_name,
+            p_in_planning_center: inPlanningCenter,
+            p_planning_center_checked_at: planningCenterCheckedAt,
           }
-        );
+        ));
 
         if (insertError) {
           console.error("Failed to create subscriber:", insertError);
@@ -491,13 +482,6 @@ export class AppComponent implements OnInit, OnDestroy {
           this.router.navigate(["/login"]);
           return;
         }
-
-        // Delete the approval request
-        await supabase.directMutation("account_approval_requests", {
-          method: "DELETE",
-          eq: { id: request.id },
-          returning: false,
-        });
 
         // Send approval email to user
         try {
@@ -544,12 +528,16 @@ export class AppComponent implements OnInit, OnDestroy {
           "success"
         );
       } else {
-        // Deny the account - delete the request
-        await supabase.directMutation("account_approval_requests", {
-          method: "DELETE",
-          eq: { id: request.id },
-          returning: false,
-        });
+        const { error: denyError } = await (await supabase.rpc(
+          "deny_account_approval_from_link",
+          { p_email: request.email.toLowerCase() }
+        ));
+        if (denyError) {
+          console.error("Failed to deny account:", denyError);
+          toast.showToast("Failed to deny account", "error");
+          this.router.navigate(["/login"]);
+          return;
+        }
 
         // Send denial email to user
         try {

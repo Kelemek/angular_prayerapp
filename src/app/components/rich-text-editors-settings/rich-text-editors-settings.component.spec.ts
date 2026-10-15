@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { RichTextEditorsSettingsComponent } from './rich-text-editors-settings.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { RichTextEditorsSettingsService } from '../../services/rich-text-editors-settings.service';
@@ -16,7 +17,7 @@ describe('RichTextEditorsSettingsComponent', () => {
       data: { rich_text_editors_enabled: true },
       error: null,
     });
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -27,7 +28,7 @@ describe('RichTextEditorsSettingsComponent', () => {
           }),
         }),
       },
-    };
+    });
 
     mockRichTextEditorsSettings = {
       invalidateFlagCache: vi.fn(),

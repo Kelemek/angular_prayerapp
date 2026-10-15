@@ -1,9 +1,8 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { DeletionRequest } from '../../types/prayer';
-import { SupabaseService } from '../../services/supabase.service';
-import { lookupPersonByEmail, formatPersonName, type PlanningCenterPerson } from '../../../lib/planning-center';
-import { environment } from '../../../environments/environment';
+import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
+import { formatPersonName, type PlanningCenterPerson } from '../../../lib/planning-center';
 
 @Component({
   selector: 'app-pending-deletion-card',
@@ -181,7 +180,7 @@ export class PendingDeletionCardComponent implements OnInit {
   pcLoading = false;
   pcError = false;
 
-  private supabase = inject(SupabaseService);
+  private planningCenterRest = inject(PlanningCenterRestService);
   private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
@@ -197,10 +196,9 @@ export class PendingDeletionCardComponent implements OnInit {
     this.pcError = false;
 
     try {
-      const result = await lookupPersonByEmail(
+      const result = await this.planningCenterRest.lookupPersonByEmail(
         this.deletionRequest.requested_email,
-        environment.supabaseUrl,
-        environment.supabaseAnonKey
+        false
       );
 
       if (result.error) {

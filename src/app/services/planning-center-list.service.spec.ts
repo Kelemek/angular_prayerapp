@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { combineLatest, firstValueFrom } from 'rxjs';
 import { PlanningCenterListService } from './planning-center-list.service';
 
@@ -14,6 +15,7 @@ describe('PlanningCenterListService', () => {
   let service: PlanningCenterListService;
   let mockSupabase: any;
   let mockUserSession: any;
+  let mockPlanningCenterRest: { fetchListMembers: ReturnType<typeof vi.fn> };
   let maybeSingle: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -21,7 +23,7 @@ describe('PlanningCenterListService', () => {
     vi.clearAllMocks();
 
     maybeSingle = vi.fn();
-    mockSupabase = {
+    mockSupabase = wireGatedSupabaseMock({
       client: {
         from: vi.fn(() => ({
           select: vi.fn().mockReturnThis(),
@@ -29,13 +31,21 @@ describe('PlanningCenterListService', () => {
           maybeSingle
         }))
       }
-    };
+    });
 
     mockUserSession = {
       getCurrentSession: vi.fn().mockReturnValue({ email: 'user@example.com' })
     };
 
-    service = new PlanningCenterListService(mockSupabase as any, mockUserSession as any);
+    mockPlanningCenterRest = {
+      fetchListMembers: vi.fn(),
+    };
+
+    service = new PlanningCenterListService(
+      mockSupabase as any,
+      mockUserSession as any,
+      mockPlanningCenterRest as any
+    );
   });
 
   afterEach(() => {
@@ -78,7 +88,7 @@ describe('PlanningCenterListService', () => {
     resolveDb({ data: { planning_center_list_id: 'list-1' }, error: null });
     await loadPromise;
 
-    expect(fetchListMembers).not.toHaveBeenCalled();
+    expect(mockPlanningCenterRest.fetchListMembers).not.toHaveBeenCalled();
   });
 
   it('never pairs a new list id with members from the previous list', async () => {
@@ -91,7 +101,7 @@ describe('PlanningCenterListService', () => {
     });
 
     maybeSingle.mockResolvedValue({ data: { planning_center_list_id: 'list-2' }, error: null });
-    vi.mocked(fetchListMembers).mockResolvedValue({
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockResolvedValue({
       members: [{ id: 'new-member', name: 'New' }]
     });
 
@@ -117,7 +127,7 @@ describe('PlanningCenterListService', () => {
     });
 
     maybeSingle.mockResolvedValue({ data: { planning_center_list_id: 'list-2' }, error: null });
-    vi.mocked(fetchListMembers).mockResolvedValue({
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockResolvedValue({
       members: [],
       error: 'Planning Center unavailable'
     });
@@ -136,13 +146,13 @@ describe('PlanningCenterListService', () => {
 
   it('fetches members from API on cache miss when list id exists', async () => {
     maybeSingle.mockResolvedValue({ data: { planning_center_list_id: 'list-2' }, error: null });
-    vi.mocked(fetchListMembers).mockResolvedValue({
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockResolvedValue({
       members: [{ id: 'x', name: 'Chris' }]
     });
 
     await service.loadForUser('user@example.com');
 
-    expect(fetchListMembers).toHaveBeenCalledWith('list-2', expect.any(String), expect.any(String));
+    expect(mockPlanningCenterRest.fetchListMembers).toHaveBeenCalledWith('list-2');
     expect(service.getCurrentMembers()).toEqual([{ id: 'x', name: 'Chris' }]);
     const stored = JSON.parse(localStorage.getItem(CACHE_KEY) ?? '{}');
     expect(stored.data.listId).toBe('list-2');
@@ -190,7 +200,7 @@ describe('PlanningCenterListService', () => {
       return Promise.resolve({ data: { planning_center_list_id: 'list-b' }, error: null });
     });
 
-    vi.mocked(fetchListMembers).mockImplementation(async (listId: string) => {
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockImplementation(async (listId: string) => {
       if (listId === 'list-a') {
         return { members: [{ id: 'stale', name: 'Stale' }] };
       }
@@ -238,7 +248,7 @@ describe('PlanningCenterListService', () => {
       })
     );
     maybeSingle.mockResolvedValue({ data: { planning_center_list_id: 'list-1' }, error: null });
-    vi.mocked(fetchListMembers).mockResolvedValue({ members: [] });
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockResolvedValue({ members: [] });
 
     await service.loadForUser('user@example.com');
 
@@ -247,7 +257,11 @@ describe('PlanningCenterListService', () => {
 
   it('loadForCurrentUser clears state when session email is missing', async () => {
     mockUserSession.getCurrentSession.mockReturnValue(null);
-    const fresh = new PlanningCenterListService(mockSupabase as any, mockUserSession as any);
+    const fresh = new PlanningCenterListService(
+      mockSupabase as any,
+      mockUserSession as any,
+      mockPlanningCenterRest as any
+    );
     vi.clearAllMocks();
     fresh['listIdSubject'].next('list-1');
     fresh['membersSubject'].next([{ id: 'm1', name: 'Alice' }]);
@@ -271,7 +285,11 @@ describe('PlanningCenterListService', () => {
 
   it('loadForUser clears state for blank email', async () => {
     mockUserSession.getCurrentSession.mockReturnValue(null);
-    const fresh = new PlanningCenterListService(mockSupabase as any, mockUserSession as any);
+    const fresh = new PlanningCenterListService(
+      mockSupabase as any,
+      mockUserSession as any,
+      mockPlanningCenterRest as any
+    );
     fresh['listIdSubject'].next('list-1');
 
     await fresh.loadForUser('   ');
@@ -281,8 +299,20 @@ describe('PlanningCenterListService', () => {
 
   it('loadForUser reuses in-flight load for the same user', async () => {
     mockUserSession.getCurrentSession.mockReturnValue(null);
-    const fresh = new PlanningCenterListService(mockSupabase as any, mockUserSession as any);
+    const fresh = new PlanningCenterListService(
+      mockSupabase as any,
+      mockUserSession as any,
+      mockPlanningCenterRest as any
+    );
     vi.clearAllMocks();
+    wireGatedSupabaseMock(mockSupabase);
+    mockSupabase.client.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle,
+        }),
+      }),
+    });
 
     let resolveDb: (value: unknown) => void = () => {};
     maybeSingle.mockReturnValue(new Promise(resolve => {
@@ -292,7 +322,7 @@ describe('PlanningCenterListService', () => {
     const first = fresh.loadForUser('user@example.com');
     const second = fresh.loadForUser('user@example.com');
 
-    expect(maybeSingle).toHaveBeenCalledTimes(1);
+    expect(mockSupabase.db).toHaveBeenCalledTimes(1);
 
     resolveDb({ data: { planning_center_list_id: null }, error: null });
     await Promise.all([first, second]);
@@ -312,7 +342,11 @@ describe('PlanningCenterListService', () => {
     mockUserSession.getCurrentSession.mockReturnValue(null);
     maybeSingle.mockResolvedValue({ data: { planning_center_list_id: null }, error: null });
 
-    const fresh = new PlanningCenterListService(mockSupabase as any, mockUserSession as any);
+    const fresh = new PlanningCenterListService(
+      mockSupabase as any,
+      mockUserSession as any,
+      mockPlanningCenterRest as any
+    );
     await fresh.loadForUser('stored@example.com');
 
     expect(maybeSingle).toHaveBeenCalled();
@@ -322,7 +356,11 @@ describe('PlanningCenterListService', () => {
     localStorage.setItem('userSession', 'not-json');
     mockUserSession.getCurrentSession.mockReturnValue(null);
 
-    const fresh = new PlanningCenterListService(mockSupabase as any, mockUserSession as any);
+    const fresh = new PlanningCenterListService(
+      mockSupabase as any,
+      mockUserSession as any,
+      mockPlanningCenterRest as any
+    );
 
     expect(fresh['resolveEmail']()).toBeNull();
   });
@@ -342,11 +380,11 @@ describe('PlanningCenterListService', () => {
       })
     );
     maybeSingle.mockResolvedValue({ data: { planning_center_list_id: 'list-1' }, error: null });
-    vi.mocked(fetchListMembers).mockResolvedValue({ members: [{ id: 'fresh', name: 'Fresh' }] });
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockResolvedValue({ members: [{ id: 'fresh', name: 'Fresh' }] });
 
     await service.loadForUser('user@example.com');
 
-    expect(fetchListMembers).toHaveBeenCalled();
+    expect(mockPlanningCenterRest.fetchListMembers).toHaveBeenCalled();
     const stored = JSON.parse(localStorage.getItem(CACHE_KEY) ?? '{}');
     expect(stored.data.members).toEqual([{ id: 'fresh', name: 'Fresh' }]);
   });
@@ -367,7 +405,7 @@ describe('PlanningCenterListService', () => {
     maybeSingle.mockReturnValue(new Promise(resolve => {
       resolveDb = resolve;
     }));
-    vi.mocked(fetchListMembers).mockResolvedValue({ members: [{ id: 'new', name: 'New' }] });
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockResolvedValue({ members: [{ id: 'new', name: 'New' }] });
 
     const loadPromise = service.loadForUser('user@example.com');
 
@@ -377,7 +415,7 @@ describe('PlanningCenterListService', () => {
     resolveDb({ data: { planning_center_list_id: 'list-new' }, error: null });
     await loadPromise;
 
-    expect(fetchListMembers).toHaveBeenCalled();
+    expect(mockPlanningCenterRest.fetchListMembers).toHaveBeenCalled();
   });
 
   it('logs and stops when subscriber list id fetch fails', async () => {
@@ -395,7 +433,11 @@ describe('PlanningCenterListService', () => {
 
   it('ignores member fetch results after account switch mid-request', async () => {
     mockUserSession.getCurrentSession.mockReturnValue(null);
-    const fresh = new PlanningCenterListService(mockSupabase as any, mockUserSession as any);
+    const fresh = new PlanningCenterListService(
+      mockSupabase as any,
+      mockUserSession as any,
+      mockPlanningCenterRest as any
+    );
     vi.clearAllMocks();
 
     let resolveFirstDb: (value: unknown) => void = () => {};
@@ -412,7 +454,7 @@ describe('PlanningCenterListService', () => {
     });
 
     let resolveMembers: (value: unknown) => void = () => {};
-    vi.mocked(fetchListMembers).mockImplementation((listId: string) => {
+    vi.mocked(mockPlanningCenterRest.fetchListMembers).mockImplementation((listId: string) => {
       if (listId === 'list-b') {
         return Promise.resolve({ members: [{ id: 'current', name: 'Current' }] });
       }

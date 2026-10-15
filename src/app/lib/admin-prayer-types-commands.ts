@@ -6,7 +6,9 @@ export async function deletePrayerType(
   supabase: SupabaseService,
   id: string,
 ): Promise<void> {
-  const { error } = await supabase.client.from('prayer_types').delete().eq('id', id);
+  const { error } = await (await supabase.from('prayer_types'))
+    .delete()
+    .eq('id', id);
   if (error) throw error;
 }
 
@@ -14,8 +16,7 @@ export async function togglePrayerTypeBooklet(
   supabase: SupabaseService,
   type: PrayerTypeRecord,
 ): Promise<void> {
-  const { error } = await supabase.client
-    .from('prayer_types')
+  const { error } = await (await supabase.from('prayer_types'))
     .update({ include_in_booklet: !type.include_in_booklet })
     .eq('id', type.id);
   if (error) throw error;
@@ -25,8 +26,7 @@ export async function togglePrayerTypeActive(
   supabase: SupabaseService,
   type: PrayerTypeRecord,
 ): Promise<void> {
-  const { error } = await supabase.client
-    .from('prayer_types')
+  const { error } = await (await supabase.from('prayer_types'))
     .update({ is_active: !type.is_active })
     .eq('id', type.id);
   if (error) throw error;

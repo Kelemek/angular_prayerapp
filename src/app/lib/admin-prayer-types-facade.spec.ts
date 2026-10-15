@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PrayerTypesFacade } from './admin-prayer-types-facade';
 import type { PrayerTypeRecord } from '../types/prayer';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 
 const createMockPrayerType = (
   overrides: Partial<PrayerTypeRecord> = {},
@@ -38,11 +39,11 @@ function createTestContext() {
     })),
   };
 
-  const mockSupabase = {
+  const mockSupabase = wireGatedSupabaseMock({
     client: mockSupabaseClient,
     getClient: () => mockSupabaseClient,
     directQuery: vi.fn().mockResolvedValue({ data: [], error: null }),
-  };
+  });
 
   const facade = new PrayerTypesFacade({
     supabase: mockSupabase as never,

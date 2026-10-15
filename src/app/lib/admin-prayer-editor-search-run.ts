@@ -6,6 +6,7 @@ export const PRAYER_EDITOR_SEARCH_TIMEOUT_MS = 15000;
 export async function runPrayerEditorSearch(params: {
   supabaseUrl: string;
   supabaseKey: string;
+  authorizationBearer: string;
   searchTerm: string;
   statusFilter: string;
   approvalFilter: string;
@@ -20,6 +21,7 @@ export async function runPrayerEditorSearch(params: {
     return await fetchPrayerEditorPrayers({
       supabaseUrl: params.supabaseUrl,
       supabaseKey: params.supabaseKey,
+      authorizationBearer: params.authorizationBearer,
       searchTerm: params.searchTerm,
       statusFilter: params.statusFilter,
       approvalFilter: params.approvalFilter,

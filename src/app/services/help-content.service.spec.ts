@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HelpContentService } from './help-content.service';
 import { HelpSection, HelpSectionInput } from '../types/help-content';
+import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 
 describe('HelpContentService', () => {
   let service: HelpContentService;
@@ -8,21 +9,21 @@ describe('HelpContentService', () => {
 
   beforeEach(async () => {
     // Mock SupabaseService
-    supabaseService = {
-      getClient: vi.fn().mockReturnValue({
+    supabaseService = wireGatedSupabaseMock({
+      client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnThis(),
-          order: vi.fn().mockResolvedValue({ 
+          order: vi.fn().mockResolvedValue({
             data: [],
-            error: null 
+            error: null,
           }),
           insert: vi.fn().mockResolvedValue({ error: null }),
           update: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           delete: vi.fn().mockReturnThis(),
         }),
-      }),
-    };
+      },
+    });
 
     // Import the service
     const { HelpContentService } = await import('./help-content.service');

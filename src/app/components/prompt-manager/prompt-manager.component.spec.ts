@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef } from '@angular/core';
 import { PromptManagerComponent } from './prompt-manager.component';
 
@@ -25,6 +26,7 @@ describe('PromptManagerComponent', () => {
         })),
       },
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     const mockChangeDetectorRef = {
       markForCheck: vi.fn(),

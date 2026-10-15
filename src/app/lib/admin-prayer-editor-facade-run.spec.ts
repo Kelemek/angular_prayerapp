@@ -53,6 +53,7 @@ describe('runPrayerEditorFacadeSearch', () => {
       supabaseService: {
         getSupabaseUrl: () => 'https://test.supabase.co',
         getSupabaseKey: () => 'key',
+        getRestAuthorizationBearer: vi.fn().mockResolvedValue('admin-jwt'),
       },
       toast: { error: vi.fn() },
       searchTerm: '',

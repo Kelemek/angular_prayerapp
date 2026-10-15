@@ -107,7 +107,7 @@ export class AdminPrayerTypeFormComponent implements OnChanges {
       };
 
       if (this.editingType) {
-        const { error } = await this.supabase.client
+        const { error } = await (await this.supabase.db())
           .from('prayer_types')
           .update(payload)
           .eq('id', this.editingType.id);
@@ -116,7 +116,7 @@ export class AdminPrayerTypeFormComponent implements OnChanges {
         this.saved.emit({ successMessage: 'Prayer type updated successfully!' });
         this.toast.success('Prayer type updated.');
       } else {
-        const { error } = await this.supabase.client.from('prayer_types').insert(payload);
+        const { error } = await (await this.supabase.from('prayer_types')).insert(payload);
 
         if (error) throw error;
         this.saved.emit({ successMessage: 'Prayer type added successfully!' });

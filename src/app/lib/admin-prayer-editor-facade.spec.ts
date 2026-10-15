@@ -45,6 +45,7 @@ function createTestContext() {
   const mockSupabaseService = {
     getSupabaseUrl: vi.fn().mockReturnValue('https://test.supabase.co'),
     getSupabaseKey: vi.fn().mockReturnValue('test-key'),
+    getRestAuthorizationBearer: vi.fn().mockResolvedValue('admin-jwt'),
     getClient: vi.fn().mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
         if (table === 'email_subscribers') {

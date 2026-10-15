@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef } from '@angular/core';
 import { SecurityPolicySettingsComponent } from './security-policy-settings.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -27,6 +28,7 @@ describe('SecurityPolicySettingsComponent', () => {
         }))
       }
     };
+    wireGatedSupabaseMock(mockSupabaseService);
 
     mockToastService = {
       success: vi.fn(),

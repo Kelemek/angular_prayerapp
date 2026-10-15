@@ -90,9 +90,12 @@ export async function runPrayerEditorFacadeSearch(
     host.selectedPrayers = new Set();
     host.markForCheck();
 
+    const authorizationBearer =
+      await host.supabaseService.getRestAuthorizationBearer();
     const outcome = await runPrayerEditorSearchWithOutcome({
       supabaseUrl: host.supabaseService.getSupabaseUrl(),
       supabaseKey: host.supabaseService.getSupabaseKey(),
+      authorizationBearer,
       searchTerm: host.searchTerm,
       statusFilter: host.statusFilter,
       approvalFilter: host.approvalFilter,

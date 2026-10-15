@@ -21,7 +21,7 @@ import { PRAYER_PERSONAL_UNCATEGORIZED_MAX } from "./prayer-personal-display";
 import type { PrayerRequest } from "./prayer-types";
 
 export type PersonalCategoryQueryWireDeps = {
-  client: SupabaseClient;
+  getClient: () => Promise<SupabaseClient>;
   getUserEmail: () => Promise<string | null>;
 };
 
@@ -35,13 +35,15 @@ export function createPersonalCategoryDeps(
   return {
     getCategoryCount: (category) => getCategoryCount(category),
     getCategoryRange: (category) => getCategoryRange(category),
-    queryMaxDisplayOrderInRange: (email, category, range) =>
-      queryMaxDisplayOrderInPersonalCategoryRange(
-        deps.client,
+    queryMaxDisplayOrderInRange: async (email, category, range) => {
+      const client = await deps.getClient();
+      return queryMaxDisplayOrderInPersonalCategoryRange(
+        client,
         email,
         category,
         range
-      ),
+      );
+    },
   };
 }
 
@@ -50,14 +52,15 @@ export async function fetchPersonalCategoryRangeForUser(
   category: string | null | undefined
 ): Promise<CategoryDisplayOrderRange> {
   const userEmail = await deps.getUserEmail();
+  const client = await deps.getClient();
   return resolvePersonalCategoryRangeWithDb(
     category,
     userEmail,
     (email, categoryEq) =>
-      fetchPersonalCategoryDisplayOrderRows(deps.client, email, categoryEq),
+      fetchPersonalCategoryDisplayOrderRows(client, email, categoryEq),
     (email, minDisplayOrder) =>
       fetchAllPersonalCategoryDisplayOrderRows(
-        deps.client,
+        client,
         email,
         minDisplayOrder
       ),
@@ -70,11 +73,12 @@ export async function fetchPersonalCategoryPrayerCountForUser(
   category: string | null | undefined
 ): Promise<number> {
   const userEmail = await deps.getUserEmail();
+  const client = await deps.getClient();
   return fetchPersonalCategoryPrayerCountWithDb(
     userEmail,
     category,
     (email, categoryEq) =>
-      fetchPersonalCategoryIdRows(deps.client, email, categoryEq)
+      fetchPersonalCategoryIdRows(client, email, categoryEq)
   );
 }
 
@@ -88,8 +92,9 @@ export async function applyPersonalPrayerDisplayOrderBatch(
     throw new Error("User email not available");
   }
 
+  const client = await deps.getClient();
   await runPersonalPrayerDisplayOrderBatchUpdates(updates, async (update) => {
-    let query = deps.client
+    let query = client
       .from("personal_prayers")
       .update(buildPersonalPrayerDisplayOrderDbPayload(update.displayOrder))
       .eq("id", update.prayerId);
@@ -120,10 +125,14 @@ export function buildPersonalCategoryOrchestrationDeps(
       getPrayers: () => input.getPrayers(),
       setPrayers: (prayers) => input.setPrayers(prayers),
     },
-    runCategoryRpc: async (rpcName, args) =>
-      input.queryDeps.client.rpc(rpcName, args),
-    runPrayerOrderRpc: async (args) =>
-      input.queryDeps.client.rpc("reorder_personal_prayers", args),
+    runCategoryRpc: async (rpcName, args) => {
+      const client = await input.queryDeps.getClient();
+      return client.rpc(rpcName, args);
+    },
+    runPrayerOrderRpc: async (args) => {
+      const client = await input.queryDeps.getClient();
+      return client.rpc("reorder_personal_prayers", args);
+    },
     applyDisplayOrderUpdates: (updates, options) =>
       applyPersonalPrayerDisplayOrderBatch(
         input.queryDeps,

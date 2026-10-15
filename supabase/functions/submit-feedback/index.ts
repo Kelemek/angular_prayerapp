@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
         email: authenticatedEmail,
       },
       Status: {
-        status: { name: 'Not started' },
+        select: { name: 'Not started' },
       },
       Priority: {
         select: { name: 'Medium' },

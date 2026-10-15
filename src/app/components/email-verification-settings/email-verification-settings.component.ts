@@ -182,7 +182,7 @@ export class EmailVerificationSettingsComponent {
     this.cdr.markForCheck();
 
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('verification_code_length, verification_code_expiry_minutes')
         .eq('id', 1)
@@ -209,7 +209,7 @@ export class EmailVerificationSettingsComponent {
     this.cdr.markForCheck();
 
     try {
-      const { error } = await this.supabase.client
+      const { error } = await (await this.supabase.db())
         .from('admin_settings')
         .upsert({
           id: 1,

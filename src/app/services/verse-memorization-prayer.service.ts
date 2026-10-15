@@ -67,7 +67,7 @@ export class VerseMemorizationPrayerService {
       branding.appTitle?.trim() || branding.appSubtitle?.trim() || 'Church';
     const now = new Date().toISOString();
 
-    const { data, error } = await this.supabase.client
+    const { data, error } = await (await this.supabase.db())
       .from('prayers')
       .insert({
         title: reference,

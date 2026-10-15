@@ -67,7 +67,7 @@ export class RichTextEditorsSettingsService {
 
   private async fetchAndCacheFlag(): Promise<void> {
     try {
-      const { data, error } = await this.supabase.client
+      const { data, error } = await (await this.supabase.db())
         .from('admin_settings')
         .select('rich_text_editors_enabled')
         .eq('id', 1)

@@ -13,7 +13,7 @@ export class PrayerAllowancePolicyService {
 
   async load(): Promise<void> {
     try {
-      const { data, error } = await this.supabaseService.client
+      const { data, error } = await (await this.supabaseService.db())
         .from("admin_settings")
         .select("deletions_allowed, updates_allowed")
         .eq("id", 1)

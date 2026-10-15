@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { BehaviorSubject } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
@@ -122,6 +123,10 @@ export class PrayerCommunityService {
     private readonly facadeHooks: PrayerCommunityFacadeHooks
   ) {}
 
+  private db(): Promise<SupabaseClient> {
+    return this.supabase.getClientWhenReady();
+  }
+
   getAllCommunityPrayersSnapshot(): PrayerRequest[] {
     return this.allPrayersSubject.value;
   }
@@ -151,7 +156,7 @@ export class PrayerCommunityService {
         isFetchInFlight: () => this.communityPrayersFetchInFlight,
         fetchApprovedFromDb: async () => {
           const { data, error } = await fetchApprovedCommunityPrayers(
-            this.supabase.client
+            (await this.db())
           );
           if (error) throw error;
           return data || [];
@@ -165,7 +170,7 @@ export class PrayerCommunityService {
     try {
       const { startDate, endDate } = prayersByMonthIsoRange(year, month);
       const { data: prayersData, error } = await fetchCommunityPrayersByMonth(
-        this.supabase.client,
+        (await this.db()),
         startDate,
         endDate
       );
@@ -190,7 +195,7 @@ export class PrayerCommunityService {
     try {
       const prayerData = buildCommunityPrayerInsertRow(prayer);
       const { data, error } = await insertCommunityPrayerRow(
-        this.supabase.client,
+        (await this.db()),
         prayerData
       );
       if (error) throw error;
@@ -203,14 +208,14 @@ export class PrayerCommunityService {
             prayer.email,
             async (normalizedEmail) => {
               const { data: existing } = await findEmailSubscriberByEmail(
-                this.supabase.client,
+                (await this.db()),
                 normalizedEmail
               );
               return existing;
             },
             async (row) => {
               const { error: insertError } = await insertEmailSubscriberRow(
-                this.supabase.client,
+                (await this.db()),
                 row
               );
               if (insertError) throw insertError;
@@ -239,7 +244,7 @@ export class PrayerCommunityService {
   async updatePrayerStatus(id: string, status: PrayerStatus): Promise<boolean> {
     try {
       const { error } = await updateCommunityPrayerStatusRow(
-        this.supabase.client,
+        (await this.db()),
         id,
         buildCommunityPrayerStatusUpdatePayload(status)
       );
@@ -265,7 +270,7 @@ export class PrayerCommunityService {
   async incrementPrayedFor(prayerId: string): Promise<number | null> {
     try {
       const { data: newCount, error } = await rpcIncrementCommunityPrayedFor(
-        this.supabase.client,
+        (await this.db()),
         prayerId
       );
       if (error) throw error;
@@ -297,7 +302,7 @@ export class PrayerCommunityService {
       }
 
       const { data: newCount, error } = await rpcIncrementMemberPrayedFor(
-        this.supabase.client,
+        (await this.db()),
         trimmedId
       );
       if (error) throw error;
@@ -328,7 +333,7 @@ export class PrayerCommunityService {
       }
 
       const { data, error } = await fetchMemberPrayedForCountsBatch(
-        this.supabase.client,
+        (await this.db()),
         personIds
       );
       if (error) throw error;
@@ -345,7 +350,7 @@ export class PrayerCommunityService {
   async addPrayerUpdate(prayerId: string, content: string, author: string): Promise<boolean> {
     try {
       const { data, error } = await insertPendingCommunityPrayerUpdate(
-        this.supabase.client,
+        (await this.db()),
         prayerId,
         content,
         author
@@ -360,7 +365,7 @@ export class PrayerCommunityService {
         data.id,
         async (id) => {
           const { data: prayer } = await fetchCommunityPrayerTitle(
-            this.supabase.client,
+            (await this.db()),
             id
           );
           return prayer?.title;
@@ -389,7 +394,7 @@ export class PrayerCommunityService {
     return runMemberPrayerCacheMutation(
       async () => {
         const { error } = await insertMemberPrayerUpdateRow(
-          this.supabase.client,
+          (await this.db()),
           personId,
           content,
           isAnswered
@@ -416,7 +421,7 @@ export class PrayerCommunityService {
       }
 
       const { data, error } = await fetchMemberPrayerUpdatesBatch(
-        this.supabase.client,
+        (await this.db()),
         personIds
       );
       if (error) throw error;
@@ -443,7 +448,7 @@ export class PrayerCommunityService {
       }
 
       const { data, error } = await fetchMemberPrayerUpdatesForPerson(
-        this.supabase.client,
+        (await this.db()),
         personId
       );
       if (error) throw error;
@@ -474,7 +479,7 @@ export class PrayerCommunityService {
     return runMemberPrayerCacheMutation(
       async () => {
         const { error } = await deleteMemberPrayerUpdateRow(
-          this.supabase.client,
+          (await this.db()),
           updateId
         );
         if (error) {
@@ -501,7 +506,7 @@ export class PrayerCommunityService {
     return runMemberPrayerCacheMutation(
       async () => {
         const { error } = await updateMemberPrayerUpdateRow(
-          this.supabase.client,
+          (await this.db()),
           updateId,
           updates
         );
@@ -522,7 +527,7 @@ export class PrayerCommunityService {
 
   async deletePrayer(id: string): Promise<boolean> {
     try {
-      const { error } = await deleteCommunityPrayerRow(this.supabase.client, id);
+      const { error } = await deleteCommunityPrayerRow((await this.db()), id);
       if (error) throw error;
 
       applyCommunityPrayerDeleteSnapshot(
@@ -552,7 +557,7 @@ export class PrayerCommunityService {
   async deletePrayerUpdate(updateId: string): Promise<boolean> {
     try {
       const { error } = await deleteCommunityPrayerUpdateRow(
-        this.supabase.client,
+        (await this.db()),
         updateId
       );
       if (error) throw error;
@@ -580,7 +585,7 @@ export class PrayerCommunityService {
   async addUpdate(updateData: CommunityUpdateSubmitData): Promise<boolean> {
     try {
       const { data, error } = await insertPendingCommunityUpdate(
-        this.supabase.client,
+        (await this.db()),
         updateData
       );
       if (error) throw error;
@@ -593,7 +598,7 @@ export class PrayerCommunityService {
         data.id,
         async (id) => {
           const { data: prayer } = await fetchCommunityPrayerTitle(
-            this.supabase.client,
+            (await this.db()),
             id
           );
           return prayer?.title;
@@ -613,7 +618,7 @@ export class PrayerCommunityService {
   async deleteUpdate(updateId: string): Promise<boolean> {
     try {
       const { error } = await deleteCommunityPrayerUpdateRow(
-        this.supabase.client,
+        (await this.db()),
         updateId
       );
       if (error) throw error;
@@ -631,7 +636,7 @@ export class PrayerCommunityService {
   async requestDeletion(requestData: PrayerDeletionRequestInput): Promise<boolean> {
     try {
       const { data, error } = await insertPrayerDeletionRequestRow(
-        this.supabase.client,
+        (await this.db()),
         requestData
       );
       if (error) throw error;
@@ -641,7 +646,7 @@ export class PrayerCommunityService {
         data?.id,
         async () => {
           const { data: prayerRow } = await fetchPrayerRowForDeletionNotify(
-            this.supabase.client,
+            (await this.db()),
             requestData.prayer_id
           );
           return prayerRow;
@@ -661,7 +666,7 @@ export class PrayerCommunityService {
   async requestUpdateDeletion(requestData: UpdateDeletionRequestInput): Promise<boolean> {
     try {
       const { data, error } = await insertUpdateDeletionRequestRow(
-        this.supabase.client,
+        (await this.db()),
         requestData
       );
       if (error) throw error;
@@ -671,7 +676,7 @@ export class PrayerCommunityService {
         data?.id,
         async () => {
           const { data: updateRow } = await fetchPrayerUpdateRowForDeletionNotify(
-            this.supabase.client,
+            (await this.db()),
             requestData.update_id
           );
           return updateRow;

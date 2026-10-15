@@ -19,6 +19,7 @@ describe('runPrayerEditorSearchWithOutcome', () => {
     const outcome = await runPrayerEditorSearchWithOutcome({
       supabaseUrl: 'https://test.supabase.co',
       supabaseKey: 'key',
+      authorizationBearer: 'jwt',
       searchTerm: '',
       statusFilter: '',
       approvalFilter: '',
@@ -39,6 +40,7 @@ describe('runPrayerEditorSearchWithOutcome', () => {
     const outcome = await runPrayerEditorSearchWithOutcome({
       supabaseUrl: 'https://test.supabase.co',
       supabaseKey: 'key',
+      authorizationBearer: 'jwt',
       searchTerm: 'test',
       statusFilter: 'current',
       approvalFilter: 'approved',
@@ -63,6 +65,7 @@ describe('runPrayerEditorSearchWithOutcome', () => {
     const outcome = await runPrayerEditorSearchWithOutcome({
       supabaseUrl: 'https://test.supabase.co',
       supabaseKey: 'key',
+      authorizationBearer: 'jwt',
       searchTerm: '',
       statusFilter: '',
       approvalFilter: '',

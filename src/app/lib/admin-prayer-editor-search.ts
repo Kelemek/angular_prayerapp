@@ -147,7 +147,10 @@ export function prayerEditorShowingRange(
 
 interface PrayerEditorFetchConfig {
   supabaseUrl: string;
+  /** Publishable anon key (apikey header). */
   supabaseKey: string;
+  /** User JWT after RLS Phase 2; must not use anon key as bearer for `prayers`. */
+  authorizationBearer: string;
   searchTerm: string;
   statusFilter: string;
   approvalFilter: string;
@@ -158,13 +161,14 @@ interface PrayerEditorFetchConfig {
 async function restGetJson<T>(
   url: string,
   supabaseKey: string,
+  authorizationBearer: string,
   signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(url, {
     method: 'GET',
     headers: {
       apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
+      Authorization: `Bearer ${authorizationBearer}`,
       'Content-Type': 'application/json',
     },
     signal,
@@ -185,6 +189,7 @@ export async function fetchPrayerEditorPrayers(
   const {
     supabaseUrl,
     supabaseKey,
+    authorizationBearer,
     searchTerm,
     statusFilter,
     approvalFilter,
@@ -212,7 +217,12 @@ export async function fetchPrayerEditorPrayers(
 
   const url = `${supabaseUrl}/rest/v1/prayers?${params.toString()}`;
   let results: PrayerEditorPrayer[] =
-    (await restGetJson<PrayerEditorPrayer[]>(url, supabaseKey, abortSignal)) ?? [];
+    (await restGetJson<PrayerEditorPrayer[]>(
+      url,
+      supabaseKey,
+      authorizationBearer,
+      abortSignal,
+    )) ?? [];
 
   if (trimmedSearch) {
     const escaped = escapeForIlikePattern(trimmedSearch);
@@ -225,7 +235,12 @@ export async function fetchPrayerEditorPrayers(
     applyPrayerEditorListFilters(idParams, statusFilter, approvalFilter);
 
     const idUrl = `${supabaseUrl}/rest/v1/prayers?${idParams.toString()}`;
-    const idRows = await restGetJson<{ id: string }[]>(idUrl, supabaseKey, abortSignal);
+    const idRows = await restGetJson<{ id: string }[]>(
+      idUrl,
+      supabaseKey,
+      authorizationBearer,
+      abortSignal,
+    );
     const resultIds = new Set(results.map((p) => p.id));
     const missingIds = [
       ...new Set((idRows || []).map((r) => r.id).filter(Boolean)),
@@ -241,6 +256,7 @@ export async function fetchPrayerEditorPrayers(
       const fullData = await restGetJson<PrayerEditorPrayer[]>(
         fullUrl,
         supabaseKey,
+        authorizationBearer,
         abortSignal,
       );
       for (const row of fullData || []) {

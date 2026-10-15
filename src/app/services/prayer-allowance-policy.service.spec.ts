@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PrayerAllowancePolicyService } from "./prayer-allowance-policy.service";
+import { wireGatedSupabaseMock } from "../testing/supabase-service-mock";
 
 describe("PrayerAllowancePolicyService", () => {
   const makeService = (maybeSingle: ReturnType<typeof vi.fn>) => {
-    const supabaseService: any = {
+    const supabaseService = wireGatedSupabaseMock({
       client: {
         from: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -13,8 +14,8 @@ describe("PrayerAllowancePolicyService", () => {
           }),
         }),
       },
-    };
-    return new PrayerAllowancePolicyService(supabaseService);
+    });
+    return new PrayerAllowancePolicyService(supabaseService as never);
   };
 
   beforeEach(() => {
