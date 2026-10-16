@@ -9,6 +9,8 @@ type MockRouter = {
 type MockAdminAuthService = {
   isAdmin$: BehaviorSubject<boolean>;
   loading$: BehaviorSubject<boolean>;
+  isAuthenticated$: BehaviorSubject<boolean>;
+  adminEligibilityResolved$: BehaviorSubject<boolean>;
 };
 
 let mockAdminAuthService: MockAdminAuthService;
@@ -68,6 +70,8 @@ describe('adminGuard', () => {
     mockAdminAuthService = {
       isAdmin$: new BehaviorSubject<boolean>(false),
       loading$: new BehaviorSubject<boolean>(true),
+      isAuthenticated$: new BehaviorSubject<boolean>(false),
+      adminEligibilityResolved$: new BehaviorSubject<boolean>(true),
     };
 
     mockRouter = {
@@ -384,6 +388,38 @@ describe('adminGuard', () => {
 
     // Now complete loading - should use the final isAdmin value
     mockAdminAuthService.loading$.next(false);
+
+    const result = await resultPromise;
+    expect(result).toBe(true);
+  });
+
+  it('should wait for admin eligibility when signed in before denying access', async () => {
+    window.location.search = '';
+
+    vi.resetModules();
+    const { adminGuard } = await import('./admin.guard');
+    const { firstValueFrom } = await import('rxjs');
+
+    const route = { component: {} };
+    const state = { url: '/admin/email-subscribers' };
+    const guard$ = adminGuard(route as any, state as any);
+
+    if (typeof guard$ === 'boolean') {
+      throw new Error('Guard should return an Observable');
+    }
+
+    const resultPromise = firstValueFrom(guard$);
+
+    mockAdminAuthService.isAuthenticated$.next(true);
+    mockAdminAuthService.adminEligibilityResolved$.next(false);
+    mockAdminAuthService.isAdmin$.next(false);
+    mockAdminAuthService.loading$.next(false);
+
+    await Promise.resolve();
+    expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
+
+    mockAdminAuthService.isAdmin$.next(true);
+    mockAdminAuthService.adminEligibilityResolved$.next(true);
 
     const result = await resultPromise;
     expect(result).toBe(true);

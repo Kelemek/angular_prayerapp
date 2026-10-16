@@ -40,6 +40,7 @@ import {
   buildMfaMockUser,
   completeRestoredAuthSession as completeRestoredAuthSessionFlow,
 } from '../../lib/admin-auth-session-restore';
+import { safeInternalReturnUrl } from '../../lib/safe-internal-return-url';
 import {
   clearMfaAuthLocalStorage,
   clearNativeAuthBridge,
@@ -86,6 +87,8 @@ export class AdminAuthService {
   private hasAdminEmailSubject = new BehaviorSubject<boolean>(false);
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   private loadingSubject = new BehaviorSubject<boolean>(true);
+  /** False while a signed-in user's admin edge check is still in flight. */
+  private adminEligibilityResolvedSubject = new BehaviorSubject<boolean>(true);
   private requireSiteLoginSubject = new BehaviorSubject<boolean>(false);
   private adminSessionExpiredSubject = new BehaviorSubject<boolean>(false);
   private lastActivity = Date.now();
@@ -115,6 +118,8 @@ export class AdminAuthService {
     return this.isAuthenticatedSubject.value;
   }
   public loading$ = this.loadingSubject.asObservable();
+  public adminEligibilityResolved$ =
+    this.adminEligibilityResolvedSubject.asObservable();
   public requireSiteLogin$ = this.requireSiteLoginSubject.asObservable();
 
   get dataAccessReady$(): Observable<boolean> {
@@ -245,6 +250,9 @@ export class AdminAuthService {
   private invalidateAdminEligibilityChecks(): void {
     this.adminEligibilityEpoch += 1;
     this.inFlightAdminEligibility.clear();
+    if (this.isAuthenticatedSubject.value) {
+      this.adminEligibilityResolvedSubject.next(false);
+    }
   }
 
   private clearRestoredSessionSubjects(): void {
@@ -253,6 +261,7 @@ export class AdminAuthService {
     this.userSubject.next(null);
     this.isAdminSubject.next(false);
     this.hasAdminEmailSubject.next(false);
+    this.adminEligibilityResolvedSubject.next(true);
     this.acceptAuthenticated(false);
     this.sessionStart = null;
     this.persistSessionStart(null);
@@ -558,18 +567,7 @@ export class AdminAuthService {
       return;
     }
     const returnUrl = params.get('returnUrl') ?? '/';
-    void this.router.navigateByUrl(this.safeInternalReturnUrl(returnUrl));
-  }
-
-  private safeInternalReturnUrl(returnUrl: string): string {
-    if (
-      !returnUrl.startsWith('/') ||
-      returnUrl.startsWith('//') ||
-      returnUrl.startsWith('/login')
-    ) {
-      return '/';
-    }
-    return returnUrl;
+    void this.router.navigateByUrl(safeInternalReturnUrl(returnUrl));
   }
 
   /**
@@ -689,6 +687,10 @@ export class AdminAuthService {
     const emit = (): void => {
       this.isAdminSubject.next(isAdmin);
       this.hasAdminEmailSubject.next(isAdmin);
+      this.adminEligibilityResolvedSubject.next(true);
+      if (isAdmin) {
+        this.leaveLoginAfterRestoredSession();
+      }
     };
     if (this.ngZone) {
       this.ngZone.run(emit);
@@ -724,6 +726,7 @@ export class AdminAuthService {
     }
 
     const epoch = ++this.adminEligibilityEpoch;
+    this.adminEligibilityResolvedSubject.next(false);
     const run = this.runAdminEligibilityCheck(normalizedEmail, epoch);
     const shared = run.finally(() => {
       if (this.inFlightAdminEligibility.get(normalizedEmail) === shared) {

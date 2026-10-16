@@ -8,13 +8,17 @@ export const adminGuard: CanActivateFn = (route, state) => {
   const adminAuthService = inject(AdminAuthService);
   const router = inject(Router);
 
-  // Wait for loading to complete, then check admin status
+  // Wait for loading and (when signed in) admin eligibility before deciding
   return combineLatest([
     adminAuthService.isAdmin$,
-    adminAuthService.loading$
+    adminAuthService.loading$,
+    adminAuthService.isAuthenticated$,
+    adminAuthService.adminEligibilityResolved$,
   ]).pipe(
-    // Skip while loading
-    skipWhile(([_, isLoading]) => isLoading),
+    skipWhile(
+      ([, isLoading, isAuthenticated, eligibilityResolved]) =>
+        isLoading || (isAuthenticated && !eligibilityResolved)
+    ),
     // Fail-fast if loading never resolves
     timeout(5000),
     // Check admin status

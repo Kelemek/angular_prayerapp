@@ -26,7 +26,7 @@ describe('runEmailSubscriberConfirmationAction', () => {
     vi.clearAllMocks();
   });
 
-  it('applies result and loads page when needed', async () => {
+  it('refreshes the visible page after every successful apply', async () => {
     vi.mocked(applyEmailSubscriberConfirmation).mockResolvedValue({
       allSubscribers: [],
       totalActiveCount: 0,
@@ -52,6 +52,33 @@ describe('runEmailSubscriberConfirmationAction', () => {
     );
 
     expect(applyResult).toHaveBeenCalled();
+    expect(loadPageData).toHaveBeenCalled();
+  });
+
+  it('refreshes the visible page even when needsLoadPageData is false', async () => {
+    vi.mocked(applyEmailSubscriberConfirmation).mockResolvedValue({
+      allSubscribers: [],
+      totalActiveCount: 0,
+      totalItems: 1,
+      currentPage: 1,
+      csvSuccess: null,
+      toastSuccess: 'User unblocked - login enabled',
+      needsLoadPageData: false,
+    });
+
+    const loadPageData = vi.fn();
+
+    await runEmailSubscriberConfirmationAction(
+      { kind: 'toggleBlocked', id: '1', currentBlocked: true },
+      {
+        getClient: () => client,
+        getApplyInput: () => applyInput,
+        applyResult: vi.fn(),
+        onApplyError: vi.fn(),
+        loadPageData,
+      },
+    );
+
     expect(loadPageData).toHaveBeenCalled();
   });
 

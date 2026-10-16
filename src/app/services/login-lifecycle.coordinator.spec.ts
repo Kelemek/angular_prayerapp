@@ -59,7 +59,11 @@ describe("LoginLifecycleCoordinator", () => {
   let loginAuth: {
     fetchVerificationCodeLength: ReturnType<typeof vi.fn>;
   };
-  let router: { navigate: ReturnType<typeof vi.fn>; url: string };
+  let router: {
+    navigate: ReturnType<typeof vi.fn>;
+    navigateByUrl: ReturnType<typeof vi.fn>;
+    url: string;
+  };
   let route: { queryParams: BehaviorSubject<Record<string, string | undefined>> };
   let lifecycle: LoginLifecycleCoordinator;
   let destroy$: Subject<void>;
@@ -101,7 +105,7 @@ describe("LoginLifecycleCoordinator", () => {
     loginAuth = {
       fetchVerificationCodeLength: vi.fn(async () => 6),
     };
-    router = { navigate: vi.fn(), url: "/login" };
+    router = { navigate: vi.fn(), navigateByUrl: vi.fn(), url: "/login" };
     route = {
       queryParams: new BehaviorSubject<Record<string, string | undefined>>({}),
     };
@@ -160,13 +164,14 @@ describe("LoginLifecycleCoordinator", () => {
     expect(host.phase).toEqual({ kind: "blocked" });
   });
 
-  it("redirects admins after loading session", async () => {
+  it("redirects admins to returnUrl after loading session", async () => {
+    route.queryParams.next({ returnUrl: "/admin" });
     adminAuthService.isAdmin$.next(true);
 
     await lifecycle.initialize(destroy$, mfa as unknown as LoginMfaCoordinator, vi.fn());
     await vi.waitFor(() => {
       expect(userSessionService.loadUserSession).toHaveBeenCalledWith("admin@test.com");
-      expect(router.navigate).toHaveBeenCalledWith(["/"]);
+      expect(router.navigateByUrl).toHaveBeenCalledWith("/admin");
     });
   });
 

@@ -9,6 +9,7 @@ import type { LoginPageBindings } from "./login-page-bindings";
 import type { LoginMfaCoordinator } from "./login-mfa.coordinator";
 import { SupabaseService } from "./supabase.service";
 import { UserSessionService } from "./user-session.service";
+import { safeInternalReturnUrl } from "../../lib/safe-internal-return-url";
 
 @Injectable()
 export class LoginLifecycleCoordinator {
@@ -105,7 +106,8 @@ export class LoginLifecycleCoordinator {
         if (!this.adminAuthService.getIsAdmin()) {
           return;
         }
-        await this.router.navigate(["/"]);
+        const target = safeInternalReturnUrl(host.returnUrl || "/");
+        await this.router.navigateByUrl(target);
       });
   }
 

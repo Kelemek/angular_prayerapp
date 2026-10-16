@@ -4,6 +4,16 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Admin — refresh stays on admin routes
+- [`adminGuard`](src/app/guards/admin.guard.ts) waits for [`adminEligibilityResolved$`](src/app/services/admin-auth.service.ts) when signed in so a restored session is not sent to `/login` while `check-admin-status` is still running.
+- [`LoginLifecycleCoordinator`](src/app/services/login-lifecycle.coordinator.ts) sends restored admins to `returnUrl` (e.g. `/admin`) instead of always navigating to `/`.
+
+### Admin — email subscribers row actions update icons immediately
+- After block/unblock (and other confirmation actions), [`runEmailSubscriberConfirmationAction`](src/app/lib/admin-email-subscribers-confirmation-runner.ts) always refreshes the paginated list from `allSubscribers` so row icons update without a full page reload.
+
+### Admin — email subscribers list for inactive admins
+- Migration [`20261016100000_is_admin_ignore_is_active.sql`](../supabase/migrations/20261016100000_is_admin_ignore_is_active.sql) updates `public.is_admin()` so RLS matches `check-admin-status` (admin flag only, not `is_active`). Inactive admins were limited to their own `email_subscribers` row instead of the full list.
+
 ### Settings — theme and text size persist to DB
 - [`ClientPreferencesService`](src/app/services/client-preferences.service.ts) uses [`buildClientPreferencesForPersist`](src/app/lib/client-preferences-local.ts) with live `ThemeService` / `TextSizeService` values when saving `client_preferences`, so theme changes reach the database like presentation and memorization settings (not only stale `localStorage` mirrors).
 - Theme and text size in Settings show the same green saved confirmation as other Settings toggles ([`user-settings-timed-success.ts`](src/app/lib/user-settings-timed-success.ts), [`user-settings-success-alert`](src/app/components/user-settings-success-alert/user-settings-success-alert.component.ts)).

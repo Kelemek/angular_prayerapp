@@ -26,9 +26,8 @@ export async function runEmailSubscriberConfirmationAction(
       callbacks.getApplyInput(),
     );
     callbacks.applyResult(result);
-    if (result.needsLoadPageData) {
-      callbacks.loadPageData();
-    }
+    // Keep paginated `subscribers` in sync with patched `allSubscribers`.
+    callbacks.loadPageData();
   } catch (err: unknown) {
     console.error('Error applying subscriber confirmation:', err);
     callbacks.onApplyError(
