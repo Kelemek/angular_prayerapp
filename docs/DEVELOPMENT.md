@@ -650,6 +650,10 @@ npm run lint
 
 Agents: see [AGENTS.md](../AGENTS.md) and [`.cursor/skills/pre-handoff/SKILL.md`](../.cursor/skills/pre-handoff/SKILL.md). Cursor **`stop` hook** ([`.cursor/hooks.json`](../.cursor/hooks.json)) auto-continues the agent until `npm run pre-handoff` has passed for the current diff under `src/app`, `src/lib`, or `supabase/migrations`. After `pre-handoff` passes, run **`ReadLints`** on touched files and complete the **logic review** in [`.cursor/rules/verify-before-done.mdc`](../.cursor/rules/verify-before-done.mdc). `npm run verify` alone does not catch session/cache/RxJS logic bugs.
 
+### Agent verification in the running app (pstack)
+
+For UI/auth/RLS proof in a live dev server, use [`.cursor/skills/verify-prayerapp/SKILL.md`](../.cursor/skills/verify-prayerapp/SKILL.md) and `scripts/verify-prayerapp/` (`launch.sh` → `doctor.sh` → `drive-*.sh` → `cleanup.sh`). Default URL `http://127.0.0.1:4321`. Signed-in admin/home journeys are documented in the skill’s feature map; MFA steps stay operator-driven.
+
 CI ([`.github/workflows/test.yml`](../.github/workflows/test.yml)) runs on Ubuntu, Windows, and macOS. Ubuntu also runs typecheck, lint, and `npm run test:coverage`, then uploads the `coverage-report` artifact. GitHub Checks are the PR status signal; the workflow does not post a PR comment (that step required `issues:write` the default `GITHUB_TOKEN` does not have, which made Ubuntu look failed after tests had already passed).
 
 Daily API backup ([`.github/workflows/backup-database-api.yml`](../.github/workflows/backup-database-api.yml)) and restore ([`.github/workflows/restore-database.yml`](../.github/workflows/restore-database.yml)) install only `@supabase/supabase-js` (and `ws` for backup) under `$RUNNER_TEMP`, not the full app tree. A repo-root `npm install` would pull `sharp` via `@capacitor/assets` and fail native compile on the Ubuntu runner.

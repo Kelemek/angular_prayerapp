@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Developer — verify-prayerapp skill
+- Added [`.cursor/skills/verify-prayerapp/`](.cursor/skills/verify-prayerapp/SKILL.md) and [`scripts/verify-prayerapp/`](scripts/verify-prayerapp/) so agents can launch the dev server, run doctor checks, and capture Playwright screenshots for public `/info`, `/login`, and `/admin` gate flows.
+
 ### Admin — refresh stays on admin routes
 - [`adminGuard`](src/app/guards/admin.guard.ts) waits for [`adminEligibilityResolved$`](src/app/services/admin-auth.service.ts) when signed in so a restored session is not sent to `/login` while `check-admin-status` is still running.
 - [`LoginLifecycleCoordinator`](src/app/services/login-lifecycle.coordinator.ts) sends restored admins to `returnUrl` (e.g. `/admin`) instead of always navigating to `/`.
