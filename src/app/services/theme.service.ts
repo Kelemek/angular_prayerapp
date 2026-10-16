@@ -2,6 +2,11 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, fromEvent } from 'rxjs';
 export type Theme = 'light' | 'dark' | 'system';
 
+export type SetThemeOptions = {
+  /** When false, updates DOM/state only (e.g. logged-out login screen). Default true. */
+  persist?: boolean;
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -10,13 +15,13 @@ export class ThemeService {
   public theme$: Observable<Theme>;
 
   constructor() {
-    // Initialize from localStorage immediately, or default to 'system'
-    const savedTheme = this.getSavedTheme();
-    this.themeSubject = new BehaviorSubject<Theme>(savedTheme);
+    const storedTheme = this.readThemeFromLocalStorage();
+    const initialTheme = storedTheme ?? 'system';
+    this.themeSubject = new BehaviorSubject<Theme>(initialTheme);
     this.theme$ = this.themeSubject.asObservable();
 
-    // Apply theme immediately on initialization
-    this.applyTheme(savedTheme);
+    // Do not write defaults when keys were cleared (e.g. after logout).
+    this.applyTheme(initialTheme, storedTheme !== null);
 
     // Listen for system theme changes
     this.listenToSystemThemeChanges();
@@ -25,15 +30,15 @@ export class ThemeService {
     this.listenToVisibilityChanges();
   }
 
-  private getSavedTheme(): Theme {
+  private readThemeFromLocalStorage(): Theme | null {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system')) {
       return savedTheme;
     }
-    return 'system';
+    return null;
   }
 
-  private applyTheme(theme: Theme): void {
+  private applyTheme(theme: Theme, persistToLocalStorage = true): void {
     const root = document.documentElement;
     
     // Determine the actual theme to apply
@@ -53,19 +58,17 @@ export class ThemeService {
       root.classList.remove('dark');
     }
     
-    // Save preference to localStorage
-    localStorage.setItem('theme', theme);
+    if (persistToLocalStorage) {
+      localStorage.setItem('theme', theme);
+    }
   }
 
   private listenToSystemThemeChanges(): void {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
     fromEvent<MediaQueryListEvent>(mediaQuery, 'change').subscribe(() => {
-      // Only update if user is using system theme
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'system' || !savedTheme) {
-        // Reapply system theme
-        this.applyTheme('system');
+      if (this.themeSubject.value === 'system') {
+        this.applyTheme('system', false);
       }
     });
   }
@@ -74,7 +77,7 @@ export class ThemeService {
     fromEvent(document, 'visibilitychange').subscribe(() => {
       if (!document.hidden) {
         const currentTheme = this.themeSubject.value;
-        this.applyTheme(currentTheme);
+        this.applyTheme(currentTheme, false);
       }
     });
   }
@@ -82,9 +85,10 @@ export class ThemeService {
   /**
    * Set the theme
    */
-  setTheme(theme: Theme): void {
+  setTheme(theme: Theme, options?: SetThemeOptions): void {
+    const persist = options?.persist !== false;
+    this.applyTheme(theme, persist);
     this.themeSubject.next(theme);
-    this.applyTheme(theme);
   }
 
   /**

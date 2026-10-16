@@ -2,6 +2,10 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, fromEvent, Subscription } from 'rxjs';
 export type TextSize = 'normal' | 'large' | 'largest';
 
+export type SetTextSizeOptions = {
+  persist?: boolean;
+};
+
 const STORAGE_KEY = 'textSize';
 const VALID_SIZES: TextSize[] = ['normal', 'large', 'largest'];
 
@@ -14,27 +18,30 @@ export class TextSizeService implements OnDestroy {
   private visibilitySub: Subscription | null = null;
 
   constructor() {
-    const saved = this.getSavedTextSize();
-    this.textSizeSubject = new BehaviorSubject<TextSize>(saved);
+    const stored = this.readTextSizeFromLocalStorage();
+    const initial = stored ?? 'normal';
+    this.textSizeSubject = new BehaviorSubject<TextSize>(initial);
     this.textSize$ = this.textSizeSubject.asObservable();
-    this.applyTextSize(saved);
+    this.applyTextSize(initial, stored !== null);
     this.listenToVisibilityChanges();
   }
 
-  private getSavedTextSize(): TextSize {
+  private readTextSizeFromLocalStorage(): TextSize | null {
     const saved = localStorage.getItem(STORAGE_KEY) as TextSize | null;
     if (saved && VALID_SIZES.includes(saved)) {
       return saved;
     }
-    return 'normal';
+    return null;
   }
 
-  private applyTextSize(size: TextSize): void {
+  private applyTextSize(size: TextSize, persistToLocalStorage = true): void {
     const root = document.documentElement;
     root.setAttribute('data-text-size', size);
     const scale = this.getScaleForSize(size);
     root.style.setProperty('--text-scale', String(scale));
-    localStorage.setItem(STORAGE_KEY, size);
+    if (persistToLocalStorage) {
+      localStorage.setItem(STORAGE_KEY, size);
+    }
   }
 
   private getScaleForSize(size: TextSize): number {
@@ -54,7 +61,7 @@ export class TextSizeService implements OnDestroy {
     this.visibilitySub = fromEvent(document, 'visibilitychange').subscribe(() => {
       if (!document.hidden) {
         const current = this.textSizeSubject.value;
-        this.applyTextSize(current);
+        this.applyTextSize(current, false);
       }
     });
   }
@@ -68,8 +75,10 @@ export class TextSizeService implements OnDestroy {
     return this.textSizeSubject.value;
   }
 
-  setTextSize(size: TextSize): void {
+  setTextSize(size: TextSize, options?: SetTextSizeOptions): void {
+    const persist = options?.persist !== false;
+    // Apply mirrors before emitting so preference persist reads the new size.
+    this.applyTextSize(size, persist);
     this.textSizeSubject.next(size);
-    this.applyTextSize(size);
   }
 }

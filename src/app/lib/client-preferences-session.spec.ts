@@ -22,6 +22,18 @@ describe('resolveClientPreferencesFromSubscriberRow', () => {
     expect(result.preferences?.theme).toBe('light');
   });
 
+  it('prefers local text size when DB row is stale and schedules re-persist', () => {
+    localStorage.setItem('textSize', 'large');
+    const result = resolveClientPreferencesFromSubscriberRow(
+      { client_preferences: { theme: 'light', textSize: 'normal' } },
+      'user@example.com',
+      undefined
+    );
+    expect(result.preferences?.textSize).toBe('large');
+    expect(result.seedToDatabase?.textSize).toBe('large');
+    localStorage.clear();
+  });
+
   it('seeds from local when column is null', () => {
     localStorage.setItem('theme', 'dark');
     const result = resolveClientPreferencesFromSubscriberRow(

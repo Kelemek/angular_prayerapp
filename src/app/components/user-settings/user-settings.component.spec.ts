@@ -373,6 +373,17 @@ describe('UserSettingsComponent', () => {
 
       expect(component.theme).toBe('dark');
       expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
+      expect(component.successTheme).toContain('Dark');
+    });
+
+    it('should not change theme when selecting the current theme', () => {
+      component.theme = 'light';
+      mockThemeService.setTheme.mockClear();
+
+      component.handleThemeChange('light');
+
+      expect(mockThemeService.setTheme).not.toHaveBeenCalled();
+      expect(component.successTheme).toBeNull();
     });
 
     it('should handle light theme', () => {
@@ -383,10 +394,12 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should handle system theme', () => {
+      component.theme = 'dark';
       component.handleThemeChange('system');
 
       expect(component.theme).toBe('system');
       expect(mockThemeService.setTheme).toHaveBeenCalledWith('system');
+      expect(component.successTheme).toContain('System');
     });
   });
 
@@ -396,13 +409,26 @@ describe('UserSettingsComponent', () => {
 
       expect(component.textSize).toBe('large');
       expect(mockTextSizeService.setTextSize).toHaveBeenCalledWith('large');
+      expect(component.successTextSize).toContain('Larger');
+    });
+
+    it('should not change text size when selecting the current size', () => {
+      component.textSize = 'normal';
+      mockTextSizeService.setTextSize.mockClear();
+
+      component.handleTextSizeChange('normal');
+
+      expect(mockTextSizeService.setTextSize).not.toHaveBeenCalled();
+      expect(component.successTextSize).toBeNull();
     });
 
     it('should handle normal', () => {
+      component.textSize = 'large';
       component.handleTextSizeChange('normal');
 
       expect(component.textSize).toBe('normal');
       expect(mockTextSizeService.setTextSize).toHaveBeenCalledWith('normal');
+      expect(component.successTextSize).toContain('Default');
     });
 
     it('should handle largest', () => {

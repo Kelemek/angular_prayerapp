@@ -109,7 +109,31 @@ export function markLegacyLocalKeysClaimed(normalizedEmail: string): void {
   }
 }
 
-/** Read synced fields from localStorage mirrors (no shared-device default shortcut). */
+/**
+ * When cloud/session prefs lag, theme and text size mirrors on this device win.
+ * Call when materializing prefs from the DB or cached session — not on every apply.
+ */
+export function reconcileClientPreferencesWithDevice(
+  prefs: ClientPreferences,
+  normalizedEmail: string
+): { preferences: ClientPreferences; divergedFromInput: boolean } {
+  if (!mayUseLegacyLocalKeysForEmail(normalizedEmail)) {
+    return { preferences: prefs, divergedFromInput: false };
+  }
+  const local = readClientPreferencesFromLocalMirrors();
+  const preferences: ClientPreferences = { ...prefs };
+  let divergedFromInput = false;
+  if (local.textSize && local.textSize !== prefs.textSize) {
+    preferences.textSize = local.textSize;
+    divergedFromInput = true;
+  }
+  if (local.theme && local.theme !== prefs.theme) {
+    preferences.theme = local.theme;
+    divergedFromInput = true;
+  }
+  return { preferences, divergedFromInput };
+}
+
 export function readClientPreferencesFromLocalMirrors(): ClientPreferences {
   const prefs: ClientPreferences = {
     presentationSettings: readPresentationSettings(),
@@ -198,6 +222,42 @@ export function buildClientPreferencesFromLocal(
 
   markLegacyLocalKeysClaimed(normalizedEmail);
   return readClientPreferencesFromLocalMirrors();
+}
+
+/** Persist payload: mirrors for most fields; theme/text size from live services. */
+export function buildClientPreferencesForPersist(
+  normalizedEmail: string,
+  sessionPrefs: ClientPreferences | undefined,
+  appearance: { theme: Theme; textSize: TextSize }
+): ClientPreferences | undefined {
+  const base = buildClientPreferencesFromLocalForPersist(
+    normalizedEmail,
+    sessionPrefs
+  );
+  if (!base) {
+    return undefined;
+  }
+  return {
+    ...base,
+    theme: appearance.theme,
+    textSize: appearance.textSize,
+  };
+}
+
+export function clearClientPreferenceLocalMirrors(): void {
+  try {
+    localStorage.removeItem(CLIENT_PREFERENCES_LEGACY_CLAIM_KEY);
+    localStorage.removeItem(PRAY_FOR_MODAL_DO_NOT_SHOW_KEY);
+    localStorage.removeItem(PRESENTATION_SETTINGS_STORAGE_KEY);
+    localStorage.removeItem('theme');
+    localStorage.removeItem('textSize');
+    localStorage.removeItem(MEMORIZE_LIST_VIEW_KEY);
+    localStorage.removeItem(MEMORIZE_TABLE_SORT_KEY);
+    localStorage.removeItem(MEMORIZE_LISTEN_SPEED_STORAGE_KEY);
+    localStorage.removeItem(PREFERRED_TRANSLATION_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function applyClientPreferencesToLocalMirrors(

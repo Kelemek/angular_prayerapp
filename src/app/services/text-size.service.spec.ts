@@ -70,6 +70,27 @@ describe('TextSizeService', () => {
       expect(localStorage.getItem('textSize')).toBe('large');
     });
 
+    it('setTextSize with persist false does not write localStorage', () => {
+      localStorage.setItem('textSize', 'large');
+      service.setTextSize('normal', { persist: false });
+      expect(service.getTextSize()).toBe('normal');
+      expect(localStorage.getItem('textSize')).toBe('large');
+    });
+
+    it('writes localStorage before textSize$ subscribers run', () => {
+      localStorage.setItem('textSize', 'largest');
+      let lsWhenNormalEmitted: string | null = null;
+      const sub = service.textSize$.subscribe((size) => {
+        if (size === 'normal') {
+          lsWhenNormalEmitted = localStorage.getItem('textSize');
+        }
+      });
+      service.setTextSize('largest');
+      service.setTextSize('normal');
+      expect(lsWhenNormalEmitted).toBe('normal');
+      sub.unsubscribe();
+    });
+
     it('should set data-text-size attribute on documentElement', () => {
       service.setTextSize('large');
       expect(document.documentElement.getAttribute('data-text-size')).toBe('large');
@@ -87,6 +108,24 @@ describe('TextSizeService', () => {
     });
   });
 
+  describe('visibility change listener', () => {
+    it('does not write localStorage when reapplying after persist false logout state', async () => {
+      localStorage.setItem('textSize', 'large');
+      service.setTextSize('normal', { persist: false });
+      localStorage.removeItem('textSize');
+
+      Object.defineProperty(document, 'hidden', {
+        writable: true,
+        configurable: true,
+        value: false,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(localStorage.getItem('textSize')).toBeNull();
+    });
+  });
+
   describe('getTextSize', () => {
     it('should return current value', () => {
       expect(service.getTextSize()).toBe('normal');
@@ -99,6 +138,12 @@ describe('TextSizeService', () => {
       const service2 = new TextSizeService();
       expect(service2.getTextSize()).toBe('largest');
       service2.ngOnDestroy();
+    });
+
+    it('does not write default normal size when localStorage has no key', () => {
+      localStorage.clear();
+      new TextSizeService().ngOnDestroy();
+      expect(localStorage.getItem('textSize')).toBeNull();
     });
   });
 });

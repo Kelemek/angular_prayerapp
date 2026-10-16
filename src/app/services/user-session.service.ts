@@ -9,6 +9,7 @@ import type { PrayerItemReminder } from '../types/prayer-item-reminder';
 import type { ClientPreferences } from '../types/client-preferences';
 import { clientPreferencesLoadState } from '../lib/client-preferences-load-state';
 import { resolveClientPreferencesFromSubscriberRow } from '../lib/client-preferences-session';
+import { reconcileClientPreferencesWithDevice } from '../lib/client-preferences-local';
 
 export const PRAYER_COOLDOWN_MIN_HOURS = 1;
 export const PRAYER_COOLDOWN_MAX_HOURS = 168;
@@ -98,7 +99,9 @@ export class UserSessionService {
       try {
         const session = JSON.parse(cachedUserSession);
         if (this.shouldPublishCachedSession(session)) {
-          this.userSessionSubject.next(session);
+          this.userSessionSubject.next(
+            this.prepareCachedSessionForPublish(session)
+          );
         }
       } catch (err) {
         console.warn('[UserSession] Failed to parse cached session:', err);
@@ -130,7 +133,9 @@ export class UserSessionService {
           }
           const cachedSession = this.loadFromCache(emailAtAuth);
           if (cachedSession && this.shouldPublishCachedSession(cachedSession)) {
-            this.userSessionSubject.next(cachedSession);
+            this.userSessionSubject.next(
+              this.prepareCachedSessionForPublish(cachedSession)
+            );
           }
           await this.loadUserSession(emailAtAuth);
           this.hasInitializedSubject.next(true);
@@ -552,6 +557,19 @@ export class UserSessionService {
       console.warn('[UserSession] Failed to load session from cache:', err);
     }
     return null;
+  }
+
+  private prepareCachedSessionForPublish(
+    session: UserSessionData
+  ): UserSessionData {
+    if (!session.clientPreferences || !session.email) {
+      return session;
+    }
+    const { preferences } = reconcileClientPreferencesWithDevice(
+      session.clientPreferences,
+      session.email
+    );
+    return { ...session, clientPreferences: preferences };
   }
 
   /** Pre-upgrade caches omit memorizationStrictMode; publishing them would default strict to false. */

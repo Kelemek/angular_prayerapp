@@ -2,6 +2,7 @@ import { clampPrayerCooldownHours } from '../services/user-session.service';
 import type { UserSettingsFacade } from './user-settings-facade';
 import { syncMemorizationStrictModeToUserSession } from './user-settings-preferences-load';
 import { upsertEmailSubscriberByEmail } from './user-settings-subscriber-upsert';
+import { showUserSettingsTimedSuccess } from './user-settings-timed-success';
 
 function requireUserSettingsEmail(host: UserSettingsFacade): string | null {
   const email = host.email.toLowerCase().trim();
@@ -83,13 +84,13 @@ export async function runUserSettingsNotificationToggle(
 
     host.savingNotification = false;
     host.markForCheck();
-    host.successNotification = host.receiveNotifications
-      ? '✅ Prayer notifications enabled'
-      : '✅ Prayer notifications disabled';
-    setTimeout(() => {
-      host.successNotification = null;
-      host.markForCheck();
-    }, 3000);
+    showUserSettingsTimedSuccess(
+      host,
+      'successNotification',
+      host.receiveNotifications
+        ? '✅ Prayer notifications enabled'
+        : '✅ Prayer notifications disabled',
+    );
   } catch (err) {
     console.error('Error updating notification preference:', err);
     host.error =
@@ -130,13 +131,13 @@ export async function runUserSettingsPushNotificationToggle(
       receivePush: host.receivePushNotifications ?? false,
     });
 
-    host.successPushNotification = host.receivePushNotifications
-      ? '✅ Push notifications enabled'
-      : '✅ Push notifications disabled';
-    setTimeout(() => {
-      host.successPushNotification = null;
-      host.markForCheck();
-    }, 3000);
+    showUserSettingsTimedSuccess(
+      host,
+      'successPushNotification',
+      host.receivePushNotifications
+        ? '✅ Push notifications enabled'
+        : '✅ Push notifications disabled',
+    );
   } catch (err) {
     console.error('Error updating push notification preference:', err);
     host.error =
@@ -171,9 +172,6 @@ export async function runUserSettingsBadgeFunctionalityToggle(
 
     if (host.badgeFunctionalityEnabled) {
       host.markAllItemsAsRead();
-      host.successBadge = '✅ Notification badges enabled';
-    } else {
-      host.successBadge = '✅ Notification badges disabled';
     }
 
     await host.deps.userSessionService.updateUserSession({
@@ -183,10 +181,13 @@ export async function runUserSettingsBadgeFunctionalityToggle(
     host.savingBadge = false;
     host.markForCheck();
 
-    setTimeout(() => {
-      host.successBadge = null;
-      host.markForCheck();
-    }, 3000);
+    showUserSettingsTimedSuccess(
+      host,
+      'successBadge',
+      host.badgeFunctionalityEnabled
+        ? '✅ Notification badges enabled'
+        : '✅ Notification badges disabled',
+    );
   } catch (err) {
     console.error('Error updating badge preference:', err);
     host.error =
@@ -222,17 +223,16 @@ export async function runUserSettingsMemorizationStrictModeToggle(
 
     await syncMemorizationStrictModeToUserSession(host, email);
 
-    host.successMemorizationStrictMode = host.memorizationStrictMode
-      ? '✅ Strict memorization practice enabled'
-      : '✅ Standard memorization practice enabled';
+    showUserSettingsTimedSuccess(
+      host,
+      'successMemorizationStrictMode',
+      host.memorizationStrictMode
+        ? '✅ Strict memorization practice enabled'
+        : '✅ Standard memorization practice enabled',
+    );
 
     host.savingMemorizationStrictMode = false;
     host.markForCheck();
-
-    setTimeout(() => {
-      host.successMemorizationStrictMode = null;
-      host.markForCheck();
-    }, 3000);
   } catch (err) {
     console.error('Error updating memorization strict mode:', err);
     host.error =
@@ -268,13 +268,11 @@ export async function runUserSettingsShowPrayForButtonToggle(
     await host.deps.userSessionService.updateUserSession({
       showPrayForButton: next,
     });
-    host.successPrayerEncouragementUi = next
-      ? 'Pray For button shown on cards'
-      : 'Pray For button hidden on cards';
-    setTimeout(() => {
-      host.successPrayerEncouragementUi = null;
-      host.markForCheck();
-    }, 3000);
+    showUserSettingsTimedSuccess(
+      host,
+      'successPrayerEncouragementUi',
+      next ? 'Pray For button shown on cards' : 'Pray For button hidden on cards',
+    );
   } catch (err) {
     console.error('Error updating show Pray For preference:', err);
     host.error =
@@ -309,13 +307,13 @@ export async function runUserSettingsShowPrayingCountToggle(
     await host.deps.userSessionService.updateUserSession({
       showPrayingCount: next,
     });
-    host.successPrayerEncouragementUi = next
-      ? 'Praying count shown when available'
-      : 'Praying count hidden on cards';
-    setTimeout(() => {
-      host.successPrayerEncouragementUi = null;
-      host.markForCheck();
-    }, 3000);
+    showUserSettingsTimedSuccess(
+      host,
+      'successPrayerEncouragementUi',
+      next
+        ? 'Praying count shown when available'
+        : 'Praying count hidden on cards',
+    );
   } catch (err) {
     console.error('Error updating show praying count preference:', err);
     host.error =
@@ -366,13 +364,13 @@ export async function runUserSettingsPersonalPrayerCooldownSave(
       personalPrayerCooldownHours: next,
     });
     host.personalPrayerCooldownEdited = false;
-    host.successPrayerEncouragementUi = `Personal / member / prompt cooldown set to ${next} ${
-      next === 1 ? 'hour' : 'hours'
-    }`;
-    setTimeout(() => {
-      host.successPrayerEncouragementUi = null;
-      host.markForCheck();
-    }, 3000);
+    showUserSettingsTimedSuccess(
+      host,
+      'successPrayerEncouragementUi',
+      `Personal / member / prompt cooldown set to ${next} ${
+        next === 1 ? 'hour' : 'hours'
+      }`,
+    );
   } catch (err) {
     console.error('Error updating personal prayer cooldown:', err);
     host.error =
@@ -406,7 +404,7 @@ export async function runUserSettingsDefaultViewChange(
       { default_prayer_view: newView },
     );
 
-    host.successDefaultView = `✅ Default view set to ${
+    const defaultViewMessage = `✅ Default view set to ${
       newView === 'current' ? 'Current Prayers' : 'Personal Prayers'
     }`;
 
@@ -417,10 +415,7 @@ export async function runUserSettingsDefaultViewChange(
     host.savingDefaultView = false;
     host.markForCheck();
 
-    setTimeout(() => {
-      host.successDefaultView = null;
-      host.markForCheck();
-    }, 3000);
+    showUserSettingsTimedSuccess(host, 'successDefaultView', defaultViewMessage);
   } catch (err) {
     console.error('Error updating default view preference:', err);
     host.error =

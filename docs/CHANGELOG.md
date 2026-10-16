@@ -4,6 +4,26 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Settings — theme and text size persist to DB
+- [`ClientPreferencesService`](src/app/services/client-preferences.service.ts) uses [`buildClientPreferencesForPersist`](src/app/lib/client-preferences-local.ts) with live `ThemeService` / `TextSizeService` values when saving `client_preferences`, so theme changes reach the database like presentation and memorization settings (not only stale `localStorage` mirrors).
+- Theme and text size in Settings show the same green saved confirmation as other Settings toggles ([`user-settings-timed-success.ts`](src/app/lib/user-settings-timed-success.ts), [`user-settings-success-alert`](src/app/components/user-settings-success-alert/user-settings-success-alert.component.ts)).
+- Client prefs: [`reconcileClientPreferencesWithDevice`](src/app/lib/client-preferences-local.ts) runs when loading from DB/cache only; [`buildClientPreferencesForPersist`](src/app/lib/client-preferences-local.ts) owns theme/text size on write. Logout appearance reset lives in [`logged-out-appearance.ts`](src/app/lib/logged-out-appearance.ts).
+
+### Logout — clear user-scoped localStorage
+- [`clearUserScopedLocalStorageOnLogout`](src/app/lib/user-local-storage-logout.ts) removes session, profile, client-preference mirrors, prayer/badge caches, Planning Center list caches, pray-for cooldown keys, and related keys on [`AdminAuthService.logout`](src/app/services/admin-auth.service.ts); church branding and site-wide admin flag caches are left on the device.
+- Logout resets login-screen appearance via [`resetAppearanceForLoggedOutView`](src/app/lib/logged-out-appearance.ts) (`setTheme` / `setTextSize` with `persist: false`) without re-writing `theme` / `textSize` to localStorage, so the next sign-in applies saved values from `client_preferences` instead of stale system/normal mirrors.
+- [`ThemeService`](src/app/services/theme.service.ts) / [`TextSizeService`](src/app/services/text-size.service.ts) only persist appearance mirrors on explicit user changes or when a key already exists at startup; visibility and system-theme re-apply refresh the DOM only so logout-cleared keys are not recreated before sign-in.
+- [`UserSessionService`](src/app/services/user-session.service.ts) reconciles cached `client_preferences` on every cache publish (constructor and sign-in), not only on the first parse.
+
+### Login — no prayer load error toast
+- [`PrayerService.loadPrayers`](src/app/services/prayer.service.ts) / [`loadPersonalPrayers`](src/app/services/prayer.service.ts) skip catalog fetches when the user is not signed in, so resume/focus listeners no longer hit RLS on `/login` and show “Failed to load prayers”.
+
+### Home — skeleton after first login
+- [`PrayerService`](src/app/services/prayer.service.ts) loads community/personal catalogs when `isAuthenticated$` flips to signed-in (not only when the data-access gate transitions), and clears the default `loading` flag when a fetch is skipped while logged out so home does not stay on skeleton loaders until a full page reload.
+
+### Settings — text size survives refresh
+- [`TextSizeService.setTextSize`](src/app/services/text-size.service.ts) updates localStorage before `textSize$` emits so [`ClientPreferencesService`](src/app/services/client-preferences.service.ts) persists the chosen size (not the previous one). [`reconcileClientPreferencesWithDevice`](src/app/lib/client-preferences-local.ts) reconciles stale session/DB appearance on load; persist uses [`getClientWhenReady()`](src/app/services/supabase.service.ts) and flushes on tab hide / page unload. Same apply-before-emit order for [`ThemeService.setTheme`](src/app/services/theme.service.ts).
+
 ### Security — RLS Phase 2 client structure
 - [`SupabaseDataAccessGateService`](src/app/services/supabase-data-access-gate.service.ts) owns JWT readiness (`ready$`, `waitForReady`, `syncAuthenticated`); [`AdminAuthService`](src/app/services/admin-auth.service.ts) delegates instead of embedding another state machine.
 - [`PlanningCenterRestService`](src/app/services/planning-center-rest.service.ts) centralizes Planning Center / subscriber-cache REST (bearer via [`getRestAuthorizationBearer`](src/app/services/supabase.service.ts)); pending admin cards and subscriber tools call the service instead of passing bearer at each component.

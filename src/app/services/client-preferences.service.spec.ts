@@ -11,6 +11,14 @@ vi.mock('../lib/client-preferences-persist', () => ({
   persistClientPreferencesByEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
+function mockSupabaseService() {
+  const client = {};
+  return {
+    client,
+    getClientWhenReady: vi.fn().mockResolvedValue(client),
+  };
+}
+
 function createService(
   session$: BehaviorSubject<{
     email: string;
@@ -21,7 +29,7 @@ function createService(
   }>
 ) {
   return new ClientPreferencesService(
-    { client: {} } as never,
+    mockSupabaseService() as never,
     {
       userSession$: session$,
       isLoading$: new BehaviorSubject(false),
@@ -82,6 +90,102 @@ describe('ClientPreferencesService', () => {
     service.ngOnDestroy();
   });
 
+  it('applies theme and text size from session when local mirrors were cleared at logout', () => {
+    const setTheme = vi.fn();
+    const setTextSize = vi.fn();
+    const session$ = new BehaviorSubject({
+      email: 'user@example.com',
+      fullName: '',
+      isActive: true,
+      clientPreferences: {
+        theme: 'dark' as const,
+        textSize: 'large' as const,
+      },
+    });
+
+    const service = new ClientPreferencesService(
+      mockSupabaseService() as never,
+      {
+        userSession$: session$,
+        isLoading$: new BehaviorSubject(false),
+        getUserEmail: () => session$.value.email,
+        getCurrentSession: () => session$.value,
+        updateUserSession: vi.fn().mockResolvedValue(undefined),
+      } as never,
+      {
+        theme$: new BehaviorSubject('system'),
+        setTheme,
+        getTheme: () => 'system',
+      } as never,
+      {
+        textSize$: new BehaviorSubject('normal'),
+        setTextSize,
+        getTextSize: () => 'normal',
+      } as never,
+      {
+        save: vi.fn(),
+        saved$: new Subject<void>(),
+        getDefaults: () => getPresentationSettingsDefaults(),
+      } as never
+    );
+
+    expect(setTheme).toHaveBeenCalledWith('dark');
+    expect(setTextSize).toHaveBeenCalledWith('large');
+    service.ngOnDestroy();
+  });
+
+  it('persists theme and textSize from services when theme$ emits', async () => {
+    const theme$ = new BehaviorSubject<'light' | 'dark' | 'system'>('light');
+    const textSize$ = new BehaviorSubject<'normal' | 'large' | 'largest'>(
+      'normal'
+    );
+    const session$ = new BehaviorSubject({
+      email: 'user@example.com',
+      fullName: '',
+      isActive: true,
+      clientPreferences: { theme: 'light' as const, textSize: 'normal' as const },
+    });
+
+    const service = new ClientPreferencesService(
+      mockSupabaseService() as never,
+      {
+        userSession$: session$,
+        isLoading$: new BehaviorSubject(false),
+        getUserEmail: () => session$.value.email,
+        getCurrentSession: () => session$.value,
+        updateUserSession: vi.fn().mockResolvedValue(undefined),
+      } as never,
+      {
+        theme$,
+        setTheme: vi.fn(),
+        getTheme: () => 'dark',
+      } as never,
+      {
+        textSize$,
+        setTextSize: vi.fn(),
+        getTextSize: () => 'large',
+      } as never,
+      {
+        save: vi.fn(),
+        saved$: new Subject<void>(),
+        getDefaults: () => getPresentationSettingsDefaults(),
+      } as never
+    );
+
+    localStorage.setItem('theme', 'light');
+    localStorage.setItem('textSize', 'normal');
+    theme$.next('dark');
+
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(persistClientPreferencesByEmail).toHaveBeenCalledWith(
+      expect.anything(),
+      'user@example.com',
+      expect.objectContaining({ theme: 'dark', textSize: 'large' })
+    );
+    service.ngOnDestroy();
+  });
+
   it('does not persist when signed-in user changed before debounce flush', async () => {
     let email = 'first@example.com';
     const session$ = new BehaviorSubject({
@@ -92,7 +196,7 @@ describe('ClientPreferencesService', () => {
     });
 
     const service = new ClientPreferencesService(
-      { client: {} } as never,
+      mockSupabaseService() as never,
       {
         userSession$: session$,
         isLoading$: new BehaviorSubject(false),
@@ -146,7 +250,7 @@ describe('ClientPreferencesService', () => {
 
     const updateUserSession = vi.fn().mockResolvedValue(undefined);
     const service = new ClientPreferencesService(
-      { client: {} } as never,
+      mockSupabaseService() as never,
       {
         userSession$: session$,
         isLoading$: new BehaviorSubject(false),
@@ -191,7 +295,7 @@ describe('ClientPreferencesService', () => {
 
     const updateUserSession = vi.fn().mockResolvedValue(undefined);
     const service = new ClientPreferencesService(
-      { client: {} } as never,
+      mockSupabaseService() as never,
       {
         userSession$: session$,
         isLoading$: new BehaviorSubject(false),

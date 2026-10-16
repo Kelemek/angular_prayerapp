@@ -1,8 +1,10 @@
 import { Injectable, Optional } from "@angular/core";
 import { SupabaseDataAccessGateService } from "./supabase-data-access-gate.service";
 import {
+  combineLatest,
   distinctUntilChanged,
   filter,
+  map,
   pairwise,
   type Subscription,
 } from "rxjs";
@@ -147,17 +149,18 @@ export class PrayerService {
     await this.loadPrayerCatalogsWhenDataAccessReady(false, false);
   }
 
+  private async ensureAuthenticatedForCatalogLoad(): Promise<boolean> {
+    if (!this.adminAuthService.isUserAuthenticated()) {
+      return false;
+    }
+    await this.dataAccessGate.waitForReady();
+    return this.adminAuthService.isUserAuthenticated();
+  }
+
   private async loadPrayerCatalogsWhenDataAccessReady(
     silentRefresh = false,
     includePersonal = true
   ): Promise<void> {
-    if (!this.adminAuthService.isUserAuthenticated()) {
-      return;
-    }
-    await this.dataAccessGate.waitForReady();
-    if (!this.adminAuthService.isUserAuthenticated()) {
-      return;
-    }
     await this.loadPrayers(silentRefresh);
     if (!includePersonal) {
       return;
@@ -178,14 +181,23 @@ export class PrayerService {
     }
     this.prayerLifecycleWired = true;
 
-    this.dataAccessGate.ready$
+    combineLatest([
+      this.dataAccessGate.ready$,
+      this.adminAuthService.isAuthenticated$,
+    ])
       .pipe(
-        distinctUntilChanged(),
         pairwise(),
-        filter(([wasReady, isReady]) => !wasReady && isReady)
+        filter(([[prevReady, prevAuth], [ready, auth]]) => {
+          const wasAllowed = prevReady && prevAuth;
+          const allowed = ready && auth;
+          return !wasAllowed && allowed;
+        }),
+        map(([[, prevAuth], [, auth]]) => ({
+          silent: prevAuth && auth,
+        }))
       )
-      .subscribe(() => {
-        void this.loadPrayerCatalogsWhenDataAccessReady(true);
+      .subscribe(({ silent }) => {
+        void this.loadPrayerCatalogsWhenDataAccessReady(silent);
       });
 
     this.userSessionService.userSession$
@@ -195,10 +207,6 @@ export class PrayerService {
         if (action === "load") {
           void (async () => {
             try {
-              await this.dataAccessGate.waitForReady();
-              if (!this.adminAuthService.isUserAuthenticated()) {
-                return;
-              }
               this.personal.personalPrayersDbFetchComplete = false;
               await this.loadPersonalPrayers();
             } catch (err) {
@@ -219,10 +227,18 @@ export class PrayerService {
 
 
   async loadPrayers(silentRefresh = false): Promise<void> {
+    if (!(await this.ensureAuthenticatedForCatalogLoad())) {
+      this.community.loadingSubject.next(false);
+      return;
+    }
     return this.community.loadPrayers(silentRefresh);
   }
 
   async loadPersonalPrayers(silentRefresh = false): Promise<void> {
+    if (!(await this.ensureAuthenticatedForCatalogLoad())) {
+      this.personal.loadingPersonalPrayersSubject.next(false);
+      return;
+    }
     return this.personal.loadPersonalPrayers(silentRefresh);
   }
 

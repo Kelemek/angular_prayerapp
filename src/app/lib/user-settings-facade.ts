@@ -30,6 +30,11 @@ import {
 } from './user-settings-user-info';
 import type { UserSettingsFacadeDeps } from './user-settings-facade-host';
 import { runUserSettingsNavigateToAdmin } from './user-settings-admin-nav';
+import {
+  clearUserSettingsSuccessTimers,
+  showUserSettingsTextSizeSaved,
+  showUserSettingsThemeSaved,
+} from './user-settings-timed-success';
 
 export class UserSettingsFacade {
   isOpen = false;
@@ -62,6 +67,8 @@ export class UserSettingsFacade {
   successPrayerEncouragementUi: string | null = null;
   successDefaultView: string | null = null;
   successMemorizationStrictMode: string | null = null;
+  successTheme: string | null = null;
+  successTextSize: string | null = null;
   preferencesLoaded = false;
   badgePreferencesLoaded = false;
   prayerEncouragementUiLoaded = false;
@@ -149,18 +156,27 @@ export class UserSettingsFacade {
       clearTimeout(this.scrollToSectionTimer);
       this.scrollToSectionTimer = null;
     }
+    clearUserSettingsSuccessTimers(this);
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   handleThemeChange(newTheme: ThemeOption): void {
+    if (this.theme === newTheme) {
+      return;
+    }
     this.theme = newTheme;
     this.deps.themeService.setTheme(newTheme);
+    showUserSettingsThemeSaved(this, newTheme);
   }
 
   handleTextSizeChange(size: TextSize): void {
+    if (this.textSize === size) {
+      return;
+    }
     this.textSize = size;
     this.deps.textSizeService.setTextSize(size);
+    showUserSettingsTextSizeSaved(this, size);
   }
 
   getUserInfo(): {

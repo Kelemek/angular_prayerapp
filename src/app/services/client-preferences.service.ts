@@ -10,7 +10,7 @@ import type { ClientPreferences } from '../types/client-preferences';
 import { clientPreferencesEqual } from '../types/client-preferences';
 import {
   applyClientPreferencesToLocalMirrors,
-  buildClientPreferencesFromLocalForPersist,
+  buildClientPreferencesForPersist,
 } from '../lib/client-preferences-local';
 import { persistClientPreferencesByEmail } from '../lib/client-preferences-persist';
 import {
@@ -35,6 +35,14 @@ export class ClientPreferencesService implements OnDestroy {
   private pendingPersist: PendingPersist | null = null;
   private lastAppliedPrefs: ClientPreferences | undefined;
   private subs: Subscription[] = [];
+  private readonly flushOnPageHide = (): void => {
+    if (document.visibilityState === 'hidden') {
+      void this.flushPendingPersist();
+    }
+  };
+  private readonly flushOnPageHideEvent = (): void => {
+    void this.flushPendingPersist();
+  };
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -62,6 +70,11 @@ export class ClientPreferencesService implements OnDestroy {
         }
       })
     );
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.flushOnPageHide);
+      window.addEventListener('pagehide', this.flushOnPageHideEvent);
+    }
 
     this.subs.push(
       this.userSession.userSession$
@@ -97,6 +110,10 @@ export class ClientPreferencesService implements OnDestroy {
   ngOnDestroy(): void {
     setClientPreferencesChangeListener(null);
     this.clearPendingPersist();
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.flushOnPageHide);
+      window.removeEventListener('pagehide', this.flushOnPageHideEvent);
+    }
     this.subs.forEach((s) => s.unsubscribe());
   }
 
@@ -106,8 +123,16 @@ export class ClientPreferencesService implements OnDestroy {
     if (!email) {
       return;
     }
+    const normalizedEmail = email.toLowerCase().trim();
     const sessionPrefs = this.userSession.getCurrentSession()?.clientPreferences;
-    const prefs = buildClientPreferencesFromLocalForPersist(email, sessionPrefs);
+    const prefs = buildClientPreferencesForPersist(
+      normalizedEmail,
+      sessionPrefs,
+      {
+        theme: this.themeService.getTheme(),
+        textSize: this.textSizeService.getTextSize(),
+      }
+    );
     if (!prefs) {
       return;
     }
@@ -148,8 +173,9 @@ export class ClientPreferencesService implements OnDestroy {
       return;
     }
     try {
+      const client = await this.supabase.getClientWhenReady();
       await persistClientPreferencesByEmail(
-        this.supabase.client,
+        client,
         currentEmail,
         pending.prefs
       );
@@ -206,8 +232,9 @@ export class ClientPreferencesService implements OnDestroy {
       return;
     }
     try {
+      const client = await this.supabase.getClientWhenReady();
       await persistClientPreferencesByEmail(
-        this.supabase.client,
+        client,
         normalized,
         prefs
       );

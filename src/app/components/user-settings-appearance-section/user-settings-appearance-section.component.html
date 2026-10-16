@@ -123,6 +123,10 @@
             >
               Choose your preferred color theme or use your system settings
             </p>
+            <app-user-settings-success-alert
+              [message]="host.successTheme"
+              [extraTopMargin]="true"
+            />
           </div>
         </div>
       </div>
@@ -194,6 +198,10 @@
             >
               Make on-screen text larger for easier reading
             </p>
+            <app-user-settings-success-alert
+              [message]="host.successTextSize"
+              [extraTopMargin]="true"
+            />
           </div>
         </div>
       </div>

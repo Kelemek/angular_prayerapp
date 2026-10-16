@@ -36,7 +36,11 @@ function createPrayerService(
 
 describe('PrayerService', () => {
   let service: PrayerService;
-  let mockAdminAuth: { isUserAuthenticated: () => boolean };
+  let mockAdminAuth: {
+    isUserAuthenticated: () => boolean;
+    isAuthenticated$: ReturnType<BehaviorSubject<boolean>['asObservable']>;
+  };
+  let mockAuthSubject: BehaviorSubject<boolean>;
   let mockDataAccessGate: {
     waitForReady: ReturnType<typeof vi.fn>;
     ready$: ReturnType<typeof of>;
@@ -103,7 +107,11 @@ describe('PrayerService', () => {
     supabase.ensureConnected = vi.fn().mockResolvedValue(undefined);
     wireGatedSupabaseMock(supabase);
 
-    mockAdminAuth = { isUserAuthenticated: () => true };
+    mockAuthSubject = new BehaviorSubject(true);
+    mockAdminAuth = {
+      isUserAuthenticated: () => mockAuthSubject.value,
+      isAuthenticated$: mockAuthSubject.asObservable(),
+    };
     mockDataAccessGate = {
       waitForReady: vi.fn().mockResolvedValue(undefined),
       ready$: new BehaviorSubject(true).asObservable(),
@@ -729,6 +737,62 @@ describe('PrayerService', () => {
     loadSpy.mockRestore();
     ensureSpy.mockRestore();
   }, 5000);
+
+  it('loadPrayers does not fetch or toast when logged out (e.g. login page resume)', async () => {
+    const loggedOutService = createPrayerService(
+      supabase,
+      toast,
+      emailNotification,
+      verificationService,
+      cache,
+      badgeService,
+      userSessionService,
+      createLoggedOutAdminAuthStub(),
+      createDataAccessGateStub()
+    );
+    const communityLoadSpy = vi.spyOn(
+      (loggedOutService as any).community,
+      'loadPrayers'
+    );
+    await loggedOutService.loadPrayers(false);
+    expect(communityLoadSpy).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect((loggedOutService as any).community.loadingSubject.value).toBe(
+      false
+    );
+    communityLoadSpy.mockRestore();
+  });
+
+  it('loads catalogs when isAuthenticated$ flips to true while gate stays ready', async () => {
+    const auth$ = new BehaviorSubject(false);
+    const adminAuth = {
+      isUserAuthenticated: () => auth$.value,
+      isAuthenticated$: auth$.asObservable(),
+      waitForDataAccessReady: async () => {},
+      dataAccessReady$: of(true),
+    };
+    const loggedOutService = createPrayerService(
+      supabase,
+      toast,
+      emailNotification,
+      verificationService,
+      cache,
+      badgeService,
+      userSessionService,
+      adminAuth as never,
+      createDataAccessGateStub(true)
+    );
+    const communityLoadSpy = vi.spyOn(
+      (loggedOutService as any).community,
+      'loadPrayers'
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    communityLoadSpy.mockClear();
+    auth$.next(true);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(communityLoadSpy).toHaveBeenCalled();
+    communityLoadSpy.mockRestore();
+  });
 
   it('arePrayerCatalogsReady is false while either catalog is loading', () => {
     (service as any).community.communityPrayersDbFetchComplete = true;

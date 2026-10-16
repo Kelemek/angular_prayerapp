@@ -170,6 +170,15 @@ describe('ThemeService', () => {
     });
   });
 
+  describe('setTheme persist option', () => {
+    it('can apply system theme without writing localStorage', () => {
+      localStorage.setItem('theme', 'dark');
+      service.setTheme('system', { persist: false });
+      expect(service.getTheme()).toBe('system');
+      expect(localStorage.getItem('theme')).toBe('dark');
+    });
+  });
+
   describe('setSystemTheme', () => {
     it('should set theme to system', () => {
       service.setTheme('light');
@@ -252,6 +261,12 @@ describe('ThemeService', () => {
       localStorage.setItem('theme', 'dark');
       const newService = new ThemeService();
       expect(newService.getTheme()).toBe('dark');
+    });
+
+    it('does not write default system theme when localStorage has no key', () => {
+      localStorage.clear();
+      new ThemeService();
+      expect(localStorage.getItem('theme')).toBeNull();
     });
 
     it('should use default theme if localStorage is invalid', () => {
@@ -397,6 +412,22 @@ describe('ThemeService', () => {
 
       // Theme should be reapplied (dark class should still be present)
       expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
+
+    it('does not write localStorage when reapplying after persist false logout state', async () => {
+      localStorage.setItem('theme', 'dark');
+      service.setTheme('system', { persist: false });
+      localStorage.removeItem('theme');
+
+      Object.defineProperty(document, 'hidden', {
+        writable: true,
+        configurable: true,
+        value: false,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(localStorage.getItem('theme')).toBeNull();
     });
 
     it('should not reapply theme when page is hidden', async () => {

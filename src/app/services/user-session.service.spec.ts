@@ -2301,6 +2301,22 @@ describe('UserSessionService', () => {
       expect(v).toBe(true);
     });
   });
+
+  describe('prepareCachedSessionForPublish', () => {
+    it('reconciles cached client preferences against appearance mirrors', () => {
+      localStorage.setItem('theme', 'light');
+      const session = {
+        email: 'test@example.com',
+        fullName: 'Test',
+        isActive: true,
+        memorizationStrictMode: false,
+        clientPreferences: { theme: 'dark' as const, textSize: 'normal' as const },
+      };
+      const prepared = (service as any).prepareCachedSessionForPublish(session);
+      expect(prepared.clientPreferences?.theme).toBe('light');
+      expect(prepared).not.toBe(session);
+    });
+  });
 });
 
 describe('clampPrayerCooldownHours', () => {

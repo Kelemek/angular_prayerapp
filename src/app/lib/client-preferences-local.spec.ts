@@ -4,6 +4,7 @@ import {
   buildClientPreferencesFromLocalForPersist,
   CLIENT_PREFERENCES_LEGACY_CLAIM_KEY,
   mayUseLegacyLocalKeysForEmail,
+  reconcileClientPreferencesWithDevice,
 } from './client-preferences-local';
 import { PRAY_FOR_MODAL_DO_NOT_SHOW_KEY } from './prayer-card-pray-for-modal';
 
@@ -55,6 +56,16 @@ describe('client-preferences-local', () => {
     );
     expect(prefs?.theme).toBe('dark');
     expect(prefs?.textSize).toBe('large');
+  });
+
+  it('reconcileClientPreferencesWithDevice prefers textSize localStorage over session json', () => {
+    localStorage.setItem('textSize', 'normal');
+    const { preferences, divergedFromInput } = reconcileClientPreferencesWithDevice(
+      { textSize: 'largest', theme: 'light' },
+      'user@example.com'
+    );
+    expect(preferences.textSize).toBe('normal');
+    expect(divergedFromInput).toBe(true);
   });
 
   it('buildClientPreferencesFromLocalForPersist returns undefined without session on shared device', () => {

@@ -59,35 +59,7 @@
           ></span>
           }
         </p>
-        @if (host.successNotification) {
-        <div
-          class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-        >
-          <div class="flex items-start gap-2">
-            <svg
-              class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <p
-              class="text-xs sm:text-sm text-green-800 dark:text-green-200"
-            >
-              {{ host.successNotification }}
-            </p>
-          </div>
-        </div>
-        }
+        <app-user-settings-success-alert [message]="host.successNotification" />
       </div>
 
       <!-- Push Subscription Toggle: show in native app always; in PWA standalone show when preferences loaded (so user can see state and turn off; turn on only in native app) -->
@@ -153,35 +125,7 @@
           ></span>
           }
         </p>
-        @if (host.successPushNotification) {
-        <div
-          class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-        >
-          <div class="flex items-start gap-2">
-            <svg
-              class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <p
-              class="text-xs sm:text-sm text-green-800 dark:text-green-200"
-            >
-              {{ host.successPushNotification }}
-            </p>
-          </div>
-        </div>
-        }
+        <app-user-settings-success-alert [message]="host.successPushNotification" />
       </div>
       }
 
@@ -247,33 +191,5 @@
           ></span>
           }
         </p>
-        @if (host.successBadge) {
-        <div
-          class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-2"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-        >
-          <div class="flex items-start gap-2">
-            <svg
-              class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <p
-              class="text-xs sm:text-sm text-green-800 dark:text-green-200"
-            >
-              {{ host.successBadge }}
-            </p>
-          </div>
-        </div>
-        }
+        <app-user-settings-success-alert [message]="host.successBadge" />
       </div>

@@ -13,6 +13,8 @@ import {
   BADGE_READ_PRAYERS_DATA_KEY,
   BADGE_READ_PROMPTS_DATA_KEY,
 } from '../lib/badge-cache';
+import { clearUserScopedLocalStorageOnLogout } from '../lib/user-local-storage-logout';
+import { resetAppearanceForLoggedOutView } from '../lib/logged-out-appearance';
 import type { Session, User } from '@supabase/supabase-js';
 import { completeMfaVerifySupabaseLink } from '../../lib/admin-auth-mfa-verify';
 import { relinkMfaAfterSupabaseSessionCleared } from '../../lib/admin-auth-on-auth-state-change';
@@ -1093,20 +1095,8 @@ export class AdminAuthService {
       this.sessionStart = null;
       this.persistSessionStart(null);
 
-      // Clear approval code session data
-      localStorage.removeItem('approvalAdminEmail');
-      localStorage.removeItem('approvalSessionValidated');
-      localStorage.removeItem('approvalApprovalType');
-      localStorage.removeItem('approvalApprovalId');
-
-      // Clear MFA authenticated session data before any further native await
-      localStorage.removeItem(MFA_AUTHENTICATED_EMAIL_STORAGE_KEY);
-      localStorage.removeItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY);
-      clearPendingLoginMfaSession();
-      localStorage.removeItem('prayer_encouragement_modal_do_not_show');
-      if (userEmail) {
-        localStorage.removeItem(`last_activity_update_${userEmail}`);
-      }
+      clearUserScopedLocalStorageOnLogout(userEmail);
+      resetAppearanceForLoggedOutView(this.injector);
 
       this.invalidateLogoutCaches(userEmail);
       if (this.sessionEpoch === epoch && this.ignoreSessionRestore) {
