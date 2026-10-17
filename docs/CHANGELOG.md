@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Login — verification email uses the service role key
+- [`send-email`](../supabase/functions/send-email/access.ts) treats the configured service role key as the service role, including when that key is not a JWT. A logged-out caller who only presents the anon key is still refused. [`send-verification-code`](../supabase/functions/send-verification-code/index.ts) sends that key on the mail call and returns an error when the email does not send, so login no longer advances as if the message went out. Deployed on the test project `jcdhajfqtzipltvfslhu`. A login mail call there now returns success instead of HTTP 403. Production is unchanged.
+
 ### Security — push and admin links check the caller
 - [`send-push-notification`](../supabase/functions/send-push-notification/index.ts) sends to a caller-supplied address list only for the service role or a signed-in admin. A member can notify only admins who have admin push enabled. A logged-out caller is refused, including `sendToAll`. Admin email links in [`send-email`](../supabase/functions/send-email/access.ts) and `enqueue_account_approval_admin_emails()` must be `https://cpprayer.cp-church.org/admin` or `http://localhost:4200/admin`. Deployed and applied on the linked test project only.
 

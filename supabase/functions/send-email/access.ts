@@ -19,6 +19,29 @@ export function jwtRole(token: string): string | null {
   }
 }
 
+function sameSecret(left: string, right: string): boolean {
+  if (left.length === 0 || left.length !== right.length) return false;
+  let diff = 0;
+  for (let i = 0; i < left.length; i++) {
+    diff |= left.charCodeAt(i) ^ right.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+export function isServiceRoleCredential(
+  authorizationHeader: string | null | undefined,
+  apiKeyHeader: string | null | undefined,
+  serviceRoleKey: string | null | undefined
+): boolean {
+  const token = (authorizationHeader ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (jwtRole(token) === "service_role") return true;
+  const secret = (serviceRoleKey ?? "").trim();
+  if (!secret) return false;
+  if (token && sameSecret(token, secret)) return true;
+  const apiKey = (apiKeyHeader ?? "").trim();
+  return apiKey.length > 0 && sameSecret(apiKey, secret);
+}
+
 export function decideSendEmailAccess(
   caller: SendEmailCaller,
   action: string | undefined

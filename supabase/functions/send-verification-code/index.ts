@@ -201,6 +201,10 @@ Deno.serve(async (req: Request) => {
 
       // Send verification email via new unified email service
       const { error: emailError } = await supabase.functions.invoke('send-email', {
+        headers: {
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY
+        },
         body: {
           to: email,
           subject,
@@ -211,12 +215,18 @@ Deno.serve(async (req: Request) => {
 
       if (emailError) {
         console.error('❌ Email send error:', emailError);
-        // Don't fail the whole request - code is already stored
-        // User can still use it even if email fails
-        console.warn('⚠️ Verification code created but email failed to send');
-      } else {
-        console.log('✅ Verification email sent');
+        return new Response(JSON.stringify({
+          error: 'Failed to send verification email',
+          details: 'Request a new code.'
+        }), {
+          status: 502,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
       }
+      console.log('✅ Verification email sent');
     } else {
       console.log('Test account: skipping email');
     }

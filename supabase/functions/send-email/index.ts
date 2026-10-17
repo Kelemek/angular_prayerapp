@@ -8,6 +8,7 @@ import {
   adminNoticeMessage,
   applyFixedTemplateVariables,
   decideSendEmailAccess,
+  isServiceRoleCredential,
   jwtRole,
   type AdminNoticeInput,
   type SendEmailCaller,
@@ -239,12 +240,18 @@ function jsonResponse(payload: unknown, status = 200): Response {
 
 async function resolveCaller(req: Request): Promise<SendEmailCaller> {
   const header = req.headers.get('Authorization') ?? ''
-  const token = header.replace(/^Bearer\s+/i, '').trim()
-  const role = token ? jwtRole(token) : null
-
-  if (role === 'service_role') {
+  if (
+    isServiceRoleCredential(
+      header,
+      req.headers.get('apikey'),
+      SUPABASE_SERVICE_ROLE_KEY
+    )
+  ) {
     return { kind: 'service_role' }
   }
+
+  const token = header.replace(/^Bearer\s+/i, '').trim()
+  const role = token ? jwtRole(token) : null
 
   if (role !== 'authenticated' || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return { kind: 'anonymous' }

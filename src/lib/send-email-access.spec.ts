@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminNoticeMessage,
   decideSendEmailAccess,
+  isServiceRoleCredential,
   jwtRole,
 } from "../../supabase/functions/send-email/access";
 
@@ -18,6 +19,24 @@ describe("send-email access", () => {
     expect(jwtRole(tokenWithRole("service_role"))).toBe("service_role");
     expect(jwtRole(tokenWithRole("authenticated"))).toBe("authenticated");
     expect(jwtRole("not-a-jwt")).toBeNull();
+  });
+
+  it("accepts the service role key when it is not a role jwt", () => {
+    const secret = "sb_secret_login_mail";
+    expect(isServiceRoleCredential(`Bearer ${secret}`, null, secret)).toBe(true);
+    expect(
+      isServiceRoleCredential(tokenWithRole("anon"), secret, secret)
+    ).toBe(true);
+    expect(
+      isServiceRoleCredential(tokenWithRole("service_role"), "anon-key", secret)
+    ).toBe(true);
+  });
+
+  it("rejects a logged-out caller who only has the anon key", () => {
+    expect(
+      isServiceRoleCredential(tokenWithRole("anon"), "anon-key", "sb_secret_login_mail")
+    ).toBe(false);
+    expect(isServiceRoleCredential(null, null, "sb_secret_login_mail")).toBe(false);
   });
 
   it("lets the service role and an admin send a composed message", () => {
