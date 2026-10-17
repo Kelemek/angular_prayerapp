@@ -49,3 +49,32 @@ export function showPrayerCardUpdateDeleteButton(
   }
   return true;
 }
+
+/** Member-note edit, mark-answered, and delete. Admins can change any note. */
+export function canManageMemberPrayerUpdate(input: {
+  isAdmin: boolean;
+  currentUserEmail: string | null | undefined;
+  authorEmail: string | null | undefined;
+}): boolean {
+  if (input.isAdmin) return true;
+  const current = input.currentUserEmail?.trim().toLowerCase() ?? '';
+  const author = input.authorEmail?.trim().toLowerCase() ?? '';
+  return current.length > 0 && current === author;
+}
+
+export type PrayerUpdateDeleteAction = 'confirm' | 'request' | 'none';
+
+/** One answer for the delete button and the dialog that follows it. */
+export function prayerUpdateDeleteAction(input: {
+  isMember: boolean;
+  isAdmin: boolean;
+  isPersonal: boolean;
+  currentUserEmail: string | null | undefined;
+  authorEmail: string | null | undefined;
+}): PrayerUpdateDeleteAction {
+  if (input.isMember) {
+    return canManageMemberPrayerUpdate(input) ? 'confirm' : 'none';
+  }
+  if (input.isAdmin || input.isPersonal) return 'confirm';
+  return 'request';
+}

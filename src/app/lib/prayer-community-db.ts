@@ -156,11 +156,14 @@ export async function insertMemberPrayerUpdateRow(
   client: SupabaseClient,
   personId: string,
   content: string,
-  isAnswered: boolean
+  isAnswered: boolean,
+  authorEmail = ''
 ): Promise<{ error: unknown }> {
   const result = await client
     .from('member_prayer_updates')
-    .insert(buildMemberPrayerUpdateInsertRow(personId, content, isAnswered))
+    .insert(
+      buildMemberPrayerUpdateInsertRow(personId, content, isAnswered, authorEmail)
+    )
     .select()
     .single();
   return { error: result.error };
@@ -172,7 +175,7 @@ export async function fetchMemberPrayerUpdatesBatch(
 ): Promise<{ data: MemberPrayerUpdateRow[] | null; error: unknown }> {
   const result = await client
     .from('member_prayer_updates')
-    .select('id, person_id, content, created_at, updated_at, is_answered')
+    .select('id, person_id, content, created_at, updated_at, is_answered, author_email')
     .in('person_id', personIds)
     .order('created_at', { ascending: true });
   return { data: result.data as MemberPrayerUpdateRow[] | null, error: result.error };
@@ -184,7 +187,7 @@ export async function fetchMemberPrayerUpdatesForPerson(
 ): Promise<{ data: MemberPrayerUpdateRow[] | null; error: unknown }> {
   const result = await client
     .from('member_prayer_updates')
-    .select('id, person_id, content, created_at, updated_at, is_answered')
+    .select('id, person_id, content, created_at, updated_at, is_answered, author_email')
     .eq('person_id', personId)
     .order('created_at', { ascending: true });
   return { data: result.data as MemberPrayerUpdateRow[] | null, error: result.error };

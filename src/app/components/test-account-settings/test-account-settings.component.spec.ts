@@ -74,23 +74,14 @@ describe('TestAccountSettingsComponent', () => {
   });
 
   describe('loadSettings', () => {
-    it('should query admin_settings table with id 1 and correct columns', async () => {
-      const selectMock = vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
-        }))
-      }));
-
-      mockSupabaseService.client.from = vi.fn(() => ({
-        select: selectMock
-      }));
+    it('loads codes through get_test_account_login_codes and does not select them from the table', async () => {
+      mockSupabaseService.client.rpc = vi.fn(async () => ({ data: [], error: null }));
+      mockSupabaseService.client.from = vi.fn();
 
       await component.loadSettings();
 
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('admin_settings');
-      expect(selectMock).toHaveBeenCalledWith(
-        'test_account_email, test_account_code_4, test_account_code_6, test_account_code_8'
-      );
+      expect(mockSupabaseService.rpc).toHaveBeenCalledWith('get_test_account_login_codes');
+      expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
     });
 
     it('should load settings successfully and populate all fields', async () => {
@@ -101,13 +92,7 @@ describe('TestAccountSettingsComponent', () => {
         test_account_code_8: '11111777'
       };
 
-      mockSupabaseService.client.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            maybeSingle: vi.fn(() => Promise.resolve({ data: mockData, error: null }))
-          }))
-        }))
-      }));
+      mockSupabaseService.client.rpc = vi.fn(async () => ({ data: [mockData], error: null }));
 
       await component.loadSettings();
 
@@ -127,13 +112,7 @@ describe('TestAccountSettingsComponent', () => {
         test_account_code_8: null
       };
 
-      mockSupabaseService.client.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            maybeSingle: vi.fn(() => Promise.resolve({ data: mockData, error: null }))
-          }))
-        }))
-      }));
+      mockSupabaseService.client.rpc = vi.fn(async () => ({ data: [mockData], error: null }));
 
       await component.loadSettings();
 
@@ -147,13 +126,7 @@ describe('TestAccountSettingsComponent', () => {
       const mockError = new Error('Database error');
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      mockSupabaseService.client.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: mockError }))
-          }))
-        }))
-      }));
+      mockSupabaseService.client.rpc = vi.fn(async () => ({ data: null, error: mockError }));
 
       await component.loadSettings();
 
@@ -168,13 +141,7 @@ describe('TestAccountSettingsComponent', () => {
         resolvePromise = resolve;
       });
 
-      mockSupabaseService.client.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            maybeSingle: vi.fn(() => promise)
-          }))
-        }))
-      }));
+      mockSupabaseService.client.rpc = vi.fn(() => promise);
 
       const loadPromise = component.loadSettings();
       await Promise.resolve();
@@ -359,13 +326,7 @@ describe('TestAccountSettingsComponent', () => {
     it('should clear error on successful load', async () => {
       component.error = 'Previous error';
 
-      mockSupabaseService.client.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
-          }))
-        }))
-      }));
+      mockSupabaseService.client.rpc = vi.fn(async () => ({ data: null, error: null }));
 
       await component.loadSettings();
 
@@ -375,7 +336,7 @@ describe('TestAccountSettingsComponent', () => {
     it('should handle thrown errors during load', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      mockSupabaseService.client.from = vi.fn(() => {
+      mockSupabaseService.rpc = vi.fn(async () => {
         throw new Error('Connection error');
       });
 

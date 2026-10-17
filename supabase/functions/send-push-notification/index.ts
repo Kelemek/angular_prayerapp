@@ -20,6 +20,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 import { getToken } from 'https://deno.land/x/google_jwt_sa@v0.2.5/mod.ts';
 import { createAppleNotificationJwt } from 'jsr:@narumincho/apple-notification-jwt@0.1.0';
+import { jwtRole } from '../send-email/access.ts';
+import {
+  adminPushRecipientEmails,
+  decidePushAccess,
+  type PushCallerKind,
+} from './access.ts';
 
 // Required when invoking from browser or Capacitor (origin capacitor://localhost)
 const corsHeaders = {
@@ -143,6 +149,52 @@ async function sendViaApns(
   return { ok: false, errorData };
 }
 
+async function resolvePushCaller(req: Request): Promise<PushCallerKind> {
+  const header = req.headers.get('Authorization') ?? '';
+  const token = header.replace(/^Bearer\s+/i, '').trim();
+  const role = token ? jwtRole(token) : null;
+  if (role === 'service_role') return 'service_role';
+  if (role !== 'authenticated' || !supabaseUrl || !supabaseKey) return 'anonymous';
+
+  const userClient = createClient(
+    supabaseUrl,
+    Deno.env.get('SUPABASE_ANON_KEY') || supabaseKey,
+    { global: { headers: { Authorization: header } } }
+  );
+  const { data: userData } = await userClient.auth.getUser();
+  const email = userData?.user?.email?.toLowerCase().trim();
+  if (!email) return 'anonymous';
+
+  const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {
+    user_email: email,
+  });
+  if (adminError) {
+    console.error('admin check failed:', adminError);
+    return 'anonymous';
+  }
+  if (isAdmin === true) return 'admin';
+
+  const { data: subscriber, error: subscriberError } = await supabase
+    .from('email_subscribers')
+    .select('is_blocked')
+    .ilike('email', email)
+    .limit(1)
+    .maybeSingle();
+  if (subscriberError) {
+    console.error('subscriber check failed:', subscriberError);
+    return 'anonymous';
+  }
+  if (subscriber && subscriber.is_blocked !== true) return 'subscriber';
+  return 'anonymous';
+}
+
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -158,24 +210,40 @@ Deno.serve(async (req: Request) => {
     const payload: PushNotificationRequest = await req.json();
 
     if (!payload.title || !payload.body) {
-      return new Response(
-        JSON.stringify({ error: 'title and body are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'title and body are required' }, 400);
     }
 
     if (!payload.emails && !payload.sendToAll) {
-      return new Response(
-        JSON.stringify({ error: 'emails or sendToAll is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'emails or sendToAll is required' }, 400);
+    }
+
+    const caller = await resolvePushCaller(req);
+    const access = decidePushAccess(caller, payload.sendToAll === true);
+    if (access === 'deny') {
+      return json({ error: 'Not authorized' }, 403);
+    }
+
+    let recipientEmails = payload.emails;
+    if (access === 'admin_recipients') {
+      const { data: admins, error: adminFetchError } = await supabase
+        .from('email_subscribers')
+        .select('email, receive_admin_push, is_blocked')
+        .eq('is_admin', true);
+      if (adminFetchError) {
+        console.error('admin push recipient lookup failed:', adminFetchError);
+        return json({ error: 'Failed to load recipients' }, 500);
+      }
+      recipientEmails = adminPushRecipientEmails(payload.emails ?? [], admins ?? []);
+      if (recipientEmails.length === 0) {
+        return json({ message: 'No device tokens found', sent: 0, failed: 0 }, 200);
+      }
     }
 
     const platform = payload.platform || 'both';
 
     let query = supabase.from('device_tokens').select('id, token, platform, user_email');
-    if (!payload.sendToAll && payload.emails) {
-      query = query.in('user_email', payload.emails);
+    if (!payload.sendToAll && recipientEmails) {
+      query = query.in('user_email', recipientEmails);
     }
     if (platform !== 'both') {
       query = query.eq('platform', platform);

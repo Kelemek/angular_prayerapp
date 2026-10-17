@@ -7,39 +7,10 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
 };
 
-async function resolveAdminEmail(
-  userClient: SupabaseClient,
-  adminClient: SupabaseClient,
-  queryUserEmail: string | null
-): Promise<string | null> {
+async function sessionEmail(userClient: SupabaseClient): Promise<string | null> {
   const { data: userData } = await userClient.auth.getUser();
   const jwtEmail = userData?.user?.email?.toLowerCase().trim();
-  if (jwtEmail) return jwtEmail;
-
-  const email = String(queryUserEmail ?? '').trim().toLowerCase();
-  if (!email || !email.includes('@')) return null;
-
-  const { data: subscriber, error } = await adminClient
-    .from('email_subscribers')
-    .select('email, is_admin, is_active, is_blocked')
-    .eq('email', email)
-    .maybeSingle();
-
-  if (error) {
-    console.error('email_subscribers lookup failed:', error);
-    return null;
-  }
-
-  if (
-    !subscriber ||
-    subscriber.is_admin !== true ||
-    subscriber.is_blocked === true ||
-    subscriber.is_active === false
-  ) {
-    return null;
-  }
-
-  return email;
+  return jwtEmail || null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -78,9 +49,8 @@ Deno.serve(async (req: Request) => {
     global: { headers: { Authorization: authHeader } },
   });
   const adminClient = createClient(supabaseUrl, serviceKey);
-  const queryEmail = new URL(req.url).searchParams.get('user_email');
 
-  const email = await resolveAdminEmail(userClient, adminClient, queryEmail);
+  const email = await sessionEmail(userClient);
   if (!email) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -88,12 +58,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { data: adminRow, error: adminError } = await adminClient
-    .from('email_subscribers')
-    .select('is_admin')
-    .eq('email', email)
-    .eq('is_admin', true)
-    .maybeSingle();
+  const { data: isAdmin, error: adminError } = await adminClient.rpc('is_admin', {
+    user_email: email,
+  });
 
   if (adminError) {
     console.error('admin check failed:', adminError);
@@ -103,7 +70,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  if (!adminRow) {
+  if (isAdmin !== true) {
     return new Response(JSON.stringify({ error: 'Not authorized' }), {
       status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

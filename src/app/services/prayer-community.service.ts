@@ -397,7 +397,8 @@ export class PrayerCommunityService {
           (await this.db()),
           personId,
           content,
-          isAnswered
+          isAnswered,
+          authorEmail
         );
         if (error) {
           throw error;

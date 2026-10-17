@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import {
-  generateAdminNotificationDeletionHTML,
-  generateAdminNotificationPrayerHTML,
-  generateAdminNotificationUpdateHTML,
   generateAnsweredPrayerHTML,
   generateApprovedPrayerHTML,
   generateApprovedUpdateHTML,
@@ -42,6 +39,20 @@ function mockAdminSettingsForBroadcast(
       }),
     }),
   };
+}
+
+function mockAdminNotificationRecipients(
+  supabase: { rpc: { mockResolvedValue: (value: unknown) => unknown } },
+  emails: string[]
+) {
+  supabase.rpc.mockResolvedValue({
+    data: emails.map((email) => ({
+      email,
+      receive_admin_emails: true,
+      receive_admin_push: true,
+    })),
+    error: null,
+  });
 }
 
 describe("EmailNotificationService", () => {
@@ -522,52 +533,56 @@ describe("EmailNotificationService", () => {
     expect(spySend).toHaveBeenCalled();
   });
 
-  it("sendAdminNotification logs and returns when no admins configured", async () => {
-    mockSupabase.client.from = vi
+  it("sendAdminNotification asks send-email to notify admins without a recipient", async () => {
+    mockSupabase.client.functions.invoke = vi
       .fn()
-      .mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            eq: () => ({ eq: async () => ({ data: [], error: null }) }),
-          }),
-        }),
-      });
-    const spy = vi.spyOn(service as any, "sendAdminNotificationToEmail");
+      .mockResolvedValue({ error: null });
+    const spy = vi.spyOn(service as any, "sendEmail");
     await service.sendAdminNotification({ type: "prayer", title: "t" } as any);
     expect(spy).not.toHaveBeenCalled();
-  });
-
-  it("sendAccountApprovalNotification fetches admins via directQuery and calls helper", async () => {
-    mockSupabase.directQuery.mockResolvedValue({
-      data: [{ email: "a@a" }],
-      error: null,
-    });
-    const spy = vi
-      .spyOn(service as any, "sendAccountApprovalNotificationToEmail")
-      .mockResolvedValue(undefined as any);
-    await service.sendAccountApprovalNotification("u@u", "F", "L");
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it("sendAccountApprovalNotificationToEmail proceeds when template exists and sends email", async () => {
-    mockSupabase.directQuery.mockResolvedValue({
-      data: [{ email: "a@a" }],
-      error: null,
-    });
-    const tpl = {
-      subject: "Approve {{firstName}}",
-      html_body: "<p>{{approveLink}}</p>",
-      text_body: "t",
-    } as any;
-    // stub getTemplate to return account_approval_request template when called
-    vi.spyOn(service, "getTemplate").mockImplementation(async (key: string) =>
-      key === "account_approval_request" ? (tpl as any) : null
+    expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+      "send-email",
+      expect.objectContaining({
+        body: expect.objectContaining({
+          action: "notify_admins",
+          notice: expect.objectContaining({ type: "prayer", title: "t" }),
+        }),
+      })
     );
+  });
+
+  it("sendAccountApprovalNotification queues admin email without listing addresses", async () => {
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockResolvedValue({ data: { queued: 1 }, error: null });
+    await service.sendAccountApprovalNotification("u@u", "F", "L");
+    expect(mockSupabase.rpc).not.toHaveBeenCalled();
+    expect(mockPushNotification.sendPushToAdmins).not.toHaveBeenCalled();
+    expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+      "notify-account-approval",
+      expect.objectContaining({
+        body: expect.objectContaining({
+          email: "u@u",
+          firstName: "F",
+          lastName: "L",
+        }),
+      })
+    );
+    expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+      "trigger-email-processor",
+      { method: "POST" }
+    );
+  });
+
+  it("sendAccountApprovalNotification does not send mail from the browser", async () => {
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockResolvedValue({ data: { queued: 1 }, error: null });
     const spySend = vi
       .spyOn(service as any, "sendEmail")
       .mockResolvedValue(undefined as any);
     await service.sendAccountApprovalNotification("u@u", "F", "L");
-    expect(spySend).toHaveBeenCalled();
+    expect(spySend).not.toHaveBeenCalled();
   });
 
   it("sendRequesterApprovalNotification sends when template present", async () => {
@@ -679,24 +694,27 @@ describe("EmailNotificationService", () => {
   });
 
   it("sendAdminNotification sends to admins when configured and calls helper for each admin", async () => {
-    // return one admin (chain: select -> eq -> eq)
-    mockSupabase.client.from = vi.fn().mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          eq: async () => ({ data: [{ email: "admin@a" }], error: null }),
-        }),
-      }),
-    });
-
-    const spyHelper = vi
-      .spyOn(service as any, "sendAdminNotificationToEmail")
-      .mockResolvedValue(undefined as any);
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockResolvedValue({ error: null });
     await service.sendAdminNotification({
       type: "prayer",
       title: "Need approval",
       requester: "John",
     } as any);
-    expect(spyHelper).toHaveBeenCalled();
+    expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+      "send-email",
+      expect.objectContaining({
+        body: expect.objectContaining({
+          action: "notify_admins",
+          notice: expect.objectContaining({
+            type: "prayer",
+            title: "Need approval",
+            requester: "John",
+          }),
+        }),
+      })
+    );
     expect(mockPushNotification.sendPushToAdmins).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Need approval",
@@ -706,16 +724,10 @@ describe("EmailNotificationService", () => {
   });
 
   it("sendAdminNotification returns early when no admin subscribers exist", async () => {
-    mockSupabase.client.from = vi.fn().mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          eq: () => ({
-            eq: async () => ({ data: [], error: null }),
-          }),
-        }),
-      }),
-    });
-    const spy = vi.spyOn(service as any, "sendAdminNotificationToEmail");
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockResolvedValue({ error: null });
+    const spy = vi.spyOn(service as any, "sendEmail");
     await service.sendAdminNotification({
       type: "prayer",
       title: "Need approval",
@@ -724,25 +736,26 @@ describe("EmailNotificationService", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("sendAccountApprovalNotification calls sendPushToAdmins with account approval payload", async () => {
-    mockSupabase.directQuery.mockResolvedValue({
-      data: [{ email: "admin@x.com" }],
-      error: null,
-    });
-    const spyHelper = vi
-      .spyOn(service as any, "sendAccountApprovalNotificationToEmail")
-      .mockResolvedValue(undefined as any);
+  it("sendAccountApprovalNotification leaves admin push to the notify function", async () => {
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockResolvedValue({ data: { queued: 0 }, error: null });
     await service.sendAccountApprovalNotification(
       "user@test.com",
       "Jane",
       "Doe"
     );
-    expect(spyHelper).toHaveBeenCalled();
-    expect(mockPushNotification.sendPushToAdmins).toHaveBeenCalledWith({
-      title: "Account approval request",
-      body: "Jane Doe (user@test.com)",
-      data: { type: "account_approval_request" },
-    });
+    expect(mockPushNotification.sendPushToAdmins).not.toHaveBeenCalled();
+    expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+      "notify-account-approval",
+      expect.objectContaining({
+        body: expect.objectContaining({ email: "user@test.com" }),
+      })
+    );
+    expect(mockSupabase.client.functions.invoke).not.toHaveBeenCalledWith(
+      "trigger-email-processor",
+      { method: "POST" }
+    );
   });
 
   it("getEmailBaseUrl falls back to appUrl for localhost origins", () => {
@@ -792,27 +805,8 @@ describe("EmailNotificationService", () => {
     }
   });
 
-  it("sendAdminNotificationToEmail uses fallback for unknown notification type", async () => {
-    vi.spyOn(service as any, "getTemplate").mockResolvedValueOnce(null as any);
-    const sendSpy = vi
-      .spyOn(service as any, "sendEmail")
-      .mockResolvedValue(undefined as any);
-
-    await (service as any).sendAdminNotificationToEmail(
-      { type: "unexpected", title: "Test Title" } as any,
-      "admin@test.com"
-    );
-
-    expect(sendSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: ["admin@test.com"],
-        subject: "New Admin Action Required",
-      })
-    );
-  });
-
   it("sendAccountApprovalNotification handles admin query errors gracefully", async () => {
-    mockSupabase.directQuery.mockResolvedValue({
+    mockSupabase.client.functions.invoke = vi.fn().mockResolvedValue({
       data: null,
       error: { message: "Query failed" },
     });
@@ -822,48 +816,10 @@ describe("EmailNotificationService", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("sendAccountApprovalNotificationToEmail returns early when template is missing", async () => {
-    vi.spyOn(service, "getTemplate").mockResolvedValueOnce(null as any);
-    const sendSpy = vi
-      .spyOn(service as any, "sendEmail")
-      .mockResolvedValue(undefined as any);
-
-    await (service as any).sendAccountApprovalNotificationToEmail(
-      "user@test.com",
-      "Jane",
-      "Doe",
-      "",
-      "admin@test.com"
-    );
-
-    expect(sendSpy).not.toHaveBeenCalled();
-  });
-
-  it("sendAccountApprovalNotificationToEmail catches sendEmail failures", async () => {
-    vi.spyOn(service, "getTemplate").mockResolvedValueOnce({
-      subject: "Subject",
-      html_body: "HTML",
-      text_body: "Text",
-    } as any);
-    vi.spyOn(service as any, "sendEmail").mockRejectedValueOnce(
-      new Error("Send failed")
-    );
-
-    await expect(
-      (service as any).sendAccountApprovalNotificationToEmail(
-        "user@test.com",
-        "Jane",
-        "Doe",
-        "",
-        "admin@test.com"
-      )
-    ).resolves.toBeUndefined();
-  });
-
   it("sendAccountApprovalNotification catches unexpected query errors", async () => {
-    mockSupabase.directQuery.mockRejectedValue(
-      new Error("Unexpected query failure")
-    );
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockRejectedValue(new Error("Unexpected query failure"));
 
     await expect(
       service.sendAccountApprovalNotification("user@test.com", "Jane", "Doe")
@@ -871,51 +827,20 @@ describe("EmailNotificationService", () => {
   });
 
   it("sendAdminNotification handles push notification failures gracefully", async () => {
-    mockSupabase.client.from = vi.fn().mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          eq: async () => ({
-            data: [{ email: "admin@test.com" }],
-            error: null,
-          }),
-        }),
-      }),
-    });
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockResolvedValue({ error: null });
     mockPushNotification.sendPushToAdmins.mockRejectedValueOnce(
       new Error("Push failed")
     );
-    const sendSpy = vi
-      .spyOn(service as any, "sendAdminNotificationToEmail")
-      .mockResolvedValue(undefined as any);
 
-    await service.sendAdminNotification({
-      type: "prayer",
-      title: "Need approval",
-      requester: "John",
-    } as any);
-
-    expect(sendSpy).toHaveBeenCalled();
-  });
-
-  it("sendAccountApprovalNotification handles push notification failures gracefully", async () => {
-    mockSupabase.directQuery.mockResolvedValue({
-      data: [{ email: "admin@x.com" }],
-      error: null,
-    });
-    mockPushNotification.sendPushToAdmins.mockRejectedValueOnce(
-      new Error("Push failed")
-    );
-    const sendSpy = vi
-      .spyOn(service as any, "sendAccountApprovalNotificationToEmail")
-      .mockResolvedValue(undefined as any);
-
-    await service.sendAccountApprovalNotification(
-      "user@test.com",
-      "Jane",
-      "Doe"
-    );
-
-    expect(sendSpy).toHaveBeenCalled();
+    await expect(
+      service.sendAdminNotification({
+        type: "prayer",
+        title: "Need approval",
+        requester: "John",
+      } as any)
+    ).resolves.toBeUndefined();
   });
 
   it("sendDeniedPrayerNotification catches sendEmail failures", async () => {
@@ -969,20 +894,9 @@ describe("EmailNotificationService", () => {
   });
 
   it("sendAdminNotification catches unexpected helper failures", async () => {
-    mockSupabase.client.from = vi.fn().mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          eq: async () => ({
-            data: [{ email: "admin@test.com" }],
-            error: null,
-          }),
-        }),
-      }),
-    });
-    vi.spyOn(
-      service as any,
-      "sendAdminNotificationToEmail"
-    ).mockRejectedValueOnce(new Error("Helper failed"));
+    mockSupabase.client.functions.invoke = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Helper failed"));
 
     await expect(
       service.sendAdminNotification({
@@ -1370,20 +1284,9 @@ describe("EmailNotificationService - Additional Logic", () => {
 
   describe("Admin push notifications", () => {
     it("should call sendPushToAdmins when sendAdminNotification has admins", async () => {
-      mockSupabase.client.from = vi.fn().mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            eq: async () => ({
-              data: [{ email: "admin@test.com" }],
-              error: null,
-            }),
-          }),
-        }),
-      });
-      vi.spyOn(
-        service as any,
-        "sendAdminNotificationToEmail"
-      ).mockResolvedValue(undefined);
+      mockSupabase.client.functions.invoke = vi
+        .fn()
+        .mockResolvedValue({ error: null });
       await service.sendAdminNotification({
         type: "prayer",
         title: "Test",
@@ -2744,30 +2647,9 @@ describe("EmailNotificationService - Additional Logic", () => {
 
     describe("Admin Notifications", () => {
       it("should send notification to all admins when configured", async () => {
-        mockSupabase.client.from = vi.fn((table: string) => {
-          if (table === "email_subscribers") {
-            return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  eq: vi.fn().mockResolvedValue({
-                    data: [
-                      { email: "admin1@test.com" },
-                      { email: "admin2@test.com" },
-                    ],
-                    error: null,
-                  }),
-                }),
-              }),
-            };
-          }
-          return {
-            insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-          };
-        });
-
-        const sendAdminSpy = vi
-          .spyOn(service as any, "sendAdminNotificationToEmail")
-          .mockResolvedValue(undefined);
+        mockSupabase.client.functions.invoke = vi
+          .fn()
+          .mockResolvedValue({ error: null });
 
         const payload = {
           type: "prayer" as const,
@@ -2777,28 +2659,22 @@ describe("EmailNotificationService - Additional Logic", () => {
         };
 
         await service.sendAdminNotification(payload);
-        expect(sendAdminSpy).toHaveBeenCalledTimes(2);
+        expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+          "send-email",
+          expect.objectContaining({
+            body: expect.objectContaining({
+              action: "notify_admins",
+              notice: expect.objectContaining({ title: "Prayer Title" }),
+            }),
+          })
+        );
       });
 
       it("should return early when no admins configured", async () => {
-        mockSupabase.client.from = vi.fn((table: string) => {
-          if (table === "email_subscribers") {
-            return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-                }),
-              }),
-            };
-          }
-          return {
-            insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-          };
-        });
-
-        const sendAdminSpy = vi
-          .spyOn(service as any, "sendAdminNotificationToEmail")
-          .mockResolvedValue(undefined);
+        mockSupabase.client.functions.invoke = vi
+          .fn()
+          .mockResolvedValue({ error: null });
+        const sendEmailSpy = vi.spyOn(service, "sendEmail");
 
         const payload = {
           type: "prayer" as const,
@@ -2807,28 +2683,19 @@ describe("EmailNotificationService - Additional Logic", () => {
         };
 
         await service.sendAdminNotification(payload);
-        expect(sendAdminSpy).not.toHaveBeenCalled();
+        expect(sendEmailSpy).not.toHaveBeenCalled();
+        expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+          "send-email",
+          expect.objectContaining({
+            body: expect.objectContaining({ action: "notify_admins" }),
+          })
+        );
       });
 
       it("should handle admin fetch error gracefully", async () => {
-        mockSupabase.client.from = vi.fn((table: string) => {
-          if (table === "email_subscribers") {
-            return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  eq: vi
-                    .fn()
-                    .mockResolvedValue({
-                      data: null,
-                      error: { message: "Fetch error" },
-                    }),
-                }),
-              }),
-            };
-          }
-          return {
-            insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-          };
+        mockSupabase.rpc.mockResolvedValue({
+          data: null,
+          error: { message: "Fetch error" },
         });
 
         const payload = {
@@ -2842,29 +2709,9 @@ describe("EmailNotificationService - Additional Logic", () => {
       });
 
       it("should support different admin notification types", async () => {
-        mockSupabase.client.from = vi.fn((table: string) => {
-          if (table === "email_subscribers") {
-            return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  eq: vi
-                    .fn()
-                    .mockResolvedValue({
-                      data: [{ email: "admin@test.com" }],
-                      error: null,
-                    }),
-                }),
-              }),
-            };
-          }
-          return {
-            insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-          };
-        });
-
-        const sendAdminSpy = vi
-          .spyOn(service as any, "sendAdminNotificationToEmail")
-          .mockResolvedValue(undefined);
+        mockSupabase.client.functions.invoke = vi
+          .fn()
+          .mockResolvedValue({ error: null });
 
         const types = ["prayer", "update", "deletion"] as const;
 
@@ -2876,33 +2723,23 @@ describe("EmailNotificationService - Additional Logic", () => {
           await service.sendAdminNotification(payload);
         }
 
-        expect(sendAdminSpy).toHaveBeenCalledTimes(3);
+        expect(mockSupabase.client.functions.invoke).toHaveBeenCalledTimes(3);
+        for (const notificationType of types) {
+          expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+            "send-email",
+            expect.objectContaining({
+              body: expect.objectContaining({
+                notice: expect.objectContaining({ type: notificationType }),
+              }),
+            })
+          );
+        }
       });
 
       it("should include request ID in admin notification when provided", async () => {
-        mockSupabase.client.from = vi.fn((table: string) => {
-          if (table === "email_subscribers") {
-            return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  eq: vi
-                    .fn()
-                    .mockResolvedValue({
-                      data: [{ email: "admin@test.com" }],
-                      error: null,
-                    }),
-                }),
-              }),
-            };
-          }
-          return {
-            insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-          };
-        });
-
-        const sendAdminSpy = vi
-          .spyOn(service as any, "sendAdminNotificationToEmail")
-          .mockResolvedValue(undefined);
+        mockSupabase.client.functions.invoke = vi
+          .fn()
+          .mockResolvedValue({ error: null });
 
         const payload = {
           type: "prayer" as const,
@@ -2911,40 +2748,37 @@ describe("EmailNotificationService - Additional Logic", () => {
         };
 
         await service.sendAdminNotification(payload);
-        expect(sendAdminSpy).toHaveBeenCalled();
-        const callPayload = sendAdminSpy.mock.calls[0][0] as any;
-        expect(callPayload.requestId).toBe("req-123");
+        expect(mockPushNotification.sendPushToAdmins).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ requestId: "req-123" }),
+          })
+        );
       });
     });
 
     describe("Account Approval Notifications", () => {
       it("should send account approval notification to admins", async () => {
-        mockSupabase.directQuery = vi.fn().mockResolvedValue({
-          data: [{ email: "admin@test.com" }],
-          error: null,
-        });
-
-        const notifySpy = vi
-          .spyOn(service as any, "sendAccountApprovalNotificationToEmail")
-          .mockResolvedValue(undefined);
+        mockSupabase.client.functions.invoke = vi
+          .fn()
+          .mockResolvedValue({ data: { queued: 1 }, error: null });
 
         await service.sendAccountApprovalNotification(
           "user@test.com",
           "John",
           "Doe"
         );
-        expect(notifySpy).toHaveBeenCalled();
+        expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+          "notify-account-approval",
+          expect.objectContaining({
+            body: expect.objectContaining({ email: "user@test.com" }),
+          })
+        );
       });
 
       it("should include affiliation reason in account approval when provided", async () => {
-        mockSupabase.directQuery = vi.fn().mockResolvedValue({
-          data: [{ email: "admin@test.com" }],
-          error: null,
-        });
-
-        const notifySpy = vi
-          .spyOn(service as any, "sendAccountApprovalNotificationToEmail")
-          .mockResolvedValue(undefined);
+        mockSupabase.client.functions.invoke = vi
+          .fn()
+          .mockResolvedValue({ data: { queued: 1 }, error: null });
 
         await service.sendAccountApprovalNotification(
           "user@test.com",
@@ -2952,11 +2786,18 @@ describe("EmailNotificationService - Additional Logic", () => {
           "Doe",
           "Pastor at Local Church"
         );
-        expect(notifySpy).toHaveBeenCalled();
+        expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+          "notify-account-approval",
+          expect.objectContaining({
+            body: expect.objectContaining({
+              affiliationReason: "Pastor at Local Church",
+            }),
+          })
+        );
       });
 
       it("should handle missing admin list gracefully", async () => {
-        mockSupabase.directQuery = vi.fn().mockResolvedValue({
+        mockSupabase.client.functions.invoke = vi.fn().mockResolvedValue({
           data: null,
           error: { message: "Query failed" },
         });
@@ -3129,37 +2970,6 @@ describe("EmailNotificationService - Additional Logic", () => {
         expect(typeof html).toBe("string");
       });
 
-      it("should generate admin notification prayer HTML", () => {
-        const payload = {
-          type: "prayer" as const,
-          title: "Prayer Title",
-          description: "Prayer Description",
-          requester: "John",
-        };
-
-        const html = generateAdminNotificationPrayerHTML(
-          payload,
-          "https://example.com/approve?code=123"
-        );
-        expect(html).toBeDefined();
-        expect(typeof html).toBe("string");
-      });
-
-      it("should generate admin notification update HTML", () => {
-        const payload = {
-          type: "update" as const,
-          title: "Update Title",
-          content: "Update content",
-          author: "Jane",
-        };
-
-        const html = generateAdminNotificationUpdateHTML(
-          payload,
-          "https://example.com/approve?code=123"
-        );
-        expect(html).toBeDefined();
-        expect(typeof html).toBe("string");
-      });
     });
 
     describe("Email Processor Triggering", () => {
@@ -3350,492 +3160,5 @@ describe("EmailNotificationService - Additional Logic", () => {
       });
     });
 
-    describe("Admin Notification HTML Generation", () => {
-      it("should generate prayer admin notification HTML", () => {
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Prayer Description",
-          requester: "John",
-        };
-
-        const html = generateAdminNotificationPrayerHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toBeDefined();
-        expect(typeof html).toBe("string");
-        expect(html).toContain("Prayer Request");
-        expect(html).toContain("Test Prayer");
-      });
-
-      it("should include proper structure in prayer admin HTML", () => {
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Prayer Description",
-          requester: "John",
-        };
-
-        const html = generateAdminNotificationPrayerHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("<!DOCTYPE html>");
-        expect(html).toContain("<html");
-        expect(html).toContain("</html>");
-      });
-
-      it("should include admin link in prayer notification HTML", () => {
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Prayer Description",
-          requester: "John",
-        };
-
-        const adminLink = "https://example.com/admin?code=123";
-        const html = generateAdminNotificationPrayerHTML(payload, adminLink);
-        expect(html).toContain(adminLink);
-      });
-
-      it("should include requester name in prayer admin HTML", () => {
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Prayer Description",
-          requester: "John Doe",
-        };
-
-        const html = generateAdminNotificationPrayerHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("John Doe");
-      });
-
-      it("should include description in prayer admin HTML", () => {
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "This is a detailed prayer description",
-          requester: "John",
-        };
-
-        const html = generateAdminNotificationPrayerHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("detailed prayer description");
-      });
-
-      it("should generate update admin notification HTML", () => {
-        const payload = {
-          type: "update" as const,
-          title: "Test Prayer",
-          content: "Update content",
-          author: "Jane",
-        };
-
-        const html = generateAdminNotificationUpdateHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toBeDefined();
-        expect(typeof html).toBe("string");
-        expect(html).toContain("Prayer Update");
-      });
-
-      it("should include prayer title in update admin HTML", () => {
-        const payload = {
-          type: "update" as const,
-          title: "Healing Prayer",
-          content: "Update content",
-          author: "Jane",
-        };
-
-        const html = generateAdminNotificationUpdateHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("Healing Prayer");
-      });
-
-      it("should include author name in update admin HTML", () => {
-        const payload = {
-          type: "update" as const,
-          title: "Test Prayer",
-          content: "Update content",
-          author: "Jane Smith",
-        };
-
-        const html = generateAdminNotificationUpdateHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("Jane Smith");
-      });
-
-      it("should include update content in update admin HTML", () => {
-        const payload = {
-          type: "update" as const,
-          title: "Test Prayer",
-          content: "This is an important update",
-          author: "Jane",
-        };
-
-        const html = generateAdminNotificationUpdateHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("important update");
-      });
-
-      it("should generate deletion admin notification HTML", () => {
-        const payload = {
-          type: "deletion" as const,
-          title: "Test Prayer",
-          requester: "John",
-          reason: "Duplicate prayer",
-        };
-
-        const html = generateAdminNotificationDeletionHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toBeDefined();
-        expect(typeof html).toBe("string");
-        expect(html).toContain("Deletion Request");
-      });
-
-      it("should include requester in deletion admin HTML", () => {
-        const payload = {
-          type: "deletion" as const,
-          title: "Test Prayer",
-          requester: "John Brown",
-          reason: "Duplicate prayer",
-        };
-
-        const html = generateAdminNotificationDeletionHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("John Brown");
-      });
-
-      it("should include deletion reason in deletion admin HTML", () => {
-        const payload = {
-          type: "deletion" as const,
-          title: "Test Prayer",
-          requester: "John",
-          reason: "This is a duplicate of another prayer",
-        };
-
-        const html = generateAdminNotificationDeletionHTML(
-          payload,
-          "https://example.com/admin"
-        );
-        expect(html).toContain("duplicate of another prayer");
-      });
-
-      it("should have consistent styling across all admin notification types", () => {
-        const prayerPayload = {
-          type: "prayer" as const,
-          title: "Test",
-          description: "Test",
-          requester: "John",
-        };
-
-        const updatePayload = {
-          type: "update" as const,
-          title: "Test",
-          content: "Test",
-          author: "Jane",
-        };
-
-        const deletionPayload = {
-          type: "deletion" as const,
-          title: "Test",
-          requester: "John",
-          reason: "Test",
-        };
-
-        const prayerHtml = generateAdminNotificationPrayerHTML(
-          prayerPayload,
-          "https://example.com/admin"
-        );
-        const updateHtml = generateAdminNotificationUpdateHTML(
-          updatePayload,
-          "https://example.com/admin"
-        );
-        const deletionHtml = generateAdminNotificationDeletionHTML(
-          deletionPayload,
-          "https://example.com/admin"
-        );
-
-        expect(prayerHtml).toContain("style=");
-        expect(updateHtml).toContain("style=");
-        expect(deletionHtml).toContain("style=");
-      });
-
-      it("should include Go to Admin Portal button in all notification types", () => {
-        const prayerPayload = {
-          type: "prayer" as const,
-          title: "Test",
-          description: "Test",
-          requester: "John",
-        };
-
-        const adminLink = "https://example.com/admin";
-        const html = generateAdminNotificationPrayerHTML(
-          prayerPayload,
-          adminLink
-        );
-        expect(html).toContain("Admin Portal");
-        expect(html).toContain(adminLink);
-      });
-    });
-
-    describe("Admin Notification Email Sending", () => {
-      it("should send admin notification for prayer type with template", async () => {
-        mockSupabase.client.from = vi.fn().mockReturnValue(
-          makeFromQuery({
-            data: {
-              subject: "New Prayer Notification",
-              html_body: "HTML body",
-              text_body: "Text body",
-            },
-            error: null,
-          })
-        );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Test Description",
-          requester: "John",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        expect(sendEmailSpy).toHaveBeenCalled();
-      });
-
-      it("should send admin notification for update type", async () => {
-        mockSupabase.client.from = vi.fn().mockReturnValue(
-          makeFromQuery({
-            data: {
-              subject: "New Update Notification",
-              html_body: "HTML body",
-              text_body: "Text body",
-            },
-            error: null,
-          })
-        );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "update" as const,
-          title: "Test Prayer",
-          content: "Update content",
-          author: "Jane",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        expect(sendEmailSpy).toHaveBeenCalled();
-      });
-
-      it("should send admin notification for deletion type", async () => {
-        mockSupabase.client.from = vi.fn().mockReturnValue(
-          makeFromQuery({
-            data: {
-              subject: "Deletion Request",
-              html_body: "HTML body",
-              text_body: "Text body",
-            },
-            error: null,
-          })
-        );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "deletion" as const,
-          title: "Test Prayer",
-          requester: "John",
-          reason: "Duplicate",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        expect(sendEmailSpy).toHaveBeenCalled();
-      });
-
-      it("should use fallback when template not found for prayer", async () => {
-        mockSupabase.client.from = vi
-          .fn()
-          .mockReturnValue(
-            makeFromQuery({ data: null, error: { message: "Not found" } })
-          );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Test Description",
-          requester: "John",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        expect(sendEmailSpy).toHaveBeenCalled();
-        const emailCall = sendEmailSpy.mock.calls[0][0];
-        expect(emailCall.subject).toContain("Prayer Request");
-      });
-
-      it("should use fallback when template not found for update", async () => {
-        mockSupabase.client.from = vi
-          .fn()
-          .mockReturnValue(
-            makeFromQuery({ data: null, error: { message: "Not found" } })
-          );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "update" as const,
-          title: "Test Prayer",
-          content: "Update content",
-          author: "Jane",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        expect(sendEmailSpy).toHaveBeenCalled();
-        const emailCall = sendEmailSpy.mock.calls[0][0];
-        expect(emailCall.subject).toContain("Prayer Update");
-      });
-
-      it("should use fallback when template not found for deletion", async () => {
-        mockSupabase.client.from = vi
-          .fn()
-          .mockReturnValue(
-            makeFromQuery({ data: null, error: { message: "Not found" } })
-          );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "deletion" as const,
-          title: "Test Prayer",
-          requester: "John",
-          reason: "Duplicate",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        expect(sendEmailSpy).toHaveBeenCalled();
-        const emailCall = sendEmailSpy.mock.calls[0][0];
-        expect(emailCall.subject).toContain("Deletion Request");
-      });
-
-      it("should include all required fields in email for prayer notification", async () => {
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Test Description",
-          requester: "John",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        expect(sendEmailSpy).toHaveBeenCalled();
-        const emailCall = sendEmailSpy.mock.calls[0][0];
-        expect(emailCall.to).toEqual(["admin@test.com"]);
-        expect(emailCall.subject).toBeDefined();
-        expect(emailCall.textBody || emailCall.htmlBody).toBeDefined();
-      });
-
-      it("should handle error in admin notification gracefully", async () => {
-        mockSupabase.client.from = vi.fn().mockImplementation(() => {
-          throw new Error("Database error");
-        });
-
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Test Description",
-          requester: "John",
-        };
-
-        await expect(
-          (service as any).sendAdminNotificationToEmail(
-            payload,
-            "admin@test.com"
-          )
-        ).resolves.toBeUndefined();
-      });
-
-      it("should include admin link in fallback notification emails", async () => {
-        mockSupabase.client.from = vi
-          .fn()
-          .mockReturnValue(
-            makeFromQuery({ data: null, error: { message: "Not found" } })
-          );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        const payload = {
-          type: "prayer" as const,
-          title: "Test Prayer",
-          description: "Test Description",
-          requester: "John",
-        };
-
-        await (service as any).sendAdminNotificationToEmail(
-          payload,
-          "admin@test.com"
-        );
-        const emailCall = sendEmailSpy.mock.calls[0][0];
-        expect(emailCall.htmlBody || emailCall.textBody).toContain("/admin");
-      });
-    });
   });
 });

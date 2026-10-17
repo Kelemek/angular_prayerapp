@@ -41,6 +41,16 @@ function mockLoginFromTables(
       })),
     };
   }) as any;
+  const existingRpc = supabaseService.client.rpc;
+  supabaseService.client.rpc = vi.fn(async (fn: string, args?: Record<string, unknown>) => {
+    if (fn === "has_pending_account_approval") {
+      return { data: approvalRow != null, error: null };
+    }
+    if (typeof existingRpc === "function") {
+      return existingRpc(fn, args);
+    }
+    return { data: null, error: null };
+  }) as any;
 }
 
 const makeDeps = () => {
@@ -60,7 +70,12 @@ const makeDeps = () => {
           })),
         })),
       })),
-      rpc: vi.fn(async () => ({ data: "req-1", error: null })),
+      rpc: vi.fn(async (fn: string) => {
+        if (fn === "has_pending_account_approval") {
+          return { data: false, error: null };
+        }
+        return { data: "req-1", error: null };
+      }),
     },
     directQuery: vi.fn(async () => ({ data: [], error: null })),
     directMutation: vi.fn(async () => ({ data: [{ id: "1" }], error: null })),

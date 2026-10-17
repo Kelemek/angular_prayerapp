@@ -229,20 +229,18 @@ export class LoginAuthCoordinator {
 
   private async hasPendingApprovalRequest(email: string): Promise<boolean> {
     try {
-      const client = await this.supabaseService.getClientWhenReady();
-      const { data, error } = await client
-        .from("account_approval_requests")
-        .select("id, approval_status")
-        .eq("email", email.toLowerCase())
-        .eq("approval_status", "pending")
-        .maybeSingle();
+      const { data, error } = await (
+        await this.supabaseService.rpc("has_pending_account_approval", {
+          p_email: email.toLowerCase(),
+        })
+      );
 
       if (error) {
         console.error("[AdminLogin] Error checking pending approval:", error);
         return false;
       }
 
-      return !!data;
+      return data === true;
     } catch (err) {
       console.error("[AdminLogin] Exception checking pending approval:", err);
       return false;

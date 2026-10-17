@@ -97,6 +97,8 @@
         [badgeService]="badgeService"
         [showUpdateDelete]="viewState.showUpdateDeleteButton"
         [updateActionsMode]="getUpdateActionsMode()"
+        [isAdmin]="isAdmin"
+        [currentUserEmail]="sessionEmail"
         (toggleShowAll)="toggleShowAllUpdates()"
         (updateEdit)="onUpdateEdit($event)"
         (updateDelete)="handleDeleteUpdate($event)"

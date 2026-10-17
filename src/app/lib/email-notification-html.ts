@@ -5,7 +5,6 @@ import {
   buildViewPrayerAppLink,
 } from "./email-notification-links";
 import type {
-  AdminNotificationPayload,
   ApprovedPrayerPayload,
   ApprovedUpdatePayload,
   DeniedPrayerPayload,
@@ -343,121 +342,6 @@ export function generateUpdateAuthorApprovalHTML(
             <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">Thank you for keeping our community updated on this prayer!</p>
             <div style="margin-top: 30px; text-align: center;">
               <a href="${appUrl}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Visit Prayer App</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-}
-
-export function generateAdminNotificationPrayerHTML(
-  payload: AdminNotificationPayload,
-  adminLink: string
-): string {
-  return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>New Prayer Request</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">🙏 New Prayer Request</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
-            <p><strong>Requested by:</strong> ${
-              payload.requester || "Anonymous"
-            }</p>
-            <p><strong>Description:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6;">${
-              payload.description
-                ? markdownToSafeHtml(payload.description)
-                : "No description provided"
-            }</div>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${adminLink}" style="background: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-}
-
-export function generateAdminNotificationUpdateHTML(
-  payload: AdminNotificationPayload,
-  adminLink: string
-): string {
-  return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>New Prayer Update</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #3b82f6, #2563eb); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">💬 New Prayer Update</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">Update for: ${
-              payload.title
-            }</h2>
-            <p><strong>Update by:</strong> ${payload.author || "Anonymous"}</p>
-            <p><strong>Content:</strong></p>
-            <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6;">${
-              payload.content
-                ? markdownToSafeHtml(payload.content)
-                : "No content provided"
-            }</div>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${adminLink}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
-            </div>
-          </div>
-          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>This is an automated notification from your prayer app.</p>
-          </div>
-        </body>
-      </html>
-    `;
-}
-
-export function generateAdminNotificationDeletionHTML(
-  payload: AdminNotificationPayload,
-  adminLink: string
-): string {
-  return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Deletion Request</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(to right, #dc2626, #991b1b); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">🗑️ Deletion Request</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #1f2937; margin-top: 0;">${payload.title}</h2>
-            <p><strong>Requested by:</strong> ${
-              payload.requester || "Anonymous"
-            }</p>
-            <p><strong>Reason:</strong></p>
-            <p style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #dc2626;">${
-              payload.reason || "No reason provided"
-            }</p>
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${adminLink}" style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Go to Admin Portal</a>
             </div>
           </div>
           <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">

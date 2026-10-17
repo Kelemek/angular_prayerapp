@@ -503,6 +503,50 @@ describe('PrayerCardComponent', () => {
     expect(component.showUpdateConfirmationDialog).toBe(false);
   });
 
+  it('handleDeleteUpdate confirms when the signed-in member wrote the note', () => {
+    component.isAdmin = false;
+    component.isPersonal = false;
+    component.prayer = {
+      ...component.prayer,
+      id: 'pc-member-person-1',
+      updates: [
+        {
+          id: 'u1',
+          prayer_id: 'pc-member-person-1',
+          content: 'Note',
+          author: 'John',
+          author_email: 'test@example.com',
+          created_at: now.toISOString(),
+        },
+      ],
+    } as any;
+    component.handleDeleteUpdate('u1');
+    expect(component.showUpdateConfirmationDialog).toBe(true);
+    expect(component.updateConfirmationId).toBe('u1');
+  });
+
+  it('handleDeleteUpdate ignores another members note', () => {
+    component.isAdmin = false;
+    component.isPersonal = false;
+    component.prayer = {
+      ...component.prayer,
+      id: 'pc-member-person-1',
+      updates: [
+        {
+          id: 'u1',
+          prayer_id: 'pc-member-person-1',
+          content: 'Note',
+          author: 'Jane',
+          author_email: 'other@example.com',
+          created_at: now.toISOString(),
+        },
+      ],
+    } as any;
+    component.handleDeleteUpdate('u1');
+    expect(component.showUpdateConfirmationDialog).toBe(false);
+    expect(component.showUpdateDeleteRequestForm).toBeNull();
+  });
+
   it('handleDeleteUpdate toggles request form for non-admin', () => {
     component.isAdmin = false;
     component.showUpdateDeleteRequestForm = null;

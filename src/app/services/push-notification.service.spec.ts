@@ -52,14 +52,12 @@ describe('PushNotificationService', () => {
   });
 
   describe('sendPushToAdmins', () => {
-    it('queries email_subscribers with is_admin and receive_admin_push and invokes edge function', async () => {
-      const admins = [{ email: 'admin1@test.com' }, { email: 'admin2@test.com' }];
-      const selectMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: admins, error: null }),
-        }),
-      });
-      mockSupabase.client.from = vi.fn().mockReturnValue({ select: selectMock });
+    it('loads admin notification recipients and invokes edge function', async () => {
+      const admins = [
+        { email: 'admin1@test.com', receive_admin_push: true },
+        { email: 'admin2@test.com', receive_admin_push: true },
+      ];
+      mockSupabase.rpc.mockResolvedValue({ data: admins, error: null });
       mockSupabase.client.functions.invoke = vi.fn().mockResolvedValue({ error: null });
 
       await service.sendPushToAdmins({
@@ -68,8 +66,7 @@ describe('PushNotificationService', () => {
         data: { type: 'prayer' },
       });
 
-      expect(mockSupabase.client.from).toHaveBeenCalledWith('email_subscribers');
-      expect(selectMock).toHaveBeenCalledWith('email');
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('admin_notification_recipients');
       expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
         'send-push-notification',
         {
@@ -84,12 +81,9 @@ describe('PushNotificationService', () => {
     });
 
     it('does not invoke edge function when no admins have receive_admin_push', async () => {
-      mockSupabase.client.from = vi.fn().mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            eq: () => Promise.resolve({ data: [], error: null }),
-          }),
-        }),
+      mockSupabase.rpc.mockResolvedValue({
+        data: [{ email: 'admin@test.com', receive_admin_push: false }],
+        error: null,
       });
 
       await service.sendPushToAdmins({ title: 'Alert', body: 'Body' });
@@ -630,24 +624,15 @@ describe('PushNotificationService', () => {
 
   describe('sendPushToAdmins', () => {
     it('does not invoke when fetchError', async () => {
-      mockSupabase.client.from = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: null, error: new Error('err') }),
-          }),
-        }),
-      });
+      mockSupabase.rpc.mockResolvedValue({ data: null, error: new Error('err') });
       await service.sendPushToAdmins({ title: 'T', body: 'B' });
       expect(mockSupabase.client.functions.invoke).not.toHaveBeenCalled();
     });
 
     it('does not throw when invoke returns error', async () => {
-      mockSupabase.client.from = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: [{ email: 'admin@test.com' }], error: null }),
-          }),
-        }),
+      mockSupabase.rpc.mockResolvedValue({
+        data: [{ email: 'admin@test.com', receive_admin_push: true }],
+        error: null,
       });
       mockSupabase.client.functions.invoke = vi.fn().mockResolvedValue({ error: new Error('invoke failed') });
       await service.sendPushToAdmins({ title: 'T', body: 'B' });
@@ -655,9 +640,7 @@ describe('PushNotificationService', () => {
     });
 
     it('catches and logs when catch block runs', async () => {
-      mockSupabase.client.from = vi.fn().mockImplementation(() => {
-        throw new Error('boom');
-      });
+      mockSupabase.rpc.mockRejectedValue(new Error('boom'));
       await service.sendPushToAdmins({ title: 'T', body: 'B' });
       expect(mockSupabase.client.functions.invoke).not.toHaveBeenCalled();
     });

@@ -38,12 +38,11 @@ export function prayerCardPrayerDeleteClickPatch(
 }
 
 export function prayerCardUpdateDeleteClickPatch(
-  isAdmin: boolean,
-  isPersonal: boolean,
+  action: 'confirm' | 'request',
   updateId: string,
   showUpdateDeleteRequestForm: string | null
 ): PrayerCardDeleteUiPatch {
-  if (isAdmin || isPersonal) {
+  if (action === 'confirm') {
     return {
       updateConfirmationTitle: PRAYER_CARD_UPDATE_DELETE_CONFIRM.title,
       updateConfirmationMessage: PRAYER_CARD_UPDATE_DELETE_CONFIRM.message,
@@ -51,14 +50,18 @@ export function prayerCardUpdateDeleteClickPatch(
       showUpdateConfirmationDialog: true,
     };
   }
-  if (showUpdateDeleteRequestForm === updateId) {
-    return { showUpdateDeleteRequestForm: null };
+  if (action === 'request') {
+    if (showUpdateDeleteRequestForm === updateId) {
+      return { showUpdateDeleteRequestForm: null };
+    }
+    return {
+      showUpdateDeleteRequestForm: updateId,
+      showAddUpdateForm: false,
+      showDeleteRequestForm: false,
+    };
   }
-  return {
-    showUpdateDeleteRequestForm: updateId,
-    showAddUpdateForm: false,
-    showDeleteRequestForm: false,
-  };
+  const unreachable: never = action;
+  return unreachable;
 }
 
 export function prayerCardToggleAddUpdatePatch(

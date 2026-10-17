@@ -4,6 +4,14 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0'
+import {
+  adminNoticeMessage,
+  applyFixedTemplateVariables,
+  decideSendEmailAccess,
+  jwtRole,
+  type AdminNoticeInput,
+  type SendEmailCaller,
+} from './access.ts'
 
 // Environment variables
 const AZURE_TENANT_ID = Deno.env.get('AZURE_TENANT_ID')
@@ -219,6 +227,140 @@ async function sendBulkEmails(
   return { sent, failed, errors }
 }
 
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    }
+  })
+}
+
+async function resolveCaller(req: Request): Promise<SendEmailCaller> {
+  const header = req.headers.get('Authorization') ?? ''
+  const token = header.replace(/^Bearer\s+/i, '').trim()
+  const role = token ? jwtRole(token) : null
+
+  if (role === 'service_role') {
+    return { kind: 'service_role' }
+  }
+
+  if (role !== 'authenticated' || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return { kind: 'anonymous' }
+  }
+
+  const userClient = createClient(
+    SUPABASE_URL,
+    Deno.env.get('SUPABASE_ANON_KEY') ?? SUPABASE_SERVICE_ROLE_KEY,
+    { global: { headers: { Authorization: header } } }
+  )
+  const { data: userData } = await userClient.auth.getUser()
+  const email = userData?.user?.email?.toLowerCase().trim()
+  if (!email) {
+    return { kind: 'anonymous' }
+  }
+
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  const { data: isAdmin, error: adminError } = await adminClient.rpc('is_admin', {
+    user_email: email
+  })
+  if (adminError) {
+    console.error('admin check failed:', adminError)
+    return { kind: 'anonymous' }
+  }
+  if (isAdmin === true) {
+    return { kind: 'admin' }
+  }
+
+  const { data: subscriber, error: subscriberError } = await adminClient
+    .from('email_subscribers')
+    .select('is_blocked')
+    .ilike('email', email)
+    .limit(1)
+    .maybeSingle()
+
+  if (subscriberError) {
+    console.error('subscriber check failed:', subscriberError)
+    return { kind: 'anonymous' }
+  }
+  if (subscriber && subscriber.is_blocked !== true) {
+    return { kind: 'subscriber' }
+  }
+
+  return { kind: 'anonymous' }
+}
+
+async function notifyAdmins(notice: AdminNoticeInput | undefined, adminLink: unknown): Promise<Response> {
+  if (!notice || typeof adminLink !== 'string') {
+    return jsonResponse({ error: 'Not authorized' }, 403)
+  }
+
+  const message = adminNoticeMessage(notice, adminLink)
+  if (!message) {
+    return jsonResponse({ error: 'Not authorized' }, 403)
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return jsonResponse({ error: 'Supabase not configured' }, 500)
+  }
+
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  const { data: template, error: templateError } = await adminClient
+    .from('email_templates')
+    .select('subject, html_body, text_body')
+    .eq('template_key', message.templateKey)
+    .maybeSingle()
+
+  if (templateError) {
+    console.error('template lookup failed:', templateError)
+    return jsonResponse({ error: 'Failed to load template' }, 500)
+  }
+
+  const subject = template
+    ? applyFixedTemplateVariables(template.subject, message.textVariables)
+    : message.subjectFallback
+  const textBody = template
+    ? applyFixedTemplateVariables(template.text_body, message.textVariables)
+    : message.subjectFallback
+  const htmlBody = template
+    ? applyFixedTemplateVariables(template.html_body, message.htmlVariables)
+    : undefined
+
+  const { data: admins, error: adminError } = await adminClient
+    .from('email_subscribers')
+    .select('email, is_blocked, receive_admin_emails')
+    .eq('is_admin', true)
+
+  if (adminError) {
+    console.error('admin recipient lookup failed:', adminError)
+    return jsonResponse({ error: 'Failed to load recipients' }, 500)
+  }
+
+  const recipients = (admins ?? [])
+    .filter((admin) => admin.receive_admin_emails && admin.is_blocked !== true)
+    .map((admin) => admin.email)
+    .filter((email): email is string => typeof email === 'string' && email.length > 0)
+
+  if (recipients.length === 0) {
+    return jsonResponse({ success: true, sent: 0 })
+  }
+
+  const token = await getAccessToken()
+  let sent = 0
+  for (const recipient of recipients) {
+    await sendEmail(token, {
+      to: recipient,
+      subject,
+      htmlBody,
+      textBody
+    })
+    sent += 1
+  }
+
+  return jsonResponse({ success: true, sent })
+}
+
 /**
  * Main request handler
  */
@@ -252,9 +394,24 @@ Deno.serve(async (req: Request) => {
       throw new Error('Supabase not configured')
     }
 
-    // Parse request
     const body = await req.json()
-    const { action, to, subject, htmlBody, textBody, replyTo, fromName } = body
+    const { action, to, subject, htmlBody, textBody, replyTo, fromName, notice, adminLink } = body
+
+    const caller = await resolveCaller(req)
+    const decision = decideSendEmailAccess(caller, action)
+    if (decision === 'deny') {
+      return new Response(JSON.stringify({ error: 'Not authorized' }), {
+        status: 403,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
+    }
+
+    if (decision === 'notify_admins') {
+      return await notifyAdmins(notice, adminLink)
+    }
 
     // Get access token
     const token = await getAccessToken()

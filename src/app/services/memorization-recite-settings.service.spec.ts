@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { MemorizationReciteSettingsService } from './memorization-recite-settings.service';
 import { SupabaseService } from './supabase.service';
-import { UserSessionService } from './user-session.service';
 
 describe('MemorizationReciteSettingsService', () => {
   let service: MemorizationReciteSettingsService;
@@ -34,13 +33,9 @@ describe('MemorizationReciteSettingsService', () => {
         },
       },
     });
-    const userSession = {
-      getCurrentSession: vi.fn(() => null),
-    };
 
     service = new MemorizationReciteSettingsService(
-      supabase as unknown as SupabaseService,
-      userSession as unknown as UserSessionService
+      supabase as unknown as SupabaseService
     );
   });
 
@@ -82,8 +77,7 @@ describe('MemorizationReciteSettingsService', () => {
             })),
           })),
         },
-      } as unknown as SupabaseService,
-      { getCurrentSession: vi.fn(() => null) } as unknown as UserSessionService
+      } as unknown as SupabaseService
     );
 
     const settings = await freshService.getSettingsFromServer();
@@ -107,15 +101,14 @@ describe('MemorizationReciteSettingsService', () => {
         directQuery,
         getSupabaseUrl: vi.fn(() => 'https://test.supabase.co'),
         client: { from: vi.fn() },
-      } as unknown as SupabaseService,
-      { getCurrentSession: vi.fn(() => null) } as unknown as UserSessionService
+      } as unknown as SupabaseService
     );
 
     const settings = await freshService.getSettingsFromServer();
     expect(settings.enabled).toBe(true);
   });
 
-  it('loadUsageSummary passes MFA admin email to RPC without session start', async () => {
+  it('loadUsageSummary does not send a stored email as proof', async () => {
     localStorage.setItem('mfa_authenticated_email', 'Admin@Example.com');
     rpc.mockResolvedValue({
       data: [{ attempt_count: 2, billable_audio_seconds: 30, estimated_cost_usd: 0.01 }],
@@ -130,50 +123,11 @@ describe('MemorizationReciteSettingsService', () => {
     expect(rpc).toHaveBeenCalledWith('get_memorization_recite_usage_summary', {
       p_start: '2026-07-01T00:00:00.000Z',
       p_end: '2026-07-31T00:00:00.000Z',
-      p_email: 'admin@example.com',
     });
     expect(summary.attemptCount).toBe(2);
   });
 
-  it('loadUsageSummary prefers MFA admin email over user session email', async () => {
-    localStorage.setItem('mfa_authenticated_email', 'admin@example.com');
-    const userSession = {
-      getCurrentSession: vi.fn(() => ({ email: 'member@example.com', fullName: 'Member', isActive: true })),
-    };
-    const freshService = new MemorizationReciteSettingsService(
-      wireGatedSupabaseMock({
-        directQuery: vi.fn(),
-        getSupabaseUrl: vi.fn(() => 'https://test.supabase.co'),
-        getSupabaseKey: vi.fn(() => 'test-anon-key'),
-        client: {
-          from: vi.fn(),
-          rpc,
-          auth: {
-            getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-            getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-          },
-        },
-      }) as unknown as SupabaseService,
-      userSession as unknown as UserSessionService
-    );
-    rpc.mockResolvedValue({
-      data: [{ attempt_count: 0, billable_audio_seconds: 0, estimated_cost_usd: 0 }],
-      error: null,
-    });
-
-    await freshService.loadUsageSummary(
-      new Date('2026-07-01T00:00:00.000Z'),
-      new Date('2026-07-31T00:00:00.000Z')
-    );
-
-    expect(rpc).toHaveBeenCalledWith('get_memorization_recite_usage_summary', {
-      p_start: '2026-07-01T00:00:00.000Z',
-      p_end: '2026-07-31T00:00:00.000Z',
-      p_email: 'admin@example.com',
-    });
-  });
-
-  it('fetchOpenAiOrgUsage includes user_email for MFA admin sessions', async () => {
+  it('fetchOpenAiOrgUsage sends the signed-in session token', async () => {
     localStorage.setItem('mfa_authenticated_email', 'admin@example.com');
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -184,14 +138,32 @@ describe('MemorizationReciteSettingsService', () => {
       }),
     });
     vi.stubGlobal('fetch', fetchMock);
+    const sessionService = new MemorizationReciteSettingsService(
+      wireGatedSupabaseMock({
+        directQuery: vi.fn(),
+        getSupabaseUrl: vi.fn(() => 'https://test.supabase.co'),
+        getSupabaseKey: vi.fn(() => 'test-anon-key'),
+        client: {
+          from: vi.fn(),
+          rpc,
+          auth: {
+            getSession: vi.fn().mockResolvedValue({
+              data: { session: { access_token: 'admin-jwt' } },
+            }),
+            getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+          },
+        },
+      }) as unknown as SupabaseService
+    );
 
-    const usage = await service.fetchOpenAiOrgUsage();
+    const usage = await sessionService.fetchOpenAiOrgUsage();
 
     expect(fetchMock).toHaveBeenCalled();
     const calledUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
-    expect(calledUrl.searchParams.get('user_email')).toBe('admin@example.com');
-    expect(calledUrl.searchParams.get('mfa_session_start')).toBeNull();
-    expect(fetchMock.mock.calls[0]?.[1]?.headers?.Authorization).toBe('Bearer test-anon-key');
+    expect(calledUrl.searchParams.get('user_email')).toBeNull();
+    expect(fetchMock.mock.calls[0]?.[1]?.headers?.Authorization).toBe(
+      'Bearer admin-jwt'
+    );
     expect(usage.configured).toBe(true);
     expect(usage.totalUsd).toBe(1.25);
 

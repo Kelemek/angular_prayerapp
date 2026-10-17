@@ -53,6 +53,7 @@ import {
   buildPrayerCardDeletionRequest,
   buildPrayerCardUpdateDeletionRequest,
 } from '../../lib/prayer-card-delete-requests';
+import { prayerUpdateDeleteAction } from '../../lib/prayer-card-permissions';
 import { getPrayerCardUserEmail } from '../../lib/prayer-card-user-context';
 import { PrayerCardBadgeWire } from '../../lib/prayer-card-badge-wire';
 import {
@@ -261,6 +262,10 @@ export class PrayerCardComponent
 
   get prayerUpdateList(): PrayerUpdateRecord[] {
     return this.prayer.updates ?? [];
+  }
+
+  get sessionEmail(): string {
+    return getPrayerCardUserEmail(this.userSessionService);
   }
 
   get viewState() {
@@ -532,11 +537,19 @@ export class PrayerCardComponent
   }
 
   handleDeleteUpdate(updateId: string): void {
+    const update = this.prayerUpdateList.find((row) => row.id === updateId);
+    const action = prayerUpdateDeleteAction({
+      isMember: this.viewState.isMember,
+      isAdmin: this.isAdmin,
+      isPersonal: this.isPersonal,
+      currentUserEmail: this.sessionEmail,
+      authorEmail: update?.author_email,
+    });
+    if (action === 'none') return;
     applyPrayerCardDeleteUiPatch(
       this,
       prayerCardUpdateDeleteClickPatch(
-        this.isAdmin,
-        this.isPersonal,
+        action,
         updateId,
         this.showUpdateDeleteRequestForm
       )

@@ -9,6 +9,7 @@ export type MemberPrayerUpdateRow = {
   created_at: string;
   updated_at: string;
   is_answered: boolean | null;
+  author_email?: string | null;
 };
 
 export type MemberPrayerUpdate = {
@@ -17,6 +18,7 @@ export type MemberPrayerUpdate = {
   created_at: string;
   updated_at: string;
   is_answered: boolean | null;
+  author_email: string | null;
 };
 
 export function mapMemberPrayerUpdateRow(row: MemberPrayerUpdateRow): MemberPrayerUpdate {
@@ -26,6 +28,7 @@ export function mapMemberPrayerUpdateRow(row: MemberPrayerUpdateRow): MemberPray
     created_at: row.created_at,
     updated_at: row.updated_at,
     is_answered: row.is_answered,
+    author_email: row.author_email ?? null,
   };
 }
 
@@ -63,13 +66,19 @@ export function trimMemberPersonId(personId: string): string | null {
 export function buildMemberPrayerUpdateInsertRow(
   personId: string,
   content: string,
-  isAnswered: boolean
+  isAnswered: boolean,
+  authorEmail = ''
 ): Record<string, unknown> {
-  return {
+  const row: Record<string, unknown> = {
     person_id: personId,
     content,
     is_answered: isAnswered,
   };
+  const email = authorEmail.trim();
+  if (email) {
+    row['author_email'] = email;
+  }
+  return row;
 }
 
 export function planningCenterListDataCacheKey(listId: string): string {

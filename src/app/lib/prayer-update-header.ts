@@ -3,6 +3,7 @@ export interface PrayerUpdateRecord {
   id: string;
   content: string;
   author?: string;
+  author_email?: string | null;
   created_at: string;
   updated_at?: string;
   is_answered?: boolean;

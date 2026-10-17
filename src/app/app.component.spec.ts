@@ -30,7 +30,6 @@ import { Injector, ChangeDetectorRef, NgZone } from '@angular/core';
 import { Subject, of } from 'rxjs';
 import { ROUTED_PAGE_SELECTOR } from '../lib/visible-page-recovery';
 
-const decodeAccountCodeMock = vi.fn();
 const supabaseDirectQueryMock = vi.fn();
 const supabaseDirectMutationMock = vi.fn();
 const supabaseRpcMock = vi.fn();
@@ -39,16 +38,6 @@ const emailGetTemplateMock = vi.fn();
 const emailApplyTemplateVariablesMock = vi.fn();
 const emailSendEmailMock = vi.fn();
 const toastShowToastMock = vi.fn();
-
-vi.mock('./services/approval-links.service', () => {
-  return {
-    ApprovalLinksService: class {
-      decodeAccountCode() {
-        return decodeAccountCodeMock();
-      }
-    }
-  };
-});
 
 vi.mock('./services/supabase.service', () => {
   return {
@@ -627,22 +616,20 @@ describe('AppComponent', () => {
   });
 
   describe('Approval code format detection', () => {
-    it('should detect account_approve_ prefix', async () => {
+    it('sends account_approve_ links to the admin portal', async () => {
       window.location.search = '?code=account_approve_valid123';
-      
-      // Account approval codes should attempt to load services
+
       await component.ngOnInit();
-      
-      expect(component).toBeTruthy();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
     });
 
-    it('should detect account_deny_ prefix', async () => {
+    it('sends account_deny_ links to the admin portal', async () => {
       window.location.search = '?code=account_deny_valid456';
-      
-      // Account denial codes should attempt to load services  
+
       await component.ngOnInit();
-      
-      expect(component).toBeTruthy();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
     });
 
     it('should route non-account codes to admin', async () => {
@@ -653,18 +640,6 @@ describe('AppComponent', () => {
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
       expect(window.history.replaceState).toHaveBeenCalled();
-    });
-
-    it('should differentiate between approval types', async () => {
-      const approveCode = 'account_approve_test';
-      const denyCode = 'account_deny_test';
-
-      const approvePrefix = approveCode.startsWith('account_approve_');
-      const denyPrefix = denyCode.startsWith('account_deny_');
-
-      expect(approvePrefix).toBe(true);
-      expect(denyPrefix).toBe(true);
-      expect(approvePrefix && denyPrefix).toBe(true);
     });
   });
 
@@ -1036,169 +1011,6 @@ describe('AppComponent', () => {
     });
   });
 
-  describe('Account Approval Code Handling', () => {
-    let mockApprovalLinksService: any;
-    let mockSupabaseService: any;
-    let mockEmailService: any;
-    let mockToastService: any;
-    let accountApprovalHandlerSpy: ReturnType<typeof vi.spyOn>;
-
-    beforeEach(() => {
-      accountApprovalHandlerSpy = vi
-        .spyOn(AppComponent.prototype as any, 'handleAccountApprovalCode')
-        .mockResolvedValue(undefined);
-      // Create mock services for approval code handling
-      mockApprovalLinksService = {
-        decodeAccountCode: vi.fn().mockReturnValue({
-          email: 'test@example.com',
-          type: 'approve'
-        })
-      };
-
-      mockSupabaseService = {
-        directQuery: vi.fn().mockResolvedValue({
-          data: [{
-            id: '123',
-            email: 'test@example.com',
-            first_name: 'John',
-            last_name: 'Doe',
-            approval_status: 'pending'
-          }],
-          error: null
-        }),
-        directMutation: vi.fn().mockResolvedValue({ error: null })
-      };
-
-      mockEmailService = {
-        getTemplate: vi.fn().mockResolvedValue({
-          subject: 'Welcome {{firstName}}',
-          html_body: '<p>Welcome {{firstName}}</p>',
-          text_body: 'Welcome {{firstName}}'
-        }),
-        applyTemplateVariables: vi.fn((template, vars) => {
-          let result = template;
-          Object.keys(vars).forEach(key => {
-            result = result.replace(new RegExp(`{{${key}}}`, 'g'), vars[key]);
-          });
-          return result;
-        }),
-        sendEmail: vi.fn().mockResolvedValue({}),
-        getEmailBaseUrl: () => 'https://example.com',
-      };
-
-      mockToastService = {
-        showToast: vi.fn()
-      };
-
-      // Mock injector to return appropriate mock service for any injector.get() call
-      // This works because the code imports the service class and passes it to get()
-      mockInjector.get = vi.fn().mockImplementation(function(ServiceClass: any) {
-        // Return mocks for all possible services
-        // Since we don't know the exact class reference, we return all mocks
-        // The first call will be for ApprovalLinksService, then SupabaseService, etc.
-        mockInjector._callCount = mockInjector._callCount ?? 0;
-
-        const callCount = mockInjector._callCount++;
-        
-        // Rotate through the mocks based on call count
-        const mocks = [
-          mockApprovalLinksService,   // First call - ApprovalLinksService
-          mockSupabaseService,         // Second call - SupabaseService  
-          mockEmailService,            // Third call - EmailNotificationService
-          mockToastService             // Fourth call - ToastService
-        ];
-        
-        return mocks[callCount % mocks.length] || mockApprovalLinksService;
-      });
-    });
-
-    afterEach(() => {
-      accountApprovalHandlerSpy.mockRestore();
-      delete mockInjector._callCount;
-      mockInjector.get = vi.fn((token) => {
-        const name = typeof token?.name === 'string' ? token.name : '';
-        if (name === 'ToastService') {
-          return { showToast: vi.fn() };
-        }
-        return {};
-      });
-    });
-
-    it('should handle account_approve_ code format', async () => {
-      window.location.search = '?code=account_approve_test123';
-      
-      // Create new component with mocked services
-      const testComponent = createAppComponent();
-      
-      await testComponent.ngOnInit();
-      
-      // Component should have called ngOnInit
-      expect(testComponent).toBeTruthy();
-    });
-
-    it('should handle account_deny_ code format', async () => {
-      window.location.search = '?code=account_deny_test456';
-      mockApprovalLinksService.decodeAccountCode.mockReturnValue({
-        email: 'test@example.com',
-        type: 'deny'
-      });
-      
-      const testComponent = createAppComponent();
-      
-      await testComponent.ngOnInit();
-      
-      expect(testComponent).toBeTruthy();
-    });
-
-    it('should process approval codes without throwing', async () => {
-      window.location.search = '?code=account_approve_test';
-      
-      expect(async () => {
-        const testComponent = createAppComponent();
-        await testComponent.ngOnInit();
-      }).not.toThrow();
-    });
-
-    it('should call router navigate after processing approval code', async () => {
-      window.location.search = '?code=account_approve_test';
-      
-      const testComponent = createAppComponent();
-      await testComponent.ngOnInit();
-
-      // Check if navigate was called
-      expect(mockRouter.navigate).toBeDefined();
-    });
-
-    it('should handle non-account codes properly', async () => {
-      window.location.search = '?code=someOtherCode';
-      
-      const testComponent = createAppComponent();
-      await testComponent.ngOnInit();
-
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
-    });
-
-    it('should handle empty code gracefully', async () => {
-      window.location.search = '';
-      
-      const testComponent = createAppComponent();
-      await testComponent.ngOnInit();
-
-      // Should not navigate if no code
-      expect(mockRouter.navigate).not.toHaveBeenCalled();
-    });
-
-    it('should handle codes with special characters', async () => {
-      window.location.search = '?code=account_approve_%2F%3F%40';
-      
-      const testComponent = createAppComponent();
-      
-      expect(async () => {
-        await testComponent.ngOnInit();
-      }).not.toThrow();
-    });
-  });
-
   describe('Integration Tests', () => {
     it('should handle full initialization flow', () => {
       expect(component.title).toBe('prayerapp');
@@ -1269,12 +1081,7 @@ describe('AppComponent', () => {
   });
 
   describe('Approval Code Handling', () => {
-    let handleAccountApprovalCodeSpy: ReturnType<typeof vi.spyOn>;
-
     beforeEach(() => {
-      handleAccountApprovalCodeSpy = vi
-        .spyOn(AppComponent.prototype as any, 'handleAccountApprovalCode')
-        .mockResolvedValue(undefined);
       // Reset location search
       Object.defineProperty(window, 'location', {
         value: {
@@ -1284,10 +1091,6 @@ describe('AppComponent', () => {
         },
         writable: true
       });
-    });
-
-    afterEach(() => {
-      handleAccountApprovalCodeSpy.mockRestore();
     });
 
     it('should handle ngOnInit call', () => {
@@ -1322,11 +1125,9 @@ describe('AppComponent', () => {
       });
 
       const newComponent = createAppComponent();
-      
-      // Just verify that ngOnInit doesn't throw for account_approve codes
-      expect(async () => {
-        await newComponent.ngOnInit();
-      }).not.toThrow();
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
     });
 
     it('should detect account denial code prefix', async () => {
@@ -1340,11 +1141,9 @@ describe('AppComponent', () => {
       });
 
       const newComponent = createAppComponent();
-      
-      // Just verify that ngOnInit doesn't throw for account_deny codes
-      expect(async () => {
-        await newComponent.ngOnInit();
-      }).not.toThrow();
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
     });
 
     it('should handle no code parameter gracefully', async () => {
@@ -1454,11 +1253,9 @@ describe('AppComponent', () => {
       });
 
       const newComponent = createAppComponent();
-      
-      // Just verify that ngOnInit doesn't throw for account_deny codes
-      expect(async () => {
-        await newComponent.ngOnInit();
-      }).not.toThrow();
+      await newComponent.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
     });
 
     it('should handle multiple code parameters (first one wins)', async () => {
@@ -1507,7 +1304,6 @@ describe('AppComponent', () => {
       const newComponent = createAppComponent();
       await newComponent.ngOnInit();
 
-      // Should not match account_approve_ because of case sensitivity
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin']);
     });
   });
@@ -1521,194 +1317,6 @@ describe('AppComponent', () => {
       const originalTitle = component.title;
       component.ngOnInit();
       expect(component.title).toBe(originalTitle);
-    });
-  });
-
-  describe('handleAccountApprovalCode (integration)', () => {
-    const approvalServices = () => ({
-      decodeAccountCode: decodeAccountCodeMock,
-      client: { rpc: (...args: unknown[]) => supabaseRpcMock(...args) },
-      directQuery: supabaseDirectQueryMock,
-      directMutation: supabaseDirectMutationMock,
-      getRestAuthorizationBearer: () => Promise.resolve('admin-jwt'),
-      getTemplate: emailGetTemplateMock,
-      applyTemplateVariables: emailApplyTemplateVariablesMock,
-      sendEmail: emailSendEmailMock,
-      getEmailBaseUrl: () => 'https://example.com',
-      showToast: toastShowToastMock,
-    });
-
-    beforeEach(() => {
-      vi.clearAllMocks();
-      mockInjector.get = vi.fn((token: { name?: string }) => {
-        const name = typeof token?.name === 'string' ? token.name : '';
-        if (name === 'PlanningCenterRestService') {
-          return { lookupPersonByEmail: lookupPersonByEmailMock };
-        }
-        if (name === 'ApprovalLinksService') {
-          return { decodeAccountCode: decodeAccountCodeMock };
-        }
-        if (name === 'SupabaseService') {
-          const client = {
-            rpc: (...args: unknown[]) => supabaseRpcMock(...args),
-          };
-          return {
-            ...client,
-            rpc: (...args: unknown[]) => supabaseRpcMock(...args),
-            client,
-            directQuery: supabaseDirectQueryMock,
-            directMutation: supabaseDirectMutationMock,
-            getRestAuthorizationBearer: () => Promise.resolve('admin-jwt'),
-            db: async () => client,
-            getClientWhenReady: async () => client,
-            from: async () => client,
-          };
-        }
-        if (name === 'EmailNotificationService') {
-          return {
-            getTemplate: emailGetTemplateMock,
-            applyTemplateVariables: emailApplyTemplateVariablesMock,
-            sendEmail: emailSendEmailMock,
-            getEmailBaseUrl: () => 'https://example.com',
-          };
-        }
-        if (name === 'ToastService') {
-          return { showToast: toastShowToastMock };
-        }
-        return approvalServices();
-      });
-      emailApplyTemplateVariablesMock.mockImplementation(
-        (template: string, vars: Record<string, string> = {}) => {
-          let result = template;
-          for (const [key, value] of Object.entries(vars)) {
-            result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
-          }
-          return result;
-        }
-      );
-      emailGetTemplateMock.mockResolvedValue({
-        subject: 'Welcome {{firstName}}',
-        html_body: '<p>Hi {{firstName}}</p>',
-        text_body: 'Hi {{firstName}}',
-      });
-      emailSendEmailMock.mockResolvedValue({});
-      supabaseDirectMutationMock.mockResolvedValue({ error: null });
-      supabaseRpcMock.mockResolvedValue({ error: null });
-      lookupPersonByEmailMock.mockResolvedValue({ count: 1 });
-    });
-
-    it('shows error toast and navigates to login for invalid code', async () => {
-      decodeAccountCodeMock.mockReturnValue(null);
-      await (component as any).handleAccountApprovalCode('account_approve_bad');
-      expect(toastShowToastMock).toHaveBeenCalledWith('Invalid approval link', 'error');
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-    });
-
-    it('approves pending account, sends email, and navigates to login', async () => {
-      decodeAccountCodeMock.mockReturnValue({ email: 'user@example.com', type: 'approve' });
-      supabaseDirectQueryMock.mockResolvedValue({
-        data: [{
-          id: 'req-1',
-          email: 'user@example.com',
-          first_name: 'Jane',
-          last_name: 'Doe',
-          approval_status: 'pending',
-        }],
-        error: null,
-      });
-
-      await (component as any).handleAccountApprovalCode('account_approve_user@example.com');
-
-      expect(supabaseRpcMock).toHaveBeenCalledWith(
-        'complete_account_approval_from_link',
-        expect.objectContaining({ p_email: 'user@example.com' })
-      );
-      expect(emailSendEmailMock).toHaveBeenCalled();
-      expect(toastShowToastMock).toHaveBeenCalledWith(
-        'Account approved for Jane Doe',
-        'success'
-      );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-      expect(window.history.replaceState).toHaveBeenCalled();
-    });
-
-    it('denies pending account and navigates to login', async () => {
-      decodeAccountCodeMock.mockReturnValue({ email: 'user@example.com', type: 'deny' });
-      supabaseDirectQueryMock.mockResolvedValue({
-        data: [{
-          id: 'req-2',
-          email: 'user@example.com',
-          first_name: 'John',
-          last_name: 'Smith',
-          approval_status: 'pending',
-        }],
-        error: null,
-      });
-
-      await (component as any).handleAccountApprovalCode('account_deny_user@example.com');
-
-      expect(toastShowToastMock).toHaveBeenCalledWith(
-        'Account denied for John Smith',
-        'info'
-      );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-    });
-
-    it('shows info toast when request was already processed', async () => {
-      decodeAccountCodeMock.mockReturnValue({ email: 'user@example.com', type: 'approve' });
-      supabaseDirectQueryMock.mockResolvedValue({
-        data: [{
-          id: 'req-3',
-          email: 'user@example.com',
-          first_name: 'Pat',
-          last_name: 'Lee',
-          approval_status: 'approved',
-        }],
-        error: null,
-      });
-
-      await (component as any).handleAccountApprovalCode('account_approve_user@example.com');
-
-      expect(toastShowToastMock).toHaveBeenCalledWith(
-        'This request has already been approved',
-        'info'
-      );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-    });
-
-    it('shows error when approval request is not found', async () => {
-      decodeAccountCodeMock.mockReturnValue({ email: 'missing@example.com', type: 'approve' });
-      supabaseDirectQueryMock.mockResolvedValue({ data: [], error: null });
-
-      await (component as any).handleAccountApprovalCode('account_approve_missing@example.com');
-
-      expect(toastShowToastMock).toHaveBeenCalledWith('Approval request not found', 'error');
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-    });
-
-    it('continues approval when Planning Center lookup fails', async () => {
-      decodeAccountCodeMock.mockReturnValue({ email: 'user@example.com', type: 'approve' });
-      supabaseDirectQueryMock.mockResolvedValue({
-        data: [{
-          id: 'req-4',
-          email: 'user@example.com',
-          first_name: 'Alex',
-          last_name: 'Kim',
-          approval_status: 'pending',
-        }],
-        error: null,
-      });
-      lookupPersonByEmailMock.mockRejectedValue(new Error('PC down'));
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      await (component as any).handleAccountApprovalCode('account_approve_user@example.com');
-
-      expect(supabaseRpcMock).toHaveBeenCalled();
-      expect(toastShowToastMock).toHaveBeenCalledWith(
-        'Account approved for Alex Kim',
-        'success'
-      );
-      consoleSpy.mockRestore();
     });
   });
 

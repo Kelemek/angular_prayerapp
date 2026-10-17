@@ -1112,15 +1112,19 @@ describe('PrayerService', () => {
 
   describe('member prayer updates', () => {
     it('addMemberPrayerUpdate succeeds and invalidates caches', async () => {
+      let insertedRow: Record<string, unknown> | undefined;
       supabase.client.from.mockImplementation((table: string) => {
         if (table === 'member_prayer_updates') {
           return {
-            insert: () => ({
-              select: () => ({
-                single: () =>
-                  Promise.resolve({ data: { id: 'u1' }, error: null }),
-              }),
-            }),
+            insert: (row: Record<string, unknown>) => {
+              insertedRow = row;
+              return {
+                select: () => ({
+                  single: () =>
+                    Promise.resolve({ data: { id: 'u1' }, error: null }),
+                }),
+              };
+            },
           };
         }
         return {};
@@ -1137,6 +1141,12 @@ describe('PrayerService', () => {
       );
 
       expect(result).toBe(true);
+      expect(insertedRow).toMatchObject({
+        person_id: 'p1',
+        content: 'content',
+        author_email: 'a@b.com',
+        is_answered: false,
+      });
       expect(cache.invalidate).toHaveBeenCalledWith('memberPrayerUpdates');
       expect(cache.invalidate).toHaveBeenCalledWith(
         'planningCenterListData_list-1'

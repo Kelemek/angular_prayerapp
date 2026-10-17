@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  canManageMemberPrayerUpdate,
+  prayerUpdateDeleteAction,
   showPrayerCardAddUpdateButton,
   showPrayerCardDeleteButton,
   showPrayerCardUpdateDeleteButton,
@@ -74,6 +76,95 @@ describe('showPrayerCardAddUpdateButton', () => {
         })
       )
     ).toBe(true);
+  });
+});
+
+describe('canManageMemberPrayerUpdate', () => {
+  it('allows the author and any admin', () => {
+    expect(
+      canManageMemberPrayerUpdate({
+        isAdmin: false,
+        currentUserEmail: 'Author@Example.com',
+        authorEmail: 'author@example.com',
+      })
+    ).toBe(true);
+    expect(
+      canManageMemberPrayerUpdate({
+        isAdmin: true,
+        currentUserEmail: 'admin@example.com',
+        authorEmail: 'author@example.com',
+      })
+    ).toBe(true);
+  });
+
+  it('hides another members note and notes with no author', () => {
+    expect(
+      canManageMemberPrayerUpdate({
+        isAdmin: false,
+        currentUserEmail: 'reader@example.com',
+        authorEmail: 'author@example.com',
+      })
+    ).toBe(false);
+    expect(
+      canManageMemberPrayerUpdate({
+        isAdmin: false,
+        currentUserEmail: 'reader@example.com',
+        authorEmail: null,
+      })
+    ).toBe(false);
+  });
+});
+
+describe('prayerUpdateDeleteAction', () => {
+  it('confirms for an admin, the author, or a personal prayer', () => {
+    expect(
+      prayerUpdateDeleteAction({
+        isMember: true,
+        isAdmin: true,
+        isPersonal: false,
+        currentUserEmail: 'admin@example.com',
+        authorEmail: 'author@example.com',
+      })
+    ).toBe('confirm');
+    expect(
+      prayerUpdateDeleteAction({
+        isMember: true,
+        isAdmin: false,
+        isPersonal: false,
+        currentUserEmail: 'Author@Example.com',
+        authorEmail: 'author@example.com',
+      })
+    ).toBe('confirm');
+    expect(
+      prayerUpdateDeleteAction({
+        isMember: false,
+        isAdmin: false,
+        isPersonal: true,
+        currentUserEmail: 'user@example.com',
+        authorEmail: null,
+      })
+    ).toBe('confirm');
+  });
+
+  it('hides another members note and asks for a community delete', () => {
+    expect(
+      prayerUpdateDeleteAction({
+        isMember: true,
+        isAdmin: false,
+        isPersonal: false,
+        currentUserEmail: 'reader@example.com',
+        authorEmail: 'author@example.com',
+      })
+    ).toBe('none');
+    expect(
+      prayerUpdateDeleteAction({
+        isMember: false,
+        isAdmin: false,
+        isPersonal: false,
+        currentUserEmail: 'reader@example.com',
+        authorEmail: 'author@example.com',
+      })
+    ).toBe('request');
   });
 });
 

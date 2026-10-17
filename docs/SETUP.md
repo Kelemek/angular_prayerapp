@@ -414,11 +414,7 @@ Without `ESV_API_TOKEN`, ESV passages and listen mode fail until the secret is s
 
 ### In-app feedback (Notion Site issues)
 
-**Legacy native apps:** Store builds that users never update still read `admin_settings.github_token`, `github_repo_*`, and `enabled` for in-app GitHub feedback. **Keep those columns** in Postgres until you are willing to break feedback on those old binaries. New app versions use the Edge Function below and do not read the token.
-
-Apply migration [`20260912180000_disable_github_feedback_legacy.sql`](../supabase/migrations/20260912180000_disable_github_feedback_legacy.sql) on each project when Notion feedback is live: sets `enabled = false`, clears `github_token`, and empties repo fields. **Keep the columns** so old binaries can still run `getGitHubConfig()`; they see feedback disabled and no PAT. You cannot drop `github_repo_owner` / `github_repo_name` (or any of the four) while those clients remain — PostgREST errors if a selected column is missing.
-
-Deferred column drop (after long-tail native is gone): [`docs/migrations-future/drop_github_feedback_settings.sql`](migrations-future/drop_github_feedback_settings.sql).
+Current apps submit feedback through the Edge Function below. They do not read a GitHub token. Migration [`20261016160000_drop_github_feedback_columns.sql`](../supabase/migrations/20261016160000_drop_github_feedback_columns.sql) removes `admin_settings.github_token`, `github_repo_owner`, `github_repo_name`, and `enabled`. Older binaries that still select those columns are no longer supported.
 
 1. Create a Notion internal integration and share the **Site issues** data source (`collection://53537498-ea76-4f4c-b7f6-38116d48419b`) with it.
 2. On the **test** project only:

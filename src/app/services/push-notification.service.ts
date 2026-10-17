@@ -286,17 +286,18 @@ export class PushNotificationService {
     data?: Record<string, string>;
   }): Promise<void> {
     try {
-      const { data: admins, error: fetchError } = await (await this.supabase.db())
-        .from('email_subscribers')
-        .select('email')
-        .eq('is_admin', true)
-        .eq('receive_admin_push', true);
+      const { data, error: fetchError } = await (
+        await this.supabase.rpc('admin_notification_recipients')
+      );
 
       if (fetchError) {
         console.error('Failed to fetch admins for push:', fetchError);
         return;
       }
-      if (!admins?.length) return;
+      const admins = (Array.isArray(data) ? data : []).filter(
+        (admin: { receive_admin_push?: boolean }) => admin.receive_admin_push
+      );
+      if (!admins.length) return;
 
       const emails = admins.map((a: { email: string }) => a.email);
       const { error: invokeError } = await this.supabase.client.functions.invoke(

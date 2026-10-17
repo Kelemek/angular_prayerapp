@@ -47,3 +47,27 @@ Admin / catalog:
 - `memorization_recommendations`, `memorization_recommendation_categories`, `booklet_insert_pages`
 
 Apply on test (`jcdhajfqtzipltvfslhu`) before production (`eqiafsygvfaifhoaewxi`).
+
+## Leftover allow-all policies ([`20261016140000_rls_lockdown_leftover_policies.sql`](../supabase/migrations/20261016140000_rls_lockdown_leftover_policies.sql))
+
+Applied on the test project. Production has not been updated.
+
+Anon still allowed:
+
+- `admin_settings` row `id = 1` **SELECT** of the login columns (code length, titles, and the other non-secret settings). `test_account_code_4`, `test_account_code_6`, and `test_account_code_8` are omitted from that grant. Insert, update, and delete are revoked. `github_token`, `github_repo_owner`, `github_repo_name`, and `enabled` are dropped. `get_test_account_login_codes()` is executable by signed-in users and returns the codes only for an admin or the configured tester email.
+- `email_templates` **SELECT** for a signed-in user. Anonymous select is revoked. Writes are admin-only.
+
+`get_memorization_recite_usage_summary` is executable by signed-in users and returns rows only when `is_admin()` is true for the session email. Anonymous execute is revoked. `get-openai-org-usage` uses that same session check.
+
+Anon functions:
+
+- `has_pending_account_approval(email)` — login, before a subscriber JWT exists. Returns a boolean.
+- Account-approval mail is [`notify-account-approval`](../supabase/functions/notify-account-approval/index.ts). `enqueue_account_approval_admin_emails(...)` is service-role only. It queues the template and returns push addresses from the same admin query. A second call within an hour does neither, because `account_approval_requests.admin_notified_at` is claimed first. The browser receives a queue count.
+
+`admin_notification_recipients()` is executable by a signed-in subscriber or admin. Anonymous execute is revoked.
+
+`email_queue` insert is a signed-in admin. `analytics` insert is a signed-in page view. Analytics select is admin-only. Anonymous grants on both tables are revoked.
+
+[`send-email`](../supabase/functions/send-email/index.ts) sends caller-supplied content for the service role or a signed-in admin. Member approval notices use `notify_admins` and do not choose the recipient.
+
+`member_prayer_updates` stores `author_email`. Signed-in members can read every row and insert their own. Update and delete require that email or `is_admin()`. Rows with a null author (created before the column) are admin-only. Anon cannot access the table. `updates_allowed` and `deletions_allowed` are still enforced in the prayer card, not in these policies.

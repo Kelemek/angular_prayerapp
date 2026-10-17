@@ -27,8 +27,8 @@
         updateActions
         [bandSize]="variantLayout.updateRowSize"
         [update]="update"
-        [mode]="updateActionsMode"
-        [showDelete]="showUpdateDelete"
+        [mode]="actionsModeFor(update)"
+        [showDelete]="showDeleteFor(update)"
         (edit)="updateEdit.emit(update)"
         (delete)="updateDelete.emit(update.id)"
         (toggleAnswered)="toggleAnswered.emit(update)"

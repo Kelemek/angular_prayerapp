@@ -6,7 +6,6 @@ import type {
   MemorizationReciteUsageSummary,
 } from '../types/memorization';
 import { SupabaseService } from './supabase.service';
-import { UserSessionService } from './user-session.service';
 
 const CACHE_KEY = 'memorization_recite_enabled';
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -25,8 +24,7 @@ export class MemorizationReciteSettingsService {
   private loadPromise: Promise<void> | null = null;
 
   constructor(
-    private supabase: SupabaseService,
-    private userSession: UserSessionService
+    private supabase: SupabaseService
   ) {
     this.seedFromLocalStorage();
   }
@@ -67,13 +65,11 @@ export class MemorizationReciteSettingsService {
     start: Date,
     end: Date
   ): Promise<MemorizationReciteUsageSummary> {
-    const adminEmail = await this.getAdminCallerEmail();
     const { data, error } = await (await this.supabase.rpc(
       'get_memorization_recite_usage_summary',
       {
         p_start: start.toISOString(),
         p_end: end.toISOString(),
-        p_email: adminEmail,
       }
     ));
 
@@ -92,19 +88,8 @@ export class MemorizationReciteSettingsService {
   async fetchOpenAiOrgUsage(): Promise<MemorizationReciteOpenAiUsage> {
     const apikey = this.supabase.getSupabaseKey();
     const session = await this.supabase.client.auth.getSession();
-    const userEmail = await this.getAdminCallerEmail();
-    let mfaEmail: string | null = null;
-    try {
-      mfaEmail = localStorage.getItem('mfa_authenticated_email')?.toLowerCase().trim() ?? null;
-    } catch {
-      // ignore
-    }
-    const useMfaAuth = !!mfaEmail && userEmail === mfaEmail;
-    const token = useMfaAuth ? null : session.data.session?.access_token ?? null;
+    const token = session.data.session?.access_token ?? null;
     const url = new URL(`${this.supabase.getSupabaseUrl()}/functions/v1/get-openai-org-usage`);
-    if (userEmail) {
-      url.searchParams.set('user_email', userEmail);
-    }
     const response = await fetch(url.toString(), {
       headers: {
         apikey,
@@ -147,34 +132,6 @@ export class MemorizationReciteSettingsService {
       periodDays: payload.period_days,
       totalUsd: payload.total_usd,
     };
-  }
-
-  private async getAdminCallerEmail(): Promise<string | null> {
-    try {
-      const mfaEmail = localStorage.getItem('mfa_authenticated_email')?.toLowerCase().trim();
-      if (mfaEmail) {
-        return mfaEmail;
-      }
-      const approvalEmail = localStorage.getItem('approvalAdminEmail')?.toLowerCase().trim();
-      if (approvalEmail) {
-        return approvalEmail;
-      }
-    } catch {
-      // ignore
-    }
-
-    const session = this.userSession.getCurrentSession();
-    if (session?.email) {
-      return session.email.toLowerCase().trim();
-    }
-
-    const { data } = await this.supabase.client.auth.getUser();
-    const jwtEmail = data.user?.email?.toLowerCase().trim();
-    if (jwtEmail) {
-      return jwtEmail;
-    }
-
-    return null;
   }
 
   private seedFromLocalStorage(): void {

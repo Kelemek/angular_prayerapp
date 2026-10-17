@@ -29,23 +29,19 @@ describe('prayerCardPrayerDeleteClickPatch', () => {
 });
 
 describe('prayerCardUpdateDeleteClickPatch', () => {
-  it('shows update confirmation for admin or personal', () => {
-    const patch = prayerCardUpdateDeleteClickPatch(true, false, 'u1', null);
+  it('shows update confirmation when the action is confirm', () => {
+    const patch = prayerCardUpdateDeleteClickPatch('confirm', 'u1', null);
     expect(patch.showUpdateConfirmationDialog).toBe(true);
     expect(patch.updateConfirmationId).toBe('u1');
   });
 
-  it('toggles update delete request for community users', () => {
-    expect(
-      prayerCardUpdateDeleteClickPatch(false, false, 'u1', null)
-    ).toEqual({
+  it('toggles update delete request when the action is request', () => {
+    expect(prayerCardUpdateDeleteClickPatch('request', 'u1', null)).toEqual({
       showUpdateDeleteRequestForm: 'u1',
       showAddUpdateForm: false,
       showDeleteRequestForm: false,
     });
-    expect(
-      prayerCardUpdateDeleteClickPatch(false, false, 'u1', 'u1')
-    ).toEqual({
+    expect(prayerCardUpdateDeleteClickPatch('request', 'u1', 'u1')).toEqual({
       showUpdateDeleteRequestForm: null,
     });
   });

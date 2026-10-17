@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { AsyncPipe } from '@angular/common';
 import type { BehaviorSubject } from 'rxjs';
 import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
+import { prayerUpdateDeleteAction } from '../../lib/prayer-card-permissions';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
 import type { BadgeService } from '../../services/badge.service';
 import { HomeFilterBadgeButtonComponent } from '../home-filter-badge-button/home-filter-badge-button.component';
@@ -45,6 +46,32 @@ export class PrayerCardUpdatesSectionComponent {
   @Input({ required: true }) badgeService!: BadgeService;
   @Input({ required: true }) showUpdateDelete!: boolean;
   @Input({ required: true }) updateActionsMode!: PrayerUpdateActionsMode;
+  @Input() isAdmin = false;
+  @Input() currentUserEmail = '';
+
+  actionsModeFor(update: PrayerUpdateRecord): PrayerUpdateActionsMode {
+    if (this.updateActionsMode !== 'member') {
+      return this.updateActionsMode;
+    }
+    return this.memberDeleteAction(update) === 'none' ? 'readonly' : 'member';
+  }
+
+  showDeleteFor(update: PrayerUpdateRecord): boolean {
+    if (this.updateActionsMode === 'member') {
+      return this.memberDeleteAction(update) !== 'none';
+    }
+    return this.showUpdateDelete;
+  }
+
+  private memberDeleteAction(update: PrayerUpdateRecord) {
+    return prayerUpdateDeleteAction({
+      isMember: true,
+      isAdmin: this.isAdmin,
+      isPersonal: false,
+      currentUserEmail: this.currentUserEmail,
+      authorEmail: update.author_email,
+    });
+  }
 
   @Output() toggleShowAll = new EventEmitter<void>();
   @Output() updateEdit = new EventEmitter<PrayerUpdateRecord>();

@@ -8,10 +8,6 @@ import {
 } from "../../utils/markdown";
 import { adminNotificationPushBody } from "../lib/email-notification-admin-push";
 import {
-  sendAccountApprovalNotificationToEmail as deliverAccountApprovalNotificationEmail,
-  sendAdminItemNotificationToEmail as deliverAdminItemNotificationEmail,
-} from "../lib/email-notification-admin-mail";
-import {
   filterManualBroadcastRecipientEmails,
   normalizeTestAccountEmail,
 } from "../lib/email-notification-broadcast";
@@ -24,6 +20,7 @@ import {
   generateWelcomeEmailHTML,
 } from "../lib/email-notification-html";
 import {
+  buildAdminPortalLink,
   buildAppHomeLink,
   buildMemorizeVerseAppLink,
   buildSubscriberAppLink,
@@ -741,40 +738,36 @@ export class EmailNotificationService {
   }
 
   /**
-   * Send notification to admins when new items need approval
-   * Sends individual emails to each admin with personalized approval links
+   * Send notification to admins when new items need approval.
+   * The edge function chooses the recipients and the template.
    */
   async sendAdminNotification(
     payload: AdminNotificationPayload
   ): Promise<void> {
     try {
-      // Get admin emails from email_subscribers table (receive_admin_emails only; not tied to is_active)
-      const { data: admins, error: adminsError } = await (await this.supabase.db())
-        .from("email_subscribers")
-        .select("email")
-        .eq("is_admin", true)
-        .eq("receive_admin_emails", true);
+      const { error } = await this.supabase.client.functions.invoke(
+        "send-email",
+        {
+          body: {
+            action: "notify_admins",
+            notice: {
+              type: payload.type,
+              title: payload.title,
+              description: payload.description,
+              requester: payload.requester,
+              author: payload.author,
+              content: payload.content,
+              reason: payload.reason,
+            },
+            adminLink: buildAdminPortalLink(this.getEmailBaseUrl()),
+          },
+        }
+      );
 
-      if (adminsError) {
-        console.error("Error fetching admin emails:", adminsError);
-        return;
+      if (error) {
+        console.error("Error sending admin notification:", error);
       }
 
-      if (!admins || admins.length === 0) {
-        console.warn(
-          "No admins configured to receive notifications. Please enable admin email notifications in Admin User Management."
-        );
-        return;
-      }
-
-      const adminEmails = admins.map((admin) => admin.email);
-
-      // Send individual emails to each admin
-      for (const adminEmail of adminEmails) {
-        await this.sendAdminNotificationToEmail(payload, adminEmail);
-      }
-
-      // Send push to admins who have receive_admin_push enabled (best-effort)
       try {
         const body = adminNotificationPushBody(payload);
         await this.pushNotification.sendPushToAdmins({
@@ -795,7 +788,7 @@ export class EmailNotificationService {
   }
 
   /**
-   * Send account approval request notification to all admins
+   * Queue the account-approval email and push. The edge function chooses admins.
    */
   async sendAccountApprovalNotification(
     email: string,
@@ -804,99 +797,43 @@ export class EmailNotificationService {
     affiliationReason?: string
   ): Promise<void> {
     try {
-      // Get all admin emails (receive_admin_emails only; not tied to is_active)
-      const { data: admins, error: adminsError } =
-        await this.supabase.directQuery<{ email: string }>(
-          "email_subscribers",
-          {
-            select: "email",
-            eq: { is_admin: true, receive_admin_emails: true },
-          }
-        );
+      const requestedDate = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const { data, error } = await this.supabase.client.functions.invoke(
+        "notify-account-approval",
+        {
+          body: {
+            email,
+            firstName,
+            lastName,
+            affiliationReason: affiliationReason ?? "",
+            adminLink: buildAdminPortalLink(this.getEmailBaseUrl()),
+            requestedDate,
+          },
+        }
+      );
 
-      if (
-        adminsError ||
-        !admins ||
-        !Array.isArray(admins) ||
-        admins.length === 0
-      ) {
-        console.error(
-          "No admins found for account approval notification:",
-          adminsError
-        );
+      if (error) {
+        console.error("Account approval notification failed:", error);
         return;
       }
 
-      // Send notification to each admin
-      for (const admin of admins) {
-        await this.sendAccountApprovalNotificationToEmail(
-          email,
-          firstName,
-          lastName,
-          affiliationReason || "",
-          admin.email
-        );
-      }
-
-      // Send push to admins who have receive_admin_push enabled (best-effort)
-      try {
-        await this.pushNotification.sendPushToAdmins({
-          title: "Account approval request",
-          body: `${firstName} ${lastName} (${email})`,
-          data: { type: "account_approval_request" },
-        });
-      } catch (pushErr) {
-        console.error(
-          "Error sending admin push for account approval:",
-          pushErr
+      const queued =
+        data && typeof data === "object" && "queued" in data
+          ? Number((data as { queued?: unknown }).queued)
+          : 0;
+      if (queued > 0) {
+        await this.triggerEmailProcessor().catch((err) =>
+          console.error("Failed to trigger email processor:", err)
         );
       }
     } catch (error) {
       console.error("Error in sendAccountApprovalNotification:", error);
-      // Don't throw - we don't want email failures to break the app
     }
-  }
-
-  private mailDeps() {
-    return {
-      getTemplate: (templateKey: string) => this.getTemplate(templateKey),
-      sendEmail: (options: SendEmailOptions) => this.sendEmail(options),
-      getEmailBaseUrl: () => this.getEmailBaseUrl(),
-    };
-  }
-
-  /**
-   * Send account approval notification to a single admin
-   */
-  private async sendAccountApprovalNotificationToEmail(
-    email: string,
-    firstName: string,
-    lastName: string,
-    affiliationReason: string,
-    adminEmail: string
-  ): Promise<void> {
-    await deliverAccountApprovalNotificationEmail(
-      this.mailDeps(),
-      email,
-      firstName,
-      lastName,
-      affiliationReason,
-      adminEmail
-    );
-  }
-
-  /**
-   * Send notification to a single admin with personalized approval link
-   */
-  private async sendAdminNotificationToEmail(
-    payload: AdminNotificationPayload,
-    adminEmail: string
-  ): Promise<void> {
-    await deliverAdminItemNotificationEmail(
-      this.mailDeps(),
-      payload,
-      adminEmail
-    );
   }
 
   /**

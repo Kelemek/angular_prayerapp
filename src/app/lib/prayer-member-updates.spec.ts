@@ -55,6 +55,14 @@ describe('prayer-member-updates', () => {
       content: 'Pray',
       is_answered: true,
     });
+    expect(
+      buildMemberPrayerUpdateInsertRow('p1', 'Pray', false, ' Author@Example.com ')
+    ).toEqual({
+      person_id: 'p1',
+      content: 'Pray',
+      is_answered: false,
+      author_email: 'Author@Example.com',
+    });
   });
 
   it('trimMemberPersonId rejects blank ids', () => {
@@ -63,11 +71,29 @@ describe('prayer-member-updates', () => {
   });
 
   it('reads and writes single-person cache slices', () => {
-    const existing = { p1: [{ id: 'u1', content: 'a', created_at: '', updated_at: '', is_answered: false }] };
+    const existing = {
+      p1: [
+        {
+          id: 'u1',
+          content: 'a',
+          created_at: '',
+          updated_at: '',
+          is_answered: false,
+          author_email: null,
+        },
+      ],
+    };
     expect(memberUpdatesCacheForPerson(existing, 'p1')).toHaveLength(1);
     expect(memberUpdatesCacheForPerson(existing, 'p2')).toBeUndefined();
     const merged = writeMemberUpdatesCacheForPerson(existing, 'p2', [
-      { id: 'u2', content: 'b', created_at: '', updated_at: '', is_answered: true },
+      {
+        id: 'u2',
+        content: 'b',
+        created_at: '',
+        updated_at: '',
+        is_answered: true,
+        author_email: 'a@b.com',
+      },
     ]);
     expect(merged.p2[0].content).toBe('b');
     expect(merged.p1).toHaveLength(1);

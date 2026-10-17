@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { hashVerificationCode, verificationCodesMatch } from './verification-code-hash.ts';
 import { mintAuthResumeToken } from '../shared/auth-resume-token.ts';
 import { mintSubscriberMagicLinkToken } from '../shared/mint-subscriber-magic-link.ts';
+import { shouldNotifyTestAccountLogin } from '../shared/test-account-login-notify.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -237,7 +238,14 @@ Deno.serve(async (req: Request) => {
     } catch (_) {
       // non-critical
     }
-    if (testAccountEmail !== '' && verificationRecord.action_type === 'admin_login' && emailNormalized === testAccountEmail) {
+    const testAccountLoggedIn =
+      testAccountEmail !== '' &&
+      verificationRecord.action_type === 'admin_login' &&
+      emailNormalized === testAccountEmail;
+    if (testAccountLoggedIn && !shouldNotifyTestAccountLogin(req.headers.get('origin'), req.headers.get('referer'))) {
+      console.log('⏭️ Test account login notification skipped; request is not from the production site');
+    }
+    if (testAccountLoggedIn && shouldNotifyTestAccountLogin(req.headers.get('origin'), req.headers.get('referer'))) {
       try {
         const adminsRes = await fetch(
           `${SUPABASE_URL}/rest/v1/email_subscribers?is_admin=eq.true&receive_admin_emails=eq.true&select=email`,

@@ -206,19 +206,23 @@ export class TestAccountSettingsComponent {
       this.error = null;
       this.cdr.markForCheck();
 
-      const { data, error } = await (await this.supabase.db())
-        .from('admin_settings')
-        .select('test_account_email, test_account_code_4, test_account_code_6, test_account_code_8')
-        .eq('id', 1)
-        .maybeSingle();
+      const { data, error } = await (
+        await this.supabase.rpc('get_test_account_login_codes')
+      );
 
       if (error) throw error;
 
-      if (data) {
-        this.testAccountEmail = data.test_account_email ?? '';
-        this.testAccountCode4 = data.test_account_code_4 ?? '';
-        this.testAccountCode6 = data.test_account_code_6 ?? '';
-        this.testAccountCode8 = data.test_account_code_8 ?? '';
+      const row = (Array.isArray(data) ? data[0] : data) as {
+        test_account_email: string | null;
+        test_account_code_4: string | null;
+        test_account_code_6: string | null;
+        test_account_code_8: string | null;
+      } | null;
+      if (row) {
+        this.testAccountEmail = row.test_account_email ?? '';
+        this.testAccountCode4 = row.test_account_code_4 ?? '';
+        this.testAccountCode6 = row.test_account_code_6 ?? '';
+        this.testAccountCode8 = row.test_account_code_8 ?? '';
       }
 
       this.cdr.markForCheck();
