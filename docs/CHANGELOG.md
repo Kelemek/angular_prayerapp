@@ -26,6 +26,9 @@ Major features and milestones for the Prayer App.
 ### Security — Phase 3 anonymous access recorded
 - [`RLS_PHASE3.md`](RLS_PHASE3.md) is the current record of anonymous access on test after migrations `20261017140000` through `20261017180000`. The only anonymous table privilege kept is `SELECT` on the `admin_settings` login columns. No `SECURITY DEFINER` function in `public` is executable by anon. Allow new users to sign up is still on for test and production. Production does not have these migrations.
 
+### Security — login approval functions restored on test
+- [`20261017190000_rls_phase3_restore_anon_login_functions.sql`](../supabase/migrations/20261017190000_rls_phase3_restore_anon_login_functions.sql) grants anon execute back on `has_pending_account_approval(text)` and the four-argument `create_account_approval_request`. A verified code for an email that is not a subscriber continues on `/login` without a session. [`20261017200000_rls_phase3_default_function_privileges.sql`](../supabase/migrations/20261017200000_rls_phase3_default_function_privileges.sql) removes the built-in `PUBLIC` execute default for functions `postgres` creates. Applied on test `jcdhajfqtzipltvfslhu` only. Production is unchanged. Allow new users to sign up is still on until it is turned off in the test Auth settings.
+
 ### Home — Help and Settings stay on screen while the list is scrolled
 - [`app-home-modals-host`](../src/app/pages/home/home.component.html) now sits outside `.safe-area-viewport`. That scroller has CDK `contain: strict`, which pins `position: fixed` to the list instead of the window. Help and Settings were opening at the top of the list. Request already stayed visible because its overlay is moved to `document.body`. The Help scrim and dialog use the modal overlay layer, so the back-to-top button does not sit on top of Help.
 

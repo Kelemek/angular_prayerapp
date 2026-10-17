@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+// 20261017190000 grants anon execute back on the two login approval functions.
 describe('migration 20261017170000_rls_phase3_function_execute.sql', () => {
   const sql = readFileSync(
     join(

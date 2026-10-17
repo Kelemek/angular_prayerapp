@@ -1002,6 +1002,12 @@ export class AdminAuthService {
       if (!linkResult.ok) {
         this.removeStoredSupabaseSession();
         await this.signOutBounded('signOut stale JWT after MFA');
+        const mintedSession =
+          typeof data.hashed_token === 'string' &&
+          data.hashed_token.trim().length > 0;
+        if (!mintedSession) {
+          return { success: true, isAdmin: false };
+        }
         return { success: false, error: linkResult.error };
       }
       const linkedUser = linkResult.user;

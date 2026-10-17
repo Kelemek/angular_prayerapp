@@ -62,6 +62,7 @@ Anon still allowed:
 Anon functions:
 
 - `has_pending_account_approval(email)` — login, before a subscriber JWT exists. Returns a boolean.
+- `create_account_approval_request(email, first, last, reason)` — login, before a subscriber JWT exists. [`20261017190000_rls_phase3_restore_anon_login_functions.sql`](../supabase/migrations/20261017190000_rls_phase3_restore_anon_login_functions.sql) restores anon execute on both. The current record is [RLS_PHASE3.md](RLS_PHASE3.md).
 - Account-approval mail is [`notify-account-approval`](../supabase/functions/notify-account-approval/index.ts). `enqueue_account_approval_admin_emails(...)` is service-role only. It queues the template and returns push addresses from the same admin query. A second call within an hour does neither, because `account_approval_requests.admin_notified_at` is claimed first. The browser receives a queue count.
 
 `admin_notification_recipients()` is executable by a signed-in subscriber or admin. Anonymous execute is revoked.

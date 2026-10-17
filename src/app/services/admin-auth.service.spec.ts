@@ -803,6 +803,33 @@ describe('AdminAuthService', () => {
       expect(result.isAdmin).toBe(false);
     });
 
+    it('continues logged out when verify-code has no subscriber session', async () => {
+      localStorage.setItem('mfa_code_id', 'code123');
+      localStorage.setItem('mfa_user_email', 'new@example.com');
+
+      mockSupabaseClient.functions.invoke = vi.fn()
+        .mockResolvedValueOnce({
+          data: { success: true },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { error: 'Subscriber not found' },
+          error: null,
+        });
+      mockSupabaseClient.auth.getSession = vi.fn().mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+      mockSupabaseClient.auth.signOut = vi.fn().mockResolvedValue({ error: null });
+
+      const result = await service.verifyMfaCode('123456');
+
+      expect(result.success).toBe(true);
+      expect(result.isAdmin).toBe(false);
+      expect(service.getUser()).toBeNull();
+      expect(localStorage.getItem('mfa_authenticated_email')).toBeNull();
+    });
+
     it('should fail when no MFA session found', async () => {
       localStorage.removeItem('mfa_code_id');
       localStorage.removeItem('mfa_user_email');
