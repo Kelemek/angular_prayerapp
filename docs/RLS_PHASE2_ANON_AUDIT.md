@@ -50,7 +50,7 @@ Apply on test (`jcdhajfqtzipltvfslhu`) before production (`eqiafsygvfaifhoaewxi`
 
 ## Leftover allow-all policies ([`20261016140000_rls_lockdown_leftover_policies.sql`](../supabase/migrations/20261016140000_rls_lockdown_leftover_policies.sql))
 
-Applied on the test project. Production has not been updated.
+Applied on the test project and, on October 17, 2026, on production. That production apply is recorded in [SETUP.md](SETUP.md). The lists under this heading are the Phase 2 leftover record. [RLS_PHASE3.md](RLS_PHASE3.md) is the current anonymous-grant record.
 
 Anon still allowed:
 

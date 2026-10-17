@@ -4,6 +4,28 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Production — October lockdown is live
+- On October 17, 2026, migrations `20261015180000` through `20261016210000` were applied to production [`eqiafsygvfaifhoaewxi`](https://eqiafsygvfaifhoaewxi.supabase.co). `supabase db push` was not used. Older production history is recorded under different version numbers, so those files were applied directly and then marked applied. Notes below that say production was unchanged describe the earlier test landing.
+
+### Security — anonymous catalog reads removed on test
+- Migration [`20261017140000_rls_phase3_drop_catalog_public_reads.sql`](../supabase/migrations/20261017140000_rls_phase3_drop_catalog_public_reads.sql) drops `Allow public reads` on `memorization_recommendations`, `memorization_recommendation_categories`, and `booklet_insert_pages`. The signed-in read policies from [`20261015180000_rls_phase2_jwt_lockdown.sql`](../supabase/migrations/20261015180000_rls_phase2_jwt_lockdown.sql) stay. Applied on test `jcdhajfqtzipltvfslhu` only. Production is unchanged.
+
+### Security — anonymous table grants removed on test
+- Migration [`20261017150000_rls_phase3_revoke_anon_table_grants.sql`](../supabase/migrations/20261017150000_rls_phase3_revoke_anon_table_grants.sql) revokes anon on `scripture_cache`, `memorization_recite_usage`, and `backup_tables`, including leftover column grants. `memorization_recite_usage_admin_select` applies to signed-in users only. Anonymous select on the `admin_settings` login columns stays. Applied on test `jcdhajfqtzipltvfslhu` only. Production is unchanged.
+
+### Security — public admin policies narrowed on test
+- Migration [`20261017160000_rls_phase3_is_admin_policy_roles.sql`](../supabase/migrations/20261017160000_rls_phase3_is_admin_policy_roles.sql) limits four `is_admin` policies to signed-in users. They are `Admins can manage deletion_requests`, `Admins can manage prayer_updates`, `Admins can modify all prayers`, and `Admins can view all prayers`. The `USING` expressions stay. Applied on test `jcdhajfqtzipltvfslhu` only. Production is unchanged.
+
+### Security — anonymous function execute removed on test
+- Migration [`20261017170000_rls_phase3_function_execute.sql`](../supabase/migrations/20261017170000_rls_phase3_function_execute.sql) leaves reminder due-now reads and scripture-cache prune to the service role. Signed-in members keep prayed-for counts, `is_admin`, login linking, and the four-argument approval request. The unused three-argument approval function is no longer callable by anon or a signed-in user. New functions and tables in `public` are not granted to anon unless a later migration says so. Applied on test `jcdhajfqtzipltvfslhu` only. Production is unchanged.
+- Production Edge Functions now match that release: `send-email` with JWT verification off, `send-verification-code`, `verify-code`, `send-push-notification`, `notify-account-approval`, `get-openai-org-usage`, and the reminder functions. [`cp-church/angular_prayerapp`](https://github.com/cp-church/angular_prayerapp) `main` was fast-forwarded to `ee078b91`.
+
+### Security — function search_path pinned on test
+- Migration [`20261017180000_rls_phase3_function_search_path.sql`](../supabase/migrations/20261017180000_rls_phase3_function_search_path.sql) sets `search_path` to `public, pg_temp` on the three personal-prayer reorder helpers, the badge-read merge helpers, and the branding, memorization, and member-update timestamp triggers. Their bodies already use `public` tables and built-in functions. Applied on test `jcdhajfqtzipltvfslhu` only. Production is unchanged.
+
+### Security — Phase 3 anonymous access recorded
+- [`RLS_PHASE3.md`](RLS_PHASE3.md) is the current record of anonymous access on test after migrations `20261017140000` through `20261017180000`. The only anonymous table privilege kept is `SELECT` on the `admin_settings` login columns. No `SECURITY DEFINER` function in `public` is executable by anon. Allow new users to sign up is still on for test and production. Production does not have these migrations.
+
 ### Home — Help and Settings stay on screen while the list is scrolled
 - [`app-home-modals-host`](../src/app/pages/home/home.component.html) now sits outside `.safe-area-viewport`. That scroller has CDK `contain: strict`, which pins `position: fixed` to the list instead of the window. Help and Settings were opening at the top of the list. Request already stayed visible because its overlay is moved to `document.body`. The Help scrim and dialog use the modal overlay layer, so the back-to-top button does not sit on top of Help.
 
