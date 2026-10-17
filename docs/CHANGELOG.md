@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Production — Phase 3 is live
+- On October 17, 2026, migrations `20261017140000` through `20261017200000` were applied to production [`eqiafsygvfaifhoaewxi`](https://eqiafsygvfaifhoaewxi.supabase.co) with `supabase db query --linked` and `supabase migration repair`. `supabase db push` was not used. Anon can execute only `has_pending_account_approval(text)` and the four-argument `create_account_approval_request` among `SECURITY DEFINER` functions. The four `is_admin` policies apply to signed-in users. Anonymous select on the `admin_settings` login columns stays (30 columns). Allow new users to sign up stays on. The web login change in `60c6526c` reaches https://cpprayer.cp-church.org when [`cp-church/angular_prayerapp`](https://github.com/cp-church/angular_prayerapp) `main` deploys. Notes below that say Phase 3 is test-only describe the earlier landing.
+
 ### Production — October lockdown is live
 - On October 17, 2026, migrations `20261015180000` through `20261016210000` were applied to production [`eqiafsygvfaifhoaewxi`](https://eqiafsygvfaifhoaewxi.supabase.co). `supabase db push` was not used. Older production history is recorded under different version numbers, so those files were applied directly and then marked applied. Notes below that say production was unchanged describe the earlier test landing.
 

@@ -1,6 +1,6 @@
 # RLS Phase 3 — leftover anon access
 
-Phase 3 removes the anonymous grants Phase 2 left behind. Migrations `20261017140000` through `20261017200000` are applied on test `jcdhajfqtzipltvfslhu` only. Production `eqiafsygvfaifhoaewxi` has Phase 2 through `20261016210000` as of October 17, 2026, and does not have these files yet. See [SETUP.md](SETUP.md).
+Phase 3 removes the anonymous grants Phase 2 left behind. Migrations `20261017140000` through `20261017200000` are applied on test `jcdhajfqtzipltvfslhu` and, as of October 17, 2026, on production `eqiafsygvfaifhoaewxi`. See [SETUP.md](SETUP.md).
 
 ## Catalog policies dropped
 
@@ -29,9 +29,9 @@ Signed-in reads stay on `memorization_recommendations_select_authenticated`, `me
 
 [`20261017170000_rls_phase3_function_execute.sql`](../supabase/migrations/20261017170000_rls_phase3_function_execute.sql) removes anon and `PUBLIC` execute from the reminder due-now reads, `prune_scripture_cache`, `is_admin`, login linking, the prayed-for counters, both approval functions, and the five prayer-reminder purge triggers. Reminder reads, cache prune, purge triggers, and the unused three-argument `create_account_approval_request` stay on the service role. Signed-in members keep `is_admin`, login linking, prayed-for counts, and the four-argument approval request.
 
-[`20261017190000_rls_phase3_restore_anon_login_functions.sql`](../supabase/migrations/20261017190000_rls_phase3_restore_anon_login_functions.sql) grants anon execute back on `has_pending_account_approval(text)` and `create_account_approval_request(text, text, text, text)`. `/login` calls both before a subscriber session exists. The three-argument approval function stays service-role only. On test, those two are the only `SECURITY DEFINER` functions in `public` that anon can execute.
+[`20261017190000_rls_phase3_restore_anon_login_functions.sql`](../supabase/migrations/20261017190000_rls_phase3_restore_anon_login_functions.sql) grants anon execute back on `has_pending_account_approval(text)` and `create_account_approval_request(text, text, text, text)`. `/login` calls both before a subscriber session exists. The three-argument approval function stays service-role only. On test and production, those two are the only `SECURITY DEFINER` functions in `public` that anon can execute.
 
-The schema-scoped default revoke in `20261017170000` does not remove the built-in `PUBLIC` execute grant. [`20261017200000_rls_phase3_default_function_privileges.sql`](../supabase/migrations/20261017200000_rls_phase3_default_function_privileges.sql) revokes that grant for every function `postgres` creates, and revokes a schema-scoped anon execute grant if one is added later. Every new function migration must `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon` and then `GRANT EXECUTE` only to the roles that need it. `supabase_admin` defaults are unchanged. Production still has the old defaults until these files are applied there.
+The schema-scoped default revoke in `20261017170000` does not remove the built-in `PUBLIC` execute grant. [`20261017200000_rls_phase3_default_function_privileges.sql`](../supabase/migrations/20261017200000_rls_phase3_default_function_privileges.sql) revokes that grant for every function `postgres` creates, and revokes a schema-scoped anon execute grant if one is added later. Every new function migration must `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon` and then `GRANT EXECUTE` only to the roles that need it. `supabase_admin` defaults are unchanged. Production already had a `public` schema default that still grants execute to `authenticated` and `service_role`. Test has no `public` schema function default, so a new function there is owner-only until a migration grants it.
 
 ## Function search_path
 
@@ -39,7 +39,7 @@ The schema-scoped default revoke in `20261017170000` does not remove the built-i
 
 ## Anonymous access this phase keeps
 
-The only anonymous table privilege on test is `SELECT` on the `admin_settings` login columns. That is the Phase 2 grant used by `/login`. The test-account code columns stay excluded. See [RLS_PHASE2_ANON_AUDIT.md](RLS_PHASE2_ANON_AUDIT.md).
+The only anonymous table privilege kept on test and production is `SELECT` on the `admin_settings` login columns. That is the Phase 2 grant used by `/login`. The test-account code columns stay excluded. See [RLS_PHASE2_ANON_AUDIT.md](RLS_PHASE2_ANON_AUDIT.md).
 
 Anon can execute these two `SECURITY DEFINER` functions. Both run on `/login` before a subscriber session exists.
 
