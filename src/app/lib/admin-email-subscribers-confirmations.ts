@@ -90,7 +90,7 @@ export function buildEmailSubscriberDeleteConfirmation(
     message,
     details: isAdmin
       ? 'This admin will be unsubscribed from emails but will retain admin access to the portal.'
-      : 'This action will permanently delete the subscriber record.',
+      : 'This permanently deletes the subscriber record and their sign-in.',
     confirmText: 'Delete',
     isDangerous: true,
   };

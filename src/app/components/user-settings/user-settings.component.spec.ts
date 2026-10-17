@@ -67,7 +67,8 @@ describe('UserSettingsComponent', () => {
             delete: vi.fn(() => ({
               eq: vi.fn(() => Promise.resolve({ data: null, error: null }))
             }))
-        }))
+        })),
+        rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
       }
     };
     wireGatedSupabaseMock(mockSupabaseService);
@@ -694,27 +695,24 @@ describe('UserSettingsComponent', () => {
       expect(component.showDeleteAccountVerification).toBe(true);
     });
 
-    it('deleteAccountKeepPrayers should delete only email_subscribers then call logout', async () => {
-      const eqMock = vi.fn(() => Promise.resolve({ data: null, error: null }));
-      const deleteMock = vi.fn(() => ({ eq: eqMock }));
-      mockSupabaseService.client.from.mockReturnValue({ delete: deleteMock });
-
+    it('deleteAccountKeepPrayers should delete the account in one call then logout', async () => {
       component.showDeleteAccountVerification = true;
       await component.deleteAccountKeepPrayers();
 
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('email_subscribers');
-      expect(deleteMock).toHaveBeenCalled();
-      expect(eqMock).toHaveBeenCalledWith('email', 'test@example.com');
+      expect(mockSupabaseService.client.rpc).toHaveBeenCalledWith(
+        'delete_own_subscriber_account',
+        { p_delete_prayers: false },
+      );
+      expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
       expect(mockAdminAuthService.logout).toHaveBeenCalled();
       expect(component.showDeleteAccountVerification).toBe(false);
       expect(component.deletingAccount).toBe(false);
     });
 
     it('deleteAccountKeepPrayers on delete failure should set error and not call logout', async () => {
-      mockSupabaseService.client.from.mockReturnValue({
-        delete: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ data: null, error: { message: 'DB error' } }))
-        }))
+      mockSupabaseService.client.rpc.mockResolvedValue({
+        data: null,
+        error: { message: 'sign-in delete failed' },
       });
       await component.deleteAccountKeepPrayers();
 
@@ -723,31 +721,23 @@ describe('UserSettingsComponent', () => {
       expect(component.showDeleteAccountVerification).toBe(false);
     });
 
-    it('deleteAccountAndPrayers should delete prayer_updates, prayers, personal_prayers, email_subscribers then logout', async () => {
-      const deleteEq = vi.fn(() => Promise.resolve({ data: null, error: null }));
-      const deleteChain = vi.fn(() => ({ eq: deleteEq }));
-      mockSupabaseService.client.from.mockReturnValue({ delete: deleteChain });
-
+    it('deleteAccountAndPrayers should delete prayers with the account in one call then logout', async () => {
       await component.deleteAccountAndPrayers();
 
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('prayer_updates');
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('prayers');
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('personal_prayers');
-      expect(mockSupabaseService.client.from).toHaveBeenCalledWith('email_subscribers');
-      expect(deleteEq).toHaveBeenCalledWith('author_email', 'test@example.com');
-      expect(deleteEq).toHaveBeenCalledWith('email', 'test@example.com');
-      expect(deleteEq).toHaveBeenCalledWith('user_email', 'test@example.com');
-      expect(deleteEq).toHaveBeenCalledWith('email', 'test@example.com');
+      expect(mockSupabaseService.client.rpc).toHaveBeenCalledWith(
+        'delete_own_subscriber_account',
+        { p_delete_prayers: true },
+      );
+      expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
       expect(mockAdminAuthService.logout).toHaveBeenCalled();
       expect(component.showDeleteAccountVerification).toBe(false);
       expect(component.deletingAccount).toBe(false);
     });
 
     it('deleteAccountAndPrayers on failure should set error and not call logout', async () => {
-      mockSupabaseService.client.from.mockReturnValue({
-        delete: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ data: null, error: { message: 'DB error' } }))
-        }))
+      mockSupabaseService.client.rpc.mockResolvedValue({
+        data: null,
+        error: { message: 'DB error' },
       });
       await component.deleteAccountAndPrayers();
 
@@ -762,6 +752,7 @@ describe('UserSettingsComponent', () => {
 
       expect(component.error).toBe('Could not determine your email. Please try again.');
       expect(mockSupabaseService.client.from).not.toHaveBeenCalled();
+      expect(mockSupabaseService.client.rpc).not.toHaveBeenCalled();
       expect(mockAdminAuthService.logout).not.toHaveBeenCalled();
     });
   });

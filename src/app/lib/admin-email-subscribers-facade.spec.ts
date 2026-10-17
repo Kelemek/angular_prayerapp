@@ -55,6 +55,7 @@ function createTestContext() {
 
   const client = {
     from: vi.fn().mockReturnValue(defaultTableMock),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   };
 
   const facade = new EmailSubscribersFacade({
@@ -414,6 +415,9 @@ describe('EmailSubscribersFacade', () => {
         isAdmin: false,
       });
 
+      expect(client.rpc).toHaveBeenCalledWith('admin_delete_email_subscriber', {
+        p_subscriber_id: '123',
+      });
       expect(mockToast.success).toHaveBeenCalled();
       expect(facade.allSubscribers).toHaveLength(0);
     });

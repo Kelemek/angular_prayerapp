@@ -59,7 +59,9 @@ export async function commandDeleteEmailSubscriber(
   client: SupabaseClient,
   id: string,
 ): Promise<void> {
-  const { error } = await client.from('email_subscribers').delete().eq('id', id);
+  const { error } = await client.rpc('admin_delete_email_subscriber', {
+    p_subscriber_id: id,
+  });
   if (error) {
     throw error;
   }

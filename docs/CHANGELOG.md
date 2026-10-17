@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Accounts — deleting a subscriber also deletes the sign-in
+- Admin removal of a non-admin subscriber calls `admin_delete_email_subscriber`. Settings **Delete your account** calls `delete_own_subscriber_account`. Both run in [`20261017220000_delete_subscriber_account.sql`](../supabase/migrations/20261017220000_delete_subscriber_account.sql), which deletes the subscriber row, optional prayers, and the one matching `auth.users` row in a single transaction. A linked sign-in that disagrees with the email match is left in place and the delete fails. An admin row in the subscriber list is still unsubscribed, not deleted. Applied on test `jcdhajfqtzipltvfslhu`. Production does not have this yet.
+
 ### Production — Phase 3 is live
 - On October 17, 2026, migrations `20261017140000` through `20261017200000` were applied to production [`eqiafsygvfaifhoaewxi`](https://eqiafsygvfaifhoaewxi.supabase.co) with `supabase db query --linked` and `supabase migration repair`. `supabase db push` was not used. Anon can execute only `has_pending_account_approval(text)` and the four-argument `create_account_approval_request` among `SECURITY DEFINER` functions. The four `is_admin` policies apply to signed-in users. Anonymous select on the `admin_settings` login columns stays (30 columns). Allow new users to sign up stays on. The web login change in `60c6526c` reaches https://cpprayer.cp-church.org when [`cp-church/angular_prayerapp`](https://github.com/cp-church/angular_prayerapp) `main` deploys. Notes below that say Phase 3 is test-only describe the earlier landing.
 

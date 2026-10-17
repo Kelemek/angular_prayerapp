@@ -831,9 +831,9 @@ Users can delete their account from the main site settings modal:
 
 - **Location**: Bottom of the settings panel (below the feedback section), "Delete your account" link.
 - **Verification dialog**: Opens with a warning that the action cannot be undone. Two options:
-  - **Delete account but keep my prayers** — Deletes only the user’s row in `email_subscribers`; their prayers and updates remain so they can still be lifted up. Then calls `adminAuthService.logout()`.
-  - **Delete my account and all my prayers** — Deletes in order: `prayer_updates` (author_email), `prayers` (email), `personal_prayers` (user_email; DB cascades to `personal_prayer_updates`), then `email_subscribers`. Then calls `adminAuthService.logout()`.
-- **Implementation**: `user-settings.component.ts` — `showDeleteAccountVerification`, `deletingAccount`, `closeDeleteAccountVerification()`, `deleteAccountKeepPrayers()`, `deleteAccountAndPrayers()`. On any delete failure, error is set and logout is not called.
+  - **Delete account but keep my prayers** — Calls `delete_own_subscriber_account(false)`. That removes the `email_subscribers` row and the one matching Supabase auth user. Prayers and updates stay. Then calls `adminAuthService.logout()`.
+  - **Delete my account and all my prayers** — Calls `delete_own_subscriber_account(true)`. The same transaction deletes `prayer_updates` (author email), `prayers` (email), and `personal_prayers` (user email; the database cascades to `personal_prayer_updates`), then the subscriber row and the auth user. Then calls `adminAuthService.logout()`.
+- **Implementation**: [`user-settings-account-run.ts`](../src/app/lib/user-settings-account-run.ts) and [`20261017220000_delete_subscriber_account.sql`](../supabase/migrations/20261017220000_delete_subscriber_account.sql). On any delete failure, the error is shown and logout is not called. Admin removal of a non-admin subscriber calls `admin_delete_email_subscriber` from [`commandDeleteEmailSubscriber`](../src/app/lib/admin-email-subscribers-commands.ts). An admin subscriber in that list is unsubscribed and keeps the auth user. `delete_subscriber_account` does the shared delete and is not granted to callers. If `auth_user_id` and the auth user for that email differ, the function raises and changes nothing.
 - **Help**: App Settings section in `help-content.service.ts` includes a "Delete your account" content item describing the two choices.
 
 #### Settings footer (account, admin, web build)
