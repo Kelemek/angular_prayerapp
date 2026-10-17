@@ -98,42 +98,6 @@
         </svg>
         <span>Refreshing prayers…</span>
       </div>
-      <app-home-modals-host
-        #modalsHost
-        [activeFilter]="shell.modals.activeFilter"
-        [showPrayerForm]="shell.modals.showPrayerForm"
-        [showSettings]="shell.modals.showSettings"
-        [settingsScrollToSectionId]="shell.modals.settingsScrollToSectionId"
-        [showHelp]="shell.modals.showHelp"
-        [showLogoutConfirmation]="shell.modals.showLogoutConfirmation"
-        [showEditPersonalPrayer]="shell.modals.showEditPersonalPrayer"
-        [editingPrayer]="shell.modals.editingPrayer"
-        [showRenamePersonalCategory]="shell.modals.showRenamePersonalCategory"
-        [renamingPersonalCategory]="shell.modals.renamingPersonalCategory"
-        [personalCategoryRenameDeferInputFocus]="shell.modals.personalCategoryRenameDeferInputFocus"
-        [isRenamingPersonalCategory]="shell.modals.isRenamingPersonalCategory"
-        [showEditPersonalUpdate]="shell.modals.showEditPersonalUpdate"
-        [editingUpdate]="shell.modals.editingUpdate"
-        [editingUpdatePrayerId]="shell.modals.editingUpdatePrayerId"
-        [showEditMemberUpdate]="shell.modals.showEditMemberUpdate"
-        [editingMemberUpdate]="shell.modals.editingMemberUpdate"
-        [editingMemberUpdatePrayerId]="shell.modals.editingMemberUpdatePrayerId"
-        [planningCenterListId]="shell.modals.planningCenterListId"
-        [showAddMemorizedVerse]="shell.modals.showAddMemorizedVerse"
-        [showAddMemorizedBibleBooks]="shell.modals.showAddMemorizedBibleBooks"
-        [showMemorizationRecommendations]="shell.modals.showMemorizationRecommendations"
-        [memorizationRecommendationGroups]="shell.modals.memorizationRecommendationGroups"
-        [memorizationRecommendationOwnedKeys]="shell.modals.memorizationRecommendationOwnedKeys"
-        [addingRecommendationId]="shell.modals.addingRecommendationId"
-        [memorizationRecommendationsLoading$]="shell.modals.memorizationRecommendationsLoading$"
-        [practiceMemorizedItem]="shell.modals.practiceMemorizedItem"
-        [showRemoveMemorizedConfirm]="shell.modals.showRemoveMemorizedConfirm"
-        [memorizedItemToRemove]="shell.modals.memorizedItemToRemove"
-        [showVerseMemorizationTranslationModal]="shell.modals.showVerseMemorizationTranslationModal"
-        [pendingVerseMemorizationReference]="shell.modals.pendingVerseMemorizationReference"
-        [pendingVerseMemorizationSuggestedTranslation]="shell.modals.pendingVerseMemorizationSuggestedTranslation"
-        [handlers]="shell.handlers.modals"
-      ></app-home-modals-host>
 
       <app-home-filter-tabs
         [activeFilter]="activeFilter"
@@ -310,6 +274,44 @@
       aria-hidden="true"
     ></footer>
   </div>
+
+  <!-- Outside .safe-area-viewport. CDK contain:strict on that scroller traps position:fixed. -->
+  <app-home-modals-host
+    #modalsHost
+    [activeFilter]="shell.modals.activeFilter"
+    [showPrayerForm]="shell.modals.showPrayerForm"
+    [showSettings]="shell.modals.showSettings"
+    [settingsScrollToSectionId]="shell.modals.settingsScrollToSectionId"
+    [showHelp]="shell.modals.showHelp"
+    [showLogoutConfirmation]="shell.modals.showLogoutConfirmation"
+    [showEditPersonalPrayer]="shell.modals.showEditPersonalPrayer"
+    [editingPrayer]="shell.modals.editingPrayer"
+    [showRenamePersonalCategory]="shell.modals.showRenamePersonalCategory"
+    [renamingPersonalCategory]="shell.modals.renamingPersonalCategory"
+    [personalCategoryRenameDeferInputFocus]="shell.modals.personalCategoryRenameDeferInputFocus"
+    [isRenamingPersonalCategory]="shell.modals.isRenamingPersonalCategory"
+    [showEditPersonalUpdate]="shell.modals.showEditPersonalUpdate"
+    [editingUpdate]="shell.modals.editingUpdate"
+    [editingUpdatePrayerId]="shell.modals.editingUpdatePrayerId"
+    [showEditMemberUpdate]="shell.modals.showEditMemberUpdate"
+    [editingMemberUpdate]="shell.modals.editingMemberUpdate"
+    [editingMemberUpdatePrayerId]="shell.modals.editingMemberUpdatePrayerId"
+    [planningCenterListId]="shell.modals.planningCenterListId"
+    [showAddMemorizedVerse]="shell.modals.showAddMemorizedVerse"
+    [showAddMemorizedBibleBooks]="shell.modals.showAddMemorizedBibleBooks"
+    [showMemorizationRecommendations]="shell.modals.showMemorizationRecommendations"
+    [memorizationRecommendationGroups]="shell.modals.memorizationRecommendationGroups"
+    [memorizationRecommendationOwnedKeys]="shell.modals.memorizationRecommendationOwnedKeys"
+    [addingRecommendationId]="shell.modals.addingRecommendationId"
+    [memorizationRecommendationsLoading$]="shell.modals.memorizationRecommendationsLoading$"
+    [practiceMemorizedItem]="shell.modals.practiceMemorizedItem"
+    [showRemoveMemorizedConfirm]="shell.modals.showRemoveMemorizedConfirm"
+    [memorizedItemToRemove]="shell.modals.memorizedItemToRemove"
+    [showVerseMemorizationTranslationModal]="shell.modals.showVerseMemorizationTranslationModal"
+    [pendingVerseMemorizationReference]="shell.modals.pendingVerseMemorizationReference"
+    [pendingVerseMemorizationSuggestedTranslation]="shell.modals.pendingVerseMemorizationSuggestedTranslation"
+    [handlers]="shell.handlers.modals"
+  ></app-home-modals-host>
 
   <app-scroll-to-top-button [scrollElement]="safeAreaViewport"></app-scroll-to-top-button>
 

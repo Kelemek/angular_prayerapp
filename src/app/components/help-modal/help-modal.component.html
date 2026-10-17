@@ -2,14 +2,14 @@
     @if (isOpen) {
     <!-- Modal Backdrop -->
     <div
-      class="fixed inset-0 bg-gray-900/50 z-40"
+      class="fixed inset-0 bg-gray-900/50 z-modal-overlay"
       (click)="onClose()"
       aria-hidden="true"
     ></div>
 
     <!-- Modal Container -->
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+      class="fixed inset-0 z-modal-overlay flex items-center justify-center p-4 pointer-events-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="help-modal-title"

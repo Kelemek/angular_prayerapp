@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Home — Help and Settings stay on screen while the list is scrolled
+- [`app-home-modals-host`](../src/app/pages/home/home.component.html) now sits outside `.safe-area-viewport`. That scroller has CDK `contain: strict`, which pins `position: fixed` to the list instead of the window. Help and Settings were opening at the top of the list. Request already stayed visible because its overlay is moved to `document.body`. The Help scrim and dialog use the modal overlay layer, so the back-to-top button does not sit on top of Help.
+
 ### Login — verification email uses the service role key
 - [`send-email`](../supabase/functions/send-email/access.ts) treats the configured service role key as the service role, including when that key is not a JWT. A logged-out caller who only presents the anon key is still refused. [`send-verification-code`](../supabase/functions/send-verification-code/index.ts) sends that key on the mail call and returns an error when the email does not send, so login no longer advances as if the message went out. Deployed on the test project `jcdhajfqtzipltvfslhu`. A login mail call there now returns success instead of HTTP 403. Production is unchanged.
 

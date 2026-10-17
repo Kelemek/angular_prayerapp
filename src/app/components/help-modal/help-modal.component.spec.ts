@@ -2540,4 +2540,27 @@ describe('HelpModalComponent - Settings modal chrome', () => {
     expect(html).toContain('settings-modal-section-card');
     expect(html).not.toContain('bg-inset-surface-interactive');
   });
+
+  it('stacks the scrim and dialog above the scroll-to-top button', () => {
+    const html = readHelpModalResource('./help-modal.component.html');
+    const styles = readHelpModalResource('../../../styles.css');
+    const overlayZ = Number(
+      styles.match(/--z-index-modal-overlay:\s*(\d+)/)?.[1]
+    );
+    const scrollButtonZ = Number(
+      styles.match(
+        /\.app-scroll-to-top-button\s*\{[^}]*z-index:\s*(\d+)/
+      )?.[1]
+    );
+    const backdrop = html.match(
+      /class="fixed inset-0 bg-gray-900\/50 [^"]+"/
+    )?.[0];
+    const dialog = html.match(
+      /class="fixed inset-0 [^"]+pointer-events-none"/
+    )?.[0];
+
+    expect(backdrop).toContain('z-modal-overlay');
+    expect(dialog).toContain('z-modal-overlay');
+    expect(overlayZ).toBeGreaterThan(scrollButtonZ);
+  });
 });
