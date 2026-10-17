@@ -57,7 +57,7 @@ supabase db push
 
 **RLS Phase 3:** Migrations `20261017140000` through `20261017200000` are applied on test `jcdhajfqtzipltvfslhu` and, as of October 17, 2026, on production `eqiafsygvfaifhoaewxi`. Details are in [`RLS_PHASE3.md`](RLS_PHASE3.md). Allow new users to sign up is still on for both projects. Leave production sign-up on until you turn that project off. Do not use `supabase db push`.
 
-**Account deletion:** [`20261017220000_delete_subscriber_account.sql`](../supabase/migrations/20261017220000_delete_subscriber_account.sql) removes the subscriber and the matching Supabase auth user in one transaction when an admin deletes a subscriber or someone deletes their own account in Settings. Applied on test `jcdhajfqtzipltvfslhu`. Production does not have it yet. Apply with `supabase db query --linked --project-ref <ref> -f supabase/migrations/20261017220000_delete_subscriber_account.sql`, then mark `20261017220000` applied. Do not use `supabase db push`.
+**Account deletion:** [`20261017220000_delete_subscriber_account.sql`](../supabase/migrations/20261017220000_delete_subscriber_account.sql) removes the subscriber and the matching Supabase auth user in one transaction when an admin deletes a subscriber or someone deletes their own account in Settings. Applied on test `jcdhajfqtzipltvfslhu` and, on October 17, 2026, on production `eqiafsygvfaifhoaewxi`. `20261017210000` was applied first and then removed by `20261017220000`. Do not use `supabase db push`.
 
 ### PWA Icons & Favicon
 
