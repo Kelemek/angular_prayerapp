@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Home — native bottom bar removed
+- The native Home blur strip (`.bottom-safe-bar`) is gone on iOS and Android. That strip was the band that drifted up over prayer cards while scrolling the Public list. The Home scroller now pads by `env(safe-area-inset-bottom)` only, with no 34px floor and no border. The header still owns the top inset. Web still has no bottom safe zone. The back-to-top button uses that same real inset on native and web ([`styles.css`](../src/styles.css), [`home.component.html`](../src/app/pages/home/home.component.html)).
+
 ### Accounts — deleting a subscriber also deletes the sign-in
 - Admin removal of a non-admin subscriber calls `admin_delete_email_subscriber`. Settings **Delete your account** calls `delete_own_subscriber_account`. Both run in [`20261017220000_delete_subscriber_account.sql`](../supabase/migrations/20261017220000_delete_subscriber_account.sql), which deletes the subscriber row, optional prayers, and the one matching `auth.users` row in a single transaction. A linked sign-in that disagrees with the email match is left in place and the delete fails. An admin row in the subscriber list is still unsubscribed, not deleted. Applied on test `jcdhajfqtzipltvfslhu` and, on October 17, 2026, on production `eqiafsygvfaifhoaewxi`. The website uses it after [`cp-church/angular_prayerapp`](https://github.com/cp-church/angular_prayerapp) `main` deploys.
 

@@ -21,7 +21,7 @@ export const HOME_FILTER_TAB_INACTIVE_CLASS = [
   HOME_FILTER_TAB_INACTIVE_BORDER_CLASS,
 ].join(" ");
 
-/** Church green medium edge on Home shell chrome (header bottom / native footer top). */
+/** Church green medium edge on Home header bottom and shared modal/toolbar borders. */
 export const HOME_SHELL_CHROME_BORDER_COLOR_CLASS =
   "border-[#2F5F54] dark:border-[#2F5F54]";
 
