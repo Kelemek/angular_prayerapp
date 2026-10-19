@@ -47,7 +47,9 @@ export interface UserSessionData {
   showPrayingCount?: boolean;
   /** Hours before Pray For is available again on the same personal prayer (1–168). */
   personalPrayerCooldownHours?: number;
-  defaultPrayerView?: 'current' | 'personal';
+  defaultPrayerView?: 'current' | 'personal' | 'groups';
+  /** False for a group-only subscriber. Missing means church member. */
+  isChurchMember?: boolean;
   /** When true, memorization practice does not auto-reveal blanks after 3 wrong attempts. */
   memorizationStrictMode?: boolean;
   /** Cached hourly self-reminder slots; undefined = never fetched this session. */
@@ -212,7 +214,7 @@ export class UserSessionService {
         client
           .from('email_subscribers')
           .select(
-            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode, client_preferences'
+            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode, client_preferences, is_church_member'
           )
           .eq('email', normalizedEmail)
           .maybeSingle(),
@@ -241,6 +243,7 @@ export class UserSessionService {
             data.personal_prayer_cooldown_hours
           ),
           defaultPrayerView: data.default_prayer_view || 'current',
+          isChurchMember: data.is_church_member !== false,
           memorizationStrictMode: data.memorization_strict_mode ?? false,
           ...(() => {
             const resolved = resolveClientPreferencesFromSubscriberRow(
@@ -407,7 +410,7 @@ export class UserSessionService {
   /**
    * Get user's default prayer view preference
    */
-  getDefaultPrayerView(): 'current' | 'personal' {
+  getDefaultPrayerView(): 'current' | 'personal' | 'groups' {
     const session = this.userSessionSubject.value;
     return session?.defaultPrayerView || 'current';
   }

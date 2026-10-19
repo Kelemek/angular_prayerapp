@@ -59,6 +59,7 @@ export function runUserSettingsOpenChange(
       host.personalPrayerCooldownHours =
         userSession.personalPrayerCooldownHours ?? 4;
       host.prayerEncouragementUiLoaded = true;
+      host.isChurchMember = userSession.isChurchMember !== false;
       host.defaultPrayerView = userSession.defaultPrayerView || 'current';
       host.defaultViewPreferencesLoaded = true;
       host.memorizationStrictMode = userSession.memorizationStrictMode ?? false;

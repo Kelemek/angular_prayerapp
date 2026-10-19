@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { ChangeDetectorRef, DestroyRef, SimpleChanges } from '@angular/core';
 import { PrayerFormComponent } from './prayer-form.component';
+import { PrayerGroupService } from '../../services/prayer-group.service';
 import { PrayerService } from '../../services/prayer.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { UserSessionService } from '../../services/user-session.service';
@@ -120,6 +121,12 @@ describe('PrayerFormComponent', () => {
       getRichTextEditorsEnabled$: () => of(true),
     } as unknown as RichTextEditorsSettingsService;
 
+    const mockPrayerGroupService = {
+      listGroups: vi.fn().mockResolvedValue([]),
+      addPrayer: vi.fn().mockResolvedValue(undefined),
+      preferredGroupId: null as string | null,
+    };
+
     component = new PrayerFormComponent(
       mockPrayerService,
       mockAdminAuthService,
@@ -129,7 +136,8 @@ describe('PrayerFormComponent', () => {
       mockPersonalCategoryColorService as any,
       mockChangeDetectorRef as ChangeDetectorRef,
       mockDestroyRef,
-      mockRichTextEditorsSettings
+      mockRichTextEditorsSettings,
+      mockPrayerGroupService as unknown as PrayerGroupService
     );
   });
 
@@ -171,29 +179,16 @@ describe('PrayerFormComponent', () => {
     });
 
     it('should use userSessionService for email when userSession is available', () => {
-      mockUserSessionService.userSession$.next({
+      mockUserSessionService.getCurrentSession.mockReturnValue({
         email: 'session@example.com',
         firstName: 'Jane',
         lastName: 'Smith',
         fullName: 'Jane Smith',
-        isActive: true
+        isActive: true,
       });
       component.ngOnInit();
       vi.runAllTimers();
       expect(component.currentUserEmail).toBe('session@example.com');
-    });
-
-    it('should handle error when loading user info', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockUserSessionService.userSession$ = {
-        subscribe: vi.fn(() => {
-          throw new Error('Subscription error');
-        })
-      } as any;
-      
-      component.ngOnInit();
-      vi.runAllTimers();
-      expect(consoleSpy).toHaveBeenCalled();
     });
   });
 
@@ -234,6 +229,32 @@ describe('PrayerFormComponent', () => {
       component.isOpen = true;
       component.ngOnChanges(isOpenToTrue);
       expect(component.formData.is_personal).toBe(false);
+    });
+
+    it('offers Group Prayer and selects the group from the Groups tab', async () => {
+      const groups = (
+        component as unknown as {
+          prayerGroupService: {
+            listGroups: ReturnType<typeof vi.fn>;
+            preferredGroupId: string | null;
+          };
+        }
+      ).prayerGroupService;
+      groups.listGroups.mockResolvedValue([
+        { id: 'g1', name: 'Family', role: 'owner', memberCount: 2 },
+      ]);
+      groups.preferredGroupId = 'g1';
+      component.defaultGroupPrayer = true;
+      component.isOpen = true;
+      await component.loadGroupsForForm();
+      expect(component.showGroupOption).toBe(true);
+      expect(component.visibility).toBe('group');
+      expect(component.selectedGroupId).toBe('g1');
+    });
+
+    it('hides Group Prayer when the person has no group', async () => {
+      await component.loadGroupsForForm();
+      expect(component.showGroupOption).toBe(false);
     });
   });
 

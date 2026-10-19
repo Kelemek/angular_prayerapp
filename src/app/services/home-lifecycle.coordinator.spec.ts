@@ -7,7 +7,8 @@ import type { HomeLifecycleHost } from "./home-lifecycle.coordinator";
 describe("HomeLifecycleCoordinator", () => {
   let coordinator: HomeLifecycleCoordinator;
   let host: HomeLifecycleHost;
-  let userSessionSubject: BehaviorSubject<{ email?: string; defaultPrayerView?: string } | null>;
+  let userSessionSubject: BehaviorSubject<{ email?: string; defaultPrayerView?: string; isChurchMember?: boolean } | null>;
+  let sessionInitializedSubject: BehaviorSubject<boolean>;
   let allPersonalPrayersSubject: BehaviorSubject<unknown[]>;
   let prayersSubject: BehaviorSubject<unknown[]>;
   let promptsSubject: BehaviorSubject<unknown[]>;
@@ -15,7 +16,8 @@ describe("HomeLifecycleCoordinator", () => {
 
   beforeEach(() => {
     coordinator = new HomeLifecycleCoordinator();
-    userSessionSubject = new BehaviorSubject<{ email?: string; defaultPrayerView?: string } | null>(null);
+    userSessionSubject = new BehaviorSubject<{ email?: string; defaultPrayerView?: string; isChurchMember?: boolean } | null>(null);
+    sessionInitializedSubject = new BehaviorSubject(false);
     allPersonalPrayersSubject = new BehaviorSubject<unknown[]>([]);
     prayersSubject = new BehaviorSubject<unknown[]>([]);
     promptsSubject = new BehaviorSubject<unknown[]>([]);
@@ -57,6 +59,7 @@ describe("HomeLifecycleCoordinator", () => {
       deepLinkCoordinator: {
         captureInitialQueryParams: vi.fn(),
         consumeInitialEmailFilterTab: vi.fn(() => null),
+        consumeInitialHomeAreaFilter: vi.fn(() => null),
         handleNavigationDeepLinks: vi.fn(),
         applyPendingDeepLinksOnViewReady: vi.fn(),
         retryPendingPrayerDeepLinkIfNeeded: vi.fn(),
@@ -80,6 +83,7 @@ describe("HomeLifecycleCoordinator", () => {
       } as any,
       userSessionService: {
         userSession$: userSessionSubject.asObservable(),
+        sessionInitialized$: sessionInitializedSubject.asObservable(),
       } as any,
       badgeService: {
         getBadgeCount$: vi.fn(() => of(0)),
@@ -109,6 +113,7 @@ describe("HomeLifecycleCoordinator", () => {
 
     expect(host.assignObservableStreams).toHaveBeenCalled();
 
+    sessionInitializedSubject.next(true);
     userSessionSubject.next({ defaultPrayerView: "personal" });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -137,6 +142,7 @@ describe("HomeLifecycleCoordinator", () => {
       deepLinkCoordinator: {
         captureInitialQueryParams: vi.fn(),
         consumeInitialEmailFilterTab: vi.fn(() => null),
+        consumeInitialHomeAreaFilter: vi.fn(() => null),
         handleNavigationDeepLinks: vi.fn(),
         applyPendingDeepLinksOnViewReady: vi.fn(),
         retryPendingPrayerDeepLinkIfNeeded: vi.fn(),
@@ -152,7 +158,10 @@ describe("HomeLifecycleCoordinator", () => {
       } as any,
       promptService: { prompts$: of([]), loadPrompts: vi.fn() } as any,
       adminAuthService: { isAdmin$: of(false), hasAdminEmail$: of(false) } as any,
-      userSessionService: { userSession$: userSessionSubject.asObservable() } as any,
+      userSessionService: {
+        userSession$: userSessionSubject.asObservable(),
+        sessionInitialized$: sessionInitializedSubject.asObservable(),
+      } as any,
       badgeService: {
         getBadgeCount$: vi.fn(() => of(0)),
         refreshBadgeCounts: vi.fn(),
@@ -165,12 +174,41 @@ describe("HomeLifecycleCoordinator", () => {
     });
 
     coordinator.initialize(destroy$);
+    sessionInitializedSubject.next(true);
     userSessionSubject.next({ email: "user@example.com" });
     userSessionSubject.next(null);
     userSessionSubject.next({ email: "user@example.com" });
 
     expect(planningCenter.loadForUser).toHaveBeenCalledTimes(2);
     expect(planningCenter.loadForUser).toHaveBeenCalledWith("user@example.com");
+
+    destroy$.next();
+    destroy$.complete();
+  });
+
+  it("redirects to groups when session loads group-only after a stale cache", async () => {
+    const destroy$ = new Subject<void>();
+    vi.mocked(host.getViewReady).mockReturnValue(true);
+    coordinator.initialize(destroy$);
+    sessionInitializedSubject.next(true);
+    userSessionSubject.next({
+      email: "group@example.com",
+      defaultPrayerView: "current",
+      isChurchMember: true,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    vi.mocked(host.setFilter).mockClear();
+    vi.mocked(host.setActiveFilter).mockClear();
+
+    userSessionSubject.next({
+      email: "group@example.com",
+      defaultPrayerView: "current",
+      isChurchMember: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(host.setActiveFilter).toHaveBeenCalledWith("groups");
+    expect(host.setFilter).toHaveBeenCalledWith("groups");
 
     destroy$.next();
     destroy$.complete();
@@ -188,6 +226,29 @@ describe("HomeLifecycleCoordinator", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(host.syncPersonalCategoriesFromPrayers).toHaveBeenCalledWith([]);
+
+    destroy$.next();
+    destroy$.complete();
+  });
+
+  it("redirects group-only users to groups after presentation return context", async () => {
+    const destroy$ = new Subject<void>();
+    vi.mocked(host.getPendingHomeReturnContext).mockReturnValue({
+      activeFilter: "current",
+    });
+    vi.mocked(host.getActiveFilter).mockReturnValue("current");
+
+    coordinator.initialize(destroy$);
+    sessionInitializedSubject.next(true);
+    userSessionSubject.next({
+      email: "group@example.com",
+      isChurchMember: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(host.applyHomeReturnContext).toHaveBeenCalled();
+    expect(host.setActiveFilter).toHaveBeenCalledWith("groups");
+    expect(host.setFilter).toHaveBeenCalledWith("groups");
 
     destroy$.next();
     destroy$.complete();

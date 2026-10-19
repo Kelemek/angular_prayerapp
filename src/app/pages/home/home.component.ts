@@ -53,10 +53,13 @@ import { HomeRefreshCoordinator } from "../../services/home-refresh.coordinator"
 import { PresentationHomeHandoffCoordinator } from "../../services/presentation-home-handoff.coordinator";
 import { HomeAdminNavigationController } from "../../services/home-admin-navigation.controller";
 import { HomePrayerCardActionsController } from "../../services/home-prayer-card-actions.controller";
+import { PrayerGroupService } from "../../services/prayer-group.service";
 import { HomePresentationNavigationController } from "../../services/home-presentation-navigation.controller";
 import { HomeHeaderComponent } from "../../components/home-header/home-header.component";
 import { HomeModalsHostComponent } from "../../components/home-modals-host/home-modals-host.component";
 import { HomeFilterTabsComponent } from "../../components/home-filter-tabs/home-filter-tabs.component";
+import { HomeGroupsPanelComponent } from "../../components/home-groups-panel/home-groups-panel.component";
+import { groupMemberNeedsProfile } from "../../lib/group-member-needs-profile";
 import { HomePromptTypeFiltersComponent } from "../../components/home-prompt-type-filters/home-prompt-type-filters.component";
 import { HomePersonalCategoryFiltersComponent } from "../../components/home-personal-category-filters/home-personal-category-filters.component";
 import { HomePublicStatusFiltersComponent } from "../../components/home-public-status-filters/home-public-status-filters.component";
@@ -90,6 +93,7 @@ import {
     HomeHeaderComponent,
     HomeModalsHostComponent,
     HomeFilterTabsComponent,
+    HomeGroupsPanelComponent,
     HomePromptTypeFiltersComponent,
     HomePersonalCategoryFiltersComponent,
     HomePublicStatusFiltersComponent,
@@ -162,6 +166,7 @@ export class HomeComponent
   readonly isPublicTabFilter = isPublicTabFilter;
   readonly isPublicAreaFilter = isPublicAreaFilter;
   readonly isCommunityPrayerFilter = isCommunityPrayerFilter;
+  readonly groupMemberNeedsProfile = groupMemberNeedsProfile;
 
   personalCategoryPickerPrayerId: string | null = null;
 
@@ -203,6 +208,7 @@ export class HomeComponent
     private personalCategoryColorService: PersonalCategoryColorService,
     readonly prayerCardActions: PrayerCardActionsFacade,
     readonly prayerAllowancePolicy: PrayerAllowancePolicyService,
+    private readonly prayerGroupService: PrayerGroupService,
     private readonly deepLinkCoordinator: HomeDeepLinkCoordinator,
     readonly helpTour: HomeHelpTourLauncher,
     readonly catalog: HomeCatalogStore,
@@ -244,6 +250,7 @@ export class HomeComponent
       analyticsService: this.analyticsService,
       prayerCardActions: this.prayerCardActions,
       prayerAllowancePolicy: this.prayerAllowancePolicy,
+      prayerGroupService: this.prayerGroupService,
       deepLinkCoordinator: this.deepLinkCoordinator,
       helpTourLauncher: this.helpTour,
       catalog: this.catalog,

@@ -2210,6 +2210,32 @@ describe('PrayerCardComponent', () => {
         expect(component.personalAnsweredStatusModalMode).toBe('unmark');
       });
 
+      it('onPersonalAnsweredClick opens unmark modal for group without applying yet', () => {
+        component.isPersonal = true;
+        component.groupName = 'Family';
+        component.prayer = {
+          id: 'gp-1',
+          status: 'answered',
+        } as any;
+
+        component.onPersonalAnsweredClick();
+
+        expect(component.personalAnsweredStatusModalMode).toBe('unmark');
+      });
+
+      it('onConfirmPersonalUnanswered emits groupAnsweredChange for group prayers', () => {
+        component.groupName = 'Family';
+        component.prayer = { id: 'gp-1', status: 'answered' } as any;
+
+        const emitted: boolean[] = [];
+        component.groupAnsweredChange.subscribe((answered) => emitted.push(answered));
+
+        component.onConfirmPersonalUnanswered(null);
+
+        expect(emitted).toEqual([false]);
+        expect(component.personalAnsweredStatusModalMode).toBeNull();
+      });
+
       it('onConfirmPersonalUnanswered applies selected category', async () => {
         component.isPersonal = true;
         component.prayer = {

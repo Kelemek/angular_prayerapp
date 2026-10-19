@@ -33,6 +33,24 @@ describe('PersonalPrayerAnsweredStatusModalComponent', () => {
     expect(confirmMark).toHaveBeenCalledTimes(1);
   });
 
+  it('does not load categories for group unmark', async () => {
+    component.mode = 'unmark';
+    component.scope = 'group';
+    component.isOpen = true;
+    component.ngOnChanges({
+      isOpen: {
+        currentValue: true,
+        previousValue: false,
+        firstChange: false,
+        isFirstChange: () => false,
+      },
+    });
+
+    await Promise.resolve();
+
+    expect(prayerService.getUniqueCategoriesForUser).not.toHaveBeenCalled();
+  });
+
   it('loads categories excluding Answered in unmark mode', async () => {
     component.mode = 'unmark';
     component.isOpen = true;

@@ -19,10 +19,12 @@ export type HomeActiveFilter =
   | "prompts"
   | "personal"
   | "memorize"
-  | "planning_center_list";
+  | "planning_center_list"
+  | "groups";
 
 export type HomeDeepLinkQueryParamKey =
   | "filter"
+  | "groupId"
   | "prayerId"
   | "promptId"
   | "verseRef"
@@ -65,6 +67,7 @@ export interface HomeDeepLinkHost {
   scrollPromptIntoView(promptId: string): boolean;
   /** Scroll the Public community virtual list toward `prayerId` (returns false if not on a community tab). */
   scrollPrayerIntoView(prayerId: string): boolean;
+  notifyGroupDeepLinkPending?(): void;
 }
 
 export interface HomeDeepLinkHostDependencies {
@@ -87,6 +90,7 @@ export interface HomeDeepLinkHostDependencies {
   applyPendingVerseMemorizationDeepLink: () => void;
   scrollPromptIntoView: (promptId: string) => boolean;
   scrollPrayerIntoView: (prayerId: string) => boolean;
+  notifyGroupDeepLinkPending: () => void;
 }
 
 export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
@@ -245,6 +249,10 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
 
   scrollPrayerIntoView(prayerId: string): boolean {
     return this.deps.scrollPrayerIntoView(prayerId);
+  }
+
+  notifyGroupDeepLinkPending(): void {
+    this.deps.notifyGroupDeepLinkPending();
   }
 
   private applyPersonalFilterForDeepLink(prayerId?: string): boolean {

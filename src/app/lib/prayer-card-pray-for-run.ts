@@ -5,6 +5,7 @@ export interface PrayerCardPrayForRunInput {
   prayerId: string;
   isMember: boolean;
   isPersonal: boolean;
+  isGroupPrayer: boolean;
   usePersonalCooldown: boolean;
 }
 
@@ -21,7 +22,8 @@ export async function runPrayerCardPrayFor(
   deps: PrayerCardPrayForRunDeps,
   input: PrayerCardPrayForRunInput
 ): Promise<number | null> {
-  const { prayerId, isMember, isPersonal, usePersonalCooldown } = input;
+  const { prayerId, isMember, isPersonal, isGroupPrayer, usePersonalCooldown } =
+    input;
 
   if (
     !deps.prayerEncouragementService.canPrayFor(prayerId, usePersonalCooldown)
@@ -35,6 +37,8 @@ export async function runPrayerCardPrayFor(
   if (isMember) {
     const personId = prayerId.substring('pc-member-'.length);
     newCount = await deps.prayerService.incrementMemberPrayedFor(personId);
+  } else if (isGroupPrayer) {
+    newCount = await deps.prayerService.incrementGroupPrayerPrayedFor(prayerId);
   } else if (isPersonal) {
     newCount = await deps.prayerService.incrementPersonalPrayedFor(prayerId);
   } else {

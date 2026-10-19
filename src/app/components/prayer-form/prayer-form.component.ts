@@ -42,11 +42,26 @@ import {
   EMPTY_PRAYER_FORM_FIELDS,
   submitPrayerFormRequest,
 } from "../../lib/prayer-form-submit";
+import {
+  PrayerGroupService,
+  type PrayerGroupSummary,
+} from "../../services/prayer-group.service";
+import {
+  AdminFilterSelectComponent,
+  type AdminFilterSelectOption,
+} from "../admin-filter-select/admin-filter-select.component";
 
 @Component({
   selector: "app-prayer-form",
   standalone: true,
-  imports: [FormsModule, NgClass, RichTextEditorComponent, ModalShellComponent, PersonalCategoryColorPickerComponent],
+  imports: [
+    FormsModule,
+    NgClass,
+    RichTextEditorComponent,
+    ModalShellComponent,
+    PersonalCategoryColorPickerComponent,
+    AdminFilterSelectComponent,
+  ],
   templateUrl: "./prayer-form.component.html",
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [],
@@ -57,7 +72,16 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   @Input() isOpen = false;
   /** When true and the modal opens, default to Personal Prayer (matches Request while Personal filter is active). */
   @Input() defaultPersonalPrayer = false;
+  /** When true and the modal opens, default to Group Prayer if the person has a group. */
+  @Input() defaultGroupPrayer = false;
   @Output() close = new EventEmitter<{ isPersonal?: boolean }>();
+
+  visibility: "public" | "group" | "personal" = "public";
+  private userPickedVisibility = false;
+  private groupLoadToken = 0;
+  groupChoices: PrayerGroupSummary[] = [];
+  selectedGroupId: string | null = null;
+  isChurchMember = true;
 
   formData: {
     title: string;
@@ -98,7 +122,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     private personalCategoryColorService: PersonalCategoryColorService,
     private cdr: ChangeDetectorRef,
     private destroyRef: DestroyRef,
-    richTextEditorsSettings: RichTextEditorsSettingsService
+    richTextEditorsSettings: RichTextEditorsSettingsService,
+    private prayerGroupService: PrayerGroupService
   ) {
     richTextEditorsSettings
       .getRichTextEditorsEnabled$()
@@ -123,7 +148,10 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes["isOpen"]?.currentValue === true) {
-      this.formData.is_personal = this.defaultPersonalPrayer;
+      this.userPickedVisibility = false;
+      this.syncSessionFlags();
+      this.applyDefaultVisibility();
+      void this.loadGroupsForForm();
     }
     if (this.isOpen) {
       this.loadUserInfo();
@@ -135,17 +163,18 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     }
   }
 
-  private loadUserInfo(): void {
-    try {
-      // Get current user's email from UserSessionService (cached from database)
-      this.userSessionService.userSession$.subscribe((session) => {
-        if (session?.email) {
-          this.currentUserEmail = session.email;
-        }
-      });
-    } catch (error) {
-      console.error("Error loading user info:", error);
+  private syncSessionFlags(): void {
+    const session = this.userSessionService.getCurrentSession();
+    if (session?.email) {
+      this.currentUserEmail = session.email;
     }
+    if (session) {
+      this.isChurchMember = session.isChurchMember !== false;
+    }
+  }
+
+  private loadUserInfo(): void {
+    this.syncSessionFlags();
   }
 
   private saveUserInfo(): void {
@@ -158,12 +187,111 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     return `${firstName} ${lastName}`.trim();
   }
 
+  get showChurchOption(): boolean {
+    return this.isChurchMember;
+  }
+
+  get groupSelectOptions(): AdminFilterSelectOption[] {
+    return this.groupChoices.map((group) => ({
+      value: group.id,
+      label: group.name,
+    }));
+  }
+
+  onGroupIdChange(groupId: string): void {
+    this.selectedGroupId = groupId;
+  }
+
+  get showGroupOption(): boolean {
+    return this.groupChoices.length > 0;
+  }
+
+  get visibilityGridClass(): string {
+    const count =
+      (this.showChurchOption ? 1 : 0) + (this.showGroupOption ? 1 : 0) + 1;
+    return count >= 3 ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3";
+  }
+
+  pickVisibility(visibility: "public" | "group" | "personal"): void {
+    this.userPickedVisibility = true;
+    this.setVisibility(visibility);
+  }
+
+  setVisibility(visibility: "public" | "group" | "personal"): void {
+    this.visibility = visibility;
+    this.formData.is_personal = visibility === "personal";
+    if (visibility === "group" && !this.selectedGroupId) {
+      this.selectedGroupId = this.defaultGroupId();
+    }
+    if (visibility !== "public") {
+      this.formData.is_anonymous = false;
+    }
+  }
+
+  async loadGroupsForForm(): Promise<void> {
+    const token = ++this.groupLoadToken;
+    let choices: PrayerGroupSummary[] = [];
+    try {
+      choices = await this.prayerGroupService.listGroups();
+    } catch {
+      choices = [];
+    }
+    if (token !== this.groupLoadToken) return;
+    this.groupChoices = choices;
+    if (
+      this.isOpen &&
+      this.defaultGroupPrayer &&
+      this.showGroupOption &&
+      !this.userPickedVisibility
+    ) {
+      this.setVisibility("group");
+    } else if (this.visibility === "group" && !this.showGroupOption) {
+      this.applyDefaultVisibility();
+    } else if (this.visibility === "group") {
+      this.selectedGroupId = this.selectedGroupId ?? this.defaultGroupId();
+    } else if (this.isOpen && !this.userPickedVisibility) {
+      this.applyDefaultVisibility();
+    }
+    this.cdr.markForCheck();
+  }
+
+  private defaultGroupId(): string | null {
+    const preferred = this.prayerGroupService.preferredGroupId;
+    if (preferred && this.groupChoices.some((group) => group.id === preferred)) {
+      return preferred;
+    }
+    return this.groupChoices[0]?.id ?? null;
+  }
+
+  private applyDefaultVisibility(): void {
+    if (this.defaultPersonalPrayer) {
+      this.setVisibility("personal");
+      return;
+    }
+    if (this.defaultGroupPrayer && this.showGroupOption) {
+      this.setVisibility("group");
+      return;
+    }
+    if (this.showChurchOption) {
+      this.setVisibility("public");
+      return;
+    }
+    if (this.showGroupOption) {
+      this.setVisibility("group");
+      return;
+    }
+    this.setVisibility("personal");
+  }
+
   isFormValid(): boolean {
-    return !!(
+    const filled = !!(
       this.currentUserEmail.trim() &&
       this.formData.prayer_for.trim() &&
       this.formData.description.trim()
     );
+    if (!filled) return false;
+    if (this.visibility === "group") return !!this.selectedGroupId;
+    return true;
   }
 
   onCategoryInput(event: Event): void {
@@ -247,6 +375,11 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       const userSession = this.userSessionService.getCurrentSession();
       const fullName = userSession?.fullName || this.getCurrentUserName();
 
+      if (this.visibility === "group") {
+        await this.submitGroupPrayer(fullName);
+        return;
+      }
+
       const prayerData = buildPrayerFormSubmitPayload(
         this.formData,
         this.currentUserEmail,
@@ -259,6 +392,37 @@ export class PrayerFormComponent implements OnInit, OnChanges {
       this.isSubmitting = false;
       this.cdr.markForCheck();
       this.toast.error("Failed to submit prayer request. Please try again.");
+    }
+  }
+
+  private async submitGroupPrayer(fullName: string): Promise<void> {
+    const groupId = this.selectedGroupId;
+    if (!groupId) return;
+    try {
+      await this.prayerGroupService.addPrayer({
+        groupId,
+        title: `Prayer for ${this.formData.prayer_for.trim()}`,
+        prayerFor: this.formData.prayer_for.trim(),
+        description: this.formData.description,
+        requester: fullName || "Group member",
+        email: this.currentUserEmail,
+      });
+      this.showSuccessMessage = true;
+      this.cdr.markForCheck();
+      this.close.emit({ isPersonal: false });
+      this.formData = { ...EMPTY_PRAYER_FORM_FIELDS };
+      this.visibility = "public";
+      this.selectedGroupId = null;
+      setTimeout(() => {
+        this.showSuccessMessage = false;
+        this.cdr.markForCheck();
+      }, 5000);
+    } catch (error) {
+      console.error("Failed to add group prayer:", error);
+      this.toast.error("Failed to submit prayer request. Please try again.");
+    } finally {
+      this.isSubmitting = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -315,7 +479,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   /** Hands-on tour — selects Personal visibility (shows category field). */
   ensureWalkthroughPersonalSelected(): void {
-    this.formData.is_personal = true;
+    this.setVisibility("personal");
     this.cdr.markForCheck();
   }
 
@@ -361,6 +525,8 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     this.showCategoryDropdown = false;
     this.categoryColor = '#2563EB';
     this.categoryColorDirty = false;
+    this.visibility = "public";
+    this.selectedGroupId = null;
     this.close.emit();
   }
 

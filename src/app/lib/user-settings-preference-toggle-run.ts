@@ -382,14 +382,34 @@ export async function runUserSettingsPersonalPrayerCooldownSave(
   }
 }
 
+function defaultPrayerViewSuccessLabel(view: 'current' | 'personal' | 'groups'): string {
+  switch (view) {
+    case 'current':
+      return 'Church';
+    case 'personal':
+      return 'Personal';
+    case 'groups':
+      return 'Group';
+    default: {
+      const _exhaustive: never = view;
+      return _exhaustive;
+    }
+  }
+}
+
 export async function runUserSettingsDefaultViewChange(
   host: UserSettingsFacade,
-  newView: 'current' | 'personal',
+  newView: 'current' | 'personal' | 'groups',
 ): Promise<void> {
   const email = requireUserSettingsEmail(host);
   if (!email) {
     return;
   }
+
+  const previousView =
+    host.defaultPrayerViewBeforeSave ??
+    (host.defaultPrayerView !== newView ? host.defaultPrayerView : null) ??
+    'current';
 
   host.defaultPrayerView = newView;
   host.savingDefaultView = true;
@@ -404,9 +424,7 @@ export async function runUserSettingsDefaultViewChange(
       { default_prayer_view: newView },
     );
 
-    const defaultViewMessage = `✅ Default view set to ${
-      newView === 'current' ? 'Current Prayers' : 'Personal Prayers'
-    }`;
+    const defaultViewMessage = `✅ Default view set to ${defaultPrayerViewSuccessLabel(newView)}`;
 
     await host.deps.userSessionService.updateUserSession({
       defaultPrayerView: newView,
@@ -422,8 +440,7 @@ export async function runUserSettingsDefaultViewChange(
       err instanceof Error
         ? err.message
         : 'Failed to update default view preference';
-    host.defaultPrayerView =
-      host.defaultPrayerView === 'current' ? 'personal' : 'current';
+    host.defaultPrayerView = previousView;
     host.savingDefaultView = false;
     host.markForCheck();
   }

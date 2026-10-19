@@ -3,6 +3,7 @@ import type { LoginPageBindings } from "./login-page-bindings";
 import { LoginAuthCoordinator } from "./login-auth.coordinator";
 import { LoginMfaCoordinator } from "./login-mfa.coordinator";
 import { LoginLifecycleCoordinator } from "./login-lifecycle.coordinator";
+import { PrayerGroupService } from "./prayer-group.service";
 import {
   createLoginPageShell,
   type LoginPageShell,
@@ -40,6 +41,7 @@ export function createLoginCoordinators(deps: {
   emailNotificationService: ConstructorParameters<typeof LoginAuthCoordinator>[1];
   userSessionService: ConstructorParameters<typeof LoginAuthCoordinator>[3];
   planningCenterRest?: ConstructorParameters<typeof LoginAuthCoordinator>[4];
+  prayerGroupService?: ConstructorParameters<typeof LoginAuthCoordinator>[5];
   brandingService: ConstructorParameters<typeof LoginLifecycleCoordinator>[0];
   router: Router;
   route: ActivatedRoute;
@@ -51,7 +53,10 @@ export function createLoginCoordinators(deps: {
     deps.userSessionService,
     (deps.planningCenterRest ?? {
       lookupPersonByEmail: async () => ({ count: 0, people: [] }),
-    }) as ConstructorParameters<typeof LoginAuthCoordinator>[4]
+    }) as ConstructorParameters<typeof LoginAuthCoordinator>[4],
+    (deps.prayerGroupService ?? {
+      completeMemberProfile: async () => undefined,
+    }) as ConstructorParameters<typeof LoginAuthCoordinator>[5]
   );
   const mfa = new LoginMfaCoordinator(
     deps.adminAuthService,

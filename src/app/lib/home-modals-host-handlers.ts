@@ -16,6 +16,7 @@ export interface HomeModalsHostHandlers {
   startFullGuidedTour(sections: HelpSection[]): void;
   handleLogout(): void;
   cancelLogout(): void;
+  onGroupProfileCompleted(): void;
   closeEditPersonalPrayer(): void;
   onPersonalPrayerSaved(): void;
   closeRenamePersonalCategory(): void;

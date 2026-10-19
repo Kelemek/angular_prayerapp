@@ -15,6 +15,7 @@ import { PrayerService } from '../../services/prayer.service';
 import { ModalShellComponent } from '../modal-shell/modal-shell.component';
 
 export type PersonalPrayerAnsweredStatusMode = 'mark' | 'unmark';
+export type PrayerAnsweredStatusModalScope = 'personal' | 'group';
 
 @Component({
   selector: 'app-personal-prayer-answered-status-modal',
@@ -32,9 +33,21 @@ export type PersonalPrayerAnsweredStatusMode = 'mark' | 'unmark';
     >
       <div class="space-y-4 p-6">
         @if (mode === 'mark') {
+        @if (scope === 'group') {
+        <p class="text-sm text-gray-600 dark:text-gray-300">
+          Mark this group prayer as answered? It stays in the group and appears under the
+          <strong>Answered</strong> filter.
+        </p>
+        } @else {
         <p class="text-sm text-gray-600 dark:text-gray-300">
           Move this prayer to the <strong>Answered</strong> category? You can tap the
           checkmark again later to move it back and choose a different category.
+        </p>
+        }
+        } @else if (scope === 'group') {
+        <p class="text-sm text-gray-600 dark:text-gray-300">
+          Mark this prayer as unanswered? It will move back to <strong>Current</strong> and
+          stay in the group.
         </p>
         } @else {
         <p class="text-sm text-gray-600 dark:text-gray-300">
@@ -100,7 +113,13 @@ export type PersonalPrayerAnsweredStatusMode = 'mark' | 'unmark';
             [disabled]="!canConfirm"
             class="btn-chip btn-chip-blue cursor-pointer rounded-md px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {{ mode === 'mark' ? 'Mark as answered' : 'Move out of Answered' }}
+            {{
+              mode === 'mark'
+                ? 'Mark as answered'
+                : scope === 'group'
+                  ? 'Mark as unanswered'
+                  : 'Move out of Answered'
+            }}
           </button>
         </div>
       </div>
@@ -111,6 +130,7 @@ export type PersonalPrayerAnsweredStatusMode = 'mark' | 'unmark';
 export class PersonalPrayerAnsweredStatusModalComponent implements OnChanges {
   @Input() isOpen = false;
   @Input() mode: PersonalPrayerAnsweredStatusMode = 'mark';
+  @Input() scope: PrayerAnsweredStatusModalScope = 'personal';
 
   @Output() close = new EventEmitter<void>();
   @Output() confirmMark = new EventEmitter<void>();
@@ -129,7 +149,7 @@ export class PersonalPrayerAnsweredStatusModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue || changes['mode']?.currentValue) {
-      if (this.isOpen && this.mode === 'unmark') {
+      if (this.isOpen && this.mode === 'unmark' && this.scope === 'personal') {
         this.resetCategoryState();
         void this.loadAvailableCategories();
       }
@@ -137,7 +157,7 @@ export class PersonalPrayerAnsweredStatusModalComponent implements OnChanges {
   }
 
   get canConfirm(): boolean {
-    if (this.mode === 'mark') {
+    if (this.mode === 'mark' || this.scope === 'group') {
       return true;
     }
     return this.category.trim().toLowerCase() !== 'answered';

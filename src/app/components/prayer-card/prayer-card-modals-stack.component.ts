@@ -11,7 +11,10 @@ import {
 } from '@angular/core';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
 import { PersonalPrayerAnsweredStatusModalComponent } from '../personal-prayer-answered-status-modal/personal-prayer-answered-status-modal.component';
-import type { PersonalPrayerAnsweredStatusMode } from '../personal-prayer-answered-status-modal/personal-prayer-answered-status-modal.component';
+import type {
+  PersonalPrayerAnsweredStatusMode,
+  PrayerAnsweredStatusModalScope,
+} from '../personal-prayer-answered-status-modal/personal-prayer-answered-status-modal.component';
 import { PrayerAddUpdateModalComponent } from '../prayer-add-update-modal/prayer-add-update-modal.component';
 import type { PrayerAddUpdatePayload } from '../prayer-add-update-modal/prayer-add-update-modal.component';
 import { PrayerDeleteRequestModalComponent } from '../prayer-delete-request-modal/prayer-delete-request-modal.component';
@@ -64,6 +67,8 @@ export class PrayerCardModalsStackComponent implements OnChanges, OnDestroy {
   @Input() updateConfirmationMessage = '';
   @Input() personalAnsweredStatusModalMode: PersonalPrayerAnsweredStatusMode | null =
     null;
+  @Input() personalAnsweredStatusModalScope: PrayerAnsweredStatusModalScope =
+    'personal';
   @Input() showReminderModal = false;
   @Input({ required: true }) reminderSessionEmail!: string;
   @Input({ required: true }) prayerItemKind!: PrayerItemReminderKind;

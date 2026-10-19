@@ -8,6 +8,7 @@ import { CacheService } from './cache.service';
 import { PlanningCenterListService } from './planning-center-list.service';
 import { PushNotificationService } from './push-notification.service';
 import { PrayerEncouragementService } from './prayer-encouragement.service';
+import { PrayerGroupService } from './prayer-group.service';
 import { BadgeReadStateService } from './badge-read-state.service';
 import {
   BADGE_READ_PRAYERS_DATA_KEY,
@@ -1151,6 +1152,11 @@ export class AdminAuthService {
     try {
       const prayerEncouragement = this.injector.get(PrayerEncouragementService);
       prayerEncouragement.clearCooldownKeys();
+    } catch {
+      // Ignore if service not available
+    }
+    try {
+      this.injector.get(PrayerGroupService).resetSessionState();
     } catch {
       // Ignore if service not available
     }

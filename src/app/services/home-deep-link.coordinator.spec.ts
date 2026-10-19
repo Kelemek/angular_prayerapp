@@ -26,6 +26,7 @@ describe("HomeDeepLinkCoordinator", () => {
       applyPendingVerseMemorizationDeepLink: vi.fn(),
       scrollPromptIntoView: vi.fn(() => true),
       scrollPrayerIntoView: vi.fn(() => true),
+      notifyGroupDeepLinkPending: vi.fn(),
     };
     coordinator.bindHost(host);
   });
@@ -47,6 +48,64 @@ describe("HomeDeepLinkCoordinator", () => {
     });
 
     expect(coordinator.consumeInitialEmailFilterTab()).toBe("archived");
+  });
+
+  it("captures groups area filter from query param", () => {
+    coordinator.captureInitialQueryParams({ filter: "groups" });
+
+    expect(coordinator.consumeInitialHomeAreaFilter()).toBe("groups");
+    expect(coordinator.consumeInitialEmailFilterTab()).toBeNull();
+  });
+
+  it("opens groups tab when view is ready", () => {
+    coordinator.handleNavigationDeepLinks(
+      { filter: "groups", prayerId: null, promptId: null },
+      true
+    );
+
+    expect(host.setFilter).toHaveBeenCalledWith("groups");
+    expect(host.stripQueryParam).toHaveBeenCalledWith("filter");
+  });
+
+  it("captures groupId and defaults to the groups tab", () => {
+    coordinator.captureInitialQueryParams({
+      groupId: "g-abc",
+    });
+
+    expect(coordinator.consumePendingGroupId()).toBe("g-abc");
+    expect(coordinator.consumeInitialHomeAreaFilter()).toBe("groups");
+  });
+
+  it("peekPendingGroupId does not clear the pending id", () => {
+    coordinator.captureInitialQueryParams({ groupId: "g-peek" });
+    expect(coordinator.peekPendingGroupId()).toBe("g-peek");
+    expect(coordinator.consumePendingGroupId()).toBe("g-peek");
+    expect(coordinator.peekPendingGroupId()).toBeNull();
+  });
+
+  it("queues groupId when navigating after view is ready", () => {
+    vi.mocked(host.getActiveFilter).mockReturnValue("current");
+    coordinator.handleNavigationDeepLinks(
+      { groupId: "g-abc", prayerId: null, promptId: null },
+      true
+    );
+
+    expect(host.setFilter).toHaveBeenCalledWith("groups");
+    expect(coordinator.consumePendingGroupId()).toBe("g-abc");
+    expect(host.stripQueryParam).toHaveBeenCalledWith("groupId");
+    expect(host.notifyGroupDeepLinkPending).not.toHaveBeenCalled();
+  });
+
+  it("notifies the groups panel when groupId arrives while already on groups", () => {
+    vi.mocked(host.getActiveFilter).mockReturnValue("groups");
+    coordinator.handleNavigationDeepLinks(
+      { groupId: "g-abc", prayerId: null, promptId: null },
+      true
+    );
+
+    expect(host.setFilter).not.toHaveBeenCalled();
+    expect(host.notifyGroupDeepLinkPending).toHaveBeenCalled();
+    expect(coordinator.consumePendingGroupId()).toBe("g-abc");
   });
 
   it("defers deep links until view is ready", () => {

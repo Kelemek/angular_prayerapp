@@ -10,10 +10,18 @@ import { CommonModule } from '@angular/common';
     <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-modal-overlay p-4">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full modal-panel-edge">
         <!-- Header -->
-        <div class="px-6 py-4 modal-chrome-header">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <div class="modal-chrome-header flex items-start justify-between gap-3 px-6 py-4">
+          <h2 class="min-w-0 text-lg font-semibold text-gray-900 dark:text-gray-100">
             {{ title }}
           </h2>
+          <button
+            type="button"
+            class="shrink-0 cursor-pointer text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            aria-label="Close"
+            (click)="onCancel()"
+          >
+            ✕
+          </button>
         </div>
 
         <!-- Content -->
@@ -36,14 +44,9 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 modal-chrome-footer flex gap-3 justify-end">
+        <div class="modal-chrome-footer flex justify-end px-6 py-4">
           <button
-            (click)="onCancel()"
-            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
-          >
-            {{ cancelText }}
-          </button>
-          <button
+            type="button"
             (click)="onConfirm()"
             [class]="isDangerous ?
               'px-4 py-2 rounded-md btn-chip btn-chip-red cursor-pointer' :

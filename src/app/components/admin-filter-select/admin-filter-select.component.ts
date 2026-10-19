@@ -1,11 +1,17 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
+  OnDestroy,
   Output,
+  ViewChild,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { buildFixedDropdownPanelStyle } from '../../lib/fixed-dropdown-panel-style';
 
 export interface AdminFilterSelectOption {
   value: string;
@@ -28,6 +34,7 @@ export interface AdminFilterSelectOption {
         class="flex w-full rounded-lg border-2 transition-all overflow-hidden"
       >
         <button
+          #triggerButton
           type="button"
           [id]="triggerId"
           (click)="toggleDropdown()"
@@ -64,11 +71,15 @@ export interface AdminFilterSelectOption {
       </div>
 
       @if (showDropdown) {
-        <div class="fixed inset-0 z-10" (click)="closeDropdown()"></div>
+        <div
+          class="fixed inset-0 z-modal-dropdown-backdrop"
+          (click)="closeDropdown()"
+        ></div>
         <div
           role="listbox"
           [attr.aria-label]="ariaLabel"
-          class="absolute left-0 right-0 z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+          class="fixed z-modal-dropdown-panel max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+          [ngStyle]="dropdownPanelStyle"
         >
           @for (option of options; track option.value) {
             <button
@@ -91,7 +102,7 @@ export interface AdminFilterSelectOption {
     </div>
   `,
 })
-export class AdminFilterSelectComponent {
+export class AdminFilterSelectComponent implements OnDestroy {
   @Input() value = '';
   @Input() placeholder = 'Select...';
   @Input() options: readonly AdminFilterSelectOption[] = [];
@@ -100,23 +111,66 @@ export class AdminFilterSelectComponent {
 
   @Output() valueChange = new EventEmitter<string>();
 
+  @ViewChild('triggerButton') triggerButton?: ElementRef<HTMLButtonElement>;
+
   showDropdown = false;
+  dropdownPanelStyle: Record<string, string> = {};
+
+  private readonly cdr = inject(ChangeDetectorRef);
 
   get selectedLabel(): string {
     const match = this.options.find((option) => option.value === this.value);
     return match?.label ?? this.placeholder;
   }
 
+  private readonly boundReposition = (): void => {
+    this.updateDropdownPosition();
+  };
+
   toggleDropdown(): void {
-    this.showDropdown = !this.showDropdown;
+    if (this.showDropdown) {
+      this.closeDropdown();
+      return;
+    }
+    this.showDropdown = true;
+    this.updateDropdownPosition();
+    this.attachRepositionListeners();
+    this.cdr.markForCheck();
   }
 
   closeDropdown(): void {
+    if (!this.showDropdown) {
+      return;
+    }
     this.showDropdown = false;
+    this.detachRepositionListeners();
+    this.cdr.markForCheck();
+  }
+
+  ngOnDestroy(): void {
+    this.detachRepositionListeners();
   }
 
   selectOption(nextValue: string): void {
     this.valueChange.emit(nextValue);
     this.closeDropdown();
+  }
+
+  private attachRepositionListeners(): void {
+    document.addEventListener('scroll', this.boundReposition, true);
+    window.addEventListener('resize', this.boundReposition);
+  }
+
+  private detachRepositionListeners(): void {
+    document.removeEventListener('scroll', this.boundReposition, true);
+    window.removeEventListener('resize', this.boundReposition);
+  }
+
+  private updateDropdownPosition(): void {
+    const trigger = this.triggerButton?.nativeElement;
+    if (!trigger) {
+      return;
+    }
+    this.dropdownPanelStyle = buildFixedDropdownPanelStyle(trigger);
   }
 }

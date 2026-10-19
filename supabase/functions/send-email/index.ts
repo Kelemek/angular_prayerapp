@@ -435,6 +435,7 @@ Deno.serve(async (req: Request) => {
         .select('email')
         .eq('is_active', true)
         .eq('is_blocked', false)
+        .eq('is_church_member', true)
       
       if (error) throw error
       

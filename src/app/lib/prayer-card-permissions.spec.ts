@@ -64,6 +64,35 @@ describe('showPrayerCardDeleteButton', () => {
       )
     ).toBe(true);
   });
+
+  it('allows group owners to delete when original-requestor would hide', () => {
+    expect(
+      showPrayerCardDeleteButton(
+        baseContext({
+          isPersonal: true,
+          isGroupPrayer: true,
+          deletionsAllowed: 'original-requestor',
+          currentUserEmail: 'owner@example.com',
+          prayerEmail: 'member@example.com',
+          allowGroupOwnerDelete: true,
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('hides group delete for non-requester members', () => {
+    expect(
+      showPrayerCardDeleteButton(
+        baseContext({
+          isPersonal: true,
+          isGroupPrayer: true,
+          deletionsAllowed: 'original-requestor',
+          currentUserEmail: 'other@example.com',
+          prayerEmail: 'member@example.com',
+        })
+      )
+    ).toBe(false);
+  });
 });
 
 describe('showPrayerCardAddUpdateButton', () => {

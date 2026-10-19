@@ -168,7 +168,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Default prayer view',
         description:
-          'Pick <strong>Current Prayers</strong> or <strong>Personal Prayers</strong> as your default when you open the app—saved to your account.',
+          'Pick <strong>Church</strong>, <strong>Group</strong>, or <strong>Personal</strong> as your default when you open the app—saved to your account.',
         side: 'bottom',
         align: 'start',
       },

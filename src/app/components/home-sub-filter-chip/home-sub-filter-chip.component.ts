@@ -12,6 +12,7 @@ import { HOME_SUB_FILTER_CHIP_BASE_CLASS } from "../../lib/home-sub-filter-chip-
     <button
       type="button"
       [attr.id]="chipId || null"
+      [attr.aria-label]="chipAriaLabel || null"
       [attr.aria-busy]="busy || null"
       [disabled]="disabled"
       (click)="chipClick.emit($event)"
@@ -29,6 +30,8 @@ import { HOME_SUB_FILTER_CHIP_BASE_CLASS } from "../../lib/home-sub-filter-chip-
 })
 export class HomeSubFilterChipComponent {
   @Input() chipId = "";
+  /** Set on icon-only chips so the button has an accessible name. */
+  @Input() chipAriaLabel = "";
   @Input() active = false;
   @Input() disabled = false;
   @Input() busy = false;

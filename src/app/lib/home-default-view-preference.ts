@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UserSessionService } from "../services/user-session.service";
 
-export type HomeDefaultPrayerView = "current" | "personal";
+export type HomeDefaultPrayerView = "current" | "personal" | "groups";
 
 export async function updateHomeDefaultViewPreference(
   client: SupabaseClient,

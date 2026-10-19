@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { AsyncPipe } from '@angular/common';
 import type { BehaviorSubject } from 'rxjs';
 import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
+import { showPrayerCardUpdateAuthor } from '../../lib/prayer-card-display';
 import { prayerUpdateDeleteAction } from '../../lib/prayer-card-permissions';
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
 import type { BadgeService } from '../../services/badge.service';
@@ -42,14 +43,26 @@ export class PrayerCardUpdatesSectionComponent {
   @Input({ required: true }) showTourAnchors!: boolean;
   @Input({ required: true }) showsCommunityUnreadBadges!: boolean;
   @Input({ required: true }) isCommunityPrayer!: boolean;
+  @Input() isGroupPrayer = false;
   @Input({ required: true }) updateBadges$!: Map<string, BehaviorSubject<boolean>>;
   @Input({ required: true }) badgeService!: BadgeService;
   @Input({ required: true }) showUpdateDelete!: boolean;
   @Input({ required: true }) updateActionsMode!: PrayerUpdateActionsMode;
   @Input() isAdmin = false;
+  @Input() allowGroupOwnerDelete = false;
   @Input() currentUserEmail = '';
 
+  get showUpdateAuthor(): boolean {
+    return showPrayerCardUpdateAuthor({
+      isCommunityPrayer: this.isCommunityPrayer,
+      isGroupPrayer: this.isGroupPrayer,
+    });
+  }
+
   actionsModeFor(update: PrayerUpdateRecord): PrayerUpdateActionsMode {
+    if (this.isGroupPrayer) {
+      return this.canEditGroupUpdate(update) ? 'personal' : 'readonly';
+    }
     if (this.updateActionsMode !== 'member') {
       return this.updateActionsMode;
     }
@@ -57,10 +70,38 @@ export class PrayerCardUpdatesSectionComponent {
   }
 
   showDeleteFor(update: PrayerUpdateRecord): boolean {
+    if (this.isGroupPrayer) {
+      return this.groupUpdateDeleteAction(update) !== 'none';
+    }
     if (this.updateActionsMode === 'member') {
       return this.memberDeleteAction(update) !== 'none';
     }
     return this.showUpdateDelete;
+  }
+
+  private canEditGroupUpdate(update: PrayerUpdateRecord): boolean {
+    return (
+      prayerUpdateDeleteAction({
+        isMember: false,
+        isAdmin: false,
+        isPersonal: true,
+        currentUserEmail: this.currentUserEmail,
+        authorEmail: update.author_email,
+      }) !== 'none'
+    );
+  }
+
+  private groupUpdateDeleteAction(update: PrayerUpdateRecord) {
+    if (this.isAdmin || this.allowGroupOwnerDelete) {
+      return 'confirm' as const;
+    }
+    return prayerUpdateDeleteAction({
+      isMember: false,
+      isAdmin: false,
+      isPersonal: true,
+      currentUserEmail: this.currentUserEmail,
+      authorEmail: update.author_email,
+    });
   }
 
   private memberDeleteAction(update: PrayerUpdateRecord) {

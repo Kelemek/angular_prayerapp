@@ -760,7 +760,7 @@ Deno.serve(async (req: Request) => {
       () =>
         supabase
           .from('email_subscribers')
-          .select('email, receive_push, is_active, is_blocked, hourly_reminder_last_spotlight_key')
+          .select('email, receive_push, is_active, is_blocked, is_church_member, hourly_reminder_last_spotlight_key')
           .in('email', uniqueEmails)
     );
 
@@ -806,6 +806,7 @@ Deno.serve(async (req: Request) => {
             is_active: boolean | null;
             is_blocked: boolean | null;
             hourly_reminder_last_spotlight_key?: string | null;
+            is_church_member?: boolean | null;
           }
         | undefined;
 
@@ -827,7 +828,8 @@ Deno.serve(async (req: Request) => {
         spotlight = await loadSpotlightCandidate(
           supabase,
           recipient,
-          sub.hourly_reminder_last_spotlight_key ?? null
+          sub.hourly_reminder_last_spotlight_key ?? null,
+          sub.is_church_member !== false
         );
       }
 
@@ -972,18 +974,22 @@ Deno.serve(async (req: Request) => {
 async function loadSpotlightCandidate(
   supabase: SupabaseClient<any>,
   recipientEmail: string,
-  lastSpotlightKey: string | null
+  lastSpotlightKey: string | null,
+  includeCommunity = true
 ): Promise<SpotlightCandidate | null> {
   const commSelect =
     'id, title, description, prayer_for, requester, is_anonymous, created_at, updated_at';
-  const { data: commRows, error: cErr } = await supabase
-    .from('prayers')
-    .select(commSelect)
-    .eq('approval_status', 'approved')
-    .eq('status', 'current');
-
-  if (cErr) {
-    console.error('spotlight community prayers query failed', cErr);
+  let commRows: unknown[] = [];
+  if (includeCommunity) {
+    const { data, error: cErr } = await supabase
+      .from('prayers')
+      .select(commSelect)
+      .eq('approval_status', 'approved')
+      .eq('status', 'current');
+    if (cErr) {
+      console.error('spotlight community prayers query failed', cErr);
+    }
+    commRows = data ?? [];
   }
 
   const { data: persRows, error: pErr } = await supabase

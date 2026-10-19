@@ -1,5 +1,8 @@
 import { Injectable } from "@angular/core";
-import type { HomeDeepLinkHost } from "./home-deep-link-host.adapter";
+import type {
+  HomeActiveFilter,
+  HomeDeepLinkHost,
+} from "./home-deep-link-host.adapter";
 
 export type HomeEmailFilterTab =
   | "current"
@@ -9,6 +12,7 @@ export type HomeEmailFilterTab =
 
 export type HomeDeepLinkQueryParamKey =
   | "filter"
+  | "groupId"
   | "prayerId"
   | "promptId"
   | "verseRef"
@@ -21,6 +25,8 @@ export class HomeDeepLinkCoordinator {
   private host: HomeDeepLinkHost | null = null;
 
   initialEmailFilterTab: HomeEmailFilterTab | null = null;
+  private initialHomeAreaFilter: HomeActiveFilter | null = null;
+  private pendingGroupId: string | null = null;
   private pendingPrayerIdScroll: string | null = null;
   private prayerDeepLinkScrollGeneration = 0;
   private prayerDeepLinkScrollBurstCount = 0;
@@ -40,13 +46,24 @@ export class HomeDeepLinkCoordinator {
 
   captureInitialQueryParams(params: {
     filter?: string | null;
+    groupId?: string | null;
     prayerId?: string | null;
     promptId?: string | null;
     verseRef?: string | null;
     verseTranslation?: string | null;
   }): void {
     const filter = params.filter;
-    if (
+    const areaFilter = this.parseHomeAreaFilterQuery(filter);
+    const groupId = this.normalizeId(params.groupId);
+    if (groupId) {
+      this.pendingGroupId = groupId;
+      if (!areaFilter && !this.parseEmailFilterTab(filter)) {
+        this.initialHomeAreaFilter = "groups";
+      }
+    }
+    if (areaFilter) {
+      this.initialHomeAreaFilter = areaFilter;
+    } else if (
       filter === "current" ||
       filter === "answered" ||
       filter === "archived" ||
@@ -92,9 +109,26 @@ export class HomeDeepLinkCoordinator {
     return tab;
   }
 
+  consumeInitialHomeAreaFilter(): HomeActiveFilter | null {
+    const filter = this.initialHomeAreaFilter;
+    this.initialHomeAreaFilter = null;
+    return filter;
+  }
+
+  peekPendingGroupId(): string | null {
+    return this.pendingGroupId;
+  }
+
+  consumePendingGroupId(): string | null {
+    const id = this.pendingGroupId;
+    this.pendingGroupId = null;
+    return id;
+  }
+
   handleNavigationDeepLinks(
     params: {
       filter?: string | null;
+      groupId?: string | null;
       prayerId?: string | null;
       promptId?: string | null;
       verseRef?: string | null;
@@ -103,11 +137,21 @@ export class HomeDeepLinkCoordinator {
     viewReady: boolean
   ): void {
     const deepLinkFilter = this.parseEmailFilterTab(params.filter);
+    const deepLinkAreaFilter = this.parseHomeAreaFilterQuery(params.filter);
+    const deepLinkGroupId = this.normalizeId(params.groupId);
     const deepLinkPrayerId = this.normalizeId(params.prayerId);
     const deepLinkPromptId = this.normalizeId(params.promptId);
 
     if (!viewReady) {
-      if (deepLinkFilter) {
+      if (deepLinkGroupId) {
+        this.pendingGroupId = deepLinkGroupId;
+        if (!deepLinkAreaFilter && !deepLinkFilter) {
+          this.initialHomeAreaFilter = "groups";
+        }
+      }
+      if (deepLinkAreaFilter) {
+        this.initialHomeAreaFilter = deepLinkAreaFilter;
+      } else if (deepLinkFilter) {
         this.initialEmailFilterTab = deepLinkFilter;
       } else if (deepLinkPrayerId) {
         this.pendingPrayerIdScroll = deepLinkPrayerId;
@@ -128,7 +172,21 @@ export class HomeDeepLinkCoordinator {
       params.verseTranslation
     );
 
-    if (deepLinkFilter) {
+    if (deepLinkGroupId) {
+      this.pendingGroupId = deepLinkGroupId;
+      if (this.host?.getActiveFilter() !== "groups") {
+        this.host?.setFilter("groups");
+      } else {
+        this.host?.notifyGroupDeepLinkPending?.();
+      }
+      this.host?.markForCheck();
+      this.host?.stripQueryParam("groupId");
+    }
+    if (deepLinkAreaFilter) {
+      this.host?.setFilter(deepLinkAreaFilter);
+      this.host?.markForCheck();
+      this.host?.stripQueryParam("filter");
+    } else if (deepLinkFilter) {
       this.host?.setFilter(deepLinkFilter);
       this.host?.markForCheck();
       this.host?.stripQueryParam("filter");
@@ -236,6 +294,15 @@ export class HomeDeepLinkCoordinator {
     }
     this.host.markForCheck();
     this.scheduleScrollToPromptId(promptId);
+  }
+
+  private parseHomeAreaFilterQuery(
+    filter: string | null | undefined
+  ): HomeActiveFilter | null {
+    if (filter === "groups" || filter === "personal") {
+      return filter;
+    }
+    return null;
   }
 
   private parseEmailFilterTab(

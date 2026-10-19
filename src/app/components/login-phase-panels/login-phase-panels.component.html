@@ -44,6 +44,20 @@
     />
   </div>
   }
+  @case ('group_profile') {
+  <div class="space-y-4">
+    <app-login-registration-form
+      profileKind="group"
+      [firstName]="firstName"
+      (firstNameChange)="shell.handlers.setFirstName($event)"
+      [lastName]="lastName"
+      (lastNameChange)="shell.handlers.setLastName($event)"
+      [loading]="loading"
+      [error]="error"
+      (save)="shell.handlers.saveGroupProfile()"
+    />
+  </div>
+  }
   @case ('pending_approval') {
   <div class="space-y-4">
     <app-login-account-status status="pending_approval" />

@@ -13,6 +13,7 @@ import { AddMemorizedBibleBooksModalComponent } from "../add-memorized-bible-boo
 import { MemorizationRecommendationsModalComponent } from "../memorization-recommendations-modal/memorization-recommendations-modal.component";
 import { MemorizationPracticeSessionComponent } from "../memorization-practice-session/memorization-practice-session.component";
 import { VerseMemorizationTranslationModalComponent } from "../verse-memorization-translation-modal/verse-memorization-translation-modal.component";
+import { HomeGroupProfileModalComponent } from "../home-group-profile-modal/home-group-profile-modal.component";
 import type { HomeActiveFilter } from "../../services/home-deep-link-host.adapter";
 import type { PrayerRequest, PrayerUpdate } from "../../services/prayer.service";
 import type {
@@ -39,6 +40,7 @@ import type { HomeModalsHostHandlers } from "../../lib/home-modals-host-handlers
     MemorizationRecommendationsModalComponent,
     MemorizationPracticeSessionComponent,
     VerseMemorizationTranslationModalComponent,
+    HomeGroupProfileModalComponent,
   ],
   templateUrl: "./home-modals-host.component.html",
 })
@@ -49,6 +51,7 @@ export class HomeModalsHostComponent {
   @Input({ required: true }) settingsScrollToSectionId!: string | null;
   @Input({ required: true }) showHelp!: boolean;
   @Input({ required: true }) showLogoutConfirmation!: boolean;
+  @Input({ required: true }) showGroupProfile!: boolean;
   @Input({ required: true }) showEditPersonalPrayer!: boolean;
   @Input({ required: true }) editingPrayer!: PrayerRequest | null;
   @Input({ required: true }) showRenamePersonalCategory!: boolean;

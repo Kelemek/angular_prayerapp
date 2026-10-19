@@ -319,6 +319,9 @@ export function createHomePageShellHandlers(
       cancelLogout: () => {
         deps.modals.showLogoutConfirmation = false;
       },
+      onGroupProfileCompleted: () => {
+        /* session reload happens inside the modal */
+      },
       closeEditPersonalPrayer: () => {
         deps.modals.showEditPersonalPrayer = false;
       },

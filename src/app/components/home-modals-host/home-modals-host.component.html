@@ -1,8 +1,14 @@
+      <app-home-group-profile-modal
+        [isOpen]="showGroupProfile"
+        (completed)="handlers.onGroupProfileCompleted()"
+      ></app-home-group-profile-modal>
+
       <!-- Prayer Form Modal -->
       <app-prayer-form
         #prayerFormComp
         [isOpen]="showPrayerForm"
         [defaultPersonalPrayer]="activeFilter === 'personal'"
+        [defaultGroupPrayer]="activeFilter === 'groups'"
         (close)="handlers.onPrayerFormClose()"
       ></app-prayer-form>
 

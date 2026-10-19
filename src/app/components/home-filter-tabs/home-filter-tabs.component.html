@@ -3,6 +3,7 @@
         @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
         @let aggregateBadge = currentBadge + answeredBadge;
         @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
+        @if (showChurchTab) {
         <button
           id="tour-filter-public"
           (click)="publicTabSelected.emit()"
@@ -19,6 +20,16 @@
           />
           }
           Church
+        </button>
+        }
+
+        <button
+          id="tour-filter-groups"
+          (click)="tabSelected.emit('groups')"
+          title="Show group prayers"
+          [class]="tabClass('groups', activeFilter === 'groups')"
+        >
+          Group
         </button>
 
         <!-- Personal Prayers Filter -->

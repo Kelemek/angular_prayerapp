@@ -38,6 +38,7 @@ export function homeHasSubFilterRowBelowTabs(
   return (
     isPublicAreaFilter(filter) ||
     filter === "personal" ||
-    filter === "memorize"
+    filter === "memorize" ||
+    filter === "groups"
   );
 }

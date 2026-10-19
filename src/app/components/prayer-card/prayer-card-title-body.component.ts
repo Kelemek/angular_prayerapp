@@ -11,6 +11,7 @@ import { HomeFilterBadgeButtonComponent } from '../home-filter-badge-button/home
 import { RichTextViewComponent } from '../rich-text-view/rich-text-view.component';
 import type { BadgeService } from '../../services/badge.service';
 import type { PrayerRequest } from '../../services/prayer.service';
+import { showPrayerCardRequesterName } from '../../lib/prayer-card-display';
 import { isMemberPrayerId } from '../../lib/prayer-card-kind';
 import { verseMemorizationTextForDisplay } from '../../lib/verse-memorization-description';
 import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
@@ -26,6 +27,7 @@ export class PrayerCardTitleBodyComponent {
   @Input({ required: true }) variantLayout!: PrayerCardVariantLayout;
   @Input({ required: true }) prayer!: PrayerRequest;
   @Input() isPersonal = false;
+  @Input() isGroupPrayer = false;
   @Input() showTourAnchors = false;
   @Input() tourPersonalWalkthroughAnchors = false;
   @Input() personalDragHandle = false;
@@ -41,6 +43,14 @@ export class PrayerCardTitleBodyComponent {
 
   isMemberPrayer(): boolean {
     return isMemberPrayerId(this.prayer?.id);
+  }
+
+  showRequesterName(): boolean {
+    return showPrayerCardRequesterName({
+      isPersonal: this.isPersonal,
+      isMember: this.isMemberPrayer(),
+      isGroupPrayer: this.isGroupPrayer,
+    });
   }
 
   verseTextForDisplay(): string {

@@ -40,23 +40,46 @@
               }
             </div>
             @if (host.defaultViewPreferencesLoaded) {
-            <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
+            <div
+              class="grid gap-1.5 sm:gap-2"
+              [ngClass]="host.isChurchMember ? 'grid-cols-3' : 'grid-cols-2'"
+            >
+              @if (host.isChurchMember) {
               <button
                 type="button"
                 (click)="host.selectDefaultPrayerView('current')"
                 [disabled]="host.savingDefaultView"
                 [ngClass]="{
                   'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
-                    host.defaultPrayerView === 'current',
+                    host.displayDefaultPrayerView === 'current',
                   'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
-                    host.defaultPrayerView !== 'current'
+                    host.displayDefaultPrayerView !== 'current'
                 }"
-                title="Open current prayers by default"
+                title="Open church prayers by default"
                 class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span
                   class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100 text-center"
-                  >Current Prayers</span
+                  >Church</span
+                >
+              </button>
+              }
+              <button
+                type="button"
+                (click)="host.selectDefaultPrayerView('groups')"
+                [disabled]="host.savingDefaultView"
+                [ngClass]="{
+                  'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
+                    host.displayDefaultPrayerView === 'groups',
+                  'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
+                    host.displayDefaultPrayerView !== 'groups'
+                }"
+                title="Open group prayers by default"
+                class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span
+                  class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100 text-center"
+                  >Group</span
                 >
               </button>
               <button
@@ -65,21 +88,29 @@
                 [disabled]="host.savingDefaultView"
                 [ngClass]="{
                   'border-blue-500 bg-blue-200 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/30':
-                    host.defaultPrayerView === 'personal',
+                    host.displayDefaultPrayerView === 'personal',
                   'border-church-surface-inactive-border dark:border-gray-700 bg-church-surface-inactive dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20':
-                    host.defaultPrayerView !== 'personal'
+                    host.displayDefaultPrayerView !== 'personal'
                 }"
                 title="Open personal prayers by default"
                 class="flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span
                   class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-100 text-center"
-                  >Personal Prayers</span
+                  >Personal</span
                 >
               </button>
             </div>
             } @else {
-            <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
+            <div
+              class="grid gap-1.5 sm:gap-2"
+              [ngClass]="host.isChurchMember ? 'grid-cols-3' : 'grid-cols-2'"
+            >
+              @if (host.isChurchMember) {
+              <div
+                class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
+              ></div>
+              }
               <div
                 class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
               ></div>
@@ -95,9 +126,11 @@
           {{
             host.savingDefaultView
               ? "Saving..."
-              : host.defaultPrayerView === "current"
-              ? "You will see current prayers when you log in"
-              : "You will see personal prayers when you log in"
+              : host.displayDefaultPrayerView === "current"
+              ? "You will see church prayers when you log in"
+              : host.displayDefaultPrayerView === "personal"
+              ? "You will see personal prayers when you log in"
+              : "You will see group prayers when you log in"
           }}
           } @else {
           <span

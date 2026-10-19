@@ -35,6 +35,33 @@ describe('PrayerCardMetaHeaderComponent overflow items', () => {
     );
   });
 
+  it('uses the group prayer status for the answered label', () => {
+    const component = new PrayerCardMetaHeaderComponent();
+    component.prayerCreatedAt = '2026-01-01T00:00:00Z';
+    component.groupName = 'Family';
+    component.canEditGroupPrayer = true;
+    component.status = 'answered';
+    component.showDelete = true;
+
+    expect(component.isAnswered).toBe(true);
+    expect(component.overflowItems.map((item) => item.id)).toEqual([
+      'answered',
+      'edit',
+      'delete',
+    ]);
+    expect(component.overflowItems[0]?.label).toBe('Mark as unanswered');
+  });
+
+  it('hides group edit and answered for non-requesters', () => {
+    const component = new PrayerCardMetaHeaderComponent();
+    component.prayerCreatedAt = '2026-01-01T00:00:00Z';
+    component.groupName = 'Family';
+    component.isPersonal = true;
+    component.showDelete = true;
+
+    expect(component.overflowItems.map((item) => item.id)).toEqual(['delete']);
+  });
+
   it('runs the matching action from overflow item onSelect', () => {
     const component = new PrayerCardMetaHeaderComponent();
     const emitted: string[] = [];

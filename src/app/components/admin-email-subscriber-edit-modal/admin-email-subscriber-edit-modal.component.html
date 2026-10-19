@@ -31,6 +31,22 @@
           Email address cannot be changed. To use a different email, create a new subscriber with the new address.
         </p>
       </div>
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm">
+        <p class="mb-2 text-gray-700 dark:text-gray-300">
+          {{ subscriber.is_church_member === false ? 'Group only' : 'Church member' }}
+        </p>
+        <div class="flex gap-2">
+          @if (subscriber.is_church_member === false) {
+          <button type="button" (click)="changeChurchAccess(true)" [disabled]="membershipSaving" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">
+            Upgrade to church
+          </button>
+          } @else {
+          <button type="button" (click)="changeChurchAccess(false)" [disabled]="membershipSaving" class="px-3 py-2 rounded-lg border border-gray-300 text-sm">
+            Downgrade to group only
+          </button>
+          }
+        </div>
+      </div>
     </div>
     <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
       <button

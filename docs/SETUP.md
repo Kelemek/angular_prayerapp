@@ -162,6 +162,13 @@ supabase functions deploy verify-code --project-ref jcdhajfqtzipltvfslhu
 
 Anyone with a code already on screen should request a new one. No new secret is required: the hash pepper is the existing service-role key.
 
+Planning Center registration for a person who is not yet a subscriber calls `register-planning-center-member` ([`RLS_PHASE4.md`](RLS_PHASE4.md)). On test, that function is deployed with JWT verification off. Group invites call `notify-group-activity`, and a group-only login that is still in Planning Center calls `upgrade-planning-center-member`. Both require a JWT. Deploy again with:
+
+```bash
+supabase functions deploy register-planning-center-member --project-ref jcdhajfqtzipltvfslhu --no-verify-jwt
+supabase functions deploy upgrade-planning-center-member notify-group-activity --project-ref jcdhajfqtzipltvfslhu
+```
+
 ### User prayer / memorization / per-prayer reminders (Vault + pg_cron)
 
 Migration `20260803160000_reminder_quarter_hour_and_prayer_item_reminders.sql` upgrades Settings prayer and memorization slots to **15-minute** matching, reschedules jobs **`invoke-user-hourly-prayer-reminders`** and **`invoke-user-hourly-memorization-reminders`** to **`*/15 * * * *` UTC**, adds **`invoke-user-prayer-item-reminders`** for per-prayer reminders (Edge Function `send-user-prayer-item-reminders`, including latest-update email HTML), and installs triggers that remove per-prayer reminder rows when a prayer is deleted, archived, or answered. It is **safe to re-run** in the SQL editor. Apply **`20260805120000_reminder_item_followups.sql`** after that (idempotent): prompt reminders, purge RPC lockdown, unique schedule indexes, per-channel delivery columns, and partial-retry due-now RPC. Redeploy `send-user-prayer-item-reminders` after applying.

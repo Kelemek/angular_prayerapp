@@ -4,6 +4,44 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Settings — default prayer view
+- **Default Prayer View** uses **Church**, **Group**, and **Personal** labels (saved on `email_subscribers.default_prayer_view` as `current`, `groups`, and `personal`).
+- Group-only members (`is_church_member = false`) no longer see the **Church** option in Settings ([`user-settings-default-view-section`](../src/app/components/user-settings-default-view-section/user-settings-default-view-section.component.html)); the grid shows **Group** and **Personal** only. Legacy `default_prayer_view = current` still highlights **Group** in the UI.
+- Login and profile completion URLs with `?filter=groups` open the Group tab on Home ([`home-deep-link.coordinator.ts`](../src/app/services/home-deep-link.coordinator.ts)). Group activity email links with `groupId` select that group chip after load, including when you are already on the Group tab.
+- Home waits for [`sessionInitialized$`](../src/app/services/user-session.service.ts) before applying the default tab so a cached session cannot skip group-only routing to **Group**, including after returning from Presentation.
+- Group deep links keep the pending `groupId` until the group list has loaded and the chip can be selected ([`home-groups-panel`](../src/app/components/home-groups-panel/home-groups-panel.component.ts)).
+- The Group tab no longer shows the church prayer skeleton while community prayers load ([`home.component.html`](../src/app/pages/home/home.component.html)). The group picker in Request recenters on modal scroll ([`admin-filter-select`](../src/app/components/admin-filter-select/admin-filter-select.component.ts)).
+
+### Prayer groups — cards and Request
+- Request → Group Prayer picks the group with the same custom dropdown as admin filters (not a native `<select>`). That dropdown uses fixed positioning so the list is not clipped inside the Request modal.
+- Group prayers use the same prayer cards as the rest of Home, with the group name in the header. Delete is shown only to the requester or the group owner (matching RLS), not to every member. The card and each update show who requested it and who wrote the update. Updates, edits, delete, and answered status save on the group. Mark as answered or unanswered uses the same confirmation dialog as personal prayers; group unmark does not show personal category settings. New group prayers are added from Request: Group Prayer appears there when you belong to a group, and opening Request on the Groups tab selects it. Group cards also show Pray For and the prayer count when Prayer encouragement on cards is enabled in Settings, using your personal or member cooldown.
+
+### Prayer groups — group member profile
+- Invited group-only members who sign in without a name see the same first/last name step as new church registration on **Login** ([`login-auth.coordinator.ts`](../src/app/services/login-auth.coordinator.ts), [`login-registration-form`](../src/app/components/login-registration-form/)). Returning sessions without a name get a blocking modal on Home ([`home-group-profile-modal`](../src/app/components/home-group-profile-modal/home-group-profile-modal.component.ts)). The Groups tab no longer shows an inline **Save name** field.
+
+### Prayer groups — notifications
+- [`notify-group-activity`](../supabase/functions/notify-group-activity/index.ts) loads invite recipients with validated `.in('email', …)` queries instead of interpolating addresses into PostgREST `.or()` / `ilike` filters.
+
+### Prayer groups — manage members
+- Opening **Manage members** shows the owner and member list immediately from the cached group reload, then refreshes in the background.
+- **Transfer ownership** uses the member dropdown only; choosing someone opens a confirmation dialog (no separate footer button).
+- Confirmation dialogs use a header **✕** to dismiss instead of a footer **Cancel** button ([`confirmation-dialog.component.ts`](../src/app/components/confirmation-dialog/confirmation-dialog.component.ts)).
+
+### Prayer groups — tab layout
+- The Home filter tab label is **Group** (not Groups).
+- On the Group tab, dragging group chips to reorder also reorders prayer cards on Current, Answered, and Total (newest first within each group). A single-group chip view still sorts by date only.
+- The Groups tab uses the same folder, status chips, and group chips as Prayer App: Current, Answered, and Total, a chip per group with its prayer count, and menus for members, rename, and delete. Invites and leaving a group are in the members dialog. Counts stay on one line with the other Home chips. With no groups, the empty state says a group is private prayers for the people you invite, and to tap + to create one. After you name a new group, Manage members opens so you can invite people. Creating a group saved, then the list waited on a server auth check and the button stayed on Creating. The list uses the signed-in session already in the app.
+
+### Prayer groups — invite email
+- Inviting someone added them to the group, then the invitation email function rejected the signed-in caller and Home showed "Edge Function returned a non-2xx status code". The function now checks that caller's token directly. The Groups row also listed one chip per member of the group; it now lists each group once.
+- [`notify-group-activity`](../supabase/functions/notify-group-activity/index.ts) loads the group with the service role, but [`20261018200000_prayer_groups.sql`](../supabase/migrations/20261018200000_prayer_groups.sql) only granted those tables to `authenticated`, so the lookup returned nothing and invites showed **Group not found** even though the member was added. [`20261018210000_prayer_groups_service_role_grants.sql`](../supabase/migrations/20261018210000_prayer_groups_service_role_grants.sql) grants `service_role` SELECT on `prayer_groups` and `prayer_group_members`. Applied on test `jcdhajfqtzipltvfslhu` on October 18, 2026. Manage members no longer shows **Invites sent** when the invitation email step failed.
+
+### Prayer groups — group-only members on test
+- [`20261018200000_prayer_groups.sql`](../supabase/migrations/20261018200000_prayer_groups.sql) adds prayer groups. A church member can create one. Only the owner can invite. An unknown email becomes a group-only subscriber (`is_church_member = false`). Leaving the last group deletes that account. An owner who leaves without transferring deletes the group. Home has a Groups tab ([`home-groups-panel.component.ts`](../src/app/components/home-groups-panel/home-groups-panel.component.ts)). Church prayers, Planning Center, and Presentation stay closed to group-only people. Applied on test `jcdhajfqtzipltvfslhu` on October 18, 2026, together with the church-member migrations below. Production `eqiafsygvfaifhoaewxi` was not changed.
+
+### Security — church data requires a church member
+- [`20261018180000_church_member_flag.sql`](../supabase/migrations/20261018180000_church_member_flag.sql) adds `email_subscribers.is_church_member` (default true) and `church_downgraded_at`. A signed-in user cannot set either column. `is_admin()` also requires the flag. New Planning Center registration no longer inserts from the browser. [`register-planning-center-member`](../supabase/functions/register-planning-center-member/index.ts) checks the email code's resume token and Planning Center, then inserts the church row with the service role. [`20261018190000_church_member_rls.sql`](../supabase/migrations/20261018190000_church_member_rls.sql) requires `is_church_member()` for church prayers, prompts, types, member updates, prayed-for counts, the booklet, and those counter RPCs. Applied on test `jcdhajfqtzipltvfslhu` on October 18, 2026. Production is unchanged. See [`RLS_PHASE4.md`](RLS_PHASE4.md).
+
 ### Home — native bottom bar removed
 - The native Home blur strip (`.bottom-safe-bar`) is gone on iOS and Android. That strip was the band that drifted up over prayer cards while scrolling the Public list. The Home scroller now pads by `env(safe-area-inset-bottom)` only, with no 34px floor and no border. The header still owns the top inset. Web still has no bottom safe zone. The back-to-top button uses that same real inset on native and web ([`styles.css`](../src/styles.css), [`home.component.html`](../src/app/pages/home/home.component.html)).
 

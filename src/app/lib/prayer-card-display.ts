@@ -18,6 +18,26 @@ export function displayPrayerCardRequester(
   return isAnonymous ? 'Anonymous' : requester;
 }
 
+/** Church cards and group cards show who requested the prayer. Personal cards do not. */
+export function showPrayerCardRequesterName(input: {
+  isPersonal: boolean;
+  isMember: boolean;
+  isGroupPrayer: boolean;
+}): boolean {
+  if (input.isMember) {
+    return false;
+  }
+  return !input.isPersonal || input.isGroupPrayer;
+}
+
+/** Church cards and group cards show who wrote each update. Personal cards do not. */
+export function showPrayerCardUpdateAuthor(input: {
+  isCommunityPrayer: boolean;
+  isGroupPrayer: boolean;
+}): boolean {
+  return input.isCommunityPrayer || input.isGroupPrayer;
+}
+
 export function showPrayerCardDescription(
   prayerId: string,
   description: string | null | undefined

@@ -75,6 +75,8 @@ export class HomeFilterCoordinator {
     } else if (filter === "total") {
       host.setFilters({ searchTerm: page.filters.searchTerm });
       host.applyPrayerFilters({ search: page.filters.searchTerm });
+    } else if (filter === "groups") {
+      host.setFilters({ searchTerm: page.filters.searchTerm });
     } else if (
       filter === "current" ||
       filter === "answered" ||

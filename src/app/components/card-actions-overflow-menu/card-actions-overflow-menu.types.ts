@@ -2,9 +2,10 @@ export type CardActionsOverflowActionId =
   | 'reminder'
   | 'answered'
   | 'edit'
-  | 'delete';
+  | 'delete'
+  | 'members';
 
-export type CardActionsOverflowIcon = 'bell' | 'check' | 'edit' | 'trash';
+export type CardActionsOverflowIcon = 'bell' | 'check' | 'edit' | 'trash' | 'users';
 
 export type CardActionsOverflowTone = 'blue' | 'green' | 'gray' | 'red';
 

@@ -11,12 +11,20 @@ export interface PrayerCardPermissionContext {
   deletionsAllowed: PrayerCardPolicy;
   updatesAllowed: PrayerCardPolicy;
   currentUserEmail: string;
+  /** Group owner may delete any prayer in the group (matches RLS). */
+  allowGroupOwnerDelete?: boolean;
+  isGroupPrayer?: boolean;
 }
 
 export function showPrayerCardDeleteButton(
   ctx: PrayerCardPermissionContext
 ): boolean {
   if (isMemberPrayerId(ctx.prayerId)) return false;
+  if (ctx.isGroupPrayer) {
+    if (ctx.isAdmin) return true;
+    if (ctx.allowGroupOwnerDelete) return true;
+    return isCurrentUserPrayerRequester(ctx.currentUserEmail, ctx.prayerEmail);
+  }
   if (ctx.isPersonal) return true;
   if (ctx.isAdmin) return true;
   if (ctx.deletionsAllowed === 'admin-only') return false;

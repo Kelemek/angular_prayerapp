@@ -351,6 +351,24 @@ export class PrayerService {
     return this.community.incrementMemberPrayedFor(personId);
   }
 
+  async incrementGroupPrayerPrayedFor(prayerId: string): Promise<number | null> {
+    try {
+      const client = await this.supabase.db();
+      const { data, error } = await client.rpc(
+        "increment_group_prayer_prayed_for_count",
+        { p_id: prayerId },
+      );
+      if (error) throw error;
+      return typeof data === "number" ? data : null;
+    } catch (err) {
+      console.error(
+        "[PrayerService] incrementGroupPrayerPrayedFor failed",
+        err,
+      );
+      return null;
+    }
+  }
+
   async getMemberPrayedForCountsBatch(
     personIds: string[]
   ): Promise<Record<string, number>> {

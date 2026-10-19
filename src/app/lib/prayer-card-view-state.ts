@@ -33,6 +33,8 @@ export interface PrayerCardViewStateInput {
   updatesAllowed: PrayerCardPermissionContext['updatesAllowed'];
   reminderSessionEmail: string;
   currentUserEmail: string;
+  allowGroupOwnerDelete?: boolean;
+  isGroupPrayer?: boolean;
 }
 
 export interface PrayerCardViewState {
@@ -60,6 +62,8 @@ export function computePrayerCardViewState(
 ): PrayerCardViewState {
   const { prayer, isPersonal, isAdmin, variant } = input;
   const isMember = isMemberPrayerId(prayer?.id);
+  const isGroupPrayer = input.isGroupPrayer === true;
+  const actsAsPersonal = isPersonal || isGroupPrayer;
   const permissionContext: PrayerCardPermissionContext = {
     prayerId: prayer.id,
     prayerEmail: prayer.email,
@@ -68,6 +72,8 @@ export function computePrayerCardViewState(
     deletionsAllowed: input.deletionsAllowed,
     updatesAllowed: input.updatesAllowed,
     currentUserEmail: input.currentUserEmail,
+    allowGroupOwnerDelete: input.allowGroupOwnerDelete,
+    isGroupPrayer,
   };
   const borderClass = getPrayerCardBorderClass(
     prayer.id,
@@ -100,7 +106,9 @@ export function computePrayerCardViewState(
       !isVersePrayer && showPrayerCardAddUpdateButton(permissionContext),
     isVerseMemorizationPrayer: isVersePrayer,
     showMemorizeButton: isVersePrayer && !isPersonal,
-    showUpdateDeleteButton: showPrayerCardUpdateDeleteButton(permissionContext),
+    showUpdateDeleteButton: isGroupPrayer
+      ? true
+      : showPrayerCardUpdateDeleteButton(permissionContext),
     showPrayedForBadge: showPrayerCardPrayedForBadge(
       prayer.prayed_for_count,
       isPersonal,
@@ -114,7 +122,10 @@ export function computePrayerCardViewState(
       isPersonal,
       isMember
     ),
-    usesPersonalCooldown: usesPrayerCardPersonalCooldown(isPersonal, prayer.id),
+    usesPersonalCooldown: usesPrayerCardPersonalCooldown(
+      actsAsPersonal,
+      prayer.id
+    ),
     isCommunityPrayer: isCommunityPrayerCard(prayer, isPersonal),
     shellClasses: getPrayerCardShellClasses(variant, borderClass),
     borderClass,

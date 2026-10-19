@@ -8,6 +8,7 @@ import {
   runUserSettingsLogout,
 } from './user-settings-account-run';
 import { runUserSettingsOpenChange } from './user-settings-facade-open';
+import type { HomeDefaultPrayerView } from './home-default-view-preference';
 import {
   runUserSettingsBadgeFunctionalityToggle,
   runUserSettingsDefaultViewChange,
@@ -74,7 +75,8 @@ export class UserSettingsFacade {
   prayerEncouragementUiLoaded = false;
   defaultViewPreferencesLoaded = false;
   memorizationStrictModeLoaded = false;
-  defaultPrayerView: 'current' | 'personal' | null = null;
+  defaultPrayerView: 'current' | 'personal' | 'groups' | null = null;
+  isChurchMember = true;
   memorizationStrictMode = false;
   savingMemorizationStrictMode = false;
 
@@ -108,6 +110,17 @@ export class UserSettingsFacade {
 
   get hasAdminEmail$() {
     return this.deps.adminAuthService.hasAdminEmail$;
+  }
+
+  /** Church default hidden for group-only members; map legacy `current` to Group in UI. */
+  get displayDefaultPrayerView(): 'current' | 'personal' | 'groups' | null {
+    if (this.defaultPrayerView == null) {
+      return null;
+    }
+    if (!this.isChurchMember && this.defaultPrayerView === 'current') {
+      return 'groups';
+    }
+    return this.defaultPrayerView;
   }
 
   navigateToAdmin(): void {
@@ -274,7 +287,9 @@ export class UserSettingsFacade {
     void this.onShowPrayingCountToggle();
   }
 
-  selectDefaultPrayerView(view: 'current' | 'personal'): void {
+  defaultPrayerViewBeforeSave: HomeDefaultPrayerView | null = null;
+
+  selectDefaultPrayerView(view: HomeDefaultPrayerView): void {
     if (
       !this.defaultViewPreferencesLoaded ||
       this.savingDefaultView ||
@@ -282,6 +297,7 @@ export class UserSettingsFacade {
     ) {
       return;
     }
+    this.defaultPrayerViewBeforeSave = this.defaultPrayerView;
     this.defaultPrayerView = view;
     void this.onDefaultViewChange(view);
   }
@@ -314,7 +330,7 @@ export class UserSettingsFacade {
     return runUserSettingsPersonalPrayerCooldownSave(this);
   }
 
-  onDefaultViewChange(newView: 'current' | 'personal'): Promise<void> {
+  onDefaultViewChange(newView: HomeDefaultPrayerView): Promise<void> {
     return runUserSettingsDefaultViewChange(this, newView);
   }
 

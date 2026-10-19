@@ -215,6 +215,11 @@ export class LoginMfaCoordinator {
         host.loading = false;
         host.markForCheck();
         return;
+      case "show_group_profile":
+        host.phase = { kind: "group_profile" };
+        host.loading = false;
+        host.markForCheck();
+        return;
       case "navigate":
         console.log(
           "[AdminLogin] Routing to:",

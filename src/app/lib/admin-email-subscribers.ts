@@ -9,6 +9,7 @@ export interface EmailSubscriberRow {
   created_at: string;
   last_activity_date?: string | null;
   in_planning_center?: boolean | null;
+  is_church_member?: boolean | null;
   planning_center_checked_at?: string | null;
 }
 

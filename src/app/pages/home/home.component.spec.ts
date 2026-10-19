@@ -77,9 +77,11 @@ const makeMocks = () => {
     getIsAdmin: vi.fn(() => false),
   };
 
+  const sessionInitializedSubject = new BehaviorSubject(true);
   const userSessionService: any = {
     userSessionSubject,
     userSession$: userSessionSubject.asObservable(),
+    sessionInitialized$: sessionInitializedSubject.asObservable(),
     getUserEmail: vi.fn(() => null),
     getUserFullName: vi.fn(() => null),
     getCurrentSession: vi.fn(() => null),
@@ -341,6 +343,7 @@ function createHomeComponent(
     m.personalCategoryColorService,
     prayerCardActions,
     m.prayerAllowancePolicy,
+    { notifyGroupDeepLinkPending: vi.fn(), changed$: { pipe: () => ({ subscribe: vi.fn() }) }, groupDeepLinkApply$: { pipe: () => ({ subscribe: vi.fn() }) } } as any,
     new HomeDeepLinkCoordinator(),
     new HomeHelpTourLauncher(m.helpDriverTourService, m.helpContentService),
     new HomeCatalogStore(),

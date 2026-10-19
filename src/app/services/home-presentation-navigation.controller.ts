@@ -14,7 +14,7 @@ export interface HomePresentationHandoffSource {
   selectedPromptTypes: string[];
   selectedPersonalCategories: string[];
   personalCategoryFilterMode: PersonalCategoryFilterMode;
-  defaultPrayerView: "current" | "personal";
+  defaultPrayerView: "current" | "personal" | "groups";
 }
 
 export interface HomePresentationNavigationHostBindings {

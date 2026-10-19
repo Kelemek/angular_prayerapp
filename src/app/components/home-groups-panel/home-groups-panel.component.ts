@@ -1,0 +1,607 @@
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  Input,
+  OnChanges,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { HomeSubFilterChipComponent } from '../home-sub-filter-chip/home-sub-filter-chip.component';
+import { CardActionsOverflowMenuComponent } from '../card-actions-overflow-menu/card-actions-overflow-menu.component';
+import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card-actions-overflow-menu.types';
+import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
+import { PrayerCardComponent } from '../prayer-card/prayer-card.component';
+import {
+  HOME_GROUPS_SUB_FILTER_GROUP_CLASS,
+  HOME_PUBLIC_STATUS_CHIP_THEMES,
+  HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
+  HOME_SUB_FILTER_CHIP_ROW_CLASS,
+  HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
+} from '../../lib/home-sub-filter-chip-classes';
+import { buildHomeSubFilterChipButtonClass } from '../../lib/home-sub-filter-chip-button-class';
+import { HOME_SHELL_SECTION_GAP_CLASSES } from '../../lib/home-shell-spacing';
+import {
+  countGroupPrayersByStatus,
+  countPrayersInGroup,
+  groupPrayerCardModel,
+  groupPrayersForHomeView,
+  type GroupFilterMode,
+} from '../../lib/home-group-catalog';
+import { parseInviteEmails } from '../../lib/home-group-invite-emails';
+import type { PrayerRequest } from '../../lib/prayer-types';
+import {
+  GroupPrayerRow,
+  GroupPrayerUpdateRow,
+  PrayerGroupMemberRow,
+  PrayerGroupService,
+  PrayerGroupSummary,
+} from '../../services/prayer-group.service';
+import type {
+  PrayerCardAddUpdateEvent,
+  PrayerCardDeleteUpdateEvent,
+} from '../../services/prayer-card-actions.facade';
+import { ToastService } from '../../services/toast.service';
+import { AdminAuthService } from '../../services/admin-auth.service';
+import { HomeDeepLinkCoordinator } from '../../services/home-deep-link.coordinator';
+import {
+  AdminFilterSelectComponent,
+  type AdminFilterSelectOption,
+} from '../admin-filter-select/admin-filter-select.component';
+
+@Component({
+  selector: 'app-home-groups-panel',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    DragDropModule,
+    HomeSubFilterChipComponent,
+    CardActionsOverflowMenuComponent,
+    ConfirmationDialogComponent,
+    PrayerCardComponent,
+    AdminFilterSelectComponent,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './home-groups-panel.component.html',
+  host: { class: 'block' },
+})
+export class HomeGroupsPanelComponent implements OnChanges {
+  @Input() isChurchMember = true;
+  @Input() viewerEmail = '';
+  @Input() viewerName = '';
+  @Input() showPrayForButton = true;
+  @Input() showPrayingCount = true;
+  @Input() prayerEncouragementEnabled = false;
+
+  readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
+  readonly panelClass = HOME_GROUPS_SUB_FILTER_GROUP_CLASS;
+  readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
+  readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
+  readonly chipThemes = HOME_PUBLIC_STATUS_CHIP_THEMES;
+  readonly groupChipActive = HOME_PUBLIC_STATUS_CHIP_THEMES.members.active;
+  readonly groupChipInactive = HOME_PUBLIC_STATUS_CHIP_THEMES.members.inactive;
+  /** Square chip the same height as the other filters; the plus is drawn inside it. */
+  readonly addGroupChipLayoutClass =
+    'inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all';
+
+  groups: PrayerGroupSummary[] = [];
+  prayers: GroupPrayerRow[] = [];
+  private updatesByPrayer = new Map<string, GroupPrayerUpdateRow[]>();
+  editingPrayer: PrayerRequest | null = null;
+  editPrayerFor = '';
+  editDescription = '';
+  editingUpdate: { id: string; content: string } | null = null;
+  members: PrayerGroupMemberRow[] = [];
+  filterMode: GroupFilterMode = 'current';
+  selectedId: string | null = null;
+  error: string | null = null;
+  reordering = false;
+  submitting = false;
+  createOpen = false;
+  createName = '';
+  membersTarget: PrayerGroupSummary | null = null;
+  renameTarget: PrayerGroupSummary | null = null;
+  renameDraft = '';
+  pendingDelete: PrayerGroupSummary | null = null;
+  pendingTransferEmail: string | null = null;
+  emailsDraft = '';
+  transferEmail = '';
+  private loadToken = 0;
+  private membersLoadToken = 0;
+
+  constructor(
+    private readonly groupsApi: PrayerGroupService,
+    private readonly toast: ToastService,
+    private readonly auth: AdminAuthService,
+    private readonly deepLinks: HomeDeepLinkCoordinator,
+    private readonly cdr: ChangeDetectorRef,
+    destroyRef: DestroyRef,
+  ) {
+    this.groupsApi.changed$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe(() => void this.reload());
+    this.groupsApi.groupDeepLinkApply$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe(() => {
+        this.applyPendingGroupDeepLink();
+        this.cdr.markForCheck();
+      });
+  }
+
+  ngOnChanges(): void {
+    void this.reload();
+  }
+
+  get counts() {
+    return countGroupPrayersByStatus(this.prayers);
+  }
+
+  get deleteMessage(): string {
+    const name = this.pendingDelete?.name ?? 'this group';
+    return `Delete "${name}" and all of its prayers? This cannot be undone.`;
+  }
+
+  get canSendInvites(): boolean {
+    return parseInviteEmails(this.emailsDraft).length > 0;
+  }
+
+  get transferConfirmMessage(): string {
+    const email = this.pendingTransferEmail ?? '';
+    const member = this.members.find((row) => row.user_email === email);
+    const label = member?.name || member?.user_email || email;
+    const groupName = this.membersTarget?.name ?? 'this group';
+    return `Make ${label} the owner of "${groupName}"? You will become a member.`;
+  }
+
+  get visiblePrayers(): GroupPrayerRow[] {
+    return groupPrayersForHomeView(
+      this.prayers,
+      this.filterMode,
+      this.selectedId,
+      this.groups,
+    );
+  }
+
+  prayerCount(groupId: string): number {
+    return countPrayersInGroup(this.prayers, groupId);
+  }
+
+  isGroupActive(groupId: string): boolean {
+    return this.filterMode === 'named' && this.selectedId === groupId;
+  }
+
+  chipClass(group: PrayerGroupSummary): string {
+    return buildHomeSubFilterChipButtonClass({
+      base: HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
+      active: this.isGroupActive(group.id),
+      activeClass: this.groupChipActive,
+      inactiveClass: this.groupChipInactive,
+      disabled: this.reordering,
+    });
+  }
+
+  selectStatus(mode: 'current' | 'answered' | 'total'): void {
+    this.filterMode = mode;
+    this.selectedId = null;
+  }
+
+  selectGroup(id: string): void {
+    if (this.isGroupActive(id)) {
+      this.selectStatus('total');
+      this.groupsApi.preferredGroupId = null;
+      return;
+    }
+    this.selectedId = id;
+    this.filterMode = 'named';
+    this.groupsApi.preferredGroupId = id;
+  }
+
+  cardFor(prayer: GroupPrayerRow): PrayerRequest {
+    return groupPrayerCardModel(prayer, this.updatesByPrayer.get(prayer.id) ?? []);
+  }
+
+  groupNameFor(groupId: string): string {
+    return this.groups.find((group) => group.id === groupId)?.name ?? 'Group';
+  }
+
+  isGroupOwnerForPrayer(prayer: GroupPrayerRow): boolean {
+    return this.groups.find((group) => group.id === prayer.group_id)?.role === 'owner';
+  }
+
+  overflowItems(group: PrayerGroupSummary): CardActionsOverflowItem[] {
+    const items: CardActionsOverflowItem[] = [
+      {
+        id: 'members',
+        label: 'Manage members',
+        icon: 'users',
+        tone: 'blue',
+        ariaLabel: `Manage members of ${group.name}`,
+        onSelect: () => void this.openMembers(group),
+      },
+    ];
+    if (group.role !== 'owner') return items;
+    return [
+      ...items,
+      {
+        id: 'edit',
+        label: 'Rename group',
+        icon: 'edit',
+        tone: 'blue',
+        ariaLabel: `Rename ${group.name}`,
+        onSelect: () => this.openRename(group),
+      },
+      {
+        id: 'delete',
+        label: 'Delete group',
+        icon: 'trash',
+        tone: 'red',
+        ariaLabel: `Delete ${group.name}`,
+        onSelect: () => {
+          this.pendingDelete = group;
+          this.cdr.markForCheck();
+        },
+      },
+    ];
+  }
+
+  async onGroupDrop(event: CdkDragDrop<PrayerGroupSummary[]>): Promise<void> {
+    if (event.previousIndex === event.currentIndex || this.reordering) return;
+    moveItemInArray(this.groups, event.previousIndex, event.currentIndex);
+    this.reordering = true;
+    this.cdr.markForCheck();
+    try {
+      await this.groupsApi.reorderGroups(this.groups.map((group) => group.id));
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not reorder groups');
+      await this.reload();
+    } finally {
+      this.reordering = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async createGroup(): Promise<void> {
+    const name = this.createName.trim();
+    if (!name || this.submitting) return;
+    this.submitting = true;
+    this.cdr.markForCheck();
+    try {
+      const id = await this.groupsApi.createGroup(name);
+      this.createName = '';
+      this.createOpen = false;
+      this.selectedId = id;
+      this.filterMode = 'named';
+      this.cdr.markForCheck();
+      await this.reload();
+      const created =
+        this.groups.find((group) => group.id === id) ??
+        ({ id, name, role: 'owner', memberCount: 1 } satisfies PrayerGroupSummary);
+      this.openMembers(created);
+      this.toast.success('Group created');
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not create the group');
+    } finally {
+      this.submitting = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async saveRename(): Promise<void> {
+    const name = this.renameDraft.trim();
+    if (!this.renameTarget || !name || name === this.renameTarget.name) return;
+    this.submitting = true;
+    this.cdr.markForCheck();
+    try {
+      await this.groupsApi.renameGroup(this.renameTarget.id, name);
+      this.renameTarget = null;
+      await this.reload();
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not rename the group');
+    } finally {
+      this.submitting = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async confirmDelete(): Promise<void> {
+    const group = this.pendingDelete;
+    if (!group) return;
+    this.submitting = true;
+    this.cdr.markForCheck();
+    try {
+      await this.groupsApi.deleteGroup(group.id);
+      if (this.selectedId === group.id) this.selectStatus('current');
+      this.pendingDelete = null;
+      await this.reload();
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not delete the group');
+    } finally {
+      this.submitting = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async sendInvites(): Promise<void> {
+    if (!this.membersTarget) return;
+    const emails = parseInviteEmails(this.emailsDraft);
+    if (emails.length === 0) return;
+    this.submitting = true;
+    this.cdr.markForCheck();
+    try {
+      let inviteEmailFailed = false;
+      for (const email of emails) {
+        const result = await this.groupsApi.invite(this.membersTarget.id, email);
+        if (result.emailError) {
+          inviteEmailFailed = true;
+          this.toast.error(`Added ${email}. ${result.emailError}`);
+        }
+      }
+      this.emailsDraft = '';
+      await this.loadMembers(this.membersTarget.id);
+      await this.reload();
+      if (!inviteEmailFailed) {
+        this.toast.success('Invites sent');
+      }
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not invite that email');
+    } finally {
+      this.submitting = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async removeMember(email: string): Promise<void> {
+    if (!this.membersTarget) return;
+    try {
+      await this.groupsApi.removeMember(this.membersTarget.id, email);
+      await this.loadMembers(this.membersTarget.id);
+      await this.reload();
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not remove that member');
+    }
+  }
+
+  async leave(group: PrayerGroupSummary): Promise<void> {
+    const confirmed = window.confirm(
+      group.role === 'owner'
+        ? 'Leaving deletes this group for everyone. Continue?'
+        : 'Leave this group?',
+    );
+    if (!confirmed) return;
+    try {
+      const accountDeleted = await this.groupsApi.leave(group.id);
+      if (accountDeleted) {
+        await this.auth.logout();
+        window.location.assign('/login');
+        return;
+      }
+      this.membersTarget = null;
+      if (this.selectedId === group.id) this.selectStatus('current');
+      await this.reload();
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not leave the group');
+    }
+  }
+
+  get transferMemberOptions(): AdminFilterSelectOption[] {
+    return this.members
+      .filter(
+        (member) =>
+          member.user_email !== this.viewerEmail && member.role !== 'owner',
+      )
+      .map((member) => ({
+        value: member.user_email,
+        label: member.name || member.user_email,
+      }));
+  }
+
+  onTransferEmailChange(email: string): void {
+    if (!email) {
+      this.transferEmail = '';
+      this.cdr.markForCheck();
+      return;
+    }
+    this.pendingTransferEmail = email;
+    this.transferEmail = '';
+    this.cdr.markForCheck();
+  }
+
+  cancelTransfer(): void {
+    this.pendingTransferEmail = null;
+    this.transferEmail = '';
+    this.cdr.markForCheck();
+  }
+
+  async confirmTransfer(): Promise<void> {
+    const email = this.pendingTransferEmail;
+    this.pendingTransferEmail = null;
+    if (!this.membersTarget || !email) return;
+    try {
+      await this.groupsApi.transfer(this.membersTarget.id, email);
+      this.transferEmail = '';
+      this.membersTarget = { ...this.membersTarget, role: 'member' };
+      await this.reload();
+      this.toast.success('Ownership transferred');
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not transfer ownership');
+    } finally {
+      this.cdr.markForCheck();
+    }
+  }
+
+  async deletePrayer(prayerId: string): Promise<void> {
+    try {
+      await this.groupsApi.deletePrayer(prayerId);
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not delete the prayer');
+    }
+  }
+
+  async addUpdate(event: PrayerCardAddUpdateEvent): Promise<void> {
+    try {
+      await this.groupsApi.addUpdate({
+        prayerId: event.prayer_id,
+        content: event.content,
+        author: event.author,
+        authorEmail: event.author_email,
+        markAsAnswered: event.mark_as_answered,
+      });
+      if (event.mark_as_answered) {
+        try {
+          await this.groupsApi.setAnswered(event.prayer_id, true);
+        } catch {
+          this.toast.error('Update saved. Only the author can mark the prayer answered.');
+        }
+      }
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not add the update');
+    }
+  }
+
+  async deleteUpdate(event: PrayerCardDeleteUpdateEvent): Promise<void> {
+    try {
+      await this.groupsApi.deleteUpdate(event.updateId);
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not delete the update');
+    }
+  }
+
+  openEdit(prayer: PrayerRequest): void {
+    this.editingPrayer = prayer;
+    this.editPrayerFor = prayer.prayer_for;
+    this.editDescription = prayer.description;
+    this.cdr.markForCheck();
+  }
+
+  async saveEdit(): Promise<void> {
+    const prayer = this.editingPrayer;
+    const prayerFor = this.editPrayerFor.trim();
+    if (!prayer || !prayerFor) return;
+    try {
+      await this.groupsApi.updatePrayer(prayer.id, prayerFor, this.editDescription);
+      this.editingPrayer = null;
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not save the prayer');
+    }
+  }
+
+  openEditUpdate(event: { update: { id: string; content: string } }): void {
+    this.editingUpdate = { id: event.update.id, content: event.update.content };
+    this.cdr.markForCheck();
+  }
+
+  async saveUpdateEdit(): Promise<void> {
+    const update = this.editingUpdate;
+    if (!update || !update.content.trim()) return;
+    try {
+      await this.groupsApi.updateUpdate(update.id, update.content.trim());
+      this.editingUpdate = null;
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not save the update');
+    }
+  }
+
+  async setAnswered(prayerId: string, answered: boolean): Promise<void> {
+    try {
+      await this.groupsApi.setAnswered(prayerId, answered);
+    } catch (err: unknown) {
+      this.toast.error(
+        err instanceof Error ? err.message : 'Only the author can change answered status',
+      );
+    }
+  }
+
+  onPrayedForCountChange(event: { prayerId: string; count: number }): void {
+    this.prayers = this.prayers.map((prayer) =>
+      prayer.id === event.prayerId
+        ? { ...prayer, prayed_for_count: event.count }
+        : prayer,
+    );
+    this.cdr.markForCheck();
+  }
+
+  private openMembers(group: PrayerGroupSummary): void {
+    this.membersTarget = group;
+    this.emailsDraft = '';
+    this.transferEmail = '';
+    this.pendingTransferEmail = null;
+    this.members =
+      this.groupsApi.membersForGroup(group.id) ?? this.fallbackMembersForViewer(group);
+    this.cdr.markForCheck();
+    void this.loadMembers(group.id);
+  }
+
+  private fallbackMembersForViewer(group: PrayerGroupSummary): PrayerGroupMemberRow[] {
+    const email = this.viewerEmail.trim().toLowerCase();
+    if (!email) return [];
+    return [
+      {
+        user_email: email,
+        role: group.role,
+        name: this.viewerName.trim() || null,
+      },
+    ];
+  }
+
+  private openRename(group: PrayerGroupSummary): void {
+    this.renameTarget = group;
+    this.renameDraft = group.name;
+    this.cdr.markForCheck();
+  }
+
+  private async reload(): Promise<void> {
+    const token = ++this.loadToken;
+    this.error = null;
+    this.cdr.markForCheck();
+    try {
+      const [groups, prayers] = await Promise.all([
+        this.groupsApi.listGroups(),
+        this.groupsApi.listAllPrayers(),
+      ]);
+      const updates = await this.groupsApi.listUpdates(prayers.map((prayer) => prayer.id));
+      if (token !== this.loadToken) return;
+      this.groups = groups;
+      this.prayers = prayers;
+      this.updatesByPrayer = new Map();
+      for (const update of updates) {
+        const list = this.updatesByPrayer.get(update.group_prayer_id) ?? [];
+        list.push(update);
+        this.updatesByPrayer.set(update.group_prayer_id, list);
+      }
+      if (this.selectedId) this.groupsApi.preferredGroupId = this.selectedId;
+      this.applyPendingGroupDeepLink();
+    } catch (err: unknown) {
+      if (token !== this.loadToken) return;
+      this.error = err instanceof Error ? err.message : 'Could not load groups';
+    } finally {
+      if (token === this.loadToken) this.cdr.markForCheck();
+    }
+  }
+
+  private applyPendingGroupDeepLink(): void {
+    const groupId = this.deepLinks.peekPendingGroupId();
+    if (!groupId || !this.groups.some((group) => group.id === groupId)) {
+      return;
+    }
+    this.deepLinks.consumePendingGroupId();
+    this.selectGroup(groupId);
+  }
+
+  private async loadMembers(groupId: string): Promise<void> {
+    const token = ++this.membersLoadToken;
+    try {
+      const rows = await this.groupsApi.listMembers(groupId);
+      if (token !== this.membersLoadToken || this.membersTarget?.id !== groupId) return;
+      this.members = rows;
+      this.cdr.markForCheck();
+    } catch (err: unknown) {
+      if (token !== this.membersLoadToken || this.membersTarget?.id !== groupId) return;
+      this.toast.error(err instanceof Error ? err.message : 'Could not load members');
+      this.cdr.markForCheck();
+    }
+  }
+}

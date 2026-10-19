@@ -47,6 +47,7 @@
 <app-personal-prayer-answered-status-modal
   [isOpen]="personalAnsweredStatusModalMode !== null"
   [mode]="personalAnsweredStatusModalMode ?? 'mark'"
+  [scope]="personalAnsweredStatusModalScope"
   (close)="closePersonalAnsweredStatus.emit()"
   (confirmMark)="confirmPersonalAnswered.emit()"
   (confirmUnmark)="confirmPersonalUnanswered.emit($event)"

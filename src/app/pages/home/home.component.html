@@ -99,13 +99,33 @@
         <span>Refreshing prayers…</span>
       </div>
 
+      @let session = userSessionService.userSession$ | async;
+      @let showPrayForButton =
+        (userSessionService.getShowPrayForButton$() | async) ?? true;
+      @let showPrayingCount =
+        (userSessionService.getShowPrayingCount$() | async) ?? true;
+      @let prayerEncouragementEnabled =
+        (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) ??
+        false;
       <app-home-filter-tabs
         [activeFilter]="activeFilter"
+        [showChurchTab]="session?.isChurchMember !== false"
         [currentPrayerBadge$]="currentPrayerBadge$"
         [answeredPrayerBadge$]="answeredPrayerBadge$"
         (tabSelected)="filter.setFilter($event)"
         (publicTabSelected)="filter.selectPublicTab()"
       ></app-home-filter-tabs>
+
+      @if (activeFilter === 'groups') {
+      <app-home-groups-panel
+        [isChurchMember]="session?.isChurchMember !== false"
+        [viewerEmail]="session?.email ?? ''"
+        [viewerName]="session?.fullName ?? ''"
+        [showPrayForButton]="showPrayForButton"
+        [showPrayingCount]="showPrayingCount"
+        [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+      ></app-home-groups-panel>
+      }
 
       @if (isPublicAreaFilter(activeFilter)) {
       <div class="mb-2 sm:mb-3">
@@ -157,7 +177,7 @@
       @let promptsCatalogCount = (prompts$ | async)?.length ?? 0;
       @let contentLoading =
         !viewReady ||
-        !!(loading$ | async) ||
+        (activeFilter !== 'groups' && !!(loading$ | async)) ||
         (activeFilter === 'prompts' &&
           !!(promptService.loading$ | async)) ||
         (activeFilter === 'personal' &&
@@ -165,6 +185,7 @@
         (activeFilter === 'memorize' &&
           !!(memorizationService.loading$ | async));
       @let hasCachedContentForTab =
+        activeFilter === 'groups' ||
         activeFilter === 'memorize' ||
         (activeFilter === 'prompts' &&
           (catalog.displayedPrompts.length > 0 || promptsCatalogCount > 0)) ||
@@ -225,13 +246,6 @@
       }
 
       <!-- Prayers or Prompts List -->
-      @let showPrayForButton =
-        (userSessionService.getShowPrayForButton$() | async) ?? true;
-      @let showPrayingCount =
-        (userSessionService.getShowPrayingCount$() | async) ?? true;
-      @let prayerEncouragementEnabled =
-        (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) ??
-        false;
       @let isAdmin = (isAdmin$ | async) ?? false;
       <app-home-prayer-content
         [contentHidden]="hidePrayerContentForLoading"
@@ -271,6 +285,7 @@
   </div>
 
   <!-- Outside .safe-area-viewport. CDK contain:strict on that scroller traps position:fixed. -->
+  @let modalSession = userSessionService.userSession$ | async;
   <app-home-modals-host
     #modalsHost
     [activeFilter]="shell.modals.activeFilter"
@@ -279,6 +294,7 @@
     [settingsScrollToSectionId]="shell.modals.settingsScrollToSectionId"
     [showHelp]="shell.modals.showHelp"
     [showLogoutConfirmation]="shell.modals.showLogoutConfirmation"
+    [showGroupProfile]="groupMemberNeedsProfile(modalSession)"
     [showEditPersonalPrayer]="shell.modals.showEditPersonalPrayer"
     [editingPrayer]="shell.modals.editingPrayer"
     [showRenamePersonalCategory]="shell.modals.showRenamePersonalCategory"

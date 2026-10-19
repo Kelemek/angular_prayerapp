@@ -54,7 +54,10 @@ import {
   buildPrayerCardUpdateDeletionRequest,
 } from '../../lib/prayer-card-delete-requests';
 import { prayerUpdateDeleteAction } from '../../lib/prayer-card-permissions';
-import { getPrayerCardUserEmail } from '../../lib/prayer-card-user-context';
+import {
+  getPrayerCardUserEmail,
+  isCurrentUserPrayerRequester,
+} from '../../lib/prayer-card-user-context';
 import { PrayerCardBadgeWire } from '../../lib/prayer-card-badge-wire';
 import {
   applyPrayerCardDeleteUiPatch,
@@ -120,6 +123,9 @@ export class PrayerCardComponent
   @Input() prayer!: PrayerRequest;
   @Input() isAdmin = false;
   @Input() isPersonal = false;
+  /** Group prayers show this name in the header and save answered state on the group row. */
+  @Input() groupName: string | null = null;
+  @Input() allowGroupOwnerDelete = false;
   @Input() personalDragHandle = false;
   @Input() personalDragTourId: string | null = null;
   @Input() deletionsAllowed: PrayerCardPermissionContext['deletionsAllowed'] =
@@ -163,6 +169,7 @@ export class PrayerCardComponent
     status: string;
   }>();
   @Output() memorizeVerse = new EventEmitter<void>();
+  @Output() groupAnsweredChange = new EventEmitter<boolean>();
 
   prayerBadge$: Observable<boolean> | null = null;
   canPrayFor$ = of(true);
@@ -268,6 +275,13 @@ export class PrayerCardComponent
     return getPrayerCardUserEmail(this.userSessionService);
   }
 
+  get canEditGroupPrayer(): boolean {
+    if (!this.groupName) {
+      return false;
+    }
+    return isCurrentUserPrayerRequester(this.sessionEmail, this.prayer?.email);
+  }
+
   get viewState() {
     return computePrayerCardViewState({
       variant: this.variant,
@@ -279,6 +293,8 @@ export class PrayerCardComponent
       updatesAllowed: this.updatesAllowed,
       reminderSessionEmail: this.reminderSessionEmail(),
       currentUserEmail: getPrayerCardUserEmail(this.userSessionService),
+      allowGroupOwnerDelete: this.allowGroupOwnerDelete,
+      isGroupPrayer: !!this.groupName,
     });
   }
 
@@ -418,7 +434,8 @@ export class PrayerCardComponent
       {
         prayerId,
         isMember,
-        isPersonal: this.isPersonal,
+        isPersonal: this.isPersonal && !this.groupName,
+        isGroupPrayer: !!this.groupName,
         usePersonalCooldown: usesPersonalCooldown,
       }
     );
@@ -441,7 +458,7 @@ export class PrayerCardComponent
       this,
       prayerCardPrayerDeleteClickPatch(
         this.isAdmin,
-        this.isPersonal,
+        this.isPersonal || !!this.groupName,
         this.showDeleteRequestForm
       )
     );
@@ -538,13 +555,20 @@ export class PrayerCardComponent
 
   handleDeleteUpdate(updateId: string): void {
     const update = this.prayerUpdateList.find((row) => row.id === updateId);
-    const action = prayerUpdateDeleteAction({
+    let action = prayerUpdateDeleteAction({
       isMember: this.viewState.isMember,
       isAdmin: this.isAdmin,
-      isPersonal: this.isPersonal,
+      isPersonal: this.isPersonal || !!this.groupName,
       currentUserEmail: this.sessionEmail,
       authorEmail: update?.author_email,
     });
+    if (
+      this.groupName &&
+      (this.isAdmin || this.allowGroupOwnerDelete) &&
+      action === 'request'
+    ) {
+      action = 'confirm';
+    }
     if (action === 'none') return;
     applyPrayerCardDeleteUiPatch(
       this,
@@ -614,14 +638,14 @@ export class PrayerCardComponent
 
   getUpdateActionsMode() {
     return prayerCardUpdateActionsMode(
-      this.isPersonal,
+      this.isPersonal || !!this.groupName,
       this.viewState.isMember
     );
   }
 
   onUpdateEdit(update: PrayerUpdateRecord): void {
     const payload = prayerUpdateFromRecord(update, this.prayer.id);
-    if (this.isPersonal) {
+    if (this.isPersonal || this.groupName) {
       this.editPersonalUpdate.emit({
         update: payload,
         prayerId: this.prayer.id,
@@ -642,6 +666,12 @@ export class PrayerCardComponent
   }
 
   onPersonalAnsweredClick(): void {
+    if (this.groupName) {
+      this.personalAnsweredStatusModalMode =
+        this.prayer.status === 'answered' ? 'unmark' : 'mark';
+      this.cdr.markForCheck();
+      return;
+    }
     if (!this.isPersonal || this.isTogglingPersonalAnswered) {
       return;
     }
@@ -658,11 +688,21 @@ export class PrayerCardComponent
 
   onConfirmPersonalAnswered(): void {
     this.personalAnsweredStatusModalMode = null;
+    if (this.groupName) {
+      this.groupAnsweredChange.emit(true);
+      this.cdr.markForCheck();
+      return;
+    }
     void this.applyPersonalAnsweredCategory('Answered');
   }
 
   onConfirmPersonalUnanswered(category: string | null): void {
     this.personalAnsweredStatusModalMode = null;
+    if (this.groupName) {
+      this.groupAnsweredChange.emit(false);
+      this.cdr.markForCheck();
+      return;
+    }
     void this.applyPersonalAnsweredCategory(category);
   }
 

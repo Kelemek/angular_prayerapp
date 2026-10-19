@@ -27,6 +27,7 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
 
   editName = '';
   editSaving = false;
+  membershipSaving = false;
   editError: string | null = null;
 
   constructor(
@@ -39,6 +40,34 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
     this.editName = this.subscriber.name || '';
     this.editError = null;
     this.editSaving = false;
+    this.membershipSaving = false;
+  }
+
+  async changeChurchAccess(upgrade: boolean): Promise<void> {
+    const confirmed = window.confirm(
+      upgrade
+        ? 'Give this person church access?'
+        : 'Remove church access? They must already belong to a group, and they cannot own a group or be an admin.',
+    );
+    if (!confirmed) return;
+    this.membershipSaving = true;
+    this.editError = null;
+    this.cdr.markForCheck();
+    try {
+      const client = await this.supabase.db();
+      const { error } = await client.rpc(
+        upgrade ? 'admin_upgrade_to_church_member' : 'admin_downgrade_to_group_only',
+        { p_subscriber_id: this.subscriber.id },
+      );
+      if (error) throw error;
+      this.subscriber = { ...this.subscriber, is_church_member: upgrade };
+      this.toast.success(upgrade ? 'Upgraded to church member' : 'Downgraded to group only');
+    } catch (err: unknown) {
+      this.editError = err instanceof Error ? err.message : 'Could not change church access';
+    } finally {
+      this.membershipSaving = false;
+      this.cdr.markForCheck();
+    }
   }
 
   onCloseClick(): void {

@@ -1,3 +1,4 @@
+import { rejectGroupOnlyCaller } from '../shared/reject-group-only-caller.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders })
   }
+
+  const groupOnly = await rejectGroupOnlyCaller(req)
+  if (groupOnly) return groupOnly
 
   try {
     const { action, listId } = await req.json()

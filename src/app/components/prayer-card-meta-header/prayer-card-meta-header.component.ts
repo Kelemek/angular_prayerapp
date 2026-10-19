@@ -33,10 +33,17 @@ import {
       [centerTime]="showCenterDateTime ? metaHeaderTime : null"
       [centerDragHandle]="centerDragHandle"
       [centerDragHandleId]="centerDragHandleId"
-      [compactActionsInset]="isPersonal"
+      [compactActionsInset]="isPersonal || !!groupName"
     >
       <div cardMetaLeft class="w-full min-w-0">
-        @if (isPersonal) {
+        @if (groupName) {
+        <span
+          [class]="'block min-w-0 max-w-full truncate font-bold ' + layoutClasses.textSmClasses + ' ' + headerInsetClasses"
+          [title]="groupName"
+        >
+          {{ groupName }}
+        </span>
+        } @else if (isPersonal) {
           @if (category) {
           <app-personal-category-pill
             variant="header"
@@ -84,6 +91,10 @@ export class PrayerCardMetaHeaderComponent {
   @Input() isPersonal = false;
   @Input() isMember = false;
   @Input() category: string | null = null;
+  /** When set, the left side of the header shows the group name. */
+  @Input() groupName: string | null = null;
+  /** Group prayers: only the requester may edit or change answered status (RLS). */
+  @Input() canEditGroupPrayer = false;
   @Input() status = 'current';
   @Input() showStatus = false;
   /** When false, header band is two-column (actions only) — e.g. Planning Center member cards. */
@@ -106,6 +117,7 @@ export class PrayerCardMetaHeaderComponent {
   @Output() pickerOpenChange = new EventEmitter<boolean>();
 
   get isAnswered(): boolean {
+    if (this.groupName) return this.status === 'answered';
     return this.category === 'Answered';
   }
 
@@ -142,7 +154,7 @@ export class PrayerCardMetaHeaderComponent {
         onSelect: () => this.reminder.emit(),
       });
     }
-    if (this.isPersonal) {
+    if (this.isPersonal && !this.groupName) {
       items.push({
         id: 'answered',
         label: this.isAnswered ? 'Mark as unanswered' : 'Mark as answered',
@@ -155,6 +167,25 @@ export class PrayerCardMetaHeaderComponent {
         id: 'edit',
         label: 'Edit prayer',
         ariaLabel: 'Edit personal prayer',
+        icon: 'edit',
+        tone: 'blue',
+        tourAnchorId: this.personalEditTourId,
+        onSelect: () => this.edit.emit(),
+      });
+    }
+    if (this.groupName && this.canEditGroupPrayer) {
+      items.push({
+        id: 'answered',
+        label: this.isAnswered ? 'Mark as unanswered' : 'Mark as answered',
+        icon: 'check',
+        tone: this.isAnswered ? 'green' : 'gray',
+        tourAnchorId: this.personalAnsweredTourId,
+        onSelect: () => this.toggleAnswered.emit(),
+      });
+      items.push({
+        id: 'edit',
+        label: 'Edit prayer',
+        ariaLabel: 'Edit prayer',
         icon: 'edit',
         tone: 'blue',
         tourAnchorId: this.personalEditTourId,

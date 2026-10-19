@@ -3,7 +3,8 @@
 <div [class]="stackGapClass">
   <!-- Empty State for Prayers -->
   @if (activeFilter !== 'prompts' && activeFilter !== 'personal' &&
-  activeFilter !== 'planning_center_list' && activeFilter !== 'memorize' && (prayers$ |
+  activeFilter !== 'planning_center_list' && activeFilter !== 'memorize' &&
+  activeFilter !== 'groups' && (prayers$ |
   async)?.length === 0) {
   <div
     class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center border border-gray-200 dark:border-gray-700"

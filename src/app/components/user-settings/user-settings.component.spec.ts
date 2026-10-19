@@ -1907,6 +1907,31 @@ describe('UserSettingsComponent', () => {
       expect(component.successDefaultView).toContain('Default view set to');
     });
 
+    it('should save groups as the default prayer view', async () => {
+      const updateSpy = vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      }));
+      mockSupabaseService.client.from = vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() =>
+              Promise.resolve({
+                data: { id: 'sub-1' },
+                error: null,
+              }),
+            ),
+          })),
+        })),
+        update: updateSpy,
+      }));
+
+      await component.onDefaultViewChange('groups');
+
+      expect(updateSpy).toHaveBeenCalledWith({ default_prayer_view: 'groups' });
+      expect(component.defaultPrayerView).toBe('groups');
+      expect(component.successDefaultView).toContain('Group');
+    });
+
     it('should create new record if subscriber does not exist', async () => {
       const insertSpy = vi.fn(() => Promise.resolve({ data: null, error: null }));
       mockSupabaseService.client.from = vi.fn(() => ({
@@ -2069,7 +2094,7 @@ describe('UserSettingsComponent', () => {
 
       await component.onDefaultViewChange('current');
 
-      expect(component.successDefaultView).toContain('Current Prayers');
+      expect(component.successDefaultView).toContain('Church');
     });
 
     it('should set proper text for personal view', async () => {
@@ -2089,7 +2114,7 @@ describe('UserSettingsComponent', () => {
 
       await component.onDefaultViewChange('personal');
 
-      expect(component.successDefaultView).toContain('Personal Prayers');
+      expect(component.successDefaultView).toContain('Personal');
     });
   });
 
@@ -2530,6 +2555,43 @@ describe('UserSettingsComponent', () => {
       expect(component.showPrayForButton).toBe(false);
       expect(component.defaultPrayerView).toBe('personal');
       expect(component.preferencesLoaded).toBe(true);
+    });
+
+    it('marks group-only subscribers when modal opens from session', () => {
+      mockUserSessionService.getCurrentSession.mockReturnValue({
+        email: 'group@example.com',
+        fullName: 'Group User',
+        isChurchMember: false,
+        defaultPrayerView: 'groups',
+      });
+      component.isOpen = true;
+      component.ngOnChanges({
+        isOpen: {
+          currentValue: true,
+          previousValue: false,
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+      expect(component.isChurchMember).toBe(false);
+    });
+
+    it('maps legacy church default to Group in UI for group-only members', () => {
+      mockUserSessionService.getCurrentSession.mockReturnValue({
+        email: 'group@example.com',
+        isChurchMember: false,
+        defaultPrayerView: 'current',
+      });
+      component.isOpen = true;
+      component.ngOnChanges({
+        isOpen: {
+          currentValue: true,
+          previousValue: false,
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+      expect(component.displayDefaultPrayerView).toBe('groups');
     });
 
     it('sets defaults when modal opens with whitespace-only email and no session', () => {

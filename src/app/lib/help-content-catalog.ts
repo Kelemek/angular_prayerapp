@@ -551,7 +551,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Default Prayer View',
-            text: 'Set your preferred default view when you log in. Choose between "Current Prayers View" to see church prayers waiting for prayer, or "Personal Prayers View" to see your personal prayer list. Your selection is saved and will be remembered each time you log in.',
+            text: 'Set your preferred default view when you log in: **Church**, **Group**, or **Personal**. Your selection is saved and will be remembered each time you log in.',
           },
           {
             subtitle: 'Memorization practice',

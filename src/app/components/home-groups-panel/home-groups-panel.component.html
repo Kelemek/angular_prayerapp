@@ -1,0 +1,373 @@
+<div [class]="sectionGapClass">
+  <div [class]="panelClass">
+    @if (error) {
+    <p class="mb-2 text-sm text-red-700 dark:text-red-200">{{ error }}</p>
+    }
+    <div [class]="chipRowClass">
+      @if (isChurchMember) {
+      <app-home-sub-filter-chip
+        chipId="tour-filter-add-group"
+        chipAriaLabel="Add a group"
+        [stretch]="false"
+        [active]="false"
+        [layoutClass]="addGroupChipLayoutClass"
+        [activeClass]="groupChipActive"
+        [inactiveClass]="groupChipInactive"
+        (chipClick)="createOpen = true"
+      >
+        <svg
+          class="size-6 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.25"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </app-home-sub-filter-chip>
+      }
+      <app-home-sub-filter-chip
+        chipId="tour-filter-groups-current"
+        [active]="filterMode === 'current'"
+        [activeClass]="chipThemes.current.active"
+        [inactiveClass]="groupChipInactive"
+        (chipClick)="selectStatus('current')"
+      >
+        Current ({{ counts.current }})
+      </app-home-sub-filter-chip>
+      <app-home-sub-filter-chip
+        chipId="tour-filter-groups-answered"
+        [active]="filterMode === 'answered'"
+        [activeClass]="chipThemes.answered.active"
+        [inactiveClass]="groupChipInactive"
+        (chipClick)="selectStatus('answered')"
+      >
+        Answered ({{ counts.answered }})
+      </app-home-sub-filter-chip>
+      <app-home-sub-filter-chip
+        chipId="tour-filter-groups-total"
+        [active]="filterMode === 'total'"
+        [activeClass]="chipThemes.total.active"
+        [inactiveClass]="groupChipInactive"
+        (chipClick)="selectStatus('total')"
+      >
+        Total ({{ counts.total }})
+      </app-home-sub-filter-chip>
+    </div>
+
+    @if (groups.length > 0) {
+    <div
+      cdkDropList
+      cdkDropListOrientation="mixed"
+      [cdkDropListData]="groups"
+      (cdkDropListDropped)="onGroupDrop($event)"
+      [cdkDropListDisabled]="reordering"
+      [class]="chipRowClass + ' mt-2'"
+    >
+      @for (group of groups; track group.id) {
+      <div cdkDrag [cdkDragDisabled]="reordering" [class]="chipHostClass">
+        <div [class]="chipClass(group)">
+          <span
+            cdkDragHandle
+            class="absolute inset-y-0 left-0 flex w-7 items-center justify-center cursor-grab"
+            aria-hidden="true"
+            (pointerdown)="$event.stopPropagation()"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="9" cy="5" r="1"></circle>
+              <circle cx="9" cy="12" r="1"></circle>
+              <circle cx="9" cy="19" r="1"></circle>
+              <circle cx="15" cy="5" r="1"></circle>
+              <circle cx="15" cy="12" r="1"></circle>
+              <circle cx="15" cy="19" r="1"></circle>
+            </svg>
+          </span>
+          <button
+            type="button"
+            class="flex min-w-0 flex-1 items-center justify-center border-0 bg-transparent px-2 text-center text-xs font-medium text-inherit cursor-pointer"
+            (click)="selectGroup(group.id)"
+          >
+            {{ group.name }} ({{ prayerCount(group.id) }})
+          </button>
+          <span class="inline-flex shrink-0 items-center" (pointerdown)="$event.stopPropagation()">
+            <app-card-actions-overflow-menu [items]="overflowItems(group)" bandSize="sm" />
+          </span>
+        </div>
+      </div>
+      }
+    </div>
+    }
+  </div>
+</div>
+
+<div class="space-y-3">
+  @for (prayer of visiblePrayers; track prayer.id) {
+  <app-prayer-card
+    [attr.id]="'prayer-card-' + prayer.id"
+    [prayer]="cardFor(prayer)"
+    [isPersonal]="true"
+    [groupName]="groupNameFor(prayer.group_id)"
+    [allowGroupOwnerDelete]="isGroupOwnerForPrayer(prayer)"
+    [activeFilter]="'personal'"
+    [deletionsAllowed]="'original-requestor'"
+    [updatesAllowed]="'everyone'"
+    [showPrayForButton]="showPrayForButton"
+    [showPrayingCount]="showPrayingCount"
+    [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+    (delete)="deletePrayer(prayer.id)"
+    (addUpdate)="addUpdate($event)"
+    (deleteUpdate)="deleteUpdate($event)"
+    (editPersonalPrayer)="openEdit($event)"
+    (editPersonalUpdate)="openEditUpdate($event)"
+    (groupAnsweredChange)="setAnswered(prayer.id, $event)"
+    (prayedForCountChange)="onPrayedForCountChange($event)"
+  />
+  } @empty {
+  <div class="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-md dark:border-gray-700 dark:bg-gray-800">
+    @if (groups.length === 0) {
+    <h3 class="mb-2 text-lg font-medium text-gray-700 dark:text-gray-200">No groups yet</h3>
+    <p class="text-gray-500 dark:text-gray-400">
+      Groups are private prayers for the people you invite.
+      @if (isChurchMember) {
+      Tap the + button to create one.
+      } @else {
+      You are not in a group yet.
+      }
+    </p>
+    } @else {
+    <h3 class="mb-2 text-lg font-medium text-gray-700 dark:text-gray-200">No group prayers yet</h3>
+    <p class="text-gray-500 dark:text-gray-400">
+      Tap Request and choose Group Prayer to share with this group.
+    </p>
+    }
+  </div>
+  }
+</div>
+
+@if (createOpen) {
+<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="createOpen = false">
+  <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+    <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Create a group</h2>
+      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="createOpen = false">✕</button>
+    </div>
+    <div class="space-y-4 px-6 py-4">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Group name
+        <input
+          [(ngModel)]="createName"
+          name="createName"
+          placeholder="Family, small group, …"
+          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+          (keydown.enter)="createGroup()"
+        />
+      </label>
+      <p class="text-sm text-gray-500 dark:text-gray-400">After you name the group you can invite people by email.</p>
+    </div>
+    <div class="modal-chrome-footer flex justify-end px-6 py-4">
+      <button
+        type="button"
+        class="min-h-11 px-6 py-2.5 text-base font-medium btn-chip btn-chip-blue disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="createGroup()"
+        [disabled]="submitting || !createName.trim()"
+      >
+        {{ submitting ? 'Creating…' : 'Create group' }}
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+@if (membersTarget) {
+<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="membersTarget = null">
+  <div class="modal-panel-edge flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+    <div class="modal-chrome-header flex shrink-0 items-center justify-between px-6 py-4">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage members</h2>
+        <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ membersTarget.name }}</p>
+      </div>
+      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="membersTarget = null">✕</button>
+    </div>
+    <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+      <ul class="space-y-2">
+        @for (member of members; track member.user_email) {
+        <li class="flex items-center justify-between gap-2 text-sm">
+          <div class="min-w-0">
+            <div class="truncate text-gray-800 dark:text-gray-100">{{ member.name || member.user_email }}</div>
+            <div class="text-xs capitalize text-gray-500">{{ member.role }}</div>
+          </div>
+          @if (membersTarget.role === 'owner' && member.user_email !== viewerEmail && member.role !== 'owner') {
+          <button type="button" class="cursor-pointer text-sm font-medium text-red-600" (click)="removeMember(member.user_email)">Remove</button>
+          }
+        </li>
+        }
+      </ul>
+      @if (membersTarget.role === 'owner') {
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Invite by email
+        <textarea
+          rows="3"
+          [(ngModel)]="emailsDraft"
+          name="emailsDraft"
+          placeholder="name@example.com, another@example.com"
+          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+        ></textarea>
+      </label>
+      <div class="space-y-1">
+        <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Transfer ownership</span>
+        <app-admin-filter-select
+          class="block w-full"
+          [value]="transferEmail"
+          (valueChange)="onTransferEmailChange($event)"
+          [options]="transferMemberOptions"
+          placeholder="Select a member"
+          ariaLabel="Member to transfer ownership to"
+        />
+      </div>
+      }
+    </div>
+    <div class="modal-chrome-footer flex shrink-0 items-center justify-between gap-3 px-6 py-4">
+      <button
+        type="button"
+        class="min-h-11 px-4 py-2.5 text-sm font-medium btn-chip btn-chip-red"
+        (click)="leave(membersTarget)"
+      >
+        Leave group
+      </button>
+      @if (membersTarget.role === 'owner') {
+      <button
+        type="button"
+        class="min-h-11 px-6 py-2.5 text-base font-medium btn-chip disabled:cursor-not-allowed"
+        [class.btn-chip-blue]="canSendInvites && !submitting"
+        [class.btn-chip-gray]="!canSendInvites || submitting"
+        [class.opacity-50]="!canSendInvites || submitting"
+        (click)="sendInvites()"
+        [disabled]="submitting || !canSendInvites"
+      >
+        Send invites
+      </button>
+      }
+    </div>
+  </div>
+</div>
+}
+
+@if (renameTarget) {
+<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="renameTarget = null">
+  <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+    <div class="modal-chrome-header px-6 py-4">
+      <h2 class="text-lg font-semibold">Rename group</h2>
+    </div>
+    <div class="px-6 py-4">
+      <input
+        [(ngModel)]="renameDraft"
+        name="renameDraft"
+        class="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+        (keydown.enter)="saveRename()"
+      />
+    </div>
+    <div class="modal-chrome-footer flex justify-end gap-3 px-6 py-4">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+        (click)="renameTarget = null"
+      >
+        Cancel
+      </button>
+      <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveRename()">Save</button>
+    </div>
+  </div>
+</div>
+}
+
+@if (editingPrayer) {
+<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingPrayer = null">
+  <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+    <div class="modal-chrome-header px-6 py-4">
+      <h2 class="text-lg font-semibold">Edit prayer</h2>
+    </div>
+    <div class="space-y-3 px-6 py-4">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Prayer for
+        <input
+          [(ngModel)]="editPrayerFor"
+          name="editPrayerFor"
+          class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+        />
+      </label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Details
+        <textarea
+          rows="5"
+          [(ngModel)]="editDescription"
+          name="editDescription"
+          class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+        ></textarea>
+      </label>
+    </div>
+    <div class="modal-chrome-footer flex justify-end gap-3 px-6 py-4">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+        (click)="editingPrayer = null"
+      >
+        Cancel
+      </button>
+      <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+}
+
+@if (editingUpdate) {
+<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingUpdate = null">
+  <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+    <div class="modal-chrome-header px-6 py-4">
+      <h2 class="text-lg font-semibold">Edit update</h2>
+    </div>
+    <div class="px-6 py-4">
+      <textarea
+        rows="4"
+        [(ngModel)]="editingUpdate.content"
+        name="editUpdateContent"
+        class="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+      ></textarea>
+    </div>
+    <div class="modal-chrome-footer flex justify-end gap-3 px-6 py-4">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
+        (click)="editingUpdate = null"
+      >
+        Cancel
+      </button>
+      <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveUpdateEdit()">Save</button>
+    </div>
+  </div>
+</div>
+}
+
+@if (pendingDelete) {
+<app-confirmation-dialog
+  title="Delete group?"
+  [message]="deleteMessage"
+  confirmText="Delete"
+  [isDangerous]="true"
+  (confirm)="confirmDelete()"
+  (cancel)="pendingDelete = null"
+/>
+}
+
+@if (pendingTransferEmail) {
+<app-confirmation-dialog
+  title="Transfer ownership?"
+  [message]="transferConfirmMessage"
+  details="You will no longer be able to invite members or transfer ownership again unless the new owner transfers it back."
+  confirmText="Transfer ownership"
+  [isDangerous]="true"
+  (confirm)="confirmTransfer()"
+  (cancel)="cancelTransfer()"
+/>
+}

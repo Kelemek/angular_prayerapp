@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { MFA_AUTH_RESUME_TOKEN_STORAGE_KEY } from "../../lib/auth-storage-keys";
 import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
 import { LoginAuthCoordinator } from "./login-auth.coordinator";
 
@@ -76,6 +77,15 @@ const makeDeps = () => {
         }
         return { data: "req-1", error: null };
       }),
+      functions: {
+        invoke: vi.fn(async () => ({
+          data: { hashed_token: "tok", success: true },
+          error: null,
+        })),
+      },
+      auth: {
+        verifyOtp: vi.fn(async () => ({ error: null })),
+      },
     },
     directQuery: vi.fn(async () => ({ data: [], error: null })),
     directMutation: vi.fn(async () => ({ data: [{ id: "1" }], error: null })),
@@ -91,6 +101,9 @@ const makeDeps = () => {
   const planningCenterRest = {
     lookupPersonByEmail: vi.fn(async () => ({ count: 0, people: [] })),
   };
+  const prayerGroupService = {
+    completeMemberProfile: vi.fn(async () => undefined),
+  };
 
   return {
     coordinator: new LoginAuthCoordinator(
@@ -98,7 +111,8 @@ const makeDeps = () => {
       emailNotificationService as any,
       adminAuthService as any,
       userSessionService as any,
-      planningCenterRest as any
+      planningCenterRest as any,
+      prayerGroupService as any
     ),
     adminAuthService,
     supabaseService,
@@ -162,6 +176,54 @@ describe("LoginAuthCoordinator", () => {
       kind: "show_registration",
       requiresApproval: true,
     });
+  });
+
+  it("resolvePostVerificationFlow asks group-only subscribers without a name for profile", async () => {
+    const { coordinator, supabaseService, adminAuthService } = makeDeps();
+    mockLoginFromTables(supabaseService, {
+      subscriberRow: {
+        id: "sub",
+        email: "group@example.com",
+        name: "",
+        is_blocked: false,
+        is_church_member: false,
+        church_downgraded_at: null,
+      },
+    });
+
+    const result = await coordinator.resolvePostVerificationFlow(
+      "group@example.com",
+      "/"
+    );
+
+    expect(result).toEqual({
+      kind: "show_group_profile",
+      destination: "/?filter=groups",
+    });
+    expect(adminAuthService.logout).not.toHaveBeenCalled();
+  });
+
+  it("resolvePostVerificationFlow keeps a group-only subscriber signed in", async () => {
+    const { coordinator, supabaseService, adminAuthService } = makeDeps();
+    mockLoginFromTables(supabaseService, {
+      approvalRow: { id: "pending", approval_status: "pending" },
+      subscriberRow: {
+        id: "sub",
+        email: "group@example.com",
+        name: "Group Member",
+        is_blocked: false,
+        is_church_member: false,
+        church_downgraded_at: "2026-10-18T00:00:00Z",
+      },
+    });
+
+    const result = await coordinator.resolvePostVerificationFlow(
+      "group@example.com",
+      "/"
+    );
+
+    expect(result).toEqual({ kind: "navigate", destination: "/?filter=groups" });
+    expect(adminAuthService.logout).not.toHaveBeenCalled();
   });
 
   it("resolvePostVerificationFlow navigates existing subscribers", async () => {
@@ -291,11 +353,12 @@ describe("LoginAuthCoordinator", () => {
     expect(result).toEqual({ kind: "pending_approval" });
   });
 
-  it("saveNewSubscriber returns directMutation error for normal signup", async () => {
+  it("saveNewSubscriber returns the edge function error for Planning Center signup", async () => {
     const { coordinator, supabaseService } = makeDeps();
-    supabaseService.directMutation = vi.fn(async () => ({
-      data: null,
-      error: { message: "Insert failed" },
+    localStorage.setItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY, "resume-token");
+    supabaseService.client.functions.invoke = vi.fn(async () => ({
+      data: { error: "This email is not in Planning Center" },
+      error: { message: "Edge Function returned a non-2xx status code" },
     }));
 
     const result = await coordinator.saveNewSubscriber({
@@ -309,12 +372,36 @@ describe("LoginAuthCoordinator", () => {
 
     expect(result).toEqual({
       kind: "error",
-      message: "Failed to save subscriber: Insert failed",
+      message: "Failed to save subscriber: This email is not in Planning Center",
     });
+    expect(supabaseService.directMutation).not.toHaveBeenCalled();
   });
 
-  it("saveNewSubscriber navigates after successful directMutation", async () => {
-    const { coordinator, userSessionService } = makeDeps();
+  it("saveNewSubscriber refuses Planning Center signup without a resume token", async () => {
+    const { coordinator, supabaseService } = makeDeps();
+    localStorage.removeItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY);
+
+    const result = await coordinator.saveNewSubscriber({
+      email: "notoken@x.com",
+      firstName: "A",
+      lastName: "B",
+      affiliationReason: "",
+      requiresApproval: false,
+      returnUrl: "/",
+    });
+
+    expect(result).toEqual({
+      kind: "error",
+      message:
+        "Failed to save subscriber: Sign in again to finish creating your account.",
+    });
+    expect(supabaseService.client.functions.invoke).not.toHaveBeenCalled();
+  });
+
+  it("saveNewSubscriber navigates after the Planning Center edge function links a session", async () => {
+    const { coordinator, supabaseService, userSessionService, adminAuthService } = makeDeps();
+    localStorage.setItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY, "resume-token");
+
     const result = await coordinator.saveNewSubscriber({
       email: "x3@y.com",
       firstName: "A",
@@ -324,10 +411,27 @@ describe("LoginAuthCoordinator", () => {
       returnUrl: "/admin/dashboard",
     });
 
+    expect(supabaseService.client.functions.invoke).toHaveBeenCalledWith(
+      "register-planning-center-member",
+      {
+        body: {
+          email: "x3@y.com",
+          firstName: "A",
+          lastName: "B",
+          auth_resume_token: "resume-token",
+        },
+      }
+    );
+    expect(supabaseService.client.auth.verifyOtp).toHaveBeenCalledWith({
+      token_hash: "tok",
+      type: "email",
+    });
+    expect(adminAuthService.prepareLoginDataAccess).toHaveBeenCalledWith("x3@y.com");
     expect(result).toEqual({
       kind: "navigate",
       destination: "/admin/dashboard",
     });
     expect(userSessionService.loadUserSession).toHaveBeenCalledWith("x3@y.com");
+    expect(supabaseService.directMutation).not.toHaveBeenCalled();
   });
 });

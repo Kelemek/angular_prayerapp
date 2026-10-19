@@ -12,6 +12,7 @@ export interface LoginPageShellHandlers {
   onMfaCodeInput(): void;
   sanitizeMfaCode(): void;
   saveRegistration(): Promise<boolean>;
+  saveGroupProfile(): Promise<boolean>;
   setEmail(email: string): void;
   setFirstName(firstName: string): void;
   setLastName(lastName: string): void;
@@ -48,6 +49,47 @@ export function createLoginPageShell(deps: {
       resetLogin: () => mfa.resetToEmail(),
       onMfaCodeInput: () => mfa.onCodeInput(() => mfa.verifyCode()),
       sanitizeMfaCode: () => mfa.sanitizeCodeInput(),
+      saveGroupProfile: async () => {
+        page.loading = true;
+        page.markForCheck();
+
+        try {
+          const result = await loginAuth.saveGroupMemberProfile({
+            email: page.email,
+            firstName: page.firstName,
+            lastName: page.lastName,
+            returnUrl: page.returnUrl,
+          });
+
+          switch (result.kind) {
+            case "error":
+              page.error = result.message;
+              page.loading = false;
+              page.markForCheck();
+              return false;
+            case "navigate":
+              page.phase = { kind: "email" };
+              page.firstName = "";
+              page.lastName = "";
+              page.loading = false;
+              await router.navigate([result.destination]);
+              return true;
+            default: {
+              const _exhaustive: never = result;
+              return _exhaustive;
+            }
+          }
+        } catch (err) {
+          console.error("[AdminLogin] Exception saving group profile:", err);
+          page.error =
+            err instanceof Error
+              ? err.message
+              : "An error occurred. Please try again.";
+          page.loading = false;
+          page.markForCheck();
+          return false;
+        }
+      },
       saveRegistration: async () => {
         page.loading = true;
         page.markForCheck();

@@ -40,7 +40,7 @@
         <h3 [class]="variantLayout.titleClasses">
           Prayer for {{ prayer.prayer_for }}
         </h3>
-        @if (!isPersonal && !isMemberPrayer()) {
+        @if (showRequesterName()) {
           <span [class]="variantLayout.requesterClasses">
             Requested by:
             <span class="font-medium text-gray-800 dark:text-gray-100">{{ displayRequester }}</span>

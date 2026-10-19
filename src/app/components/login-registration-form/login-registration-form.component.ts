@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
+export type LoginRegistrationProfileKind = "church" | "group";
+
 @Component({
   selector: "app-login-registration-form",
   standalone: true,
@@ -8,6 +10,7 @@ import { FormsModule } from "@angular/forms";
   templateUrl: "./login-registration-form.component.html",
 })
 export class LoginRegistrationFormComponent {
+  @Input() profileKind: LoginRegistrationProfileKind = "church";
   @Input() firstName = "";
   @Input() lastName = "";
   @Input() affiliationReason = "";

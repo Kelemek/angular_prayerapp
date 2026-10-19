@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './guards/admin.guard';
 import { siteAuthGuard } from './guards/site-auth.guard';
+import { churchMemberGuard } from './guards/church-member.guard';
 
 export const routes: Routes = [
   {
@@ -25,7 +26,7 @@ export const routes: Routes = [
   {
     path: 'presentation',
     loadComponent: () => import('./pages/presentation/presentation.component').then(m => m.PresentationComponent),
-    canActivate: [siteAuthGuard],
+    canActivate: [siteAuthGuard, churchMemberGuard],
     data: { preload: false }
   },
   {

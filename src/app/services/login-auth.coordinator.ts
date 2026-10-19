@@ -1,14 +1,22 @@
 import { Injectable } from "@angular/core";
+import { linkAuthSessionAfterVerify } from "../../lib/auth-session-link";
+import { MFA_AUTH_RESUME_TOKEN_STORAGE_KEY } from "../../lib/auth-storage-keys";
 import { AdminAuthService } from "./admin-auth.service";
 import { PlanningCenterRestService } from "./planning-center-rest.service";
 import { EmailNotificationService } from "./email-notification.service";
 import { SupabaseService } from "./supabase.service";
 import { UserSessionService } from "./user-session.service";
+import { PrayerGroupService } from "./prayer-group.service";
 
 export type LoginPostVerificationResult =
   | { kind: "pending_approval" }
   | { kind: "show_registration"; requiresApproval: boolean }
+  | { kind: "show_group_profile"; destination: string }
   | { kind: "navigate"; destination: string };
+
+export type LoginSaveGroupProfileResult =
+  | { kind: "navigate"; destination: string }
+  | { kind: "error"; message: string };
 
 export type LoginSaveSubscriberResult =
   | { kind: "pending_approval" }
@@ -31,7 +39,8 @@ export class LoginAuthCoordinator {
     private readonly emailNotificationService: EmailNotificationService,
     private readonly adminAuthService: AdminAuthService,
     private readonly userSessionService: UserSessionService,
-    private readonly planningCenterRest: PlanningCenterRestService
+    private readonly planningCenterRest: PlanningCenterRestService,
+    private readonly prayerGroupService: PrayerGroupService
   ) {}
 
   async fetchVerificationCodeLength(): Promise<number> {
@@ -58,16 +67,36 @@ export class LoginAuthCoordinator {
   ): Promise<LoginPostVerificationResult> {
     await this.adminAuthService.prepareLoginDataAccess(userEmail);
 
-    const hasPendingApproval = await this.hasPendingApprovalRequest(userEmail);
-    if (hasPendingApproval) {
-      await this.adminAuthService.logout();
-      return { kind: "pending_approval" };
+    const subscriber = await this.fetchSubscriber(userEmail);
+    const groupOnly = subscriber?.is_church_member === false;
+    if (!groupOnly) {
+      const hasPendingApproval = await this.hasPendingApprovalRequest(userEmail);
+      if (hasPendingApproval) {
+        await this.adminAuthService.logout();
+        return { kind: "pending_approval" };
+      }
     }
 
-    const isSubscriber = await this.isEmailSubscriber(userEmail);
-    if (!isSubscriber) {
+    if (!subscriber) {
       const requiresApproval = !(await this.isInPlanningCenter(userEmail));
       return { kind: "show_registration", requiresApproval };
+    }
+
+    if (groupOnly && subscriber.church_downgraded_at == null) {
+      try {
+        const client = await this.supabaseService.getClientWhenReady();
+        await client.functions.invoke("upgrade-planning-center-member", { body: {} });
+      } catch (upgradeError) {
+        console.warn("[AdminLogin] Planning Center upgrade check failed:", upgradeError);
+      }
+    }
+
+    const destination = groupOnly
+      ? "/?filter=groups"
+      : this.resolveDestination(returnUrl);
+
+    if (groupOnly && !(subscriber.name?.trim())) {
+      return { kind: "show_group_profile", destination };
     }
 
     try {
@@ -78,8 +107,45 @@ export class LoginAuthCoordinator {
 
     return {
       kind: "navigate",
-      destination: this.resolveDestination(returnUrl),
+      destination,
     };
+  }
+
+  async saveGroupMemberProfile(input: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    returnUrl: string;
+  }): Promise<LoginSaveGroupProfileResult> {
+    const email = input.email.toLowerCase().trim();
+    const firstName = input.firstName.trim();
+    const lastName = input.lastName.trim();
+    if (!firstName || !lastName) {
+      return { kind: "error", message: "Please enter your first and last name" };
+    }
+
+    try {
+      await this.prayerGroupService.completeMemberProfile(firstName, lastName);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not save your profile";
+      return { kind: "error", message };
+    }
+
+    await this.adminAuthService.prepareLoginDataAccess(email);
+
+    try {
+      await this.userSessionService.loadUserSession(email);
+    } catch (sessionError) {
+      console.warn("[AdminLogin] Failed to load user session:", sessionError);
+    }
+
+    const destination =
+      input.returnUrl && input.returnUrl !== "/" && input.returnUrl !== "/admin"
+        ? input.returnUrl
+        : "/?filter=groups";
+
+    return { kind: "navigate", destination };
   }
 
   async saveNewSubscriber(
@@ -145,30 +211,58 @@ export class LoginAuthCoordinator {
       return { kind: "pending_approval" };
     }
 
-    const { error } = await this.supabaseService.directMutation<{ id: string }>(
-      "email_subscribers",
+    const resumeToken =
+      localStorage.getItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY)?.trim() ?? "";
+    if (!resumeToken) {
+      return {
+        kind: "error",
+        message:
+          "Failed to save subscriber: Sign in again to finish creating your account.",
+      };
+    }
+
+    const client = this.supabaseService.getClient();
+    const { data, error } = await client.functions.invoke(
+      "register-planning-center-member",
       {
-        method: "POST",
         body: {
           email,
-          name: `${firstName} ${lastName}`,
-          is_active: true,
-          is_admin: false,
-          receive_admin_emails: false,
-          in_planning_center: true,
-          planning_center_checked_at: new Date().toISOString(),
+          firstName,
+          lastName,
+          auth_resume_token: resumeToken,
         },
-        returning: true,
       }
     );
 
-    if (error) {
-      console.error("[AdminLogin] Error saving subscriber:", error);
+    const functionError =
+      (typeof data?.error === "string" && data.error) ||
+      (error ? error.message || "Unknown error" : "");
+    if (functionError) {
+      console.error("[AdminLogin] Error saving subscriber:", functionError);
       return {
         kind: "error",
-        message: `Failed to save subscriber: ${error.message || "Unknown error"}`,
+        message: `Failed to save subscriber: ${functionError}`,
       };
     }
+
+    const hashedToken =
+      typeof data?.hashed_token === "string" ? data.hashed_token : "";
+    if (!hashedToken.trim()) {
+      return {
+        kind: "error",
+        message: "Failed to save subscriber: Could not establish a secure session.",
+      };
+    }
+
+    const linked = await linkAuthSessionAfterVerify(client, hashedToken);
+    if (!linked.ok) {
+      return {
+        kind: "error",
+        message: `Failed to save subscriber: ${linked.error}`,
+      };
+    }
+
+    await this.adminAuthService.prepareLoginDataAccess(email);
 
     try {
       await this.emailNotificationService.sendSubscriberWelcomeNotification(
@@ -196,34 +290,38 @@ export class LoginAuthCoordinator {
       : "/";
   }
 
-  private async isEmailSubscriber(email: string): Promise<boolean> {
+  private async fetchSubscriber(email: string): Promise<{
+    name?: string | null;
+    is_church_member?: boolean | null;
+    church_downgraded_at?: string | null;
+    is_blocked?: boolean | null;
+  } | null> {
     try {
       const client = await this.supabaseService.getClientWhenReady();
       const { data, error } = await client
         .from("email_subscribers")
-        .select("id, email, is_blocked")
+        .select("id, email, name, is_blocked, is_church_member, church_downgraded_at")
         .eq("email", email.toLowerCase())
         .maybeSingle();
 
       if (error) {
         console.error("[AdminLogin] Error checking subscriber status:", error);
-        return false;
+        return null;
       }
 
-      const isSubscriber = !!data;
-      if (isSubscriber && data?.is_blocked) {
+      if (data?.is_blocked) {
         throw new Error(
           "This account has been blocked. Please contact an administrator."
         );
       }
 
-      return isSubscriber;
+      return data;
     } catch (err) {
       console.error("[AdminLogin] Exception checking subscriber:", err);
       if (err instanceof Error && err.message.includes("blocked")) {
         throw err;
       }
-      return false;
+      return null;
     }
   }
 

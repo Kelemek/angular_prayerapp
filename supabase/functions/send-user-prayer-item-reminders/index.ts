@@ -810,7 +810,7 @@ Deno.serve(async (req: Request) => {
       () =>
         supabase
           .from('email_subscribers')
-          .select('email, receive_push, is_active, is_blocked')
+          .select('email, receive_push, is_active, is_blocked, is_church_member')
           .in('email', uniqueEmails)
     );
 
@@ -1002,6 +1002,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const activeRows = rows.filter((row) => {
+      const sub = subByLower.get(row.user_email.toLowerCase()) as
+        | { is_church_member?: boolean | null }
+        | undefined;
+      if (sub?.is_church_member === false && row.prayer_kind !== 'personal') return false;
       if (row.prayer_kind === 'community') return communityActive.has(row.prayer_id);
       if (row.prayer_kind === 'personal') return personalActive.has(row.prayer_id);
       if (row.prayer_kind === 'prompt') return promptActive.has(row.prayer_id);

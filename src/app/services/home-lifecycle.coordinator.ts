@@ -5,6 +5,8 @@ import {
   Subject,
   distinctUntilChanged,
   filter,
+  skip,
+  switchMap,
   take,
   takeUntil,
 } from "rxjs";
@@ -25,6 +27,7 @@ import type { HomeHelpTourLauncher } from "./home-help-tour.launcher";
 import type { HomePlanningCenterController } from "./home-planning-center.controller";
 import type { HomeReturnContext } from "../types/presentation";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
+import { isPublicAreaFilter } from "../lib/home-community-filter";
 import type { MemorizedItem } from "../types/memorization";
 
 export interface HomeObservableStreams {
@@ -114,6 +117,7 @@ export class HomeLifecycleCoordinator {
     const initialTree = services.router.parseUrl(services.router.url);
     services.deepLinkCoordinator.captureInitialQueryParams({
       filter: initialTree.queryParams["filter"],
+      groupId: initialTree.queryParams["groupId"],
       prayerId: initialTree.queryParams["prayerId"],
       promptId: initialTree.queryParams["promptId"],
       verseRef: initialTree.queryParams["verseRef"],
@@ -144,6 +148,7 @@ export class HomeLifecycleCoordinator {
         services.deepLinkCoordinator.handleNavigationDeepLinks(
           {
             filter: tree.queryParams["filter"],
+            groupId: tree.queryParams["groupId"],
             prayerId: tree.queryParams["prayerId"],
             promptId: tree.queryParams["promptId"],
             verseRef: tree.queryParams["verseRef"],
@@ -266,30 +271,67 @@ export class HomeLifecycleCoordinator {
         host.syncRecommendationGroups();
       });
 
-    services.userSessionService.userSession$
+    services.userSessionService.sessionInitialized$
       .pipe(
-        filter((session) => !!session),
+        filter((ready) => ready),
         take(1),
+        switchMap(() =>
+          services.userSessionService.userSession$.pipe(
+            filter((session): session is NonNullable<typeof session> => !!session),
+            take(1)
+          )
+        ),
         takeUntil(destroy$)
       )
-      .subscribe((session) => {
-        const s = session!;
+      .subscribe((s) => {
+        const fromArea =
+          services.deepLinkCoordinator.consumeInitialHomeAreaFilter();
         const fromEmail =
           services.deepLinkCoordinator.consumeInitialEmailFilterTab();
         const pendingReturn = host.getPendingHomeReturnContext();
         if (pendingReturn) {
           host.applyHomeReturnContext(pendingReturn);
           host.setPendingHomeReturnContext(null);
+          if (s.isChurchMember === false && isPublicAreaFilter(host.getActiveFilter())) {
+            host.setActiveFilter("groups");
+            host.setFilter("groups");
+          }
         } else {
-          const nextFilter = fromEmail ?? s.defaultPrayerView ?? "current";
+          let nextFilter =
+            fromArea ?? fromEmail ?? s.defaultPrayerView ?? "current";
+          if (s.isChurchMember === false && isPublicAreaFilter(nextFilter)) {
+            nextFilter = "groups";
+          }
           host.setActiveFilter(nextFilter);
           host.setFilter(nextFilter);
         }
-        if (fromEmail) {
+        if (fromArea || fromEmail) {
           host.stripFilterQueryParam();
         }
         host.setViewReady(true);
         services.deepLinkCoordinator.applyPendingDeepLinksOnViewReady();
+        host.markForCheck();
+      });
+
+    services.userSessionService.userSession$
+      .pipe(
+        filter((session): session is NonNullable<typeof session> => !!session),
+        distinctUntilChanged(
+          (prev, curr) => prev.isChurchMember === curr.isChurchMember
+        ),
+        skip(1),
+        takeUntil(destroy$)
+      )
+      .subscribe((s) => {
+        if (
+          !host.getViewReady() ||
+          s.isChurchMember !== false ||
+          !isPublicAreaFilter(host.getActiveFilter())
+        ) {
+          return;
+        }
+        host.setActiveFilter("groups");
+        host.setFilter("groups");
         host.markForCheck();
       });
   }

@@ -140,9 +140,10 @@ export type HomePresentationFilter =
   | 'prompts'
   | 'personal'
   | 'memorize'
-  | 'planning_center_list';
+  | 'planning_center_list'
+  | 'groups';
 
-export type DefaultPrayerView = 'current' | 'personal';
+export type DefaultPrayerView = 'current' | 'personal' | 'groups';
 
 /** Home Personal tab fixed chips + named category selection. */
 export type PersonalCategoryFilterMode =
@@ -312,6 +313,7 @@ function isHomePresentationFilter(
       'personal',
       'memorize',
       'planning_center_list',
+      'groups',
     ] as const satisfies readonly HomePresentationFilter[]).includes(
       value as HomePresentationFilter
     )

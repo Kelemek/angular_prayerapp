@@ -17,6 +17,7 @@ import type { PlanningCenterListService } from "./planning-center-list.service";
 import type { BadgeService } from "./badge.service";
 import type { PrayerCardActionsFacade } from "./prayer-card-actions.facade";
 import type { PrayerAllowancePolicyService } from "./prayer-allowance-policy.service";
+import type { PrayerGroupService } from "./prayer-group.service";
 import { HomeDeepLinkCoordinator } from "./home-deep-link.coordinator";
 import { applyVerseMemorizationDeepLink } from "../lib/verse-memorization-deep-link";
 import { HomeDeepLinkHostAdapter, type HomeActiveFilter } from "./home-deep-link-host.adapter";
@@ -87,6 +88,7 @@ export interface HomeCoordinatorWiringDeps {
   analyticsService: AnalyticsService;
   prayerCardActions: PrayerCardActionsFacade;
   prayerAllowancePolicy: PrayerAllowancePolicyService;
+  prayerGroupService: PrayerGroupService;
   deepLinkCoordinator: HomeDeepLinkCoordinator;
   helpTourLauncher: HomeHelpTourLauncher;
   catalog: HomeCatalogStore;
@@ -155,6 +157,8 @@ export function wireHomeCoordinators(
     },
     scrollPromptIntoView: (promptId) => page.scrollHomePromptIntoView(promptId),
     scrollPrayerIntoView: (prayerId) => page.scrollHomePrayerIntoView(prayerId),
+    notifyGroupDeepLinkPending: () =>
+      deps.prayerGroupService.notifyGroupDeepLinkPending(),
   });
   deps.deepLinkCoordinator.bindHost(deepLinkHost);
 

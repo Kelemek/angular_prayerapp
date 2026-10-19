@@ -44,6 +44,8 @@ export function mapHomeFilterToContentType(
       return 'members';
     case 'memorize':
       return defaultPrayerView === 'personal' ? 'personal' : 'prayers';
+    case 'groups':
+      return 'personal';
     default: {
       const _exhaustive: never = filter;
       return _exhaustive;
