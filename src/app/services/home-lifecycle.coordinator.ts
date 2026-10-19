@@ -25,6 +25,7 @@ import type { MemorizationRecommendationsService } from "./memorization-recommen
 import type { HomeDeepLinkCoordinator } from "./home-deep-link.coordinator";
 import type { HomeHelpTourLauncher } from "./home-help-tour.launcher";
 import type { HomePlanningCenterController } from "./home-planning-center.controller";
+import type { PrayerGroupService } from "./prayer-group.service";
 import type { HomeReturnContext } from "../types/presentation";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
 import { isPublicAreaFilter } from "../lib/home-community-filter";
@@ -90,6 +91,7 @@ export interface HomeLifecycleServices {
   personalCategoryColorService: PersonalCategoryColorService;
   memorizationService: MemorizationService;
   memorizationRecommendationsService: MemorizationRecommendationsService;
+  prayerGroupService: PrayerGroupService;
 }
 
 export function isRouterUrlHome(urlAfterRedirects: string): boolean {
@@ -256,6 +258,12 @@ export class HomeLifecycleCoordinator {
         await host.syncPersonalCategoriesFromPrayers(prayers);
         host.refreshHomeCatalog();
         host.markForCheck();
+        services.deepLinkCoordinator.retryPendingPrayerDeepLinkIfNeeded();
+      });
+
+    services.prayerGroupService.prayers$
+      .pipe(takeUntil(destroy$))
+      .subscribe(() => {
         services.deepLinkCoordinator.retryPendingPrayerDeepLinkIfNeeded();
       });
 

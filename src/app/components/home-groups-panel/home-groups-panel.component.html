@@ -63,12 +63,17 @@
       cdkDropListOrientation="mixed"
       [cdkDropListData]="groups"
       (cdkDropListDropped)="onGroupDrop($event)"
-      [cdkDropListDisabled]="reordering"
+      [cdkDropListDisabled]="reordering || !chipReorderHandlesVisible"
       [class]="chipRowClass + ' mt-2'"
     >
       @for (group of groups; track group.id) {
-      <div cdkDrag [cdkDragDisabled]="reordering" [class]="chipHostClass">
+      <div
+        cdkDrag
+        [cdkDragDisabled]="reordering || !chipReorderHandlesVisible"
+        [class]="chipHostClass"
+      >
         <div [class]="chipClass(group)">
+          @if (chipReorderHandlesVisible) {
           <span
             cdkDragHandle
             class="absolute inset-y-0 left-0 flex w-7 items-center justify-center cursor-grab"
@@ -84,15 +89,20 @@
               <circle cx="15" cy="19" r="1"></circle>
             </svg>
           </span>
+          }
           <button
             type="button"
-            class="flex min-w-0 flex-1 items-center justify-center border-0 bg-transparent px-2 text-center text-xs font-medium text-inherit cursor-pointer"
+            class="flex h-full min-h-0 min-w-0 flex-1 items-center justify-center border-0 bg-transparent px-2 text-center text-xs font-medium leading-none text-inherit cursor-pointer"
             (click)="selectGroup(group.id)"
           >
             {{ group.name }} ({{ prayerCount(group.id) }})
           </button>
           <span class="inline-flex shrink-0 items-center" (pointerdown)="$event.stopPropagation()">
-            <app-card-actions-overflow-menu [items]="overflowItems(group)" bandSize="sm" />
+            <app-card-actions-overflow-menu
+              [items]="overflowItems(group)"
+              bandSize="sm"
+              [chipTrigger]="true"
+            />
           </span>
         </div>
       </div>
@@ -259,8 +269,9 @@
 @if (renameTarget) {
 <div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="renameTarget = null">
   <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
-    <div class="modal-chrome-header px-6 py-4">
-      <h2 class="text-lg font-semibold">Rename group</h2>
+    <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Rename group</h2>
+      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="renameTarget = null">✕</button>
     </div>
     <div class="px-6 py-4">
       <input
@@ -270,14 +281,7 @@
         (keydown.enter)="saveRename()"
       />
     </div>
-    <div class="modal-chrome-footer flex justify-end gap-3 px-6 py-4">
-      <button
-        type="button"
-        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
-        (click)="renameTarget = null"
-      >
-        Cancel
-      </button>
+    <div class="modal-chrome-footer flex justify-end px-6 py-4">
       <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveRename()">Save</button>
     </div>
   </div>
@@ -287,8 +291,9 @@
 @if (editingPrayer) {
 <div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingPrayer = null">
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
-    <div class="modal-chrome-header px-6 py-4">
-      <h2 class="text-lg font-semibold">Edit prayer</h2>
+    <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit prayer</h2>
+      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="editingPrayer = null">✕</button>
     </div>
     <div class="space-y-3 px-6 py-4">
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -309,14 +314,7 @@
         ></textarea>
       </label>
     </div>
-    <div class="modal-chrome-footer flex justify-end gap-3 px-6 py-4">
-      <button
-        type="button"
-        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
-        (click)="editingPrayer = null"
-      >
-        Cancel
-      </button>
+    <div class="modal-chrome-footer flex justify-end px-6 py-4">
       <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveEdit()">Save</button>
     </div>
   </div>
@@ -326,8 +324,9 @@
 @if (editingUpdate) {
 <div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingUpdate = null">
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
-    <div class="modal-chrome-header px-6 py-4">
-      <h2 class="text-lg font-semibold">Edit update</h2>
+    <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit update</h2>
+      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="editingUpdate = null">✕</button>
     </div>
     <div class="px-6 py-4">
       <textarea
@@ -337,14 +336,7 @@
         class="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
       ></textarea>
     </div>
-    <div class="modal-chrome-footer flex justify-end gap-3 px-6 py-4">
-      <button
-        type="button"
-        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium cursor-pointer"
-        (click)="editingUpdate = null"
-      >
-        Cancel
-      </button>
+    <div class="modal-chrome-footer flex justify-end px-6 py-4">
       <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveUpdateEdit()">Save</button>
     </div>
   </div>

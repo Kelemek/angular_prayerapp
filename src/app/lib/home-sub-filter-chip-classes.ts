@@ -95,7 +95,7 @@ export function homeFilterTabClass(options: {
 
 /** Shared sizing for Home secondary filter chips (Public status, Personal, Prompt types). */
 export const HOME_SUB_FILTER_CHIP_SIZE_CLASS =
-  "min-h-9 px-3 py-2 rounded-lg text-xs font-medium";
+  "h-9 px-3 rounded-lg text-xs font-medium leading-none";
 
 /** Button styles for equal-width chips; host uses flex-1 via HomeSubFilterChipComponent.stretch. */
 export const HOME_SUB_FILTER_CHIP_BASE_CLASS = [
@@ -118,8 +118,8 @@ export const HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS = [
 
 /** Content-sized chip with left padding for a drag handle (personal categories). */
 export const HOME_SUB_FILTER_CHIP_DRAG_WRAP_CLASS = [
-  "relative inline-flex items-center justify-center whitespace-nowrap transition-all pl-7 pr-3",
-  "min-h-9 py-2 rounded-lg text-xs font-medium",
+  "relative inline-flex h-9 items-center justify-center whitespace-nowrap transition-all pl-7 pr-3",
+  "rounded-lg text-xs font-medium leading-none",
 ].join(" ");
 
 /** Flex item: equal split up to 2/row (3 on sm+); grows to fit label or full row when needed. */
@@ -143,14 +143,14 @@ export const HOME_PERSONAL_CATEGORY_CHIP_SOLO_FLEX_CLASS =
 
 /** Button inside category chip when it shares a row with others. */
 export const HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS = [
-  "relative flex w-full min-w-max items-center justify-center gap-1 text-center transition-all pl-7 pr-3",
-  "min-h-9 py-2 rounded-lg text-xs font-medium whitespace-nowrap",
+  "relative flex h-9 w-full min-w-max items-center justify-center gap-1 text-center transition-all pl-7 pr-3",
+  "rounded-lg text-xs font-medium leading-none whitespace-nowrap",
 ].join(" ");
 
 /** Full-width solo-row chip button; label may truncate when constrained. */
 export const HOME_SUB_FILTER_CHIP_DRAG_SOLO_STRETCH_CLASS = [
-  "relative flex w-full min-w-0 items-center gap-1 overflow-hidden text-center transition-all pl-7 pr-3",
-  "min-h-9 py-2 rounded-lg text-xs font-medium whitespace-nowrap",
+  "relative flex h-9 w-full min-w-0 items-center gap-1 overflow-hidden text-center transition-all pl-7 pr-3",
+  "rounded-lg text-xs font-medium leading-none whitespace-nowrap",
 ].join(" ");
 
 /** Chip row inside a folder-tab panel. */

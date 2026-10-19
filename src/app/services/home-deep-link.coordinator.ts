@@ -234,6 +234,7 @@ export class HomeDeepLinkCoordinator {
     }
     this.host.clearDeepLinkFilters({ prayerId: id });
     const tab = this.host.resolvePrayerDeepLinkTab(id);
+    this.prepareGroupPrayerDeepLinkIfNeeded(id, tab);
     if (tab !== null && this.host.getActiveFilter() !== tab) {
       this.host.setFilter(tab);
     }
@@ -276,6 +277,7 @@ export class HomeDeepLinkCoordinator {
     }
     this.host.clearDeepLinkFilters({ prayerId });
     const tab = this.host.resolvePrayerDeepLinkTab(prayerId);
+    this.prepareGroupPrayerDeepLinkIfNeeded(prayerId, tab);
     if (tab !== null && this.host.getActiveFilter() !== tab) {
       this.host.setFilter(tab);
     }
@@ -350,6 +352,21 @@ export class HomeDeepLinkCoordinator {
       this.host?.markForCheck();
     }
     this.host?.applyPendingVerseMemorizationDeepLink();
+  }
+
+  private prepareGroupPrayerDeepLinkIfNeeded(
+    prayerId: string,
+    tab: HomeActiveFilter | null
+  ): void {
+    if (!this.host) {
+      return;
+    }
+    if (
+      tab === "groups" ||
+      (tab === null && this.host.getActiveFilter() === "groups")
+    ) {
+      this.host.prepareGroupPrayerDeepLink(prayerId);
+    }
   }
 
   private ensureFreshCatalogForPrayerDeepLink(prayerId: string): void {

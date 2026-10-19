@@ -490,6 +490,10 @@ export class AppComponent implements OnInit, OnDestroy {
                 queryParams: { promptId },
               });
               promptService.loadPrompts();
+            } else if (prayerKind === "group" && prayerId) {
+              void this.router.navigate(["/"], {
+                queryParams: { filter: "groups", prayerId },
+              });
             } else {
               void this.router.navigate(["/"], {
                 queryParams: prayerId ? { prayerId } : {},

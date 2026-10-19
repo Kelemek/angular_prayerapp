@@ -281,6 +281,28 @@ export type PersonalCategoryRenameValidation =
   | { ok: true; oldName: string; newName: string; unchanged?: boolean }
   | { ok: false; errorMessage: string };
 
+export type PersonalCategoryCreateValidation =
+  | { ok: true; newName: string }
+  | { ok: false; errorMessage: string };
+
+export function validatePersonalCategoryCreate(
+  newCategory: string | null | undefined,
+  sanitize: (category: string | null | undefined) => string | null,
+  existingNames: string[],
+  reservedNames: string[] = []
+): PersonalCategoryCreateValidation {
+  const newName = sanitize(newCategory);
+  if (!newName) {
+    return { ok: false, errorMessage: 'Enter a category name' };
+  }
+
+  if (isReservedOrExistingCategoryName(newName, existingNames, reservedNames)) {
+    return { ok: false, errorMessage: `Category "${newName}" already exists` };
+  }
+
+  return { ok: true, newName };
+}
+
 export function validatePersonalCategoryRename(
   oldCategory: string | null | undefined,
   newCategory: string | null | undefined,

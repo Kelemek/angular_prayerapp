@@ -33,3 +33,23 @@ export function namedPersonalCategoryNamesFromPrayers(
     (category) => category !== "Answered"
   );
 }
+
+/** Prayer-derived order first, then saved color-only categories (alphabetical). */
+export function mergedNamedPersonalCategoryNames(
+  prayers: ReadonlyArray<CategoryOrderPrayer>,
+  savedColorCategories: Iterable<string>
+): string[] {
+  const ordered = namedPersonalCategoryNamesFromPrayers(prayers);
+  const seen = new Set(ordered);
+  const extras: string[] = [];
+  for (const raw of savedColorCategories) {
+    const name = raw?.trim();
+    if (!name || name === "Answered" || seen.has(name)) {
+      continue;
+    }
+    seen.add(name);
+    extras.push(name);
+  }
+  extras.sort((a, b) => a.localeCompare(b));
+  return [...ordered, ...extras];
+}

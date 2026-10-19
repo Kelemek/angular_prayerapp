@@ -42,6 +42,11 @@ describe("HomeDeepLinkHostAdapter", () => {
         isPromptsLoading: vi.fn(() => false),
         loadPrompts: vi.fn(),
       } as any,
+      prayerGroupService: {
+        getPrayersSnapshot: vi.fn(() => []),
+        hasCatalogSnapshot: vi.fn(() => true),
+        loadCatalog: vi.fn(),
+      } as any,
       markForCheck: vi.fn(),
       setFilter: vi.fn(),
       selectPersonalCategoryFilterMode: vi.fn((mode) => {
@@ -53,6 +58,7 @@ describe("HomeDeepLinkHostAdapter", () => {
       applyPendingVerseMemorizationDeepLink: vi.fn(),
       scrollPromptIntoView: vi.fn(() => true),
       scrollPrayerIntoView: vi.fn(() => true),
+      notifyGroupDeepLinkPending: vi.fn(),
     });
   });
 
@@ -106,12 +112,20 @@ describe("HomeDeepLinkHostAdapter", () => {
         isPromptsLoading: vi.fn(() => false),
         loadPrompts: vi.fn(),
       } as any,
+      prayerGroupService: {
+        getPrayersSnapshot: vi.fn(() => []),
+        hasCatalogSnapshot: vi.fn(() => true),
+        loadCatalog: vi.fn(),
+      } as any,
       markForCheck: vi.fn(),
       setFilter: vi.fn(),
       selectPersonalCategoryFilterMode: vi.fn(),
       applyPrayerFilters,
       refreshHomeCatalog,
       applyPendingVerseMemorizationDeepLink: vi.fn(),
+      scrollPromptIntoView: vi.fn(() => true),
+      scrollPrayerIntoView: vi.fn(() => true),
+      notifyGroupDeepLinkPending: vi.fn(),
     });
 
     adapter.stripQueryParams("verseRef", "verseTranslation");

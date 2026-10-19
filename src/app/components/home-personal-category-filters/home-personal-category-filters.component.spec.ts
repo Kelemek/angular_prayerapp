@@ -54,6 +54,14 @@ describe("HomePersonalCategoryFiltersComponent", () => {
     fixture?.destroy();
   });
 
+  it("shows an add-category control matching the Groups tab pattern", () => {
+    const add = fixture.nativeElement.querySelector(
+      "#tour-filter-add-personal-category"
+    ) as HTMLButtonElement;
+    expect(add).toBeTruthy();
+    expect(add.getAttribute("aria-label")).toBe("Add a category");
+  });
+
   it("wraps status and category filters in the Personal folder panel", () => {
     const group = fixture.nativeElement.querySelector(
       "#tour-personal-category-filters > div"
@@ -75,13 +83,17 @@ describe("HomePersonalCategoryFiltersComponent", () => {
     }
   });
 
-  it("uses drag stretch button classes on category chips", () => {
-    const button = fixture.nativeElement.querySelector(
-      "[data-personal-category-chip='Family'] button"
-    ) as HTMLButtonElement;
+  it("uses drag stretch shell classes on category chips", () => {
+    const chip = fixture.nativeElement.querySelector(
+      "[data-personal-category-chip='Family'] > div"
+    ) as HTMLElement;
+    const button = chip.querySelector("button") as HTMLButtonElement;
     expect(button.textContent).toContain("Family (3)");
-    expect(button.className).toContain(
+    expect(chip.className).toContain(
       HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS.split(" ")[0]
     );
+    expect(
+      chip.querySelector("[data-testid=card-actions-overflow-trigger]")
+    ).toBeTruthy();
   });
 });

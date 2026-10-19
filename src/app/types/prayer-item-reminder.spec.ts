@@ -24,6 +24,16 @@ describe('resolvePrayerItemKind', () => {
     ).toBe('pc_member');
   });
 
+  it('returns group when isGroupPrayer is true', () => {
+    expect(
+      resolvePrayerItemKind({
+        prayerId: 'gp-1',
+        isPersonal: true,
+        isGroupPrayer: true,
+      })
+    ).toBe('group');
+  });
+
   it('returns personal when isPersonal is true', () => {
     expect(
       resolvePrayerItemKind({

@@ -18,7 +18,7 @@
         [status]="prayer.status"
         [showStatus]="viewState.showStatusPillInHeader"
         [showDelete]="viewState.showDeleteButton"
-        [showReminder]="viewState.showReminderButton && !groupName"
+        [showReminder]="viewState.showReminderButton"
         [hasReminder]="hasReminderForPrayer()"
         [reminderBellTourId]="showTourAnchors && tourPrayerReminderBellAnchors ? 'tour-prayer-reminder-bell' : null"
         [showCenterDateTime]="!viewState.isMember"

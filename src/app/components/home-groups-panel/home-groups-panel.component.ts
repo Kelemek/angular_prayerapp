@@ -45,6 +45,7 @@ import type {
   PrayerCardDeleteUpdateEvent,
 } from '../../services/prayer-card-actions.facade';
 import { ToastService } from '../../services/toast.service';
+import { PrayerItemReminderService } from '../../services/prayer-item-reminder.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { HomeDeepLinkCoordinator } from '../../services/home-deep-link.coordinator';
 import {
@@ -101,6 +102,7 @@ export class HomeGroupsPanelComponent {
   error: string | null = null;
   loading = true;
   reordering = false;
+  chipReorderHandlesVisible = false;
   submitting = false;
   createOpen = false;
   createName = '';
@@ -115,6 +117,7 @@ export class HomeGroupsPanelComponent {
 
   constructor(
     private readonly groupsApi: PrayerGroupService,
+    private readonly prayerItemReminderService: PrayerItemReminderService,
     private readonly toast: ToastService,
     private readonly auth: AdminAuthService,
     private readonly deepLinks: HomeDeepLinkCoordinator,
@@ -125,6 +128,9 @@ export class HomeGroupsPanelComponent {
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((groups) => {
         this.groups = groups;
+        if (groups.length <= 1) {
+          this.chipReorderHandlesVisible = false;
+        }
         this.applyPendingGroupDeepLink();
         this.cdr.markForCheck();
       });
@@ -132,6 +138,7 @@ export class HomeGroupsPanelComponent {
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((prayers) => {
         this.prayers = prayers;
+        this.applyPendingGroupPrayerDeepLink();
         this.cdr.markForCheck();
       });
     this.groupsApi.updates$
@@ -156,6 +163,7 @@ export class HomeGroupsPanelComponent {
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe(() => {
         this.applyPendingGroupDeepLink();
+        this.applyPendingGroupPrayerDeepLink();
         this.cdr.markForCheck();
       });
   }
@@ -205,7 +213,13 @@ export class HomeGroupsPanelComponent {
       activeClass: this.groupChipActive,
       inactiveClass: this.groupChipInactive,
       disabled: this.reordering,
+      showDragHandle: this.chipReorderHandlesVisible,
     });
+  }
+
+  toggleChipReorderHandles(): void {
+    this.chipReorderHandlesVisible = !this.chipReorderHandlesVisible;
+    this.cdr.markForCheck();
   }
 
   selectStatus(mode: 'current' | 'answered' | 'total'): void {
@@ -237,16 +251,27 @@ export class HomeGroupsPanelComponent {
   }
 
   overflowItems(group: PrayerGroupSummary): CardActionsOverflowItem[] {
-    const items: CardActionsOverflowItem[] = [
-      {
+    const items: CardActionsOverflowItem[] = [];
+    if (this.groups.length > 1) {
+      items.push({
+        id: 'reorder',
+        label: this.chipReorderHandlesVisible ? 'Done reordering' : 'Reorder',
+        icon: 'grip',
+        tone: 'blue',
+        ariaLabel: this.chipReorderHandlesVisible
+          ? 'Hide drag handles'
+          : 'Show drag handles to reorder',
+        onSelect: () => this.toggleChipReorderHandles(),
+      });
+    }
+    items.push({
         id: 'members',
         label: 'Manage members',
         icon: 'users',
         tone: 'blue',
         ariaLabel: `Manage members of ${group.name}`,
         onSelect: () => void this.openMembers(group),
-      },
-    ];
+      });
     if (group.role !== 'owner') return items;
     return [
       ...items,
@@ -454,6 +479,7 @@ export class HomeGroupsPanelComponent {
   async deletePrayer(prayerId: string): Promise<void> {
     try {
       await this.groupsApi.deletePrayer(prayerId);
+      this.prayerItemReminderService.dropRemindersForPrayer(prayerId, 'group');
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not delete the prayer');
     }
@@ -526,6 +552,9 @@ export class HomeGroupsPanelComponent {
   async setAnswered(prayerId: string, answered: boolean): Promise<void> {
     try {
       await this.groupsApi.setAnswered(prayerId, answered);
+      if (answered) {
+        this.prayerItemReminderService.dropRemindersForPrayer(prayerId, 'group');
+      }
     } catch (err: unknown) {
       this.toast.error(
         err instanceof Error ? err.message : 'Only the author can change answered status',
@@ -579,6 +608,22 @@ export class HomeGroupsPanelComponent {
     }
     this.deepLinks.consumePendingGroupId();
     this.selectGroup(groupId);
+  }
+
+  private applyPendingGroupPrayerDeepLink(): void {
+    const prayerId = this.groupsApi.pendingPrayerDeepLinkId;
+    if (!prayerId) {
+      return;
+    }
+    const prayer = this.prayers.find((row) => row.id === prayerId);
+    if (!prayer) {
+      return;
+    }
+    this.groupsApi.pendingPrayerDeepLinkId = null;
+    this.selectedId = prayer.group_id;
+    this.filterMode = 'named';
+    this.groupsApi.preferredGroupId = prayer.group_id;
+    this.cdr.markForCheck();
   }
 
   private async loadMembers(groupId: string): Promise<void> {

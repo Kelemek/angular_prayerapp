@@ -235,6 +235,9 @@ const makeMocks = () => {
   const personalCategoryColorService: any = {
     colors$: of({}),
     loadColors: vi.fn().mockResolvedValue({}),
+    getColorsSnapshot: vi.fn().mockReturnValue({}),
+    setColor: vi.fn().mockResolvedValue(true),
+    renameCategory: vi.fn().mockResolvedValue(true),
   };
 
   const prayerAllowancePolicy: any = {
@@ -343,7 +346,15 @@ function createHomeComponent(
     m.personalCategoryColorService,
     prayerCardActions,
     m.prayerAllowancePolicy,
-    { notifyGroupDeepLinkPending: vi.fn(), changed$: { pipe: () => ({ subscribe: vi.fn() }) }, groupDeepLinkApply$: { pipe: () => ({ subscribe: vi.fn() }) } } as any,
+    {
+      notifyGroupDeepLinkPending: vi.fn(),
+      changed$: { pipe: () => ({ subscribe: vi.fn() }) },
+      groupDeepLinkApply$: { pipe: () => ({ subscribe: vi.fn() }) },
+      prayers$: of([]),
+      getPrayersSnapshot: vi.fn(() => []),
+      hasCatalogSnapshot: vi.fn(() => true),
+      loadCatalog: vi.fn(() => Promise.resolve()),
+    } as any,
     new HomeDeepLinkCoordinator(),
     new HomeHelpTourLauncher(m.helpDriverTourService, m.helpContentService),
     new HomeCatalogStore(),
@@ -1032,49 +1043,6 @@ describe('HomeComponent', () => {
       expect(comp.personalCategory.personalCategoryFilterMode).toBe('current');
     });
 
-    it('togglePersonalCategory ignores click only on the long-pressed category', () => {
-      const comp = createHomeComponent(mocks);
-
-      comp.personalCategory.selectedPersonalCategories = [];
-      comp.personalCategory.setSuppressPersonalCategoryClickForForTests('Members');
-
-      comp.personalCategory.togglePersonalCategory('Other');
-      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Other']);
-      expect(comp.personalCategory.personalCategoryFilterMode).toBe('named');
-      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBe('Members');
-
-      comp.personalCategory.togglePersonalCategory('Members');
-      expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Other']);
-      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBeNull();
-    });
-
-    it('clears suppressPersonalCategoryClickFor after the click-suppress window', () => {
-      vi.useFakeTimers();
-      const comp = createHomeComponent(mocks);
-
-      comp.personalCategory.openRenamePersonalCategoryModal('Members');
-      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBe('Members');
-
-      vi.advanceTimersByTime(400);
-      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBeNull();
-
-      vi.useRealTimers();
-    });
-
-    it('keeps suppressPersonalCategoryClickFor when modal closes before timer', () => {
-      vi.useFakeTimers();
-      const comp = createHomeComponent(mocks);
-
-      comp.personalCategory.openRenamePersonalCategoryModal('Members');
-      comp.personalCategory.closeRenamePersonalCategoryModal();
-
-      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBe('Members');
-      vi.advanceTimersByTime(400);
-      expect(comp.personalCategory.getSuppressPersonalCategoryClickForForTests()).toBeNull();
-
-      vi.useRealTimers();
-    });
-
     it('closes rename modal without toast when name is unchanged', async () => {
       const prayerService = {
         ...mocks.prayerService,
@@ -1089,42 +1057,6 @@ describe('HomeComponent', () => {
       expect(prayerService.renamePersonalCategory).not.toHaveBeenCalled();
       expect(mocks.toastService.success).not.toHaveBeenCalled();
       expect(comp.personalCategory.showRenamePersonalCategory).toBe(false);
-    });
-
-    it('context menu clears pending long-press before opening rename', () => {
-      vi.useFakeTimers();
-      const comp = createHomeComponent(mocks);
-      const openSpy = vi.spyOn(
-        comp.personalCategory,
-        'openRenamePersonalCategoryModal'
-      );
-
-      comp.personalCategory.onPersonalCategoryPointerDown(
-        {
-          button: 0,
-          clientX: 10,
-          clientY: 10,
-          target: document.createElement('button'),
-        } as unknown as PointerEvent,
-        'Members'
-      );
-      expect(comp.personalCategory.getPersonalCategoryLongPressTimerForTests()).not.toBeNull();
-
-      comp.personalCategory.onPersonalCategoryContextMenu(
-        {
-          preventDefault: vi.fn(),
-          target: document.createElement('button'),
-        } as unknown as MouseEvent,
-        'Members'
-      );
-
-      expect(comp.personalCategory.getPersonalCategoryLongPressTimerForTests()).toBeNull();
-      expect(openSpy).toHaveBeenCalledWith('Members');
-
-      vi.advanceTimersByTime(500);
-      expect(openSpy).toHaveBeenCalledTimes(1);
-
-      vi.useRealTimers();
     });
 
     it('ignores save completion when rename modal is closed during save', async () => {

@@ -89,6 +89,8 @@ export class PrayerGroupService {
   readonly groupDeepLinkApply$ = new Subject<void>();
   /** Group chosen on the Groups tab, used when Request opens there. */
   preferredGroupId: string | null = null;
+  /** Prayer id from `?prayerId=` while on the Group tab; applied when the catalog is ready. */
+  pendingPrayerDeepLinkId: string | null = null;
 
   private readonly groupsSubject = new BehaviorSubject<PrayerGroupSummary[]>([]);
   private readonly prayersSubject = new BehaviorSubject<GroupPrayerRow[]>([]);
@@ -278,6 +280,7 @@ export class PrayerGroupService {
     this.catalogLoadToken += 1;
     this.membersByGroupId.clear();
     this.preferredGroupId = null;
+    this.pendingPrayerDeepLinkId = null;
     this.catalogDbFetchComplete = false;
     this.catalogOwnerEmail = null;
     this.publishCatalogSnapshot({

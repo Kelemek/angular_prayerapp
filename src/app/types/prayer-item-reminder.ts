@@ -4,7 +4,8 @@ export type PrayerItemReminderKind =
   | 'community'
   | 'personal'
   | 'pc_member'
-  | 'prompt';
+  | 'prompt'
+  | 'group';
 export type PrayerItemReminderMode = 'once' | 'daily' | 'weekly';
 
 export interface PrayerItemReminder {
@@ -41,9 +42,11 @@ export function resolvePrayerItemKind(options: {
   prayerId: string;
   isPersonal: boolean;
   isPrompt?: boolean;
+  isGroupPrayer?: boolean;
 }): PrayerItemReminderKind {
   if (options.isPrompt) return 'prompt';
   if (options.prayerId.startsWith('pc-member-')) return 'pc_member';
+  if (options.isGroupPrayer) return 'group';
   if (options.isPersonal) return 'personal';
   return 'community';
 }

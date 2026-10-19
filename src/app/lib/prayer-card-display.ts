@@ -86,10 +86,14 @@ export function showPrayerCardReminderButton(
   prayerId: string | null | undefined,
   isPersonal: boolean,
   prayerCategory: string | null | undefined,
-  prayerStatus: string
+  prayerStatus: string,
+  isGroupPrayer = false
 ): boolean {
   if (!sessionEmail || !prayerId) {
     return false;
+  }
+  if (isGroupPrayer) {
+    return prayerStatus !== 'answered';
   }
   if (isPersonal) {
     return prayerCategory !== 'Answered';

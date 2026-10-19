@@ -15,6 +15,12 @@ describe('resolvePrayerItemDeepLinkTab', () => {
     ).toBe('planning_center_list');
   });
 
+  it('routes group prayer ids to groups tab', () => {
+    expect(
+      resolvePrayerItemDeepLinkTab('g-1', community, personal, [{ id: 'g-1' }])
+    ).toBe('groups');
+  });
+
   it('routes personal prayer ids to personal tab', () => {
     expect(resolvePrayerItemDeepLinkTab('p-1', community, personal)).toBe(
       'personal'

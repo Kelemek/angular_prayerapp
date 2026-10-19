@@ -521,6 +521,9 @@ async function loadDescriptionsByKind(
   const personalIds = [
     ...new Set(rows.filter((r) => r.prayer_kind === 'personal').map((r) => r.prayer_id)),
   ];
+  const groupIds = [
+    ...new Set(rows.filter((r) => r.prayer_kind === 'group').map((r) => r.prayer_id)),
+  ];
 
   if (communityIds.length > 0) {
     const { data, error } = await supabase
@@ -548,6 +551,21 @@ async function loadDescriptionsByKind(
       for (const p of data ?? []) {
         const row = p as { id: string; description: string | null };
         out.set(`personal:${row.id}`, (row.description ?? '').trim());
+      }
+    }
+  }
+
+  if (groupIds.length > 0) {
+    const { data, error } = await supabase
+      .from('group_prayers')
+      .select('id, description')
+      .in('id', groupIds);
+    if (error) {
+      console.error('group prayer descriptions batch failed:', error);
+    } else {
+      for (const p of data ?? []) {
+        const row = p as { id: string; description: string | null };
+        out.set(`group:${row.id}`, (row.description ?? '').trim());
       }
     }
   }
@@ -584,6 +602,9 @@ async function loadLatestUpdatesByKind(
   ];
   const personalIds = [
     ...new Set(rows.filter((r) => r.prayer_kind === 'personal').map((r) => r.prayer_id)),
+  ];
+  const groupIds = [
+    ...new Set(rows.filter((r) => r.prayer_kind === 'group').map((r) => r.prayer_id)),
   ];
   const memberPersonIds = [
     ...new Set(
@@ -626,6 +647,25 @@ async function loadLatestUpdatesByKind(
       for (const u of data ?? []) {
         const row = u as { personal_prayer_id: string; content: string | null };
         const key = `personal:${row.personal_prayer_id}`;
+        if (out.has(key)) continue;
+        const plain = truncateText((row.content ?? '').trim(), 8000);
+        if (plain) out.set(key, plain);
+      }
+    }
+  }
+
+  if (groupIds.length > 0) {
+    const { data, error } = await supabase
+      .from('group_prayer_updates')
+      .select('group_prayer_id, content, created_at')
+      .in('group_prayer_id', groupIds)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('group prayer updates batch failed:', error);
+    } else {
+      for (const u of data ?? []) {
+        const row = u as { group_prayer_id: string; content: string | null };
+        const key = `group:${row.group_prayer_id}`;
         if (out.has(key)) continue;
         const plain = truncateText((row.content ?? '').trim(), 8000);
         if (plain) out.set(key, plain);
@@ -852,6 +892,9 @@ Deno.serve(async (req: Request) => {
     const personalIds = [
       ...new Set(rows.filter((r) => r.prayer_kind === 'personal').map((r) => r.prayer_id)),
     ];
+    const groupIds = [
+      ...new Set(rows.filter((r) => r.prayer_kind === 'group').map((r) => r.prayer_id)),
+    ];
     const promptIds = [
       ...new Set(rows.filter((r) => r.prayer_kind === 'prompt').map((r) => r.prayer_id)),
     ];
@@ -901,6 +944,30 @@ Deno.serve(async (req: Request) => {
         const category = (p as { id: string; category: string | null }).category;
         if (category !== 'Answered') {
           personalActive.add((p as { id: string }).id);
+        }
+      }
+    }
+
+    const groupActive = new Set<string>();
+    if (groupIds.length > 0) {
+      const { data: groupRows, error: groupErr } = await withRetry(
+        'group_prayers_status',
+        () => supabase.from('group_prayers').select('id, status').in('id', groupIds)
+      );
+      if (groupErr) {
+        console.error('group_prayers status batch failed:', groupErr);
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to load group prayer status',
+            details: groupErr.message,
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      for (const p of groupRows ?? []) {
+        const status = (p as { id: string; status: string }).status;
+        if (status === 'current') {
+          groupActive.add((p as { id: string }).id);
         }
       }
     }
@@ -1005,9 +1072,16 @@ Deno.serve(async (req: Request) => {
       const sub = subByLower.get(row.user_email.toLowerCase()) as
         | { is_church_member?: boolean | null }
         | undefined;
-      if (sub?.is_church_member === false && row.prayer_kind !== 'personal') return false;
+      if (
+        sub?.is_church_member === false &&
+        row.prayer_kind !== 'personal' &&
+        row.prayer_kind !== 'group'
+      ) {
+        return false;
+      }
       if (row.prayer_kind === 'community') return communityActive.has(row.prayer_id);
       if (row.prayer_kind === 'personal') return personalActive.has(row.prayer_id);
+      if (row.prayer_kind === 'group') return groupActive.has(row.prayer_id);
       if (row.prayer_kind === 'prompt') return promptActive.has(row.prayer_id);
       if (row.prayer_kind === 'pc_member') return pcMemberDeliverable.has(row.id);
       return true;
@@ -1042,6 +1116,18 @@ Deno.serve(async (req: Request) => {
           .eq('id', row.id);
         if (purgeErr) {
           console.error('Failed to purge inactive personal reminder', row.id, purgeErr);
+          errors.push(`${row.id} purge: ${purgeErr.message}`);
+        }
+        continue;
+      }
+      if (row.prayer_kind === 'group' && !groupActive.has(row.prayer_id)) {
+        skippedInactive++;
+        const { error: purgeErr } = await supabase
+          .from('user_prayer_item_reminders')
+          .delete()
+          .eq('id', row.id);
+        if (purgeErr) {
+          console.error('Failed to purge inactive group reminder', row.id, purgeErr);
           errors.push(`${row.id} purge: ${purgeErr.message}`);
         }
         continue;
@@ -1118,9 +1204,12 @@ Deno.serve(async (req: Request) => {
         ? `\n\nLatest update:\n${updateContentText}\n`
         : '';
       const isPrompt = row.prayer_kind === 'prompt';
+      const isGroup = row.prayer_kind === 'group';
       const appLink = isPrompt
         ? `${appUrl}/?promptId=${encodeURIComponent(row.prayer_id)}`
-        : `${appUrl}/?prayerId=${encodeURIComponent(row.prayer_id)}`;
+        : isGroup
+          ? `${appUrl}/?filter=groups&prayerId=${encodeURIComponent(row.prayer_id)}`
+          : `${appUrl}/?prayerId=${encodeURIComponent(row.prayer_id)}`;
       const emailHeading = isPrompt
         ? prayerTitle
           ? `Prayer prompt: ${prayerTitle}`

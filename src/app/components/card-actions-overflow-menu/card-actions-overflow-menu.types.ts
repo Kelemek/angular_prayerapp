@@ -3,9 +3,16 @@ export type CardActionsOverflowActionId =
   | 'answered'
   | 'edit'
   | 'delete'
-  | 'members';
+  | 'members'
+  | 'reorder';
 
-export type CardActionsOverflowIcon = 'bell' | 'check' | 'edit' | 'trash' | 'users';
+export type CardActionsOverflowIcon =
+  | 'bell'
+  | 'check'
+  | 'edit'
+  | 'trash'
+  | 'users'
+  | 'grip';
 
 export type CardActionsOverflowTone = 'blue' | 'green' | 'gray' | 'red';
 

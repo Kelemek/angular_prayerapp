@@ -228,27 +228,18 @@
         [isCategorySwapping]="shell.personalCategory.isCategorySwapping"
         [isPersonalCategorySelected]="shell.personalCategory.isPersonalCategorySelected"
         [getCategoryCount]="shell.personalCategory.getCategoryCount"
+        [pendingDeletePersonalCategory]="shell.personalCategory.pendingDeletePersonalCategory"
+        [personalCategoryDeleteMessage]="shell.personalCategory.personalCategoryDeleteMessage"
         (selectFilterMode)="shell.personalCategory.actions.selectFilterMode($event)"
         (toggleCategory)="shell.personalCategory.actions.toggleCategory($event)"
         (categoryDrop)="shell.personalCategory.actions.onCategoryDrop($event)"
         (categoryDragStarted)="shell.personalCategory.actions.onCategoryDragStarted()"
         (categoryDragEnded)="shell.personalCategory.actions.onCategoryDragEnded()"
-        (categoryPointerDown)="
-          shell.personalCategory.actions.onPersonalCategoryPointerDown(
-            $event.event,
-            $event.category
-          )
-        "
-        (categoryPointerMove)="
-          shell.personalCategory.actions.onPersonalCategoryPointerMove($event)
-        "
-        (categoryPointerUp)="shell.personalCategory.actions.onPersonalCategoryPointerUp($event)"
-        (categoryContextMenu)="
-          shell.personalCategory.actions.onPersonalCategoryContextMenu(
-            $event.event,
-            $event.category
-          )
-        "
+        (addCategory)="shell.personalCategory.actions.openCreatePersonalCategoryModal()"
+        (renameCategory)="shell.personalCategory.actions.openRenamePersonalCategoryModal($event)"
+        (deleteCategory)="shell.personalCategory.actions.requestDeletePersonalCategory($event)"
+        (confirmDeletePersonalCategory)="shell.personalCategory.actions.confirmDeletePersonalCategory()"
+        (cancelDeletePersonalCategory)="shell.personalCategory.actions.cancelDeletePersonalCategory()"
       ></app-home-personal-category-filters>
       }
 
@@ -305,8 +296,8 @@
     [showEditPersonalPrayer]="shell.modals.showEditPersonalPrayer"
     [editingPrayer]="shell.modals.editingPrayer"
     [showRenamePersonalCategory]="shell.modals.showRenamePersonalCategory"
+    [personalCategoryNameModalMode]="shell.modals.personalCategoryNameModalMode"
     [renamingPersonalCategory]="shell.modals.renamingPersonalCategory"
-    [personalCategoryRenameDeferInputFocus]="shell.modals.personalCategoryRenameDeferInputFocus"
     [isRenamingPersonalCategory]="shell.modals.isRenamingPersonalCategory"
     [showEditPersonalUpdate]="shell.modals.showEditPersonalUpdate"
     [editingUpdate]="shell.modals.editingUpdate"

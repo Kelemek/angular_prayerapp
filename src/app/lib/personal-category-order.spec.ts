@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  mergedNamedPersonalCategoryNames,
   namedPersonalCategoryNamesFromPrayers,
   personalCategoryNamesFromPrayers,
 } from "./personal-category-order";
@@ -20,5 +21,14 @@ describe("personalCategoryNamesFromPrayers", () => {
       { category: "Health", display_order: 2000 },
     ]);
     expect(names).toEqual(["Health"]);
+  });
+
+  it("mergedNamedPersonalCategoryNames appends color-only names", () => {
+    expect(
+      mergedNamedPersonalCategoryNames(
+        [{ category: "Health", display_order: 1000 }],
+        ["Travel", "Answered", "Health"]
+      )
+    ).toEqual(["Health", "Travel"]);
   });
 });

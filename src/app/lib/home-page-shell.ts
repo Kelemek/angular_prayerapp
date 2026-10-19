@@ -49,10 +49,11 @@ export interface HomePersonalCategoryFilterActions {
   onCategoryDrop(event: CdkDragDrop<string[]>): void;
   onCategoryDragStarted(): void;
   onCategoryDragEnded(): void;
-  onPersonalCategoryPointerDown(event: PointerEvent, category: string): void;
-  onPersonalCategoryPointerMove(event: PointerEvent): void;
-  onPersonalCategoryPointerUp(event?: PointerEvent): void;
-  onPersonalCategoryContextMenu(event: MouseEvent, category: string): void;
+  openCreatePersonalCategoryModal(): void;
+  openRenamePersonalCategoryModal(category: string): void;
+  requestDeletePersonalCategory(category: string): void;
+  confirmDeletePersonalCategory(): void;
+  cancelDeletePersonalCategory(): void;
 }
 
 export interface HomePageShell {
@@ -72,8 +73,8 @@ export interface HomePageShell {
     readonly showEditPersonalPrayer: boolean;
     readonly editingPrayer: PrayerRequest | null;
     readonly showRenamePersonalCategory: boolean;
+    readonly personalCategoryNameModalMode: "rename" | "create";
     readonly renamingPersonalCategory: string | null;
-    readonly personalCategoryRenameDeferInputFocus: boolean;
     readonly isRenamingPersonalCategory: boolean;
     readonly showEditPersonalUpdate: boolean;
     readonly editingUpdate: PrayerUpdate | null;
@@ -107,6 +108,8 @@ export interface HomePageShell {
     isCategorySwapping(category: string): boolean;
     isPersonalCategorySelected(category: string): boolean;
     getCategoryCount(category: string): number;
+    readonly pendingDeletePersonalCategory: string | null;
+    readonly personalCategoryDeleteMessage: string;
     readonly actions: HomePersonalCategoryFilterActions;
   };
   readonly getPromptCountByType: (type: string) => number;
@@ -154,11 +157,11 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
     get showRenamePersonalCategory() {
       return deps.personalCategory.showRenamePersonalCategory;
     },
+    get personalCategoryNameModalMode() {
+      return deps.personalCategory.personalCategoryNameModalMode;
+    },
     get renamingPersonalCategory() {
       return deps.personalCategory.renamingPersonalCategory;
-    },
-    get personalCategoryRenameDeferInputFocus() {
-      return deps.personalCategory.personalCategoryRenameDeferInputFocus;
     },
     get isRenamingPersonalCategory() {
       return deps.personalCategory.isRenamingPersonalCategory;
@@ -251,6 +254,12 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
       deps.personalCategory.isPersonalCategorySelected(category),
     getCategoryCount: (category: string) =>
       deps.catalog.personalCategoryCount(category),
+    get pendingDeletePersonalCategory() {
+      return deps.personalCategory.pendingDeletePersonalCategory;
+    },
+    get personalCategoryDeleteMessage() {
+      return deps.personalCategory.personalCategoryDeleteMessage;
+    },
     actions: {
       selectFilterMode: (
         mode: Exclude<PersonalCategoryFilterMode, "named">
@@ -262,14 +271,16 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
       onCategoryDragStarted: () =>
         deps.personalCategory.onCategoryDragStarted(),
       onCategoryDragEnded: () => deps.personalCategory.onCategoryDragEnded(),
-      onPersonalCategoryPointerDown: (event: PointerEvent, category: string) =>
-        deps.personalCategory.onPersonalCategoryPointerDown(event, category),
-      onPersonalCategoryPointerMove: (event: PointerEvent) =>
-        deps.personalCategory.onPersonalCategoryPointerMove(event),
-      onPersonalCategoryPointerUp: (event?: PointerEvent) =>
-        deps.personalCategory.onPersonalCategoryPointerUp(event),
-      onPersonalCategoryContextMenu: (event: MouseEvent, category: string) =>
-        deps.personalCategory.onPersonalCategoryContextMenu(event, category),
+      openCreatePersonalCategoryModal: () =>
+        deps.personalCategory.openCreatePersonalCategoryModal(),
+      openRenamePersonalCategoryModal: (category: string) =>
+        deps.personalCategory.openRenamePersonalCategoryModal(category),
+      requestDeletePersonalCategory: (category: string) =>
+        deps.personalCategory.requestDeletePersonalCategory(category),
+      confirmDeletePersonalCategory: () =>
+        void deps.personalCategory.confirmDeletePersonalCategory(),
+      cancelDeletePersonalCategory: () =>
+        deps.personalCategory.cancelDeletePersonalCategory(),
     },
   };
 

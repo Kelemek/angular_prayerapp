@@ -63,8 +63,8 @@
 
       <app-personal-category-rename-modal
         [isOpen]="showRenamePersonalCategory"
+        [mode]="personalCategoryNameModalMode"
         [categoryName]="renamingPersonalCategory ?? ''"
-        [deferInputFocus]="personalCategoryRenameDeferInputFocus"
         [saving]="isRenamingPersonalCategory"
         (close)="handlers.closeRenamePersonalCategory()"
         (save)="handlers.saveRenamedPersonalCategory($event)"

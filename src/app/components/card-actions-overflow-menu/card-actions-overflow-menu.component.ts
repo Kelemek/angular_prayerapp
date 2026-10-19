@@ -50,15 +50,11 @@ import type {
       aria-haspopup="menu"
       aria-label="Card actions"
       title="Card actions"
-      [class]="
-        iconButtonBaseClasses +
-        ' text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer ' +
-        layoutClasses.iconButtonPaddingClasses
-      "
+      [class]="triggerButtonClasses"
       (click)="toggleMenu($event)"
     >
       <svg
-        [class]="layoutClasses.iconSizeClasses"
+        [class]="triggerIconClasses"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -108,6 +104,8 @@ export class CardActionsOverflowMenuComponent implements OnChanges, OnDestroy {
 
   @Input() items: CardActionsOverflowItem[] = [];
   @Input() bandSize: MetaHeaderBandSize = 'sm';
+  /** Filter chips: compact trigger padding/icon; no focus ring on menu items. */
+  @Input() chipTrigger = false;
   /** Optional async prep (e.g. load reminder state) before the menu opens. */
   @Input() beforeMenuOpen?: () => void | Promise<void>;
 
@@ -130,9 +128,30 @@ export class CardActionsOverflowMenuComponent implements OnChanges, OnDestroy {
     return getMetaHeaderBandLayoutClasses(this.bandSize);
   }
 
-  itemButtonClass(tone: CardActionsOverflowTone): string {
+  get triggerIconClasses(): string {
+    return this.chipTrigger
+      ? 'size-4 shrink-0'
+      : this.layoutClasses.iconSizeClasses;
+  }
+
+  get triggerButtonClasses(): string {
+    const focus = 'focus:outline-none focus:ring-0';
+    const padding = this.chipTrigger
+      ? 'p-0'
+      : this.layoutClasses.iconButtonPaddingClasses;
     return (
-      'flex w-full min-h-[44px] items-center gap-3 rounded-md px-3 text-left text-sm font-medium cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-500 ' +
+      this.iconButtonBaseClasses +
+      ` text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 ${focus} rounded-md cursor-pointer ` +
+      padding
+    );
+  }
+
+  itemButtonClass(tone: CardActionsOverflowTone): string {
+    const focus = this.chipTrigger
+      ? 'focus:outline-none focus-visible:outline-none'
+      : 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-500';
+    return (
+      `flex w-full min-h-[44px] items-center gap-3 rounded-md px-3 text-left text-sm font-medium cursor-pointer transition-colors ${focus} ` +
       this.toneClass(tone)
     );
   }

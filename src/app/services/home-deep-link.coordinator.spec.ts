@@ -27,6 +27,7 @@ describe("HomeDeepLinkCoordinator", () => {
       scrollPromptIntoView: vi.fn(() => true),
       scrollPrayerIntoView: vi.fn(() => true),
       notifyGroupDeepLinkPending: vi.fn(),
+      prepareGroupPrayerDeepLink: vi.fn(),
     };
     coordinator.bindHost(host);
   });
@@ -133,6 +134,49 @@ describe("HomeDeepLinkCoordinator", () => {
     expect(host.stripQueryParam).toHaveBeenCalledWith("prayerId");
     expect(host.scrollPrayerIntoView).toHaveBeenCalledWith("p1");
     scrollSpy.mockRestore();
+  });
+
+  it("prepares group prayer deep links before switching to the groups tab", () => {
+    vi.mocked(host.resolvePrayerDeepLinkTab).mockReturnValue("groups");
+
+    coordinator.handleNavigationDeepLinks(
+      { filter: null, prayerId: "gp-1", promptId: null },
+      true
+    );
+
+    expect(host.prepareGroupPrayerDeepLink).toHaveBeenCalledWith("gp-1");
+    expect(host.setFilter).toHaveBeenCalledWith("groups");
+    expect(host.scrollPrayerIntoView).toHaveBeenCalledWith("gp-1");
+  });
+
+  it("prepares group prayer deep links on retry after the catalog resolves", () => {
+    vi.mocked(host.resolvePrayerDeepLinkTab)
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce("groups");
+    vi.mocked(host.getActiveFilter).mockReturnValue("personal");
+
+    coordinator.handleNavigationDeepLinks(
+      { filter: null, prayerId: "gp-2", promptId: null },
+      true
+    );
+    expect(host.prepareGroupPrayerDeepLink).not.toHaveBeenCalled();
+
+    coordinator.retryPendingPrayerDeepLinkIfNeeded();
+
+    expect(host.prepareGroupPrayerDeepLink).toHaveBeenCalledWith("gp-2");
+    expect(host.setFilter).toHaveBeenCalledWith("groups");
+  });
+
+  it("prepares group prayer deep links while on the groups tab before catalog load", () => {
+    vi.mocked(host.resolvePrayerDeepLinkTab).mockReturnValue(null);
+    vi.mocked(host.getActiveFilter).mockReturnValue("groups");
+
+    coordinator.handleNavigationDeepLinks(
+      { filter: "groups", prayerId: "gp-3", promptId: null },
+      true
+    );
+
+    expect(host.prepareGroupPrayerDeepLink).toHaveBeenCalledWith("gp-3");
   });
 
   it("switches to prompts for prompt deep links", () => {

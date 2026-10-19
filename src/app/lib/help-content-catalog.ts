@@ -201,7 +201,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Filtering Personal Prayers by Category',
-            text: 'Once you have personal prayers, filter chips always appear in the folder section when **Personal** is active: **Current** (everything except answered), **Answered**, and **Total** (all personal prayers), then any categories you created. Category names wrap to the next line when needed (same layout as prompt type filters). Click a category to show only prayers in that category. Long-press a category (or right-click on desktop) to rename it. Re-tap a category to return to Current.',
+            text: 'Once you have personal prayers, filter chips always appear in the folder section when **Personal** is active: **Current** (everything except answered), **Answered**, and **Total** (all personal prayers), then any categories you created. Use the **+** chip beside those status filters to create a new category before you add prayers to it. Category names wrap to the next line when needed (same layout as prompt type filters). Click a category to show only prayers in that category. Use the **⋯** menu on a category chip to **Reorder** (shows drag handles), rename, or delete it (delete only when the category is empty). Re-tap a category to return to Current.',
           },
           {
             subtitle: 'Editing Personal Prayers',

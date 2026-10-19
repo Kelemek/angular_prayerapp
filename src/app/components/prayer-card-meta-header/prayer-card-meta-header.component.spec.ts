@@ -42,14 +42,16 @@ describe('PrayerCardMetaHeaderComponent overflow items', () => {
     component.canEditGroupPrayer = true;
     component.status = 'answered';
     component.showDelete = true;
+    component.showReminder = true;
 
     expect(component.isAnswered).toBe(true);
     expect(component.overflowItems.map((item) => item.id)).toEqual([
+      'reminder',
       'answered',
       'edit',
       'delete',
     ]);
-    expect(component.overflowItems[0]?.label).toBe('Mark as unanswered');
+    expect(component.overflowItems[1]?.label).toBe('Mark as unanswered');
   });
 
   it('hides group edit and answered for non-requesters', () => {

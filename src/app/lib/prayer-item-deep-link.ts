@@ -6,7 +6,8 @@ export type PrayerItemDeepLinkTab =
   | 'archived'
   | 'total'
   | 'personal'
-  | 'planning_center_list';
+  | 'planning_center_list'
+  | 'groups';
 
 export type PersonalDeepLinkCategoryMode = 'current' | 'answered' | 'total';
 
@@ -29,10 +30,14 @@ export function resolvePersonalDeepLinkCategoryMode(
 export function resolvePrayerItemDeepLinkTab(
   prayerId: string,
   communityPrayers: ReadonlyArray<{ id: string; status: string }>,
-  personalPrayers: ReadonlyArray<{ id: string }>
+  personalPrayers: ReadonlyArray<{ id: string }>,
+  groupPrayers: ReadonlyArray<{ id: string }> = []
 ): PrayerItemDeepLinkTab | null {
   if (isMemberPrayerId(prayerId)) {
     return 'planning_center_list';
+  }
+  if (groupPrayers.some((p) => p.id === prayerId)) {
+    return 'groups';
   }
   if (personalPrayers.some((p) => p.id === prayerId)) {
     return 'personal';

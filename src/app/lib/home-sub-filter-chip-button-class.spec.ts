@@ -25,4 +25,16 @@ describe("buildHomeSubFilterChipButtonClass", () => {
       })
     ).toBe("base inactive relative opacity-50 cursor-not-allowed");
   });
+
+  it("tightens left padding when the drag handle is hidden", () => {
+    expect(
+      buildHomeSubFilterChipButtonClass({
+        base: "base pl-7",
+        active: false,
+        activeClass: "active",
+        inactiveClass: "inactive",
+        showDragHandle: false,
+      })
+    ).toContain("!pl-3");
+  });
 });

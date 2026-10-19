@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HomePersonalCategoryController } from "./home-personal-category.controller";
 import type { PrayerRequest } from "./prayer.service";
 import { HOME_PERSONAL_CATEGORY_DRAG_SCROLL_LOCK_CLASS } from "../lib/personal-category-drag-scroll";
-import * as personalCategoryLongPress from "../lib/personal-category-long-press";
-import { PERSONAL_CATEGORY_LONG_PRESS_MS } from "../lib/personal-category-long-press";
 
 function prayersWithCategoryOrder(
   entries: Array<{ category: string; display_order: number }>
@@ -33,6 +31,7 @@ describe("HomePersonalCategoryController", () => {
   let personalCategoryColorService: {
     getColorsSnapshot: ReturnType<typeof vi.fn>;
     renameCategory: ReturnType<typeof vi.fn>;
+    setColor: ReturnType<typeof vi.fn>;
   };
   let toastService: { error: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn> };
 
@@ -57,6 +56,8 @@ describe("HomePersonalCategoryController", () => {
     personalCategoryColorService = {
       getColorsSnapshot: vi.fn(() => ({})),
       renameCategory: vi.fn(),
+      setColor: vi.fn().mockResolvedValue(true),
+      deleteColor: vi.fn().mockResolvedValue(true),
     };
     toastService = { error: vi.fn(), success: vi.fn() };
     controller.bindHost(host, {
@@ -94,6 +95,33 @@ describe("HomePersonalCategoryController", () => {
       ])
     );
     expect(controller.uniquePersonalCategories).toEqual(["Health", "Family"]);
+  });
+
+  it("includes saved color-only categories in uniquePersonalCategories", () => {
+    prayerService.getPersonalPrayersSnapshot.mockReturnValue([]);
+    personalCategoryColorService.getColorsSnapshot.mockReturnValue({
+      Travel: "#2563EB",
+      Answered: "#39704D",
+    });
+    expect(controller.uniquePersonalCategories).toEqual(["Travel"]);
+  });
+
+  it("creates a category from the add button flow", async () => {
+    controller.openCreatePersonalCategoryModal();
+    expect(controller.personalCategoryNameModalMode).toBe("create");
+    expect(controller.showRenamePersonalCategory).toBe(true);
+
+    await controller.saveRenamedPersonalCategory("Travel");
+
+    expect(personalCategoryColorService.setColor).toHaveBeenCalledWith(
+      "Travel",
+      "#DC2626"
+    );
+    expect(controller.personalCategoryFilterMode).toBe("named");
+    expect(controller.selectedPersonalCategories).toEqual(["Travel"]);
+    expect(toastService.success).toHaveBeenCalledWith("Category created.");
+    expect(controller.showRenamePersonalCategory).toBe(false);
+    expect(host.onFilterStateChanged).toHaveBeenCalled();
   });
 
   it("onCategoryDrop uses swapCategoryRanges for adjacent swap", async () => {
@@ -188,51 +216,11 @@ describe("HomePersonalCategoryController", () => {
     expect(host.onFilterStateChanged).toHaveBeenCalled();
   });
 
-  describe("personal category long-press rename", () => {
-    it("opens rename modal after long-press and swallows the release gesture", () => {
-      vi.useFakeTimers();
-      const clearSelectionSpy = vi.spyOn(
-        personalCategoryLongPress,
-        "clearBrowserTextSelection"
-      );
-      const addListenerSpy = vi.spyOn(document, "addEventListener");
-
-      controller.onPersonalCategoryPointerDown(
-        {
-          button: 0,
-          clientX: 10,
-          clientY: 10,
-          target: document.createElement("button"),
-        } as unknown as PointerEvent,
-        "Health"
-      );
-
-      vi.advanceTimersByTime(PERSONAL_CATEGORY_LONG_PRESS_MS);
-
-      expect(controller.showRenamePersonalCategory).toBe(true);
-      expect(controller.renamingPersonalCategory).toBe("Health");
-      expect(controller.personalCategoryRenameDeferInputFocus).toBe(true);
-      expect(clearSelectionSpy).toHaveBeenCalled();
-      expect(addListenerSpy).toHaveBeenCalledWith(
-        "pointerup",
-        expect.any(Function),
-        expect.objectContaining({ capture: true, passive: false })
-      );
-
-      const releaseEvent = {
-        cancelable: true,
-        preventDefault: vi.fn(),
-        stopPropagation: vi.fn(),
-      } as unknown as PointerEvent;
-      controller.onPersonalCategoryPointerUp(releaseEvent);
-
-      expect(releaseEvent.preventDefault).toHaveBeenCalled();
-      expect(releaseEvent.stopPropagation).toHaveBeenCalled();
-
-      vi.useRealTimers();
-      clearSelectionSpy.mockRestore();
-      addListenerSpy.mockRestore();
-    });
+  it("openRenamePersonalCategoryModal opens the rename dialog", () => {
+    controller.openRenamePersonalCategoryModal("Health");
+    expect(controller.showRenamePersonalCategory).toBe(true);
+    expect(controller.renamingPersonalCategory).toBe("Health");
+    expect(controller.personalCategoryNameModalMode).toBe("rename");
   });
 
   describe("category drag scroll lock", () => {

@@ -43,7 +43,8 @@ export function remindersForPrayerCard(
   allPrayerItemReminders: PrayerItemReminder[],
   prayerId: string,
   isPersonal: boolean,
-  isPrompt = false
+  isPrompt = false,
+  isGroupPrayer = false
 ): PrayerItemReminder[] {
   if (!prayerId) return [];
   const sessionRows =
@@ -53,6 +54,7 @@ export function remindersForPrayerCard(
     prayerId,
     isPersonal,
     isPrompt,
+    isGroupPrayer,
   });
   return prayerItemReminderService.remindersForPrayer(all, prayerId, kind);
 }

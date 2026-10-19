@@ -8,6 +8,7 @@ import { isMemberPrayerId } from "../lib/prayer-card-kind";
 import type { PrayerRequest } from "./prayer.service";
 import type { PrayerService } from "./prayer.service";
 import type { PromptService } from "./prompt.service";
+import type { PrayerGroupService } from "./prayer-group.service";
 import type { PersonalCategoryFilterMode } from "../types/presentation";
 import type { PrayerFilters } from "../components/prayer-filters/prayer-filters.component";
 
@@ -68,6 +69,7 @@ export interface HomeDeepLinkHost {
   /** Scroll the Public community virtual list toward `prayerId` (returns false if not on a community tab). */
   scrollPrayerIntoView(prayerId: string): boolean;
   notifyGroupDeepLinkPending?(): void;
+  prepareGroupPrayerDeepLink(prayerId: string): void;
 }
 
 export interface HomeDeepLinkHostDependencies {
@@ -76,6 +78,7 @@ export interface HomeDeepLinkHostDependencies {
   route: ActivatedRoute;
   prayerService: PrayerService;
   promptService: PromptService;
+  prayerGroupService: PrayerGroupService;
   markForCheck: () => void;
   setFilter: (filter: HomeActiveFilter) => void;
   selectPersonalCategoryFilterMode: (
@@ -164,7 +167,8 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
     return resolvePrayerItemDeepLinkTab(
       prayerId,
       this.deps.prayerService.getAllCommunityPrayersSnapshot(),
-      this.deps.prayerService.getPersonalPrayersSnapshot()
+      this.deps.prayerService.getPersonalPrayersSnapshot(),
+      this.deps.prayerGroupService.getPrayersSnapshot()
     );
   }
 
@@ -179,6 +183,9 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
       );
     }
     return (
+      this.deps.prayerGroupService
+        .getPrayersSnapshot()
+        .some((p) => p.id === prayerId) ||
       this.deps.prayerService
         .getPersonalPrayersSnapshot()
         .some((p) => p.id === prayerId) ||
@@ -209,20 +216,26 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
   }
 
   shouldGiveUpCommunityPersonalPrayerDeepLink(prayerId: string): boolean {
+    const group = this.deps.prayerGroupService.getPrayersSnapshot();
     const personal = this.deps.prayerService.getPersonalPrayersSnapshot();
     const community = this.deps.prayerService.getAllCommunityPrayersSnapshot();
     if (
+      group.some((p) => p.id === prayerId) ||
       personal.some((p) => p.id === prayerId) ||
       community.some((p) => p.id === prayerId)
     ) {
       return false;
     }
-    return this.deps.prayerService.arePrayerCatalogsReady();
+    return (
+      this.deps.prayerService.arePrayerCatalogsReady() &&
+      this.deps.prayerGroupService.hasCatalogSnapshot()
+    );
   }
 
   requestFreshPrayerCatalog(): void {
     void this.deps.prayerService.loadPrayers(false);
     void this.deps.prayerService.loadPersonalPrayers(false);
+    void this.deps.prayerGroupService.loadCatalog(false);
   }
 
   isPromptInCatalog(promptId: string): boolean {
@@ -252,6 +265,11 @@ export class HomeDeepLinkHostAdapter implements HomeDeepLinkHost {
   }
 
   notifyGroupDeepLinkPending(): void {
+    this.deps.notifyGroupDeepLinkPending();
+  }
+
+  prepareGroupPrayerDeepLink(prayerId: string): void {
+    this.deps.prayerGroupService.pendingPrayerDeepLinkId = prayerId;
     this.deps.notifyGroupDeepLinkPending();
   }
 

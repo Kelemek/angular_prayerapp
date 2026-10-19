@@ -167,6 +167,51 @@ export class PersonalCategoryColorService {
     }
   }
 
+  async deleteColor(category: string): Promise<boolean> {
+    const sanitizedCategory = sanitizePersonalCategoryName(category);
+    if (!sanitizedCategory) {
+      return false;
+    }
+
+    const userEmail = await this.userSessionService.resolveUserEmail();
+    if (!userEmail) {
+      this.toast.error('User email not available');
+      return false;
+    }
+
+    const deleteForEmail = userEmail.toLowerCase().trim();
+
+    try {
+      const { error } = await (await this.supabase.db())
+        .from('personal_prayer_category_colors')
+        .delete()
+        .eq('user_email', userEmail)
+        .eq('category', sanitizedCategory);
+
+      if (error) {
+        throw error;
+      }
+
+      const currentEmail = await this.userSessionService.resolveUserEmail();
+      if (
+        !currentEmail ||
+        currentEmail.toLowerCase().trim() !== deleteForEmail
+      ) {
+        return true;
+      }
+
+      const updated = { ...this.colorsSubject.value };
+      delete updated[sanitizedCategory];
+      this.colorsSubject.next(updated);
+      this.cache.set('personalCategoryColors', updated);
+      return true;
+    } catch (err) {
+      console.error('[PersonalCategoryColorService] Failed to delete color:', err);
+      this.toast.error('Failed to delete category');
+      return false;
+    }
+  }
+
   async renameCategory(oldCategory: string, newCategory: string): Promise<boolean> {
     const oldName = sanitizePersonalCategoryName(oldCategory);
     const newName = sanitizePersonalCategoryName(newCategory);

@@ -322,6 +322,7 @@ export class PrayerCardComponent
     return resolvePrayerItemKind({
       prayerId: this.prayer?.id ?? '',
       isPersonal: this.isPersonal,
+      isGroupPrayer: !!this.groupName,
     });
   }
 
@@ -331,7 +332,9 @@ export class PrayerCardComponent
       this.userSessionService,
       this.allPrayerItemReminders,
       this.prayer?.id ?? '',
-      this.isPersonal
+      this.isPersonal,
+      false,
+      !!this.groupName
     );
   }
 

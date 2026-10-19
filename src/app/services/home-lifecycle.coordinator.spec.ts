@@ -98,6 +98,7 @@ describe("HomeLifecycleCoordinator", () => {
       personalCategoryColorService: { loadColors: vi.fn() } as any,
       memorizationService: { memorizedItems$: of([]) } as any,
       memorizationRecommendationsService: { items$: of([]) } as any,
+      prayerGroupService: { prayers$: of([]) } as any,
     });
   });
 
@@ -171,6 +172,7 @@ describe("HomeLifecycleCoordinator", () => {
       personalCategoryColorService: { loadColors: vi.fn() } as any,
       memorizationService: { memorizedItems$: of([]) } as any,
       memorizationRecommendationsService: { items$: of([]) } as any,
+      prayerGroupService: { prayers$: of([]) } as any,
     });
 
     coordinator.initialize(destroy$);

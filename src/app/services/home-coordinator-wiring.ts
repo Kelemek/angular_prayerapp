@@ -135,6 +135,7 @@ export function wireHomeCoordinators(
     route: deps.route,
     prayerService: deps.prayerService,
     promptService: deps.promptService,
+    prayerGroupService: deps.prayerGroupService,
     markForCheck: () => cdr.markForCheck(),
     setFilter: (filter) => deps.filterCoordinator.setFilter(filter),
     selectPersonalCategoryFilterMode: (mode) =>
@@ -317,6 +318,7 @@ export function wireHomeCoordinators(
     personalCategoryColorService: deps.personalCategoryColorService,
     memorizationService: deps.memorizationService,
     memorizationRecommendationsService: deps.memorizationRecommendationsService,
+    prayerGroupService: deps.prayerGroupService,
   });
 
   deps.refreshCoordinator.bindHost(

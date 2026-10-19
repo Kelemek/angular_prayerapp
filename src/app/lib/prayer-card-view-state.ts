@@ -100,7 +100,8 @@ export function computePrayerCardViewState(
       prayer.id,
       isPersonal,
       prayer.category,
-      prayer.status
+      prayer.status,
+      isGroupPrayer
     ),
     showAddUpdateButton:
       !isVersePrayer && showPrayerCardAddUpdateButton(permissionContext),

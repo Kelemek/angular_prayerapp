@@ -12,6 +12,7 @@ import {
   personalPrayerOrderRpcArgs,
   resolvePersonalCategoryRangeFromDbState,
   rpcMutationSucceeded,
+  validatePersonalCategoryCreate,
   validatePersonalCategoryRename,
   validatePersonalCategorySwapInputs,
 } from './prayer-personal-category';
@@ -61,6 +62,17 @@ describe('prayer-personal-category', () => {
       min: 2000,
       max: 2999,
     });
+  });
+
+  it('validates personal category create', () => {
+    const sanitize = (c: string | null | undefined) => (c?.trim() ? c.trim() : null);
+    expect(validatePersonalCategoryCreate(' Travel ', sanitize, [], [])).toEqual({
+      ok: true,
+      newName: 'Travel',
+    });
+    expect(validatePersonalCategoryCreate('Taken', sanitize, ['Taken'], []).ok).toBe(
+      false
+    );
   });
 
   it('validates personal category rename', () => {

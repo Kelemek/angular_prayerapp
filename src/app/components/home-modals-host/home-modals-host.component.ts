@@ -55,8 +55,8 @@ export class HomeModalsHostComponent {
   @Input({ required: true }) showEditPersonalPrayer!: boolean;
   @Input({ required: true }) editingPrayer!: PrayerRequest | null;
   @Input({ required: true }) showRenamePersonalCategory!: boolean;
+  @Input({ required: true }) personalCategoryNameModalMode!: "rename" | "create";
   @Input({ required: true }) renamingPersonalCategory!: string | null;
-  @Input({ required: true }) personalCategoryRenameDeferInputFocus!: boolean;
   @Input({ required: true }) isRenamingPersonalCategory!: boolean;
   @Input({ required: true }) showEditPersonalUpdate!: boolean;
   @Input({ required: true }) editingUpdate!: PrayerUpdate | null;

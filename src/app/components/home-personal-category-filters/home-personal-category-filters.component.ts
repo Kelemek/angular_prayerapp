@@ -15,11 +15,20 @@ import {
 import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
 import { HOME_SHELL_SECTION_GAP_CLASSES } from "../../lib/home-shell-spacing";
 import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
+import { CardActionsOverflowMenuComponent } from "../card-actions-overflow-menu/card-actions-overflow-menu.component";
+import type { CardActionsOverflowItem } from "../card-actions-overflow-menu/card-actions-overflow-menu.types";
+import { ConfirmationDialogComponent } from "../confirmation-dialog/confirmation-dialog.component";
 
 @Component({
   selector: "app-home-personal-category-filters",
   standalone: true,
-  imports: [CommonModule, DragDropModule, HomeSubFilterChipComponent],
+  imports: [
+    CommonModule,
+    DragDropModule,
+    HomeSubFilterChipComponent,
+    CardActionsOverflowMenuComponent,
+    ConfirmationDialogComponent,
+  ],
   templateUrl: "./home-personal-category-filters.component.html",
   host: { class: "block" },
 })
@@ -36,6 +45,8 @@ export class HomePersonalCategoryFiltersComponent {
     category: string
   ) => boolean;
   @Input({ required: true }) getCategoryCount!: (category: string) => number;
+  @Input() pendingDeletePersonalCategory: string | null = null;
+  @Input() personalCategoryDeleteMessage = "";
 
   @Output() selectFilterMode = new EventEmitter<
     Exclude<PersonalCategoryFilterMode, "named">
@@ -44,31 +55,75 @@ export class HomePersonalCategoryFiltersComponent {
   @Output() categoryDrop = new EventEmitter<CdkDragDrop<string[]>>();
   @Output() categoryDragStarted = new EventEmitter<void>();
   @Output() categoryDragEnded = new EventEmitter<void>();
-  @Output() categoryPointerDown = new EventEmitter<{
-    event: PointerEvent;
-    category: string;
-  }>();
-  @Output() categoryPointerMove = new EventEmitter<PointerEvent>();
-  @Output() categoryPointerUp = new EventEmitter<PointerEvent>();
-  @Output() categoryContextMenu = new EventEmitter<{
-    event: MouseEvent;
-    category: string;
-  }>();
+  @Output() addCategory = new EventEmitter<void>();
+  @Output() renameCategory = new EventEmitter<string>();
+  @Output() deleteCategory = new EventEmitter<string>();
+  @Output() confirmDeletePersonalCategory = new EventEmitter<void>();
+  @Output() cancelDeletePersonalCategory = new EventEmitter<void>();
 
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
+  /** Square chip matching group “Add a group”; plus icon inside. */
+  readonly addCategoryChipLayoutClass =
+    "inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all";
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS;
   readonly namedChipInactiveClass = HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS;
   readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
   readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
   readonly subFilterGroupClass = HOME_PERSONAL_SUB_FILTER_GROUP_CLASS;
 
-  categoryChipButtonClass(category: string): string {
+  chipReorderHandlesVisible = false;
+
+  categoryChipShellClass(category: string): string {
     return buildHomeSubFilterChipButtonClass({
       base: this.chipButtonClass,
       active: this.isPersonalCategorySelected(category),
       activeClass: this.personalCategoryActiveClass,
       inactiveClass: this.namedChipInactiveClass,
+      relative: true,
       disabled: this.isCategorySwapping(category),
+      showDragHandle: this.chipReorderHandlesVisible,
     });
+  }
+
+  toggleChipReorderHandles(): void {
+    this.chipReorderHandlesVisible = !this.chipReorderHandlesVisible;
+  }
+
+  categoryOverflowItems(category: string): CardActionsOverflowItem[] {
+    if (this.isCategorySwapping(category)) {
+      return [];
+    }
+    const items: CardActionsOverflowItem[] = [];
+    if (this.uniqueCategories.length > 1) {
+      items.push({
+        id: "reorder",
+        label: this.chipReorderHandlesVisible ? "Done reordering" : "Reorder",
+        icon: "grip",
+        tone: "blue",
+        ariaLabel: this.chipReorderHandlesVisible
+          ? "Hide drag handles"
+          : "Show drag handles to reorder",
+        onSelect: () => this.toggleChipReorderHandles(),
+      });
+    }
+    items.push(
+      {
+        id: "edit",
+        label: "Rename category",
+        icon: "edit",
+        tone: "blue",
+        ariaLabel: `Rename ${category}`,
+        onSelect: () => this.renameCategory.emit(category),
+      },
+      {
+        id: "delete",
+        label: "Delete category",
+        icon: "trash",
+        tone: "red",
+        ariaLabel: `Delete ${category}`,
+        onSelect: () => this.deleteCategory.emit(category),
+      }
+    );
+    return items;
   }
 }

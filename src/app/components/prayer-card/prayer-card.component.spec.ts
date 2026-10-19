@@ -187,6 +187,22 @@ describe('PrayerCardComponent', () => {
       expect(component.viewState.showReminderButton).toBe(true);
     });
 
+    it('shows for current group prayers and hides when answered', () => {
+      component.isPersonal = true;
+      component.groupName = 'Family';
+      (component.prayer as any).status = 'current';
+      expect(component.viewState.showReminderButton).toBe(true);
+      (component.prayer as any).status = 'answered';
+      expect(component.viewState.showReminderButton).toBe(false);
+    });
+
+    it('resolves group prayer item kind', () => {
+      component.isPersonal = true;
+      component.groupName = 'Family';
+      (component.prayer as any).id = 'gp-1';
+      expect(component.prayerItemKind()).toBe('group');
+    });
+
     it('hides when there is no session email', () => {
       mockUserSessionService.getCurrentSession = vi.fn().mockReturnValue({ email: '' });
       (component.prayer as any).status = 'current';
