@@ -102,13 +102,6 @@ export type PrayerAnsweredStatusModalScope = 'personal' | 'group';
         <div class="flex justify-end gap-3 pt-2">
           <button
             type="button"
-            (click)="onCancel()"
-            class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
             (click)="onConfirm()"
             [disabled]="!canConfirm"
             class="btn-chip btn-chip-blue cursor-pointer rounded-md px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"

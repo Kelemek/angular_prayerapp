@@ -15,6 +15,7 @@ import {
   inject,
 } from "@angular/core";
 import { NgClass } from "@angular/common";
+import { ModalChromeCloseButtonComponent } from "../modal-chrome-close-button/modal-chrome-close-button.component";
 import {
   appTopChromeOverlayPaddingTop,
   appTopChromeOverlayPaddingTopFromPx,
@@ -27,7 +28,7 @@ import {
 @Component({
   selector: "app-modal-shell",
   standalone: true,
-  imports: [NgClass],
+  imports: [NgClass, ModalChromeCloseButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -92,26 +93,10 @@ import {
             {{ title }}
           </h2>
           <button
-            type="button"
+            appModalChromeClose
             (click)="close.emit()"
             [attr.aria-label]="closeAriaLabel"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1 cursor-pointer"
-          >
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-          </button>
+          ></button>
         </div>
         }
         <div

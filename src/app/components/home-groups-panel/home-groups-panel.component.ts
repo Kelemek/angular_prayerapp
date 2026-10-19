@@ -13,6 +13,7 @@ import { HomeSubFilterChipComponent } from '../home-sub-filter-chip/home-sub-fil
 import { CardActionsOverflowMenuComponent } from '../card-actions-overflow-menu/card-actions-overflow-menu.component';
 import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card-actions-overflow-menu.types';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
+import { ModalChromeCloseButtonComponent } from '../modal-chrome-close-button/modal-chrome-close-button.component';
 import { PrayerCardComponent } from '../prayer-card/prayer-card.component';
 import {
   HOME_GROUPS_SUB_FILTER_GROUP_CLASS,
@@ -63,6 +64,7 @@ import {
     HomeSubFilterChipComponent,
     CardActionsOverflowMenuComponent,
     ConfirmationDialogComponent,
+    ModalChromeCloseButtonComponent,
     PrayerCardComponent,
     AdminFilterSelectComponent,
   ],
@@ -107,9 +109,12 @@ export class HomeGroupsPanelComponent {
   createOpen = false;
   createName = '';
   membersTarget: PrayerGroupSummary | null = null;
+  /** First open after creating a group: invite-only (no leave / transfer). */
+  membersModalPostCreate = false;
   renameTarget: PrayerGroupSummary | null = null;
   renameDraft = '';
   pendingDelete: PrayerGroupSummary | null = null;
+  pendingLeaveGroup: PrayerGroupSummary | null = null;
   pendingTransferEmail: string | null = null;
   emailsDraft = '';
   transferEmail = '';
@@ -175,6 +180,11 @@ export class HomeGroupsPanelComponent {
   get deleteMessage(): string {
     const name = this.pendingDelete?.name ?? 'this group';
     return `Delete "${name}" and all of its prayers? This cannot be undone.`;
+  }
+
+  get leaveConfirmMessage(): string {
+    const name = this.pendingLeaveGroup?.name ?? 'this group';
+    return `Leave "${name}"? You will no longer see its prayers or receive group notifications.`;
   }
 
   get canSendInvites(): boolean {
@@ -328,7 +338,7 @@ export class HomeGroupsPanelComponent {
       const created =
         this.groups.find((group) => group.id === id) ??
         ({ id, name, role: 'owner', memberCount: 1 } satisfies PrayerGroupSummary);
-      this.openMembers(created);
+      this.openMembers(created, { postCreate: true });
       this.toast.success('Group created');
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not create the group');
@@ -410,13 +420,27 @@ export class HomeGroupsPanelComponent {
     }
   }
 
-  async leave(group: PrayerGroupSummary): Promise<void> {
-    const confirmed = window.confirm(
-      group.role === 'owner'
-        ? 'Leaving deletes this group for everyone. Continue?'
-        : 'Leave this group?',
-    );
-    if (!confirmed) return;
+  leave(group: PrayerGroupSummary): void {
+    if (group.role === 'owner') {
+      this.toast.info(
+        'Transfer ownership to another member before you can leave this group.',
+      );
+      return;
+    }
+    this.pendingLeaveGroup = group;
+    this.cdr.markForCheck();
+  }
+
+  cancelLeave(): void {
+    this.pendingLeaveGroup = null;
+    this.cdr.markForCheck();
+  }
+
+  async confirmLeave(): Promise<void> {
+    const group = this.pendingLeaveGroup;
+    if (!group) return;
+    this.pendingLeaveGroup = null;
+    this.cdr.markForCheck();
     try {
       const accountDeleted = await this.groupsApi.leave(group.id);
       if (accountDeleted) {
@@ -424,10 +448,12 @@ export class HomeGroupsPanelComponent {
         window.location.assign('/login');
         return;
       }
-      this.membersTarget = null;
+      this.closeMembersModal();
       if (this.selectedId === group.id) this.selectStatus('current');
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not leave the group');
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 
@@ -571,8 +597,19 @@ export class HomeGroupsPanelComponent {
     this.cdr.markForCheck();
   }
 
-  private openMembers(group: PrayerGroupSummary): void {
+  closeMembersModal(): void {
+    this.membersTarget = null;
+    this.membersModalPostCreate = false;
+    this.pendingLeaveGroup = null;
+    this.cdr.markForCheck();
+  }
+
+  private openMembers(
+    group: PrayerGroupSummary,
+    options?: { postCreate?: boolean },
+  ): void {
     this.membersTarget = group;
+    this.membersModalPostCreate = options?.postCreate === true;
     this.emailsDraft = '';
     this.transferEmail = '';
     this.pendingTransferEmail = null;

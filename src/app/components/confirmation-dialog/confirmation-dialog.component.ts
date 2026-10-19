@@ -1,10 +1,11 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ModalChromeCloseButtonComponent } from '../modal-chrome-close-button/modal-chrome-close-button.component';
 
 @Component({
   selector: 'app-confirmation-dialog',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ModalChromeCloseButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-modal-overlay p-4">
@@ -15,13 +16,10 @@ import { CommonModule } from '@angular/common';
             {{ title }}
           </h2>
           <button
-            type="button"
-            class="shrink-0 cursor-pointer text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            appModalChromeClose
             aria-label="Close"
             (click)="onCancel()"
-          >
-            ✕
-          </button>
+          ></button>
         </div>
 
         <!-- Content -->

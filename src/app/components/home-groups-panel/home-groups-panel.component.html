@@ -163,7 +163,7 @@
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Create a group</h2>
-      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="createOpen = false">✕</button>
+      <button appModalChromeClose aria-label="Close" (click)="createOpen = false"></button>
     </div>
     <div class="space-y-4 px-6 py-4">
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -193,14 +193,14 @@
 }
 
 @if (membersTarget) {
-<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="membersTarget = null">
+<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="closeMembersModal()">
   <div class="modal-panel-edge flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex shrink-0 items-center justify-between px-6 py-4">
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage members</h2>
         <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ membersTarget.name }}</p>
       </div>
-      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="membersTarget = null">✕</button>
+      <button appModalChromeClose aria-label="Close" (click)="closeMembersModal()"></button>
     </div>
     <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
       <ul class="space-y-2">
@@ -227,6 +227,7 @@
           class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
         ></textarea>
       </label>
+      @if (!membersModalPostCreate) {
       <div class="space-y-1">
         <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Transfer ownership</span>
         <app-admin-filter-select
@@ -239,8 +240,14 @@
         />
       </div>
       }
+      }
     </div>
-    <div class="modal-chrome-footer flex shrink-0 items-center justify-between gap-3 px-6 py-4">
+    <div
+      class="modal-chrome-footer flex shrink-0 items-center gap-3 px-6 py-4"
+      [class.justify-between]="!membersModalPostCreate"
+      [class.justify-end]="membersModalPostCreate"
+    >
+      @if (!membersModalPostCreate) {
       <button
         type="button"
         class="min-h-11 px-4 py-2.5 text-sm font-medium btn-chip btn-chip-red"
@@ -248,6 +255,7 @@
       >
         Leave group
       </button>
+      }
       @if (membersTarget.role === 'owner') {
       <button
         type="button"
@@ -271,7 +279,7 @@
   <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Rename group</h2>
-      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="renameTarget = null">✕</button>
+      <button appModalChromeClose aria-label="Close" (click)="renameTarget = null"></button>
     </div>
     <div class="px-6 py-4">
       <input
@@ -293,7 +301,7 @@
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit prayer</h2>
-      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="editingPrayer = null">✕</button>
+      <button appModalChromeClose aria-label="Close" (click)="editingPrayer = null"></button>
     </div>
     <div class="space-y-3 px-6 py-4">
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -326,7 +334,7 @@
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit update</h2>
-      <button type="button" class="cursor-pointer text-gray-500" aria-label="Close" (click)="editingUpdate = null">✕</button>
+      <button appModalChromeClose aria-label="Close" (click)="editingUpdate = null"></button>
     </div>
     <div class="px-6 py-4">
       <textarea
@@ -363,5 +371,16 @@
   [isDangerous]="true"
   (confirm)="confirmTransfer()"
   (cancel)="cancelTransfer()"
+/>
+}
+
+@if (pendingLeaveGroup) {
+<app-confirmation-dialog
+  title="Leave group?"
+  [message]="leaveConfirmMessage"
+  confirmText="Leave group"
+  [isDangerous]="true"
+  (confirm)="confirmLeave()"
+  (cancel)="cancelLeave()"
 />
 }

@@ -31,8 +31,11 @@ Major features and milestones for the Prayer App.
 ### Prayer groups — manage members
 - Opening **Manage members** shows the owner and member list immediately from the cached group reload, then refreshes in the background.
 - **Transfer ownership** uses the member dropdown only; choosing someone opens a confirmation dialog (no separate footer button).
+- **Leave group** as owner shows a message to transfer ownership first instead of deleting the group; members confirm leave in the app confirmation dialog (not a browser prompt) ([`home-groups-panel`](../src/app/components/home-groups-panel/home-groups-panel.component.ts)).
+- The Manage members dialog right after **Create group** is invite-only (no **Leave group** or **Transfer ownership** until you open members from the group chip menu).
 - Confirmation dialogs use a header **✕** to dismiss instead of a footer **Cancel** button ([`confirmation-dialog.component.ts`](../src/app/components/confirmation-dialog/confirmation-dialog.component.ts)).
 - Group **Rename**, **Edit prayer**, and **Edit update** modals match **Create a group** / **Manage members**: header **✕** to dismiss, footer **Save** only ([`home-groups-panel`](../src/app/components/home-groups-panel/home-groups-panel.component.html)).
+- Modal header close controls use a fixed 24×24 SVG ([`modal-chrome-close-button`](../src/app/components/modal-chrome-close-button/modal-chrome-close-button.component.ts)) so Safari matches Chrome and Settings.
 
 ### Prayer groups — tab layout
 - The Home filter tab label is **Group** (not Groups).
