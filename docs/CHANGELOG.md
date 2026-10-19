@@ -10,6 +10,7 @@ Major features and milestones for the Prayer App.
 - Login and profile completion URLs with `?filter=groups` open the Group tab on Home ([`home-deep-link.coordinator.ts`](../src/app/services/home-deep-link.coordinator.ts)). Group activity email links with `groupId` select that group chip after load, including when you are already on the Group tab.
 - Home waits for [`sessionInitialized$`](../src/app/services/user-session.service.ts) before applying the default tab so a cached session cannot skip group-only routing to **Group**, including after returning from Presentation.
 - Group deep links keep the pending `groupId` until the group list has loaded and the chip can be selected ([`home-groups-panel`](../src/app/components/home-groups-panel/home-groups-panel.component.ts)).
+- The Groups tab catalog (groups, prayers, updates) is loaded and cached in [`PrayerGroupService`](../src/app/services/prayer-group.service.ts) like community and personal prayers, so switching back to **Group** does not flash the empty state while data refetches.
 - The Group tab no longer shows the church prayer skeleton while community prayers load ([`home.component.html`](../src/app/pages/home/home.component.html)). The group picker in Request recenters on modal scroll ([`admin-filter-select`](../src/app/components/admin-filter-select/admin-filter-select.component.ts)).
 
 ### Prayer groups — cards and Request

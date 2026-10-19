@@ -208,7 +208,7 @@ export class HomeComponent
     private personalCategoryColorService: PersonalCategoryColorService,
     readonly prayerCardActions: PrayerCardActionsFacade,
     readonly prayerAllowancePolicy: PrayerAllowancePolicyService,
-    private readonly prayerGroupService: PrayerGroupService,
+    public readonly prayerGroupService: PrayerGroupService,
     private readonly deepLinkCoordinator: HomeDeepLinkCoordinator,
     readonly helpTour: HomeHelpTourLauncher,
     readonly catalog: HomeCatalogStore,

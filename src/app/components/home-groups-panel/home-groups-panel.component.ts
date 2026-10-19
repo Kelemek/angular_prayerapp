@@ -4,7 +4,6 @@ import {
   Component,
   DestroyRef,
   Input,
-  OnChanges,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
@@ -32,6 +31,7 @@ import {
   type GroupFilterMode,
 } from '../../lib/home-group-catalog';
 import { parseInviteEmails } from '../../lib/home-group-invite-emails';
+import { groupPrayerUpdatesByPrayerId } from '../../lib/prayer-group-catalog-load';
 import type { PrayerRequest } from '../../lib/prayer-types';
 import {
   GroupPrayerRow,
@@ -69,7 +69,7 @@ import {
   templateUrl: './home-groups-panel.component.html',
   host: { class: 'block' },
 })
-export class HomeGroupsPanelComponent implements OnChanges {
+export class HomeGroupsPanelComponent {
   @Input() isChurchMember = true;
   @Input() viewerEmail = '';
   @Input() viewerName = '';
@@ -99,6 +99,7 @@ export class HomeGroupsPanelComponent implements OnChanges {
   filterMode: GroupFilterMode = 'current';
   selectedId: string | null = null;
   error: string | null = null;
+  loading = true;
   reordering = false;
   submitting = false;
   createOpen = false;
@@ -110,7 +111,6 @@ export class HomeGroupsPanelComponent implements OnChanges {
   pendingTransferEmail: string | null = null;
   emailsDraft = '';
   transferEmail = '';
-  private loadToken = 0;
   private membersLoadToken = 0;
 
   constructor(
@@ -121,19 +121,43 @@ export class HomeGroupsPanelComponent implements OnChanges {
     private readonly cdr: ChangeDetectorRef,
     destroyRef: DestroyRef,
   ) {
-    this.groupsApi.changed$
+    this.groupsApi.groups$
       .pipe(takeUntilDestroyed(destroyRef))
-      .subscribe(() => void this.reload());
+      .subscribe((groups) => {
+        this.groups = groups;
+        this.applyPendingGroupDeepLink();
+        this.cdr.markForCheck();
+      });
+    this.groupsApi.prayers$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe((prayers) => {
+        this.prayers = prayers;
+        this.cdr.markForCheck();
+      });
+    this.groupsApi.updates$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe((updates) => {
+        this.updatesByPrayer = groupPrayerUpdatesByPrayerId(updates);
+        this.cdr.markForCheck();
+      });
+    this.groupsApi.loading$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe((loading) => {
+        this.loading = loading;
+        this.cdr.markForCheck();
+      });
+    this.groupsApi.error$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe((error) => {
+        this.error = error;
+        this.cdr.markForCheck();
+      });
     this.groupsApi.groupDeepLinkApply$
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe(() => {
         this.applyPendingGroupDeepLink();
         this.cdr.markForCheck();
       });
-  }
-
-  ngOnChanges(): void {
-    void this.reload();
   }
 
   get counts() {
@@ -257,7 +281,7 @@ export class HomeGroupsPanelComponent implements OnChanges {
       await this.groupsApi.reorderGroups(this.groups.map((group) => group.id));
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not reorder groups');
-      await this.reload();
+      await this.groupsApi.loadCatalog(false);
     } finally {
       this.reordering = false;
       this.cdr.markForCheck();
@@ -276,7 +300,6 @@ export class HomeGroupsPanelComponent implements OnChanges {
       this.selectedId = id;
       this.filterMode = 'named';
       this.cdr.markForCheck();
-      await this.reload();
       const created =
         this.groups.find((group) => group.id === id) ??
         ({ id, name, role: 'owner', memberCount: 1 } satisfies PrayerGroupSummary);
@@ -298,7 +321,6 @@ export class HomeGroupsPanelComponent implements OnChanges {
     try {
       await this.groupsApi.renameGroup(this.renameTarget.id, name);
       this.renameTarget = null;
-      await this.reload();
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not rename the group');
     } finally {
@@ -316,7 +338,6 @@ export class HomeGroupsPanelComponent implements OnChanges {
       await this.groupsApi.deleteGroup(group.id);
       if (this.selectedId === group.id) this.selectStatus('current');
       this.pendingDelete = null;
-      await this.reload();
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not delete the group');
     } finally {
@@ -341,8 +362,8 @@ export class HomeGroupsPanelComponent implements OnChanges {
         }
       }
       this.emailsDraft = '';
+      await this.groupsApi.refreshCatalogAfterWrite();
       await this.loadMembers(this.membersTarget.id);
-      await this.reload();
       if (!inviteEmailFailed) {
         this.toast.success('Invites sent');
       }
@@ -359,7 +380,6 @@ export class HomeGroupsPanelComponent implements OnChanges {
     try {
       await this.groupsApi.removeMember(this.membersTarget.id, email);
       await this.loadMembers(this.membersTarget.id);
-      await this.reload();
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not remove that member');
     }
@@ -381,7 +401,6 @@ export class HomeGroupsPanelComponent implements OnChanges {
       }
       this.membersTarget = null;
       if (this.selectedId === group.id) this.selectStatus('current');
-      await this.reload();
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not leave the group');
     }
@@ -424,7 +443,6 @@ export class HomeGroupsPanelComponent implements OnChanges {
       await this.groupsApi.transfer(this.membersTarget.id, email);
       this.transferEmail = '';
       this.membersTarget = { ...this.membersTarget, role: 'member' };
-      await this.reload();
       this.toast.success('Ownership transferred');
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not transfer ownership');
@@ -553,36 +571,8 @@ export class HomeGroupsPanelComponent implements OnChanges {
     this.cdr.markForCheck();
   }
 
-  private async reload(): Promise<void> {
-    const token = ++this.loadToken;
-    this.error = null;
-    this.cdr.markForCheck();
-    try {
-      const [groups, prayers] = await Promise.all([
-        this.groupsApi.listGroups(),
-        this.groupsApi.listAllPrayers(),
-      ]);
-      const updates = await this.groupsApi.listUpdates(prayers.map((prayer) => prayer.id));
-      if (token !== this.loadToken) return;
-      this.groups = groups;
-      this.prayers = prayers;
-      this.updatesByPrayer = new Map();
-      for (const update of updates) {
-        const list = this.updatesByPrayer.get(update.group_prayer_id) ?? [];
-        list.push(update);
-        this.updatesByPrayer.set(update.group_prayer_id, list);
-      }
-      if (this.selectedId) this.groupsApi.preferredGroupId = this.selectedId;
-      this.applyPendingGroupDeepLink();
-    } catch (err: unknown) {
-      if (token !== this.loadToken) return;
-      this.error = err instanceof Error ? err.message : 'Could not load groups';
-    } finally {
-      if (token === this.loadToken) this.cdr.markForCheck();
-    }
-  }
-
   private applyPendingGroupDeepLink(): void {
+    if (this.selectedId) this.groupsApi.preferredGroupId = this.selectedId;
     const groupId = this.deepLinks.peekPendingGroupId();
     if (!groupId || !this.groups.some((group) => group.id === groupId)) {
       return;

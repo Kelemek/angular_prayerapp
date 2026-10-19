@@ -28,6 +28,7 @@ describe("HomeRefreshCoordinator", () => {
       personalCategoryColorService: { loadColors: vi.fn().mockResolvedValue(undefined) } as any,
       memorizationService: { loadItems: vi.fn().mockResolvedValue(undefined) } as any,
       planningCenter: { loadForCurrentUser: vi.fn() } as any,
+      prayerGroupService: { loadCatalog: vi.fn().mockResolvedValue(undefined) } as any,
       toastService: { error: vi.fn() } as any,
     });
   });
@@ -49,6 +50,7 @@ describe("HomeRefreshCoordinator", () => {
       personalCategoryColorService: { loadColors: vi.fn().mockResolvedValue(undefined) } as any,
       memorizationService: { loadItems: vi.fn().mockResolvedValue(undefined) } as any,
       planningCenter: { loadForCurrentUser: vi.fn() } as any,
+      prayerGroupService: { loadCatalog: vi.fn().mockResolvedValue(undefined) } as any,
       toastService: { error: vi.fn() } as any,
     });
 

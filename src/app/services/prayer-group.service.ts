@@ -1,7 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject, distinctUntilChanged, map } from 'rxjs';
 import { messageFromFunctionsInvokeError } from '../lib/edge-function-invoke-error';
+import {
+  GROUP_PRAYER_CATALOG_CACHE_KEY,
+  groupPrayerCatalogCacheMatchesViewer,
+  type GroupPrayerCatalogSnapshot,
+} from '../lib/prayer-group-catalog-load';
+import { runGroupPrayerCatalogLoad } from '../lib/prayer-group-catalog-load-wire';
+import { CacheService } from './cache.service';
 import { SupabaseService } from './supabase.service';
+import { UserSessionService } from './user-session.service';
 
 export interface PrayerGroupSummary {
   id: string;
@@ -81,9 +89,169 @@ export class PrayerGroupService {
   readonly groupDeepLinkApply$ = new Subject<void>();
   /** Group chosen on the Groups tab, used when Request opens there. */
   preferredGroupId: string | null = null;
-  private readonly membersByGroupId = new Map<string, PrayerGroupMemberRow[]>();
 
-  constructor(private readonly supabase: SupabaseService) {}
+  private readonly groupsSubject = new BehaviorSubject<PrayerGroupSummary[]>([]);
+  private readonly prayersSubject = new BehaviorSubject<GroupPrayerRow[]>([]);
+  private readonly updatesSubject = new BehaviorSubject<GroupPrayerUpdateRow[]>([]);
+  private readonly loadingSubject = new BehaviorSubject<boolean>(true);
+  private readonly errorSubject = new BehaviorSubject<string | null>(null);
+
+  readonly groups$ = this.groupsSubject.asObservable();
+  readonly prayers$ = this.prayersSubject.asObservable();
+  readonly updates$ = this.updatesSubject.asObservable();
+  readonly loading$ = this.loadingSubject.asObservable();
+  readonly error$ = this.errorSubject.asObservable();
+
+  private readonly membersByGroupId = new Map<string, PrayerGroupMemberRow[]>();
+  private catalogLoadToken = 0;
+  private catalogDbFetchComplete = false;
+  private catalogOwnerEmail: string | null = null;
+  private sessionWired = false;
+
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly cache: CacheService,
+    private readonly userSessionService: UserSessionService,
+  ) {
+    this.changed$.subscribe(() => {
+      void this.loadCatalog(true);
+    });
+    this.wireSessionCatalogLoads();
+  }
+
+  getGroupsSnapshot(): PrayerGroupSummary[] {
+    return this.groupsSubject.value;
+  }
+
+  getPrayersSnapshot(): GroupPrayerRow[] {
+    return this.prayersSubject.value;
+  }
+
+  hasCatalogSnapshot(): boolean {
+    return (
+      this.catalogDbFetchComplete ||
+      this.groupsSubject.value.length > 0 ||
+      this.prayersSubject.value.length > 0
+    );
+  }
+
+  async loadCatalog(silentRefresh = false): Promise<void> {
+    const token = ++this.catalogLoadToken;
+    this.errorSubject.next(null);
+    try {
+      await runGroupPrayerCatalogLoad(
+      {
+        readCache: () => {
+          const viewerEmail =
+            this.userSessionService.getCurrentSession()?.email ?? null;
+          const cached = this.cache.get<GroupPrayerCatalogSnapshot>(
+            GROUP_PRAYER_CATALOG_CACHE_KEY,
+          );
+          if (!groupPrayerCatalogCacheMatchesViewer(cached, viewerEmail)) {
+            if (cached) {
+              this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
+            }
+            return null;
+          }
+          return cached;
+        },
+        writeCache: (snapshot) => {
+          this.cache.set(GROUP_PRAYER_CATALOG_CACHE_KEY, snapshot);
+        },
+        invalidateCache: () => {
+          this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
+        },
+        setLoading: (loading) => {
+          if (token === this.catalogLoadToken) {
+            this.loadingSubject.next(loading);
+          }
+        },
+        markFetchComplete: () => {
+          if (token === this.catalogLoadToken) {
+            this.catalogDbFetchComplete = true;
+          }
+        },
+        publishSnapshot: (snapshot) => {
+          if (token !== this.catalogLoadToken) {
+            return;
+          }
+          this.groupsSubject.next(snapshot.groups);
+          this.prayersSubject.next(snapshot.prayers);
+          this.updatesSubject.next(snapshot.updates);
+          this.groupDeepLinkApply$.next();
+        },
+        fetchFromDb: () => this.fetchCatalogFromDb(),
+      },
+      silentRefresh,
+    );
+    } catch (err: unknown) {
+      if (token !== this.catalogLoadToken) {
+        return;
+      }
+      const cached = this.readCatalogCacheForCurrentViewer();
+      if (cached) {
+        this.publishCatalogSnapshot(cached);
+        return;
+      }
+      this.errorSubject.next(
+        err instanceof Error ? err.message : 'Could not load groups',
+      );
+      this.loadingSubject.next(false);
+    }
+  }
+
+  private wireSessionCatalogLoads(): void {
+    if (this.sessionWired) {
+      return;
+    }
+    this.sessionWired = true;
+    this.userSessionService.userSession$
+      .pipe(
+        map((session) => session?.email?.trim().toLowerCase() ?? null),
+        distinctUntilChanged(),
+      )
+      .subscribe((email) => {
+        if (!email) {
+          this.resetSessionState();
+          return;
+        }
+        if (this.catalogOwnerEmail !== null && this.catalogOwnerEmail !== email) {
+          this.resetSessionState();
+        }
+        void this.loadCatalog(false);
+        this.catalogOwnerEmail = email;
+      });
+  }
+
+  private readCatalogCacheForCurrentViewer(): GroupPrayerCatalogSnapshot | null {
+    const viewerEmail = this.userSessionService.getCurrentSession()?.email ?? null;
+    const cached = this.cache.get<GroupPrayerCatalogSnapshot>(
+      GROUP_PRAYER_CATALOG_CACHE_KEY,
+    );
+    if (!groupPrayerCatalogCacheMatchesViewer(cached, viewerEmail)) {
+      return null;
+    }
+    return cached;
+  }
+
+  private async fetchCatalogFromDb(): Promise<GroupPrayerCatalogSnapshot> {
+    const client = await this.supabase.db();
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    const viewerEmail = sessionData.session?.user?.email?.trim().toLowerCase() ?? '';
+    if (sessionError || !viewerEmail) {
+      throw sessionError ?? new Error('Not signed in');
+    }
+    const groups = await this.listGroups();
+    const prayers = await this.listAllPrayers();
+    const updates = await this.listUpdates(prayers.map((prayer) => prayer.id));
+    return { viewerEmail, groups, prayers, updates };
+  }
+
+  private publishCatalogSnapshot(snapshot: GroupPrayerCatalogSnapshot): void {
+    this.groupsSubject.next(snapshot.groups);
+    this.prayersSubject.next(snapshot.prayers);
+    this.updatesSubject.next(snapshot.updates);
+  }
 
   /** Members from the latest listGroups() or listMembers() for this group. */
   membersForGroup(groupId: string): PrayerGroupMemberRow[] | undefined {
@@ -91,7 +259,14 @@ export class PrayerGroupService {
   }
 
   notifyChanged(): void {
+    this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
     this.changed$.next();
+  }
+
+  /** After a membership or group-structure write, bypass stale cache before reload. */
+  async refreshCatalogAfterWrite(): Promise<void> {
+    this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
+    await this.loadCatalog(true);
   }
 
   notifyGroupDeepLinkPending(): void {
@@ -100,8 +275,20 @@ export class PrayerGroupService {
 
   /** Clears in-memory membership cache when the signed-in account changes. */
   resetSessionState(): void {
+    this.catalogLoadToken += 1;
     this.membersByGroupId.clear();
     this.preferredGroupId = null;
+    this.catalogDbFetchComplete = false;
+    this.catalogOwnerEmail = null;
+    this.publishCatalogSnapshot({
+      viewerEmail: '',
+      groups: [],
+      prayers: [],
+      updates: [],
+    });
+    this.loadingSubject.next(true);
+    this.errorSubject.next(null);
+    this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
   }
 
   async listGroups(): Promise<PrayerGroupSummary[]> {
@@ -194,6 +381,7 @@ export class PrayerGroupService {
     const client = await this.supabase.db();
     const { data, error } = await client.rpc('create_prayer_group', { p_name: name });
     if (error) throw error;
+    await this.refreshCatalogAfterWrite();
     return data as string;
   }
 
@@ -207,7 +395,9 @@ export class PrayerGroupService {
     const { error: notifyError } = await client.functions.invoke('notify-group-activity', {
       body: { kind: 'invite', groupId, email },
     });
-    if (!notifyError) return { emailError: null };
+    if (!notifyError) {
+      return { emailError: null };
+    }
     return {
       emailError: await messageFromFunctionsInvokeError(
         notifyError,
@@ -220,6 +410,7 @@ export class PrayerGroupService {
     const client = await this.supabase.db();
     const { data, error } = await client.rpc('leave_prayer_group', { p_group_id: groupId });
     if (error) throw error;
+    await this.refreshCatalogAfterWrite();
     return data === true;
   }
 
@@ -230,6 +421,7 @@ export class PrayerGroupService {
       p_new_owner_email: email,
     });
     if (error) throw error;
+    await this.refreshCatalogAfterWrite();
   }
 
   async completeMemberProfile(firstName: string, lastName: string): Promise<void> {
@@ -299,12 +491,14 @@ export class PrayerGroupService {
       p_name: name,
     });
     if (error) throw error;
+    await this.refreshCatalogAfterWrite();
   }
 
   async deleteGroup(groupId: string): Promise<void> {
     const client = await this.supabase.db();
     const { error } = await client.rpc('delete_prayer_group', { p_group_id: groupId });
     if (error) throw error;
+    await this.refreshCatalogAfterWrite();
   }
 
   async removeMember(groupId: string, email: string): Promise<void> {
@@ -314,6 +508,7 @@ export class PrayerGroupService {
       p_email: email,
     });
     if (error) throw error;
+    await this.refreshCatalogAfterWrite();
   }
 
   async listUpdates(prayerIds: string[]): Promise<GroupPrayerUpdateRow[]> {
@@ -406,5 +601,6 @@ export class PrayerGroupService {
       p_ordered_group_ids: groupIds,
     });
     if (error) throw error;
+    await this.refreshCatalogAfterWrite();
   }
 }

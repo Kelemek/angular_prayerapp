@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { BehaviorSubject } from 'rxjs';
 import { PrayerGroupService, prayerGroupSummariesForViewer } from './prayer-group.service';
 
 describe('prayerGroupSummariesForViewer', () => {
@@ -66,9 +67,19 @@ describe('PrayerGroupService.listGroups', () => {
       };
       return builder;
     });
-    const service = new PrayerGroupService({
-      db: async () => ({ auth: { getUser, getSession }, from }),
-    } as never);
+    const service = new PrayerGroupService(
+      {
+        db: async () => ({ auth: { getUser, getSession }, from }),
+      } as never,
+      {
+        get: vi.fn(),
+        set: vi.fn(),
+        invalidate: vi.fn(),
+      } as never,
+      {
+        userSession$: new BehaviorSubject(null),
+      } as never,
+    );
 
     const groups = await Promise.race([
       service.listGroups(),

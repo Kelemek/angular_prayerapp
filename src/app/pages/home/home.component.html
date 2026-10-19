@@ -175,9 +175,13 @@
       <!-- Loading State -->
       @let displayedPublicPrayers = (prayers$ | async) ?? [];
       @let promptsCatalogCount = (prompts$ | async)?.length ?? 0;
+      @let groupCatalogGroups = (prayerGroupService.groups$ | async) ?? [];
+      @let groupCatalogPrayers = (prayerGroupService.prayers$ | async) ?? [];
+      @let groupCatalogLoading = (prayerGroupService.loading$ | async) ?? true;
       @let contentLoading =
         !viewReady ||
         (activeFilter !== 'groups' && !!(loading$ | async)) ||
+        (activeFilter === 'groups' && groupCatalogLoading) ||
         (activeFilter === 'prompts' &&
           !!(promptService.loading$ | async)) ||
         (activeFilter === 'personal' &&
@@ -185,7 +189,10 @@
         (activeFilter === 'memorize' &&
           !!(memorizationService.loading$ | async));
       @let hasCachedContentForTab =
-        activeFilter === 'groups' ||
+        (activeFilter === 'groups' &&
+          (groupCatalogGroups.length > 0 ||
+            groupCatalogPrayers.length > 0 ||
+            !groupCatalogLoading)) ||
         activeFilter === 'memorize' ||
         (activeFilter === 'prompts' &&
           (catalog.displayedPrompts.length > 0 || promptsCatalogCount > 0)) ||

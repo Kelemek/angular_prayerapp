@@ -339,6 +339,7 @@ export function wireHomeCoordinators(
       personalCategoryColorService: deps.personalCategoryColorService,
       memorizationService: deps.memorizationService,
       planningCenter: deps.planningCenter,
+      prayerGroupService: deps.prayerGroupService,
       toastService: deps.toastService,
     }
   );
