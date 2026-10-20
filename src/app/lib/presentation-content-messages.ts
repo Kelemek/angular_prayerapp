@@ -16,6 +16,8 @@ export function getPresentationContentLoadingLabel(
         return "personal prayers";
       case "members":
         return "member prayers";
+      case "groups":
+        return "group prayers";
       default: {
         const _exhaustive: never = contentTypes[0];
         return _exhaustive;
@@ -41,6 +43,8 @@ export function getPresentationEmptyContentMessage(
         return "No personal prayers available";
       case "members":
         return "No member updates available";
+      case "groups":
+        return "No group prayers match your current filters";
       default: {
         const _exhaustive: never = contentTypes[0];
         return _exhaustive;

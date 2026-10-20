@@ -246,7 +246,14 @@ const makeMocks = () => {
     load: vi.fn().mockResolvedValue(undefined),
   };
 
-  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, badgeService, memorizationService, prayerEncouragementService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, personalCategoryColorService, prayerAllowancePolicy, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
+  const prayerGroupService: any = {
+    deletePrayer: vi.fn().mockResolvedValue(undefined),
+    addUpdate: vi.fn().mockResolvedValue(undefined),
+    deleteUpdate: vi.fn().mockResolvedValue(undefined),
+    setAnswered: vi.fn().mockResolvedValue(undefined),
+  };
+
+  return { prayerService, promptService, adminAuthService, userSessionService, planningCenterListService, prayerGroupService, badgeService, memorizationService, prayerEncouragementService, memorizationRecommendationsService, scriptureService, cacheService, toastService, analyticsService, cdr, router, activatedRoute, supabaseService, prayersSubject, promptsSubject, userSessionSubject, allPersonalPrayersSubject, helpDriverTourService, helpContentService, personalCategoryColorService, prayerAllowancePolicy, pcListIdSubject, pcMembersSubject, pcLoadingSubject };
 };
 
 interface SupabaseEmailOptions {
@@ -307,7 +314,8 @@ function createPrayerCardActionsFacade(m: HomeMocks): PrayerCardActionsFacade {
     m.toastService,
     m.userSessionService,
     m.adminAuthService,
-    m.planningCenterListService
+    m.planningCenterListService,
+    m.prayerGroupService
   );
 }
 

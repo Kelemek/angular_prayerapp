@@ -14,6 +14,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { PrayerService, PrayerUpdate } from "../../services/prayer.service";
+import { PrayerGroupService } from "../../services/prayer-group.service";
 import { ToastService } from "../../services/toast.service";
 import { RichTextEditorsSettingsService } from "../../services/rich-text-editors-settings.service";
 import { RichTextEditorComponent } from "../rich-text-editor/rich-text-editor.component";
@@ -114,6 +115,7 @@ export class PersonalPrayerUpdateEditModalComponent
   @Input() update: PrayerUpdate | null = null;
   @Input() prayerId: string = "";
   @Input() isMemberUpdate = false;
+  @Input() isGroupPrayer = false;
   @Input() planningCenterListId: string | null = null; // For cache invalidation on member updates
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<Partial<PrayerUpdate>>();
@@ -128,6 +130,7 @@ export class PersonalPrayerUpdateEditModalComponent
 
   constructor(
     private prayerService: PrayerService,
+    private prayerGroupService: PrayerGroupService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
     private destroyRef: DestroyRef,
@@ -211,6 +214,22 @@ export class PersonalPrayerUpdateEditModalComponent
       }
 
       let success: boolean;
+
+      if (this.isGroupPrayer) {
+        await this.prayerGroupService.updateUpdate(this.update.id, content);
+        if (this.markAsAnswered) {
+          try {
+            await this.prayerGroupService.setAnswered(this.prayerId, true);
+          } catch {
+            this.toast.error(
+              "Update saved. Only the author can mark the prayer answered."
+            );
+          }
+        }
+        this.save.emit({ content });
+        this.close.emit();
+        return;
+      }
 
       if (this.isMemberUpdate) {
         const personId = this.prayerId.substring("pc-member-".length);

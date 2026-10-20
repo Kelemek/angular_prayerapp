@@ -44,6 +44,13 @@ const makeMocks = () => {
     ]),
   };
 
+  const prayerGroupService: any = {
+    deletePrayer: vi.fn().mockResolvedValue(undefined),
+    addUpdate: vi.fn().mockResolvedValue(undefined),
+    deleteUpdate: vi.fn().mockResolvedValue(undefined),
+    setAnswered: vi.fn().mockResolvedValue(undefined),
+  };
+
   return {
     prayerService,
     promptService,
@@ -51,6 +58,7 @@ const makeMocks = () => {
     userSessionService,
     adminAuthService,
     planningCenterListService,
+    prayerGroupService,
   };
 };
 
@@ -66,7 +74,8 @@ describe("PrayerCardActionsFacade", () => {
       mocks.toastService,
       mocks.userSessionService,
       mocks.adminAuthService,
-      mocks.planningCenterListService
+      mocks.planningCenterListService,
+      mocks.prayerGroupService
     );
   });
 
@@ -84,6 +93,12 @@ describe("PrayerCardActionsFacade", () => {
   it("deleteCard routes community prayers to deletePrayer", () => {
     facade.deleteCard({ id: "p1" });
     expect(mocks.prayerService.deletePrayer).toHaveBeenCalledWith("p1");
+  });
+
+  it("deleteCard routes group prayers to PrayerGroupService", () => {
+    facade.deleteCard({ id: "g1", group_name: "Family" });
+    expect(mocks.prayerGroupService.deletePrayer).toHaveBeenCalledWith("g1");
+    expect(mocks.prayerService.deletePrayer).not.toHaveBeenCalled();
   });
 
   it("deleteCardForCard returns false when community delete fails", async () => {

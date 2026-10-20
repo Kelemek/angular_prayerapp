@@ -42,6 +42,7 @@ describe('PersonalPrayerUpdateEditModalComponent', () => {
 
     component = new PersonalPrayerUpdateEditModalComponent(
       prayerService,
+      { updateUpdate: vi.fn().mockResolvedValue(undefined) } as any,
       toastService,
       changeDetectorRef,
       mockDestroyRef,

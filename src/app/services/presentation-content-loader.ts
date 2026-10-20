@@ -8,6 +8,11 @@ import type { PresentationTimeFilter, PresentationStatusFilters } from "../types
 import type { PrayerRequest } from "./prayer.service";
 import { PrayerService } from "./prayer.service";
 import { PromptService } from "./prompt.service";
+import { PrayerGroupService } from "./prayer-group.service";
+import {
+  buildPresentationGroupPrayerCards,
+  filterPresentationGroupPrayers,
+} from "../lib/presentation-group-prayers";
 
 export type PlanningCenterListMember = {
   id: string;
@@ -19,7 +24,8 @@ export type PlanningCenterListMember = {
 export class PresentationContentLoader {
   constructor(
     private readonly prayerService: PrayerService,
-    private readonly promptService: PromptService
+    private readonly promptService: PromptService,
+    private readonly prayerGroupService: PrayerGroupService
   ) {}
 
   async loadCommunityPrayers(options: {
@@ -40,6 +46,20 @@ export class PresentationContentLoader {
     await this.prayerService.loadPersonalPrayers();
     const snapshot = this.prayerService.getPersonalPrayersSnapshot();
     return filterPresentationPersonalPrayers(snapshot, options);
+  }
+
+  async loadGroupPrayers(options: {
+    statusFilters: PresentationStatusFilters;
+    timeFilter: PresentationTimeFilter;
+    now?: Date;
+  }): Promise<PrayerRequest[]> {
+    await this.prayerGroupService.loadCatalog(true);
+    const cards = buildPresentationGroupPrayerCards(
+      this.prayerGroupService.getGroupsSnapshot(),
+      this.prayerGroupService.getPrayersSnapshot(),
+      this.prayerGroupService.getUpdatesSnapshot(),
+    );
+    return filterPresentationGroupPrayers(cards, options);
   }
 
   async loadMemberPrayers(

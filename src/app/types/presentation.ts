@@ -2,6 +2,7 @@ export type PresentationContentType =
   | 'prayers'
   | 'prompts'
   | 'personal'
+  | 'groups'
   | 'members'
   | 'all';
 
@@ -11,7 +12,7 @@ export type SelectablePresentationContentType = Exclude<
 >;
 
 export const SELECTABLE_CONTENT_TYPES: readonly SelectablePresentationContentType[] =
-  ['prayers', 'prompts', 'personal', 'members'];
+  ['prayers', 'prompts', 'personal', 'groups', 'members'];
 
 export function isSelectablePresentationContentType(
   value: unknown
@@ -41,7 +42,8 @@ export function showsPrayerTimeStatusFilters(
   return (
     types.length === 0 ||
     types.includes('prayers') ||
-    types.includes('personal')
+    types.includes('personal') ||
+    types.includes('groups')
   );
 }
 

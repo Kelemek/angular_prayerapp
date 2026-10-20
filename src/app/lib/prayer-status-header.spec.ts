@@ -6,6 +6,7 @@ import {
   getPrayerStatusPillClasses,
   PERSONAL_PRAYER_BORDER_CLASSES,
   META_HEADER_BORDER_BOTTOM_CLASSES,
+  GROUP_PRAYER_HEADER_TEXT_CLASSES,
 } from './prayer-status-header';
 
 describe('prayer-status-header', () => {
@@ -28,6 +29,11 @@ describe('prayer-status-header', () => {
 
   it('META_HEADER_BORDER_BOTTOM_CLASSES matches Personal tab accent', () => {
     expect(META_HEADER_BORDER_BOTTOM_CLASSES).toContain('2F5F54');
+  });
+
+  it('GROUP_PRAYER_HEADER_TEXT_CLASSES stays readable in dark mode', () => {
+    expect(GROUP_PRAYER_HEADER_TEXT_CLASSES).toContain('dark:text-white');
+    expect(GROUP_PRAYER_HEADER_TEXT_CLASSES).not.toContain('text-gray-900');
   });
 
   it('getPrayerStatusBorderClasses varies by status', () => {

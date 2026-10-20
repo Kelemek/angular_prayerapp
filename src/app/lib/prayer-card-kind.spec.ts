@@ -19,8 +19,11 @@ describe('prayer-card-kind', () => {
     expect(isPersonalPrayerCard({ id: 'p1' })).toBe(false);
   });
 
-  it('getPrayerCardMutationKind dispatches member, personal, and community', () => {
+  it('getPrayerCardMutationKind dispatches member, group, personal, and community', () => {
     expect(getPrayerCardMutationKind({ id: 'pc-member-1' })).toBe('member');
+    expect(
+      getPrayerCardMutationKind({ id: 'g1', group_name: 'Family' }),
+    ).toBe('group');
     expect(getPrayerCardMutationKind({ id: 'p1', user_email: 'a@b.com' })).toBe(
       'personal'
     );

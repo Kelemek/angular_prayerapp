@@ -42,6 +42,9 @@ export interface PrayerRequest {
   prayed_for_count?: number;
   /** Set on personal-prayer rows (legacy cache entries may only have email). */
   user_email?: string;
+  /** Set on group-prayer cards (home Groups tab and presentation). */
+  group_id?: string | null;
+  group_name?: string | null;
   content_kind?: PrayerContentKind;
   verse_reference?: string | null;
   verse_translation?: string | null;

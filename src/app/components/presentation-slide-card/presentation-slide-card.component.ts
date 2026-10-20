@@ -24,6 +24,7 @@ import {
   type PrayerUpdate,
 } from "../../services/prayer.service";
 import { PlanningCenterListService } from "../../services/planning-center-list.service";
+import { PrayerGroupService } from "../../services/prayer-group.service";
 import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
 
 @Component({
@@ -42,7 +43,9 @@ import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
       variant="presentation"
       [prayer]="prayer"
       [isAdmin]="cardActions.isAdmin"
-      [isPersonal]="isPersonalPrayerCard(prayer)"
+      [isPersonal]="isPersonalPrayerCard(prayer) || !!prayer.group_name"
+      [groupName]="prayer.group_name ?? null"
+      [allowGroupOwnerDelete]="allowGroupOwnerDelete"
       [deletionsAllowed]="allowancePolicy.deletionsAllowed"
       [updatesAllowed]="allowancePolicy.updatesAllowed"
       (delete)="onDeletePrayer()"
@@ -53,6 +56,7 @@ import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
       (editPersonalPrayer)="openEditPersonalPrayer($event)"
       (editPersonalUpdate)="openEditPersonalUpdate($event)"
       (editMemberUpdate)="openEditMemberUpdate($event)"
+      (groupAnsweredChange)="onGroupAnsweredChange($event)"
       (toggleUpdateAnswered)="onToggleMemberUpdateAnswered($event)"
       (prayedForCountChange)="prayerPrayedForCountChange.emit($event)"
       (personalPrayerCategoryChange)="personalPrayerCategoryChange.emit($event)"
@@ -73,6 +77,7 @@ import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
     <app-personal-prayer-edit-modal
       [isOpen]="showEditPersonalPrayer"
       [prayer]="editingPrayer"
+      [isGroupPrayer]="editingGroupPrayer"
       (close)="showEditPersonalPrayer = false"
       (save)="onPersonalPrayerSaved()"
     />
@@ -81,6 +86,7 @@ import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
       [isOpen]="showEditPersonalUpdate"
       [update]="editingUpdate"
       [prayerId]="editingUpdatePrayerId"
+      [isGroupPrayer]="editingGroupPrayerUpdate"
       (close)="showEditPersonalUpdate = false"
       (save)="onPersonalUpdateSaved()"
     />
@@ -121,7 +127,9 @@ export class PresentationSlideCardComponent {
 
   showEditPersonalPrayer = false;
   editingPrayer: PrayerRequest | null = null;
+  editingGroupPrayer = false;
   showEditPersonalUpdate = false;
+  editingGroupPrayerUpdate = false;
   editingUpdate: PrayerUpdate | null = null;
   editingUpdatePrayerId = "";
   showEditMemberUpdate = false;
@@ -132,8 +140,20 @@ export class PresentationSlideCardComponent {
     readonly cardActions: PrayerCardActionsFacade,
     readonly allowancePolicy: PrayerAllowancePolicyService,
     private planningCenterListService: PlanningCenterListService,
+    private prayerGroupService: PrayerGroupService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  get allowGroupOwnerDelete(): boolean {
+    const groupId = this.prayer?.group_id;
+    if (!groupId) {
+      return false;
+    }
+    const group = this.prayerGroupService
+      .getGroupsSnapshot()
+      .find((entry) => entry.id === groupId);
+    return group?.role === "owner";
+  }
 
   get planningCenterListId(): string | null {
     return this.planningCenterListService.getCurrentListId();
@@ -178,6 +198,17 @@ export class PresentationSlideCardComponent {
     }
   }
 
+  async onGroupAnsweredChange(answered: boolean): Promise<void> {
+    const prayer = this.prayer;
+    if (!prayer?.group_name) {
+      return;
+    }
+    const ok = await this.cardActions.setGroupAnsweredForCard(prayer.id, answered);
+    if (ok) {
+      this.itemMutated.emit(prayer.id);
+    }
+  }
+
   async onToggleMemberUpdateAnswered(event: {
     updateId: string;
     prayerId: string;
@@ -198,6 +229,7 @@ export class PresentationSlideCardComponent {
 
   openEditPersonalPrayer(prayer: PrayerRequest): void {
     this.editingPrayer = prayer;
+    this.editingGroupPrayer = !!prayer.group_name;
     this.showEditPersonalPrayer = true;
     this.cdr.markForCheck();
   }
@@ -208,6 +240,7 @@ export class PresentationSlideCardComponent {
   }): void {
     this.editingUpdate = event.update;
     this.editingUpdatePrayerId = event.prayerId;
+    this.editingGroupPrayerUpdate = !!this.prayer?.group_name;
     this.showEditPersonalUpdate = true;
     this.cdr.markForCheck();
   }
@@ -225,6 +258,7 @@ export class PresentationSlideCardComponent {
   onPersonalPrayerSaved(): void {
     const id = this.editingPrayer?.id;
     this.showEditPersonalPrayer = false;
+    this.editingGroupPrayer = false;
     this.editingPrayer = null;
     if (id) {
       this.itemMutated.emit(id);
@@ -234,6 +268,7 @@ export class PresentationSlideCardComponent {
   onPersonalUpdateSaved(): void {
     const id = this.editingUpdatePrayerId;
     this.showEditPersonalUpdate = false;
+    this.editingGroupPrayerUpdate = false;
     this.editingUpdate = null;
     this.editingUpdatePrayerId = "";
     if (id) {

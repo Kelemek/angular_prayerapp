@@ -5,6 +5,7 @@ import { ToastService } from "./toast.service";
 import { UserSessionService } from "./user-session.service";
 import { AdminAuthService } from "./admin-auth.service";
 import { PlanningCenterListService } from "./planning-center-list.service";
+import { PrayerGroupService } from "./prayer-group.service";
 import {
   getPrayerCardMutationKind,
   memberPersonIdFromPrayerId,
@@ -57,7 +58,8 @@ export class PrayerCardActionsFacade {
     private toastService: ToastService,
     private userSessionService: UserSessionService,
     private adminAuthService: AdminAuthService,
-    private planningCenterListService: PlanningCenterListService
+    private planningCenterListService: PlanningCenterListService,
+    private prayerGroupService: PrayerGroupService
   ) {}
 
   get isAdmin(): boolean {
@@ -76,6 +78,9 @@ export class PrayerCardActionsFacade {
           return await this.prayerService.deletePersonalPrayer(prayer.id);
         case "community":
           return await this.prayerService.deletePrayer(prayer.id);
+        case "group":
+          await this.prayerGroupService.deletePrayer(prayer.id);
+          return true;
         case "member":
           return false;
         default: {
@@ -104,6 +109,8 @@ export class PrayerCardActionsFacade {
         case "community":
           await this.prayerService.addUpdate(updateData);
           return true;
+        case "group":
+          return await this.addGroupUpdate(updateData);
         default: {
           const _exhaustive: never = kind;
           return _exhaustive;
@@ -132,6 +139,9 @@ export class PrayerCardActionsFacade {
         }
         case "community":
           await this.prayerService.deleteUpdate(event.updateId);
+          return true;
+        case "group":
+          await this.prayerGroupService.deleteUpdate(event.updateId);
           return true;
         default: {
           const _exhaustive: never = kind;
@@ -187,6 +197,49 @@ export class PrayerCardActionsFacade {
 
   async deletePrompt(id: string): Promise<boolean> {
     return this.promptService.deletePrompt(id);
+  }
+
+  async setGroupAnsweredForCard(
+    prayerId: string,
+    answered: boolean
+  ): Promise<boolean> {
+    try {
+      await this.prayerGroupService.setAnswered(prayerId, answered);
+      return true;
+    } catch (error) {
+      console.error("Error updating group prayer answered status:", error);
+      this.toastService.error(
+        error instanceof Error
+          ? error.message
+          : "Only the author can change answered status"
+      );
+      return false;
+    }
+  }
+
+  private async addGroupUpdate(
+    updateData: PrayerCardAddUpdateEvent
+  ): Promise<boolean> {
+    const userSession = this.userSessionService.getCurrentSession();
+    const author = userSession?.fullName || "Anonymous";
+    const authorEmail = userSession?.email || "";
+    await this.prayerGroupService.addUpdate({
+      prayerId: updateData.prayer_id,
+      content: updateData.content,
+      author,
+      authorEmail,
+      markAsAnswered: updateData.mark_as_answered,
+    });
+    if (updateData.mark_as_answered) {
+      try {
+        await this.prayerGroupService.setAnswered(updateData.prayer_id, true);
+      } catch {
+        this.toastService.error(
+          "Update saved. Only the author can mark the prayer answered."
+        );
+      }
+    }
+    return true;
   }
 
   private async addMemberUpdate(

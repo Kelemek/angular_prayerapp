@@ -24,8 +24,10 @@ export function countPrayersInGroup(prayers: GroupPrayerRow[], groupId: string):
 export function groupPrayerCardModel(
   row: GroupPrayerRow,
   updates: GroupPrayerUpdateRow[],
+  groupName?: string | null,
 ): PrayerRequest {
   const prayerFor = row.prayer_for.trim() || row.title;
+  const trimmedGroupName = groupName?.trim() || null;
   return {
     id: row.id,
     title: row.title,
@@ -36,6 +38,8 @@ export function groupPrayerCardModel(
     email: row.email,
     date_requested: row.date_requested,
     prayed_for_count: row.prayed_for_count ?? 0,
+    group_id: row.group_id,
+    group_name: trimmedGroupName,
     created_at: row.created_at || row.date_requested,
     updated_at: row.updated_at || row.date_requested,
     updates: updates.map(

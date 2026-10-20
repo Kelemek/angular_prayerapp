@@ -7,6 +7,7 @@ import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card
 import {
   getPrayerStatusHeaderTextClasses,
   getPrayerStatusLabel,
+  GROUP_PRAYER_HEADER_TEXT_CLASSES,
 } from '../../lib/prayer-status-header';
 import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
 import {
@@ -38,7 +39,7 @@ import {
       <div cardMetaLeft class="w-full min-w-0">
         @if (groupName) {
         <span
-          [class]="'block min-w-0 max-w-full truncate font-bold ' + layoutClasses.textSmClasses + ' ' + headerInsetClasses"
+          [class]="'block min-w-0 max-w-full truncate font-bold ' + layoutClasses.textSmClasses + ' ' + headerInsetClasses + ' ' + groupHeaderTextClasses"
           [title]="groupName"
         >
           {{ groupName }}
@@ -79,6 +80,8 @@ import {
 export class PrayerCardMetaHeaderComponent {
   /** Matches Planning Center member card border (`#0047AB`). */
   readonly memberHeaderTextClasses = 'text-[#0047AB] dark:text-[#4A90E2]';
+
+  readonly groupHeaderTextClasses = GROUP_PRAYER_HEADER_TEXT_CLASSES;
 
   /** Override when the card shell uses non-standard horizontal padding (e.g. presentation p-8). */
   @Input() bleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;

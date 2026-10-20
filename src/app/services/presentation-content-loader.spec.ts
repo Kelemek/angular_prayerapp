@@ -50,6 +50,12 @@ describe("PresentationContentLoader", () => {
     getPromptsSnapshot: ReturnType<typeof vi.fn>;
     getActivePromptCategories: ReturnType<typeof vi.fn>;
   };
+  let mockPrayerGroupService: {
+    loadCatalog: ReturnType<typeof vi.fn>;
+    getGroupsSnapshot: ReturnType<typeof vi.fn>;
+    getPrayersSnapshot: ReturnType<typeof vi.fn>;
+    getUpdatesSnapshot: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     mockPrayerService = {
@@ -65,9 +71,33 @@ describe("PresentationContentLoader", () => {
       getPromptsSnapshot: vi.fn(() => []),
       getActivePromptCategories: vi.fn(() => []),
     };
+    mockPrayerGroupService = {
+      loadCatalog: vi.fn().mockResolvedValue(undefined),
+      getGroupsSnapshot: vi.fn(() => [
+        { id: "g1", name: "Family", role: "member", memberCount: 2 },
+      ]),
+      getPrayersSnapshot: vi.fn(() => [
+        {
+          id: "gp1",
+          group_id: "g1",
+          title: "Health",
+          description: "",
+          prayer_for: "Mom",
+          requester: "Me",
+          email: "me@example.com",
+          status: "current",
+          date_requested: "2026-03-10T00:00:00.000Z",
+          prayed_for_count: 0,
+          created_at: "2026-03-10T00:00:00.000Z",
+          updated_at: "2026-03-10T00:00:00.000Z",
+        },
+      ]),
+      getUpdatesSnapshot: vi.fn(() => []),
+    };
     loader = new PresentationContentLoader(
       mockPrayerService as any,
-      mockPromptService as any
+      mockPromptService as any,
+      mockPrayerGroupService as any
     );
   });
 
@@ -131,6 +161,18 @@ describe("PresentationContentLoader", () => {
     expect(mockPrayerService.loadPersonalPrayers).toHaveBeenCalled();
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("current");
+  });
+
+  it("loadGroupPrayers builds cards from the group catalog", async () => {
+    const result = await loader.loadGroupPrayers({
+      statusFilters: { current: true, answered: false },
+      timeFilter: "all",
+    });
+
+    expect(mockPrayerGroupService.loadCatalog).toHaveBeenCalledWith(true);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("gp1");
+    expect(result[0]?.group_name).toBe("Family");
   });
 
   it("loadPrompts returns snapshot and categories", async () => {

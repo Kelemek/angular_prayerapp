@@ -133,6 +133,10 @@ export class PrayerGroupService {
     return this.prayersSubject.value;
   }
 
+  getUpdatesSnapshot(): GroupPrayerUpdateRow[] {
+    return this.updatesSubject.value;
+  }
+
   hasCatalogSnapshot(): boolean {
     return (
       this.catalogDbFetchComplete ||

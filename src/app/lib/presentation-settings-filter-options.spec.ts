@@ -14,6 +14,7 @@ describe("presentation-settings-filter-options", () => {
       "prayers",
       "prompts",
       "personal",
+      "groups",
       "members",
     ]);
   });
@@ -23,11 +24,13 @@ describe("presentation-settings-filter-options", () => {
       "prayers",
       "prompts",
       "personal",
+      "groups",
     ]);
     expect(getAvailablePresentationContentTypes(true)).toEqual([
       "prayers",
       "prompts",
       "personal",
+      "groups",
       "members",
     ]);
   });

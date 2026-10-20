@@ -16,6 +16,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { PrayerRequest } from "../../services/prayer.service";
 import { PrayerService } from "../../services/prayer.service";
+import { PrayerGroupService } from "../../services/prayer-group.service";
 import { ToastService } from "../../services/toast.service";
 import { RichTextEditorsSettingsService } from "../../services/rich-text-editors-settings.service";
 import { PersonalCategoryColorService } from "../../services/personal-category-color.service";
@@ -93,6 +94,7 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
             }
           </div>
 
+          @if (!isEditingGroupPrayer) {
           <!-- Category -->
           <div class="relative">
             <label
@@ -152,6 +154,7 @@ import { ModalShellComponent } from "../modal-shell/modal-shell.component";
               }
             </div>
           </div>
+          }
 
           <div class="flex items-center gap-2">
             <input
@@ -191,6 +194,7 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
 
   @Input() isOpen = false;
   @Input() prayer: PrayerRequest | null = null;
+  @Input() isGroupPrayer = false;
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<Partial<PrayerRequest>>();
 
@@ -210,8 +214,13 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
   isSubmitting = false;
   richTextEditorsEnabled = true;
 
+  get isEditingGroupPrayer(): boolean {
+    return this.isGroupPrayer || !!this.prayer?.group_name;
+  }
+
   constructor(
     private prayerService: PrayerService,
+    private prayerGroupService: PrayerGroupService,
     private toast: ToastService,
     private personalCategoryColorService: PersonalCategoryColorService,
     private cdr: ChangeDetectorRef,
@@ -248,7 +257,9 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
         description: this.prayer.description,
         category: this.prayer.category || "",
       };
-      this.markAsAnswered = this.prayer.category === "Answered";
+      this.markAsAnswered =
+        this.prayer.category === "Answered" ||
+        this.prayer.status === "answered";
       this.categoryColorDirty = false;
       this.refreshCategoryColorFromService();
       void this.personalCategoryColorService.loadColors();
@@ -352,6 +363,28 @@ export class PersonalPrayerEditModalComponent implements OnInit, OnChanges {
       this.cdr.markForCheck();
 
       this.descriptionEditor?.flushMarkdownToForm();
+
+      if (this.isEditingGroupPrayer) {
+        await this.prayerGroupService.updatePrayer(
+          this.prayer.id,
+          this.formData.prayer_for.trim(),
+          this.formData.description
+        );
+        const wasAnswered = this.prayer.status === "answered";
+        if (this.markAsAnswered !== wasAnswered) {
+          await this.prayerGroupService.setAnswered(
+            this.prayer.id,
+            this.markAsAnswered
+          );
+        }
+        this.save.emit({
+          prayer_for: this.formData.prayer_for,
+          description: this.formData.description,
+          status: this.markAsAnswered ? "answered" : "current",
+        });
+        this.close.emit();
+        return;
+      }
 
       const trimmedCategory = this.formData.category.trim();
       // Unchecking answered must clear reserved "Answered" even when the input still shows it.

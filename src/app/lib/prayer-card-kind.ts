@@ -5,6 +5,7 @@ export interface PrayerCardIdentity {
   id: string;
   user_email?: string | null;
   content_kind?: PrayerContentKind | null;
+  group_name?: string | null;
 }
 
 export function isVerseMemorizationPrayer(
@@ -31,7 +32,13 @@ export function isCommunityPrayerCard(
   return !isPersonal && !isMemberPrayerId(prayer.id);
 }
 
-export type PrayerCardMutationKind = 'member' | 'personal' | 'community';
+export type PrayerCardMutationKind = 'member' | 'group' | 'personal' | 'community';
+
+export function isGroupPrayerCard(
+  prayer: PrayerCardIdentity | null | undefined
+): boolean {
+  return !!prayer?.group_name?.trim();
+}
 
 export function memberPersonIdFromPrayerId(prayerId: string): string {
   return isMemberPrayerId(prayerId)
@@ -45,6 +52,9 @@ export function getPrayerCardMutationKind(
 ): PrayerCardMutationKind {
   if (isMemberPrayerId(prayer.id)) {
     return 'member';
+  }
+  if (isGroupPrayerCard(prayer)) {
+    return 'group';
   }
   if (isPersonalPrayerCard(prayer, isPersonalFlag)) {
     return 'personal';

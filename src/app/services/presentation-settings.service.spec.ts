@@ -21,6 +21,11 @@ describe('mapHomeFilterToContentType', () => {
   it('maps memorize using defaultPrayerView', () => {
     expect(mapHomeFilterToContentType('memorize', 'current')).toBe('prayers');
     expect(mapHomeFilterToContentType('memorize', 'personal')).toBe('personal');
+    expect(mapHomeFilterToContentType('memorize', 'groups')).toBe('groups');
+  });
+
+  it('maps groups tab to group presentation content', () => {
+    expect(mapHomeFilterToContentType('groups')).toBe('groups');
   });
 });
 

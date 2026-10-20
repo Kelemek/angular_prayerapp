@@ -13,6 +13,13 @@ export function getPrayerStatusHeaderTextClasses(status: string): string {
 export const PERSONAL_PRAYER_BORDER_CLASSES =
   '!border-[#2F5F54] dark:!border-[#2F5F54]';
 
+/**
+ * Group name in card meta header. Avoid `text-gray-900` — church theme utilities
+ * pin that token to `#2B2B2B !important` in dark mode and hide the label.
+ */
+export const GROUP_PRAYER_HEADER_TEXT_CLASSES =
+  'text-[#2B2B2B] dark:text-white';
+
 /** Meta header band bottom edge — church green medium on all prayer/prompt/update cards. */
 export const META_HEADER_BORDER_BOTTOM_CLASSES =
   'border-b border-[#2F5F54] dark:border-[#2F5F54]';

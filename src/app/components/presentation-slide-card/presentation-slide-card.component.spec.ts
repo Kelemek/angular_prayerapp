@@ -7,6 +7,7 @@ describe('PresentationSlideCardComponent', () => {
       { isAdmin: false } as any,
       { deletionsAllowed: 'everyone', updatesAllowed: 'everyone' } as any,
       { getCurrentListId: vi.fn() } as any,
+      { getGroupsSnapshot: vi.fn(() => []) } as any,
       { markForCheck: vi.fn() } as any
     );
     component.showPrayForButton = false;
@@ -30,6 +31,7 @@ describe('PresentationSlideCardComponent', () => {
       cardActions,
       { deletionsAllowed: 'everyone', updatesAllowed: 'everyone' } as any,
       planningCenterListService,
+      { getGroupsSnapshot: vi.fn(() => []) } as any,
       cdr
     );
 
@@ -48,6 +50,7 @@ describe('PresentationSlideCardComponent', () => {
       cardActions,
       { deletionsAllowed: 'everyone', updatesAllowed: 'everyone' } as any,
       { getCurrentListId: vi.fn() } as any,
+      { getGroupsSnapshot: vi.fn(() => []) } as any,
       { markForCheck: vi.fn() } as any
     );
     component.prayer = { id: 'p1', user_email: 'a@b.com' } as any;
@@ -69,6 +72,7 @@ describe('PresentationSlideCardComponent', () => {
       cardActions,
       { deletionsAllowed: 'everyone', updatesAllowed: 'everyone' } as any,
       { getCurrentListId: vi.fn() } as any,
+      { getGroupsSnapshot: vi.fn(() => []) } as any,
       { markForCheck: vi.fn() } as any
     );
     component.prayer = { id: 'p1' } as any;
@@ -89,6 +93,7 @@ describe('PresentationSlideCardComponent', () => {
       cardActions,
       { deletionsAllowed: 'everyone', updatesAllowed: 'everyone' } as any,
       { getCurrentListId: vi.fn() } as any,
+      { getGroupsSnapshot: vi.fn(() => []) } as any,
       { markForCheck: vi.fn() } as any
     );
     const removed: string[] = [];
@@ -107,6 +112,7 @@ describe('PresentationSlideCardComponent', () => {
       cardActions,
       { deletionsAllowed: 'everyone', updatesAllowed: 'everyone' } as any,
       { getCurrentListId: vi.fn() } as any,
+      { getGroupsSnapshot: vi.fn(() => []) } as any,
       { markForCheck: vi.fn() } as any
     );
     const removed: string[] = [];

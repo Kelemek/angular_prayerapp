@@ -111,12 +111,19 @@ describe("PresentationContentCoordinator", () => {
     loadCommunityPrayers: ReturnType<typeof vi.fn>;
     loadPersonalPrayers: ReturnType<typeof vi.fn>;
     loadMemberPrayers: ReturnType<typeof vi.fn>;
+    loadGroupPrayers: ReturnType<typeof vi.fn>;
     loadPrompts: ReturnType<typeof vi.fn>;
   };
   let mockPrayerService: {
     getMemberPrayerUpdates: ReturnType<typeof vi.fn>;
     getPersonalPrayersSnapshot: ReturnType<typeof vi.fn>;
     getAllCommunityPrayersSnapshot: ReturnType<typeof vi.fn>;
+  };
+  let mockPrayerGroupService: {
+    loadCatalog: ReturnType<typeof vi.fn>;
+    getGroupsSnapshot: ReturnType<typeof vi.fn>;
+    getPrayersSnapshot: ReturnType<typeof vi.fn>;
+    getUpdatesSnapshot: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -133,6 +140,9 @@ describe("PresentationContentCoordinator", () => {
           prayed_for_count: 2,
         },
       ]),
+      loadGroupPrayers: vi.fn().mockResolvedValue([
+        { id: "gp1", group_name: "Family" },
+      ]),
       loadPrompts: vi.fn().mockResolvedValue({
         prompts: [{ id: "prompt-1" }],
         categories: ["encouragement"],
@@ -143,9 +153,30 @@ describe("PresentationContentCoordinator", () => {
       getPersonalPrayersSnapshot: vi.fn(() => []),
       getAllCommunityPrayersSnapshot: vi.fn(() => []),
     };
+    mockPrayerGroupService = {
+      loadCatalog: vi.fn().mockResolvedValue(undefined),
+      getGroupsSnapshot: vi.fn(() => [{ id: "g1", name: "Family" }]),
+      getPrayersSnapshot: vi.fn(() => [
+        {
+          id: "gp1",
+          group_id: "g1",
+          title: "t",
+          prayer_for: "Old",
+          description: "",
+          status: "current",
+          requester: "A",
+          email: "a@b.com",
+          date_requested: "2026-01-01",
+          created_at: "2026-01-01",
+          updated_at: "2026-01-01",
+        },
+      ]),
+      getUpdatesSnapshot: vi.fn(() => []),
+    };
     coordinator = new PresentationContentCoordinator(
       mockLoader as any,
-      mockPrayerService as any
+      mockPrayerService as any,
+      mockPrayerGroupService as any
     );
   });
 
@@ -285,6 +316,17 @@ describe("PresentationContentCoordinator", () => {
     expect(shuffleSpy).not.toHaveBeenCalled();
   });
 
+  it("loadAll fetches group prayers when contentTypes includes groups", async () => {
+    const host = createHost({ contentTypes: ["groups"] });
+
+    await coordinator.loadAll(host);
+
+    expect(mockLoader.loadGroupPrayers).toHaveBeenCalled();
+    expect(host.catalog.groupPrayers).toEqual([
+      { id: "gp1", group_name: "Family" },
+    ]);
+  });
+
   it("refetchPrayerScopedContent only reloads prayer-scoped lists", async () => {
     const host = createHost({
       contentTypes: ["prayers", "personal", "prompts"],
@@ -412,5 +454,31 @@ describe("PresentationContentCoordinator", () => {
     await coordinator.patchSlideItemAfterMutation(catalog, "c1");
 
     expect(catalog.prayers[0].prayer_for).toBe("Updated");
+  });
+
+  it("patchSlideItemAfterMutation patches group prayer from catalog snapshot", async () => {
+    const catalog = new PresentationCatalogStore();
+    catalog.groupPrayers = [{ id: "gp1", prayer_for: "Old", group_name: "Family" } as any];
+    mockPrayerGroupService.getPrayersSnapshot.mockReturnValue([
+      {
+        id: "gp1",
+        group_id: "g1",
+        title: "t",
+        prayer_for: "Updated",
+        description: "",
+        status: "current",
+        requester: "A",
+        email: "a@b.com",
+        date_requested: "2026-01-01",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+      },
+    ]);
+
+    await coordinator.patchSlideItemAfterMutation(catalog, "gp1");
+
+    expect(mockPrayerGroupService.loadCatalog).toHaveBeenCalledWith(true);
+    expect(catalog.groupPrayers[0].prayer_for).toBe("Updated");
+    expect(catalog.groupPrayers[0].group_name).toBe("Family");
   });
 });

@@ -43,9 +43,15 @@ export function mapHomeFilterToContentType(
     case 'planning_center_list':
       return 'members';
     case 'memorize':
-      return defaultPrayerView === 'personal' ? 'personal' : 'prayers';
+      if (defaultPrayerView === 'personal') {
+        return 'personal';
+      }
+      if (defaultPrayerView === 'groups') {
+        return 'groups';
+      }
+      return 'prayers';
     case 'groups':
-      return 'personal';
+      return 'groups';
     default: {
       const _exhaustive: never = filter;
       return _exhaustive;

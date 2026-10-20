@@ -11,6 +11,7 @@ export const PRESENTATION_CONTENT_TYPE_OPTIONS: {
   { value: "prayers", label: "Prayers" },
   { value: "prompts", label: "Prompts" },
   { value: "personal", label: "Personal" },
+  { value: "groups", label: "Group" },
   { value: "members", label: "Members", requiresMappedList: true },
 ];
 

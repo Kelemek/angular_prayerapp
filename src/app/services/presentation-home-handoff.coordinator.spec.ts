@@ -73,6 +73,19 @@ describe("PresentationHomeHandoffCoordinator", () => {
     });
   });
 
+  it("builds home handoff from groups tab to group presentation content", () => {
+    const handoff = coordinator.buildHandoffFromHome({
+      activeFilter: "groups",
+      selectedPromptTypes: [],
+      selectedPersonalCategories: [],
+      personalCategoryFilterMode: "current",
+      defaultPrayerView: "current",
+    });
+
+    expect(handoff.contentTypes).toEqual(["groups"]);
+    expect(handoff.returnContext?.activeFilter).toBe("groups");
+  });
+
   it("builds home handoff from active filter and category state", () => {
     const handoff = coordinator.buildHandoffFromHome({
       activeFilter: "personal",

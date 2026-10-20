@@ -34,6 +34,7 @@ export class PresentationCatalogStore {
   prayers: PrayerRequest[] = [];
   prompts: PrayerPrompt[] = [];
   personalPrayers: PrayerRequest[] = [];
+  groupPrayers: PrayerRequest[] = [];
   memberPrayers: PrayerRequest[] = [];
   combinedShuffledItems: PresentationSlideItem[] = [];
 
@@ -60,6 +61,7 @@ export class PresentationCatalogStore {
 
     this.prayers = mapList(this.prayers);
     this.personalPrayers = mapList(this.personalPrayers);
+    this.groupPrayers = mapList(this.groupPrayers);
     this.memberPrayers = mapList(this.memberPrayers);
     this.prompts = mapList(this.prompts);
     this.combinedShuffledItems = mapList(this.combinedShuffledItems);
@@ -77,6 +79,7 @@ export class PresentationCatalogStore {
   removeItem(id: string): void {
     this.prayers = this.prayers.filter((p) => p.id !== id);
     this.personalPrayers = this.personalPrayers.filter((p) => p.id !== id);
+    this.groupPrayers = this.groupPrayers.filter((p) => p.id !== id);
     this.memberPrayers = this.memberPrayers.filter((p) => p.id !== id);
     this.prompts = this.prompts.filter((p) => p.id !== id);
     this.combinedShuffledItems = this.combinedShuffledItems.filter(
@@ -163,6 +166,9 @@ export class PresentationCatalogStore {
           selectedPersonalCategories
         );
       }
+      if (only === "groups") {
+        return this.groupPrayers;
+      }
       if (only === "members") {
         return this.memberPrayers;
       }
@@ -184,6 +190,9 @@ export class PresentationCatalogStore {
           selectedPersonalCategories
         )
       );
+    }
+    if (includesPresentationContentType(contentTypes, "groups")) {
+      combined.push(...this.groupPrayers);
     }
     if (includesPresentationContentType(contentTypes, "members")) {
       combined.push(...this.memberPrayers);
@@ -215,6 +224,8 @@ export class PresentationCatalogStore {
         this.prompts = shuffle([...this.prompts]);
       } else if (only === "personal") {
         this.personalPrayers = shuffle([...this.personalPrayers]);
+      } else if (only === "groups") {
+        this.groupPrayers = shuffle([...this.groupPrayers]);
       } else if (only === "members") {
         this.memberPrayers = shuffle([...this.memberPrayers]);
       }

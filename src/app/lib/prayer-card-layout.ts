@@ -156,7 +156,7 @@ const PRESENTATION_CARD_CHROME: CardVariantChrome = {
   headerBandRoundedClasses: PRESENTATION_CARD_HEADER_BAND_ROUNDED_CLASSES,
   usePresentationWrapper: true,
   presentationScrollClasses:
-    'presentation-card-elevation w-full overflow-hidden rounded-3xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800',
+    'presentation-card-elevation w-full overflow-hidden rounded-3xl border border-gray-200 bg-white text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100',
   actionRowGap: 'gap-2 sm:gap-3',
   actionButtonClasses:
     'px-3 py-1.5 text-sm sm:px-4 sm:py-2 sm:text-base md:text-lg font-medium whitespace-nowrap',

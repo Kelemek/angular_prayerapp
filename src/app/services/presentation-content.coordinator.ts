@@ -16,7 +16,9 @@ import {
   type PlanningCenterListMember,
 } from "./presentation-content-loader";
 import { PrayerService } from "./prayer.service";
+import { PrayerGroupService } from "./prayer-group.service";
 import { personalCategoryNamesFromPrayers } from "../lib/personal-category-order";
+import { buildPresentationGroupPrayerCards } from "../lib/presentation-group-prayers";
 
 export interface PresentationContentHost {
   loading: boolean;
@@ -44,7 +46,8 @@ export class PresentationContentCoordinator {
 
   constructor(
     private readonly contentLoader: PresentationContentLoader,
-    private readonly prayerService: PrayerService
+    private readonly prayerService: PrayerService,
+    private readonly prayerGroupService: PrayerGroupService
   ) {}
 
   scheduleFilterReload(task: () => Promise<void>): Promise<void> {
@@ -69,6 +72,9 @@ export class PresentationContentCoordinator {
       }
       if (includesPresentationContentType(host.contentTypes, "personal")) {
         fetchPromises.push(this.fetchPersonalPrayers(host, ui));
+      }
+      if (includesPresentationContentType(host.contentTypes, "groups")) {
+        fetchPromises.push(this.fetchGroupPrayers(host, ui));
       }
       if (
         includesPresentationContentType(host.contentTypes, "members") &&
@@ -126,6 +132,28 @@ export class PresentationContentCoordinator {
     }
   }
 
+  async fetchGroupPrayers(
+    host: PresentationContentHost,
+    options?: PresentationFetchUiOptions
+  ): Promise<void> {
+    try {
+      const previous = host.catalog.groupPrayers;
+      host.catalog.groupPrayers = await this.contentLoader.loadGroupPrayers({
+        statusFilters: host.statusFilters,
+        timeFilter: host.timeFilter,
+      });
+      host.catalog.groupPrayers = host.catalog.applyLivePrayedForFloor(
+        previous,
+        host.catalog.groupPrayers
+      );
+      this.maybeMarkForCheck(host, options);
+    } catch (error) {
+      console.error("Error fetching group prayers:", error);
+      host.catalog.groupPrayers = [];
+      this.maybeMarkForCheck(host, options);
+    }
+  }
+
   async fetchPersonalPrayers(
     host: PresentationContentHost,
     options?: PresentationFetchUiOptions
@@ -179,6 +207,9 @@ export class PresentationContentCoordinator {
     }
     if (includesPresentationContentType(host.contentTypes, "personal")) {
       refetchPromises.push(this.fetchPersonalPrayers(host, ui));
+    }
+    if (includesPresentationContentType(host.contentTypes, "groups")) {
+      refetchPromises.push(this.fetchGroupPrayers(host, ui));
     }
     await Promise.all(refetchPromises);
     this.refreshCombinedShuffleIfNeeded(host);
@@ -238,6 +269,22 @@ export class PresentationContentCoordinator {
       .find((prayer) => prayer.id === id);
     if (personal) {
       catalog.patchItem(id, personal);
+      return;
+    }
+
+    const groupPrayer = this.prayerGroupService
+      .getPrayersSnapshot()
+      .find((prayer) => prayer.id === id);
+    if (groupPrayer) {
+      await this.prayerGroupService.loadCatalog(true);
+      const groupCard = buildPresentationGroupPrayerCards(
+        this.prayerGroupService.getGroupsSnapshot(),
+        this.prayerGroupService.getPrayersSnapshot(),
+        this.prayerGroupService.getUpdatesSnapshot()
+      ).find((prayer) => prayer.id === id);
+      if (groupCard) {
+        catalog.patchItem(id, groupCard);
+      }
       return;
     }
 

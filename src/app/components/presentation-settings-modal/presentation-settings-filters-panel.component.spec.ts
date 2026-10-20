@@ -139,6 +139,7 @@ describe('PresentationSettingsFiltersPanelComponent', () => {
         'prayers',
         'prompts',
         'personal',
+        'groups',
       ]);
     });
 
@@ -151,6 +152,7 @@ describe('PresentationSettingsFiltersPanelComponent', () => {
         'prayers',
         'prompts',
         'personal',
+        'groups',
       ]);
       expect(component.contentTypeField.isAllPendingSelected()).toBe(true);
     });
@@ -158,7 +160,12 @@ describe('PresentationSettingsFiltersPanelComponent', () => {
     it('should emit empty array when all available content types are selected', () => {
       const emitSpy = vi.spyOn(component.contentTypesChange, 'emit');
       component.localContentTypes = ['prompts'];
-      component.contentTypeField.pending = ['prayers', 'prompts', 'personal'];
+      component.contentTypeField.pending = [
+        'prayers',
+        'prompts',
+        'personal',
+        'groups',
+      ];
 
       component.contentTypeField.apply();
 
@@ -168,7 +175,12 @@ describe('PresentationSettingsFiltersPanelComponent', () => {
 
     it('should not emit when all types are already selected via empty local state', () => {
       component.localContentTypes = [];
-      component.contentTypeField.pending = ['prayers', 'prompts', 'personal'];
+      component.contentTypeField.pending = [
+        'prayers',
+        'prompts',
+        'personal',
+        'groups',
+      ];
       component.contentTypeField.showDropdown = true;
       const emitSpy = vi.spyOn(component.contentTypesChange, 'emit');
 
