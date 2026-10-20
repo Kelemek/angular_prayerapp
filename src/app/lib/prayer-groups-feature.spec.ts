@@ -1,11 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import {
   isPrayerGroupsFeatureEnabled,
+  prayerGroupCatalogSessionGateKey,
   resolveHomeFilterFromSession,
   sanitizeHomeAreaFilter,
 } from './prayer-groups-feature';
 
 describe('prayer-groups-feature', () => {
+  it('builds distinct catalog gate keys per email and feature flag', () => {
+    expect(
+      prayerGroupCatalogSessionGateKey({
+        email: 'User@Example.com',
+        prayerGroupsEnabled: true,
+      }),
+    ).toBe('user@example.com:true');
+    expect(
+      prayerGroupCatalogSessionGateKey({
+        email: 'user@example.com',
+        prayerGroupsEnabled: false,
+      }),
+    ).toBe('user@example.com:false');
+    expect(prayerGroupCatalogSessionGateKey(null)).toBeNull();
+  });
+
   it('treats prayer groups as off unless explicitly enabled', () => {
     expect(isPrayerGroupsFeatureEnabled(null)).toBe(false);
     expect(isPrayerGroupsFeatureEnabled({})).toBe(false);

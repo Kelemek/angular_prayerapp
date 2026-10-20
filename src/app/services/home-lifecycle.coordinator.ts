@@ -305,20 +305,13 @@ export class HomeLifecycleCoordinator {
         if (pendingReturn) {
           host.applyHomeReturnContext(pendingReturn);
           host.setPendingHomeReturnContext(null);
-          const afterReturn = sanitizeHomeAreaFilter(
+          const afterReturn = resolveHomeFilterFromSession(
             host.getActiveFilter(),
             s,
           );
           if (afterReturn !== host.getActiveFilter()) {
             host.setActiveFilter(afterReturn);
             host.setFilter(afterReturn);
-          } else if (
-            s.isChurchMember === false &&
-            isPublicAreaFilter(host.getActiveFilter()) &&
-            isPrayerGroupsFeatureEnabled(s)
-          ) {
-            host.setActiveFilter("groups");
-            host.setFilter("groups");
           }
         } else {
           const nextFilter = resolveHomeFilterFromSession(

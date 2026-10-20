@@ -10,7 +10,10 @@ import { runGroupPrayerCatalogLoad } from '../lib/prayer-group-catalog-load-wire
 import { CacheService } from './cache.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
-import { isPrayerGroupsFeatureEnabled } from '../lib/prayer-groups-feature';
+import {
+  isPrayerGroupsFeatureEnabled,
+  prayerGroupCatalogSessionGateKey,
+} from '../lib/prayer-groups-feature';
 
 export interface PrayerGroupSummary {
   id: string;
@@ -142,6 +145,8 @@ export class PrayerGroupService {
     if (
       !isPrayerGroupsFeatureEnabled(this.userSessionService.getCurrentSession())
     ) {
+      this.catalogLoadToken += 1;
+      this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
       this.groupsSubject.next([]);
       this.prayersSubject.next([]);
       this.updatesSubject.next([]);
@@ -220,14 +225,15 @@ export class PrayerGroupService {
     this.sessionWired = true;
     this.userSessionService.userSession$
       .pipe(
-        map((session) => session?.email?.trim().toLowerCase() ?? null),
+        map((session) => prayerGroupCatalogSessionGateKey(session)),
         distinctUntilChanged(),
       )
-      .subscribe((email) => {
-        if (!email) {
+      .subscribe((gateKey) => {
+        if (!gateKey) {
           this.resetSessionState();
           return;
         }
+        const email = gateKey.slice(0, gateKey.lastIndexOf(':'));
         if (this.catalogOwnerEmail !== null && this.catalogOwnerEmail !== email) {
           this.resetSessionState();
         }

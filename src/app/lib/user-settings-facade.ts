@@ -130,12 +130,8 @@ export class UserSettingsFacade {
     if (this.defaultPrayerView == null) {
       return null;
     }
-    if (
-      !this.isChurchMember &&
-      this.defaultPrayerView === 'current' &&
-      this.prayerGroupsEnabled
-    ) {
-      return 'groups';
+    if (!this.isChurchMember && this.defaultPrayerView === 'current') {
+      return this.prayerGroupsEnabled ? 'groups' : 'personal';
     }
     if (this.defaultPrayerView === 'groups' && !this.prayerGroupsEnabled) {
       return this.isChurchMember ? 'current' : 'personal';

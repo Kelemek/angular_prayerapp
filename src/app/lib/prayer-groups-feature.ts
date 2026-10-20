@@ -13,6 +13,17 @@ export function isPrayerGroupsFeatureEnabled(
   return session?.prayerGroupsEnabled === true;
 }
 
+/** Distinct key for group catalog loads (email + feature flag). */
+export function prayerGroupCatalogSessionGateKey(
+  session: (PrayerGroupsFeatureSession & { email?: string }) | null | undefined,
+): string | null {
+  const email = session?.email?.trim().toLowerCase();
+  if (!email) {
+    return null;
+  }
+  return `${email}:${isPrayerGroupsFeatureEnabled(session)}`;
+}
+
 export function sanitizeHomeAreaFilter(
   filter: HomeActiveFilter,
   session: PrayerGroupsFeatureSession,
