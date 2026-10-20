@@ -120,3 +120,16 @@ export function filterPersonalPrayersByCategories(
     (prayer) => prayer.category && selectedCategories.includes(prayer.category)
   );
 }
+
+export function filterGroupPrayersByGroupIds(
+  prayers: PrayerRequest[],
+  selectedGroupIds: string[],
+): PrayerRequest[] {
+  if (!selectedGroupIds?.length) {
+    return prayers;
+  }
+  const want = new Set(selectedGroupIds);
+  return prayers.filter(
+    (prayer) => prayer.group_id != null && want.has(prayer.group_id),
+  );
+}

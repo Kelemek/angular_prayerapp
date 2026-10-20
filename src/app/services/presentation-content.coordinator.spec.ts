@@ -20,6 +20,7 @@ function createHost(
     uniquePromptCategories: overrides.uniquePromptCategories ?? [],
     selectedPersonalCategories: overrides.selectedPersonalCategories ?? [],
     selectedPromptCategories: overrides.selectedPromptCategories ?? [],
+    selectedGroupIds: overrides.selectedGroupIds ?? [],
     catalog,
     markForCheckCalls: 0,
   };
@@ -93,6 +94,12 @@ function createHost(
     },
     set selectedPromptCategories(value: string[]) {
       state.selectedPromptCategories = value;
+    },
+    get selectedGroupIds() {
+      return state.selectedGroupIds;
+    },
+    set selectedGroupIds(value: string[]) {
+      state.selectedGroupIds = value;
     },
     markForCheck() {
       state.markForCheckCalls++;

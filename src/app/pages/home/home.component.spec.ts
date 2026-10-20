@@ -236,6 +236,7 @@ const makeMocks = () => {
     colors$: of({}),
     loadColors: vi.fn().mockResolvedValue({}),
     getColorsSnapshot: vi.fn().mockReturnValue({}),
+    getColor: vi.fn().mockReturnValue('#2563EB'),
     setColor: vi.fn().mockResolvedValue(true),
     renameCategory: vi.fn().mockResolvedValue(true),
   };
@@ -1060,7 +1061,10 @@ describe('HomeComponent', () => {
 
       comp.personalCategory.renamingPersonalCategory = 'Evening';
       comp.personalCategory.showRenamePersonalCategory = true;
-      await comp.personalCategory.saveRenamedPersonalCategory('Evening');
+      await comp.personalCategory.saveRenamedPersonalCategory({
+        name: 'Evening',
+        color: '#2563EB',
+      });
 
       expect(prayerService.renamePersonalCategory).not.toHaveBeenCalled();
       expect(mocks.toastService.success).not.toHaveBeenCalled();
@@ -1092,7 +1096,10 @@ describe('HomeComponent', () => {
       comp.personalCategory.renamingPersonalCategory = 'Evening';
       comp.personalCategory.showRenamePersonalCategory = true;
       comp.personalCategory.selectedPersonalCategories = ['Evening'];
-      const savePromise = comp.personalCategory.saveRenamedPersonalCategory('Night');
+      const savePromise = comp.personalCategory.saveRenamedPersonalCategory({
+        name: 'Night',
+        color: '#2563EB',
+      });
 
       comp.personalCategory.closeRenamePersonalCategoryModal();
       expect(comp.personalCategory.isRenamingPersonalCategory).toBe(false);
@@ -1131,7 +1138,10 @@ describe('HomeComponent', () => {
       comp.personalCategory.renamingPersonalCategory = 'Evening';
       comp.personalCategory.showRenamePersonalCategory = true;
       comp.personalCategory.selectedPersonalCategories = ['Evening'];
-      const savePromise = comp.personalCategory.saveRenamedPersonalCategory('Night');
+      const savePromise = comp.personalCategory.saveRenamedPersonalCategory({
+        name: 'Night',
+        color: '#2563EB',
+      });
 
       await Promise.resolve();
       comp.personalCategory.closeRenamePersonalCategoryModal();
@@ -1168,7 +1178,10 @@ describe('HomeComponent', () => {
       comp.personalCategory.renamingPersonalCategory = 'Evening';
       comp.personalCategory.showRenamePersonalCategory = true;
       comp.personalCategory.selectedPersonalCategories = ['Evening'];
-      const savePromise = comp.personalCategory.saveRenamedPersonalCategory('Night');
+      const savePromise = comp.personalCategory.saveRenamedPersonalCategory({
+        name: 'Night',
+        color: '#2563EB',
+      });
 
       await Promise.resolve();
       expect(comp.personalCategory.selectedPersonalCategories).toEqual(['Night']);

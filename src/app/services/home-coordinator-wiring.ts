@@ -354,12 +354,17 @@ export function wireHomeCoordinators(
     applyPersonalReturnContext: (context) => {
       deps.personalCategory.applyReturnContext(context);
     },
+    applyGroupReturnContext: (context) => {
+      deps.prayerGroupService.applyGroupsTabReturnContext(context);
+    },
     refreshHomeCatalog: () => page.refreshHomeCatalog(),
     getHandoffSource: () => ({
       activeFilter: page.activeFilter as HomePresentationFilter,
       selectedPromptTypes: page.selectedPromptTypes,
       selectedPersonalCategories: deps.personalCategory.selectedPersonalCategories,
       personalCategoryFilterMode: deps.personalCategory.personalCategoryFilterMode,
+      groupFilterMode: deps.prayerGroupService.groupsTabFilterMode,
+      selectedGroupId: deps.prayerGroupService.groupsTabSelectedGroupId,
       defaultPrayerView: deps.userSessionService.getDefaultPrayerView(),
     }),
   });

@@ -13,11 +13,22 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalShellComponent } from '../modal-shell/modal-shell.component';
+import { PersonalCategoryColorPickerComponent } from '../personal-category-color-picker/personal-category-color-picker.component';
+import {
+  normalizePersonalCategoryHexColor,
+  PERSONAL_CATEGORY_COLOR_PRESETS,
+} from '../../../utils/personalCategoryColor';
+import type { PersonalCategoryNameSavePayload } from '../../lib/personal-category-name-save';
 
 @Component({
   selector: 'app-personal-category-rename-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalShellComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ModalShellComponent,
+    PersonalCategoryColorPickerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isOpen) {
@@ -58,6 +69,21 @@ import { ModalShellComponent } from '../modal-shell/modal-shell.component';
           />
         </div>
 
+        <div>
+          <span
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 select-none [-webkit-touch-callout:none]"
+          >
+            Category color
+          </span>
+          <app-personal-category-color-picker
+            layout="inline"
+            colorDisplay="text"
+            [color]="draftColor"
+            [categoryLabel]="draftName.trim() || 'Category'"
+            (colorChange)="onColorChange($event)"
+          />
+        </div>
+
         <div class="flex justify-end gap-3 pt-2 select-none [-webkit-touch-callout:none]">
           <button
             type="submit"
@@ -84,15 +110,17 @@ export class PersonalCategoryRenameModalComponent
   @Input() isOpen = false;
   @Input() mode: 'rename' | 'create' = 'rename';
   @Input() categoryName = '';
+  @Input() categoryColor = PERSONAL_CATEGORY_COLOR_PRESETS[0];
   @Input() saving = false;
 
   @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<string>();
+  @Output() save = new EventEmitter<PersonalCategoryNameSavePayload>();
 
   @ViewChild('categoryNameInput')
   private categoryNameInput?: ElementRef<HTMLInputElement>;
 
   draftName = '';
+  draftColor = PERSONAL_CATEGORY_COLOR_PRESETS[0];
   private shouldFocusInput = false;
 
   ngAfterViewInit(): void {
@@ -102,6 +130,11 @@ export class PersonalCategoryRenameModalComponent
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue || changes['categoryName']) {
       this.draftName = this.categoryName;
+    }
+    if (changes['isOpen']?.currentValue || changes['categoryColor']) {
+      this.draftColor =
+        normalizePersonalCategoryHexColor(this.categoryColor) ??
+        PERSONAL_CATEGORY_COLOR_PRESETS[0];
     }
     if (changes['isOpen']?.currentValue) {
       this.shouldFocusInput = true;
@@ -129,11 +162,20 @@ export class PersonalCategoryRenameModalComponent
     });
   }
 
+  onColorChange(color: string): void {
+    this.draftColor =
+      normalizePersonalCategoryHexColor(color) ??
+      PERSONAL_CATEGORY_COLOR_PRESETS[0];
+  }
+
   onSubmit(): void {
     const trimmed = this.draftName.trim();
     if (!trimmed) {
       return;
     }
-    this.save.emit(trimmed);
+    const color =
+      normalizePersonalCategoryHexColor(this.draftColor) ??
+      PERSONAL_CATEGORY_COLOR_PRESETS[0];
+    this.save.emit({ name: trimmed, color });
   }
 }

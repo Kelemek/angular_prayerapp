@@ -32,6 +32,7 @@ export interface PresentationContentHost {
   uniquePromptCategories: string[];
   selectedPersonalCategories: string[];
   selectedPromptCategories: string[];
+  selectedGroupIds: string[];
   catalog: PresentationCatalogStore;
   markForCheck(): void;
 }
@@ -245,6 +246,7 @@ export class PresentationContentCoordinator {
       randomize: host.randomize,
       selectedPersonalCategories: host.selectedPersonalCategories,
       selectedPromptCategories: host.selectedPromptCategories,
+      selectedGroupIds: host.selectedGroupIds,
     };
   }
 

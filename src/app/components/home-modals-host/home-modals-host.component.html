@@ -65,6 +65,7 @@
         [isOpen]="showRenamePersonalCategory"
         [mode]="personalCategoryNameModalMode"
         [categoryName]="renamingPersonalCategory ?? ''"
+        [categoryColor]="personalCategoryModalColor"
         [saving]="isRenamingPersonalCategory"
         (close)="handlers.closeRenamePersonalCategory()"
         (save)="handlers.saveRenamedPersonalCategory($event)"

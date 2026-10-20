@@ -108,6 +108,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   loop = true;
   selectedPersonalCategories: string[] = [];
   uniquePersonalCategories: string[] = [];
+  selectedGroupIds: string[] = [];
   selectedPromptCategories: string[] = [];
   uniquePromptCategories: string[] = [];
 
@@ -427,6 +428,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
       randomize: this.randomize,
       selectedPersonalCategories: this.selectedPersonalCategories,
       selectedPromptCategories: this.selectedPromptCategories,
+      selectedGroupIds: this.selectedGroupIds,
     };
   }
 

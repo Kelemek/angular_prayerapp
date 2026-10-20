@@ -20,7 +20,10 @@ export interface HomeModalsHostHandlers {
   closeEditPersonalPrayer(): void;
   onPersonalPrayerSaved(): void;
   closeRenamePersonalCategory(): void;
-  saveRenamedPersonalCategory(name: string): void;
+  saveRenamedPersonalCategory(payload: {
+    name: string;
+    color: string;
+  }): void;
   closeEditPersonalUpdate(): void;
   onPersonalUpdateSaved(): void;
   closeEditMemberUpdate(): void;

@@ -2,13 +2,18 @@ import { Component, ChangeDetectionStrategy, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { CardMetaHeaderBandComponent } from '../card-meta-header-band/card-meta-header-band.component';
 import { PersonalCategoryPillComponent } from '../personal-category-color-picker/personal-category-pill.component';
+import { GroupPrayerHeaderPillComponent } from '../personal-category-color-picker/group-prayer-header-pill.component';
 import { CardActionsOverflowMenuComponent } from '../card-actions-overflow-menu/card-actions-overflow-menu.component';
 import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card-actions-overflow-menu.types';
 import {
   getPrayerStatusHeaderTextClasses,
   getPrayerStatusLabel,
-  GROUP_PRAYER_HEADER_TEXT_CLASSES,
 } from '../../lib/prayer-status-header';
+import { personalCategoryHeaderBandStyles } from '../../../utils/personalCategoryColor';
+import {
+  DEFAULT_PRAYER_GROUP_COLOR,
+  normalizePrayerGroupColor,
+} from '../../lib/prayer-group-color';
 import { formatPrayerCardShortDateParts } from '../../lib/prayer-update-header';
 import {
   PRAYER_CARD_HEADER_BLEED_CLASSES,
@@ -21,7 +26,13 @@ import {
 @Component({
   selector: 'app-prayer-card-meta-header',
   standalone: true,
-  imports: [CommonModule, CardMetaHeaderBandComponent, PersonalCategoryPillComponent, CardActionsOverflowMenuComponent],
+  imports: [
+    CommonModule,
+    CardMetaHeaderBandComponent,
+    PersonalCategoryPillComponent,
+    GroupPrayerHeaderPillComponent,
+    CardActionsOverflowMenuComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card-meta-header-band
@@ -38,12 +49,23 @@ import {
     >
       <div cardMetaLeft class="w-full min-w-0">
         @if (groupName) {
-        <span
-          [class]="'block min-w-0 max-w-full truncate font-bold ' + layoutClasses.textSmClasses + ' ' + headerInsetClasses + ' ' + groupHeaderTextClasses"
-          [title]="groupName"
-        >
-          {{ groupName }}
-        </span>
+          @if (canChangeGroupColor && groupId) {
+          <app-group-prayer-header-pill
+            [bandSize]="bandSize"
+            [groupId]="groupId"
+            [groupName]="groupName"
+            [groupColor]="groupColor"
+            (pickerOpenChange)="pickerOpenChange.emit($event)"
+          />
+          } @else {
+          <span
+            [class]="'personal-category-header-band block min-w-0 max-w-full truncate font-bold ' + layoutClasses.textSmClasses + ' ' + headerInsetClasses"
+            [title]="groupName"
+            [ngStyle]="groupHeaderStyles"
+          >
+            {{ groupName }}
+          </span>
+          }
         } @else if (isPersonal) {
           @if (category) {
           <app-personal-category-pill
@@ -81,8 +103,6 @@ export class PrayerCardMetaHeaderComponent {
   /** Matches Planning Center member card border (`#0047AB`). */
   readonly memberHeaderTextClasses = 'text-[#0047AB] dark:text-[#4A90E2]';
 
-  readonly groupHeaderTextClasses = GROUP_PRAYER_HEADER_TEXT_CLASSES;
-
   /** Override when the card shell uses non-standard horizontal padding (e.g. presentation p-8). */
   @Input() bleedClasses = PRAYER_CARD_HEADER_BLEED_CLASSES;
   @Input() roundedClasses = PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES;
@@ -96,6 +116,10 @@ export class PrayerCardMetaHeaderComponent {
   @Input() category: string | null = null;
   /** When set, the left side of the header shows the group name. */
   @Input() groupName: string | null = null;
+  @Input() groupId: string | null = null;
+  @Input() groupColor: string | null = null;
+  /** Group owner may change the shared group color from the card header. */
+  @Input() canChangeGroupColor = false;
   /** Group prayers: only the requester may edit or change answered status (RLS). */
   @Input() canEditGroupPrayer = false;
   @Input() status = 'current';
@@ -142,6 +166,13 @@ export class PrayerCardMetaHeaderComponent {
 
   get layoutClasses() {
     return getMetaHeaderBandLayoutClasses(this.bandSize);
+  }
+
+  get groupHeaderStyles(): Record<string, string> {
+    const hex = normalizePrayerGroupColor(
+      this.groupColor ?? DEFAULT_PRAYER_GROUP_COLOR,
+    );
+    return personalCategoryHeaderBandStyles(hex);
   }
 
   get overflowItems(): CardActionsOverflowItem[] {

@@ -14,10 +14,18 @@ import {
   isPrayerGroupsFeatureEnabled,
   prayerGroupCatalogSessionGateKey,
 } from '../lib/prayer-groups-feature';
+import {
+  DEFAULT_PRAYER_GROUP_COLOR,
+  normalizePrayerGroupColor,
+} from '../lib/prayer-group-color';
+import type { GroupFilterMode } from '../lib/home-group-catalog';
+
+export { DEFAULT_PRAYER_GROUP_COLOR, normalizePrayerGroupColor };
 
 export interface PrayerGroupSummary {
   id: string;
   name: string;
+  color: string;
   role: 'owner' | 'member';
   memberCount: number;
 }
@@ -58,8 +66,8 @@ type GroupMembershipListRow = {
   user_email?: string | null;
   role?: string | null;
   prayer_groups:
-    | { id: string; name: string }
-    | { id: string; name: string }[]
+    | { id: string; name: string; color?: string | null }
+    | { id: string; name: string; color?: string | null }[]
     | null;
 };
 
@@ -77,6 +85,7 @@ export function prayerGroupSummariesForViewer(
     byId.set(group.id, {
       id: group.id,
       name: group.name,
+      color: normalizePrayerGroupColor(group.color),
       role: row.role === 'owner' ? 'owner' : 'member',
     });
   }
@@ -93,6 +102,12 @@ export class PrayerGroupService {
   readonly groupDeepLinkApply$ = new Subject<void>();
   /** Group chosen on the Groups tab, used when Request opens there. */
   preferredGroupId: string | null = null;
+  /** Groups tab chip filter for Pray → presentation handoff. */
+  groupsTabFilterMode: GroupFilterMode = 'current';
+  groupsTabSelectedGroupId: string | null = null;
+  private readonly groupsTabReturnAppliedSubject = new Subject<void>();
+  readonly groupsTabReturnApplied$ =
+    this.groupsTabReturnAppliedSubject.asObservable();
   /** Prayer id from `?prayerId=` while on the Group tab; applied when the catalog is ready. */
   pendingPrayerDeepLinkId: string | null = null;
 
@@ -276,6 +291,26 @@ export class PrayerGroupService {
     this.updatesSubject.next(snapshot.updates);
   }
 
+  private patchGroupInCatalog(
+    groupId: string,
+    patch: Partial<Pick<PrayerGroupSummary, 'name' | 'color'>>,
+  ): void {
+    const groups = this.groupsSubject.value.map((group) =>
+      group.id === groupId ? { ...group, ...patch } : group,
+    );
+    this.groupsSubject.next(groups);
+    const cached = this.readCatalogCacheForCurrentViewer();
+    if (!cached) {
+      return;
+    }
+    this.cache.set(GROUP_PRAYER_CATALOG_CACHE_KEY, {
+      ...cached,
+      groups: cached.groups.map((group) =>
+        group.id === groupId ? { ...group, ...patch } : group,
+      ),
+    });
+  }
+
   /** Members from the latest listGroups() or listMembers() for this group. */
   membersForGroup(groupId: string): PrayerGroupMemberRow[] | undefined {
     return this.membersByGroupId.get(groupId);
@@ -296,11 +331,35 @@ export class PrayerGroupService {
     this.groupDeepLinkApply$.next();
   }
 
+  syncGroupsTabPresentationState(
+    mode: GroupFilterMode,
+    selectedGroupId: string | null,
+  ): void {
+    this.groupsTabFilterMode = mode;
+    this.groupsTabSelectedGroupId = selectedGroupId;
+  }
+
+  applyGroupsTabReturnContext(context: {
+    groupFilterMode?: GroupFilterMode;
+    selectedGroupId?: string | null;
+  }): void {
+    if (context.groupFilterMode) {
+      this.groupsTabFilterMode = context.groupFilterMode;
+    }
+    this.groupsTabSelectedGroupId = context.selectedGroupId ?? null;
+    if (this.groupsTabSelectedGroupId) {
+      this.preferredGroupId = this.groupsTabSelectedGroupId;
+    }
+    this.groupsTabReturnAppliedSubject.next();
+  }
+
   /** Clears in-memory membership cache when the signed-in account changes. */
   resetSessionState(): void {
     this.catalogLoadToken += 1;
     this.membersByGroupId.clear();
     this.preferredGroupId = null;
+    this.groupsTabFilterMode = 'current';
+    this.groupsTabSelectedGroupId = null;
     this.pendingPrayerDeepLinkId = null;
     this.catalogDbFetchComplete = false;
     this.catalogOwnerEmail = null;
@@ -327,7 +386,7 @@ export class PrayerGroupService {
     }
     const { data: memberships, error } = await client
       .from('prayer_group_members')
-      .select('group_id, user_email, role, prayer_groups(id, name)')
+      .select('group_id, user_email, role, prayer_groups(id, name, color)')
       .eq('is_active', true)
       .eq('user_email', viewerEmail)
       .order('display_order', { ascending: true });
@@ -401,11 +460,17 @@ export class PrayerGroupService {
     return (data ?? []) as GroupPrayerRow[];
   }
 
-  async createGroup(name: string): Promise<string> {
+  async createGroup(name: string, color?: string): Promise<string> {
     const client = await this.supabase.db();
-    const { data, error } = await client.rpc('create_prayer_group', { p_name: name });
+    const { data, error } = await client.rpc('create_prayer_group', {
+      p_name: name,
+      p_color: normalizePrayerGroupColor(color),
+    });
     if (error) throw error;
-    await this.refreshCatalogAfterWrite();
+    // Do not await a full catalog fetch here — the Groups panel must close
+    // immediately; listGroups + listAllPrayers can hold the Supabase client a long time.
+    this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
+    void this.loadCatalog(true);
     return data as string;
   }
 
@@ -508,12 +573,37 @@ export class PrayerGroupService {
     return (data ?? []) as GroupPrayerRow[];
   }
 
-  async renameGroup(groupId: string, name: string): Promise<void> {
+  async updateGroupColor(groupId: string, color: string): Promise<void> {
+    const normalizedColor = normalizePrayerGroupColor(color);
     const client = await this.supabase.db();
-    const { error } = await client.rpc('rename_prayer_group', {
+    const { error } = await client.rpc('update_prayer_group_color', {
+      p_group_id: groupId,
+      p_color: normalizedColor,
+    });
+    if (error) throw error;
+    this.patchGroupInCatalog(groupId, { color: normalizedColor });
+    this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
+    void this.loadCatalog(true);
+  }
+
+  async renameGroup(
+    groupId: string,
+    name: string,
+    color?: string,
+  ): Promise<void> {
+    const client = await this.supabase.db();
+    const payload: {
+      p_group_id: string;
+      p_name: string;
+      p_color?: string;
+    } = {
       p_group_id: groupId,
       p_name: name,
-    });
+    };
+    if (color !== undefined) {
+      payload.p_color = normalizePrayerGroupColor(color);
+    }
+    const { error } = await client.rpc('rename_prayer_group', payload);
     if (error) throw error;
     await this.refreshCatalogAfterWrite();
   }

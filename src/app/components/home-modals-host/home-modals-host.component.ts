@@ -58,6 +58,7 @@ export class HomeModalsHostComponent {
   @Input({ required: true }) personalCategoryNameModalMode!: "rename" | "create";
   @Input({ required: true }) renamingPersonalCategory!: string | null;
   @Input({ required: true }) isRenamingPersonalCategory!: boolean;
+  @Input({ required: true }) personalCategoryModalColor!: string;
   @Input({ required: true }) showEditPersonalUpdate!: boolean;
   @Input({ required: true }) editingUpdate!: PrayerUpdate | null;
   @Input({ required: true }) editingUpdatePrayerId!: string;

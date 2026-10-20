@@ -14,6 +14,8 @@ export interface HomePresentationHandoffSource {
   selectedPromptTypes: string[];
   selectedPersonalCategories: string[];
   personalCategoryFilterMode: PersonalCategoryFilterMode;
+  groupFilterMode: PersonalCategoryFilterMode;
+  selectedGroupId: string | null;
   defaultPrayerView: "current" | "personal" | "groups";
 }
 
@@ -23,6 +25,10 @@ export interface HomePresentationNavigationHostBindings {
   applyPersonalReturnContext(context: {
     personalCategoryFilterMode?: HomeReturnContext["personalCategoryFilterMode"];
     selectedPersonalCategories?: string[];
+  }): void;
+  applyGroupReturnContext(context: {
+    groupFilterMode?: HomeReturnContext["groupFilterMode"];
+    selectedGroupId?: string | null;
   }): void;
   refreshHomeCatalog(): void;
   getHandoffSource(): HomePresentationHandoffSource;
@@ -46,6 +52,7 @@ export class HomePresentationNavigationController {
       setFilter: bindings.setFilter,
       setSelectedPromptTypes: bindings.setSelectedPromptTypes,
       applyPersonalReturnContext: bindings.applyPersonalReturnContext,
+      applyGroupReturnContext: bindings.applyGroupReturnContext,
       refreshHomeCatalog: bindings.refreshHomeCatalog,
     });
   }

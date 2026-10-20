@@ -30,6 +30,7 @@ describe("HomePersonalCategoryController", () => {
   };
   let personalCategoryColorService: {
     getColorsSnapshot: ReturnType<typeof vi.fn>;
+    getColor: ReturnType<typeof vi.fn>;
     renameCategory: ReturnType<typeof vi.fn>;
     setColor: ReturnType<typeof vi.fn>;
   };
@@ -55,7 +56,8 @@ describe("HomePersonalCategoryController", () => {
     };
     personalCategoryColorService = {
       getColorsSnapshot: vi.fn(() => ({})),
-      renameCategory: vi.fn(),
+      getColor: vi.fn(() => "#2563EB"),
+      renameCategory: vi.fn().mockResolvedValue(true),
       setColor: vi.fn().mockResolvedValue(true),
       deleteColor: vi.fn().mockResolvedValue(true),
     };
@@ -106,16 +108,50 @@ describe("HomePersonalCategoryController", () => {
     expect(controller.uniquePersonalCategories).toEqual(["Travel"]);
   });
 
+  it("reports failure when color-only rename cannot save", async () => {
+    personalCategoryColorService.setColor.mockResolvedValue(false);
+    controller.openRenamePersonalCategoryModal("Health");
+
+    await controller.saveRenamedPersonalCategory({
+      name: "Health",
+      color: "#DC2626",
+    });
+
+    expect(toastService.error).toHaveBeenCalledWith(
+      "Could not save the category color.",
+    );
+    expect(toastService.success).not.toHaveBeenCalled();
+  });
+
+  it("reports color save failure after a successful category rename", async () => {
+    prayerService.renamePersonalCategory.mockResolvedValue(true);
+    personalCategoryColorService.setColor.mockResolvedValue(false);
+    controller.openRenamePersonalCategoryModal("Health");
+
+    await controller.saveRenamedPersonalCategory({
+      name: "Wellness",
+      color: "#DC2626",
+    });
+
+    expect(toastService.error).toHaveBeenCalledWith(
+      "Category renamed, but the color could not be saved.",
+    );
+    expect(toastService.success).not.toHaveBeenCalled();
+  });
+
   it("creates a category from the add button flow", async () => {
     controller.openCreatePersonalCategoryModal();
     expect(controller.personalCategoryNameModalMode).toBe("create");
     expect(controller.showRenamePersonalCategory).toBe(true);
 
-    await controller.saveRenamedPersonalCategory("Travel");
+    await controller.saveRenamedPersonalCategory({
+      name: "Travel",
+      color: "#111111",
+    });
 
     expect(personalCategoryColorService.setColor).toHaveBeenCalledWith(
       "Travel",
-      "#DC2626"
+      "#111111"
     );
     expect(controller.personalCategoryFilterMode).toBe("named");
     expect(controller.selectedPersonalCategories).toEqual(["Travel"]);

@@ -21,8 +21,10 @@ import {
 import { sanitizePersonalPrayerCategory } from "../lib/prayer-personal-display";
 import {
   PERSONAL_CATEGORY_COLOR_PRESETS,
+  normalizePersonalCategoryHexColor,
   sanitizePersonalCategoryName,
 } from "../../utils/personalCategoryColor";
+import type { PersonalCategoryNameSavePayload } from "../lib/personal-category-name-save";
 
 export interface HomePersonalCategoryHost {
   getPersonalPrayers(): PrayerRequest[];
@@ -306,6 +308,20 @@ export class HomePersonalCategoryController {
     this.requireHost().markForCheck();
   }
 
+  get personalCategoryModalColor(): string {
+    const colorService = this.requirePersonalCategoryColorService();
+    if (
+      this.personalCategoryNameModalMode === "rename" &&
+      this.renamingPersonalCategory
+    ) {
+      return colorService.getColor(this.renamingPersonalCategory);
+    }
+    const colorCount = Object.keys(colorService.getColorsSnapshot()).length;
+    return PERSONAL_CATEGORY_COLOR_PRESETS[
+      colorCount % PERSONAL_CATEGORY_COLOR_PRESETS.length
+    ];
+  }
+
   get personalCategoryDeleteMessage(): string {
     const name = this.pendingDeletePersonalCategory ?? "this category";
     return `Delete category “${name}”? It must be empty.`;
@@ -374,9 +390,11 @@ export class HomePersonalCategoryController {
     this.requireHost().markForCheck();
   }
 
-  async saveRenamedPersonalCategory(newName: string): Promise<void> {
+  async saveRenamedPersonalCategory(
+    payload: PersonalCategoryNameSavePayload,
+  ): Promise<void> {
     if (this.personalCategoryNameModalMode === "create") {
-      await this.saveCreatedPersonalCategory(newName);
+      await this.saveCreatedPersonalCategory(payload);
       return;
     }
 
@@ -385,16 +403,41 @@ export class HomePersonalCategoryController {
       return;
     }
 
-    const trimmedNewName = newName.trim();
-    if (!trimmedNewName || trimmedNewName === oldName) {
+    const trimmedNewName = payload.name.trim();
+    const normalizedColor =
+      normalizePersonalCategoryHexColor(payload.color) ??
+      PERSONAL_CATEGORY_COLOR_PRESETS[0];
+    const personalCategoryColorService =
+      this.requirePersonalCategoryColorService();
+    const previousColor = personalCategoryColorService.getColor(oldName);
+    const colorChanged = normalizedColor !== previousColor;
+
+    if (!trimmedNewName) {
+      return;
+    }
+    if (trimmedNewName === oldName && !colorChanged) {
       this.closeRenamePersonalCategoryModal(false);
+      return;
+    }
+    if (trimmedNewName === oldName && colorChanged) {
+      const saved = await personalCategoryColorService.setColor(
+        oldName,
+        normalizedColor,
+      );
+      const toastService = this.requireToastService();
+      if (saved) {
+        toastService.success("Category color updated.");
+      } else {
+        toastService.error("Could not save the category color.");
+      }
+      this.closeRenamePersonalCategoryModal(false);
+      this.requireHost().markForCheck();
       return;
     }
 
     const generation = this.personalCategoryRenameGeneration;
     const previousSelection = [...this.selectedPersonalCategories];
     const prayerService = this.requirePrayerService();
-    const personalCategoryColorService = this.requirePersonalCategoryColorService();
     const toastService = this.requireToastService();
 
     this.isRenamingPersonalCategory = true;
@@ -437,6 +480,19 @@ export class HomePersonalCategoryController {
       }
 
       if (result.status === "success") {
+        if (colorChanged) {
+          const colorSaved = await personalCategoryColorService.setColor(
+            trimmedNewName,
+            normalizedColor,
+          );
+          if (!colorSaved) {
+            toastService.error(
+              "Category renamed, but the color could not be saved.",
+            );
+            this.closeRenamePersonalCategoryModal(false);
+            return;
+          }
+        }
         toastService.success("Category renamed.");
       }
       this.closeRenamePersonalCategoryModal(false);
@@ -448,8 +504,10 @@ export class HomePersonalCategoryController {
     }
   }
 
-  private async saveCreatedPersonalCategory(newName: string): Promise<void> {
-    const trimmedNewName = newName.trim();
+  private async saveCreatedPersonalCategory(
+    payload: PersonalCategoryNameSavePayload,
+  ): Promise<void> {
+    const trimmedNewName = payload.name.trim();
     if (!trimmedNewName) {
       return;
     }
@@ -469,13 +527,9 @@ export class HomePersonalCategoryController {
     const personalCategoryColorService =
       this.requirePersonalCategoryColorService();
     const toastService = this.requireToastService();
-    const colorCount = Object.keys(
-      personalCategoryColorService.getColorsSnapshot()
-    ).length;
     const color =
-      PERSONAL_CATEGORY_COLOR_PRESETS[
-        colorCount % PERSONAL_CATEGORY_COLOR_PRESETS.length
-      ];
+      normalizePersonalCategoryHexColor(payload.color) ??
+      PERSONAL_CATEGORY_COLOR_PRESETS[0];
 
     this.isRenamingPersonalCategory = true;
     this.requireHost().markForCheck();

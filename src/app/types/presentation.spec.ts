@@ -122,6 +122,26 @@ describe('buildPresentationHomeHandoff', () => {
     });
   });
 
+  it('includes group ids when a named group chip is selected on Groups tab', () => {
+    expect(
+      buildPresentationHomeHandoff({
+        contentTypes: ['groups'],
+        activeFilter: 'groups',
+        groupFilterMode: 'named',
+        selectedGroupId: 'uuid-family',
+      }),
+    ).toEqual({
+      contentTypes: ['groups'],
+      statusFilters: { current: false, answered: false, archived: false },
+      groupIds: ['uuid-family'],
+      returnContext: {
+        activeFilter: 'groups',
+        groupFilterMode: 'named',
+        selectedGroupId: 'uuid-family',
+      },
+    });
+  });
+
   it('includes personal categories when a named category chip is selected', () => {
     expect(
       buildPresentationHomeHandoff({

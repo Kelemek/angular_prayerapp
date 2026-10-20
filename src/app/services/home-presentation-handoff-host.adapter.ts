@@ -9,6 +9,10 @@ export interface HomePresentationHandoffPageBindings {
     personalCategoryFilterMode?: HomeReturnContext["personalCategoryFilterMode"];
     selectedPersonalCategories?: string[];
   }): void;
+  applyGroupReturnContext(context: {
+    groupFilterMode?: HomeReturnContext["groupFilterMode"];
+    selectedGroupId?: string | null;
+  }): void;
   refreshHomeCatalog(): void;
 }
 
@@ -28,6 +32,13 @@ export class HomePresentationHandoffHostAdapter implements HomeReturnContextAppl
     selectedPersonalCategories?: string[];
   }): void {
     this.page.applyPersonalReturnContext(context);
+  }
+
+  applyGroupReturnContext(context: {
+    groupFilterMode?: HomeReturnContext["groupFilterMode"];
+    selectedGroupId?: string | null;
+  }): void {
+    this.page.applyGroupReturnContext(context);
   }
 
   onReturnContextApplied(): void {

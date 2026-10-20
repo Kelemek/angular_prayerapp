@@ -45,6 +45,8 @@ export interface PrayerRequest {
   /** Set on group-prayer cards (home Groups tab and presentation). */
   group_id?: string | null;
   group_name?: string | null;
+  /** Hex accent from prayer_groups.color. */
+  group_color?: string | null;
   content_kind?: PrayerContentKind;
   verse_reference?: string | null;
   verse_translation?: string | null;

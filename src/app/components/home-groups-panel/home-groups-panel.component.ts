@@ -41,6 +41,15 @@ import {
   PrayerGroupService,
   PrayerGroupSummary,
 } from '../../services/prayer-group.service';
+import { PersonalCategoryColorPickerComponent } from '../personal-category-color-picker/personal-category-color-picker.component';
+import {
+  PERSONAL_CATEGORY_COLOR_PRESETS,
+  normalizePersonalCategoryHexColor,
+} from '../../../utils/personalCategoryColor';
+import {
+  DEFAULT_PRAYER_GROUP_COLOR,
+  normalizePrayerGroupColor,
+} from '../../lib/prayer-group-color';
 import type {
   PrayerCardAddUpdateEvent,
   PrayerCardDeleteUpdateEvent,
@@ -67,6 +76,7 @@ import {
     ModalChromeCloseButtonComponent,
     PrayerCardComponent,
     AdminFilterSelectComponent,
+    PersonalCategoryColorPickerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-groups-panel.component.html',
@@ -108,11 +118,13 @@ export class HomeGroupsPanelComponent {
   submitting = false;
   createOpen = false;
   createName = '';
+  createColor = DEFAULT_PRAYER_GROUP_COLOR;
   membersTarget: PrayerGroupSummary | null = null;
   /** First open after creating a group: invite-only (no leave / transfer). */
   membersModalPostCreate = false;
   renameTarget: PrayerGroupSummary | null = null;
   renameDraft = '';
+  renameColor = DEFAULT_PRAYER_GROUP_COLOR;
   pendingDelete: PrayerGroupSummary | null = null;
   pendingLeaveGroup: PrayerGroupSummary | null = null;
   pendingTransferEmail: string | null = null;
@@ -129,6 +141,7 @@ export class HomeGroupsPanelComponent {
     private readonly cdr: ChangeDetectorRef,
     destroyRef: DestroyRef,
   ) {
+    this.restoreGroupsTabChipStateFromService();
     this.groupsApi.groups$
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((groups) => {
@@ -171,6 +184,18 @@ export class HomeGroupsPanelComponent {
         this.applyPendingGroupPrayerDeepLink();
         this.cdr.markForCheck();
       });
+    this.groupsApi.groupsTabReturnApplied$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe(() => {
+        this.restoreGroupsTabChipStateFromService();
+        this.cdr.markForCheck();
+      });
+  }
+
+  /** Panel is destroyed when leaving the Groups tab; service keeps Pray handoff state. */
+  private restoreGroupsTabChipStateFromService(): void {
+    this.filterMode = this.groupsApi.groupsTabFilterMode;
+    this.selectedId = this.groupsApi.groupsTabSelectedGroupId;
   }
 
   get counts() {
@@ -235,6 +260,7 @@ export class HomeGroupsPanelComponent {
   selectStatus(mode: 'current' | 'answered' | 'total'): void {
     this.filterMode = mode;
     this.selectedId = null;
+    this.syncGroupsTabPresentationState();
   }
 
   selectGroup(id: string): void {
@@ -246,10 +272,21 @@ export class HomeGroupsPanelComponent {
     this.selectedId = id;
     this.filterMode = 'named';
     this.groupsApi.preferredGroupId = id;
+    this.syncGroupsTabPresentationState();
+  }
+
+  private syncGroupsTabPresentationState(): void {
+    this.groupsApi.syncGroupsTabPresentationState(this.filterMode, this.selectedId);
   }
 
   cardFor(prayer: GroupPrayerRow): PrayerRequest {
-    return groupPrayerCardModel(prayer, this.updatesByPrayer.get(prayer.id) ?? []);
+    const group = this.groups.find((row) => row.id === prayer.group_id);
+    return groupPrayerCardModel(
+      prayer,
+      this.updatesByPrayer.get(prayer.id) ?? [],
+      group?.name ?? null,
+      group?.color ?? null,
+    );
   }
 
   groupNameFor(groupId: string): string {
@@ -326,18 +363,29 @@ export class HomeGroupsPanelComponent {
   async createGroup(): Promise<void> {
     const name = this.createName.trim();
     if (!name || this.submitting) return;
+    const savedColor = this.createColor;
     this.submitting = true;
     this.cdr.markForCheck();
     try {
-      const id = await this.groupsApi.createGroup(name);
+      const id = await this.groupsApi.createGroup(name, savedColor);
       this.createName = '';
+      this.createColor = this.defaultGroupColor();
       this.createOpen = false;
+      this.submitting = false;
       this.selectedId = id;
+      this.groupsApi.preferredGroupId = id;
       this.filterMode = 'named';
+      this.syncGroupsTabPresentationState();
       this.cdr.markForCheck();
       const created =
         this.groups.find((group) => group.id === id) ??
-        ({ id, name, role: 'owner', memberCount: 1 } satisfies PrayerGroupSummary);
+        ({
+          id,
+          name,
+          color: savedColor,
+          role: 'owner',
+          memberCount: 1,
+        } satisfies PrayerGroupSummary);
       this.openMembers(created, { postCreate: true });
       this.toast.success('Group created');
     } catch (err: unknown) {
@@ -350,11 +398,32 @@ export class HomeGroupsPanelComponent {
 
   async saveRename(): Promise<void> {
     const name = this.renameDraft.trim();
-    if (!this.renameTarget || !name || name === this.renameTarget.name) return;
+    const target = this.renameTarget;
+    if (!target || !name) return;
+    const live = this.groups.find((group) => group.id === target.id) ?? target;
+    const modalColor =
+      normalizePersonalCategoryHexColor(this.renameColor) ??
+      DEFAULT_PRAYER_GROUP_COLOR;
+    const liveColor = normalizePrayerGroupColor(live.color);
+    const nameUnchanged = name === live.name;
+    const colorChangedInModal = modalColor !== liveColor;
+    if (nameUnchanged && !colorChangedInModal) {
+      this.renameTarget = null;
+      this.cdr.markForCheck();
+      return;
+    }
     this.submitting = true;
     this.cdr.markForCheck();
     try {
-      await this.groupsApi.renameGroup(this.renameTarget.id, name);
+      if (nameUnchanged && colorChangedInModal) {
+        await this.groupsApi.updateGroupColor(target.id, modalColor);
+      } else {
+        await this.groupsApi.renameGroup(
+          target.id,
+          name,
+          colorChangedInModal ? modalColor : undefined,
+        );
+      }
       this.renameTarget = null;
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not rename the group');
@@ -631,9 +700,34 @@ export class HomeGroupsPanelComponent {
     ];
   }
 
+  openCreateGroupModal(): void {
+    this.createColor = this.defaultGroupColor();
+    this.createOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  onCreateColorChange(color: string): void {
+    this.createColor =
+      normalizePersonalCategoryHexColor(color) ?? DEFAULT_PRAYER_GROUP_COLOR;
+    this.cdr.markForCheck();
+  }
+
+  onRenameColorChange(color: string): void {
+    this.renameColor =
+      normalizePersonalCategoryHexColor(color) ?? DEFAULT_PRAYER_GROUP_COLOR;
+    this.cdr.markForCheck();
+  }
+
+  private defaultGroupColor(): string {
+    return PERSONAL_CATEGORY_COLOR_PRESETS[
+      this.groups.length % PERSONAL_CATEGORY_COLOR_PRESETS.length
+    ];
+  }
+
   private openRename(group: PrayerGroupSummary): void {
     this.renameTarget = group;
     this.renameDraft = group.name;
+    this.renameColor = group.color;
     this.cdr.markForCheck();
   }
 
@@ -660,6 +754,7 @@ export class HomeGroupsPanelComponent {
     this.selectedId = prayer.group_id;
     this.filterMode = 'named';
     this.groupsApi.preferredGroupId = prayer.group_id;
+    this.syncGroupsTabPresentationState();
     this.cdr.markForCheck();
   }
 

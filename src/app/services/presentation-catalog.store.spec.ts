@@ -129,6 +129,7 @@ describe('PresentationCatalogStore', () => {
       randomize: true,
       selectedPersonalCategories: [],
       selectedPromptCategories: [],
+      selectedGroupIds: [],
     };
     store.prayers = [{ id: 'c1', prayer_for: 'A', updates: [] } as any];
     store.prompts = [
@@ -186,6 +187,7 @@ describe('PresentationCatalogStore', () => {
       randomize: true,
       selectedPersonalCategories: [] as string[],
       selectedPromptCategories: [] as string[],
+      selectedGroupIds: [] as string[],
     };
 
     store.shuffleVisibleItems(baseOptions, (items) => items);
@@ -231,6 +233,7 @@ describe('PresentationCatalogStore', () => {
       randomize: false,
       selectedPersonalCategories: ['Family'],
       selectedPromptCategories: ['encouragement'],
+      selectedGroupIds: [],
     });
 
     expect(items.map((item) => item.id)).toEqual(['c1', 'p1', 'pp1']);
@@ -247,6 +250,7 @@ describe('PresentationCatalogStore', () => {
         randomize: false,
         selectedPersonalCategories: [],
         selectedPromptCategories: [],
+        selectedGroupIds: [],
       })
     ).toEqual(prayers);
   });
@@ -262,6 +266,7 @@ describe('PresentationCatalogStore', () => {
         randomize: false,
         selectedPersonalCategories: [],
         selectedPromptCategories: [],
+        selectedGroupIds: [],
       })
     ).toEqual(prompts);
   });
@@ -275,9 +280,27 @@ describe('PresentationCatalogStore', () => {
       randomize: false,
       selectedPersonalCategories: [],
       selectedPromptCategories: [],
+      selectedGroupIds: [],
     });
 
     expect(items.map((item) => item.id)).toEqual(['p1', 'pr1']);
+  });
+
+  it('buildVisibleItems filters group prayers by selected group ids', () => {
+    store.groupPrayers = [
+      { id: 'g1', group_id: 'family', prayer_for: 'A', updates: [] } as any,
+      { id: 'g2', group_id: 'work', prayer_for: 'B', updates: [] } as any,
+    ];
+
+    const items = store.buildVisibleItems({
+      contentTypes: ['groups'],
+      randomize: false,
+      selectedPersonalCategories: [],
+      selectedPromptCategories: [],
+      selectedGroupIds: ['family'],
+    });
+
+    expect(items.map((item) => item.id)).toEqual(['g1']);
   });
 
   it('buildVisibleItems returns member prayers when members is the sole content type', () => {
@@ -290,6 +313,7 @@ describe('PresentationCatalogStore', () => {
         randomize: false,
         selectedPersonalCategories: [],
         selectedPromptCategories: [],
+        selectedGroupIds: [],
       })
     ).toEqual(members);
   });
@@ -328,6 +352,7 @@ describe('PresentationCatalogStore', () => {
         randomize: true,
         selectedPersonalCategories: [],
         selectedPromptCategories: [],
+        selectedGroupIds: [],
       },
       (items) => [...items].reverse()
     );

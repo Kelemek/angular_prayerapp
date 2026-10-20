@@ -367,6 +367,7 @@ describe('PresentationComponent', () => {
           homeStatus: null,
           homePromptCats: null,
           homePersonalCats: null,
+          homeGroupIds: null,
           homeReturnFilter: null,
         },
         queryParamsHandling: 'merge',

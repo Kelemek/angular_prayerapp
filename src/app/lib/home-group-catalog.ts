@@ -25,6 +25,7 @@ export function groupPrayerCardModel(
   row: GroupPrayerRow,
   updates: GroupPrayerUpdateRow[],
   groupName?: string | null,
+  groupColor?: string | null,
 ): PrayerRequest {
   const prayerFor = row.prayer_for.trim() || row.title;
   const trimmedGroupName = groupName?.trim() || null;
@@ -40,6 +41,7 @@ export function groupPrayerCardModel(
     prayed_for_count: row.prayed_for_count ?? 0,
     group_id: row.group_id,
     group_name: trimmedGroupName,
+    group_color: groupColor?.trim() || null,
     created_at: row.created_at || row.date_requested,
     updated_at: row.updated_at || row.date_requested,
     updates: updates.map(

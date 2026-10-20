@@ -15,6 +15,7 @@ describe("PresentationHomeHandoffCoordinator", () => {
       statusFilters: { current: true, answered: true },
       selectedPromptCategories: [] as string[],
       selectedPersonalCategories: [] as string[],
+      selectedGroupIds: [] as string[],
       homeReturnContext: null,
     };
 
@@ -79,11 +80,18 @@ describe("PresentationHomeHandoffCoordinator", () => {
       selectedPromptTypes: [],
       selectedPersonalCategories: [],
       personalCategoryFilterMode: "current",
+      groupFilterMode: "named",
+      selectedGroupId: "group-abc",
       defaultPrayerView: "current",
     });
 
     expect(handoff.contentTypes).toEqual(["groups"]);
-    expect(handoff.returnContext?.activeFilter).toBe("groups");
+    expect(handoff.groupIds).toEqual(["group-abc"]);
+    expect(handoff.returnContext).toEqual({
+      activeFilter: "groups",
+      groupFilterMode: "named",
+      selectedGroupId: "group-abc",
+    });
   });
 
   it("builds home handoff from active filter and category state", () => {
@@ -92,6 +100,8 @@ describe("PresentationHomeHandoffCoordinator", () => {
       selectedPromptTypes: [],
       selectedPersonalCategories: ["Family"],
       personalCategoryFilterMode: "named",
+      groupFilterMode: "current",
+      selectedGroupId: null,
       defaultPrayerView: "current",
     });
 
@@ -128,6 +138,7 @@ describe("PresentationHomeHandoffCoordinator", () => {
       setFilter: vi.fn(),
       setSelectedPromptTypes: vi.fn(),
       applyPersonalReturnContext: vi.fn(),
+      applyGroupReturnContext: vi.fn(),
       onReturnContextApplied: vi.fn(),
     };
 
@@ -143,6 +154,28 @@ describe("PresentationHomeHandoffCoordinator", () => {
       selectedPersonalCategories: ["Family"],
     });
     expect(host.onReturnContextApplied).toHaveBeenCalled();
+  });
+
+  it("applies group return context when exiting presentation to groups tab", () => {
+    const host = {
+      setFilter: vi.fn(),
+      setSelectedPromptTypes: vi.fn(),
+      applyPersonalReturnContext: vi.fn(),
+      applyGroupReturnContext: vi.fn(),
+      onReturnContextApplied: vi.fn(),
+    };
+
+    coordinator.applyHomeReturnContext(host, {
+      activeFilter: "groups",
+      groupFilterMode: "named",
+      selectedGroupId: "g1",
+    });
+
+    expect(host.setFilter).toHaveBeenCalledWith("groups");
+    expect(host.applyGroupReturnContext).toHaveBeenCalledWith({
+      groupFilterMode: "named",
+      selectedGroupId: "g1",
+    });
   });
 
   it("defers presentation navigation for modifier clicks", () => {

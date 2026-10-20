@@ -23,6 +23,8 @@ export interface HomePresentationHandoffSource {
   selectedPromptTypes: string[];
   selectedPersonalCategories: string[];
   personalCategoryFilterMode: PersonalCategoryFilterMode;
+  groupFilterMode: PersonalCategoryFilterMode;
+  selectedGroupId: string | null;
   defaultPrayerView: "current" | "personal" | "groups" | null | undefined;
 }
 
@@ -33,6 +35,10 @@ export interface HomeReturnContextApplier {
     personalCategoryFilterMode?: PersonalCategoryFilterMode;
     selectedPersonalCategories?: string[];
   }): void;
+  applyGroupReturnContext(context: {
+    groupFilterMode?: PersonalCategoryFilterMode;
+    selectedGroupId?: string | null;
+  }): void;
   onReturnContextApplied(): void;
 }
 
@@ -41,6 +47,7 @@ export interface PresentationHandoffPageState {
   statusFilters: PresentationStatusFilters;
   selectedPromptCategories: string[];
   selectedPersonalCategories: string[];
+  selectedGroupIds: string[];
   homeReturnContext: HomeReturnContext | null;
 }
 
@@ -58,6 +65,8 @@ export class PresentationHomeHandoffCoordinator {
       selectedPromptTypes: source.selectedPromptTypes,
       selectedPersonalCategories: source.selectedPersonalCategories,
       personalCategoryFilterMode: source.personalCategoryFilterMode,
+      groupFilterMode: source.groupFilterMode,
+      selectedGroupId: source.selectedGroupId,
     });
   }
 
@@ -122,6 +131,12 @@ export class PresentationHomeHandoffCoordinator {
         selectedPersonalCategories: context.selectedPersonalCategories,
       });
     }
+    if (context.activeFilter === "groups") {
+      host.applyGroupReturnContext({
+        groupFilterMode: context.groupFilterMode,
+        selectedGroupId: context.selectedGroupId ?? null,
+      });
+    }
     host.onReturnContextApplied();
   }
 
@@ -168,6 +183,9 @@ export class PresentationHomeHandoffCoordinator {
     if (handoff.personalCategories) {
       page.selectedPersonalCategories = [...handoff.personalCategories];
     }
+    if (handoff.groupIds) {
+      page.selectedGroupIds = [...handoff.groupIds];
+    }
     if (handoff.returnContext) {
       page.homeReturnContext = {
         activeFilter: handoff.returnContext.activeFilter,
@@ -190,6 +208,12 @@ export class PresentationHomeHandoffCoordinator {
               personalCategoryFilterMode:
                 handoff.returnContext.personalCategoryFilterMode,
             }
+          : {}),
+        ...(handoff.returnContext.groupFilterMode
+          ? { groupFilterMode: handoff.returnContext.groupFilterMode }
+          : {}),
+        ...(handoff.returnContext.selectedGroupId
+          ? { selectedGroupId: handoff.returnContext.selectedGroupId }
           : {}),
       };
     }

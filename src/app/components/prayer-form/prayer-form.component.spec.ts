@@ -241,7 +241,13 @@ describe('PrayerFormComponent', () => {
         }
       ).prayerGroupService;
       groups.listGroups.mockResolvedValue([
-        { id: 'g1', name: 'Family', role: 'owner', memberCount: 2 },
+        {
+          id: 'g1',
+          name: 'Family',
+          color: '#2563EB',
+          role: 'owner',
+          memberCount: 2,
+        },
       ]);
       groups.preferredGroupId = 'g1';
       component.defaultGroupPrayer = true;

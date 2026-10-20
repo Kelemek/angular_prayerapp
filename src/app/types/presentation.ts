@@ -159,6 +159,9 @@ export interface HomeReturnContext {
   selectedPromptTypes?: string[];
   selectedPersonalCategories?: string[];
   personalCategoryFilterMode?: PersonalCategoryFilterMode;
+  /** Groups tab chip filter (same modes as personal categories). */
+  groupFilterMode?: PersonalCategoryFilterMode;
+  selectedGroupId?: string;
 }
 
 export interface PresentationHomeHandoff {
@@ -166,6 +169,8 @@ export interface PresentationHomeHandoff {
   statusFilters?: PresentationStatusFilters;
   promptCategories?: string[];
   personalCategories?: string[];
+  /** Prayer group ids when Groups tab named chip is selected. */
+  groupIds?: string[];
   returnContext?: HomeReturnContext;
 }
 
@@ -186,6 +191,8 @@ export const PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY = 'homeStatus';
 export const PRESENTATION_HOME_PROMPT_CATS_QUERY_PARAM_KEY = 'homePromptCats';
 
 export const PRESENTATION_HOME_PERSONAL_CATS_QUERY_PARAM_KEY = 'homePersonalCats';
+
+export const PRESENTATION_HOME_GROUP_IDS_QUERY_PARAM_KEY = 'homeGroupIds';
 
 export const HOME_RETURN_FILTER_QUERY_PARAM_KEY = 'homeReturnFilter';
 
@@ -225,6 +232,8 @@ export function buildPresentationHomeHandoff(input: {
   selectedPromptTypes?: string[];
   selectedPersonalCategories?: string[];
   personalCategoryFilterMode?: PersonalCategoryFilterMode;
+  groupFilterMode?: PersonalCategoryFilterMode;
+  selectedGroupId?: string | null;
 }): PresentationHomeHandoff {
   const handoff: PresentationHomeHandoff = {
     contentTypes: [...input.contentTypes],
@@ -254,6 +263,16 @@ export function buildPresentationHomeHandoff(input: {
     }
   }
 
+  if (input.activeFilter === 'groups') {
+    const mode = input.groupFilterMode ?? 'current';
+    handoff.statusFilters =
+      mapPersonalCategoryFilterModeToPresentationStatusFilters(mode);
+    const groupId = input.selectedGroupId?.trim();
+    if (mode === 'named' && groupId) {
+      handoff.groupIds = [groupId];
+    }
+  }
+
   handoff.returnContext = buildHomeReturnContext(input);
 
   return handoff;
@@ -264,6 +283,8 @@ export function buildHomeReturnContext(input: {
   selectedPromptTypes?: string[];
   selectedPersonalCategories?: string[];
   personalCategoryFilterMode?: PersonalCategoryFilterMode;
+  groupFilterMode?: PersonalCategoryFilterMode;
+  selectedGroupId?: string | null;
 }): HomeReturnContext {
   const returnContext: HomeReturnContext = {
     activeFilter: input.activeFilter,
@@ -285,6 +306,15 @@ export function buildHomeReturnContext(input: {
     returnContext.selectedPersonalCategories = [
       ...input.selectedPersonalCategories,
     ];
+  }
+
+  if (input.activeFilter === 'groups') {
+    const mode = input.groupFilterMode ?? 'current';
+    returnContext.groupFilterMode = mode;
+    const groupId = input.selectedGroupId?.trim();
+    if (mode === 'named' && groupId) {
+      returnContext.selectedGroupId = groupId;
+    }
   }
 
   return returnContext;
@@ -369,6 +399,21 @@ function normalizeHomeReturnContext(
     returnContext.personalCategoryFilterMode = 'total';
   }
 
+  if (typeof raw.selectedGroupId === 'string' && raw.selectedGroupId.trim()) {
+    returnContext.selectedGroupId = raw.selectedGroupId.trim();
+  }
+
+  if (isPersonalCategoryFilterMode(raw.groupFilterMode)) {
+    returnContext.groupFilterMode = raw.groupFilterMode;
+  } else if (
+    returnContext.activeFilter === 'groups' &&
+    returnContext.selectedGroupId
+  ) {
+    returnContext.groupFilterMode = 'named';
+  } else if (returnContext.activeFilter === 'groups') {
+    returnContext.groupFilterMode = 'current';
+  }
+
   return returnContext;
 }
 
@@ -428,6 +473,15 @@ function normalizePresentationHomeHandoff(
     );
     if (categories.length > 0) {
       handoff.personalCategories = categories;
+    }
+  }
+
+  if (Array.isArray(raw.groupIds)) {
+    const groupIds = raw.groupIds.filter(
+      (id): id is string => typeof id === 'string' && id.length > 0
+    );
+    if (groupIds.length > 0) {
+      handoff.groupIds = groupIds;
     }
   }
 
@@ -527,6 +581,11 @@ export function serializePresentationHomeHandoffQueryParams(
       handoff.personalCategories.map(encodeURIComponent).join(',');
   }
 
+  if (handoff.groupIds?.length) {
+    params[PRESENTATION_HOME_GROUP_IDS_QUERY_PARAM_KEY] =
+      handoff.groupIds.map(encodeURIComponent).join(',');
+  }
+
   if (handoff.returnContext) {
     params[HOME_RETURN_FILTER_QUERY_PARAM_KEY] = handoff.returnContext.activeFilter;
   }
@@ -538,6 +597,7 @@ function buildReturnContextFromHandoffQueryParts(input: {
   activeFilter: HomePresentationFilter;
   promptCategories?: string[];
   personalCategories?: string[];
+  groupIds?: string[];
   statusFilters?: PresentationStatusFilters;
 }): HomeReturnContext {
   const returnContext: HomeReturnContext = {
@@ -564,6 +624,24 @@ function buildReturnContextFromHandoffQueryParts(input: {
     } else {
       // No status in query → legacy All Categories (= Total).
       returnContext.personalCategoryFilterMode = 'total';
+    }
+  }
+
+  if (input.activeFilter === 'groups') {
+    if (input.groupIds?.length) {
+      returnContext.groupFilterMode = 'named';
+      returnContext.selectedGroupId = input.groupIds[0];
+    } else if (input.statusFilters) {
+      const { current, answered } = input.statusFilters;
+      if (current && !answered) {
+        returnContext.groupFilterMode = 'current';
+      } else if (!current && answered) {
+        returnContext.groupFilterMode = 'answered';
+      } else {
+        returnContext.groupFilterMode = 'total';
+      }
+    } else {
+      returnContext.groupFilterMode = 'current';
     }
   }
 
@@ -608,12 +686,21 @@ export function parsePresentationHomeHandoffFromQueryParams(
     }
   }
 
+  const groupIds = getter(PRESENTATION_HOME_GROUP_IDS_QUERY_PARAM_KEY);
+  if (groupIds) {
+    const parsed = parseEncodedCategoryList(groupIds);
+    if (parsed.length > 0) {
+      handoff.groupIds = parsed;
+    }
+  }
+
   const returnFilter = getter(HOME_RETURN_FILTER_QUERY_PARAM_KEY);
   if (isHomePresentationFilter(returnFilter)) {
     handoff.returnContext = buildReturnContextFromHandoffQueryParts({
       activeFilter: returnFilter,
       promptCategories: handoff.promptCategories,
       personalCategories: handoff.personalCategories,
+      groupIds: handoff.groupIds,
       statusFilters: handoff.statusFilters,
     });
   }
@@ -626,6 +713,7 @@ export const PRESENTATION_HOME_HANDOFF_QUERY_PARAM_KEYS = [
   PRESENTATION_HOME_STATUS_QUERY_PARAM_KEY,
   PRESENTATION_HOME_PROMPT_CATS_QUERY_PARAM_KEY,
   PRESENTATION_HOME_PERSONAL_CATS_QUERY_PARAM_KEY,
+  PRESENTATION_HOME_GROUP_IDS_QUERY_PARAM_KEY,
   HOME_RETURN_FILTER_QUERY_PARAM_KEY,
 ] as const;
 

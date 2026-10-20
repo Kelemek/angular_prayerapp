@@ -18,12 +18,14 @@ export function buildPresentationGroupPrayerCards(
   updates: GroupPrayerUpdateRow[],
 ): PrayerRequest[] {
   const nameByGroupId = new Map(groups.map((group) => [group.id, group.name]));
+  const colorByGroupId = new Map(groups.map((group) => [group.id, group.color]));
   const updatesByPrayerId = groupPrayerUpdatesByPrayerId(updates);
   return prayers.map((row) =>
     groupPrayerCardModel(
       row,
       updatesByPrayerId.get(row.id) ?? [],
       nameByGroupId.get(row.group_id) ?? null,
+      colorByGroupId.get(row.group_id) ?? null,
     ),
   );
 }

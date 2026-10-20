@@ -13,7 +13,7 @@
         [layoutClass]="addGroupChipLayoutClass"
         [activeClass]="groupChipActive"
         [inactiveClass]="groupChipInactive"
-        (chipClick)="createOpen = true"
+        (chipClick)="openCreateGroupModal()"
       >
         <svg
           class="size-6 shrink-0"
@@ -176,6 +176,18 @@
           (keydown.enter)="createGroup()"
         />
       </label>
+      <div>
+        <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Group color
+        </span>
+        <app-personal-category-color-picker
+          layout="inline"
+          colorDisplay="text"
+          [color]="createColor"
+          [categoryLabel]="createName.trim() || 'Group'"
+          (colorChange)="onCreateColorChange($event)"
+        />
+      </div>
       <p class="text-sm text-gray-500 dark:text-gray-400">After you name the group you can invite people by email.</p>
     </div>
     <div class="modal-chrome-footer flex justify-end px-6 py-4">
@@ -278,16 +290,31 @@
 <div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="renameTarget = null">
   <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Rename group</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit group</h2>
       <button appModalChromeClose aria-label="Close" (click)="renameTarget = null"></button>
     </div>
-    <div class="px-6 py-4">
-      <input
-        [(ngModel)]="renameDraft"
-        name="renameDraft"
-        class="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
-        (keydown.enter)="saveRename()"
-      />
+    <div class="space-y-4 px-6 py-4">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Group name
+        <input
+          [(ngModel)]="renameDraft"
+          name="renameDraft"
+          class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+          (keydown.enter)="saveRename()"
+        />
+      </label>
+      <div>
+        <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Group color
+        </span>
+        <app-personal-category-color-picker
+          layout="inline"
+          colorDisplay="text"
+          [color]="renameColor"
+          [categoryLabel]="renameDraft.trim() || 'Group'"
+          (colorChange)="onRenameColorChange($event)"
+        />
+      </div>
     </div>
     <div class="modal-chrome-footer flex justify-end px-6 py-4">
       <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveRename()">Save</button>

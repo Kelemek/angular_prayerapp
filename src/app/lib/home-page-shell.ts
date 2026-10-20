@@ -73,6 +73,7 @@ export interface HomePageShell {
     readonly showEditPersonalPrayer: boolean;
     readonly editingPrayer: PrayerRequest | null;
     readonly showRenamePersonalCategory: boolean;
+    readonly personalCategoryModalColor: string;
     readonly personalCategoryNameModalMode: "rename" | "create";
     readonly renamingPersonalCategory: string | null;
     readonly isRenamingPersonalCategory: boolean;
@@ -153,6 +154,9 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
     },
     get editingPrayer() {
       return deps.modals.editingPrayer;
+    },
+    get personalCategoryModalColor() {
+      return deps.personalCategory.personalCategoryModalColor;
     },
     get showRenamePersonalCategory() {
       return deps.personalCategory.showRenamePersonalCategory;
@@ -339,8 +343,8 @@ export function createHomePageShellHandlers(
       onPersonalPrayerSaved: () => deps.modals.onPersonalPrayerSaved(),
       closeRenamePersonalCategory: () =>
         deps.personalCategory.closeRenamePersonalCategoryModal(),
-      saveRenamedPersonalCategory: (name) =>
-        void deps.personalCategory.saveRenamedPersonalCategory(name),
+      saveRenamedPersonalCategory: (payload) =>
+        void deps.personalCategory.saveRenamedPersonalCategory(payload),
       closeEditPersonalUpdate: () => {
         deps.modals.showEditPersonalUpdate = false;
       },

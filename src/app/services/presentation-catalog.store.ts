@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import type { PrayerPrompt } from "../components/prompt-card/prompt-card.component";
 import {
+  filterGroupPrayersByGroupIds,
   filterPersonalPrayersByCategories,
   filterPromptsByCategories,
 } from "../lib/presentation-content-filter";
@@ -17,6 +18,7 @@ export interface PresentationVisibleItemsOptions {
   randomize: boolean;
   selectedPersonalCategories: string[];
   selectedPromptCategories: string[];
+  selectedGroupIds: string[];
 }
 
 export function isPresentationPrompt(
@@ -150,6 +152,7 @@ export class PresentationCatalogStore {
       contentTypes,
       selectedPersonalCategories,
       selectedPromptCategories,
+      selectedGroupIds,
     } = options;
 
     if (contentTypes.length === 1) {
@@ -167,7 +170,7 @@ export class PresentationCatalogStore {
         );
       }
       if (only === "groups") {
-        return this.groupPrayers;
+        return filterGroupPrayersByGroupIds(this.groupPrayers, selectedGroupIds);
       }
       if (only === "members") {
         return this.memberPrayers;
@@ -192,7 +195,9 @@ export class PresentationCatalogStore {
       );
     }
     if (includesPresentationContentType(contentTypes, "groups")) {
-      combined.push(...this.groupPrayers);
+      combined.push(
+        ...filterGroupPrayersByGroupIds(this.groupPrayers, selectedGroupIds),
+      );
     }
     if (includesPresentationContentType(contentTypes, "members")) {
       combined.push(...this.memberPrayers);
