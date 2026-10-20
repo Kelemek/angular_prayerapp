@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Prayer groups — account feature flag
+- **`email_subscribers.prayer_groups_enabled`** defaults to **false** for every account ([`20261019220000_prayer_groups_feature_flag.sql`](../supabase/migrations/20261019220000_prayer_groups_feature_flag.sql)). RLS and RPCs use **`prayer_groups_enabled()`** so disabled users cannot read or mutate group data even if they are still in `prayer_group_members`.
+- Admins turn groups on per subscriber in **Edit Subscriber** (**Enable prayer groups** checkbox) in the Email Subscribers module ([`admin-email-subscriber-edit-modal`](../src/app/components/admin-email-subscriber-edit-modal/admin-email-subscriber-edit-modal.component.html)).
+- The Home **Group** tab, group catalog loads, Settings default **Group** option, and group login deep links are hidden or redirected until the flag is on ([`prayer-groups-feature.ts`](../src/app/lib/prayer-groups-feature.ts), [`user-session.service.ts`](../src/app/services/user-session.service.ts)).
+
 ### Settings — default prayer view
 - **Default Prayer View** uses **Church**, **Group**, and **Personal** labels (saved on `email_subscribers.default_prayer_view` as `current`, `groups`, and `personal`).
 - Group-only members (`is_church_member = false`) no longer see the **Church** option in Settings ([`user-settings-default-view-section`](../src/app/components/user-settings-default-view-section/user-settings-default-view-section.component.html)); the grid shows **Group** and **Personal** only. Legacy `default_prayer_view = current` still highlights **Group** in the UI.
@@ -141,6 +146,9 @@ Major features and milestones for the Prayer App.
 
 ### Admin — email subscribers row actions update icons immediately
 - After block/unblock (and other confirmation actions), [`runEmailSubscriberConfirmationAction`](src/app/lib/admin-email-subscribers-confirmation-runner.ts) always refreshes the paginated list from `allSubscribers` so row icons update without a full page reload.
+
+### Admin — email subscribers Status column
+- The **Email Subscribers** list shows a sortable **Status** column: **Member** (`is_church_member` not false) vs **Group** (group-only) ([`admin-email-subscriber-row`](src/app/components/admin-email-subscriber-row/admin-email-subscriber-row.component.html), [`emailSubscriberMembershipStatusLabel`](src/app/lib/admin-email-subscribers.ts)).
 
 ### Admin — email subscribers list for inactive admins
 - Migration [`20261016100000_is_admin_ignore_is_active.sql`](../supabase/migrations/20261016100000_is_admin_ignore_is_active.sql) updates `public.is_admin()` so RLS matches `check-admin-status` (admin flag only, not `is_active`). Inactive admins were limited to their own `email_subscribers` row instead of the full list.

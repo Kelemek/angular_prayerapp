@@ -472,7 +472,11 @@ describe('EmailSubscribersFacade', () => {
       facade.editSubscriber = facade.allSubscribers[0] as never;
       const loadSpy = vi.spyOn(facade, 'loadPageData').mockImplementation(() => {});
 
-      facade.onEditSaved({ id: 'sub-1', name: 'New Name' });
+      facade.onEditSaved({
+        id: 'sub-1',
+        name: 'New Name',
+        prayer_groups_enabled: true,
+      });
 
       expect(facade.allSubscribers[0]?.name).toBe('New Name');
       expect(loadSpy).toHaveBeenCalled();

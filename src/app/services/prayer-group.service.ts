@@ -10,6 +10,7 @@ import { runGroupPrayerCatalogLoad } from '../lib/prayer-group-catalog-load-wire
 import { CacheService } from './cache.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
+import { isPrayerGroupsFeatureEnabled } from '../lib/prayer-groups-feature';
 
 export interface PrayerGroupSummary {
   id: string;
@@ -138,6 +139,16 @@ export class PrayerGroupService {
   }
 
   async loadCatalog(silentRefresh = false): Promise<void> {
+    if (
+      !isPrayerGroupsFeatureEnabled(this.userSessionService.getCurrentSession())
+    ) {
+      this.groupsSubject.next([]);
+      this.prayersSubject.next([]);
+      this.updatesSubject.next([]);
+      this.loadingSubject.next(false);
+      this.catalogDbFetchComplete = false;
+      return;
+    }
     const token = ++this.catalogLoadToken;
     this.errorSubject.next(null);
     try {

@@ -206,6 +206,7 @@ describe("HomeLifecycleCoordinator", () => {
       email: "group@example.com",
       defaultPrayerView: "current",
       isChurchMember: false,
+      prayerGroupsEnabled: true,
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -245,6 +246,7 @@ describe("HomeLifecycleCoordinator", () => {
     userSessionSubject.next({
       email: "group@example.com",
       isChurchMember: false,
+      prayerGroupsEnabled: true,
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 

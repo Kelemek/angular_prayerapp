@@ -42,7 +42,7 @@
             @if (host.defaultViewPreferencesLoaded) {
             <div
               class="grid gap-1.5 sm:gap-2"
-              [ngClass]="host.isChurchMember ? 'grid-cols-3' : 'grid-cols-2'"
+              [ngClass]="host.defaultViewGridClass"
             >
               @if (host.isChurchMember) {
               <button
@@ -64,6 +64,7 @@
                 >
               </button>
               }
+              @if (host.prayerGroupsEnabled) {
               <button
                 type="button"
                 (click)="host.selectDefaultPrayerView('groups')"
@@ -82,6 +83,7 @@
                   >Group</span
                 >
               </button>
+              }
               <button
                 type="button"
                 (click)="host.selectDefaultPrayerView('personal')"
@@ -104,16 +106,18 @@
             } @else {
             <div
               class="grid gap-1.5 sm:gap-2"
-              [ngClass]="host.isChurchMember ? 'grid-cols-3' : 'grid-cols-2'"
+              [ngClass]="host.defaultViewGridClass"
             >
               @if (host.isChurchMember) {
               <div
                 class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
               ></div>
               }
+              @if (host.prayerGroupsEnabled) {
               <div
                 class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
               ></div>
+              }
               <div
                 class="h-12 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse"
               ></div>

@@ -10,6 +10,7 @@ export interface EmailSubscriberRow {
   last_activity_date?: string | null;
   in_planning_center?: boolean | null;
   is_church_member?: boolean | null;
+  prayer_groups_enabled?: boolean | null;
   planning_center_checked_at?: string | null;
 }
 
@@ -25,10 +26,18 @@ export type EmailSubscriberSortColumn =
   | 'email'
   | 'created_at'
   | 'last_activity_date'
+  | 'is_church_member'
   | 'is_active'
   | 'receive_push'
   | 'is_blocked'
   | 'in_planning_center';
+
+/** Admin list label: church members vs group-only subscribers. */
+export function emailSubscriberMembershipStatusLabel(
+  subscriber: Pick<EmailSubscriberRow, 'is_church_member'>,
+): 'Member' | 'Group' {
+  return subscriber.is_church_member === false ? 'Group' : 'Member';
+}
 
 export type EmailSubscriberRowAction =
   | { type: 'toggleActive' }

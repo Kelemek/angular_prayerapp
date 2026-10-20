@@ -29,6 +29,11 @@ import type { PrayerGroupService } from "./prayer-group.service";
 import type { HomeReturnContext } from "../types/presentation";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
 import { isPublicAreaFilter } from "../lib/home-community-filter";
+import {
+  isPrayerGroupsFeatureEnabled,
+  resolveHomeFilterFromSession,
+  sanitizeHomeAreaFilter,
+} from "../lib/prayer-groups-feature";
 import type { MemorizedItem } from "../types/memorization";
 
 export interface HomeObservableStreams {
@@ -300,16 +305,26 @@ export class HomeLifecycleCoordinator {
         if (pendingReturn) {
           host.applyHomeReturnContext(pendingReturn);
           host.setPendingHomeReturnContext(null);
-          if (s.isChurchMember === false && isPublicAreaFilter(host.getActiveFilter())) {
+          const afterReturn = sanitizeHomeAreaFilter(
+            host.getActiveFilter(),
+            s,
+          );
+          if (afterReturn !== host.getActiveFilter()) {
+            host.setActiveFilter(afterReturn);
+            host.setFilter(afterReturn);
+          } else if (
+            s.isChurchMember === false &&
+            isPublicAreaFilter(host.getActiveFilter()) &&
+            isPrayerGroupsFeatureEnabled(s)
+          ) {
             host.setActiveFilter("groups");
             host.setFilter("groups");
           }
         } else {
-          let nextFilter =
-            fromArea ?? fromEmail ?? s.defaultPrayerView ?? "current";
-          if (s.isChurchMember === false && isPublicAreaFilter(nextFilter)) {
-            nextFilter = "groups";
-          }
+          const nextFilter = resolveHomeFilterFromSession(
+            (fromArea ?? fromEmail) as HomeActiveFilter | null,
+            s,
+          );
           host.setActiveFilter(nextFilter);
           host.setFilter(nextFilter);
         }
@@ -325,16 +340,29 @@ export class HomeLifecycleCoordinator {
       .pipe(
         filter((session): session is NonNullable<typeof session> => !!session),
         distinctUntilChanged(
-          (prev, curr) => prev.isChurchMember === curr.isChurchMember
+          (prev, curr) =>
+            prev.isChurchMember === curr.isChurchMember &&
+            prev.prayerGroupsEnabled === curr.prayerGroupsEnabled,
         ),
         skip(1),
         takeUntil(destroy$)
       )
       .subscribe((s) => {
+        if (!host.getViewReady()) {
+          return;
+        }
+        const active = host.getActiveFilter();
+        if (active === "groups" && !isPrayerGroupsFeatureEnabled(s)) {
+          const next = sanitizeHomeAreaFilter("groups", s);
+          host.setActiveFilter(next);
+          host.setFilter(next);
+          host.markForCheck();
+          return;
+        }
         if (
-          !host.getViewReady() ||
           s.isChurchMember !== false ||
-          !isPublicAreaFilter(host.getActiveFilter())
+          !isPrayerGroupsFeatureEnabled(s) ||
+          !isPublicAreaFilter(active)
         ) {
           return;
         }

@@ -11,12 +11,30 @@ describe('groupMemberNeedsProfile', () => {
     ).toBe(false);
   });
 
-  it('is true for group-only users without a name', () => {
-    expect(groupMemberNeedsProfile({ isChurchMember: false, fullName: '' })).toBe(
-      true,
-    );
-    expect(groupMemberNeedsProfile({ isChurchMember: false, fullName: '  ' })).toBe(
-      true,
-    );
+  it('is true for group-only users without a name when groups are enabled', () => {
+    expect(
+      groupMemberNeedsProfile({
+        isChurchMember: false,
+        fullName: '',
+        prayerGroupsEnabled: true,
+      }),
+    ).toBe(true);
+    expect(
+      groupMemberNeedsProfile({
+        isChurchMember: false,
+        fullName: '  ',
+        prayerGroupsEnabled: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('is false when prayer groups are disabled for the account', () => {
+    expect(
+      groupMemberNeedsProfile({
+        isChurchMember: false,
+        fullName: '',
+        prayerGroupsEnabled: false,
+      }),
+    ).toBe(false);
   });
 });

@@ -188,6 +188,7 @@ describe("LoginAuthCoordinator", () => {
         is_blocked: false,
         is_church_member: false,
         church_downgraded_at: null,
+        prayer_groups_enabled: true,
       },
     });
 
@@ -214,6 +215,7 @@ describe("LoginAuthCoordinator", () => {
         is_blocked: false,
         is_church_member: false,
         church_downgraded_at: "2026-10-18T00:00:00Z",
+        prayer_groups_enabled: true,
       },
     });
 
@@ -224,6 +226,31 @@ describe("LoginAuthCoordinator", () => {
 
     expect(result).toEqual({ kind: "navigate", destination: "/?filter=groups" });
     expect(adminAuthService.logout).not.toHaveBeenCalled();
+  });
+
+  it("resolvePostVerificationFlow sends group-only users without the flag to Personal", async () => {
+    const { coordinator, supabaseService } = makeDeps();
+    mockLoginFromTables(supabaseService, {
+      subscriberRow: {
+        id: "sub",
+        email: "group@example.com",
+        name: "Group Member",
+        is_blocked: false,
+        is_church_member: false,
+        church_downgraded_at: null,
+        prayer_groups_enabled: false,
+      },
+    });
+
+    const result = await coordinator.resolvePostVerificationFlow(
+      "group@example.com",
+      "/",
+    );
+
+    expect(result).toEqual({
+      kind: "navigate",
+      destination: "/?filter=personal",
+    });
   });
 
   it("resolvePostVerificationFlow navigates existing subscribers", async () => {

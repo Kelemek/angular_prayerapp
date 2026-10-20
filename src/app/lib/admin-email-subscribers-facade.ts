@@ -12,7 +12,7 @@ import {
   EMAIL_SUBSCRIBER_LIST_SEARCH_CONFIG,
 } from './admin-email-subscribers-search-debounce';
 import { dispatchEmailSubscriberRowAction } from './admin-email-subscribers-row-dispatch';
-import { patchEmailSubscriberName } from './admin-email-subscribers-list-patches';
+import { patchEmailSubscriberEdit } from './admin-email-subscribers-list-patches';
 import {
   emailSubscriberPaginationRange,
   emailSubscriberTotalPages,
@@ -227,12 +227,15 @@ export class EmailSubscribersFacade {
     });
   }
 
-  onEditSaved(event: { id: string; name: string }): void {
-    this.allSubscribers = patchEmailSubscriberName(
-      this.allSubscribers,
-      event.id,
-      event.name,
-    );
+  onEditSaved(event: {
+    id: string;
+    name: string;
+    prayer_groups_enabled: boolean;
+  }): void {
+    this.allSubscribers = patchEmailSubscriberEdit(this.allSubscribers, event.id, {
+      name: event.name,
+      prayer_groups_enabled: event.prayer_groups_enabled,
+    });
     this.loadPageData();
     this.closeEditSubscriberModal();
   }

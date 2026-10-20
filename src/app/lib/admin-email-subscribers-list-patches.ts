@@ -52,3 +52,11 @@ export function patchEmailSubscriberName(
 ): EmailSubscriberRow[] {
   return rows.map((row) => (row.id === id ? { ...row, name } : row));
 }
+
+export function patchEmailSubscriberEdit(
+  rows: EmailSubscriberRow[],
+  id: string,
+  patch: Pick<EmailSubscriberRow, 'name' | 'prayer_groups_enabled'>,
+): EmailSubscriberRow[] {
+  return rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
+}

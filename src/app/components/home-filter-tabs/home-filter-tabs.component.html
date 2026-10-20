@@ -23,6 +23,7 @@
         </button>
         }
 
+        @if (showGroupsTab) {
         <button
           id="tour-filter-groups"
           (click)="tabSelected.emit('groups')"
@@ -31,6 +32,7 @@
         >
           Group
         </button>
+        }
 
         <!-- Personal Prayers Filter -->
         <button

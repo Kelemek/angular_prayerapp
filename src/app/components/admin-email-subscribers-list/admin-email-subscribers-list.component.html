@@ -57,12 +57,12 @@
   @if (!searching && hasSearched && subscribers.length > 0) {
     <div>
       <div
-        class="hidden mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 sm:grid sm:grid-cols-[repeat(16,minmax(0,1fr))]"
+        class="hidden mb-3 gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 sm:grid sm:grid-cols-[repeat(17,minmax(0,1fr))]"
       >
         <button
           type="button"
           (click)="sortColumn.emit('name')"
-          class="col-span-4 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+          class="col-span-3 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
           title="Click to sort by name"
         >
           Name{{ sortIndicator('name') }}
@@ -90,6 +90,14 @@
           title="Click to sort by last activity"
         >
           Activity{{ sortIndicator('last_activity_date') }}
+        </button>
+        <button
+          type="button"
+          (click)="sortColumn.emit('is_church_member')"
+          class="col-span-2 text-left hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+          title="Click to sort by church vs group-only membership"
+        >
+          Status{{ sortIndicator('is_church_member') }}
         </button>
         <button
           type="button"

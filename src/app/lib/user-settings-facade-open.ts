@@ -60,6 +60,7 @@ export function runUserSettingsOpenChange(
         userSession.personalPrayerCooldownHours ?? 4;
       host.prayerEncouragementUiLoaded = true;
       host.isChurchMember = userSession.isChurchMember !== false;
+      host.prayerGroupsEnabled = userSession.prayerGroupsEnabled === true;
       host.defaultPrayerView = userSession.defaultPrayerView || 'current';
       host.defaultViewPreferencesLoaded = true;
       host.memorizationStrictMode = userSession.memorizationStrictMode ?? false;

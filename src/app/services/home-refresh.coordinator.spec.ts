@@ -60,4 +60,31 @@ describe("HomeRefreshCoordinator", () => {
     expect(prayerService.loadPersonalPrayers).toHaveBeenCalledWith(true);
     expect(host.setRefreshing).toHaveBeenCalledWith(false);
   });
+
+  it("does not load group catalog when prayer groups are disabled", async () => {
+    const loadCatalog = vi.fn().mockResolvedValue(undefined);
+    coordinator.bindHost(host, {
+      prayerService: {
+        loadPrayers: vi.fn().mockResolvedValue(undefined),
+        loadPersonalPrayers: vi.fn().mockResolvedValue(undefined),
+      } as any,
+      userSessionService: {
+        getCurrentSession: vi.fn(() => ({
+          email: "user@example.com",
+          prayerGroupsEnabled: false,
+        })),
+      } as any,
+      personalCategoryColorService: {
+        loadColors: vi.fn().mockResolvedValue(undefined),
+      } as any,
+      memorizationService: { loadItems: vi.fn().mockResolvedValue(undefined) } as any,
+      planningCenter: { loadForCurrentUser: vi.fn() } as any,
+      prayerGroupService: { loadCatalog } as any,
+      toastService: { error: vi.fn() } as any,
+    });
+
+    await coordinator.onPullToRefresh();
+
+    expect(loadCatalog).not.toHaveBeenCalled();
+  });
 });

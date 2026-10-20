@@ -7,6 +7,7 @@ import type { MemorizationService } from "./memorization.service";
 import type { ToastService } from "./toast.service";
 import type { HomePlanningCenterController } from "./home-planning-center.controller";
 import type { PrayerGroupService } from "./prayer-group.service";
+import { isPrayerGroupsFeatureEnabled } from "../lib/prayer-groups-feature";
 
 export interface HomeRefreshHost {
   getActiveFilter(): HomeActiveFilter;
@@ -57,7 +58,9 @@ export class HomeRefreshCoordinator {
       if (session?.email) {
         tasks.push(services.prayerService.loadPersonalPrayers(true));
         tasks.push(services.personalCategoryColorService.loadColors(true));
-        tasks.push(services.prayerGroupService.loadCatalog(false));
+        if (isPrayerGroupsFeatureEnabled(session)) {
+          tasks.push(services.prayerGroupService.loadCatalog(false));
+        }
       }
 
       if (

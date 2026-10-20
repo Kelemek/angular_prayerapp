@@ -22,10 +22,15 @@ import type { EmailSubscriberRow } from '../../lib/admin-email-subscribers';
 })
 export class AdminEmailSubscriberEditModalComponent implements OnChanges {
   @Input({ required: true }) subscriber!: EmailSubscriberRow;
-  @Output() saved = new EventEmitter<{ id: string; name: string }>();
+  @Output() saved = new EventEmitter<{
+    id: string;
+    name: string;
+    prayer_groups_enabled: boolean;
+  }>();
   @Output() closed = new EventEmitter<void>();
 
   editName = '';
+  editPrayerGroupsEnabled = false;
   editSaving = false;
   membershipSaving = false;
   editError: string | null = null;
@@ -38,6 +43,7 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
 
   ngOnChanges(): void {
     this.editName = this.subscriber.name || '';
+    this.editPrayerGroupsEnabled = this.subscriber.prayer_groups_enabled === true;
     this.editError = null;
     this.editSaving = false;
     this.membershipSaving = false;
@@ -89,13 +95,20 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
 
       const { error } = await (await this.supabase.db())
         .from('email_subscribers')
-        .update({ name: trimmedName })
+        .update({
+          name: trimmedName,
+          prayer_groups_enabled: this.editPrayerGroupsEnabled,
+        })
         .eq('id', this.subscriber.id);
 
       if (error) throw error;
 
       this.toast.success('Subscriber updated');
-      this.saved.emit({ id: this.subscriber.id, name: trimmedName });
+      this.saved.emit({
+        id: this.subscriber.id,
+        name: trimmedName,
+        prayer_groups_enabled: this.editPrayerGroupsEnabled,
+      });
     } catch (err: unknown) {
       console.error('Error updating subscriber:', err);
       this.editError =

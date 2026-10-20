@@ -36,6 +36,10 @@ export function sortEmailSubscriberRows(
         aVal = sortDateMs(a.last_activity_date);
         bVal = sortDateMs(b.last_activity_date);
         break;
+      case 'is_church_member':
+        aVal = a.is_church_member === false ? 0 : 1;
+        bVal = b.is_church_member === false ? 0 : 1;
+        break;
       case 'is_active':
         aVal = a.is_active ? 1 : 0;
         bVal = b.is_active ? 1 : 0;

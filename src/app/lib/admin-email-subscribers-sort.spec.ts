@@ -16,6 +16,23 @@ describe('admin-email-subscribers-sort', () => {
     created_at: '2024-01-01T00:00:00Z',
   });
 
+  it('sorts rows by church membership status', () => {
+    const groupOnly: EmailSubscriberRow = {
+      ...row('group@example.com'),
+      is_church_member: false,
+    };
+    const member: EmailSubscriberRow = {
+      ...row('member@example.com'),
+      is_church_member: true,
+    };
+    const sorted = sortEmailSubscriberRows(
+      [member, groupOnly],
+      'is_church_member',
+      'asc',
+    );
+    expect(sorted[0].email).toBe('group@example.com');
+  });
+
   it('sorts rows by email descending', () => {
     const sorted = sortEmailSubscriberRows(
       [row('a@example.com'), row('b@example.com')],

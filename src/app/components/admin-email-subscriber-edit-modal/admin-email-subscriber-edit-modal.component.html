@@ -31,6 +31,22 @@
           Email address cannot be changed. To use a different email, create a new subscriber with the new address.
         </p>
       </div>
+      <div class="flex items-start gap-2">
+        <input
+          id="editPrayerGroupsEnabled"
+          type="checkbox"
+          [(ngModel)]="editPrayerGroupsEnabled"
+          class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <div>
+          <label for="editPrayerGroupsEnabled" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Enable prayer groups
+          </label>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Off by default. When enabled, this person can use the Group tab, group prayers, and group membership.
+          </p>
+        </div>
+      </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm">
         <p class="mb-2 text-gray-700 dark:text-gray-300">
           {{ subscriber.is_church_member === false ? 'Group only' : 'Church member' }}

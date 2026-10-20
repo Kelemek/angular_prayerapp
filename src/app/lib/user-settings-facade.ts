@@ -77,6 +77,7 @@ export class UserSettingsFacade {
   memorizationStrictModeLoaded = false;
   defaultPrayerView: 'current' | 'personal' | 'groups' | null = null;
   isChurchMember = true;
+  prayerGroupsEnabled = false;
   memorizationStrictMode = false;
   savingMemorizationStrictMode = false;
 
@@ -112,13 +113,32 @@ export class UserSettingsFacade {
     return this.deps.adminAuthService.hasAdminEmail$;
   }
 
+  get defaultViewGridClass(): string {
+    const count =
+      (this.isChurchMember ? 1 : 0) + (this.prayerGroupsEnabled ? 1 : 0) + 1;
+    if (count >= 3) {
+      return 'grid-cols-3';
+    }
+    if (count === 2) {
+      return 'grid-cols-2';
+    }
+    return 'grid-cols-1';
+  }
+
   /** Church default hidden for group-only members; map legacy `current` to Group in UI. */
   get displayDefaultPrayerView(): 'current' | 'personal' | 'groups' | null {
     if (this.defaultPrayerView == null) {
       return null;
     }
-    if (!this.isChurchMember && this.defaultPrayerView === 'current') {
+    if (
+      !this.isChurchMember &&
+      this.defaultPrayerView === 'current' &&
+      this.prayerGroupsEnabled
+    ) {
       return 'groups';
+    }
+    if (this.defaultPrayerView === 'groups' && !this.prayerGroupsEnabled) {
+      return this.isChurchMember ? 'current' : 'personal';
     }
     return this.defaultPrayerView;
   }
@@ -293,7 +313,8 @@ export class UserSettingsFacade {
     if (
       !this.defaultViewPreferencesLoaded ||
       this.savingDefaultView ||
-      this.defaultPrayerView === view
+      this.defaultPrayerView === view ||
+      (view === 'groups' && !this.prayerGroupsEnabled)
     ) {
       return;
     }

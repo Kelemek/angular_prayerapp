@@ -50,6 +50,8 @@ export interface UserSessionData {
   defaultPrayerView?: 'current' | 'personal' | 'groups';
   /** False for a group-only subscriber. Missing means church member. */
   isChurchMember?: boolean;
+  /** When true, prayer groups UI and APIs are available for this account. */
+  prayerGroupsEnabled?: boolean;
   /** When true, memorization practice does not auto-reveal blanks after 3 wrong attempts. */
   memorizationStrictMode?: boolean;
   /** Cached hourly self-reminder slots; undefined = never fetched this session. */
@@ -214,7 +216,7 @@ export class UserSessionService {
         client
           .from('email_subscribers')
           .select(
-            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode, client_preferences, is_church_member'
+            'email, name, is_active, receive_push, badge_functionality_enabled, default_prayer_view, show_pray_for_button, show_praying_count, personal_prayer_cooldown_hours, memorization_strict_mode, client_preferences, is_church_member, prayer_groups_enabled'
           )
           .eq('email', normalizedEmail)
           .maybeSingle(),
@@ -244,6 +246,7 @@ export class UserSessionService {
           ),
           defaultPrayerView: data.default_prayer_view || 'current',
           isChurchMember: data.is_church_member !== false,
+          prayerGroupsEnabled: data.prayer_groups_enabled === true,
           memorizationStrictMode: data.memorization_strict_mode ?? false,
           ...(() => {
             const resolved = resolveClientPreferencesFromSubscriberRow(

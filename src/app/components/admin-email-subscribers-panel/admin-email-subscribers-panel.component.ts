@@ -88,7 +88,11 @@ export class AdminEmailSubscribersPanelComponent {
   @Output() previousPage = new EventEmitter<void>();
   @Output() nextPage = new EventEmitter<void>();
   @Output() goToPage = new EventEmitter<number>();
-  @Output() editSaved = new EventEmitter<{ id: string; name: string }>();
+  @Output() editSaved = new EventEmitter<{
+    id: string;
+    name: string;
+    prayer_groups_enabled: boolean;
+  }>();
   @Output() editClosed = new EventEmitter<void>();
 
   @ViewChild('addFormRef')

@@ -24,6 +24,7 @@ import { HomeFilterBadgeButtonComponent } from "../home-filter-badge-button/home
 export class HomeFilterTabsComponent {
   @Input({ required: true }) activeFilter!: HomeActiveFilter;
   @Input() showChurchTab = true;
+  @Input() showGroupsTab = true;
   @Input({ required: true }) currentPrayerBadge$!: Observable<number>;
   @Input({ required: true }) answeredPrayerBadge$!: Observable<number>;
 

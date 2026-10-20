@@ -7,9 +7,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EmailSubscriberTimestampComponent } from '../email-subscriber-timestamp/email-subscriber-timestamp.component';
-import type {
-  EmailSubscriberRow,
-  EmailSubscriberRowAction,
+import {
+  emailSubscriberMembershipStatusLabel,
+  type EmailSubscriberRow,
+  type EmailSubscriberRowAction,
 } from '../../lib/admin-email-subscribers';
 
 @Component({
@@ -24,6 +25,10 @@ export class AdminEmailSubscriberRowComponent {
   @Input({ required: true }) subscriber!: EmailSubscriberRow;
   @Input() isFirst = false;
   @Output() action = new EventEmitter<EmailSubscriberRowAction>();
+
+  get membershipStatusLabel(): 'Member' | 'Group' {
+    return emailSubscriberMembershipStatusLabel(this.subscriber);
+  }
 
   onToggleActiveClick(): void {
     this.action.emit({ type: 'toggleActive' });
