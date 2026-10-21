@@ -1,4 +1,14 @@
-import { rejectGroupOnlyCaller } from '../shared/reject-group-only-caller.ts'
+import { requireChurchMemberCaller } from '../shared/reject-group-only-caller.ts'
+import { verifyAuthResumeToken } from '../shared/auth-resume-token.ts'
+import { planningCenterPeopleIncludeEmail } from '../shared/planning-center-email-match.ts'
+import {
+  createLoginLookupRateLimiter,
+  decidePlanningCenterLookupMode,
+  loginLookupBooleanResult,
+  parsePlanningCenterLookupBody,
+} from './login-lookup-gate.ts'
+
+const loginLookupRateLimiter = createLoginLookupRateLimiter()
 
 const EMAIL_FETCH_CONCURRENCY = 5
 
@@ -67,27 +77,86 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 }
 
+async function emailIsInPlanningCenter(email: string): Promise<boolean> {
+  const PC_APP_ID = Deno.env.get('PLANNING_CENTER_APP_ID')
+  const PC_SECRET = Deno.env.get('PLANNING_CENTER_SECRET')
+  if (!PC_APP_ID || !PC_SECRET) {
+    throw new Error('Planning Center not configured')
+  }
+  const authHeader = 'Basic ' + btoa(`${PC_APP_ID}:${PC_SECRET}`)
+  const searchUrl =
+    `https://api.planningcenteronline.com/people/v2/people?where[search_name_or_email]=${encodeURIComponent(email)}`
+  const response = await fetch(searchUrl, {
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/json',
+    },
+  })
+  if (!response.ok) {
+    throw new Error('Failed to search Planning Center')
+  }
+  const data = await response.json()
+  const people = data.data || []
+  const peopleData = await mapWithConcurrency(people, EMAIL_FETCH_CONCURRENCY, async (person: any) => {
+    const loginId = person.attributes?.login_identifier
+    const emailFromLogin = loginId && String(loginId).trim() ? String(loginId).trim() : null
+    const primaryEmail = emailFromLogin ?? await fetchPrimaryEmailForPerson(person.id, authHeader)
+    return {
+      attributes: {
+        login_identifier: emailFromLogin,
+        primary_email_address: primaryEmail || null,
+      },
+    }
+  })
+  return planningCenterPeopleIncludeEmail(peopleData, email)
+}
+
+function json(
+  body: unknown,
+  status = 200,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+function clientIp(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for') ?? ''
+  const first = forwarded.split(',')[0]?.trim()
+  return (first || req.headers.get('cf-connecting-ip') || 'unknown').slice(0, 64)
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders })
   }
 
-  const groupOnly = await rejectGroupOnlyCaller(req)
-  if (groupOnly) return groupOnly
-
   try {
-    const { email } = await req.json()
-
-    if (!email) {
-      return new Response(
-        JSON.stringify({ error: 'Email address is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    const parsed = parsePlanningCenterLookupBody(await req.json().catch(() => null))
+    if ('kind' in parsed) {
+      return json({ error: 'Email address is required' }, 400)
     }
+    const mode = decidePlanningCenterLookupMode(parsed)
+    const email = mode.kind === 'invalid' ? parsed.email : mode.email
+
+    if (mode.kind === 'login') {
+      const tokenCheck = await verifyAuthResumeToken(mode.resumeToken, mode.email)
+      if (!tokenCheck.ok) {
+        return json({ error: 'Not authorized' }, 401)
+      }
+      const rateKey = `${clientIp(req)}:${mode.email}`
+      if (loginLookupRateLimiter.isLimited(rateKey)) {
+        return json({ error: 'Too many attempts. Try again later.' }, 429)
+      }
+      loginLookupRateLimiter.record(rateKey)
+      const matched = await emailIsInPlanningCenter(mode.email)
+      return json(loginLookupBooleanResult(matched))
+    }
+
+    const denied = await requireChurchMemberCaller(req)
+    if (denied) return denied
 
     // Get Planning Center credentials from environment
     const PC_APP_ID = Deno.env.get('PLANNING_CENTER_APP_ID')

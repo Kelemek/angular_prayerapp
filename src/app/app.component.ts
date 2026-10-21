@@ -30,7 +30,13 @@ import { HelpDriverTourService } from "./services/help-driver-tour.service";
 import { AdminDataService } from "./services/admin-data.service";
 import { PosthogService } from "./services/posthog.service";
 import { ClientPreferencesService } from "./services/client-preferences.service";
-import { filter } from "rxjs";
+import { combineLatest, filter, Subject } from "rxjs";
+import { takeUntil } from "rxjs/operators";
+import {
+  UserSessionService,
+  type UserSessionData,
+} from "./services/user-session.service";
+import { groupOnlyChurchSurfaceRedirect } from "./lib/church-member-access";
 import {
   findAppScrollContainer,
   scrollAppContainerToTop,
@@ -91,6 +97,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private lastNavigationPath: string | null = null;
   private blankResumeCheckTimeoutId: ReturnType<typeof setTimeout> | null =
     null;
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private router: Router,
@@ -341,13 +348,51 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.handleApprovalCode();
     this.setupPushRefreshListener();
+    this.watchChurchRouteAccess();
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.blankResumeCheckTimeoutId != null) {
       clearTimeout(this.blankResumeCheckTimeoutId);
       this.blankResumeCheckTimeoutId = null;
     }
+  }
+
+  private watchChurchRouteAccess(): void {
+    const session = this.injector.get(UserSessionService);
+    if (!session.sessionInitialized$ || !session.userSession$) {
+      return;
+    }
+    combineLatest([session.sessionInitialized$, session.userSession$])
+      .pipe(
+        filter(([ready]) => ready),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(([, row]) => {
+        this.leaveChurchSurfacesIfGroupOnly(row);
+      });
+  }
+
+  private leaveChurchSurfacesIfGroupOnly(
+    row: UserSessionData | null
+  ): void {
+    const tree = this.router.parseUrl(this.router.url);
+    const redirect = groupOnlyChurchSurfaceRedirect({
+      path: this.router.url,
+      session: row ?? {},
+      query: (key) => {
+        const value = tree.queryParams[key];
+        return typeof value === "string" ? value : null;
+      },
+    });
+    if (!redirect) {
+      return;
+    }
+    void this.router.navigate(redirect.commands, {
+      queryParams: redirect.queryParams,
+    });
   }
 
   /**

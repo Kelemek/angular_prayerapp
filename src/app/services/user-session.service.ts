@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Optional } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { AdminAuthService } from './admin-auth.service';
@@ -10,6 +10,7 @@ import type { ClientPreferences } from '../types/client-preferences';
 import { clientPreferencesLoadState } from '../lib/client-preferences-load-state';
 import { resolveClientPreferencesFromSubscriberRow } from '../lib/client-preferences-session';
 import { reconcileClientPreferencesWithDevice } from '../lib/client-preferences-local';
+import { ChurchContentCacheService } from './church-content-cache.service';
 
 export const PRAYER_COOLDOWN_MIN_HOURS = 1;
 export const PRAYER_COOLDOWN_MAX_HOURS = 168;
@@ -95,7 +96,8 @@ export class UserSessionService {
   constructor(
     private supabase: SupabaseService,
     private adminAuth: AdminAuthService,
-    private dataAccessGate: SupabaseDataAccessGateService
+    private dataAccessGate: SupabaseDataAccessGateService,
+    @Optional() private churchContentCache?: ChurchContentCacheService
   ) {
     // Restore cached session immediately if available (skip pre-upgrade entries missing strict mode).
     const cachedUserSession = localStorage.getItem('userSession');
@@ -143,6 +145,7 @@ export class UserSessionService {
           }
           await this.loadUserSession(emailAtAuth);
           this.hasInitializedSubject.next(true);
+          this.maybeClearChurchContent(this.userSessionSubject.value);
         } else {
           // No email found, mark as initialized with null session
           this.hasInitializedSubject.next(true);
@@ -262,6 +265,7 @@ export class UserSessionService {
         };
         this.userSessionSubject.next(sessionData);
         this.saveToCache(sessionData);
+        this.maybeClearChurchContent(sessionData);
       } else {
         // User not in email_subscribers yet, create minimal session with email only
         const sessionData: UserSessionData = {
@@ -468,6 +472,17 @@ export class UserSessionService {
 
     this.userSessionSubject.next(updatedSession);
     this.saveToCache(updatedSession);
+    this.maybeClearChurchContent(updatedSession);
+  }
+
+  private maybeClearChurchContent(session: UserSessionData | null): void {
+    if (!this.hasInitializedSubject.value) {
+      return;
+    }
+    if (session?.isChurchMember !== false) {
+      return;
+    }
+    this.churchContentCache?.clear();
   }
 
   /**

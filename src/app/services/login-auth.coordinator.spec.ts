@@ -125,6 +125,7 @@ const makeDeps = () => {
 describe("LoginAuthCoordinator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("fetchVerificationCodeLength returns admin setting", async () => {
@@ -176,6 +177,29 @@ describe("LoginAuthCoordinator", () => {
       kind: "show_registration",
       requiresApproval: true,
     });
+    expect(planningCenterRest.lookupPersonByEmail).toHaveBeenCalledWith(
+      "new@example.com",
+      true,
+      undefined
+    );
+  });
+
+  it("sends the MFA resume token on Planning Center login lookup", async () => {
+    const { coordinator, supabaseService, planningCenterRest } = makeDeps();
+    mockLoginFromTables(supabaseService, { subscriberRow: null });
+    localStorage.setItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY, "resume-token");
+    planningCenterRest.lookupPersonByEmail.mockResolvedValue({
+      count: 0,
+      people: [],
+    } as any);
+
+    await coordinator.resolvePostVerificationFlow("new@example.com", "/");
+
+    expect(planningCenterRest.lookupPersonByEmail).toHaveBeenCalledWith(
+      "new@example.com",
+      true,
+      "resume-token"
+    );
   });
 
   it("resolvePostVerificationFlow asks group-only subscribers without a name for profile", async () => {

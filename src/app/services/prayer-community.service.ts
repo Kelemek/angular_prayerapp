@@ -107,6 +107,7 @@ export class PrayerCommunityService {
     PRAYER_SERVICE_LOAD_ERROR_TOAST_COOLDOWN_MS;
   communityPrayersFetchInFlight = false;
   communityPrayersDbFetchComplete = false;
+  private loadGeneration = 0;
 
   readonly allPrayers$ = this.allPrayersSubject.asObservable();
   readonly prayers$ = this.prayersSubject.asObservable();
@@ -129,6 +130,16 @@ export class PrayerCommunityService {
 
   getAllCommunityPrayersSnapshot(): PrayerRequest[] {
     return this.allPrayersSubject.value;
+  }
+
+  clearChurchMemory(): void {
+    this.loadGeneration += 1;
+    this.communityPrayersFetchInFlight = false;
+    this.communityPrayersDbFetchComplete = false;
+    this.allPrayersSubject.next([]);
+    this.prayersSubject.next([]);
+    this.loadingSubject.next(false);
+    this.errorSubject.next(null);
   }
 
   async loadPrayers(silentRefresh = false): Promise<void> {
@@ -154,6 +165,7 @@ export class PrayerCommunityService {
         getLastErrorToastTime: () => this.lastLoadErrorToastTime,
         loadErrorToastCooldownMs: PrayerCommunityService.LOAD_ERROR_TOAST_COOLDOWN_MS,
         isFetchInFlight: () => this.communityPrayersFetchInFlight,
+        getLoadGeneration: () => this.loadGeneration,
         fetchApprovedFromDb: async () => {
           const { data, error } = await fetchApprovedCommunityPrayers(
             (await this.db())

@@ -35,11 +35,19 @@ export class PlanningCenterRestService {
 
   async lookupPersonByEmail(
     email: string,
-    skipCache = false
+    skipCache = false,
+    authResumeToken?: string
   ): Promise<EmailLookupResult> {
     const bearer = await this.authorizationBearer();
     const { url, anonKey } = this.restConfig();
-    return lookupPersonByEmail(email, url, anonKey, skipCache, bearer);
+    return lookupPersonByEmail(
+      email,
+      url,
+      anonKey,
+      skipCache,
+      bearer,
+      authResumeToken
+    );
   }
 
   async batchLookupPlanningCenter(

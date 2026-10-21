@@ -33,6 +33,7 @@ describe("HomeFilterCoordinator", () => {
       loadPlanningCenterMemberPrayers: vi.fn(),
       loadMemorizationItems: vi.fn(),
       onFilterChanged: vi.fn(),
+      getPrayerGroupsSession: vi.fn(() => null),
     };
     coordinator.bindHost(host);
   });
@@ -80,6 +81,33 @@ describe("HomeFilterCoordinator", () => {
 
     expect(host.setSelectedPromptTypes).toHaveBeenCalledWith([]);
     expect(host.onFilterChanged).toHaveBeenCalled();
+  });
+
+  it("clamps church tabs to groups for group-only sessions", () => {
+    host.getPrayerGroupsSession = vi.fn(() => ({
+      isChurchMember: false,
+      prayerGroupsEnabled: true,
+    }));
+
+    coordinator.setFilter("current");
+
+    expect(host.setActiveFilter).toHaveBeenCalledWith("groups");
+  });
+
+  it("selectPublicTab clamps group-only sessions to groups", () => {
+    host.getPrayerGroupsSession = vi.fn(() => ({
+      isChurchMember: false,
+      prayerGroupsEnabled: true,
+    }));
+    host.getPageState = vi.fn(() => ({
+      activeFilter: "prompts" as const,
+      filters: { status: "current" as const, searchTerm: "" },
+      selectedPromptTypes: [],
+    }));
+
+    coordinator.selectPublicTab();
+
+    expect(host.setActiveFilter).toHaveBeenCalledWith("groups");
   });
 
   it("selectPublicTab switches to current when leaving another tab", () => {

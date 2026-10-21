@@ -59,4 +59,33 @@ describe('prayer-community-load-wire', () => {
     expect(setAllPrayersInMemory).toHaveBeenCalled();
     expect(setCache).toHaveBeenCalled();
   });
+
+  it('runCommunityPrayerCatalogLoad ignores a stale generation after fetch', async () => {
+    let generation = 1;
+    const fetchApprovedFromDb = vi.fn().mockImplementation(async () => {
+      generation = 2;
+      return [{ id: 'stale' }];
+    });
+    const setAllPrayersInMemory = vi.fn();
+
+    await runCommunityPrayerCatalogLoad({
+      readCache: () => null,
+      setFetchInFlight: vi.fn(),
+      markDbFetchComplete: vi.fn(),
+      setAllPrayersInMemory,
+      setCache: vi.fn(),
+      reapplyFilters: vi.fn(),
+      setLoading: vi.fn(),
+      setError: vi.fn(),
+      refreshBadges: vi.fn(),
+      emitErrorToast: vi.fn(),
+      getLastErrorToastTime: () => 0,
+      loadErrorToastCooldownMs: 60_000,
+      isFetchInFlight: () => false,
+      fetchApprovedFromDb,
+      getLoadGeneration: () => generation,
+    });
+
+    expect(setAllPrayersInMemory).not.toHaveBeenCalled();
+  });
 });

@@ -10,8 +10,9 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subject } from "rxjs";
-import { distinctUntilChanged, takeUntil } from "rxjs/operators";
+import { combineLatest, Subject } from "rxjs";
+import { distinctUntilChanged, filter, take, takeUntil } from "rxjs/operators";
+import { permittedPresentationTypesForSession } from "../../lib/church-member-access";
 import { PromptService } from "../../services/prompt.service";
 import { PrayerEncouragementService } from "../../services/prayer-encouragement.service";
 import { UserSessionService } from "../../services/user-session.service";
@@ -191,6 +192,20 @@ export class PresentationComponent implements OnInit, OnDestroy {
       this.route
     );
     this.homeHandoffActive = handoff != null;
+    this.clampContentTypesForSession();
+    combineLatest([
+      this.userSessionService.sessionInitialized$,
+      this.userSessionService.userSession$,
+    ])
+      .pipe(
+        filter(([ready]) => ready),
+        take(1),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.clampContentTypesForSession();
+        this.cdr.markForCheck();
+      });
     wirePresentationClientPreferencesSync({
       userSession$: this.userSessionService.userSession$,
       destroy$: this.destroy$,
@@ -495,7 +510,18 @@ export class PresentationComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  private clampContentTypesForSession(): void {
+    const access = permittedPresentationTypesForSession(
+      this.userSessionService.getCurrentSession() ?? {},
+      this.contentTypes
+    );
+    if (access.kind === "allow") {
+      this.contentTypes = [...access.contentTypes];
+    }
+  }
+
   private sanitizeContentTypesForAvailableContent(): void {
+    this.clampContentTypesForSession();
     if (this.hasMembers) {
       return;
     }

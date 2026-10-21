@@ -209,6 +209,8 @@ export function wireHomeCoordinators(
       void deps.planningCenter.loadMemberPrayers();
     },
     onFilterChanged: refreshCatalog,
+    getPrayerGroupsSession: () =>
+      deps.userSessionService.getCurrentSession(),
   });
   deps.filterCoordinator.bindHost(filterHost);
 

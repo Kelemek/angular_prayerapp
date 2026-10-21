@@ -217,6 +217,36 @@ describe("HomeLifecycleCoordinator", () => {
     destroy$.complete();
   });
 
+  it("moves group-only users off Church when groups are off", async () => {
+    const destroy$ = new Subject<void>();
+    vi.mocked(host.getViewReady).mockReturnValue(true);
+    vi.mocked(host.getActiveFilter).mockReturnValue("current");
+    coordinator.initialize(destroy$);
+    sessionInitializedSubject.next(true);
+    userSessionSubject.next({
+      email: "group@example.com",
+      defaultPrayerView: "current",
+      isChurchMember: true,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    vi.mocked(host.setFilter).mockClear();
+    vi.mocked(host.setActiveFilter).mockClear();
+    vi.mocked(host.getActiveFilter).mockReturnValue("current");
+
+    userSessionSubject.next({
+      email: "group@example.com",
+      defaultPrayerView: "current",
+      isChurchMember: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(host.setActiveFilter).toHaveBeenCalledWith("personal");
+    expect(host.setFilter).toHaveBeenCalledWith("personal");
+
+    destroy$.next();
+    destroy$.complete();
+  });
+
   it("syncs personal categories when allPersonalPrayers$ emits an empty list", async () => {
     const destroy$ = new Subject<void>();
     coordinator.initialize(destroy$);

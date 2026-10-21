@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { adminGuard } from './guards/admin.guard';
 import { siteAuthGuard } from './guards/site-auth.guard';
 import { churchMemberGuard } from './guards/church-member.guard';
+import { presentationAccessGuard } from './guards/presentation-access.guard';
 
 export const routes: Routes = [
   {
@@ -20,13 +21,13 @@ export const routes: Routes = [
   {
     path: 'admin',
     loadComponent: () => import('./pages/admin/admin.component').then(m => m.AdminComponent),
-    canActivate: [siteAuthGuard, adminGuard],
+    canActivate: [siteAuthGuard, adminGuard, churchMemberGuard],
     data: { preload: true } // Hint for preloading strategy if implemented
   },
   {
     path: 'presentation',
     loadComponent: () => import('./pages/presentation/presentation.component').then(m => m.PresentationComponent),
-    canActivate: [siteAuthGuard, churchMemberGuard],
+    canActivate: [siteAuthGuard, presentationAccessGuard],
     data: { preload: false }
   },
   {

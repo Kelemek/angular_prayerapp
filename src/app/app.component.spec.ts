@@ -27,7 +27,8 @@ if (typeof document === 'undefined') {
 import { AppComponent } from './app.component';
 import { Router, NavigationEnd } from '@angular/router';
 import { Injector, ChangeDetectorRef, NgZone } from '@angular/core';
-import { Subject, of } from 'rxjs';
+import { BehaviorSubject, Subject, of } from 'rxjs';
+import { UserSessionService } from './services/user-session.service';
 import { ROUTED_PAGE_SELECTOR } from '../lib/visible-page-recovery';
 
 const supabaseDirectQueryMock = vi.fn();
@@ -134,6 +135,12 @@ describe('AppComponent', () => {
 
   const mockPosthogService = {};
 
+  const sessionInitializedSubject = new BehaviorSubject(true);
+  const userSessionSubject = new BehaviorSubject<{
+    isChurchMember?: boolean;
+    prayerGroupsEnabled?: boolean;
+  } | null>({ isChurchMember: true });
+
   function createAppComponent(): AppComponent {
     return new AppComponent(
       mockRouter,
@@ -141,7 +148,8 @@ describe('AppComponent', () => {
       mockNgZone,
       mockCdr,
       mockHelpDriverTour as never,
-      mockPosthogService as never
+      mockPosthogService as never,
+      {} as never
     );
   }
 
@@ -150,7 +158,9 @@ describe('AppComponent', () => {
     routerEventsSubject = new Subject();
     mockRouter = {
       events: routerEventsSubject.asObservable(),
-      navigate: vi.fn().mockResolvedValue(true)
+      navigate: vi.fn().mockResolvedValue(true),
+      url: '/test',
+      parseUrl: vi.fn(() => ({ queryParams: {} })),
     };
 
     // Create mock NgZone
@@ -165,8 +175,16 @@ describe('AppComponent', () => {
     };
 
     // Create mock Injector
+    sessionInitializedSubject.next(true);
+    userSessionSubject.next({ isChurchMember: true });
     mockInjector = {
       get: vi.fn((token) => {
+        if (token === UserSessionService) {
+          return {
+            sessionInitialized$: sessionInitializedSubject.asObservable(),
+            userSession$: userSessionSubject.asObservable(),
+          };
+        }
         const name = typeof token?.name === 'string' ? token.name : '';
         if (name === 'ToastService') {
           return { showToast: vi.fn() };
@@ -223,6 +241,19 @@ describe('AppComponent', () => {
 
     it('should subscribe to router events on construction', () => {
       expect(routerEventsSubject.observers.length).toBeGreaterThan(0);
+    });
+
+    it('sends a group-only user off /admin after session settles', async () => {
+      mockRouter.url = '/admin';
+      component.ngOnInit();
+      mockRouter.navigate.mockClear();
+      userSessionSubject.next({
+        isChurchMember: false,
+        prayerGroupsEnabled: true,
+      });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
+        queryParams: { filter: 'groups' },
+      });
     });
   });
 

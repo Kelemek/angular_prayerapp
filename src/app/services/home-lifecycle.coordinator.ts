@@ -28,12 +28,7 @@ import type { HomePlanningCenterController } from "./home-planning-center.contro
 import type { PrayerGroupService } from "./prayer-group.service";
 import type { HomeReturnContext } from "../types/presentation";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
-import { isPublicAreaFilter } from "../lib/home-community-filter";
-import {
-  isPrayerGroupsFeatureEnabled,
-  resolveHomeFilterFromSession,
-  sanitizeHomeAreaFilter,
-} from "../lib/prayer-groups-feature";
+import { resolveHomeFilterFromSession } from "../lib/prayer-groups-feature";
 import type { MemorizedItem } from "../types/memorization";
 
 export interface HomeObservableStreams {
@@ -344,23 +339,12 @@ export class HomeLifecycleCoordinator {
         if (!host.getViewReady()) {
           return;
         }
-        const active = host.getActiveFilter();
-        if (active === "groups" && !isPrayerGroupsFeatureEnabled(s)) {
-          const next = sanitizeHomeAreaFilter("groups", s);
-          host.setActiveFilter(next);
-          host.setFilter(next);
-          host.markForCheck();
+        const next = resolveHomeFilterFromSession(host.getActiveFilter(), s);
+        if (next === host.getActiveFilter()) {
           return;
         }
-        if (
-          s.isChurchMember !== false ||
-          !isPrayerGroupsFeatureEnabled(s) ||
-          !isPublicAreaFilter(active)
-        ) {
-          return;
-        }
-        host.setActiveFilter("groups");
-        host.setFilter("groups");
+        host.setActiveFilter(next);
+        host.setFilter(next);
         host.markForCheck();
       });
   }

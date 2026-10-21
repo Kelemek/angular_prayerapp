@@ -121,6 +121,7 @@ export async function lookupPersonByEmail(
   supabaseAnonKey: string,
   skipCache: boolean = false,
   authorizationBearer?: string,
+  authResumeToken?: string,
 ): Promise<EmailLookupResult> {
   if (!email || email.trim() === '') {
     return {
@@ -130,8 +131,10 @@ export async function lookupPersonByEmail(
     };
   }
 
+  const resumeToken = authResumeToken?.trim() ?? '';
+
   // Check cache first unless skipCache is true
-  if (!skipCache) {
+  if (!skipCache && !resumeToken) {
     const cachedStatus = await checkCachedPlanningCenterStatus(
       email,
       supabaseUrl,
@@ -155,7 +158,10 @@ export async function lookupPersonByEmail(
       {
         method: 'POST',
         headers: planningCenterAuthHeaders(supabaseAnonKey, authorizationBearer),
-        body: JSON.stringify({ email: email.trim() })
+        body: JSON.stringify({
+          email: email.trim(),
+          ...(resumeToken ? { auth_resume_token: resumeToken } : {}),
+        })
       }
     );
 
@@ -175,15 +181,16 @@ export async function lookupPersonByEmail(
       count: data.count || 0
     };
 
-    // Save result to database for future lookups
-    const isInPlanningCenter = result.count > 0;
-    await savePlanningCenterStatus(
-      email,
-      isInPlanningCenter,
-      supabaseUrl,
-      supabaseAnonKey,
-      authorizationBearer,
-    );
+    if (!resumeToken) {
+      const isInPlanningCenter = result.count > 0;
+      await savePlanningCenterStatus(
+        email,
+        isInPlanningCenter,
+        supabaseUrl,
+        supabaseAnonKey,
+        authorizationBearer,
+      );
+    }
 
     return result;
   } catch (error) {

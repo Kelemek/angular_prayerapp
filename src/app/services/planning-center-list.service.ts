@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Optional } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { PlanningCenterRestService } from './planning-center-rest.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
+import { ChurchContentCacheService } from './church-content-cache.service';
 
 export interface PlanningCenterListMember {
   id: string;
@@ -47,8 +48,10 @@ export class PlanningCenterListService {
   constructor(
     private supabase: SupabaseService,
     private userSessionService: UserSessionService,
-    private planningCenterRest: PlanningCenterRestService
+    private planningCenterRest: PlanningCenterRestService,
+    @Optional() churchContentCache?: ChurchContentCacheService
   ) {
+    churchContentCache?.registerMemoryClearer(() => this.clearState());
     const email = this.resolveEmail();
     if (email) {
       void this.loadForUser(email);

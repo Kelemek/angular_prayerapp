@@ -9,6 +9,7 @@ import type { PrayerService } from "./prayer.service";
 import type { PromptService } from "./prompt.service";
 import type { MemorizationService } from "./memorization.service";
 import type { BadgeService } from "./badge.service";
+import type { PrayerGroupsFeatureSession } from "../lib/prayer-groups-feature";
 
 export interface HomeFilterPageBindings {
   get activeFilter(): HomeActiveFilter;
@@ -27,6 +28,7 @@ export interface HomeFilterHostAdapterDeps {
   badgeService: BadgeService;
   loadPlanningCenterMemberPrayers(): void;
   onFilterChanged(): void;
+  getPrayerGroupsSession(): PrayerGroupsFeatureSession | null;
 }
 
 export class HomeFilterHostAdapter implements HomeFilterHost {
@@ -82,5 +84,9 @@ export class HomeFilterHostAdapter implements HomeFilterHost {
 
   onFilterChanged(): void {
     this.deps.onFilterChanged();
+  }
+
+  getPrayerGroupsSession(): PrayerGroupsFeatureSession | null {
+    return this.deps.getPrayerGroupsSession();
   }
 }

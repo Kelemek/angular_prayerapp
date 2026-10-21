@@ -17,11 +17,19 @@ import { ThemeService } from '../../services/theme.service';
 import { of } from 'rxjs';
 
 function createMockUserSessionService() {
-  const userSessionSubject = new BehaviorSubject<{ email: string } | null>(null);
+  const userSessionSubject = new BehaviorSubject<{
+    email: string;
+    isChurchMember?: boolean;
+    prayerGroupsEnabled?: boolean;
+  } | null>(null);
+  const sessionInitializedSubject = new BehaviorSubject(true);
   return {
     userSessionSubject,
+    sessionInitializedSubject,
     userSession$: userSessionSubject.asObservable(),
+    sessionInitialized$: sessionInitializedSubject.asObservable(),
     getUserEmail: vi.fn(() => userSessionSubject.value?.email ?? null),
+    getCurrentSession: vi.fn(() => userSessionSubject.value),
   };
 }
 
@@ -294,6 +302,32 @@ describe('PresentationComponent', () => {
       expect(mockPresentationSettingsService.save).not.toHaveBeenCalled();
       expect(replaceState).toHaveBeenCalled();
       vi.unstubAllGlobals();
+    });
+
+    it('strips church types from mixed presentation content for group-only users', async () => {
+      mockUserSessionService.userSessionSubject.next({
+        email: 'group@example.com',
+        isChurchMember: false,
+        prayerGroupsEnabled: true,
+      });
+      mockPresentationSettingsService.load.mockReturnValue({
+        contentTypes: ['prayers', 'groups'],
+        randomize: false,
+        smartMode: true,
+        displayDuration: 10,
+        loop: true,
+        timeFilter: 'all',
+        statusFilters: { current: true, answered: true },
+        prayerTimerMinutes: 10,
+      });
+      vi.spyOn(component, 'loadPlanningCenterMembers').mockResolvedValue(undefined);
+      vi.spyOn(component, 'loadContent').mockResolvedValue(undefined);
+      vi.spyOn(component, 'setupControlsAutoHide').mockImplementation(() => {});
+
+      component.ngOnInit();
+      await Promise.resolve();
+
+      expect(component.contentTypes).toEqual(['groups']);
     });
 
     it('ngOnInit applies home handoff status and categories without saving', async () => {

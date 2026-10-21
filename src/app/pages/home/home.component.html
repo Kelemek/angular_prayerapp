@@ -109,7 +109,10 @@
         false;
       <app-home-filter-tabs
         [activeFilter]="activeFilter"
-        [showChurchTab]="session?.isChurchMember !== false"
+        [showChurchTab]="
+          (userSessionService.sessionInitialized$ | async) === true &&
+          session?.isChurchMember !== false
+        "
         [showGroupsTab]="session?.prayerGroupsEnabled === true"
         [currentPrayerBadge$]="currentPrayerBadge$"
         [answeredPrayerBadge$]="answeredPrayerBadge$"

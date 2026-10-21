@@ -3,6 +3,10 @@ import type { PrayerFilters } from "../components/prayer-filters/prayer-filters.
 import type { PrayerPrompt } from "../components/prompt-card/prompt-card.component";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
 import { isPublicTabFilter } from "../lib/home-community-filter";
+import {
+  resolveHomeFilterFromSession,
+  type PrayerGroupsFeatureSession,
+} from "../lib/prayer-groups-feature";
 
 export interface HomeFilterPageState {
   activeFilter: HomeActiveFilter;
@@ -26,6 +30,7 @@ export interface HomeFilterHost {
   loadPlanningCenterMemberPrayers(): void;
   loadMemorizationItems(): void;
   onFilterChanged(): void;
+  getPrayerGroupsSession(): PrayerGroupsFeatureSession | null;
 }
 
 @Injectable()
@@ -54,6 +59,10 @@ export class HomeFilterCoordinator {
 
   setFilter(filter: HomeActiveFilter): void {
     const host = this.requireHost();
+    const session = host.getPrayerGroupsSession();
+    if (session) {
+      filter = resolveHomeFilterFromSession(filter, session);
+    }
     const page = host.getPageState();
     host.setActiveFilter(filter);
 

@@ -25,6 +25,19 @@ function makeFromQuery(result: any) {
   };
 }
 
+function eqChain(
+  result: { data: unknown; error: unknown },
+  remaining: number
+): { eq: ReturnType<typeof vi.fn> } {
+  const eq = vi.fn();
+  if (remaining <= 1) {
+    eq.mockResolvedValue(result);
+  } else {
+    eq.mockReturnValue(eqChain(result, remaining - 1));
+  }
+  return { eq };
+}
+
 function mockAdminSettingsForBroadcast(
   testAccountEmail: string | null,
   error: unknown = null
@@ -213,9 +226,7 @@ describe("EmailNotificationService", () => {
       }
       if (table === "email_subscribers") {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-          }),
+          select: vi.fn().mockReturnValue(eqChain({ data: [], error: null }, 2)),
         };
       }
       return { insert: vi.fn().mockResolvedValue({ error: null }) };
@@ -236,9 +247,7 @@ describe("EmailNotificationService", () => {
       }
       if (table === "email_subscribers") {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: null, error: dbErr }),
-          }),
+          select: vi.fn().mockReturnValue(eqChain({ data: null, error: dbErr }, 2)),
         };
       }
       return {};
@@ -252,10 +261,11 @@ describe("EmailNotificationService", () => {
   });
 
   it("queueAdminManualBroadcastToSubscribers uses is_blocked false only and queues template rows", async () => {
-    const eqSpy = vi.fn().mockResolvedValue({
+    const churchEq = vi.fn().mockResolvedValue({
       data: [{ email: "a@x.com" }, { email: "b@x.com" }],
       error: null,
     });
+    const eqSpy = vi.fn().mockReturnValue({ eq: churchEq });
     mockSupabase.client.from = vi.fn((table: string) => {
       if (table === "admin_settings") {
         return mockAdminSettingsForBroadcast(null);
@@ -290,6 +300,7 @@ describe("EmailNotificationService", () => {
 
     expect(res).toEqual({ queued: 2 });
     expect(eqSpy).toHaveBeenCalledWith("is_blocked", false);
+    expect(churchEq).toHaveBeenCalledWith("is_church_member", true);
     expect(eqSpy).toHaveBeenCalledTimes(1);
     expect(enqueueSpy).toHaveBeenCalledTimes(2);
     expect(enqueueSpy).toHaveBeenCalledWith(
@@ -316,12 +327,10 @@ describe("EmailNotificationService", () => {
       }
       if (table === "email_subscribers") {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: [{ email: "a@x.com" }],
-              error: null,
-            }),
-          }),
+          select: vi.fn().mockReturnValue(eqChain({
+            data: [{ email: "a@x.com" }],
+            error: null,
+          }, 2)),
         };
       }
       return { insert: vi.fn().mockResolvedValue({ error: null }) };
@@ -358,10 +367,11 @@ describe("EmailNotificationService", () => {
   });
 
   it("queueAdminManualBroadcastToSubscribers excludes configured test account email (case-insensitive)", async () => {
-    const eqSpy = vi.fn().mockResolvedValue({
+    const churchEq = vi.fn().mockResolvedValue({
       data: [{ email: "App-Test@Example.COM" }, { email: "real@church.org" }],
       error: null,
     });
+    const eqSpy = vi.fn().mockReturnValue({ eq: churchEq });
     mockSupabase.client.from = vi.fn((table: string) => {
       if (table === "admin_settings") {
         return mockAdminSettingsForBroadcast("app-test@example.com");
@@ -409,12 +419,15 @@ describe("EmailNotificationService", () => {
       }
       if (table === "email_subscribers") {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: [{ email: "only@exclude.me" }, { email: "keep@here.org" }],
-              error: null,
-            }),
-          }),
+          select: vi.fn().mockReturnValue(
+            eqChain(
+              {
+                data: [{ email: "only@exclude.me" }, { email: "keep@here.org" }],
+                error: null,
+              },
+              2
+            )
+          ),
         };
       }
       return {};
@@ -431,9 +444,11 @@ describe("EmailNotificationService", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
               eq: vi
                 .fn()
                 .mockResolvedValue({ data: mockSubscribers, error: null }),
+              }),
             }),
           }),
         };
@@ -470,12 +485,14 @@ describe("EmailNotificationService", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
               eq: vi
                 .fn()
                 .mockResolvedValue({
                   data: [{ email: "user@test.com" }],
                   error: null,
                 }),
+              }),
             }),
           }),
         };
@@ -911,11 +928,7 @@ describe("EmailNotificationService", () => {
     mockSupabase.client.from = vi.fn((table: string) => {
       if (table === "email_subscribers") {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-            }),
-          }),
+          select: vi.fn().mockReturnValue(eqChain({ data: [], error: null }, 3)),
         };
       }
       return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
@@ -940,12 +953,14 @@ describe("EmailNotificationService", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
               eq: vi
                 .fn()
                 .mockResolvedValue({
                   data: [{ email: "user@test.com" }],
                   error: null,
                 }),
+              }),
             }),
           }),
         };
@@ -2030,6 +2045,7 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
@@ -2039,6 +2055,7 @@ describe("EmailNotificationService - Additional Logic", () => {
                       ],
                       error: null,
                     }),
+                  }),
                 }),
               }),
             };
@@ -2073,12 +2090,14 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
                       data: [{ email: "user@test.com" }],
                       error: null,
                     }),
+                  }),
                 }),
               }),
             };
@@ -2112,11 +2131,9 @@ describe("EmailNotificationService - Additional Logic", () => {
         mockSupabase.client.from = vi.fn((table: string) => {
           if (table === "email_subscribers") {
             return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-                }),
-              }),
+              select: vi.fn().mockReturnValue(
+                eqChain({ data: [], error: null }, 3)
+              ),
             };
           }
           return {
@@ -2143,12 +2160,14 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
                       data: null,
                       error: { message: "Fetch error" },
                     }),
+                  }),
                 }),
               }),
             };
@@ -2183,9 +2202,11 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({ data: subscribers, error: null }),
+                  }),
                 }),
               }),
             };
@@ -2221,12 +2242,14 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
                       data: [{ email: "user@test.com" }],
                       error: null,
                     }),
+                  }),
                 }),
               }),
             };
@@ -2261,12 +2284,14 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
                       data: [{ email: "user@test.com" }],
                       error: null,
                     }),
+                  }),
                 }),
               }),
             };
@@ -2301,12 +2326,14 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
                       data: [{ email: "user@test.com" }],
                       error: null,
                     }),
+                  }),
                 }),
               }),
             };
@@ -2342,12 +2369,14 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
                       data: [{ email: "user@test.com" }],
                       error: null,
                     }),
+                  }),
                 }),
               }),
             };
@@ -2384,12 +2413,14 @@ describe("EmailNotificationService - Additional Logic", () => {
             return {
               select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
                   eq: vi
                     .fn()
                     .mockResolvedValue({
                       data: null,
                       error: { message: "Error" },
                     }),
+                  }),
                 }),
               }),
             };

@@ -328,6 +328,38 @@ describe('UserSessionService', () => {
       const session = service.getCurrentSession();
       expect(session).toBeNull();
     });
+
+    it('clears church content after a settled group-only session', async () => {
+      const churchContentCache = { clear: vi.fn() };
+      const gated = new UserSessionService(
+        mockSupabaseService,
+        mockAdminAuthService,
+        mockDataAccessGate as never,
+        churchContentCache as never
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      churchContentCache.clear.mockClear();
+
+      await gated.updateUserSession({ isChurchMember: false });
+
+      expect(churchContentCache.clear).toHaveBeenCalled();
+    });
+
+    it('does not clear church content when isChurchMember is missing', async () => {
+      const churchContentCache = { clear: vi.fn() };
+      const gated = new UserSessionService(
+        mockSupabaseService,
+        mockAdminAuthService,
+        mockDataAccessGate as never,
+        churchContentCache as never
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      churchContentCache.clear.mockClear();
+
+      await gated.updateUserSession({ isChurchMember: undefined });
+
+      expect(churchContentCache.clear).not.toHaveBeenCalled();
+    });
   });
 
   describe('clearSession', () => {

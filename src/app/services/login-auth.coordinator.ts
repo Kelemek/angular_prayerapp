@@ -354,9 +354,12 @@ export class LoginAuthCoordinator {
   }
 
   private async isInPlanningCenter(email: string): Promise<boolean> {
+    const resumeToken =
+      localStorage.getItem(MFA_AUTH_RESUME_TOKEN_STORAGE_KEY)?.trim() ?? "";
     const pcResult = await this.planningCenterRest.lookupPersonByEmail(
       email,
-      true
+      true,
+      resumeToken || undefined
     );
     return pcResult.count > 0;
   }

@@ -16,6 +16,7 @@ import { VerificationService } from "./verification.service";
 import { CacheService } from "./cache.service";
 import { BadgeService } from "./badge.service";
 import { UserSessionService } from "./user-session.service";
+import { ChurchContentCacheService } from "./church-content-cache.service";
 import { PrayerItemReminderService } from "./prayer-item-reminder.service";
 import { PrayerCommunityService } from "./prayer-community.service";
 import { PrayerPersonalService } from "./prayer-personal.service";
@@ -77,7 +78,8 @@ export class PrayerService {
     private userSessionService: UserSessionService,
     private adminAuthService: AdminAuthService,
     private dataAccessGate: SupabaseDataAccessGateService,
-    @Optional() private prayerItemReminderService?: PrayerItemReminderService
+    @Optional() private prayerItemReminderService?: PrayerItemReminderService,
+    @Optional() churchContentCache?: ChurchContentCacheService
   ) {
     this.community = new PrayerCommunityService(
       supabase,
@@ -101,6 +103,9 @@ export class PrayerService {
       }
     );
     this.initializePrayers();
+    churchContentCache?.registerMemoryClearer(() => {
+      this.community.clearChurchMemory();
+    });
   }
 
   get allPrayers$() {

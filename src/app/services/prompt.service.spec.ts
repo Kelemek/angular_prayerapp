@@ -168,6 +168,43 @@ describe('PromptService', () => {
   });
 
   describe('loadPrompts', () => {
+    it('clears loading when church memory is dropped mid-fetch', async () => {
+      let releaseTypes!: () => void;
+      const typesGate = new Promise<{ data: { name: string; display_order: number }[]; error: null }>(
+        (resolve) => {
+          releaseTypes = () =>
+            resolve({
+              data: [{ name: 'Healing', display_order: 1 }],
+              error: null,
+            });
+        }
+      );
+      mockSupabaseService.client.from = vi.fn((table: string) => {
+        if (table === 'prayer_types') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => typesGate),
+              })),
+            })),
+          };
+        }
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ data: [], error: null })),
+          })),
+        };
+      });
+
+      const load = service.loadPrompts();
+      service.clearChurchMemory();
+      releaseTypes();
+      await load;
+
+      expect(service.isPromptsLoading()).toBe(false);
+      expect(await firstValueFrom(service.prompts$)).toEqual([]);
+    });
+
     it('skips database fetch when the user is logged out', async () => {
       mockAdminAuth.isUserAuthenticated.mockReturnValue(false);
       mockSupabaseService.client.from.mockClear();

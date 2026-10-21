@@ -86,6 +86,34 @@ describe('planning-center', () => {
       });
     });
 
+    it('sends a resume token and skips subscriber cache on login lookup', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ people: [], count: 1 }),
+      } as unknown as Response);
+
+      const result = await lookupPersonByEmail(
+        'john.doe@example.com',
+        supabaseUrl,
+        supabaseKey,
+        true,
+        undefined,
+        'resume-token'
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${supabaseUrl}/functions/v1/planning-center-lookup`,
+        expect.objectContaining({
+          body: JSON.stringify({
+            email: 'john.doe@example.com',
+            auth_resume_token: 'resume-token',
+          }),
+        })
+      );
+      expect(result).toEqual({ people: [], count: 1 });
+    });
+
     it('should use cached result when available', async () => {
       // Mock cache check to return true (in Planning Center)
       fetchMock.mockResolvedValueOnce({

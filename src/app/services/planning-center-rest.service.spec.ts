@@ -34,7 +34,26 @@ describe('PlanningCenterRestService', () => {
       'https://test.supabase.co',
       'anon-key',
       true,
-      'user-jwt'
+      'user-jwt',
+      undefined
+    );
+  });
+
+  it('lookupPersonByEmail forwards a resume token for login lookup', async () => {
+    const spy = vi.spyOn(planningCenter, 'lookupPersonByEmail').mockResolvedValue({
+      people: [],
+      count: 0,
+    });
+
+    await service.lookupPersonByEmail('a@b.com', true, 'resume-token');
+
+    expect(spy).toHaveBeenCalledWith(
+      'a@b.com',
+      'https://test.supabase.co',
+      'anon-key',
+      true,
+      'user-jwt',
+      'resume-token'
     );
   });
 

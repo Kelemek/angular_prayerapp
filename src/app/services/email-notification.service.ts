@@ -259,7 +259,8 @@ export class EmailNotificationService {
     const { data: rows, error } = await (await this.supabase.db())
       .from("email_subscribers")
       .select("email")
-      .eq("is_blocked", false);
+      .eq("is_blocked", false)
+      .eq("is_church_member", true);
 
     if (error) {
       throw error;
@@ -358,7 +359,8 @@ export class EmailNotificationService {
       .from("email_subscribers")
       .select("email")
       .eq("is_active", true)
-      .eq("is_blocked", false);
+      .eq("is_blocked", false)
+      .eq("is_church_member", true);
 
     if (fetchError) {
       throw fetchError;

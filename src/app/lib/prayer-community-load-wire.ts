@@ -24,6 +24,7 @@ export type CommunityPrayerLoadWireDeps = {
   loadErrorToastCooldownMs: number;
   isFetchInFlight: () => boolean;
   fetchApprovedFromDb: () => Promise<Record<string, unknown>[]>;
+  getLoadGeneration?: () => number;
 };
 
 export async function runCommunityPrayerCatalogLoad(
@@ -32,6 +33,8 @@ export async function runCommunityPrayerCatalogLoad(
 ): Promise<void> {
   const cachedPrayers = deps.readCache();
   const skipDb = shouldSkipCommunityPrayersDbOnSilentRefresh(silentRefresh, cachedPrayers);
+  const generation = deps.getLoadGeneration?.() ?? 0;
+  const isCurrent = () => (deps.getLoadGeneration?.() ?? 0) === generation;
 
   try {
     console.log('[PrayerService] Loading prayers...');
@@ -40,6 +43,9 @@ export async function runCommunityPrayerCatalogLoad(
     }
 
     if (cachedPrayers && cachedPrayers.length > 0) {
+      if (!isCurrent()) {
+        return;
+      }
       console.log(`[PrayerService] Using cached prayers (${cachedPrayers.length} items)`);
       applyCommunityPrayersCacheSnapshot(cachedPrayers, {
         setAllPrayers: (prayers) => deps.setAllPrayersInMemory(prayers),
@@ -61,6 +67,9 @@ export async function runCommunityPrayerCatalogLoad(
     deps.setError(null);
 
     const prayersData = await deps.fetchApprovedFromDb();
+    if (!isCurrent()) {
+      return;
+    }
 
     console.log(
       `[PrayerService] Loaded ${prayersData?.length || 0} approved prayers from database`
@@ -74,6 +83,9 @@ export async function runCommunityPrayerCatalogLoad(
       markDbFetchComplete: () => deps.markDbFetchComplete(),
     });
   } catch (err) {
+    if (!isCurrent()) {
+      return;
+    }
     console.error('[PrayerService] Failed to load prayers:', err);
 
     const fallbackPlan = planCommunityLoadErrorFallback(
@@ -97,9 +109,11 @@ export async function runCommunityPrayerCatalogLoad(
     });
     deps.markDbFetchComplete();
   } finally {
-    if (!skipDb) {
-      deps.setFetchInFlight(false);
+    if (isCurrent()) {
+      if (!skipDb) {
+        deps.setFetchInFlight(false);
+      }
+      deps.setLoading(false);
     }
-    deps.setLoading(false);
   }
 }

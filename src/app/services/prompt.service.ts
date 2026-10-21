@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Optional } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
@@ -7,6 +7,7 @@ import { CacheService } from './cache.service';
 import { BadgeService } from './badge.service';
 import { UserSessionService } from './user-session.service';
 import { AdminAuthService } from './admin-auth.service';
+import { ChurchContentCacheService } from './church-content-cache.service';
 import { SupabaseDataAccessGateService } from './supabase-data-access-gate.service';
 import { PrayerItemReminderService } from './prayer-item-reminder.service';
 import { PrayerPrompt } from '../components/prompt-card/prompt-card.component';
@@ -20,6 +21,7 @@ export class PromptService {
   private errorSubject = new BehaviorSubject<string | null>(null);
   /** Bumps on session email change so late count hydrates are ignored. */
   private countsHydrateGeneration = 0;
+  private catalogLoadGeneration = 0;
 
   /** Active prayer_types.name values in display_order (refreshed on load). */
   private activePromptCategories: string[] = [];
@@ -80,8 +82,10 @@ export class PromptService {
     private userSessionService: UserSessionService,
     private prayerItemReminderService: PrayerItemReminderService,
     private dataAccessGate: SupabaseDataAccessGateService,
-    private adminAuth: AdminAuthService
+    private adminAuth: AdminAuthService,
+    @Optional() churchContentCache?: ChurchContentCacheService
   ) {
+    churchContentCache?.registerMemoryClearer(() => this.clearChurchMemory());
     this.loadPrompts();
     this.userSessionService.userSession$
       .pipe(
@@ -95,12 +99,24 @@ export class PromptService {
   /**
    * Load prompts from database with caching, then attach the current user's Pray For counts.
    */
+  clearChurchMemory(): void {
+    this.catalogLoadGeneration += 1;
+    this.countsHydrateGeneration += 1;
+    this.promptsSubject.next([]);
+    this.loadingSubject.next(false);
+    this.errorSubject.next(null);
+  }
+
   async loadPrompts(forceRefresh = false): Promise<void> {
     if (!this.adminAuth.isUserAuthenticated()) {
       this.loadingSubject.next(false);
       return;
     }
+    const generation = this.catalogLoadGeneration;
     await this.dataAccessGate.waitForReady();
+    if (generation !== this.catalogLoadGeneration) {
+      return;
+    }
     try {
       this.loadingSubject.next(true);
       this.errorSubject.next(null);
@@ -154,21 +170,30 @@ export class PromptService {
             updated_at: p.updated_at,
           }));
 
+        if (generation !== this.catalogLoadGeneration) {
+          return;
+        }
         // Cache the results without user-specific counts
         this.cache.set('prompts', sortedPrompts);
       }
 
+      if (generation !== this.catalogLoadGeneration) {
+        return;
+      }
       await this.publishPromptsWithFreshCounts(sortedPrompts);
     } catch (err) {
+      if (generation !== this.catalogLoadGeneration) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to load prompts';
       console.error('Failed to load prompts:', err);
       this.errorSubject.next(errorMessage);
       this.toast.error('Failed to load prompts');
     } finally {
-      this.loadingSubject.next(false);
-      
-      // Refresh badge counts to ensure badges show up for new prompts
-      this.badgeService.refreshBadgeCounts();
+      if (generation === this.catalogLoadGeneration) {
+        this.loadingSubject.next(false);
+        this.badgeService.refreshBadgeCounts();
+      }
     }
   }
 
