@@ -3040,125 +3040,44 @@ describe("EmailNotificationService - Additional Logic", () => {
     });
 
     describe("Subscriber Welcome Notifications", () => {
-      it("should send welcome notification with template", async () => {
-        mockSupabase.client.from = vi.fn().mockReturnValue(
-          makeFromQuery({
-            data: {
-              id: "1",
-              template_key: "subscriber_welcome",
-              subject: "Welcome!",
-              html_body: "<p>Welcome to our community</p>",
-              text_body: "Welcome to our community",
+      it("invokes send-email subscriber_welcome action", async () => {
+        mockSupabase.client.functions.invoke.mockResolvedValue({
+          data: { success: true },
+          error: null,
+        });
+
+        await service.sendSubscriberWelcomeNotification("subscriber@test.com");
+        expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith(
+          "send-email",
+          {
+            body: {
+              action: "subscriber_welcome",
+              to: "subscriber@test.com",
+              appUrl: expect.any(String),
             },
-            error: null,
-          })
+          }
         );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        await service.sendSubscriberWelcomeNotification("subscriber@test.com");
-        expect(sendEmailSpy).toHaveBeenCalled();
-        expect(sendEmailSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            to: ["subscriber@test.com"],
-            subject: expect.any(String),
-          })
-        );
-      });
-
-      it("should use fallback template when template not found", async () => {
-        mockSupabase.client.from = vi
-          .fn()
-          .mockReturnValue(
-            makeFromQuery({ data: null, error: { message: "Not found" } })
-          );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        await service.sendSubscriberWelcomeNotification("subscriber@test.com");
-        expect(sendEmailSpy).toHaveBeenCalled();
-        const emailCall = sendEmailSpy.mock.calls[0][0];
-        expect(emailCall.htmlBody).toBeDefined();
-        expect(emailCall.htmlBody).toContain("Prayer");
       });
 
       it("should return early when email is empty", async () => {
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
         await service.sendSubscriberWelcomeNotification("");
-        expect(sendEmailSpy).not.toHaveBeenCalled();
+        expect(mockSupabase.client.functions.invoke).not.toHaveBeenCalled();
       });
 
       it("should return early when email is null or undefined", async () => {
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
         await service.sendSubscriberWelcomeNotification(null as any);
-        expect(sendEmailSpy).not.toHaveBeenCalled();
-      });
-
-      it("should apply template variables in welcome email", async () => {
-        mockSupabase.client.from = vi.fn().mockReturnValue(
-          makeFromQuery({
-            data: {
-              id: "1",
-              template_key: "subscriber_welcome",
-              subject: "Welcome!",
-              html_body: "<p>Visit us at the app</p>",
-              text_body: "Visit the app",
-            },
-            error: null,
-          })
-        );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        await service.sendSubscriberWelcomeNotification("subscriber@test.com");
-        expect(sendEmailSpy).toHaveBeenCalled();
-        const emailCall = sendEmailSpy.mock.calls[0][0];
-        expect(emailCall.subject).toBeDefined();
-        expect(emailCall.htmlBody).toBeDefined();
+        expect(mockSupabase.client.functions.invoke).not.toHaveBeenCalled();
       });
 
       it("should handle error in welcome notification gracefully", async () => {
-        mockSupabase.client.from = vi.fn().mockImplementation(() => {
-          throw new Error("Database error");
+        mockSupabase.client.functions.invoke.mockResolvedValue({
+          data: null,
+          error: { message: "Edge error" },
         });
 
         await expect(
           service.sendSubscriberWelcomeNotification("subscriber@test.com")
         ).resolves.toBeUndefined();
-      });
-
-      it("should include appLink in welcome email variables", async () => {
-        mockSupabase.client.from = vi.fn().mockReturnValue(
-          makeFromQuery({
-            data: {
-              id: "1",
-              template_key: "subscriber_welcome",
-              subject: "Welcome!",
-              html_body: "Visit {{ appLink }}",
-              text_body: "Visit {{ appLink }}",
-            },
-            error: null,
-          })
-        );
-
-        const sendEmailSpy = vi
-          .spyOn(service, "sendEmail")
-          .mockResolvedValue(undefined);
-
-        await service.sendSubscriberWelcomeNotification("subscriber@test.com");
-        expect(sendEmailSpy).toHaveBeenCalled();
       });
     });
 

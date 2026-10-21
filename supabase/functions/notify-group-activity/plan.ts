@@ -2,7 +2,10 @@ export type GroupActivityNotifyKind = 'prayer_added' | 'prayer_update' | 'prayer
 
 export const GROUP_WELCOME_TEMPLATE_KEY = 'group_welcome';
 
-export type SubscriberTemplateKey = 'approved_prayer' | 'approved_update' | 'prayer_answered';
+export type SubscriberTemplateKey =
+  | 'group_prayer_added'
+  | 'group_prayer_update'
+  | 'group_prayer_answered';
 
 export interface EmailTemplateFields {
   subject: string;
@@ -79,11 +82,11 @@ export function subscriberTemplateKeyForKind(
 ): SubscriberTemplateKey {
   switch (kind) {
     case 'prayer_added':
-      return 'approved_prayer';
+      return 'group_prayer_added';
     case 'prayer_update':
-      return 'approved_update';
+      return 'group_prayer_update';
     case 'prayer_answered':
-      return 'prayer_answered';
+      return 'group_prayer_answered';
     default: {
       const _exhaustive: never = kind;
       return _exhaustive;

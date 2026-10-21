@@ -661,13 +661,10 @@ export class PrayerGroupService {
       if (priorError) throw priorError;
       priorStatus = (prior?.status as GroupPrayerRow['status'] | undefined) ?? null;
     }
-    const { error } = await client
-      .from('group_prayers')
-      .update({
-        status: answered ? 'answered' : 'current',
-        date_answered: answered ? new Date().toISOString() : null,
-      })
-      .eq('id', prayerId);
+    const { error } = await client.rpc('set_group_prayer_status', {
+      p_id: prayerId,
+      p_answered: answered,
+    });
     if (error) throw error;
     this.notifyChanged();
     if (answered && priorStatus === 'current') {

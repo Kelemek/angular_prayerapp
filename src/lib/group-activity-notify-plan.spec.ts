@@ -16,9 +16,9 @@ import {
 
 describe('group activity notify plan', () => {
   it('maps kinds to subscriber template keys', () => {
-    expect(subscriberTemplateKeyForKind('prayer_added')).toBe('approved_prayer');
-    expect(subscriberTemplateKeyForKind('prayer_update')).toBe('approved_update');
-    expect(subscriberTemplateKeyForKind('prayer_answered')).toBe('prayer_answered');
+    expect(subscriberTemplateKeyForKind('prayer_added')).toBe('group_prayer_added');
+    expect(subscriberTemplateKeyForKind('prayer_update')).toBe('group_prayer_update');
+    expect(subscriberTemplateKeyForKind('prayer_answered')).toBe('group_prayer_answered');
   });
 
   it('builds group deep links with filter=groups', () => {

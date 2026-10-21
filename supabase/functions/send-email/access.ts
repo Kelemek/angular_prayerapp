@@ -1,10 +1,14 @@
 export type SendEmailCaller =
   | { kind: "service_role" }
-  | { kind: "admin" }
-  | { kind: "subscriber" }
+  | { kind: "admin"; email: string }
+  | { kind: "subscriber"; email: string }
   | { kind: "anonymous" };
 
-export type SendEmailDecision = "raw" | "notify_admins" | "deny";
+export type SendEmailDecision =
+  | "raw"
+  | "notify_admins"
+  | "subscriber_welcome"
+  | "deny";
 
 export function jwtRole(token: string): string | null {
   const parts = token.split(".");
@@ -53,6 +57,17 @@ export function decideSendEmailAccess(
       caller.kind === "subscriber"
     ) {
       return "notify_admins";
+    }
+    return "deny";
+  }
+
+  if (action === "subscriber_welcome") {
+    if (
+      caller.kind === "service_role" ||
+      caller.kind === "admin" ||
+      caller.kind === "subscriber"
+    ) {
+      return "subscriber_welcome";
     }
     return "deny";
   }

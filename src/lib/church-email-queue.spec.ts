@@ -34,14 +34,26 @@ describe('shouldSkipChurchQueueRow', () => {
     ).toBe(true);
   });
 
-  it('keeps group activity mail for group-only recipients', () => {
+  it('keeps group activity mail for group-only recipients when template is_group', () => {
+    expect(
+      shouldSkipChurchQueueRow({
+        templateKey: 'group_prayer_added',
+        recipientIsChurchMember: false,
+        isGroupTemplate: true,
+        appLink: 'https://cpprayer.cp-church.org/?filter=groups&groupId=1',
+      })
+    ).toBe(false);
+  });
+
+  it('skips church mass templates to group-only even when appLink looks like group mail', () => {
     expect(
       shouldSkipChurchQueueRow({
         templateKey: 'approved_prayer',
         recipientIsChurchMember: false,
+        isGroupTemplate: false,
         appLink: 'https://cpprayer.cp-church.org/?filter=groups&groupId=1',
       })
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('does not skip unrelated templates', () => {

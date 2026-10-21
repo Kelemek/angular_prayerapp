@@ -10,17 +10,13 @@ import {
   PRESENTATION_HOME_HANDOFF_STATE_KEY,
   PRESENTATION_HOME_NAV_STATE_KEY,
 } from '../types/presentation';
+import {
+  CHURCH_CACHE_KEEP_KEYS,
+  CHURCH_CACHE_SERVICE_KEYS,
+} from './church-content-cache-keys';
+import { clearChurchCacheStorageLayers } from './church-content-cache-layers';
 
-export const CHURCH_CACHE_SERVICE_KEYS = [
-  'prayers',
-  'updates',
-  'prompts',
-  'prayerTypes',
-  'planningCenterListData',
-  'adminSettings',
-  'emailSettings',
-  'analytics',
-] as const;
+export { CHURCH_CACHE_KEEP_KEYS, CHURCH_CACHE_SERVICE_KEYS };
 
 const CHURCH_LOCAL_STORAGE_KEYS = [
   'prayers_cache',
@@ -47,14 +43,6 @@ const CHURCH_LOCAL_STORAGE_KEYS = [
 const PLANNING_CENTER_LIST_CACHE_PREFIX = 'prayerapp_planning_center_list_';
 const PERSONAL_PRAYED_FOR_PREFIX = 'prayed_for_personal_';
 const PRAYED_FOR_PREFIX = 'prayed_for_';
-
-export const CHURCH_CACHE_KEEP_KEYS = [
-  'personalPrayers_cache',
-  'personalCategoryColors_cache',
-  'groupPrayerCatalog_cache',
-  'memorizationRecommendations_cache',
-  'userSession',
-] as const;
 
 export type ChurchCacheStore = {
   invalidate(key: string): void;
@@ -127,4 +115,7 @@ export function clearChurchContentStorage(cache: ChurchCacheStore): void {
   } catch {
     /* ignore */
   }
+  void clearChurchCacheStorageLayers().catch(() => {
+    /* ignore */
+  });
 }

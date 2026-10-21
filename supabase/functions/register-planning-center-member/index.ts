@@ -191,6 +191,19 @@ Deno.serve(async (req) => {
         console.error('register-planning-center-member insert failed:', insertError);
         return json({ error: 'Failed to save subscriber' }, 500);
       }
+
+      const { data: insertedRow, error: insertedError } = await supabase
+        .from('email_subscribers')
+        .select('is_blocked')
+        .eq('email', email)
+        .maybeSingle();
+      if (insertedError) {
+        console.error('register-planning-center-member post-insert lookup failed:', insertedError);
+        return json({ error: 'Failed to save subscriber' }, 500);
+      }
+      if (insertedRow?.is_blocked === true) {
+        return json({ error: 'Subscriber not found' }, 403);
+      }
     }
 
     const minted = await mintSubscriberMagicLinkToken(supabase, email);

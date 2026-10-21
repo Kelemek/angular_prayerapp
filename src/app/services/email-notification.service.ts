@@ -17,7 +17,6 @@ import {
   generateRequesterApprovalHTML,
   generateUpdateAuthorApprovalHTML,
   generateVerseMemorizationPrayerHTML,
-  generateWelcomeEmailHTML,
 } from "../lib/email-notification-html";
 import {
   buildAdminPortalLink,
@@ -850,37 +849,19 @@ export class EmailNotificationService {
         return;
       }
 
-      const template = await this.getTemplate("subscriber_welcome");
-      let subject: string;
-      let htmlContent: string;
-      let textContent: string;
-
-      if (template) {
-        const variables = {
-          appLink: buildAppHomeLink(this.getEmailBaseUrl()),
-        };
-        subject = this.applyTemplateVariables(template.subject, variables);
-        htmlContent = this.applyTemplateVariables(
-          template.html_body,
-          variables
-        );
-        textContent = this.applyTemplateVariables(
-          template.text_body,
-          variables
-        );
-      } else {
-        subject = "Welcome to Our Prayer Community! 🙏";
-        htmlContent = generateWelcomeEmailHTML(this.getEmailBaseUrl());
-        textContent =
-          "Welcome to our prayer community! We are thrilled to have you join us. Visit the app to learn more about how you can participate.";
+      const { error } = await this.supabase.client.functions.invoke(
+        "send-email",
+        {
+          body: {
+            action: "subscriber_welcome",
+            to: email,
+            appUrl: this.getEmailBaseUrl(),
+          },
+        }
+      );
+      if (error) {
+        throw new Error(error.message || "Failed to send welcome email");
       }
-
-      await this.sendEmail({
-        to: [email],
-        subject,
-        htmlBody: htmlContent,
-        textBody: textContent,
-      });
     } catch (error) {
       console.error("Error in sendSubscriberWelcomeNotification:", error);
       // Don't re-throw - let the error be logged but don't block subscriber addition

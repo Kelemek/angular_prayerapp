@@ -25,6 +25,7 @@ interface EmailTemplate {
   subject: string;
   html_body: string;
   text_body: string;
+  is_group?: boolean;
 }
 
 // Configuration
@@ -395,6 +396,7 @@ async function processEmail(
       shouldSkipChurchQueueRow({
         templateKey: email.template_key,
         recipientIsChurchMember,
+        isGroupTemplate: getTemplate(email.template_key)?.is_group === true,
         appLink: email.template_variables?.appLink
       })
     ) {

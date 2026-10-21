@@ -31,7 +31,7 @@ These policies require `is_church_member()`. Own-row policies are unchanged, so 
 - `Allow select own prompt prayed counts`
 - `booklet_insert_pages_authenticated_read`
 
-`email_templates` select stays any signed-in user. Templates are not church prayers. The service role sends mail without that policy.
+`email_templates` SELECT is limited to admins (`email_templates_admin_write` FOR ALL) and `service_role` after migration `20261021230000_email_templates_admin_read.sql`. Subscriber welcome mail loads templates in the `send-email` edge function. Group activity templates use `email_templates.is_group` (migration `20261021220000_email_queue_group_template_marker.sql`).
 
 These functions raise `Not authorized` unless `is_church_member()` is true. They are called with the signed-in JWT. A service-role call with no email fails the same check.
 

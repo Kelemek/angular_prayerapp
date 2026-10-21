@@ -277,7 +277,7 @@ async function resolveCaller(req: Request): Promise<SendEmailCaller> {
     return { kind: 'anonymous' }
   }
   if (isAdmin === true) {
-    return { kind: 'admin' }
+    return { kind: 'admin', email }
   }
 
   const { data: subscriber, error: subscriberError } = await adminClient
@@ -292,10 +292,85 @@ async function resolveCaller(req: Request): Promise<SendEmailCaller> {
     return { kind: 'anonymous' }
   }
   if (subscriber && subscriber.is_blocked !== true) {
-    return { kind: 'subscriber' }
+    return { kind: 'subscriber', email }
   }
 
   return { kind: 'anonymous' }
+}
+
+function normalizeAppUrlForWelcome(raw: unknown): string {
+  const fallback = 'https://cpprayer.cp-church.org'
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return fallback
+  }
+  let url = raw.trim().replace(/\/+$/, '')
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`
+  }
+  return url
+}
+
+async function sendSubscriberWelcomeEmail(
+  caller: SendEmailCaller,
+  body: { to?: string | string[]; appUrl?: string },
+): Promise<Response> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return jsonResponse({ error: 'Supabase not configured' }, 500)
+  }
+
+  const appLink = `${normalizeAppUrlForWelcome(body.appUrl)}/`
+  let recipient = ''
+
+  if (caller.kind === 'subscriber') {
+    recipient = caller.email
+  } else if (caller.kind === 'admin' || caller.kind === 'service_role') {
+    const raw = body.to
+    const list = Array.isArray(raw) ? raw : typeof raw === 'string' ? [raw] : []
+    recipient = (list[0] ?? '').trim().toLowerCase()
+  }
+
+  if (!recipient) {
+    return jsonResponse({ error: 'Missing recipient' }, 400)
+  }
+
+  if (caller.kind === 'subscriber' && recipient !== caller.email) {
+    return jsonResponse({ error: 'Not authorized' }, 403)
+  }
+
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  const { data: template, error: templateError } = await adminClient
+    .from('email_templates')
+    .select('subject, html_body, text_body')
+    .eq('template_key', 'subscriber_welcome')
+    .maybeSingle()
+
+  if (templateError) {
+    console.error('subscriber_welcome template lookup failed:', templateError)
+    return jsonResponse({ error: 'Failed to load template' }, 500)
+  }
+
+  const variables = { appLink }
+  let subject = 'Welcome to Our Prayer Community! 🙏'
+  let htmlBody =
+    `<p>Welcome to our prayer community!</p><p><a href="${appLink}">Enter the Prayer App</a></p>`
+  let textBody =
+    `Welcome to our prayer community! Visit the app: ${appLink}`
+
+  if (template) {
+    subject = applyFixedTemplateVariables(template.subject, variables)
+    htmlBody = applyFixedTemplateVariables(template.html_body, variables)
+    textBody = applyFixedTemplateVariables(template.text_body, variables)
+  }
+
+  const token = await getAccessToken()
+  await sendEmail(token, {
+    to: recipient,
+    subject,
+    htmlBody,
+    textBody,
+  })
+
+  return jsonResponse({ success: true })
 }
 
 async function notifyAdmins(notice: AdminNoticeInput | undefined, adminLink: unknown): Promise<Response> {
@@ -418,6 +493,10 @@ Deno.serve(async (req: Request) => {
 
     if (decision === 'notify_admins') {
       return await notifyAdmins(notice, adminLink)
+    }
+
+    if (decision === 'subscriber_welcome') {
+      return await sendSubscriberWelcomeEmail(caller, body)
     }
 
     // Get access token
