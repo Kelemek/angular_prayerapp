@@ -88,6 +88,13 @@ export class EmailTemplatesManagerComponent {
   }
 
   handleSelectTemplate(template: EmailTemplateRow): void {
+    const active = document.activeElement;
+    const focusInEditor =
+      active instanceof HTMLElement &&
+      active.closest('[id^="email-template-editor-"]') !== null;
+    if (focusInEditor) {
+      return;
+    }
     if (this.selectedTemplate?.id === template.id) {
       this.selectedTemplate = null;
       this.editedTemplate = null;

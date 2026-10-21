@@ -299,7 +299,7 @@ Key tables created by migrations:
 
 ### Email Templates
 
-Templates are stored in Supabase `email_templates` table (keys such as `approved_prayer`, `denied_prayer`, `prayer_answered`, `subscriber_welcome`, `verification_code`, hourly reminder keys, admin notifications, and account-access templates). Edit them in **Admin → Settings → Email Templates**, or via SQL migrations that `UPDATE` `html_body`.
+Templates are stored in Supabase `email_templates` table (keys such as `approved_prayer`, `denied_prayer`, `prayer_answered`, `subscriber_welcome`, `group_welcome`, `verification_code`, hourly reminder keys, admin notifications, and account-access templates). Edit them in **Admin → Settings → Email Templates**, or via SQL migrations that `UPDATE` `html_body`.
 
 **Outlook desktop (Windows)**: The Word HTML engine ignores CSS gradients and often strips `<style>` blocks, so headers and buttons can look broken in desktop Outlook while Outlook on the web looks fine. Migration [`20260710120000_email_templates_outlook_desktop_safe.sql`](../supabase/migrations/20260710120000_email_templates_outlook_desktop_safe.sql) rewrites `html_body` for all current template keys with solid colors + nested tables + inline styles. Subjects and plain-text bodies are unchanged.
 

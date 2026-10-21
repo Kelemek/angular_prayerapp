@@ -24,6 +24,9 @@ export class AdminEmailTemplatesSectionComponent {
   @ViewChild('sectionContainer', { read: ElementRef })
   private sectionContainer?: ElementRef<HTMLElement>;
 
+  /** True only after pointer/mouse down started on the section title row. */
+  private triggerToggleArmed = false;
+
   get containerElement(): HTMLElement | undefined {
     return this.sectionContainer?.nativeElement;
   }
@@ -34,12 +37,33 @@ export class AdminEmailTemplatesSectionComponent {
     }
   }
 
+  onTriggerPointerDown(event: Event): void {
+    event.stopPropagation();
+    this.triggerToggleArmed = true;
+  }
+
+  onTriggerKeyDown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    if (event.key === ' ') {
+      event.preventDefault();
+    }
+    event.stopPropagation();
+    this.triggerToggleArmed = true;
+  }
+
   onTriggerClick(event: MouseEvent): void {
     event.stopPropagation();
+    if (!this.triggerToggleArmed) {
+      return;
+    }
+    this.triggerToggleArmed = false;
     this.toggle.emit();
   }
 
-  stopPanelClick(event: MouseEvent): void {
+  stopPanelClick(event: Event): void {
     event.stopPropagation();
+    this.triggerToggleArmed = false;
   }
 }

@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { linkAuthSessionAfterVerify } from "../../lib/auth-session-link";
+import { groupOnlyLoginDestination } from "../../lib/safe-internal-return-url";
 import { MFA_AUTH_RESUME_TOKEN_STORAGE_KEY } from "../../lib/auth-storage-keys";
 import { AdminAuthService } from "./admin-auth.service";
 import { PlanningCenterRestService } from "./planning-center-rest.service";
@@ -93,9 +94,7 @@ export class LoginAuthCoordinator {
 
     const groupsFeatureOn = subscriber?.prayer_groups_enabled === true;
     const destination = groupOnly
-      ? groupsFeatureOn
-        ? "/?filter=groups"
-        : "/?filter=personal"
+      ? groupOnlyLoginDestination(returnUrl, groupsFeatureOn)
       : this.resolveDestination(returnUrl);
 
     if (groupOnly && groupsFeatureOn && !(subscriber.name?.trim())) {

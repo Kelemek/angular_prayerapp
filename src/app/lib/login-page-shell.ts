@@ -3,6 +3,7 @@ import type { LoginMfaCoordinator } from "../services/login-mfa.coordinator";
 import type { LoginAuthCoordinator } from "../services/login-auth.coordinator";
 import { loginRequiresApproval } from "./login-phase";
 import type { Router } from "@angular/router";
+import { navigateLoginDestination } from "./login-internal-navigation";
 
 export interface LoginPageShellHandlers {
   submitEmail(event: Event): Promise<void>;
@@ -72,7 +73,7 @@ export function createLoginPageShell(deps: {
               page.firstName = "";
               page.lastName = "";
               page.loading = false;
-              await router.navigate([result.destination]);
+              await navigateLoginDestination(router, result.destination);
               return true;
             default: {
               const _exhaustive: never = result;
@@ -121,7 +122,7 @@ export function createLoginPageShell(deps: {
               page.lastName = "";
               page.affiliationReason = "";
               page.loading = false;
-              await router.navigate([result.destination]);
+              await navigateLoginDestination(router, result.destination);
               return true;
             default: {
               const _exhaustive: never = result;

@@ -8,6 +8,9 @@
     type="button"
     id="email-templates-manager-trigger"
     class="admin-settings-collapsible-trigger cursor-pointer w-full flex min-h-12 items-center justify-between gap-2 text-left rounded-lg -mx-1 px-1 py-0.5 -my-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+    (pointerdown)="onTriggerPointerDown($event)"
+    (mousedown)="onTriggerPointerDown($event)"
+    (keydown)="onTriggerKeyDown($event)"
     (click)="onTriggerClick($event)"
     [attr.aria-expanded]="expanded"
     aria-controls="email-templates-manager-panel"
@@ -57,6 +60,10 @@
       aria-labelledby="email-templates-manager-trigger"
       class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
       (click)="stopPanelClick($event)"
+      (mousedown)="stopPanelClick($event)"
+      (mouseup)="stopPanelClick($event)"
+      (pointerdown)="stopPanelClick($event)"
+      (pointerup)="stopPanelClick($event)"
     >
       <ng-content></ng-content>
     </div>

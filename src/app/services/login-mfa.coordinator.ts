@@ -6,6 +6,7 @@ import {
   clearPendingLoginMfaSession,
 } from "../../lib/auth-storage-keys";
 import type { LoginPhase } from "../lib/login-phase";
+import { navigateLoginDestination } from "../lib/login-internal-navigation";
 import { AdminAuthService } from "./admin-auth.service";
 import { LoginAuthCoordinator } from "./login-auth.coordinator";
 import type { LoginPageBindings } from "./login-page-bindings";
@@ -228,7 +229,7 @@ export class LoginMfaCoordinator {
           host.returnUrl,
           ")"
         );
-        await this.router.navigate([result.destination]);
+        await navigateLoginDestination(this.router, result.destination);
         return;
       default: {
         const _exhaustive: never = result;

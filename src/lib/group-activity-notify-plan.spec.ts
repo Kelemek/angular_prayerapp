@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  GROUP_WELCOME_TEMPLATE_KEY,
+  applyTemplateVariables,
+  buildGroupInviteAppLink,
   buildGroupPrayerAppLink,
   buildSubscriberTemplateVariables,
   memberEmailsExceptActor,
   planEmailRecipients,
   planPushForKind,
   planPushRecipients,
+  renderGroupWelcomeEmail,
   subscriberTemplateKeyForKind,
   updateContentForAnswered,
 } from '../../supabase/functions/notify-group-activity/plan';
@@ -22,6 +26,37 @@ describe('group activity notify plan', () => {
     expect(link).toContain('filter=groups');
     expect(link).toContain('groupId=g1');
     expect(link).toContain('prayerId=p1');
+  });
+
+  it('builds group invite deep links with groupId only', () => {
+    const link = buildGroupInviteAppLink('https://app.test', 'g1');
+    expect(link).toBe('https://app.test/?filter=groups&groupId=g1');
+  });
+
+  it('renders group_welcome template with escaped html names', () => {
+    expect(GROUP_WELCOME_TEMPLATE_KEY).toBe('group_welcome');
+    const rendered = renderGroupWelcomeEmail(
+      {
+        subject: 'Welcome to {{groupName}}!',
+        text_body: '{{inviterName}} invited you to {{groupName}}. {{appLink}}',
+        html_body: '<p>{{inviterName}} / {{groupName}}</p>',
+      },
+      {
+        groupName: 'Family <script>',
+        inviterName: 'Pat & Co',
+        appLink: 'https://app.test/?filter=groups&groupId=g1',
+        escapeHtml: (s) =>
+          s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;'),
+      },
+    );
+    expect(rendered.subject).toBe('Welcome to Family <script>!');
+    expect(rendered.textBody).toContain('Pat & Co');
+    expect(rendered.htmlBody).toContain('Pat &amp; Co');
+    expect(rendered.htmlBody).toContain('Family &lt;script&gt;');
+    expect(applyTemplateVariables('{{a}}', { a: 'x' })).toBe('x');
   });
 
   it('excludes the actor from member recipients', () => {

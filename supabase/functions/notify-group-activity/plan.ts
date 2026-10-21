@@ -1,6 +1,78 @@
 export type GroupActivityNotifyKind = 'prayer_added' | 'prayer_update' | 'prayer_answered';
 
+export const GROUP_WELCOME_TEMPLATE_KEY = 'group_welcome';
+
 export type SubscriberTemplateKey = 'approved_prayer' | 'approved_update' | 'prayer_answered';
+
+export interface EmailTemplateFields {
+  subject: string;
+  html_body: string;
+  text_body: string;
+}
+
+export function applyTemplateVariables(
+  content: string,
+  variables: Record<string, string>,
+): string {
+  let result = content;
+  for (const [key, value] of Object.entries(variables)) {
+    const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    result = result.replace(placeholder, value ?? '');
+  }
+  return result;
+}
+
+export function buildGroupInviteAppLink(baseUrl: string, groupId: string): string {
+  const base = baseUrl.replace(/\/+$/, '');
+  const params = new URLSearchParams({
+    filter: 'groups',
+    groupId,
+  });
+  return `${base}/?${params.toString()}`;
+}
+
+export function buildGroupWelcomeTextVariables(input: {
+  groupName: string;
+  inviterName: string;
+  appLink: string;
+}): Record<string, string> {
+  return {
+    groupName: input.groupName,
+    inviterName: input.inviterName,
+    appLink: input.appLink,
+  };
+}
+
+export function buildGroupWelcomeHtmlVariables(input: {
+  groupName: string;
+  inviterName: string;
+  appLink: string;
+  escapeHtml: (s: string) => string;
+}): Record<string, string> {
+  return {
+    groupName: input.escapeHtml(input.groupName),
+    inviterName: input.escapeHtml(input.inviterName),
+    appLink: input.appLink,
+  };
+}
+
+export function renderGroupWelcomeEmail(
+  template: EmailTemplateFields,
+  input: {
+    groupName: string;
+    inviterName: string;
+    appLink: string;
+    escapeHtml: (s: string) => string;
+  },
+): { subject: string; htmlBody: string; textBody: string } {
+  const textVars = buildGroupWelcomeTextVariables(input);
+  const htmlVars = buildGroupWelcomeHtmlVariables(input);
+  return {
+    subject: applyTemplateVariables(template.subject, textVars),
+    textBody: applyTemplateVariables(template.text_body, textVars),
+    htmlBody: applyTemplateVariables(template.html_body, htmlVars),
+  };
+}
 
 export function subscriberTemplateKeyForKind(
   kind: GroupActivityNotifyKind,

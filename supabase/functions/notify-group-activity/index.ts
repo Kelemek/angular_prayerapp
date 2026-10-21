@@ -10,6 +10,8 @@ import {
   type SubscriberNotifyRow,
 } from '../shared/safe-subscriber-email.ts';
 import {
+  GROUP_WELCOME_TEMPLATE_KEY,
+  buildGroupInviteAppLink,
   buildGroupPrayerAppLink,
   buildSubscriberTemplateVariables,
   memberEmailsExceptActor,
@@ -17,6 +19,7 @@ import {
   planEmailRecipients,
   planPushForKind,
   planPushRecipients,
+  renderGroupWelcomeEmail,
   subscriberTemplateKeyForKind,
   updateContentForAnswered,
   type GroupActivityNotifyKind,
@@ -366,7 +369,7 @@ async function handleInvite(
 
   const { data: members } = await admin
     .from('prayer_group_members')
-    .select('user_email, role, is_active')
+    .select('user_email, role, is_active, name')
     .eq('group_id', groupId)
     .eq('is_active', true);
   const actorRow = (members ?? []).find(
@@ -378,7 +381,7 @@ async function handleInvite(
   }
 
   const appBase = normalizeAppUrl(Deno.env.get('APP_URL'), 'https://cpprayer.cp-church.org');
-  const appLink = `${appBase}/login`;
+  const appLink = buildGroupInviteAppLink(appBase, groupId);
   const inviteEmail = normalizeSubscriberEmailForQuery(String(body.email ?? ''));
   if (!inviteEmail) {
     return json({ error: 'Invalid email address' }, 400);
@@ -394,8 +397,32 @@ async function handleInvite(
 
   const deliveryEmail = subscriber?.email ?? inviteEmail;
   const receivePush = subscriber?.receive_push === true;
-  const subject = `You are invited to ${group.name}`;
-  const text = `You have been invited to the prayer group ${group.name}. Sign in: ${appLink}`;
+  const inviterName = String(actorRow.name ?? '').trim() || 'A group owner';
+  const groupName = String(group.name ?? 'your group');
+
+  let subject = `You are invited to ${groupName}`;
+  let text = `You have been invited to the prayer group ${groupName}. Sign in: ${appLink}`;
+  let htmlBody = `<p>${escapeHtml(text)}</p>`;
+
+  const { data: welcomeTemplate, error: templateError } = await admin
+    .from('email_templates')
+    .select('subject, html_body, text_body')
+    .eq('template_key', GROUP_WELCOME_TEMPLATE_KEY)
+    .maybeSingle();
+  if (templateError) {
+    return json({ error: templateError.message }, 500);
+  }
+  if (welcomeTemplate) {
+    const rendered = renderGroupWelcomeEmail(welcomeTemplate, {
+      groupName,
+      inviterName,
+      appLink,
+      escapeHtml,
+    });
+    subject = rendered.subject;
+    text = rendered.textBody;
+    htmlBody = rendered.htmlBody;
+  }
 
   const emailResponse = await fetch(`${url}/functions/v1/send-email`, {
     method: 'POST',
@@ -407,7 +434,7 @@ async function handleInvite(
       to: deliveryEmail,
       subject,
       textBody: text,
-      htmlBody: `<p>${text}</p>`,
+      htmlBody,
     }),
   });
   if (!emailResponse.ok) {

@@ -34,7 +34,10 @@ const makeCoordinator = () => {
       destination: "/",
     })),
   };
-  const router = { navigate: vi.fn(async () => true) };
+  const router = {
+    navigate: vi.fn(async () => true),
+    navigateByUrl: vi.fn(async () => true),
+  };
   const coordinator = new LoginMfaCoordinator(
     adminAuthService as any,
     loginAuth as unknown as LoginAuthCoordinator,
@@ -155,7 +158,27 @@ describe("LoginMfaCoordinator", () => {
       "user@example.com",
       "/"
     );
-    expect(router.navigate).toHaveBeenCalledWith(["/"]);
+    expect(router.navigateByUrl).toHaveBeenCalledWith("/");
+  });
+
+  it("verifyCode navigates with query strings via navigateByUrl", async () => {
+    vi.useFakeTimers();
+    const { coordinator, host, loginAuth, router } = makeCoordinator();
+    loginAuth.resolvePostVerificationFlow = vi.fn(async () => ({
+      kind: "navigate" as const,
+      destination: "/?filter=groups&groupId=abc",
+    }));
+    host.email = "user@example.com";
+    host.mfaCodeInput = "1234";
+    host.codeLength = 4;
+
+    const verifyPromise = coordinator.verifyCode();
+    await vi.advanceTimersByTimeAsync(1000);
+    await verifyPromise;
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith(
+      "/?filter=groups&groupId=abc",
+    );
   });
 
   it("verifyCode shows registration phase from post-verify flow", async () => {

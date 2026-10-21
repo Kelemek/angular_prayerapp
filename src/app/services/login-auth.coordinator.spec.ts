@@ -204,6 +204,31 @@ describe("LoginAuthCoordinator", () => {
     expect(adminAuthService.logout).not.toHaveBeenCalled();
   });
 
+  it("resolvePostVerificationFlow preserves a group deep-link returnUrl for group-only members", async () => {
+    const { coordinator, supabaseService } = makeDeps();
+    mockLoginFromTables(supabaseService, {
+      subscriberRow: {
+        id: "sub",
+        email: "group@example.com",
+        name: "Group Member",
+        is_blocked: false,
+        is_church_member: false,
+        church_downgraded_at: null,
+        prayer_groups_enabled: true,
+      },
+    });
+
+    const result = await coordinator.resolvePostVerificationFlow(
+      "group@example.com",
+      "/?filter=groups&groupId=abc",
+    );
+
+    expect(result).toEqual({
+      kind: "navigate",
+      destination: "/?filter=groups&groupId=abc",
+    });
+  });
+
   it("resolvePostVerificationFlow keeps a group-only subscriber signed in", async () => {
     const { coordinator, supabaseService, adminAuthService } = makeDeps();
     mockLoginFromTables(supabaseService, {
