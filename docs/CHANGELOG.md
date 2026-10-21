@@ -49,6 +49,9 @@ Major features and milestones for the Prayer App.
 - On the Group tab, dragging group chips to reorder also reorders prayer cards on Current, Answered, and Total (newest first within each group). A single-group chip view still sorts by date only.
 - The Groups tab uses the same folder, status chips, and group chips as Prayer App: Current, Answered, and Total, a chip per group with its prayer count, and menus for members, rename, and delete. Invites and leaving a group are in the members dialog. Counts stay on one line with the other Home chips. With no groups, the empty state says a group is private prayers for the people you invite, and to tap + to create one. After you name a new group, Manage members opens so you can invite people. Creating a group saved, then the list waited on a server auth check and the button stayed on Creating. The list uses the signed-in session already in the app.
 
+### Email — welcome templates
+- **`subscriber_welcome`** and **`group_welcome`** “What you can do” lists now include a **Memorize Scripture** line pointing people to the Memorize tab ([`20261021130000_welcome_emails_memorize_line.sql`](../supabase/migrations/20261021130000_welcome_emails_memorize_line.sql)).
+
 ### Admin — Email Templates UI
 - Each template row in **Email Templates** shows a chevron and expands inline like the main section ([`admin-email-templates-list`](../src/app/components/admin-email-templates-list/admin-email-templates-list.component.html)). Collapse happens only from a deliberate click on the row header or **Email Templates** title, not when selecting text in the editor ([`admin-email-templates-section`](../src/app/components/admin-email-templates-section/admin-email-templates-section.component.ts), [`admin-email-templates-editor`](../src/app/components/admin-email-templates-editor/admin-email-templates-editor.component.ts)).
 
