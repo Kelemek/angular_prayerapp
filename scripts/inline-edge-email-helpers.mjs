@@ -45,13 +45,20 @@ function buildInlineBlock(includeSpotlight) {
   ].join('\n');
 }
 
-function stripExistingInlineBlock(content, jobMarker) {
-  let rest = content
+const INLINE_BLOCK_RE =
+  /\/\/ ----- TipTap markdown → safe HTML \(inline; keep aligned with src\/lib\/edge-email-markdown\.ts\) -----\n[\s\S]*?\/\/ ----- END inline edge-email-markdown -----\n\n/gm;
+
+const NOTIFY_IMPORTS_MARKER =
+  '// ----- notify-group-activity imports (keep above inline when regenerating) -----';
+
+function stripMarkedAndInline(content) {
+  return content
     .replace(/^import \{ Marked \} from 'https:\/\/esm\.sh\/marked@15\.0\.12';\n\n/gm, '')
-    .replace(
-      /\/\/ ----- TipTap markdown → safe HTML \(inline; keep aligned with src\/lib\/edge-email-markdown\.ts\) -----\n[\s\S]*?\/\/ ----- END inline edge-email-markdown -----\n\n/gm,
-      ''
-    );
+    .replace(INLINE_BLOCK_RE, '');
+}
+
+function stripExistingInlineBlock(content, jobMarker) {
+  const rest = stripMarkedAndInline(content);
 
   const jobIdx = rest.indexOf(jobMarker);
   if (jobIdx === -1) {
@@ -61,11 +68,30 @@ function stripExistingInlineBlock(content, jobMarker) {
   return rest.slice(jobIdx);
 }
 
+function injectNotifyGroupActivity(indexPath, index, createClientImport) {
+  let rest = index.replace(/^import \{ createClient[^;]+;\n/m, '');
+  rest = stripMarkedAndInline(rest);
+
+  const impIdx = rest.indexOf(NOTIFY_IMPORTS_MARKER);
+  const serveIdx = rest.indexOf('Deno.serve(async (req) => {');
+  if (impIdx === -1 || serveIdx === -1 || serveIdx < impIdx) {
+    throw new Error('notify-group-activity: imports marker or Deno.serve not found');
+  }
+
+  const importsBlock = `${rest.slice(impIdx, serveIdx).trimEnd()}\n\n`;
+  const handlerRest = rest.slice(serveIdx);
+  const inlineBlock = buildInlineBlock(false);
+  const output = `${createClientImport}\nimport { Marked } from 'https://esm.sh/marked@15.0.12';\n\n${importsBlock}${inlineBlock}${handlerRest}`;
+  fs.writeFileSync(indexPath, output);
+}
+
 function injectIntoIndex(functionDir, includeSpotlight) {
   const jobMarkers = {
     'send-user-hourly-prayer-reminders': '/**\n * Hourly job: send self prayer reminders.',
     'send-user-prayer-item-reminders':
       '/**\n * Every-15-minutes job: send per-prayer item reminders',
+    'notify-group-activity':
+      '// ----- notify-group-activity imports (keep above inline when regenerating) -----',
   };
   const jobMarker = jobMarkers[functionDir];
   if (!jobMarker) {
@@ -83,6 +109,12 @@ function injectIntoIndex(functionDir, includeSpotlight) {
   }
   const createClientImport = createClientMatch[0];
 
+  if (functionDir === 'notify-group-activity') {
+    injectNotifyGroupActivity(indexPath, index, createClientImport);
+    console.log(`Updated ${functionDir}/index.ts`);
+    return;
+  }
+
   let rest = index.replace(/^import \{ createClient[^;]+;\n/m, '');
   rest = stripExistingInlineBlock(rest, jobMarker);
   const inlineBlock = buildInlineBlock(includeSpotlight);
@@ -94,6 +126,7 @@ function injectIntoIndex(functionDir, includeSpotlight) {
 
 injectIntoIndex('send-user-prayer-item-reminders', false);
 injectIntoIndex('send-user-hourly-prayer-reminders', true);
+injectIntoIndex('notify-group-activity', false);
 
 const sharedDir = path.join(root, 'supabase/functions/_shared');
 if (fs.existsSync(sharedDir)) {

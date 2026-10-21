@@ -374,15 +374,38 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       const { CapacitorService } = await import("./services/capacitor.service");
       const { PrayerService } = await import("./services/prayer.service");
+      const { PrayerGroupService } = await import("./services/prayer-group.service");
       const { PromptService } = await import("./services/prompt.service");
 
       const capacitorService = this.injector.get(CapacitorService);
       const prayerService = this.injector.get(PrayerService);
+      const prayerGroupService = this.injector.get(PrayerGroupService);
       const promptService = this.injector.get(PromptService);
 
       capacitorService.notificationEvents$
         .pipe(
           filter((event) => event.source === "tap"),
+          filter((event) => Boolean(event.data?.["groupId"]))
+        )
+        .subscribe((event) => {
+          const groupId = String(event.data!["groupId"]);
+          const prayerId = event.data?.["prayerId"];
+          void prayerGroupService.loadCatalog(true);
+          this.ngZone.run(() => {
+            void this.router.navigate(["/"], {
+              queryParams: {
+                filter: "groups",
+                groupId,
+                ...(prayerId ? { prayerId: String(prayerId) } : {}),
+              },
+            });
+          });
+        });
+
+      capacitorService.notificationEvents$
+        .pipe(
+          filter((event) => event.source === "tap"),
+          filter((event) => !event.data?.["groupId"]),
           filter(
             (event) =>
               event.type === "prayer_update" ||

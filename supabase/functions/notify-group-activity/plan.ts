@@ -1,0 +1,188 @@
+export type GroupActivityNotifyKind = 'prayer_added' | 'prayer_update' | 'prayer_answered';
+
+export type SubscriberTemplateKey = 'approved_prayer' | 'approved_update' | 'prayer_answered';
+
+export function subscriberTemplateKeyForKind(
+  kind: GroupActivityNotifyKind,
+): SubscriberTemplateKey {
+  switch (kind) {
+    case 'prayer_added':
+      return 'approved_prayer';
+    case 'prayer_update':
+      return 'approved_update';
+    case 'prayer_answered':
+      return 'prayer_answered';
+    default: {
+      const _exhaustive: never = kind;
+      return _exhaustive;
+    }
+  }
+}
+
+export function buildGroupPrayerAppLink(
+  baseUrl: string,
+  groupId: string,
+  prayerId: string,
+): string {
+  const base = baseUrl.replace(/\/+$/, '');
+  const params = new URLSearchParams({
+    filter: 'groups',
+    groupId,
+    prayerId,
+  });
+  return `${base}/?${params.toString()}`;
+}
+
+export function memberEmailsExceptActor(
+  memberEmails: string[],
+  actorEmail: string,
+): string[] {
+  const actor = actorEmail.trim().toLowerCase();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of memberEmails) {
+    const email = raw.trim().toLowerCase();
+    if (!email || email === actor || seen.has(email)) continue;
+    seen.add(email);
+    out.push(email);
+  }
+  return out;
+}
+
+export type SubscriberDeliveryRow = {
+  email: string;
+  is_active: boolean | null;
+  is_blocked: boolean | null;
+  receive_push: boolean | null;
+};
+
+export function planEmailRecipients(rows: SubscriberDeliveryRow[]): string[] {
+  return rows
+    .filter((row) => row.is_blocked !== true && row.is_active !== false)
+    .map((row) => row.email);
+}
+
+export function planPushRecipients(rows: SubscriberDeliveryRow[]): string[] {
+  return rows
+    .filter((row) => row.is_blocked !== true && row.receive_push === true)
+    .map((row) => row.email);
+}
+
+export interface PrayerFields {
+  id: string;
+  group_id: string;
+  title: string;
+  description: string | null;
+  prayer_for: string;
+  requester: string;
+  status: string;
+}
+
+export interface UpdateFields {
+  id: string;
+  content: string;
+  author: string;
+}
+
+export interface RenderedContent {
+  prayerDescription: string;
+  prayerDescriptionText: string;
+  prayerDescriptionHtml: string;
+  updateContent?: string;
+  updateContentText?: string;
+  updateContentHtml?: string;
+}
+
+export interface BuildVariablesInput {
+  kind: GroupActivityNotifyKind;
+  prayer: PrayerFields;
+  appLink: string;
+  authorName: string;
+  rendered: RenderedContent;
+}
+
+export function buildSubscriberTemplateVariables(
+  input: BuildVariablesInput,
+): Record<string, string> {
+  const { kind, prayer, appLink, authorName, rendered } = input;
+  const base: Record<string, string> = {
+    prayerTitle: prayer.title,
+    prayerFor: prayer.prayer_for,
+    requesterName: prayer.requester,
+    prayerDescription: rendered.prayerDescription,
+    prayerDescriptionText: rendered.prayerDescriptionText,
+    prayerDescriptionHtml: rendered.prayerDescriptionHtml,
+    status: prayer.status,
+    prayerStatus: prayer.status,
+    appLink,
+  };
+  if (kind === 'prayer_added') {
+    return base;
+  }
+  return {
+    ...base,
+    authorName,
+    updateContent: rendered.updateContent ?? '',
+    updateContentText: rendered.updateContentText ?? '',
+    updateContentHtml: rendered.updateContentHtml ?? '',
+  };
+}
+
+export const FALLBACK_ANSWERED_UPDATE_TEXT = 'This prayer was marked as answered.';
+
+export function updateContentForAnswered(
+  update: UpdateFields | null,
+  fallbackAuthor: string,
+): { authorName: string; content: string } {
+  if (update) {
+    return { authorName: update.author, content: update.content };
+  }
+  return { authorName: fallbackAuthor, content: FALLBACK_ANSWERED_UPDATE_TEXT };
+}
+
+export function truncatePushTitle(title: string, max = 50): string {
+  if (title.length <= max) return title;
+  return `${title.slice(0, max - 3)}...`;
+}
+
+export function truncatePushBody(text: string, max = 120): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 3)}...`;
+}
+
+export function planPushForKind(
+  kind: GroupActivityNotifyKind,
+  prayer: PrayerFields,
+  descriptionPlain: string,
+  updatePlain: string,
+): { title: string; body: string; pushType: string } {
+  const title = truncatePushTitle(prayer.title);
+  if (kind === 'prayer_added') {
+    const desc = truncatePushBody(descriptionPlain);
+    return {
+      title,
+      body: desc || 'A new prayer has been shared.',
+      pushType: 'prayer_approved',
+    };
+  }
+  const body = truncatePushBody(updatePlain) || 'New prayer update.';
+  return {
+    title,
+    body,
+    pushType: kind === 'prayer_answered' ? 'prayer_answered' : 'prayer_update',
+  };
+}
+
+export function normalizeAppUrl(raw: string | undefined, fallback: string): string {
+  let u = (raw ?? fallback).trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(u)) {
+    if (/^localhost\b/i.test(u) || /^127\.0\.0\.1\b/.test(u)) {
+      u = `http://${u}`;
+    } else {
+      u = `https://${u}`;
+    }
+  }
+  return u;
+}

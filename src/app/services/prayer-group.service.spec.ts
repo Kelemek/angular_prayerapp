@@ -198,3 +198,180 @@ describe('PrayerGroupService.updateGroupColor', () => {
     expect(loadCatalog).toHaveBeenCalledWith(true);
   });
 });
+
+describe('PrayerGroupService group activity notify', () => {
+  function serviceWithDb(db: object): PrayerGroupService {
+    return new PrayerGroupService(
+      { db: async () => db } as never,
+      { invalidate: vi.fn(), get: vi.fn(), set: vi.fn() } as never,
+      {
+        userSession$: new BehaviorSubject(null),
+        getCurrentSession: vi.fn(),
+      } as never,
+    );
+  }
+
+  it('addPrayer invokes notify-group-activity with prayer id', async () => {
+    const invoke = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === 'group_prayers') {
+        return {
+          insert: () => ({
+            select: () => ({
+              single: async () => ({ data: { id: 'prayer-1' }, error: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+    const service = serviceWithDb({ from, functions: { invoke } });
+    await service.addPrayer({
+      groupId: 'g1',
+      title: 'T',
+      prayerFor: 'Jane',
+      description: 'd',
+      requester: 'Bob',
+      email: 'bob@test.com',
+    });
+    expect(invoke).toHaveBeenCalledWith('notify-group-activity', {
+      body: { kind: 'prayer_added', groupId: 'g1', prayerId: 'prayer-1' },
+    });
+  });
+
+  it('addUpdate notifies prayer_update when not marking answered', async () => {
+    const invoke = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === 'group_prayer_updates') {
+        return {
+          insert: () => ({
+            select: () => ({
+              single: async () => ({ data: { id: 'upd-1' }, error: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+    const service = serviceWithDb({ from, functions: { invoke } });
+    await service.addUpdate({
+      prayerId: 'p1',
+      content: 'c',
+      author: 'a',
+      authorEmail: 'a@test.com',
+      markAsAnswered: false,
+    });
+    expect(invoke).toHaveBeenCalledWith('notify-group-activity', {
+      body: { kind: 'prayer_update', prayerId: 'p1', updateId: 'upd-1' },
+    });
+  });
+
+  it('addUpdate rethrows non-permission errors when mark answered fails', async () => {
+    const invoke = vi.fn().mockResolvedValue({ error: null });
+    const networkError = { message: 'fetch failed', code: 'ECONNRESET' };
+    const from = vi.fn((table: string) => {
+      if (table === 'group_prayer_updates') {
+        return {
+          insert: () => ({
+            select: () => ({
+              single: async () => ({ data: { id: 'upd-2' }, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === 'group_prayers') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: { status: 'current' }, error: null }),
+            }),
+          }),
+          update: () => ({
+            eq: async () => ({ error: networkError }),
+          }),
+        };
+      }
+      return {};
+    });
+    const service = serviceWithDb({ from, functions: { invoke } });
+    await expect(
+      service.addUpdate({
+        prayerId: 'p1',
+        content: 'c',
+        author: 'a',
+        authorEmail: 'a@test.com',
+        markAsAnswered: true,
+      }),
+    ).rejects.toEqual(networkError);
+    expect(invoke).toHaveBeenCalledWith('notify-group-activity', {
+      body: { kind: 'prayer_update', prayerId: 'p1', updateId: 'upd-2' },
+    });
+  });
+
+  it('addUpdate maps RLS denial to author-only message when mark answered fails', async () => {
+    const invoke = vi.fn().mockResolvedValue({ error: null });
+    const rlsError = { message: 'new row violates row-level security policy', code: '42501' };
+    const from = vi.fn((table: string) => {
+      if (table === 'group_prayer_updates') {
+        return {
+          insert: () => ({
+            select: () => ({
+              single: async () => ({ data: { id: 'upd-3' }, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === 'group_prayers') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: { status: 'current' }, error: null }),
+            }),
+          }),
+          update: () => ({
+            eq: async () => ({ error: rlsError }),
+          }),
+        };
+      }
+      return {};
+    });
+    const service = serviceWithDb({ from, functions: { invoke } });
+    await expect(
+      service.addUpdate({
+        prayerId: 'p1',
+        content: 'c',
+        author: 'a',
+        authorEmail: 'a@test.com',
+        markAsAnswered: true,
+      }),
+    ).rejects.toThrow('Only the author can mark the prayer answered.');
+  });
+
+  it('setAnswered(true) notifies prayer_answered when status was current', async () => {
+    const invoke = vi.fn().mockResolvedValue({ error: null });
+    let reads = 0;
+    const from = vi.fn((table: string) => {
+      if (table !== 'group_prayers') return {};
+      reads += 1;
+      if (reads === 1) {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: { status: 'current' }, error: null }),
+            }),
+          }),
+        };
+      }
+      return {
+        update: () => ({
+          eq: async () => ({ error: null }),
+        }),
+      };
+    });
+    const service = serviceWithDb({ from, functions: { invoke } });
+    await service.setAnswered('p1', true, { updateId: 'upd-9' });
+    expect(invoke).toHaveBeenCalledWith('notify-group-activity', {
+      body: { kind: 'prayer_answered', prayerId: 'p1', updateId: 'upd-9' },
+    });
+  });
+});

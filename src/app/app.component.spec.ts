@@ -1422,6 +1422,48 @@ describe('AppComponent', () => {
       });
     });
 
+    it('navigates to Groups tab when a group activity push is tapped', async () => {
+      const notificationEvents$ = new Subject<{
+        source: string;
+        type: string;
+        data?: Record<string, string>;
+      }>();
+      const loadCatalog = vi.fn().mockResolvedValue(undefined);
+      const loadPrayers = vi.fn().mockResolvedValue(undefined);
+
+      mockInjector.get = vi.fn((token: { name?: string }) => {
+        const name = token?.name ?? '';
+        if (name.includes('CapacitorService')) {
+          return { notificationEvents$: notificationEvents$.asObservable() };
+        }
+        if (name.includes('PrayerGroupService')) {
+          return { loadCatalog };
+        }
+        if (name.includes('PrayerService')) {
+          return { loadPrayers };
+        }
+        if (name.includes('AdminDataService')) {
+          return { fetchAdminData: vi.fn() };
+        }
+        return {};
+      });
+
+      await (component as any).setupPushRefreshListener();
+
+      notificationEvents$.next({
+        source: 'tap',
+        type: 'prayer_approved',
+        data: { groupId: 'g-1', prayerId: 'p-1' },
+      });
+      await Promise.resolve();
+
+      expect(loadCatalog).toHaveBeenCalledWith(true);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
+        queryParams: { filter: 'groups', groupId: 'g-1', prayerId: 'p-1' },
+      });
+      expect(loadPrayers).not.toHaveBeenCalled();
+    });
+
     it('navigates to prayer when hourly spotlight push is tapped with prayerId', async () => {
       const notificationEvents$ = new Subject<{
         source: string;

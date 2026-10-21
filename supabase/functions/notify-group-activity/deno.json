@@ -1,3 +1,6 @@
 {
-  "verify_jwt": true
+  "verify_jwt": true,
+  "imports": {
+    "marked": "https://esm.sh/marked@15.0.12"
+  }
 }

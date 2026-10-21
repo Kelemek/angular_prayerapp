@@ -223,21 +223,23 @@ export class PrayerCardActionsFacade {
     const userSession = this.userSessionService.getCurrentSession();
     const author = userSession?.fullName || "Anonymous";
     const authorEmail = userSession?.email || "";
-    await this.prayerGroupService.addUpdate({
-      prayerId: updateData.prayer_id,
-      content: updateData.content,
-      author,
-      authorEmail,
-      markAsAnswered: updateData.mark_as_answered,
-    });
-    if (updateData.mark_as_answered) {
-      try {
-        await this.prayerGroupService.setAnswered(updateData.prayer_id, true);
-      } catch {
-        this.toastService.error(
-          "Update saved. Only the author can mark the prayer answered."
-        );
+    try {
+      await this.prayerGroupService.addUpdate({
+        prayerId: updateData.prayer_id,
+        content: updateData.content,
+        author,
+        authorEmail,
+        markAsAnswered: updateData.mark_as_answered,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Only the author can mark the prayer answered."
+      ) {
+        this.toastService.error(error.message);
+        return true;
       }
+      throw error;
     }
     return true;
   }

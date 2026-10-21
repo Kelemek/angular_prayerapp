@@ -589,13 +589,6 @@ export class HomeGroupsPanelComponent {
         authorEmail: event.author_email,
         markAsAnswered: event.mark_as_answered,
       });
-      if (event.mark_as_answered) {
-        try {
-          await this.groupsApi.setAnswered(event.prayer_id, true);
-        } catch {
-          this.toast.error('Update saved. Only the author can mark the prayer answered.');
-        }
-      }
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not add the update');
     }

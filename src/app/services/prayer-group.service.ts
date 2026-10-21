@@ -546,18 +546,24 @@ export class PrayerGroupService {
     email: string;
   }): Promise<void> {
     const client = await this.supabase.db();
-    const { error } = await client.from('group_prayers').insert({
-      group_id: input.groupId,
-      title: input.title,
-      prayer_for: input.prayerFor,
-      description: input.description,
-      requester: input.requester,
-      email: input.email,
-    });
+    const { data, error } = await client
+      .from('group_prayers')
+      .insert({
+        group_id: input.groupId,
+        title: input.title,
+        prayer_for: input.prayerFor,
+        description: input.description,
+        requester: input.requester,
+        email: input.email,
+      })
+      .select('id')
+      .single();
     if (error) throw error;
     this.notifyChanged();
-    await client.functions.invoke('notify-group-activity', {
-      body: { kind: 'prayer_added', groupId: input.groupId, title: input.title },
+    void this.invokeGroupActivityNotify({
+      kind: 'prayer_added',
+      groupId: input.groupId,
+      prayerId: data.id,
     });
   }
 
@@ -639,8 +645,22 @@ export class PrayerGroupService {
     return (data ?? []) as GroupPrayerUpdateRow[];
   }
 
-  async setAnswered(prayerId: string, answered: boolean): Promise<void> {
+  async setAnswered(
+    prayerId: string,
+    answered: boolean,
+    options?: { updateId?: string },
+  ): Promise<void> {
     const client = await this.supabase.db();
+    let priorStatus: GroupPrayerRow['status'] | null = null;
+    if (answered) {
+      const { data: prior, error: priorError } = await client
+        .from('group_prayers')
+        .select('status')
+        .eq('id', prayerId)
+        .maybeSingle();
+      if (priorError) throw priorError;
+      priorStatus = (prior?.status as GroupPrayerRow['status'] | undefined) ?? null;
+    }
     const { error } = await client
       .from('group_prayers')
       .update({
@@ -650,6 +670,13 @@ export class PrayerGroupService {
       .eq('id', prayerId);
     if (error) throw error;
     this.notifyChanged();
+    if (answered && priorStatus === 'current') {
+      void this.invokeGroupActivityNotify({
+        kind: 'prayer_answered',
+        prayerId,
+        updateId: options?.updateId,
+      });
+    }
   }
 
   async updatePrayer(prayerId: string, prayerFor: string, description: string): Promise<void> {
@@ -681,15 +708,41 @@ export class PrayerGroupService {
     markAsAnswered: boolean;
   }): Promise<void> {
     const client = await this.supabase.db();
-    const { error } = await client.from('group_prayer_updates').insert({
-      group_prayer_id: input.prayerId,
-      content: input.content,
-      author: input.author,
-      author_email: input.authorEmail,
-      mark_as_answered: input.markAsAnswered,
-    });
+    const { data, error } = await client
+      .from('group_prayer_updates')
+      .insert({
+        group_prayer_id: input.prayerId,
+        content: input.content,
+        author: input.author,
+        author_email: input.authorEmail,
+        mark_as_answered: input.markAsAnswered,
+      })
+      .select('id')
+      .single();
     if (error) throw error;
     this.notifyChanged();
+    const updateId = data.id as string;
+    if (!input.markAsAnswered) {
+      void this.invokeGroupActivityNotify({
+        kind: 'prayer_update',
+        prayerId: input.prayerId,
+        updateId,
+      });
+      return;
+    }
+    try {
+      await this.setAnswered(input.prayerId, true, { updateId });
+    } catch (err: unknown) {
+      void this.invokeGroupActivityNotify({
+        kind: 'prayer_update',
+        prayerId: input.prayerId,
+        updateId,
+      });
+      if (isGroupPrayerAnsweredUpdateDenied(err)) {
+        throw new Error('Only the author can mark the prayer answered.');
+      }
+      throw err;
+    }
   }
 
   async deleteUpdate(updateId: string): Promise<void> {
@@ -717,4 +770,29 @@ export class PrayerGroupService {
     if (error) throw error;
     await this.refreshCatalogAfterWrite();
   }
+
+  private async invokeGroupActivityNotify(body: {
+    kind: 'prayer_added' | 'prayer_update' | 'prayer_answered';
+    groupId?: string;
+    prayerId: string;
+    updateId?: string;
+  }): Promise<void> {
+    try {
+      const client = await this.supabase.db();
+      await client.functions.invoke('notify-group-activity', { body });
+    } catch {
+      // Prayer/update save already succeeded; notification is best-effort.
+    }
+  }
+}
+
+function isGroupPrayerAnsweredUpdateDenied(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: string; message?: string };
+  const msg = (e.message ?? '').toLowerCase();
+  return (
+    e.code === '42501' ||
+    msg.includes('row-level security') ||
+    msg.includes('permission denied')
+  );
 }
