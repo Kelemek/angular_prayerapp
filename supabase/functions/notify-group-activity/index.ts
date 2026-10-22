@@ -9,16 +9,24 @@ import {
   normalizeSubscriberEmailsForQuery,
   type SubscriberNotifyRow,
 } from '../shared/safe-subscriber-email.ts';
+import { consumeRateLimit, policyErrorToResponse } from '../shared/policy-rpc.ts';
+import {
+  assertInviteSendable,
+  claimNotifyRecipients,
+  insertGroupMail,
+} from './gates.ts';
 import {
   GROUP_WELCOME_TEMPLATE_KEY,
   buildGroupInviteAppLink,
   buildGroupPrayerAppLink,
   buildSubscriberTemplateVariables,
+  claimedDelivery,
   memberEmailsExceptActor,
   normalizeAppUrl,
   planEmailRecipients,
   planPushForKind,
   planPushRecipients,
+  uniqueNotifyRecipients,
   renderGroupWelcomeEmail,
   subscriberTemplateKeyForKind,
   updateContentForAnswered,
@@ -28,6 +36,8 @@ import {
   type SubscriberDeliveryRow,
   type UpdateFields,
 } from './plan.ts';
+
+const NOTIFY_UPDATE_SENTINEL = '00000000-0000-0000-0000-000000000000';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -424,6 +434,21 @@ async function handleInvite(
     htmlBody = rendered.htmlBody;
   }
 
+  try {
+    await assertInviteSendable(admin, groupId, actor, inviteEmail);
+    if (!(await consumeRateLimit(admin, 'invite_owner', actor, 10))) {
+      return json({ error: 'Too many invitations. Try again later.' }, 429);
+    }
+    if (!(await consumeRateLimit(admin, 'invite_recipient', inviteEmail, 5))) {
+      return json(
+        { error: 'That address was invited too many times. Try later.' },
+        429,
+      );
+    }
+  } catch (error) {
+    return policyErrorToResponse(error);
+  }
+
   const emailResponse = await fetch(`${url}/functions/v1/send-email`, {
     method: 'POST',
     headers: {
@@ -599,22 +624,56 @@ async function handleGroupPrayerNotify(
     rendered,
   });
 
-  if (emailRecipients.length > 0) {
-    const queueRows = emailRecipients.map((recipient) => ({
-      recipient,
-      template_key: templateKey,
-      template_variables: templateVariables,
-      status: 'pending',
-      attempts: 0,
-    }));
-    const { error: queueError } = await admin.from('email_queue').insert(queueRows);
-    if (queueError) {
-      return json({ error: queueError.message }, 500);
+  const notifyUpdateId =
+    kind === 'prayer_update' ? updateId : NOTIFY_UPDATE_SENTINEL;
+  const deliveryRecipients = uniqueNotifyRecipients(
+    emailRecipients,
+    pushRecipients,
+  );
+  let claimed: string[] = [];
+  if (deliveryRecipients.length > 0) {
+    try {
+      if (!(await consumeRateLimit(admin, 'group_notify_actor', actor, 20))) {
+        return json({ error: 'Too many notifications. Try again later.' }, 429);
+      }
+      claimed = await claimNotifyRecipients(
+        admin,
+        kind,
+        prayerId,
+        notifyUpdateId,
+        deliveryRecipients,
+      );
+    } catch (error) {
+      return policyErrorToResponse(error);
     }
-    await triggerEmailProcessor(url, serviceKey);
+  }
+  const emailNow = claimedDelivery(emailRecipients, claimed);
+  const pushNow = claimedDelivery(pushRecipients, claimed);
+
+  let queuedCount = 0;
+  if (emailNow.length > 0) {
+    try {
+      const queued = await insertGroupMail(admin, {
+        recipients: emailNow,
+        templateKey,
+        templateVariables,
+      });
+      if (queued.error) {
+        if (queued.queued > 0) {
+          await triggerEmailProcessor(url, serviceKey);
+        }
+        return json({ error: queued.error }, 500);
+      }
+      queuedCount = queued.queued;
+    } catch (error) {
+      return policyErrorToResponse(error);
+    }
+    if (queuedCount > 0) {
+      await triggerEmailProcessor(url, serviceKey);
+    }
   }
 
-  if (pushRecipients.length > 0) {
+  if (pushNow.length > 0) {
     const pushPlan = planPushForKind(
       kind,
       prayer,
@@ -628,7 +687,7 @@ async function handleGroupPrayerNotify(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        emails: pushRecipients,
+        emails: pushNow,
         title: pushPlan.title,
         body: pushPlan.body,
         data: {
@@ -642,9 +701,9 @@ async function handleGroupPrayerNotify(
 
   return json({
     success: true,
-    notified: emailRecipients.length,
-    queued: emailRecipients.length,
-    pushed: pushRecipients.length,
+    notified: queuedCount,
+    queued: queuedCount,
+    pushed: pushNow.length,
   });
 }
 

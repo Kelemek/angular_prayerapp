@@ -5,7 +5,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { shouldSkipChurchQueueRow } from '../src/lib/church-email-queue';
 
 interface EmailQueueItem {
   id: string;
@@ -340,69 +339,17 @@ function getBackoffDelay(attempts: number): number {
   return RETRY_DELAY_MS * Math.pow(2, attempts);
 }
 
-async function loadRecipientChurchFlags(
-  emails: string[]
-): Promise<Map<string, boolean>> {
-  const unique = [...new Set(emails.map((email) => email.trim().toLowerCase()))];
-  const flags = new Map<string, boolean>();
-  if (unique.length === 0) {
-    return flags;
-  }
-  const { data, error } = await supabase
-    .from('email_subscribers')
-    .select('email, is_church_member')
-    .in('email', unique);
-  if (error) {
-    throw new Error(`Failed to load subscriber church flags: ${error.message}`);
-  }
-  for (const row of data ?? []) {
-    const email = String(row.email ?? '').trim().toLowerCase();
-    if (email) {
-      flags.set(email, row.is_church_member === true);
-    }
-  }
-  return flags;
-}
-
-async function skipQueuedEmail(email: EmailQueueItem, reason: string): Promise<void> {
-  const { error } = await supabase
-    .from('email_queue')
-    .update({
-      status: 'failed',
-      last_error: reason,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', email.id);
-  if (error) {
-    console.error(`Error marking skipped email ${email.id}:`, error);
-  } else {
-    console.log(`⏭️ Skipped church mail ${email.id} to ${email.recipient}: ${reason}`);
-  }
-}
-
 /**
  * Process a single email from the queue
  */
 async function processEmail(
   token: string,
-  email: EmailQueueItem,
-  recipientIsChurchMember: boolean
+  email: EmailQueueItem
 ): Promise<boolean> {
   try {
     console.log(
       `📧 Processing email ${email.id} to ${email.recipient} (attempt ${email.attempts + 1}/${MAX_RETRIES})`
     );
-    if (
-      shouldSkipChurchQueueRow({
-        templateKey: email.template_key,
-        recipientIsChurchMember,
-        isGroupTemplate: getTemplate(email.template_key)?.is_group === true,
-        appLink: email.template_variables?.appLink
-      })
-    ) {
-      await skipQueuedEmail(email, 'Skipped: group-only church mail');
-      return true;
-    }
 
     // Get template from cache (should already be prefetched)
     const template = getTemplate(email.template_key);
@@ -529,9 +476,6 @@ async function processEmailQueue(): Promise<void> {
       // Prefetch all unique templates for this batch
       const templateKeys = getUniqueTemplateKeys(queueItems as EmailQueueItem[]);
       await prefetchTemplates(templateKeys);
-      const churchFlags = await loadRecipientChurchFlags(
-        (queueItems as EmailQueueItem[]).map((item) => item.recipient)
-      );
 
       // Process each email
       let batchSuccessCount = 0;
@@ -539,11 +483,7 @@ async function processEmailQueue(): Promise<void> {
 
       for (const email of queueItems) {
         const item = email as EmailQueueItem;
-        const success = await processEmail(
-          token,
-          item,
-          churchFlags.get(item.recipient.trim().toLowerCase()) === true
-        );
+        const success = await processEmail(token, item);
         if (success) {
           batchSuccessCount++;
         } else {

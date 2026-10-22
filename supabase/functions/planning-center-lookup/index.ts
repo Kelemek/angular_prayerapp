@@ -1,14 +1,14 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0'
 import { requireChurchMemberCaller } from '../shared/reject-group-only-caller.ts'
 import { verifyAuthResumeToken } from '../shared/auth-resume-token.ts'
 import { planningCenterPeopleIncludeEmail } from '../shared/planning-center-email-match.ts'
+import { consumeRateLimit, policyErrorToResponse } from '../shared/policy-rpc.ts'
 import {
-  createLoginLookupRateLimiter,
   decidePlanningCenterLookupMode,
   loginLookupBooleanResult,
   parsePlanningCenterLookupBody,
+  trustedClientAddress,
 } from './login-lookup-gate.ts'
-
-const loginLookupRateLimiter = createLoginLookupRateLimiter()
 
 const EMAIL_FETCH_CONCURRENCY = 5
 
@@ -121,10 +121,49 @@ function json(
   })
 }
 
-function clientIp(req: Request): string {
-  const forwarded = req.headers.get('x-forwarded-for') ?? ''
-  const first = forwarded.split(',')[0]?.trim()
-  return (first || req.headers.get('cf-connecting-ip') || 'unknown').slice(0, 64)
+function serviceAdmin() {
+  const url = Deno.env.get('SUPABASE_URL') ?? ''
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (!url || !serviceKey) {
+    return null
+  }
+  return createClient(url, serviceKey)
+}
+
+async function consumeLookupBudget(
+  bucket: string,
+  subject: string,
+): Promise<Response | null> {
+  const admin = serviceAdmin()
+  if (!admin) {
+    return json({ error: 'Server is not configured' }, 500)
+  }
+  try {
+    if (!(await consumeRateLimit(admin, bucket, subject, 10))) {
+      return json({ error: 'Too many attempts. Try again later.' }, 429)
+    }
+    return null
+  } catch (error) {
+    return policyErrorToResponse(error)
+  }
+}
+
+async function signedInCallerEmail(req: Request): Promise<string | null> {
+  const admin = serviceAdmin()
+  if (!admin) {
+    return null
+  }
+  const header = req.headers.get('Authorization') ?? ''
+  const token = header.replace(/^Bearer\s+/i, '').trim()
+  if (!token) {
+    return null
+  }
+  const { data, error } = await admin.auth.getUser(token)
+  const email = data.user?.email?.trim().toLowerCase() ?? ''
+  if (error || !email) {
+    return null
+  }
+  return email
 }
 
 Deno.serve(async (req: Request) => {
@@ -146,17 +185,26 @@ Deno.serve(async (req: Request) => {
       if (!tokenCheck.ok) {
         return json({ error: 'Not authorized' }, 401)
       }
-      const rateKey = `${clientIp(req)}:${mode.email}`
-      if (loginLookupRateLimiter.isLimited(rateKey)) {
-        return json({ error: 'Too many attempts. Try again later.' }, 429)
-      }
-      loginLookupRateLimiter.record(rateKey)
+      const limited = await consumeLookupBudget(
+        'pc_lookup',
+        `${trustedClientAddress(req)}:${mode.email}`,
+      )
+      if (limited) return limited
       const matched = await emailIsInPlanningCenter(mode.email)
       return json(loginLookupBooleanResult(matched))
     }
 
     const denied = await requireChurchMemberCaller(req)
     if (denied) return denied
+    const callerEmail = await signedInCallerEmail(req)
+    if (!callerEmail) {
+      return json({ error: 'Not authorized' }, 401)
+    }
+    const churchLimited = await consumeLookupBudget(
+      'pc_lookup_church',
+      `${callerEmail}:${trustedClientAddress(req)}`,
+    )
+    if (churchLimited) return churchLimited
 
     // Get Planning Center credentials from environment
     const PC_APP_ID = Deno.env.get('PLANNING_CENTER_APP_ID')

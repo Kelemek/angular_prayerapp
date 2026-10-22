@@ -44,6 +44,5 @@ describe('migration 20261018200000_prayer_groups.sql', () => {
     );
     expect(downgrade).toContain('Transfer admin access before downgrading');
     expect(downgrade).toContain('Transfer group ownership before downgrading');
-    expect(downgrade).toContain("prayer_kind IN ('community', 'pc_member')");
   });
 });

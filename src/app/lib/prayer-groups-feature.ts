@@ -47,3 +47,56 @@ export function resolveHomeFilterFromSession(
   }
   return sanitizeHomeAreaFilter(next, session);
 }
+
+export function churchContentVisible(input: {
+  sessionInitialized: boolean;
+  isChurchMember: boolean | null | undefined;
+}): boolean {
+  return input.sessionInitialized && input.isChurchMember !== false;
+}
+
+export type ChurchPushTarget =
+  | { kind: 'church_prayer'; prayerId: string }
+  | { kind: 'groups'; prayerId?: string }
+  | { kind: 'personal' }
+  | { kind: 'prompt'; promptId: string };
+
+export function churchPushTarget(input: {
+  event: 'prayer_item_reminder' | 'prayer_reminder';
+  prayerKind: string | null;
+  prayerId: string | null;
+  promptId: string | null;
+  session: PrayerGroupsFeatureSession;
+}): ChurchPushTarget {
+  if (input.prayerKind === 'group') {
+    return input.prayerId
+      ? { kind: 'groups', prayerId: input.prayerId }
+      : { kind: 'groups' };
+  }
+
+  const churchContent =
+    input.event === 'prayer_reminder' ||
+    (input.prayerKind !== 'group' && input.prayerKind !== 'personal');
+  if (input.session.isChurchMember === false && churchContent) {
+    const home = resolveHomeFilterFromSession('current', input.session);
+    return home === 'personal' ? { kind: 'personal' } : { kind: 'groups' };
+  }
+
+  if (
+    input.prayerKind === 'prompt' &&
+    input.promptId &&
+    input.session.isChurchMember !== false
+  ) {
+    return { kind: 'prompt', promptId: input.promptId };
+  }
+
+  if (input.prayerKind === 'personal') {
+    return { kind: 'personal' };
+  }
+
+  if (input.prayerId) {
+    return { kind: 'church_prayer', prayerId: input.prayerId };
+  }
+
+  return { kind: 'church_prayer', prayerId: '' };
+}

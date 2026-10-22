@@ -5,12 +5,15 @@ import {
   buildGroupInviteAppLink,
   buildGroupPrayerAppLink,
   buildSubscriberTemplateVariables,
+  claimedDelivery,
+  hasGroupNotifyDelivery,
   memberEmailsExceptActor,
   planEmailRecipients,
   planPushForKind,
   planPushRecipients,
   renderGroupWelcomeEmail,
   subscriberTemplateKeyForKind,
+  uniqueNotifyRecipients,
   updateContentForAnswered,
 } from '../../supabase/functions/notify-group-activity/plan';
 
@@ -88,6 +91,15 @@ describe('group activity notify plan', () => {
     ];
     expect(planEmailRecipients(rows)).toEqual(['a@b.co']);
     expect(planPushRecipients(rows)).toEqual(['a@b.co', 'c@d.co']);
+    expect(hasGroupNotifyDelivery(['a@b.co'], ['a@b.co', 'c@d.co'])).toBe(true);
+    expect(hasGroupNotifyDelivery([], ['c@d.co'])).toBe(true);
+    expect(hasGroupNotifyDelivery([], [])).toBe(false);
+    expect(uniqueNotifyRecipients(['a@b.co'], ['A@b.co', 'c@d.co'])).toEqual([
+      'a@b.co',
+      'c@d.co',
+    ]);
+    expect(claimedDelivery(['a@b.co', 'c@d.co'], ['C@d.co'])).toEqual(['c@d.co']);
+    expect(claimedDelivery(['a@b.co'], [])).toEqual([]);
   });
 
   it('builds approved update variables with author and update html fields', () => {

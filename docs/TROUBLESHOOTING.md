@@ -537,6 +537,14 @@ supabase secrets list # Verify
 
 Bundled startup should fall back to the local Angular app if Preferences or live redirect fails; a hard instant quit usually means a **native** crash or a build missing the plugin — not a normal JS error.
 
+### Offline cold start still has church keys in Preferences
+
+**Symptoms**: After a group-only downgrade, DevTools or a native inspector still shows church keys in Capacitor Preferences (`prayers_cache`, `prayed_for_*` other than `prayed_for_personal_*`, planning-center list keys). localStorage on the live site is already clear. Auth keys (`prayerapp_native_auth_bridge`, `prayerapp_native_auth_revoked`, `prayerapp_native_auth_local_session_at`) are still there, and Personal, Memorize, and Groups still open.
+
+**Cause**: Online cold start loads the live website. Offline cold start runs the JavaScript bundled inside the installed app. That bundle does not include this web change until the phone is online and loads the updated site, or until a new native build is installed. [`clearChurchContentStorage`](../src/app/lib/church-content-cache.ts) is what clears Preferences, and the installed bundle has to be running that function.
+
+**Fix**: Open the app once while online so it loads the current site, then downgrade again or sign in so the clear runs. Do not delete native auth keys by hand. Personal, Memorize, and Groups keys should remain.
+
 ### iOS simulator: blank cream screen after `WebView loaded`
 
 **Symptoms**: Capacitor logs `Loading app at capacitor://localhost`, `WebView loaded`, branding, `[AppInitialization] AdminAuthService initialization timed out after 5s`, then prayers and push. The screen stays the cream page background. There is no `[SiteAuthGuard]` line.

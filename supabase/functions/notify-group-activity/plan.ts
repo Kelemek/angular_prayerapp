@@ -143,6 +143,39 @@ export function planPushRecipients(rows: SubscriberDeliveryRow[]): string[] {
     .map((row) => row.email);
 }
 
+/** Actor rate limit covers email and push, not email-only. */
+export function hasGroupNotifyDelivery(
+  emailRecipients: readonly string[],
+  pushRecipients: readonly string[],
+): boolean {
+  return emailRecipients.length > 0 || pushRecipients.length > 0;
+}
+
+export function uniqueNotifyRecipients(
+  emailRecipients: readonly string[],
+  pushRecipients: readonly string[],
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const email of [...emailRecipients, ...pushRecipients]) {
+    const key = email.toLowerCase();
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(email);
+  }
+  return out;
+}
+
+export function claimedDelivery(
+  recipients: readonly string[],
+  claimed: readonly string[],
+): string[] {
+  const ok = new Set(claimed.map((email) => email.toLowerCase()));
+  return recipients.filter((email) => ok.has(email.toLowerCase()));
+}
+
 export interface PrayerFields {
   id: string;
   group_id: string;

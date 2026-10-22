@@ -66,6 +66,7 @@ import { HomePublicStatusFiltersComponent } from "../../components/home-public-s
 import { HomePrayerContentComponent } from "../../components/home-prayer-content/home-prayer-content.component";
 import { ScrollToTopButtonComponent } from "../../components/scroll-to-top-button/scroll-to-top-button.component";
 import { isPublicAreaFilter, isPublicTabFilter, isCommunityPrayerFilter } from "../../lib/home-community-filter";
+import { churchContentVisible } from "../../lib/prayer-groups-feature";
 import {
   createHomeCatalogBindings,
   readHomeFilteredPersonalPrayers,
@@ -165,6 +166,7 @@ export class HomeComponent
 
   readonly isPublicTabFilter = isPublicTabFilter;
   readonly isPublicAreaFilter = isPublicAreaFilter;
+  readonly churchContentVisible = churchContentVisible;
   readonly isCommunityPrayerFilter = isCommunityPrayerFilter;
   readonly groupMemberNeedsProfile = groupMemberNeedsProfile;
 

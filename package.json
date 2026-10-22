@@ -14,6 +14,7 @@
     "build:prod": "node scripts/write-web-build-info.mjs && ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "vitest",
+    "test:deno": "deno test --config=supabase/functions/deno.json --lock=supabase/functions/deno.lock --frozen --allow-env supabase/functions/planning-center-lookup/login-lookup-gate_test.ts supabase/functions/shared/reject-group-only-caller_test.ts supabase/functions/shared/safe-subscriber-email_test.ts supabase/functions/shared/planning-center-email-match_test.ts supabase/functions/scripture/cache-utils_test.ts supabase/functions/notify-group-activity/gates_test.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --run --coverage && node scripts/coverage-report.js",
     "lint": "eslint --quiet \"src/app/**/*.ts\" \"src/lib/**/*.ts\"",

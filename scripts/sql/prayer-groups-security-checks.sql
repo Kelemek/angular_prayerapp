@@ -63,7 +63,7 @@ WHERE polname = 'group_prayer_updates_update_author';
 --   VALUES ('GROUP_ONLY_TEST@example.com', 'Nope', false);
 -- Expected: RLS denies.
 --
--- Church mail insert as authenticated admin targeting group-only fails:
+-- Church blast to a group-only subscriber is skipped (no exception, no row):
 --   INSERT INTO public.email_queue (recipient, template_key, template_variables, status)
 --   VALUES (
 --     'GROUP_ONLY_TEST@example.com',
@@ -71,15 +71,8 @@ WHERE polname = 'group_prayer_updates_update_author';
 --     '{}'::jsonb,
 --     'pending'
 --   );
--- Expected: exception 'Not authorized'.
+-- Expected: 0 rows. The rest of a multi-row insert still commits.
 --
--- Group activity as service_role still inserts:
---   SET LOCAL ROLE service_role;
---   INSERT INTO public.email_queue (recipient, template_key, template_variables, status)
---   VALUES (
---     'GROUP_ONLY_TEST@example.com',
---     'approved_prayer',
---     jsonb_build_object('appLink', 'https://example.com/?filter=groups&groupId=x'),
---     'pending'
---   );
--- Expected: 1 row. Delete that test row afterwards.
+-- approved_prayer to that group-only address is also skipped.
+-- The same template to an address with no subscriber row is queued.
+-- A group template (email_templates.is_group) still inserts.

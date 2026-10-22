@@ -30,13 +30,15 @@ import { HelpDriverTourService } from "./services/help-driver-tour.service";
 import { AdminDataService } from "./services/admin-data.service";
 import { PosthogService } from "./services/posthog.service";
 import { ClientPreferencesService } from "./services/client-preferences.service";
-import { combineLatest, filter, Subject } from "rxjs";
+import { combineLatest, filter, firstValueFrom, Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
 import {
   UserSessionService,
   type UserSessionData,
 } from "./services/user-session.service";
 import { groupOnlyChurchSurfaceRedirect } from "./lib/church-member-access";
+import { churchPushTarget } from "./lib/prayer-groups-feature";
+import type { PushNotificationEvent } from "./services/capacitor.service";
 import {
   findAppScrollContainer,
   scrollAppContainerToTop,
@@ -433,18 +435,7 @@ export class AppComponent implements OnInit, OnDestroy {
           filter((event) => Boolean(event.data?.["groupId"]))
         )
         .subscribe((event) => {
-          const groupId = String(event.data!["groupId"]);
-          const prayerId = event.data?.["prayerId"];
-          void prayerGroupService.loadCatalog(true);
-          this.ngZone.run(() => {
-            void this.router.navigate(["/"], {
-              queryParams: {
-                filter: "groups",
-                groupId,
-                ...(prayerId ? { prayerId: String(prayerId) } : {}),
-              },
-            });
-          });
+          void this.openGroupActivityPush(event, prayerGroupService);
         });
 
       capacitorService.notificationEvents$
@@ -533,13 +524,23 @@ export class AppComponent implements OnInit, OnDestroy {
           });
         });
 
-      // Open home focused on a prayer when a per-prayer reminder push is tapped
       capacitorService.notificationEvents$
         .pipe(
           filter((event) => event.source === "tap"),
-          filter((event) => event.type === "prayer_item_reminder")
+          filter(
+            (event) =>
+              event.type === "prayer_item_reminder" ||
+              event.type === "prayer_reminder"
+          )
         )
         .subscribe((event) => {
+          const prayerId =
+            typeof event.data?.["prayerId"] === "string"
+              ? event.data["prayerId"]
+              : null;
+          if (event.type === "prayer_reminder" && !prayerId) {
+            return;
+          }
           const prayerKind =
             typeof event.data?.["prayerKind"] === "string"
               ? event.data["prayerKind"]
@@ -548,63 +549,17 @@ export class AppComponent implements OnInit, OnDestroy {
             typeof event.data?.["promptId"] === "string"
               ? event.data["promptId"]
               : null;
-          const prayerId =
-            typeof event.data?.["prayerId"] === "string"
-              ? event.data["prayerId"]
-              : null;
           this.ngZone.run(() => {
-            if (prayerKind === "prompt" && promptId) {
-              void this.router.navigate(["/"], {
-                queryParams: { promptId },
-              });
-              promptService.loadPrompts();
-            } else if (prayerKind === "group" && prayerId) {
-              void this.router.navigate(["/"], {
-                queryParams: { filter: "groups", prayerId },
-              });
-            } else {
-              void this.router.navigate(["/"], {
-                queryParams: prayerId ? { prayerId } : {},
-              });
-              prayerService.loadPrayers(false).catch((err) => {
-                console.error(
-                  "[AppComponent] Failed to refresh prayers after prayer item reminder tap:",
-                  err
-                );
-              });
-            }
-          });
-        });
-
-      // Hourly spotlight prayer reminder — deep link when push includes prayerId
-      capacitorService.notificationEvents$
-        .pipe(
-          filter((event) => event.source === "tap"),
-          filter((event) => event.type === "prayer_reminder")
-        )
-        .subscribe((event) => {
-          const prayerId =
-            typeof event.data?.["prayerId"] === "string"
-              ? event.data["prayerId"]
-              : null;
-          if (!prayerId) {
-            return;
-          }
-          this.ngZone.run(() => {
-            void this.router.navigate(["/"], {
-              queryParams: { prayerId },
-            });
-            prayerService.loadPrayers(false).catch((err) => {
-              console.error(
-                "[AppComponent] Failed to refresh prayers after hourly spotlight tap:",
-                err
-              );
-            });
-            prayerService.loadPersonalPrayers(false).catch((err) => {
-              console.error(
-                "[AppComponent] Failed to refresh personal prayers after hourly spotlight tap:",
-                err
-              );
+            void this.openChurchOrGroupReminder({
+              event: event.type === "prayer_reminder"
+                ? "prayer_reminder"
+                : "prayer_item_reminder",
+              prayerKind,
+              prayerId,
+              promptId,
+              prayerService,
+              promptService,
+              prayerGroupService,
             });
           });
         });
@@ -614,6 +569,88 @@ export class AppComponent implements OnInit, OnDestroy {
         "[AppComponent] Push refresh listener not initialized (probably web):",
         error
       );
+    }
+  }
+
+  private async whenSessionReady(): Promise<UserSessionData | null> {
+    const sessionService = this.injector.get(UserSessionService);
+    await firstValueFrom(
+      sessionService.sessionInitialized$.pipe(filter((ready) => ready)),
+    );
+    return firstValueFrom(sessionService.userSession$);
+  }
+
+  private async openGroupActivityPush(
+    event: PushNotificationEvent,
+    prayerGroupService: { loadCatalog(forceRefresh?: boolean): Promise<void> },
+  ): Promise<void> {
+    await this.whenSessionReady();
+    const groupId = String(event.data!["groupId"]);
+    const prayerId = event.data?.["prayerId"];
+    void prayerGroupService.loadCatalog(true);
+    await this.ngZone.run(() =>
+      this.router.navigate(["/"], {
+        queryParams: {
+          filter: "groups",
+          groupId,
+          ...(prayerId ? { prayerId: String(prayerId) } : {}),
+        },
+      }),
+    );
+  }
+
+  private async openChurchOrGroupReminder(input: {
+    event: "prayer_item_reminder" | "prayer_reminder";
+    prayerKind: string | null;
+    prayerId: string | null;
+    promptId: string | null;
+    prayerService: { loadPrayers(silentRefresh?: boolean): Promise<void> };
+    promptService: { loadPrompts(): Promise<void> };
+    prayerGroupService: { loadCatalog(forceRefresh?: boolean): Promise<void> };
+  }): Promise<void> {
+    const row = await this.whenSessionReady();
+    const target = churchPushTarget({
+      event: input.event,
+      prayerKind: input.prayerKind,
+      prayerId: input.prayerId,
+      promptId: input.promptId,
+      session: row ?? {},
+    });
+    switch (target.kind) {
+      case "church_prayer":
+        await this.router.navigate(["/"], {
+          queryParams: target.prayerId ? { prayerId: target.prayerId } : {},
+        });
+        await input.prayerService.loadPrayers(false).catch((err) => {
+          console.error(
+            "[AppComponent] Failed to refresh prayers after reminder tap:",
+            err
+          );
+        });
+        break;
+      case "groups":
+        void input.prayerGroupService.loadCatalog(true);
+        await this.router.navigate(["/"], {
+          queryParams: target.prayerId
+            ? { filter: "groups", prayerId: target.prayerId }
+            : { filter: "groups" },
+        });
+        break;
+      case "personal":
+        await this.router.navigate(["/"], {
+          queryParams: { filter: "personal" },
+        });
+        break;
+      case "prompt":
+        await this.router.navigate(["/"], {
+          queryParams: { promptId: target.promptId },
+        });
+        void input.promptService.loadPrompts();
+        break;
+      default: {
+        const _never: never = target;
+        return _never;
+      }
     }
   }
 }

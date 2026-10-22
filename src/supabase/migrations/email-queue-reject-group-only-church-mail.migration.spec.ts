@@ -2,24 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-describe('migration 20261021140000_email_queue_reject_group_only_church_mail.sql', () => {
+describe('migration 20261021280000_email_queue_skip_ineligible_church_mail.sql', () => {
   const sql = readFileSync(
     join(
       process.cwd(),
-      'supabase/migrations/20261021140000_email_queue_reject_group_only_church_mail.sql'
+      'supabase/migrations/20261021280000_email_queue_skip_ineligible_church_mail.sql'
     ),
     'utf8'
   );
   const executable = sql.split('-- ROLLBACK')[0];
+  const processor = readFileSync(
+    join(process.cwd(), 'scripts/process-email-queue.ts'),
+    'utf8'
+  );
 
-  it('rejects church mass templates for non-church recipients and allows service role', () => {
-    expect(executable).toContain("auth.role() = 'service_role'");
+  it('skips ineligible church mail without raising', () => {
+    expect(executable).toContain('RETURN NULL');
     expect(executable).toContain("'approved_prayer'");
+    expect(executable).toContain("'prayer_answered'");
+    expect(executable).toContain("'verse_memorization_prayer'");
     expect(executable).toContain("'admin_subscriber_manual_broadcast'");
-    expect(executable).toContain("RAISE EXCEPTION 'Not authorized'");
+    expect(executable).toContain('Rule 7b');
+    expect(executable).not.toContain("RAISE EXCEPTION");
     expect(executable).toContain('SET search_path = public, pg_temp');
-    expect(executable).toContain(
-      'REVOKE ALL ON FUNCTION public.email_queue_reject_group_only_church_mail()'
-    );
+    expect(processor).not.toContain('shouldSkipChurchQueueRow');
+    expect(processor).not.toContain('loadRecipientChurchFlags');
   });
 });

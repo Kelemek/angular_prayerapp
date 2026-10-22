@@ -41,28 +41,22 @@ export function loginLookupBooleanResult(matched: boolean): {
   return { count: matched ? 1 : 0, people: [] };
 }
 
-const RATE_WINDOW_MS = 15 * 60 * 1000;
-const RATE_MAX = 10;
-
-export function createLoginLookupRateLimiter(
-  windowMs = RATE_WINDOW_MS,
-  max = RATE_MAX,
-): {
-  isLimited: (key: string) => boolean;
-  record: (key: string) => void;
-} {
-  const recent = new Map<string, number[]>();
-  return {
-    isLimited(key: string): boolean {
-      const now = Date.now();
-      const times = (recent.get(key) ?? []).filter((t) => now - t < windowMs);
-      recent.set(key, times);
-      return times.length >= max;
-    },
-    record(key: string): void {
-      const times = recent.get(key) ?? [];
-      times.push(Date.now());
-      recent.set(key, times);
-    },
-  };
+export function trustedClientAddress(req: Request): string {
+  const cf = req.headers.get('cf-connecting-ip')?.trim() ?? '';
+  if (cf) {
+    return cf;
+  }
+  const hops = (req.headers.get('x-forwarded-for') ?? '')
+    .split(',')
+    .map((hop) => hop.trim())
+    .filter((hop) => hop.length > 0);
+  const last = hops.length > 0 ? hops[hops.length - 1] : '';
+  if (last) {
+    return last;
+  }
+  const realIp = req.headers.get('x-real-ip')?.trim() ?? '';
+  if (realIp) {
+    return realIp;
+  }
+  return 'unknown';
 }

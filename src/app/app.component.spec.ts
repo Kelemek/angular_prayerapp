@@ -1473,6 +1473,63 @@ describe('AppComponent', () => {
         if (name.includes('PrayerService')) {
           return { loadPrayers };
         }
+        if (name.includes('UserSessionService') || token === UserSessionService) {
+          return {
+            sessionInitialized$: new BehaviorSubject(true).asObservable(),
+            userSession$: new BehaviorSubject({
+              isChurchMember: true,
+              prayerGroupsEnabled: true,
+            }).asObservable(),
+          };
+        }
+        if (name.includes('AdminDataService')) {
+          return { fetchAdminData: vi.fn() };
+        }
+        return {};
+      });
+
+      await (component as any).setupPushRefreshListener();
+
+      notificationEvents$.next({
+        source: 'tap',
+        type: 'prayer_approved',
+        data: { groupId: 'g-1', prayerId: 'p-1' },
+      });
+      await vi.waitFor(() => {
+        expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
+          queryParams: { filter: 'groups', groupId: 'g-1', prayerId: 'p-1' },
+        });
+      });
+      expect(loadCatalog).toHaveBeenCalledWith(true);
+      expect(loadPrayers).not.toHaveBeenCalled();
+    });
+
+    it('waits for session before routing a group activity push tap', async () => {
+      const notificationEvents$ = new Subject<{
+        source: string;
+        type: string;
+        data?: Record<string, string>;
+      }>();
+      const sessionReady = new BehaviorSubject(false);
+      const loadCatalog = vi.fn().mockResolvedValue(undefined);
+
+      mockInjector.get = vi.fn((token: { name?: string }) => {
+        const name = token?.name ?? '';
+        if (name.includes('CapacitorService')) {
+          return { notificationEvents$: notificationEvents$.asObservable() };
+        }
+        if (name.includes('PrayerGroupService')) {
+          return { loadCatalog };
+        }
+        if (name.includes('UserSessionService') || token === UserSessionService) {
+          return {
+            sessionInitialized$: sessionReady.asObservable(),
+            userSession$: new BehaviorSubject({
+              isChurchMember: false,
+              prayerGroupsEnabled: true,
+            }).asObservable(),
+          };
+        }
         if (name.includes('AdminDataService')) {
           return { fetchAdminData: vi.fn() };
         }
@@ -1487,12 +1544,16 @@ describe('AppComponent', () => {
         data: { groupId: 'g-1', prayerId: 'p-1' },
       });
       await Promise.resolve();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(loadCatalog).not.toHaveBeenCalled();
 
-      expect(loadCatalog).toHaveBeenCalledWith(true);
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
-        queryParams: { filter: 'groups', groupId: 'g-1', prayerId: 'p-1' },
+      sessionReady.next(true);
+      await vi.waitFor(() => {
+        expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
+          queryParams: { filter: 'groups', groupId: 'g-1', prayerId: 'p-1' },
+        });
       });
-      expect(loadPrayers).not.toHaveBeenCalled();
+      expect(loadCatalog).toHaveBeenCalledWith(true);
     });
 
     it('navigates to prayer when hourly spotlight push is tapped with prayerId', async () => {
@@ -1512,6 +1573,15 @@ describe('AppComponent', () => {
         if (name.includes('PrayerService')) {
           return { loadPrayers, loadPersonalPrayers };
         }
+        if (name.includes('UserSessionService')) {
+          return {
+            sessionInitialized$: new BehaviorSubject(true).asObservable(),
+            userSession$: new BehaviorSubject({
+              isChurchMember: true,
+              prayerGroupsEnabled: true,
+            }).asObservable(),
+          };
+        }
         if (name.includes('AdminDataService')) {
           return { fetchAdminData: vi.fn() };
         }
@@ -1525,13 +1595,14 @@ describe('AppComponent', () => {
         type: 'prayer_reminder',
         data: { prayerId: 'p-spotlight-1', url: 'https://app.example/?prayerId=p-spotlight-1' },
       });
-      await Promise.resolve();
-
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
-        queryParams: { prayerId: 'p-spotlight-1' },
+      await vi.waitFor(() => {
+        expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
+          queryParams: { prayerId: 'p-spotlight-1' },
+        });
       });
+
       expect(loadPrayers).toHaveBeenCalledWith(false);
-      expect(loadPersonalPrayers).toHaveBeenCalledWith(false);
+      expect(loadPersonalPrayers).not.toHaveBeenCalled();
     });
   });
 });

@@ -13,9 +13,10 @@ export class ChurchContentCacheService {
   }
 
   clear(): void {
-    clearChurchContentStorage(this.cache);
+    const { layers } = clearChurchContentStorage(this.cache);
     for (const clear of this.memoryClearers) {
       clear();
     }
+    void layers;
   }
 }

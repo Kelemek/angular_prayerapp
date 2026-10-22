@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  churchContentVisible,
+  churchPushTarget,
   isPrayerGroupsFeatureEnabled,
   prayerGroupCatalogSessionGateKey,
   resolveHomeFilterFromSession,
@@ -65,5 +67,77 @@ describe('prayer-groups-feature', () => {
         prayerGroupsEnabled: false,
       }),
     ).toBe('current');
+  });
+
+  it('hides church content until the session is a settled church member', () => {
+    expect(
+      churchContentVisible({
+        sessionInitialized: false,
+        isChurchMember: true,
+      }),
+    ).toBe(false);
+    expect(
+      churchContentVisible({
+        sessionInitialized: true,
+        isChurchMember: false,
+      }),
+    ).toBe(false);
+    expect(
+      churchContentVisible({
+        sessionInitialized: true,
+        isChurchMember: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('sends a group-only hourly reminder away from church prayers', () => {
+    expect(
+      churchPushTarget({
+        event: 'prayer_reminder',
+        prayerKind: null,
+        prayerId: 'p-1',
+        promptId: null,
+        session: { isChurchMember: false, prayerGroupsEnabled: true },
+      }),
+    ).toEqual({ kind: 'groups' });
+    expect(
+      churchPushTarget({
+        event: 'prayer_reminder',
+        prayerKind: null,
+        prayerId: 'p-1',
+        promptId: null,
+        session: { isChurchMember: false, prayerGroupsEnabled: false },
+      }),
+    ).toEqual({ kind: 'personal' });
+  });
+
+  it('opens a group prayer and a church member church prayer', () => {
+    expect(
+      churchPushTarget({
+        event: 'prayer_item_reminder',
+        prayerKind: 'group',
+        prayerId: 'g-prayer',
+        promptId: null,
+        session: { isChurchMember: false, prayerGroupsEnabled: true },
+      }),
+    ).toEqual({ kind: 'groups', prayerId: 'g-prayer' });
+    expect(
+      churchPushTarget({
+        event: 'prayer_item_reminder',
+        prayerKind: 'community',
+        prayerId: 'c-1',
+        promptId: null,
+        session: { isChurchMember: true },
+      }),
+    ).toEqual({ kind: 'church_prayer', prayerId: 'c-1' });
+    expect(
+      churchPushTarget({
+        event: 'prayer_item_reminder',
+        prayerKind: 'prompt',
+        prayerId: null,
+        promptId: 'prompt-1',
+        session: { isChurchMember: false, prayerGroupsEnabled: true },
+      }).kind,
+    ).not.toBe('prompt');
   });
 });

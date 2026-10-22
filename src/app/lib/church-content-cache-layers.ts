@@ -1,22 +1,7 @@
 import {
-  NATIVE_AUTH_BRIDGE_PREFS_KEY,
-  NATIVE_AUTH_BRIDGE_REVOKED_KEY,
-  NATIVE_AUTH_LOCAL_SESSION_AT_KEY,
-} from '../../lib/native-auth-storage-bridge';
-import { CHURCH_CACHE_SERVICE_KEYS } from './church-content-cache-keys';
-
-const CHURCH_CACHE_LOCAL_SUFFIXES = CHURCH_CACHE_SERVICE_KEYS.map(
-  (key) => `${key}_cache`
-);
-
-const CHURCH_PREFERENCES_EXACT_KEYS = new Set<string>(CHURCH_CACHE_LOCAL_SUFFIXES);
-
-const CHURCH_PREFERENCES_PREFIXES = [
-  'prayerapp_planning_center_list_',
-  'prayed_for_',
-] as const;
-
-const CHURCH_PREFERENCES_KEEP_PREFIXES = ['prayed_for_personal_'] as const;
+  CHURCH_INDEXED_DB_NAMES,
+  isChurchContentStorageKey,
+} from './church-content-cache-keys';
 
 const CHURCH_CACHE_URL_MARKERS = [
   '/rest/v1/prayers',
@@ -29,16 +14,9 @@ const CHURCH_CACHE_URL_MARKERS = [
   '/functions/v1/planning-center-lookup',
 ] as const;
 
-const CHURCH_INDEXED_DB_NAMES = new Set<string>([
-  'prayers_cache',
-  'updates_cache',
-  'prompts_cache',
-  'prayerTypes_cache',
-  'planningCenterListData_cache',
-  'adminSettings_cache',
-  'emailSettings_cache',
-  'analytics_cache',
-]);
+const CHURCH_INDEXED_DB_NAME_SET = new Set<string>(CHURCH_INDEXED_DB_NAMES);
+
+const PREFERENCES_KEYS_TIMEOUT_MS = 800;
 
 export type PreferencesApi = {
   keys(): Promise<{ keys: string[] }>;
@@ -51,28 +29,22 @@ export type ChurchCacheLayerDeps = {
   preferences?: PreferencesApi | null;
 };
 
-function shouldRemovePreferenceKey(key: string): boolean {
-  if (
-    key === NATIVE_AUTH_BRIDGE_PREFS_KEY ||
-    key === NATIVE_AUTH_BRIDGE_REVOKED_KEY ||
-    key === NATIVE_AUTH_LOCAL_SESSION_AT_KEY
-  ) {
-    return false;
-  }
-  if (CHURCH_PREFERENCES_EXACT_KEYS.has(key)) {
-    return true;
-  }
-  for (const keep of CHURCH_PREFERENCES_KEEP_PREFIXES) {
-    if (key.startsWith(keep)) {
-      return false;
-    }
-  }
-  for (const prefix of CHURCH_PREFERENCES_PREFIXES) {
-    if (key.startsWith(prefix)) {
-      return true;
-    }
-  }
-  return false;
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Preferences keys timed out'));
+    }, ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 function requestMatchesChurchCacheUrl(url: string): boolean {
@@ -88,7 +60,7 @@ export async function clearChurchIndexedDb(
   const databases = await idb.databases();
   for (const dbInfo of databases) {
     const name = dbInfo.name;
-    if (!name || !CHURCH_INDEXED_DB_NAMES.has(name)) {
+    if (!name || !CHURCH_INDEXED_DB_NAME_SET.has(name)) {
       continue;
     }
     idb.deleteDatabase(name);
@@ -119,10 +91,24 @@ export async function clearChurchPreferences(
   if (!preferences) {
     return;
   }
-  const { keys } = await preferences.keys();
+  let keys: string[];
+  try {
+    const listed = await withTimeout(
+      preferences.keys(),
+      PREFERENCES_KEYS_TIMEOUT_MS,
+    );
+    keys = listed.keys;
+  } catch {
+    return;
+  }
   for (const key of keys) {
-    if (shouldRemovePreferenceKey(key)) {
+    if (!isChurchContentStorageKey(key)) {
+      continue;
+    }
+    try {
       await preferences.remove({ key });
+    } catch {
+      /* one failed key must not abort the rest */
     }
   }
 }

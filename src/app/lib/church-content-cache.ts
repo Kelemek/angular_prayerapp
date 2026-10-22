@@ -1,51 +1,24 @@
-import {
-  BADGE_READ_PRAYERS_DATA_KEY,
-  BADGE_READ_PROMPTS_DATA_KEY,
-} from './badge-cache';
-import { MEMBER_PRAYED_FOR_COUNTS_CACHE_KEY } from './prayer-member-pray-for';
-import { MEMBER_PRAYER_UPDATES_CACHE_KEY } from './prayer-member-updates';
+import { Capacitor } from '@capacitor/core';
 import { PRESENTATION_SETTINGS_STORAGE_KEY } from '../services/presentation-settings.service';
-import {
-  HOME_RETURN_CONTEXT_STATE_KEY,
-  PRESENTATION_HOME_HANDOFF_STATE_KEY,
-  PRESENTATION_HOME_NAV_STATE_KEY,
-} from '../types/presentation';
 import {
   CHURCH_CACHE_KEEP_KEYS,
   CHURCH_CACHE_SERVICE_KEYS,
+  CHURCH_LOCAL_STORAGE_KEYS,
+  isChurchContentStorageKey,
 } from './church-content-cache-keys';
-import { clearChurchCacheStorageLayers } from './church-content-cache-layers';
+import {
+  clearChurchCacheStorageLayers,
+  type PreferencesApi,
+} from './church-content-cache-layers';
 
 export { CHURCH_CACHE_KEEP_KEYS, CHURCH_CACHE_SERVICE_KEYS };
 
-const CHURCH_LOCAL_STORAGE_KEYS = [
-  'prayers_cache',
-  'updates_cache',
-  'prompts_cache',
-  'prayerTypes_cache',
-  'planningCenterListData_cache',
-  'adminSettings_cache',
-  'emailSettings_cache',
-  'analytics_cache',
-  MEMBER_PRAYED_FOR_COUNTS_CACHE_KEY,
-  MEMBER_PRAYER_UPDATES_CACHE_KEY,
-  BADGE_READ_PRAYERS_DATA_KEY,
-  BADGE_READ_PROMPTS_DATA_KEY,
-  'read_prayers',
-  'read_prayer_updates',
-  'read_prompts',
-  'read_prompt_updates',
-  PRESENTATION_HOME_HANDOFF_STATE_KEY,
-  HOME_RETURN_CONTEXT_STATE_KEY,
-  PRESENTATION_HOME_NAV_STATE_KEY,
-] as const;
-
-const PLANNING_CENTER_LIST_CACHE_PREFIX = 'prayerapp_planning_center_list_';
-const PERSONAL_PRAYED_FOR_PREFIX = 'prayed_for_personal_';
-const PRAYED_FOR_PREFIX = 'prayed_for_';
-
 export type ChurchCacheStore = {
   invalidate(key: string): void;
+};
+
+export type ClearChurchContentDeps = {
+  preferences?: PreferencesApi | null;
 };
 
 function removeLocalStorageKey(key: string): void {
@@ -82,8 +55,32 @@ function stripChurchTypesFromPresentationSettings(): void {
   }
 }
 
+async function resolvePreferences(
+  deps?: ClearChurchContentDeps,
+): Promise<PreferencesApi | null> {
+  if (deps && 'preferences' in deps) {
+    return deps.preferences ?? null;
+  }
+  try {
+    if (!Capacitor.isNativePlatform()) {
+      return null;
+    }
+    if (!Capacitor.isPluginAvailable('Preferences')) {
+      return null;
+    }
+    // Deferred so web startup does not require the native plugin.
+    const { Preferences } = await import('@capacitor/preferences');
+    return Preferences;
+  } catch {
+    return null;
+  }
+}
+
 /** Drop church-tied cache. Keep Personal, Memorize, Groups, and the user session. */
-export function clearChurchContentStorage(cache: ChurchCacheStore): void {
+export function clearChurchContentStorage(
+  cache: ChurchCacheStore,
+  deps?: ClearChurchContentDeps,
+): { layers: Promise<void> } {
   for (const key of CHURCH_CACHE_SERVICE_KEYS) {
     cache.invalidate(key);
   }
@@ -95,17 +92,7 @@ export function clearChurchContentStorage(cache: ChurchCacheStore): void {
     const toRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
-      if (!key) {
-        continue;
-      }
-      if (key.startsWith(PLANNING_CENTER_LIST_CACHE_PREFIX)) {
-        toRemove.push(key);
-        continue;
-      }
-      if (
-        key.startsWith(PRAYED_FOR_PREFIX) &&
-        !key.startsWith(PERSONAL_PRAYED_FOR_PREFIX)
-      ) {
+      if (key && isChurchContentStorageKey(key)) {
         toRemove.push(key);
       }
     }
@@ -115,7 +102,15 @@ export function clearChurchContentStorage(cache: ChurchCacheStore): void {
   } catch {
     /* ignore */
   }
-  void clearChurchCacheStorageLayers().catch(() => {
-    /* ignore */
-  });
+
+  const layers = (async () => {
+    try {
+      const preferences = await resolvePreferences(deps);
+      await clearChurchCacheStorageLayers({ preferences });
+    } catch {
+      /* a hung plugin must not reject downgrade */
+    }
+  })();
+
+  return { layers };
 }

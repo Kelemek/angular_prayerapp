@@ -131,7 +131,11 @@
       ></app-home-groups-panel>
       }
 
-      @if (isPublicAreaFilter(activeFilter)) {
+      @let showChurchPrayers = churchContentVisible({
+        sessionInitialized: (userSessionService.sessionInitialized$ | async) === true,
+        isChurchMember: session?.isChurchMember,
+      });
+      @if (isPublicAreaFilter(activeFilter) && showChurchPrayers) {
       <div class="mb-2 sm:mb-3">
         <app-home-public-status-filters
           [activeFilter]="activeFilter"
@@ -204,8 +208,12 @@
           catalog.filteredPersonalPrayers.length > 0) ||
         (activeFilter === 'planning_center_list' &&
           catalog.filteredPlanningCenterPrayers.length > 0) ||
-        (isPublicTabFilter(activeFilter) && displayedPublicPrayers.length > 0);
-      @let hidePrayerContentForLoading = contentLoading && !hasCachedContentForTab;
+        (isPublicTabFilter(activeFilter) &&
+          showChurchPrayers &&
+          displayedPublicPrayers.length > 0);
+      @let hidePrayerContentForLoading =
+        (isPublicAreaFilter(activeFilter) && !showChurchPrayers) ||
+        (contentLoading && !hasCachedContentForTab);
       @if (hidePrayerContentForLoading) {
       <app-skeleton-loader [count]="5" type="card"></app-skeleton-loader>
       }
@@ -264,7 +272,7 @@
         [personalWalkthroughDescription]="personalWalkthroughDescription"
         [filteredPersonalPrayers]="catalog.filteredPersonalPrayers"
         [filteredPlanningCenterPrayers]="catalog.filteredPlanningCenterPrayers"
-        [displayedPublicPrayers]="displayedPublicPrayers"
+        [displayedPublicPrayers]="showChurchPrayers ? displayedPublicPrayers : []"
         [displayedPrompts]="catalog.displayedPrompts"
         [loadingPersonalPrayers$]="prayerService.loadingPersonalPrayers$"
         [canReorderPersonalPrayers]="shell.personalCategory.canReorderPersonalPrayers"
