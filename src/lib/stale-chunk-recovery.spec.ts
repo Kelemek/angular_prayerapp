@@ -52,8 +52,19 @@ describe('stale-chunk-recovery', () => {
       ).toBe(true);
     });
 
+    it('matches Chrome iOS short MIME TypeError without for module script', () => {
+      const err = new TypeError("'text/html' is not a valid JavaScript MIME type.");
+      expect(isStaleChunkFailure(err)).toBe(true);
+    });
+
+    it('matches Mobile Safari Importing a module script failed', () => {
+      const err = new TypeError('Importing a module script failed.');
+      expect(isStaleChunkFailure(err)).toBe(true);
+    });
+
     it('does not match unrelated errors', () => {
       expect(isStaleChunkFailure(new Error('Network request failed'))).toBe(false);
+      expect(isStaleChunkFailure(new Error('mime type is wrong for css'))).toBe(false);
       expect(isStaleChunkFailure(null)).toBe(false);
     });
   });

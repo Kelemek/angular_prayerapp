@@ -6,6 +6,8 @@ const STALE_CHUNK_PATTERNS = [
   'loading chunk',
   'chunkloaderror',
   'is not a valid javascript mime type for module script',
+  'is not a valid javascript mime type',
+  'importing a module script failed',
 ] as const;
 
 function collectErrorTexts(candidate: unknown, depth = 0): string[] {
