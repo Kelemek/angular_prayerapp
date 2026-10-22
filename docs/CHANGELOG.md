@@ -6,6 +6,7 @@ Major features and milestones for the Prayer App.
 
 ### Web — stale chunk recovery (October 22, 2026)
 - [`src/lib/stale-chunk-recovery.ts`](../src/lib/stale-chunk-recovery.ts) treats Safari **Importing a module script failed** and Chrome iOS short **'text/html' is not a valid JavaScript MIME type** (without `for module script`) like existing dynamic-import and long MIME chunk errors: one guarded full reload after PostHog capture. Covers PostHog issues paired with Notion site issues for cpprayer.cp-church.org.
+- [`cp-church/angular_prayerapp`](https://github.com/cp-church/angular_prayerapp) `main` fast-forwarded to `62762b71` so https://cpprayer.cp-church.org serves the matcher (`build-revision.txt` → `62762b7`). Native store builds unchanged.
 
 ### Production — prayer groups schema and isolation (October 21, 2026)
 - Applied migrations `20261018180000` through `20261021320000` on production [`eqiafsygvfaifhoaewxi`](https://eqiafsygvfaifhoaewxi.supabase.co) with `supabase db query --linked` and `supabase migration repair`. `supabase db push` was not used. A GitHub Actions JSON backup ran first on [`cp-church/angular_prayerapp`](https://github.com/cp-church/angular_prayerapp) ([run 39700330444](https://github.com/cp-church/angular_prayerapp/actions/runs/39700330444)).
