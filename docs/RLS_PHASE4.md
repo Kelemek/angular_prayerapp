@@ -1,6 +1,6 @@
 # RLS Phase 4 — church-member gate
 
-Phase 4 adds `email_subscribers.is_church_member` and requires it for church data. Migrations [`20261018180000_church_member_flag.sql`](../supabase/migrations/20261018180000_church_member_flag.sql), [`20261018190000_church_member_rls.sql`](../supabase/migrations/20261018190000_church_member_rls.sql), and [`20261018200000_prayer_groups.sql`](../supabase/migrations/20261018200000_prayer_groups.sql) were applied on test `jcdhajfqtzipltvfslhu` on October 18, 2026 with `supabase db query --linked`. Production `eqiafsygvfaifhoaewxi` does not have them.
+Phase 4 adds `email_subscribers.is_church_member` and requires it for church data. Migrations [`20261018180000_church_member_flag.sql`](../supabase/migrations/20261018180000_church_member_flag.sql), [`20261018190000_church_member_rls.sql`](../supabase/migrations/20261018190000_church_member_rls.sql), and [`20261018200000_prayer_groups.sql`](../supabase/migrations/20261018200000_prayer_groups.sql) were applied on test `jcdhajfqtzipltvfslhu` on October 18, 2026 with `supabase db query --linked`. The same files, plus the later groups and isolation migrations through `20261021320000`, were applied on production `eqiafsygvfaifhoaewxi` on October 21, 2026.
 
 ## Why the flag cannot default through self-insert
 
@@ -15,7 +15,7 @@ supabase functions deploy register-planning-center-member --project-ref jcdhajfq
 supabase functions deploy upgrade-planning-center-member notify-group-activity --project-ref jcdhajfqtzipltvfslhu
 ```
 
-Those three functions are deployed on test. `register-planning-center-member` has JWT verification off. The other two require a signed-in JWT. Production functions were not deployed.
+Those three functions are deployed on test. `register-planning-center-member` has JWT verification off. The other two require a signed-in JWT. The same three functions are deployed on production `eqiafsygvfaifhoaewxi` as of October 21, 2026, with the same JWT flags.
 
 ## What a church member must pass
 

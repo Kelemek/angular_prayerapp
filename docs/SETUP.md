@@ -59,6 +59,8 @@ supabase db push
 
 **Account deletion:** [`20261017220000_delete_subscriber_account.sql`](../supabase/migrations/20261017220000_delete_subscriber_account.sql) removes the subscriber and the matching Supabase auth user in one transaction when an admin deletes a subscriber or someone deletes their own account in Settings. Applied on test `jcdhajfqtzipltvfslhu` and, on October 17, 2026, on production `eqiafsygvfaifhoaewxi`. `20261017210000` was applied first and then removed by `20261017220000`. Do not use `supabase db push`.
 
+**Prayer groups and church-member isolation:** Migrations `20261018180000` through `20261021320000` are applied on test `jcdhajfqtzipltvfslhu` and, as of October 21, 2026, on production `eqiafsygvfaifhoaewxi`. Do not use `supabase db push`. `is_church_member` defaults true for existing subscribers. `prayer_groups_enabled` defaults false, so the Groups tab stays hidden until an admin enables an account or the person is invited. Production Edge Functions for this landing: `register-planning-center-member`, `send-email`, and `planning-center-lookup` with JWT verification off; `notify-group-activity`, `upgrade-planning-center-member`, and `planning-center-lists` with JWT on. Details: [`RLS_PHASE4.md`](RLS_PHASE4.md) and [`CHANGELOG.md`](CHANGELOG.md).
+
 ### PWA Icons & Favicon
 
 The app uses a PWA (Progressive Web App) with custom icons. To regenerate icons:
