@@ -829,6 +829,21 @@ html, body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /* Group dialogs are inside .cdk-virtual-scrollable (contain: strict), so
+     position:fixed is that scroller. On native the scroller is the full screen
+     and the header owns the top inset; p-4 alone sits under the status bar.
+     Web already starts this scroller below the top inset, so this stays native-only. */
+  .native-app .safe-area-viewport .native-home-dialog-overlay {
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  }
+  .native-app .safe-area-viewport .native-home-dialog-overlay > .modal-panel-edge {
+    max-height: min(100%, 720px);
+    min-height: 0;
+  }
+
   /* Viewport-sized scroll container that sits below safe area; header sticky inside it so content scrolls to top of header but never into safe area */
   .safe-area-viewport {
     height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));

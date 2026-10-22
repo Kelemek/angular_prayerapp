@@ -159,7 +159,7 @@
 </div>
 
 @if (createOpen) {
-<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="createOpen = false">
+<div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="createOpen = false">
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Create a group</h2>
@@ -205,8 +205,8 @@
 }
 
 @if (membersTarget) {
-<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="closeMembersModal()">
-  <div class="modal-panel-edge flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+<div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="closeMembersModal()">
+  <div class="modal-panel-edge flex max-h-[min(100%,720px)] w-full max-w-lg flex-col rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex shrink-0 items-center justify-between px-6 py-4">
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage members</h2>
@@ -287,7 +287,7 @@
 }
 
 @if (renameTarget) {
-<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="renameTarget = null">
+<div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="renameTarget = null">
   <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit group</h2>
@@ -324,7 +324,7 @@
 }
 
 @if (editingPrayer) {
-<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingPrayer = null">
+<div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingPrayer = null">
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit prayer</h2>
@@ -357,7 +357,7 @@
 }
 
 @if (editingUpdate) {
-<div class="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingUpdate = null">
+<div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="editingUpdate = null">
   <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit update</h2>

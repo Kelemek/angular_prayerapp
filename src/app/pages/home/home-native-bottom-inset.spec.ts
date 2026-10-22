@@ -6,6 +6,14 @@ import { describe, expect, it } from 'vitest';
 const here = dirname(fileURLToPath(import.meta.url));
 const homeHtml = readFileSync(join(here, 'home.component.html'), 'utf8');
 const styles = readFileSync(join(here, '../../../styles.css'), 'utf8');
+const groupsHtml = readFileSync(
+  join(here, '../../components/home-groups-panel/home-groups-panel.component.html'),
+  'utf8'
+);
+const confirmationDialog = readFileSync(
+  join(here, '../../components/confirmation-dialog/confirmation-dialog.component.ts'),
+  'utf8'
+);
 
 function ruleBody(source: string, selector: string): string {
   const start = source.indexOf(selector);
@@ -43,5 +51,26 @@ describe('native home bottom inset', () => {
       'bottom: max(1rem, env(safe-area-inset-bottom, 0px))'
     );
     expect(styles).not.toContain('.native-app .app-scroll-to-top-button');
+  });
+
+  it('pads Home dialogs inside the native scroller by the real safe area', () => {
+    const overlays = groupsHtml.match(/native-home-dialog-overlay/g) ?? [];
+    expect(overlays).toHaveLength(5);
+    expect(confirmationDialog).toContain('native-home-dialog-overlay');
+
+    const overlay = ruleBody(
+      styles,
+      '.native-app .safe-area-viewport .native-home-dialog-overlay {'
+    );
+    expect(overlay).toContain('padding-top: max(1rem, env(safe-area-inset-top, 0px))');
+    expect(overlay).toContain('padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px))');
+    expect(overlay).toContain('padding-left: max(1rem, env(safe-area-inset-left, 0px))');
+    expect(overlay).toContain('padding-right: max(1rem, env(safe-area-inset-right, 0px))');
+
+    const panel = ruleBody(
+      styles,
+      '.native-app .safe-area-viewport .native-home-dialog-overlay > .modal-panel-edge {'
+    );
+    expect(panel).toContain('max-height: min(100%, 720px)');
   });
 });
