@@ -25,6 +25,7 @@ export class PrayerCardActionsRowComponent {
   @Input({ required: true }) showPrayedForBadge!: boolean;
   @Input({ required: true }) usesPersonalCooldown!: boolean;
   @Input({ required: true }) canPrayFor!: boolean;
+  @Input() showAddUpdate = true;
   @Input() showPrayForButton = true;
   @Input() showPrayingCount = true;
   @Input() prayerEncouragementEnabled = true;

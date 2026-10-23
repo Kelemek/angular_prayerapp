@@ -4,6 +4,7 @@ import {
   prayerUpdateDeleteAction,
   showPrayerCardAddUpdateButton,
   showPrayerCardDeleteButton,
+  showPrayerCardGroupMarkAnsweredButton,
   showPrayerCardUpdateDeleteButton,
   type PrayerCardPermissionContext,
 } from './prayer-card-permissions';
@@ -96,6 +97,45 @@ describe('showPrayerCardDeleteButton', () => {
 });
 
 describe('showPrayerCardAddUpdateButton', () => {
+  it('allows any group member when updates are not requester-only', () => {
+    expect(
+      showPrayerCardAddUpdateButton(
+        baseContext({
+          isGroupPrayer: true,
+          isPersonal: true,
+          groupUpdatesRequesterOnly: false,
+          currentUserEmail: 'other@example.com',
+          prayerEmail: 'author@example.com',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('restricts group updates to the requester when enabled', () => {
+    expect(
+      showPrayerCardAddUpdateButton(
+        baseContext({
+          isGroupPrayer: true,
+          isPersonal: true,
+          groupUpdatesRequesterOnly: true,
+          currentUserEmail: 'other@example.com',
+          prayerEmail: 'author@example.com',
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      showPrayerCardAddUpdateButton(
+        baseContext({
+          isGroupPrayer: true,
+          isPersonal: true,
+          groupUpdatesRequesterOnly: true,
+          currentUserEmail: 'author@example.com',
+          prayerEmail: 'author@example.com',
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it('allows member cards regardless of policy', () => {
     expect(
       showPrayerCardAddUpdateButton(
@@ -105,6 +145,33 @@ describe('showPrayerCardAddUpdateButton', () => {
         })
       )
     ).toBe(true);
+  });
+});
+
+describe('showPrayerCardGroupMarkAnsweredButton', () => {
+  it('allows any group member by default', () => {
+    expect(
+      showPrayerCardGroupMarkAnsweredButton(
+        baseContext({
+          isGroupPrayer: true,
+          currentUserEmail: 'other@example.com',
+          prayerEmail: 'author@example.com',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('restricts answered to the requester when enabled', () => {
+    expect(
+      showPrayerCardGroupMarkAnsweredButton(
+        baseContext({
+          isGroupPrayer: true,
+          groupAnsweredRequesterOnly: true,
+          currentUserEmail: 'other@example.com',
+          prayerEmail: 'author@example.com',
+        }),
+      ),
+    ).toBe(false);
   });
 });
 

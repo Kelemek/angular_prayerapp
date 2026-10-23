@@ -100,6 +100,7 @@ export function isPrayerAddUpdatePayload(
         </div>
         }
 
+        @if (showMarkAsAnsweredCheckbox) {
         <div
           class="flex items-center gap-2"
           [attr.id]="markAnsweredCheckboxWrapId"
@@ -118,6 +119,7 @@ export function isPrayerAddUpdatePayload(
             Mark this prayer as answered
           </label>
         </div>
+        }
 
         <div class="flex justify-end pt-4">
           <button
@@ -142,6 +144,7 @@ export class PrayerAddUpdateModalComponent implements OnChanges {
   @Input() isOpen = false;
   @Input() prayerId = "";
   @Input() isPersonal = false;
+  @Input() showMarkAsAnsweredCheckbox = true;
   @Input() richTextEditorsEnabled = true;
   /** Optional tour/help anchor element ids (omit for default per-prayer ids). */
   @Input() tourElementIds: {

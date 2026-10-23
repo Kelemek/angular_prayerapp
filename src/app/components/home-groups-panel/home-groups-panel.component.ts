@@ -123,6 +123,11 @@ export class HomeGroupsPanelComponent {
   /** First open after creating a group: invite-only (no leave / transfer). */
   membersModalPostCreate = false;
   renameTarget: PrayerGroupSummary | null = null;
+  settingsTarget: PrayerGroupSummary | null = null;
+  settingsUpdatesRequesterOnly = false;
+  settingsAnsweredRequesterOnly = false;
+  settingsPrayForDisabled = false;
+  settingsSaving = false;
   renameDraft = '';
   renameColor = DEFAULT_PRAYER_GROUP_COLOR;
   pendingDelete: PrayerGroupSummary | null = null;
@@ -293,6 +298,25 @@ export class HomeGroupsPanelComponent {
     return this.groups.find((group) => group.id === groupId)?.name ?? 'Group';
   }
 
+  groupSettingsFor(groupId: string): Pick<
+    PrayerGroupSummary,
+    'updatesRequesterOnly' | 'answeredRequesterOnly' | 'prayForDisabled'
+  > {
+    const group = this.groups.find((row) => row.id === groupId);
+    if (!group) {
+      return {
+        updatesRequesterOnly: false,
+        answeredRequesterOnly: false,
+        prayForDisabled: false,
+      };
+    }
+    return {
+      updatesRequesterOnly: group.updatesRequesterOnly,
+      answeredRequesterOnly: group.answeredRequesterOnly,
+      prayForDisabled: group.prayForDisabled,
+    };
+  }
+
   isGroupOwnerForPrayer(prayer: GroupPrayerRow): boolean {
     return this.groups.find((group) => group.id === prayer.group_id)?.role === 'owner';
   }
@@ -322,6 +346,14 @@ export class HomeGroupsPanelComponent {
     if (group.role !== 'owner') return items;
     return [
       ...items,
+      {
+        id: 'settings',
+        label: 'Settings',
+        icon: 'settings',
+        tone: 'blue',
+        ariaLabel: `Settings for ${group.name}`,
+        onSelect: () => this.openSettings(group),
+      },
       {
         id: 'edit',
         label: 'Rename group',
@@ -385,6 +417,9 @@ export class HomeGroupsPanelComponent {
           color: savedColor,
           role: 'owner',
           memberCount: 1,
+          updatesRequesterOnly: false,
+          answeredRequesterOnly: false,
+          prayForDisabled: false,
         } satisfies PrayerGroupSummary);
       this.openMembers(created, { postCreate: true });
       this.toast.success('Group created');
@@ -722,6 +757,40 @@ export class HomeGroupsPanelComponent {
     this.renameDraft = group.name;
     this.renameColor = group.color;
     this.cdr.markForCheck();
+  }
+
+  private openSettings(group: PrayerGroupSummary): void {
+    this.settingsTarget = group;
+    this.settingsUpdatesRequesterOnly = group.updatesRequesterOnly;
+    this.settingsAnsweredRequesterOnly = group.answeredRequesterOnly;
+    this.settingsPrayForDisabled = group.prayForDisabled;
+    this.cdr.markForCheck();
+  }
+
+  closeSettings(): void {
+    this.settingsTarget = null;
+    this.settingsSaving = false;
+    this.cdr.markForCheck();
+  }
+
+  async saveSettings(): Promise<void> {
+    const target = this.settingsTarget;
+    if (!target || this.settingsSaving) return;
+    this.settingsSaving = true;
+    this.cdr.markForCheck();
+    try {
+      await this.groupsApi.updateGroupSettings(target.id, {
+        updatesRequesterOnly: this.settingsUpdatesRequesterOnly,
+        answeredRequesterOnly: this.settingsAnsweredRequesterOnly,
+        prayForDisabled: this.settingsPrayForDisabled,
+      });
+      this.closeSettings();
+      this.toast.success('Group settings saved');
+    } catch (err: unknown) {
+      this.toast.error(err instanceof Error ? err.message : 'Could not save settings');
+      this.settingsSaving = false;
+      this.cdr.markForCheck();
+    }
   }
 
   private applyPendingGroupDeepLink(): void {

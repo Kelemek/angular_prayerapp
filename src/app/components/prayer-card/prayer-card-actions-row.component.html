@@ -1,4 +1,5 @@
 <div [class]="'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
+  @if (showAddUpdate) {
   <button
     type="button"
     (click)="addUpdate.emit()"
@@ -14,6 +15,7 @@
   >
     Add Update
   </button>
+  }
   @if (showPrayForButton && prayerEncouragementEnabled) {
     @if (canPrayFor) {
       <button

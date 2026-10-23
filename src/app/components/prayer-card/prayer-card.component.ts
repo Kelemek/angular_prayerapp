@@ -35,6 +35,7 @@ import {
 } from '../../lib/prayer-card-pray-for-modal';
 import { runPrayerCardPrayFor } from '../../lib/prayer-card-pray-for-run';
 import {
+  showPrayerCardGroupMarkAnsweredButton,
   type PrayerCardPermissionContext,
 } from '../../lib/prayer-card-permissions';
 import {
@@ -140,6 +141,9 @@ export class PrayerCardComponent
   @Input() showPrayForButton = true;
   @Input() showPrayingCount = true;
   @Input() prayerEncouragementEnabled = true;
+  @Input() groupUpdatesRequesterOnly = false;
+  @Input() groupAnsweredRequesterOnly = false;
+  @Input() groupPrayForDisabled = false;
 
   @Output() delete = new EventEmitter<string>();
   @Output() addUpdate = new EventEmitter<PrayerCardAddUpdateEvent>();
@@ -282,6 +286,45 @@ export class PrayerCardComponent
     return isCurrentUserPrayerRequester(this.sessionEmail, this.prayer?.email);
   }
 
+  get canMarkGroupPrayerAnswered(): boolean {
+    if (!this.groupName) {
+      return false;
+    }
+    return showPrayerCardGroupMarkAnsweredButton(this.permissionContext());
+  }
+
+  get showMarkAsAnsweredOnUpdate(): boolean {
+    if (!this.groupName) {
+      return true;
+    }
+    return this.canMarkGroupPrayerAnswered;
+  }
+
+  get showPrayForOnCard(): boolean {
+    return this.showPrayForButton && !this.groupPrayForDisabled;
+  }
+
+  get showPrayedForBadgeOnCard(): boolean {
+    return this.viewState.showPrayedForBadge && !this.groupPrayForDisabled;
+  }
+
+  private permissionContext(): PrayerCardPermissionContext {
+    return {
+      prayerId: this.prayer.id,
+      prayerEmail: this.prayer.email,
+      isAdmin: this.isAdmin,
+      isPersonal: this.isPersonal,
+      deletionsAllowed: this.deletionsAllowed,
+      updatesAllowed: this.updatesAllowed,
+      currentUserEmail: getPrayerCardUserEmail(this.userSessionService),
+      allowGroupOwnerDelete: this.allowGroupOwnerDelete,
+      isGroupPrayer: !!this.groupName,
+      groupUpdatesRequesterOnly: this.groupUpdatesRequesterOnly,
+      groupAnsweredRequesterOnly: this.groupAnsweredRequesterOnly,
+      groupPrayForDisabled: this.groupPrayForDisabled,
+    };
+  }
+
   get viewState() {
     return computePrayerCardViewState({
       variant: this.variant,
@@ -295,6 +338,9 @@ export class PrayerCardComponent
       currentUserEmail: getPrayerCardUserEmail(this.userSessionService),
       allowGroupOwnerDelete: this.allowGroupOwnerDelete,
       isGroupPrayer: !!this.groupName,
+      groupUpdatesRequesterOnly: this.groupUpdatesRequesterOnly,
+      groupAnsweredRequesterOnly: this.groupAnsweredRequesterOnly,
+      groupPrayForDisabled: this.groupPrayForDisabled,
     });
   }
 

@@ -127,8 +127,10 @@ export class PrayerCardMetaHeaderComponent {
   @Input() groupColor: string | null = null;
   /** Group owner may change the shared group color from the card header. */
   @Input() canChangeGroupColor = false;
-  /** Group prayers: only the requester may edit or change answered status (RLS). */
+  /** Group prayers: only the requester may edit prayer text (RLS). */
   @Input() canEditGroupPrayer = false;
+  /** Group prayers: who may mark answered depends on group settings. */
+  @Input() canMarkGroupPrayerAnswered = false;
   @Input() status = 'current';
   @Input() showStatus = false;
   /** When false, header band is two-column (actions only) — e.g. Planning Center member cards. */
@@ -214,7 +216,7 @@ export class PrayerCardMetaHeaderComponent {
         onSelect: () => this.edit.emit(),
       });
     }
-    if (this.groupName && this.canEditGroupPrayer) {
+    if (this.groupName && this.canMarkGroupPrayerAnswered) {
       items.push({
         id: 'answered',
         label: this.isAnswered ? 'Mark as unanswered' : 'Mark as answered',
@@ -223,6 +225,8 @@ export class PrayerCardMetaHeaderComponent {
         tourAnchorId: this.personalAnsweredTourId,
         onSelect: () => this.toggleAnswered.emit(),
       });
+    }
+    if (this.groupName && this.canEditGroupPrayer) {
       items.push({
         id: 'edit',
         label: 'Edit prayer',

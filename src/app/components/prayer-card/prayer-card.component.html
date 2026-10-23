@@ -18,6 +18,7 @@
         [groupColor]="groupName ? (prayer.group_color ?? null) : null"
         [canChangeGroupColor]="!!groupName && allowGroupOwnerDelete"
         [canEditGroupPrayer]="canEditGroupPrayer"
+        [canMarkGroupPrayerAnswered]="canMarkGroupPrayerAnswered"
         [status]="prayer.status"
         [showStatus]="viewState.showStatusPillInHeader"
         [showDelete]="viewState.showDeleteButton"
@@ -67,7 +68,7 @@
           Memorize
         </button>
       </div>
-      } @else if (viewState.showAddUpdateButton) {
+      } @else if (viewState.showActionRow) {
       <app-prayer-card-actions-row
         [variantLayout]="variantLayout"
         [showTourAnchors]="showTourAnchors"
@@ -76,10 +77,11 @@
         [tourPrayForEncouragementAnchors]="tourPrayForEncouragementAnchors"
         [prayedForCount]="prayer.prayed_for_count ?? 0"
         [prayedForCountLabel]="viewState.prayedForCountLabel"
-        [showPrayedForBadge]="viewState.showPrayedForBadge"
+        [showPrayedForBadge]="showPrayedForBadgeOnCard"
         [usesPersonalCooldown]="viewState.usesPersonalCooldown"
         [canPrayFor]="(canPrayFor$ | async) ?? false"
-        [showPrayForButton]="showPrayForButton"
+        [showAddUpdate]="viewState.showAddUpdateButton"
+        [showPrayForButton]="showPrayForOnCard"
         [showPrayingCount]="showPrayingCount"
         [prayerEncouragementEnabled]="prayerEncouragementEnabled"
         [cooldownHours]="cooldownHours"
@@ -93,7 +95,7 @@
         [variantLayout]="variantLayout"
         [prayerUpdates]="prayerUpdateList"
         [displayedUpdates]="getDisplayedUpdates()"
-        [showTopMargin]="viewState.showAddUpdateButton"
+        [showTopMargin]="viewState.showActionRow"
         [showAllUpdates]="showAllUpdates"
         [shouldShowToggle]="shouldShowToggleButton()"
         [showTourAnchors]="showTourAnchors"
@@ -121,6 +123,7 @@
       [showAddUpdateForm]="showAddUpdateForm"
       [prayerId]="prayer.id"
       [isPersonal]="isPersonal"
+      [showMarkAsAnsweredOnUpdate]="showMarkAsAnsweredOnUpdate"
       [isMember]="viewState.isMember"
       [richTextEditorsEnabled]="richTextEditorsEnabled"
       [addUpdateTourElementIds]="addUpdateTourElementIds"

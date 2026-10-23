@@ -123,6 +123,9 @@
     [activeFilter]="'personal'"
     [deletionsAllowed]="'original-requestor'"
     [updatesAllowed]="'everyone'"
+    [groupUpdatesRequesterOnly]="groupSettingsFor(prayer.group_id).updatesRequesterOnly"
+    [groupAnsweredRequesterOnly]="groupSettingsFor(prayer.group_id).answeredRequesterOnly"
+    [groupPrayForDisabled]="groupSettingsFor(prayer.group_id).prayForDisabled"
     [showPrayForButton]="showPrayForButton"
     [showPrayingCount]="showPrayingCount"
     [prayerEncouragementEnabled]="prayerEncouragementEnabled"
@@ -281,6 +284,57 @@
         Send invites
       </button>
       }
+    </div>
+  </div>
+</div>
+}
+
+@if (settingsTarget) {
+<div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="closeSettings()">
+  <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+    <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Group settings</h2>
+      <button appModalChromeClose aria-label="Close" (click)="closeSettings()"></button>
+    </div>
+    <div class="space-y-4 px-6 py-4">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          class="mt-1 rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
+          [(ngModel)]="settingsUpdatesRequesterOnly"
+          name="settingsUpdatesRequesterOnly"
+        />
+        <span class="text-sm text-gray-700 dark:text-gray-300">
+          Only the prayer requester can add updates to group prayers
+        </span>
+      </label>
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          class="mt-1 rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
+          [(ngModel)]="settingsAnsweredRequesterOnly"
+          name="settingsAnsweredRequesterOnly"
+        />
+        <span class="text-sm text-gray-700 dark:text-gray-300">
+          Only the prayer requester can mark prayers as answered
+        </span>
+      </label>
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          class="mt-1 rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
+          [(ngModel)]="settingsPrayForDisabled"
+          name="settingsPrayForDisabled"
+        />
+        <span class="text-sm text-gray-700 dark:text-gray-300">
+          Disable the Pray For feature in this group
+        </span>
+      </label>
+    </div>
+    <div class="modal-chrome-footer flex justify-end px-6 py-4">
+      <button type="button" class="px-4 py-2 btn-chip btn-chip-blue" (click)="saveSettings()" [disabled]="settingsSaving">
+        Save
+      </button>
     </div>
   </div>
 </div>

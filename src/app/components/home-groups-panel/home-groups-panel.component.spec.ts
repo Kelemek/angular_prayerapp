@@ -57,6 +57,32 @@ describe('HomeGroupsPanelComponent groups tab chip state', () => {
     expect(panel.selectedId).toBe('group-42');
   });
 
+  it('includes Settings in the owner overflow menu only', () => {
+    const panel = createPanel();
+    const ownerItems = panel.overflowItems({
+      id: 'g1',
+      name: 'Family',
+      color: '#2563EB',
+      role: 'owner',
+      memberCount: 2,
+      updatesRequesterOnly: false,
+      answeredRequesterOnly: false,
+      prayForDisabled: false,
+    });
+    expect(ownerItems.some((item) => item.id === 'settings')).toBe(true);
+    const memberItems = panel.overflowItems({
+      id: 'g1',
+      name: 'Family',
+      color: '#2563EB',
+      role: 'member',
+      memberCount: 2,
+      updatesRequesterOnly: false,
+      answeredRequesterOnly: false,
+      prayForDisabled: false,
+    });
+    expect(memberItems.some((item) => item.id === 'settings')).toBe(false);
+  });
+
   it('restores chip filter when presentation return context is applied', () => {
     const panel = createPanel();
     panel.filterMode = 'current';

@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Groups — owner prayer settings (October 23, 2026)
+- Group owners open **Settings** from the group chip menu to restrict who can add updates, who can mark prayers answered, and whether **Pray For** is available in that group. Defaults leave all three open for every member ([`home-groups-panel`](../src/app/components/home-groups-panel/home-groups-panel.component.ts), [`prayer-card-permissions.ts`](../src/app/lib/prayer-card-permissions.ts)).
+- Migration [`20261023120000_prayer_group_settings.sql`](../supabase/migrations/20261023120000_prayer_group_settings.sql) adds `prayer_groups` flags, `update_prayer_group_settings`, and enforces the rules in `group_prayer_updates` insert, `set_group_prayer_status`, and `increment_group_prayer_prayed_for_count`. Applied on TEST `jcdhajfqtzipltvfslhu` and production [`eqiafsygvfaifhoaewxi`](https://eqiafsygvfaifhoaewxi.supabase.co) on October 23, 2026 via `supabase db query --linked` and `supabase migration repair`. `supabase db push` was not used. No edge function redeploy was required.
+
 ### UI — card menu answered color (October 23, 2026)
 - **Mark as answered** on personal and group prayer cards uses the same blue as the other card-menu actions. It stays green when the prayer is already answered (**Mark as unanswered**). The info preview of that item matches ([`prayer-card-meta-header.component.ts`](../src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts)).
 - An answered group prayer uses the same **Answered** header control as a personal prayer, including its green (and any custom Answered color) and vertical alignment. The group name and owner color picker return when the prayer is unmarked ([`prayer-card-meta-header.component.ts`](../src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts)).

@@ -14,6 +14,9 @@ export interface PrayerCardPermissionContext {
   /** Group owner may delete any prayer in the group (matches RLS). */
   allowGroupOwnerDelete?: boolean;
   isGroupPrayer?: boolean;
+  groupUpdatesRequesterOnly?: boolean;
+  groupAnsweredRequesterOnly?: boolean;
+  groupPrayForDisabled?: boolean;
 }
 
 export function showPrayerCardDeleteButton(
@@ -37,11 +40,29 @@ export function showPrayerCardDeleteButton(
 export function showPrayerCardAddUpdateButton(
   ctx: PrayerCardPermissionContext
 ): boolean {
+  if (ctx.isGroupPrayer) {
+    if (ctx.groupUpdatesRequesterOnly) {
+      return isCurrentUserPrayerRequester(ctx.currentUserEmail, ctx.prayerEmail);
+    }
+    return true;
+  }
   if (ctx.isPersonal) return true;
   if (isMemberPrayerId(ctx.prayerId)) return true;
   if (ctx.isAdmin) return true;
   if (ctx.updatesAllowed === 'admin-only') return false;
   if (ctx.updatesAllowed === 'original-requestor') {
+    return isCurrentUserPrayerRequester(ctx.currentUserEmail, ctx.prayerEmail);
+  }
+  return true;
+}
+
+export function showPrayerCardGroupMarkAnsweredButton(
+  ctx: PrayerCardPermissionContext,
+): boolean {
+  if (!ctx.isGroupPrayer) {
+    return false;
+  }
+  if (ctx.groupAnsweredRequesterOnly) {
     return isCurrentUserPrayerRequester(ctx.currentUserEmail, ctx.prayerEmail);
   }
   return true;

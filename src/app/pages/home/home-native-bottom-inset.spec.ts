@@ -55,7 +55,7 @@ describe('native home bottom inset', () => {
 
   it('pads Home dialogs inside the native scroller by the real safe area', () => {
     const overlays = groupsHtml.match(/native-home-dialog-overlay/g) ?? [];
-    expect(overlays).toHaveLength(5);
+    expect(overlays).toHaveLength(6);
     expect(confirmationDialog).toContain('native-home-dialog-overlay');
 
     const overlay = ruleBody(

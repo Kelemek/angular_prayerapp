@@ -4,7 +4,8 @@ export type CardActionsOverflowActionId =
   | 'edit'
   | 'delete'
   | 'members'
-  | 'reorder';
+  | 'reorder'
+  | 'settings';
 
 export type CardActionsOverflowIcon =
   | 'bell'
@@ -12,7 +13,8 @@ export type CardActionsOverflowIcon =
   | 'edit'
   | 'trash'
   | 'users'
-  | 'grip';
+  | 'grip'
+  | 'settings';
 
 export type CardActionsOverflowTone = 'blue' | 'green' | 'gray' | 'red';
 

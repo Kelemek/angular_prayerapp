@@ -18,7 +18,15 @@ describe('prayerGroupSummariesForViewer', () => {
     );
 
     expect(summaries).toEqual([
-      { id: 'group-1', name: 'Family', color: '#2563EB', role: 'owner' },
+      {
+        id: 'group-1',
+        name: 'Family',
+        color: '#2563EB',
+        role: 'owner',
+        updatesRequesterOnly: false,
+        answeredRequesterOnly: false,
+        prayForDisabled: false,
+      },
     ]);
   });
 });
@@ -100,6 +108,9 @@ describe('PrayerGroupService.listGroups', () => {
         color: '#2563EB',
         role: 'owner',
         memberCount: 1,
+        updatesRequesterOnly: false,
+        answeredRequesterOnly: false,
+        prayForDisabled: false,
       },
     ]);
     expect(service.membersForGroup('g1')).toEqual([
@@ -183,6 +194,9 @@ describe('PrayerGroupService.updateGroupColor', () => {
           color: '#2563EB',
           role: 'owner',
           memberCount: 1,
+          updatesRequesterOnly: false,
+          answeredRequesterOnly: false,
+          prayForDisabled: false,
         },
       ],
       rpc,
@@ -194,6 +208,40 @@ describe('PrayerGroupService.updateGroupColor', () => {
     expect(rpc).toHaveBeenCalledWith('update_prayer_group_color', {
       p_group_id: 'g1',
       p_color: '#DC2626',
+    });
+    expect(loadCatalog).toHaveBeenCalledWith(true);
+  });
+});
+
+describe('PrayerGroupService.updateGroupSettings', () => {
+  it('calls update_prayer_group_settings RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const loadCatalog = vi.fn().mockResolvedValue(undefined);
+    const service = new PrayerGroupService(
+      { db: async () => ({ rpc }) } as never,
+      {
+        invalidate: vi.fn(),
+        get: vi.fn().mockReturnValue(null),
+        set: vi.fn(),
+      } as never,
+      {
+        userSession$: new BehaviorSubject(null),
+        getCurrentSession: vi.fn().mockReturnValue({ email: 'a@b.com' }),
+      } as never,
+    );
+    vi.spyOn(service, 'loadCatalog').mockImplementation(loadCatalog);
+
+    await service.updateGroupSettings('g1', {
+      updatesRequesterOnly: true,
+      answeredRequesterOnly: false,
+      prayForDisabled: true,
+    });
+
+    expect(rpc).toHaveBeenCalledWith('update_prayer_group_settings', {
+      p_group_id: 'g1',
+      p_updates_requester_only: true,
+      p_answered_requester_only: false,
+      p_pray_for_disabled: true,
     });
     expect(loadCatalog).toHaveBeenCalledWith(true);
   });

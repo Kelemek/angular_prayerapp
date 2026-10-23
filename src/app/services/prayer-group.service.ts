@@ -28,6 +28,41 @@ export interface PrayerGroupSummary {
   color: string;
   role: 'owner' | 'member';
   memberCount: number;
+  updatesRequesterOnly: boolean;
+  answeredRequesterOnly: boolean;
+  prayForDisabled: boolean;
+}
+
+export type PrayerGroupSettingsPatch = Pick<
+  PrayerGroupSummary,
+  'updatesRequesterOnly' | 'answeredRequesterOnly' | 'prayForDisabled'
+>;
+
+type PrayerGroupRowSettings = {
+  updates_requester_only?: boolean | null;
+  answered_requester_only?: boolean | null;
+  pray_for_disabled?: boolean | null;
+};
+
+export function prayerGroupSettingsFromRow(
+  row: PrayerGroupRowSettings | null | undefined,
+): PrayerGroupSettingsPatch {
+  return {
+    updatesRequesterOnly: row?.updates_requester_only === true,
+    answeredRequesterOnly: row?.answered_requester_only === true,
+    prayForDisabled: row?.pray_for_disabled === true,
+  };
+}
+
+export function normalizePrayerGroupSummary(
+  group: PrayerGroupSummary,
+): PrayerGroupSummary {
+  return {
+    ...group,
+    updatesRequesterOnly: group.updatesRequesterOnly === true,
+    answeredRequesterOnly: group.answeredRequesterOnly === true,
+    prayForDisabled: group.prayForDisabled === true,
+  };
 }
 
 export interface PrayerGroupMemberRow {
@@ -66,8 +101,8 @@ type GroupMembershipListRow = {
   user_email?: string | null;
   role?: string | null;
   prayer_groups:
-    | { id: string; name: string; color?: string | null }
-    | { id: string; name: string; color?: string | null }[]
+    | ({ id: string; name: string; color?: string | null } & PrayerGroupRowSettings)
+    | ({ id: string; name: string; color?: string | null } & PrayerGroupRowSettings)[]
     | null;
 };
 
@@ -87,6 +122,7 @@ export function prayerGroupSummariesForViewer(
       name: group.name,
       color: normalizePrayerGroupColor(group.color),
       role: row.role === 'owner' ? 'owner' : 'member',
+      ...prayerGroupSettingsFromRow(group),
     });
   }
   return [...byId.values()];
@@ -282,18 +318,32 @@ export class PrayerGroupService {
     const groups = await this.listGroups();
     const prayers = await this.listAllPrayers();
     const updates = await this.listUpdates(prayers.map((prayer) => prayer.id));
-    return { viewerEmail, groups, prayers, updates };
+    return {
+      viewerEmail,
+      groups: groups.map(normalizePrayerGroupSummary),
+      prayers,
+      updates,
+    };
   }
 
   private publishCatalogSnapshot(snapshot: GroupPrayerCatalogSnapshot): void {
-    this.groupsSubject.next(snapshot.groups);
+    this.groupsSubject.next(snapshot.groups.map(normalizePrayerGroupSummary));
     this.prayersSubject.next(snapshot.prayers);
     this.updatesSubject.next(snapshot.updates);
   }
 
   private patchGroupInCatalog(
     groupId: string,
-    patch: Partial<Pick<PrayerGroupSummary, 'name' | 'color'>>,
+    patch: Partial<
+      Pick<
+        PrayerGroupSummary,
+        | 'name'
+        | 'color'
+        | 'updatesRequesterOnly'
+        | 'answeredRequesterOnly'
+        | 'prayForDisabled'
+      >
+    >,
   ): void {
     const groups = this.groupsSubject.value.map((group) =>
       group.id === groupId ? { ...group, ...patch } : group,
@@ -386,7 +436,9 @@ export class PrayerGroupService {
     }
     const { data: memberships, error } = await client
       .from('prayer_group_members')
-      .select('group_id, user_email, role, prayer_groups(id, name, color)')
+      .select(
+        'group_id, user_email, role, prayer_groups(id, name, color, updates_requester_only, answered_requester_only, pray_for_disabled)',
+      )
       .eq('is_active', true)
       .eq('user_email', viewerEmail)
       .order('display_order', { ascending: true });
@@ -592,6 +644,23 @@ export class PrayerGroupService {
     void this.loadCatalog(true);
   }
 
+  async updateGroupSettings(
+    groupId: string,
+    settings: PrayerGroupSettingsPatch,
+  ): Promise<void> {
+    const client = await this.supabase.db();
+    const { error } = await client.rpc('update_prayer_group_settings', {
+      p_group_id: groupId,
+      p_updates_requester_only: settings.updatesRequesterOnly,
+      p_answered_requester_only: settings.answeredRequesterOnly,
+      p_pray_for_disabled: settings.prayForDisabled,
+    });
+    if (error) throw error;
+    this.patchGroupInCatalog(groupId, settings);
+    this.cache.invalidate(GROUP_PRAYER_CATALOG_CACHE_KEY);
+    void this.loadCatalog(true);
+  }
+
   async renameGroup(
     groupId: string,
     name: string,
@@ -716,7 +785,12 @@ export class PrayerGroupService {
       })
       .select('id')
       .single();
-    if (error) throw error;
+    if (error) {
+      if (isGroupPrayerAnsweredUpdateDenied(error)) {
+        throw new Error('Only the author can mark the prayer answered.');
+      }
+      throw error;
+    }
     this.notifyChanged();
     const updateId = data.id as string;
     if (!input.markAsAnswered) {
@@ -789,7 +863,9 @@ function isGroupPrayerAnsweredUpdateDenied(error: unknown): boolean {
   const msg = (e.message ?? '').toLowerCase();
   return (
     e.code === '42501' ||
+    e.code === 'P0001' ||
     msg.includes('row-level security') ||
-    msg.includes('permission denied')
+    msg.includes('permission denied') ||
+    msg.includes('not authorized')
   );
 }

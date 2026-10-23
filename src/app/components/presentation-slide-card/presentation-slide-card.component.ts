@@ -46,6 +46,9 @@ import { isPersonalPrayerCard } from "../../lib/prayer-card-kind";
       [isPersonal]="isPersonalPrayerCard(prayer) || !!prayer.group_name"
       [groupName]="prayer.group_name ?? null"
       [allowGroupOwnerDelete]="allowGroupOwnerDelete"
+      [groupUpdatesRequesterOnly]="groupSettingsForCard.updatesRequesterOnly"
+      [groupAnsweredRequesterOnly]="groupSettingsForCard.answeredRequesterOnly"
+      [groupPrayForDisabled]="groupSettingsForCard.prayForDisabled"
       [deletionsAllowed]="allowancePolicy.deletionsAllowed"
       [updatesAllowed]="allowancePolicy.updatesAllowed"
       (delete)="onDeletePrayer()"
@@ -153,6 +156,36 @@ export class PresentationSlideCardComponent {
       .getGroupsSnapshot()
       .find((entry) => entry.id === groupId);
     return group?.role === "owner";
+  }
+
+  get groupSettingsForCard(): {
+    updatesRequesterOnly: boolean;
+    answeredRequesterOnly: boolean;
+    prayForDisabled: boolean;
+  } {
+    const groupId = this.prayer?.group_id;
+    if (!groupId) {
+      return {
+        updatesRequesterOnly: false,
+        answeredRequesterOnly: false,
+        prayForDisabled: false,
+      };
+    }
+    const group = this.prayerGroupService
+      .getGroupsSnapshot()
+      .find((entry) => entry.id === groupId);
+    if (!group) {
+      return {
+        updatesRequesterOnly: false,
+        answeredRequesterOnly: false,
+        prayForDisabled: false,
+      };
+    }
+    return {
+      updatesRequesterOnly: group.updatesRequesterOnly,
+      answeredRequesterOnly: group.answeredRequesterOnly,
+      prayForDisabled: group.prayForDisabled,
+    };
   }
 
   get planningCenterListId(): string | null {

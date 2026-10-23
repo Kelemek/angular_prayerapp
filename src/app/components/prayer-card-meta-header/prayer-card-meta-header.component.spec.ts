@@ -44,6 +44,7 @@ describe('PrayerCardMetaHeaderComponent overflow items', () => {
     component.prayerCreatedAt = '2026-01-01T00:00:00Z';
     component.groupName = 'Family';
     component.canEditGroupPrayer = true;
+    component.canMarkGroupPrayerAnswered = true;
     component.status = 'answered';
     component.showDelete = true;
     component.showReminder = true;
@@ -76,6 +77,7 @@ describe('PrayerCardMetaHeaderComponent overflow items', () => {
     group.prayerCreatedAt = '2026-01-01T00:00:00Z';
     group.groupName = 'Family';
     group.canEditGroupPrayer = true;
+    group.canMarkGroupPrayerAnswered = true;
     group.status = 'current';
     expect(group.overflowItems.find((item) => item.id === 'answered')?.tone).toBe(
       'blue'

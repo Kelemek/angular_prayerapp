@@ -43,4 +43,23 @@ describe('computePrayerCardViewState', () => {
     expect(state.showMemorizeButton).toBe(false);
     expect(state.showAddUpdateButton).toBe(true);
   });
+
+  it('shows the action row for group pray-for when updates are requester-only', () => {
+    const prayer = {
+      ...basePrayer,
+      content_kind: 'standard' as const,
+      email: 'author@example.com',
+    };
+    const state = computePrayerCardViewState({
+      ...baseInput,
+      prayer,
+      isPersonal: true,
+      isGroupPrayer: true,
+      groupUpdatesRequesterOnly: true,
+      currentUserEmail: 'other@example.com',
+      groupPrayForDisabled: false,
+    });
+    expect(state.showAddUpdateButton).toBe(false);
+    expect(state.showActionRow).toBe(true);
+  });
 });

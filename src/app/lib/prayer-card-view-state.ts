@@ -35,6 +35,9 @@ export interface PrayerCardViewStateInput {
   currentUserEmail: string;
   allowGroupOwnerDelete?: boolean;
   isGroupPrayer?: boolean;
+  groupUpdatesRequesterOnly?: boolean;
+  groupAnsweredRequesterOnly?: boolean;
+  groupPrayForDisabled?: boolean;
 }
 
 export interface PrayerCardViewState {
@@ -46,6 +49,7 @@ export interface PrayerCardViewState {
   showDeleteButton: boolean;
   showReminderButton: boolean;
   showAddUpdateButton: boolean;
+  showActionRow: boolean;
   isVerseMemorizationPrayer: boolean;
   showMemorizeButton: boolean;
   showUpdateDeleteButton: boolean;
@@ -74,14 +78,20 @@ export function computePrayerCardViewState(
     currentUserEmail: input.currentUserEmail,
     allowGroupOwnerDelete: input.allowGroupOwnerDelete,
     isGroupPrayer,
+    groupUpdatesRequesterOnly: input.groupUpdatesRequesterOnly,
+    groupAnsweredRequesterOnly: input.groupAnsweredRequesterOnly,
+    groupPrayForDisabled: input.groupPrayForDisabled,
   };
+  const isVersePrayer = isVerseMemorizationPrayer(prayer);
+  const showAddUpdateButton =
+    !isVersePrayer && showPrayerCardAddUpdateButton(permissionContext);
+  const groupPrayForAllowed =
+    isGroupPrayer && input.groupPrayForDisabled !== true;
   const borderClass = getPrayerCardBorderClass(
     prayer.id,
     prayer.status,
     isPersonal
   );
-
-  const isVersePrayer = isVerseMemorizationPrayer(prayer);
 
   return {
     isMember,
@@ -103,8 +113,10 @@ export function computePrayerCardViewState(
       prayer.status,
       isGroupPrayer
     ),
-    showAddUpdateButton:
-      !isVersePrayer && showPrayerCardAddUpdateButton(permissionContext),
+    showAddUpdateButton,
+    showActionRow:
+      !isVersePrayer &&
+      (showAddUpdateButton || groupPrayForAllowed),
     isVerseMemorizationPrayer: isVersePrayer,
     showMemorizeButton: isVersePrayer && !isPersonal,
     showUpdateDeleteButton: isGroupPrayer

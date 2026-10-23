@@ -55,6 +55,7 @@ export class PrayerCardModalsStackComponent implements OnChanges, OnDestroy {
   @Input() showAddUpdateForm = false;
   @Input({ required: true }) prayerId!: string;
   @Input() isPersonal = false;
+  @Input() showMarkAsAnsweredOnUpdate = true;
   @Input() isMember = false;
   @Input() richTextEditorsEnabled = true;
   @Input() addUpdateTourElementIds: PrayerCardAddUpdateTourElementIds | null =
