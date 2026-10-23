@@ -59,7 +59,7 @@ import {
         type="button"
         [class]="
           variant === 'header'
-            ? 'personal-category-header-band block h-full w-full min-w-0 max-w-full ' + layoutClasses.minHeightClasses + ' ' + headerInsetClasses + ' text-left font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden ' + headerTextClasses
+            ? 'personal-category-header-band flex h-full w-full min-w-0 max-w-full items-center ' + layoutClasses.minHeightClasses + ' ' + headerInsetClasses + ' text-left font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden ' + headerTextClasses
             : 'personal-category-pill px-2 py-1 text-xs font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500'
         "
         [title]="variant === 'header' ? category : null"
@@ -68,7 +68,7 @@ import {
         (click)="onPillClick($event)"
       >
         @if (variant === 'header') {
-        <span class="block truncate">{{ category }}</span>
+        <span class="block min-w-0 truncate">{{ category }}</span>
         } @else {
         {{ category }}
         }

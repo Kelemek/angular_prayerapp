@@ -53,7 +53,7 @@ import { ToastService } from '../../services/toast.service';
       <button
         type="button"
         [class]="
-          'personal-category-header-band block h-full w-full min-w-0 max-w-full ' +
+          'personal-category-header-band flex h-full w-full min-w-0 max-w-full items-center ' +
           layoutClasses.minHeightClasses +
           ' ' +
           headerInsetClasses +
@@ -65,7 +65,7 @@ import { ToastService } from '../../services/toast.service';
         aria-label="Change group color"
         (click)="onHeaderClick($event)"
       >
-        <span class="block truncate">{{ groupName }}</span>
+        <span class="block min-w-0 truncate">{{ groupName }}</span>
       </button>
       @if (showPicker) {
       <div

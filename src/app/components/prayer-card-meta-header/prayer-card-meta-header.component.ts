@@ -49,7 +49,14 @@ import {
     >
       <div cardMetaLeft class="w-full min-w-0">
         @if (groupName) {
-          @if (canChangeGroupColor && groupId) {
+          @if (isAnswered) {
+          <app-personal-category-pill
+            variant="header"
+            [bandSize]="bandSize"
+            category="Answered"
+            (pickerOpenChange)="pickerOpenChange.emit($event)"
+          />
+          } @else if (canChangeGroupColor && groupId) {
           <app-group-prayer-header-pill
             [bandSize]="bandSize"
             [groupId]="groupId"
@@ -193,7 +200,7 @@ export class PrayerCardMetaHeaderComponent {
         id: 'answered',
         label: this.isAnswered ? 'Mark as unanswered' : 'Mark as answered',
         icon: 'check',
-        tone: this.isAnswered ? 'green' : 'gray',
+        tone: this.isAnswered ? 'green' : 'blue',
         tourAnchorId: this.personalAnsweredTourId,
         onSelect: () => this.toggleAnswered.emit(),
       });
@@ -212,7 +219,7 @@ export class PrayerCardMetaHeaderComponent {
         id: 'answered',
         label: this.isAnswered ? 'Mark as unanswered' : 'Mark as answered',
         icon: 'check',
-        tone: this.isAnswered ? 'green' : 'gray',
+        tone: this.isAnswered ? 'green' : 'blue',
         tourAnchorId: this.personalAnsweredTourId,
         onSelect: () => this.toggleAnswered.emit(),
       });

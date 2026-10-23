@@ -384,6 +384,8 @@ downloadPersonalPrayers(timeRange: 'week' | 'month' | 'year' | 'all') {
 
 #### Personal prayer answered status
 
+Answered group prayers replace the group-name header with the same personal **Answered** category header (color, including a custom Answered color, and alignment). Unanswered group cards keep the group name; owners still open the shared group color picker from those cards ([`prayer-card-meta-header.component.ts`](../src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts)).
+
 Personal prayer cards expose **Mark as answered** in the card hamburger menu (same control as member update answered). Tapping it sets `category` to **Answered** (or clears it when already answered)—the same outcome as **Mark this prayer as answered** on edit / add-update forms—via [`PrayerService.updatePersonalPrayer`](../src/app/services/prayer.service.ts). Leaving **Answered** also clears `mark_as_answered` on that prayer’s updates (before the category write) so a later update edit cannot re-answer from a stale flag; the update-edit checkbox initializes from prayer category only. Unchecking that checkbox on edit clears reserved **Answered** (even if the category field still shows it); on update-edit, the category write runs before the update row save (and rolls back if the update save fails). Sharing a personal prayer to the public list was removed (including admin `is_shared_personal_prayer` handling and the DB column). Legacy presentation return contexts without a personal filter mode restore **Total** (former All Categories).
 
 #### Card actions overflow menu

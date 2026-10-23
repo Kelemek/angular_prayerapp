@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### UI — card menu answered color (October 23, 2026)
+- **Mark as answered** on personal and group prayer cards uses the same blue as the other card-menu actions. It stays green when the prayer is already answered (**Mark as unanswered**). The info preview of that item matches ([`prayer-card-meta-header.component.ts`](../src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts)).
+- An answered group prayer uses the same **Answered** header control as a personal prayer, including its green (and any custom Answered color) and vertical alignment. The group name and owner color picker return when the prayer is unmarked ([`prayer-card-meta-header.component.ts`](../src/app/components/prayer-card-meta-header/prayer-card-meta-header.component.ts)).
+
 ### Web — stale chunk recovery (October 22, 2026)
 - [`src/lib/stale-chunk-recovery.ts`](../src/lib/stale-chunk-recovery.ts) treats Safari **Importing a module script failed** and Chrome iOS short **'text/html' is not a valid JavaScript MIME type** (without `for module script`) like existing dynamic-import and long MIME chunk errors: one guarded full reload after PostHog capture. Covers PostHog issues paired with Notion site issues for cpprayer.cp-church.org.
 - [`cp-church/angular_prayerapp`](https://github.com/cp-church/angular_prayerapp) `main` fast-forwarded to `62762b71` so https://cpprayer.cp-church.org serves the matcher (`build-revision.txt` → `62762b7`). Native store builds unchanged.
