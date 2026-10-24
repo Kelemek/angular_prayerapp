@@ -388,8 +388,10 @@ function buildSpotlightEmailTemplateVars(
  * {{spotlightLatestUpdateHtml}} (alias), {{spotlightUpdateTextSection}}. Community: {{spotlightPrayerRequester}} is **Anonymous**
  * when `prayers.is_anonymous`, else `requester`; personal spotlight: **Me**.
  * Community spotlight: **all** approved + **current** `prayers` (app-wide; no date window).
- * Personal spotlight: **all** non-**Answered** `personal_prayers` for the recipient’s `user_email`. Previous pick avoided when possible.
- * Spotlight template: `{{appLink}}` = `APP_URL/?prayerId=` for the featured prayer when one is picked; push includes `prayerId` for tap-to-open.
+ * Personal spotlight: **all** non-**Answered** `personal_prayers` for the recipient’s `user_email`.
+ * Group spotlight: **current** `group_prayers` in groups where the recipient is an active `prayer_group_members` row.
+ * Community spotlight is omitted when `email_subscribers.is_church_member` is false (group-only access). Previous pick avoided when possible.
+ * Spotlight template: `{{appLink}}` is a deep link for the featured prayer (church/personal `?prayerId=`, group `?filter=groups&prayerId=`); push includes `prayerId` and `prayerKind` when needed for tap-to-open.
  * Set Edge secret APP_URL to match Angular environment.appUrl in production.
  * If APP_URL is host-only (no https://), it is prefixed with https:// so mail clients do not rewrite links to x-webdoc://…
  * Cron invokes dispatch-user-reminders, which runs this function first among sequential reminder phases.
@@ -464,6 +466,7 @@ interface SpotlightCandidate {
   kindLabel: string;
 }
 
+/** Duplicated from src/app/lib/hourly-prayer-reminder-spotlight.ts */
 function communityRequesterForSpotlight(
   isAnonymous: boolean | null | undefined,
   requester: string | null | undefined
@@ -472,6 +475,74 @@ function communityRequesterForSpotlight(
     return 'Anonymous';
   }
   return requester?.trim() ? requester : '';
+}
+
+/** Duplicated from src/app/lib/hourly-prayer-reminder-spotlight.ts */
+function buildHourlyPrayerSpotlightCandidates(input: {
+  includeCommunity: boolean;
+  communityRows: Array<{
+    id: string;
+    title: string | null;
+    description: string | null;
+    prayer_for: string | null;
+    requester: string | null;
+    is_anonymous: boolean | null;
+  }>;
+  personalRows: Array<{
+    id: string;
+    title: string | null;
+    description: string | null;
+    prayer_for: string | null;
+    category: string | null;
+  }>;
+  groupRows: Array<{
+    id: string;
+    title: string | null;
+    description: string | null;
+    prayer_for: string | null;
+    requester: string | null;
+    is_anonymous: boolean | null;
+  }>;
+}): SpotlightCandidate[] {
+  const candidates: SpotlightCandidate[] = [];
+
+  if (input.includeCommunity) {
+    for (const row of input.communityRows) {
+      candidates.push({
+        key: `c:${row.id}`,
+        title: row.title ?? '',
+        prayerFor: row.prayer_for ?? '',
+        requester: communityRequesterForSpotlight(row.is_anonymous, row.requester),
+        description: row.description ?? '',
+        kindLabel: 'Community prayer',
+      });
+    }
+  }
+
+  for (const row of input.personalRows) {
+    if (row.category === 'Answered') continue;
+    candidates.push({
+      key: `p:${row.id}`,
+      title: row.title ?? '',
+      prayerFor: row.prayer_for ?? '',
+      requester: 'Me',
+      description: row.description ?? '',
+      kindLabel: 'Personal prayer',
+    });
+  }
+
+  for (const row of input.groupRows) {
+    candidates.push({
+      key: `g:${row.id}`,
+      title: row.title ?? '',
+      prayerFor: row.prayer_for ?? '',
+      requester: communityRequesterForSpotlight(row.is_anonymous, row.requester),
+      description: row.description ?? '',
+      kindLabel: 'Group prayer',
+    });
+  }
+
+  return candidates;
 }
 
 /** Absolute http(s) base for email <a href>; host-only values get https:// (avoids x-webdoc:// in Apple Mail). */
@@ -501,14 +572,35 @@ function hourlyReminderFallbackParts(appLink: string): {
 }
 
 /** Duplicated from src/app/lib/hourly-prayer-spotlight-deep-link.ts */
-function spotlightKeyToPrayerId(key: string | null | undefined): string | null {
+function parseHourlySpotlightKey(
+  key: string | null | undefined
+): { prefix: 'c' | 'p' | 'g'; id: string } | null {
   if (!key) return null;
   const colon = key.indexOf(':');
   if (colon < 1) return null;
-  const kind = key.slice(0, colon);
+  const prefix = key.slice(0, colon);
   const id = key.slice(colon + 1).trim();
   if (!id) return null;
-  if (kind === 'c' || kind === 'p') return id;
+  if (prefix === 'c' || prefix === 'p' || prefix === 'g') {
+    return { prefix, id };
+  }
+  return null;
+}
+
+/** Duplicated from src/app/lib/hourly-prayer-spotlight-deep-link.ts */
+function spotlightKeyToPrayerId(key: string | null | undefined): string | null {
+  const parsed = parseHourlySpotlightKey(key);
+  return parsed?.id ?? null;
+}
+
+/** Duplicated from src/app/lib/hourly-prayer-spotlight-deep-link.ts */
+function spotlightKeyToPushPrayerKind(
+  key: string | null | undefined
+): 'group' | 'personal' | null {
+  const parsed = parseHourlySpotlightKey(key);
+  if (!parsed) return null;
+  if (parsed.prefix === 'g') return 'group';
+  if (parsed.prefix === 'p') return 'personal';
   return null;
 }
 
@@ -518,11 +610,15 @@ function buildPrayerSpotlightAppLink(
   spotlightKey: string | null | undefined
 ): string {
   const base = appUrl.replace(/\/$/, '');
-  const prayerId = spotlightKeyToPrayerId(spotlightKey);
-  if (!prayerId) return `${base}/`;
-  return `${base}/?prayerId=${encodeURIComponent(prayerId)}`;
+  const parsed = parseHourlySpotlightKey(spotlightKey);
+  if (!parsed) return `${base}/`;
+  if (parsed.prefix === 'g') {
+    return `${base}/?filter=groups&prayerId=${encodeURIComponent(parsed.id)}`;
+  }
+  return `${base}/?prayerId=${encodeURIComponent(parsed.id)}`;
 }
 
+/** Duplicated from src/app/lib/hourly-prayer-reminder-spotlight.ts */
 function pickSpotlightCandidate(
   candidates: SpotlightCandidate[],
   excludeKey: string | null
@@ -884,6 +980,13 @@ Deno.serve(async (req: Request) => {
         if (spotlightPrayerId) {
           pushData.prayerId = spotlightPrayerId;
         }
+        const pushPrayerKind =
+          useSpotlightVariables && spotlight?.key
+            ? spotlightKeyToPushPrayerKind(spotlight.key)
+            : null;
+        if (pushPrayerKind) {
+          pushData.prayerKind = pushPrayerKind;
+        }
         const { error: pushErr } = await supabase.functions.invoke('send-push-notification', {
           body: {
             emails: [recipient],
@@ -1001,45 +1104,62 @@ async function loadSpotlightCandidate(
     console.error('spotlight personal prayers query failed', pErr);
   }
 
-  const candidates: SpotlightCandidate[] = [];
+  let groupRows: unknown[] = [];
+  const { data: memberRows, error: mErr } = await supabase
+    .from('prayer_group_members')
+    .select('group_id')
+    .ilike('user_email', recipientEmail)
+    .eq('is_active', true);
+  if (mErr) {
+    console.error('spotlight group membership query failed', mErr);
+  } else {
+    const groupIds = [
+      ...new Set(
+        (memberRows ?? [])
+          .map((m) => (m as { group_id: string }).group_id)
+          .filter(Boolean)
+      ),
+    ];
+    if (groupIds.length > 0) {
+      const { data, error: gErr } = await supabase
+        .from('group_prayers')
+        .select('id, title, description, prayer_for, requester, is_anonymous')
+        .in('group_id', groupIds)
+        .eq('status', 'current');
+      if (gErr) {
+        console.error('spotlight group prayers query failed', gErr);
+      } else {
+        groupRows = data ?? [];
+      }
+    }
+  }
 
-  for (const p of commRows ?? []) {
-    const row = p as {
+  const candidates = buildHourlyPrayerSpotlightCandidates({
+    includeCommunity,
+    communityRows: (commRows ?? []) as Array<{
       id: string;
       title: string;
       description: string | null;
       prayer_for: string | null;
       requester: string | null;
       is_anonymous: boolean | null;
-    };
-    candidates.push({
-      key: `c:${row.id}`,
-      title: row.title ?? '',
-      prayerFor: row.prayer_for ?? '',
-      requester: communityRequesterForSpotlight(row.is_anonymous, row.requester),
-      description: row.description ?? '',
-      kindLabel: 'Community prayer',
-    });
-  }
-
-  for (const p of persRows ?? []) {
-    const row = p as {
+    }>,
+    personalRows: (persRows ?? []) as Array<{
       id: string;
       title: string;
       description: string | null;
       prayer_for: string | null;
       category: string | null;
-    };
-    if (row.category === 'Answered') continue;
-    candidates.push({
-      key: `p:${row.id}`,
-      title: row.title ?? '',
-      prayerFor: row.prayer_for ?? '',
-      requester: 'Me',
-      description: row.description ?? '',
-      kindLabel: 'Personal prayer',
-    });
-  }
+    }>,
+    groupRows: groupRows as Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      prayer_for: string | null;
+      requester: string | null;
+      is_anonymous: boolean | null;
+    }>,
+  });
 
   return pickSpotlightCandidate(candidates, lastSpotlightKey);
 }
@@ -1082,6 +1202,22 @@ async function fetchLatestUpdateMarkdown(
       .maybeSingle();
     if (error) {
       console.error('fetchLatestUpdateMarkdown personal', error);
+      return '';
+    }
+    const raw = data?.content;
+    return raw?.trim() ? raw : '';
+  }
+
+  if (kind === 'g') {
+    const { data, error } = await supabase
+      .from('group_prayer_updates')
+      .select('content')
+      .eq('group_prayer_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error('fetchLatestUpdateMarkdown group', error);
       return '';
     }
     const raw = data?.content;
