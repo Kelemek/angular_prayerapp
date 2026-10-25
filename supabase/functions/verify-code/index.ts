@@ -1,4 +1,5 @@
 // @ts-nocheck - Deno Edge Function
+// GitHub Integration deploy smoke (TEST, 2026-10-25): comment-only; login behavior unchanged.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { hashVerificationCode, verificationCodesMatch } from './verification-code-hash.ts';
 import { mintAuthResumeToken } from '../shared/auth-resume-token.ts';
