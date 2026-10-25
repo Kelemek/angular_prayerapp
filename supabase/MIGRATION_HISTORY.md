@@ -34,4 +34,4 @@ TEST history uses these versions; repo files were renamed to match (no DB write)
 
 ## Duplicate version fix
 
-`20260204` was split: `20260204_add_email_queue_processing_lock.sql` and `20260204000001_fix_email_queue_status_constraint.sql`.
+`20260204` was split: `20260204_add_email_queue_processing_lock.sql` and `20260205000001_fix_email_queue_status_constraint.sql` (renamed from `20260204000001` on 2026-10-25 so the 8-digit / 14-digit prefix does not break hosted GitHub `db push`; history repaired on TEST and prod).

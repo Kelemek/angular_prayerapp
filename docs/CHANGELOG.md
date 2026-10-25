@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Migrations — fix `20260204` / `20260204000001` prefix collision (October 25, 2026)
+- Renamed [`20260204000001_fix_email_queue_status_constraint.sql`](../supabase/migrations/20260205000001_fix_email_queue_status_constraint.sql) → `20260205000001_…` so hosted GitHub Integration (Go CLI) no longer treats `20260204` as missing locally ([CLI #6036](https://github.com/supabase/cli/issues/6036)). History-only `migration repair` on TEST `jcdhajfqtzipltvfslhu` and production `eqiafsygvfaifhoaewxi` (reverted `20260204000001`, applied `20260205000001`). See [`supabase/MIGRATION_HISTORY.md`](../supabase/MIGRATION_HISTORY.md).
+
 ### Migrations — TEST history repair for GitHub Integration prep (October 24, 2026)
 - Aligned `supabase/migrations` with TEST `jcdhajfqtzipltvfslhu` history only (no prod, no GitHub Integration). Renamed four re-stamped files to TEST versions (`20260926220642`, `20261008013234`, `20261008040221`, `20261011165902`); split duplicate `20260204` into `20260204` + `20260204000001`; added placeholders [`20260123135839_remote_schema.sql`](../supabase/migrations/20260123135839_remote_schema.sql) and [`20260712191829_memorization_recommendations_tenant.sql`](../supabase/migrations/20260712191829_memorization_recommendations_tenant.sql). Stamped 61 repo-only versions via `supabase migration repair --linked` after catalog probes. Operator notes: [`supabase/MIGRATION_HISTORY.md`](../supabase/MIGRATION_HISTORY.md). Initialized [`supabase/config.toml`](../supabase/config.toml) for CLI link (review before commit).
 
