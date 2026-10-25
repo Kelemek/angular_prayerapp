@@ -5,7 +5,7 @@ Phase 2 removes MFA/anon PostgREST access for signed-in flows. Clients must send
 ## Unchanged (service role or Edge)
 
 - Nightly backup: GitHub Actions `SUPABASE_SERVICE_KEY` ([`.github/workflows/backup-database-api.yml`](../.github/workflows/backup-database-api.yml))
-- Login codes: [`20260926170000_lock_verification_codes.sql`](../supabase/migrations/20260926170000_lock_verification_codes.sql) + `send-verification-code` / `verify-code`
+- Login codes: [`20260926170000_lock_verification_codes.sql`](../supabase/migrations/20260926220642_lock_verification_codes.sql) + `send-verification-code` / `verify-code`
 - Reminder cron and most Edge Functions
 
 ## Intentional anon (logged-out)

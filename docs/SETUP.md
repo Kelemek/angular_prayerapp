@@ -42,11 +42,16 @@ npm run dev
 
 ### Database Migrations
 
-Migrations are run automatically. To manually migrate:
+**Cross Pointe Prayer:** TEST and production were advanced for many releases with `supabase db query -f …` plus `migration repair`, not `supabase db push`. Do not push blindly. See [`supabase/MIGRATION_HISTORY.md`](../supabase/MIGRATION_HISTORY.md) and compare with `supabase migration list --linked` after `supabase link --project-ref jcdhajfqtzipltvfslhu` (TEST).
+
+Migrations are run automatically on greenfield projects. To manually migrate when push is appropriate:
 
 ```bash
-# Using Supabase CLI
-supabase db push
+# Dry-run first on linked TEST
+supabase db push --dry-run --linked
+
+# Apply only when dry-run matches intent
+supabase db push --linked
 
 # Or through Supabase Dashboard:
 # 1. Go to SQL Editor
@@ -155,7 +160,7 @@ supabase db push
 
 ### Login verification codes
 
-Migration [`20260926170000_lock_verification_codes.sql`](../supabase/migrations/20260926170000_lock_verification_codes.sql) removes public access to `verification_codes`. It is applied on the **test** project `jcdhajfqtzipltvfslhu` ([`environment.ts`](../src/environments/environment.ts)). Production `eqiafsygvfaifhoaewxi` is unchanged until you apply the same migration there on purpose. After applying, redeploy the two functions that still use the table:
+Migration [`20260926170000_lock_verification_codes.sql`](../supabase/migrations/20260926220642_lock_verification_codes.sql) removes public access to `verification_codes`. It is applied on the **test** project `jcdhajfqtzipltvfslhu` ([`environment.ts`](../src/environments/environment.ts)). Production `eqiafsygvfaifhoaewxi` is unchanged until you apply the same migration there on purpose. After applying, redeploy the two functions that still use the table:
 
 ```bash
 supabase functions deploy send-verification-code --project-ref jcdhajfqtzipltvfslhu
