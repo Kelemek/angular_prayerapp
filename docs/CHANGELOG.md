@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Edge Functions — refresh `tslib` lock hash for GitHub Integration bundle (October 25, 2026)
+- esm.sh republished `tslib@2.8.1/denonext/tslib.mjs`; updated integrity in [`supabase/functions/deno.lock`](../supabase/functions/deno.lock) (and root [`deno.lock`](../deno.lock)) so hosted bundling passes integrity checks. [`scripture/deno.json`](../supabase/functions/scripture/deno.json) now uses the shared lock; removed duplicate [`scripture/deno.lock`](../supabase/functions/scripture/deno.lock).
+
 ### Edge Functions — GitHub Integration deploy catalog (`config.toml`, October 25, 2026)
 - Declared all **24** Edge Functions under `[functions.*]` in [`supabase/config.toml`](../supabase/config.toml) with `verify_jwt` aligned to [`deno.json`](../supabase/functions/) and manual deploy notes in [`SETUP.md`](SETUP.md) (login/MFA paths off; group/PC/admin and cron-invoked functions on). Supabase GitHub Integration skips undeclared function folders, which caused **No functions to deploy** on TEST `jcdhajfqtzipltvfslhu` despite migration smoke deploys succeeding.
 

@@ -172,7 +172,7 @@
     "https://esm.sh/marked@15.0.12/denonext/marked.mjs": "5d8e995396a2595354a1d1c85c4975e05ef4927cad25769ed346578b17bbeec2",
     "https://esm.sh/nth-check@2.1.1/denonext/nth-check.mjs": "2b0541d4564b27c31b37b006329c64036bee04a4c8f14e8357037fd7d35ecfe4",
     "https://esm.sh/nth-check@2.1.1?target=denonext": "689135c5e0e825a2a89058636f1b3a497040597c17de9107c703e9d764d22e25",
-    "https://esm.sh/tslib@2.8.1/denonext/tslib.mjs": "ebce3cd5facb654623020337f867b426ba95f71596ba87acc9e6c6f4e55905ca",
+    "https://esm.sh/tslib@2.8.1/denonext/tslib.mjs": "c38da5dd6da6281964435002ce204cd586634fe3bdfb24a0ee116f48cf3292e9",
     "https://esm.sh/uhyphen@0.2.0/denonext/uhyphen.mjs": "c9cb7bd80a7d7de55616628523cd6be52a74cfc5ccdd0c871c10e94861e34f71",
     "https://esm.sh/uhyphen@0.2.0?target=denonext": "3b34a717188b1d17a910e19ae635d8ecc355635e66393d95163bb5b2506214d7"
   }

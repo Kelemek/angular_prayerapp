@@ -3,5 +3,6 @@
     "strict": true,
     "noImplicitAny": false
   },
+  "lock": "../deno.lock",
   "verify_jwt": false
 }
