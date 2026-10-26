@@ -501,6 +501,16 @@ Enable the feature under **Admin → Settings → Content → Memorization Recit
 
 ## Deployment
 
+### Supabase GitHub Integration (migrations + Edge Functions)
+
+On **TEST** `jcdhajfqtzipltvfslhu`, the linked repo (`Kelemek/angular_prayerapp`, branch `main`) runs migrations and deploys Edge Functions on push. **Production** `eqiafsygvfaifhoaewxi` is not on GitHub Integration until you enable it on purpose.
+
+- **Migrations**: files under [`supabase/migrations/`](../supabase/migrations/). See [`supabase/MIGRATION_HISTORY.md`](../supabase/MIGRATION_HISTORY.md) before changing history on Cross Pointe projects.
+- **Edge Functions**: only folders listed in [`supabase/config.toml`](../supabase/config.toml) as `[functions.<name>]` are deployed. Undeclared folders are ignored (integration logs show **No functions to deploy**). Each block sets **`verify_jwt`** for the gateway; match [`deno.json`](../supabase/functions/) and the manual `supabase functions deploy` flags documented below (login/MFA and `send-email` / `planning-center-lookup` use `verify_jwt = false`; group/PC JWT paths and cron-invoked jobs use `true` — cron still passes the **service_role** JWT from Vault).
+- **Secrets** (API keys, `NOTION_TOKEN`, APNs, etc.) stay in the Supabase project dashboard; they are not read from git.
+
+After changing `config.toml` or a function, push to `main` and confirm **Manage branches → main → View logs** lists function deploy steps. Manual deploy remains available: `supabase functions deploy <name> --project-ref jcdhajfqtzipltvfslhu` (add `--no-verify-jwt` only when `config.toml` has `verify_jwt = false` for that name).
+
 ### Vercel Deployment
 
 #### Step 1: Connect to Vercel

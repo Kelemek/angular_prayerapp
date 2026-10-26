@@ -384,6 +384,82 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Edge Functions — required for Supabase GitHub Integration deploys (undeclared folders are skipped).
+# verify_jwt must match manual deploy flags in docs/SETUP.md and each function's deno.json where set.
+# Cron/pg_net invokes use the service_role JWT (verify_jwt = true is fine).
+
+[functions.check-admin-status]
+verify_jwt = true
+
+[functions.cleanup-device-tokens]
+verify_jwt = true
+
+[functions.dispatch-user-reminders]
+verify_jwt = true
+
+[functions.get-openai-org-usage]
+verify_jwt = false
+
+[functions.notify-account-approval]
+verify_jwt = true
+
+[functions.notify-group-activity]
+verify_jwt = true
+
+[functions.planning-center-lists]
+verify_jwt = true
+
+[functions.planning-center-lookup]
+verify_jwt = false
+
+[functions.register-planning-center-member]
+verify_jwt = false
+
+[functions.resume-auth-link]
+verify_jwt = false
+
+[functions.scripture]
+verify_jwt = false
+
+[functions.scripture-audio]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-prayer-reminders]
+verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.send-user-hourly-memorization-reminders]
+verify_jwt = true
+
+[functions.send-user-hourly-prayer-reminders]
+verify_jwt = true
+
+[functions.send-user-prayer-item-reminders]
+verify_jwt = true
+
+[functions.send-verification-code]
+verify_jwt = false
+
+[functions.submit-feedback]
+verify_jwt = false
+
+[functions.transcribe-audio]
+verify_jwt = false
+
+[functions.trigger-email-processor]
+verify_jwt = true
+
+[functions.upgrade-planning-center-member]
+verify_jwt = true
+
+[functions.verify-code]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

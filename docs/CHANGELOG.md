@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Edge Functions — GitHub Integration deploy catalog (`config.toml`, October 25, 2026)
+- Declared all **24** Edge Functions under `[functions.*]` in [`supabase/config.toml`](../supabase/config.toml) with `verify_jwt` aligned to [`deno.json`](../supabase/functions/) and manual deploy notes in [`SETUP.md`](SETUP.md) (login/MFA paths off; group/PC/admin and cron-invoked functions on). Supabase GitHub Integration skips undeclared function folders, which caused **No functions to deploy** on TEST `jcdhajfqtzipltvfslhu` despite migration smoke deploys succeeding.
+
 ### Migrations — fix `20260204` / `20260204000001` prefix collision (October 25, 2026)
 - Renamed [`20260204000001_fix_email_queue_status_constraint.sql`](../supabase/migrations/20260205000001_fix_email_queue_status_constraint.sql) → `20260205000001_…` so hosted GitHub Integration (Go CLI) no longer treats `20260204` as missing locally ([CLI #6036](https://github.com/supabase/cli/issues/6036)). History-only `migration repair` on TEST `jcdhajfqtzipltvfslhu` and production `eqiafsygvfaifhoaewxi` (reverted `20260204000001`, applied `20260205000001`). See [`supabase/MIGRATION_HISTORY.md`](../supabase/MIGRATION_HISTORY.md).
 
