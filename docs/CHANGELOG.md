@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Push — accept non-JWT service role key (October 25, 2026)
+- `send-push-notification` returned 403 "Not authorized" to reminder jobs (for example `send-user-hourly-memorization-reminders`) when `SUPABASE_SERVICE_ROLE_KEY` is a non-JWT `sb_secret_…` key, because it only recognized a `service_role` JWT. It now uses the same `isServiceRoleCredential` check as `send-email`, which accepts the configured key in `Authorization` or `apikey` ([`send-push-notification/access.ts`](../supabase/functions/send-push-notification/access.ts), [`send-push-access.spec.ts`](../src/lib/send-push-access.spec.ts)).
+
 ### Admin — remove OpenAI API key spend panel (October 25, 2026)
 - **Admin → Settings → Content → Memorization Recite Mode** no longer shows the "OpenAI API key spend (whisper-1)" box. Removed the `get-openai-org-usage` Edge Function, its `config.toml` entry, `MemorizationReciteSettingsService.fetchOpenAiOrgUsage` and `loadUsageSummary`, and the `MemorizationReciteOpenAiUsage` and `MemorizationReciteUsageSummary` types ([`memorization-recite-settings.component.ts`](../src/app/components/memorization-recite-settings/memorization-recite-settings.component.ts)). The `get_memorization_recite_usage_summary` RPC and `memorization_recite_usage` table stay in the database. Recite transcription (`transcribe-audio`, `OPENAI_API_KEY`) is unchanged. On October 25, 2026 the deployed `get-openai-org-usage` function and the `OPENAI_ADMIN_KEY` and `OPENAI_API_KEY_ID` secrets were deleted from TEST `jcdhajfqtzipltvfslhu` and production `eqiafsygvfaifhoaewxi`.
 - `npm run pre-handoff` now also runs `npm run test:deno`, so a stale `supabase/functions/deno.lock` fails the gate ([`scripts/pre-handoff.js`](../scripts/pre-handoff.js)).

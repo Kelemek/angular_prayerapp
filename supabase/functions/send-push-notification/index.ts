@@ -24,6 +24,7 @@ import { jwtRole } from '../send-email/access.ts';
 import {
   adminPushRecipientEmails,
   decidePushAccess,
+  isPushServiceRoleCaller,
   type PushCallerKind,
 } from './access.ts';
 
@@ -151,9 +152,11 @@ async function sendViaApns(
 
 async function resolvePushCaller(req: Request): Promise<PushCallerKind> {
   const header = req.headers.get('Authorization') ?? '';
+  if (isPushServiceRoleCaller(header, req.headers.get('apikey'), supabaseKey)) {
+    return 'service_role';
+  }
   const token = header.replace(/^Bearer\s+/i, '').trim();
   const role = token ? jwtRole(token) : null;
-  if (role === 'service_role') return 'service_role';
   if (role !== 'authenticated' || !supabaseUrl || !supabaseKey) return 'anonymous';
 
   const userClient = createClient(

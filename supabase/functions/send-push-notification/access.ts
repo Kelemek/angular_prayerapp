@@ -1,3 +1,5 @@
+import { isServiceRoleCredential } from "../send-email/access.ts";
+
 export type PushCallerKind =
   | "service_role"
   | "admin"
@@ -5,6 +7,15 @@ export type PushCallerKind =
   | "anonymous";
 
 export type PushAccess = "raw" | "admin_recipients" | "deny";
+
+/** Accepts a service_role JWT or the configured key itself (`sb_secret_…` keys are not JWTs). */
+export function isPushServiceRoleCaller(
+  authorizationHeader: string | null | undefined,
+  apiKeyHeader: string | null | undefined,
+  serviceRoleKey: string | null | undefined
+): boolean {
+  return isServiceRoleCredential(authorizationHeader, apiKeyHeader, serviceRoleKey);
+}
 
 /** Service role and admins may choose recipients. A subscriber may reach only admins. */
 export function decidePushAccess(
