@@ -13,7 +13,7 @@ Do not mark a task complete until verification passes for every file you created
 
 Follow [`.cursor/skills/pre-handoff/SKILL.md`](../skills/pre-handoff/SKILL.md) (also [AGENTS.md](../../AGENTS.md)).
 
-1. **Automated gate** — Use the **Shell** tool to run **`npm run pre-handoff`** (lint + typecheck + full unit tests). Fix until exit 0. The project **stop hook** blocks agent completion until this passes when watched paths changed.
+1. **Automated gate** — Use the **Shell** tool to run **`npm run pre-handoff`** (lint + typecheck + full unit tests + Edge Function Deno tests). Fix until exit 0. The project **stop hook** blocks agent completion until this passes when watched paths changed.
 2. **IDE diagnostics** — Call `ReadLints` on all touched paths. Fix every **error**; fix **warnings** you introduced.
 3. **Logic review** — Complete the table below (mandatory after step 1 passes).
 

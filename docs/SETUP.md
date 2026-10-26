@@ -466,11 +466,7 @@ Then:
 
 ```bash
 supabase secrets set OPENAI_API_KEY=your_openai_project_api_key
-# Optional: API-key spend in Admin → Memorization Recite Mode (last 30 days, Whisper key only)
-supabase secrets set OPENAI_ADMIN_KEY=your_openai_admin_api_key
-supabase secrets set OPENAI_API_KEY_ID=your_openai_api_key_id
 ./scripts/deploy-functions.sh transcribe-audio
-./scripts/deploy-functions.sh get-openai-org-usage
 ```
 
 ### Personal prayer Pray For
@@ -495,7 +491,7 @@ Or paste the file into the Supabase SQL editor.
 
 ---
 
-Enable the feature under **Admin → Settings → Content → Memorization Recite Mode**. **`OPENAI_API_KEY`** powers Whisper transcription (`transcribe-audio`). **`OPENAI_ADMIN_KEY`** (a separate [Admin API key](https://platform.openai.com/settings/organization/admin-keys)) and **`OPENAI_API_KEY_ID`** (the id of the Whisper key from [API keys](https://platform.openai.com/api-keys), not the `sk-…` secret) are optional and power the API-key spend line in admin (last 30 days for that key only). App-tracked usage (attempts, minutes, estimated cost) is stored in `memorization_recite_usage` without the admin secrets.
+Enable the feature under **Admin → Settings → Content → Memorization Recite Mode**. **`OPENAI_API_KEY`** powers Whisper transcription (`transcribe-audio`). Check OpenAI spend on the [OpenAI usage dashboard](https://platform.openai.com/usage). App-tracked usage (attempts, minutes, estimated cost) is stored in `memorization_recite_usage` without the admin secrets.
 
 ---
 

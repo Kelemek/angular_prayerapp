@@ -15,7 +15,6 @@ rm -f src/app/lib/memorization/memorizationReciteAlignment.ts
 rm -f src/app/lib/memorization/memorizationReciteAlignment.spec.ts
 rm -f src/app/lib/memorization/isWhisperReciteSupported.ts
 rm -rf supabase/functions/transcribe-audio
-rm -rf supabase/functions/get-openai-org-usage
 ```
 
 Optional: remove `src/app/lib/debug-session-log.ts` if it was only added for Recite debugging.
@@ -42,7 +41,7 @@ Or restore from backup if Recite never shipped.
 | `parse-scripture-reference.ts` | `isSingleVerseScriptureReference` if unused elsewhere |
 | `android/app/src/main/AndroidManifest.xml` | `RECORD_AUDIO` if not needed elsewhere |
 | `ios/App/App/Info.plist` | Microphone usage string if not needed elsewhere |
-| `scripts/deploy-functions.sh` | `transcribe-audio`, `get-openai-org-usage` entries |
+| `scripts/deploy-functions.sh` | `transcribe-audio` entries |
 
 ## 4. Docs and changelog
 
@@ -57,4 +56,4 @@ rg -i recite src/ supabase/   # should return nothing (or only unrelated matches
 
 ## 6. Supabase secrets (optional)
 
-Unset `OPENAI_ADMIN_KEY` and `OPENAI_API_KEY_ID` if they were only used for the admin usage panel. Keep `OPENAI_API_KEY` if other features use it.
+Unset `OPENAI_API_KEY` if no other feature uses it.

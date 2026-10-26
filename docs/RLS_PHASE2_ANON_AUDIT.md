@@ -57,7 +57,7 @@ Anon still allowed:
 - `admin_settings` row `id = 1` **SELECT** of the login columns (code length, titles, and the other non-secret settings). `test_account_code_4`, `test_account_code_6`, and `test_account_code_8` are omitted from that grant. Insert, update, and delete are revoked. `github_token`, `github_repo_owner`, `github_repo_name`, and `enabled` are dropped. `get_test_account_login_codes()` is executable by signed-in users and returns the codes only for an admin or the configured tester email.
 - `email_templates` **SELECT** for a signed-in user. Anonymous select is revoked. Writes are admin-only.
 
-`get_memorization_recite_usage_summary` is executable by signed-in users and returns rows only when `is_admin()` is true for the session email. Anonymous execute is revoked. `get-openai-org-usage` uses that same session check.
+`get_memorization_recite_usage_summary` is executable by signed-in users and returns rows only when `is_admin()` is true for the session email. Anonymous execute is revoked.
 
 Anon functions:
 

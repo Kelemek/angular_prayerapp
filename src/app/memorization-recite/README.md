@@ -15,7 +15,6 @@ Optional feature: Whisper-backed verse recitation practice and admin controls.
 | `../lib/memorization/memorizationReciteAlignment.ts` | Alignment engine |
 | `../lib/memorization/isWhisperReciteSupported.ts` | Platform guard |
 | `../../supabase/functions/transcribe-audio/` | Whisper edge function |
-| `../../supabase/functions/get-openai-org-usage/` | Admin usage edge function |
 | `../../supabase/migrations/20260721120000_memorization_recite_mode.sql` | DB schema |
 
 Integration in the main app is marked with `// @removal-recite` comments.

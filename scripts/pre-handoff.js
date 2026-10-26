@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Automated gate before agent handoff or PR review.
- * Runs lint + typecheck + full unit tests. Prints logic-review reminders for the agent.
+ * Runs lint + typecheck + full unit tests + Edge Function Deno tests (frozen lockfile).
+ * Prints logic-review reminders for the agent.
  */
 const { execSync } = require('child_process');
 const { getWorktreeFingerprint, writeStamp } = require('./pre-handoff-utils');
@@ -32,6 +33,7 @@ LOGIC_REVIEW.forEach((line, index) => {
 try {
   run('npm run lint', 'ESLint (errors only)');
   run('npm run verify', 'Typecheck + unit tests');
+  run('npm run test:deno', 'Edge Function Deno tests (frozen deno.lock)');
 } catch {
   console.error('\n✗ Pre-handoff failed. Fix the errors above, then re-run: npm run pre-handoff\n');
   process.exit(1);

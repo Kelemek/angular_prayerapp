@@ -55,23 +55,6 @@ export interface MemorizationReciteSettings {
   enabled: boolean;
 }
 
-export interface MemorizationReciteUsageSummary {
-  attemptCount: number;
-  billableAudioSeconds: number;
-  estimatedCostUsd: number;
-}
-
-export interface MemorizationReciteOpenAiUsage {
-  configured: boolean;
-  periodDays?: number;
-  totalUsd?: number;
-  error?: string;
-  /** Org costs API needs OPENAI_ADMIN_KEY (separate from OPENAI_API_KEY for Whisper). */
-  adminKeyRequired?: boolean;
-  /** Costs are filtered to OPENAI_API_KEY_ID (key id from OpenAI dashboard, not the secret). */
-  apiKeyIdRequired?: boolean;
-}
-
 export interface MemorizationInProgress {
   sessionSeed: string;
   wrongAttempts: number;

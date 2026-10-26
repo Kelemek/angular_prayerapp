@@ -397,9 +397,6 @@ verify_jwt = true
 [functions.dispatch-user-reminders]
 verify_jwt = true
 
-[functions.get-openai-org-usage]
-verify_jwt = false
-
 [functions.notify-account-approval]
 verify_jwt = true
 

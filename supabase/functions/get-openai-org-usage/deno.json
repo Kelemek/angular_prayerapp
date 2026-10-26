@@ -1,7 +1,0 @@
-{
-  "compilerOptions": {
-    "strict": true,
-    "noImplicitAny": false
-  },
-  "verify_jwt": false
-}

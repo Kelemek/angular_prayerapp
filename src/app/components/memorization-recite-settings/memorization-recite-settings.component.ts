@@ -8,9 +8,6 @@ import { FormsModule } from '@angular/forms';
 import { AdminSectionLoadingComponent } from '../admin-section-loading/admin-section-loading.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { MemorizationReciteSettingsService } from '../../services/memorization-recite-settings.service';
-import type {
-  MemorizationReciteOpenAiUsage,
-} from '../../types/memorization';
 
 @Component({
   selector: 'app-memorization-recite-settings',
@@ -119,86 +116,6 @@ import type {
               </div>
             </form>
 
-            @if (reciteEnabled) {
-            <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg space-y-2">
-              <div>
-                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  OpenAI API key spend (whisper-1)
-                </h3>
-                @if (openAiUsage?.configured && !openAiUsage?.error && !openAiUsageLoading) {
-                  <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                    {{ formatCost(openAiUsage.totalUsd ?? 0) }}
-                    <span class="text-gray-500 dark:text-gray-400">· last {{ openAiUsage.periodDays }} days</span>
-                  </p>
-                }
-              </div>
-
-              @if (openAiUsageLoading) {
-                <div
-                  class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <span
-                    class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-600 border-t-transparent dark:border-blue-400 dark:border-t-transparent"
-                    aria-hidden="true"
-                  ></span>
-                  Loading whisper-1 spend…
-                </div>
-              } @else if (openAiUsage?.error) {
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  Could not load OpenAI API key spend. Requires an
-                  <a
-                    href="https://platform.openai.com/settings/organization/admin-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-blue-600 dark:text-blue-400 hover:underline"
-                  >Admin API key</a>
-                  in Supabase as <code class="text-xs">OPENAI_ADMIN_KEY</code> and the Whisper key id as
-                  <code class="text-xs">OPENAI_API_KEY_ID</code>.
-                </p>
-              } @else if (openAiUsage?.adminKeyRequired) {
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  OpenAI API key spend (last 30 days) needs a separate
-                  <a
-                    href="https://platform.openai.com/settings/organization/admin-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-blue-600 dark:text-blue-400 hover:underline"
-                  >Admin API key</a>
-                  — set <code class="text-xs">OPENAI_ADMIN_KEY</code> on Supabase (Whisper still uses
-                  <code class="text-xs">OPENAI_API_KEY</code>).
-                </p>
-              } @else if (openAiUsage?.apiKeyIdRequired) {
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  Set <code class="text-xs">OPENAI_API_KEY_ID</code> on Supabase to match the Whisper
-                  <code class="text-xs">OPENAI_API_KEY</code> (copy the tracking id from
-                  <a
-                    href="https://platform.openai.com/api-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-blue-600 dark:text-blue-400 hover:underline"
-                  >OpenAI API keys</a>
-                  — not the secret). Also requires <code class="text-xs">OPENAI_ADMIN_KEY</code>.
-                </p>
-              } @else if (openAiUsage && !openAiUsage.configured) {
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  Set <code class="text-xs">OPENAI_ADMIN_KEY</code> and <code class="text-xs">OPENAI_API_KEY_ID</code>
-                  on the server for API-key spend, or <code class="text-xs">OPENAI_API_KEY</code> for transcription only.
-                </p>
-              }
-
-              <a
-                href="https://platform.openai.com/usage"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-block text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Open OpenAI usage dashboard →
-              </a>
-            </div>
-            }
-
             @if (successMessage) {
               <p class="text-sm text-green-700 dark:text-green-300 mt-3">{{ successMessage }}</p>
             }
@@ -217,10 +134,8 @@ export class MemorizationReciteSettingsComponent {
   reciteEnabled = false;
   isSaving = false;
   isLoading = false;
-  openAiUsageLoading = false;
   successMessage = '';
   errorMessage = '';
-  openAiUsage: MemorizationReciteOpenAiUsage | null = null;
 
   constructor(
     private supabase: SupabaseService,
@@ -257,10 +172,6 @@ export class MemorizationReciteSettingsComponent {
       this.isLoading = false;
       this.cdr.markForCheck();
     }
-
-    if (this.reciteEnabled) {
-      void this.refreshOpenAiUsage();
-    }
   }
 
   async submitSettings(): Promise<void> {
@@ -279,9 +190,6 @@ export class MemorizationReciteSettingsComponent {
 
       this.reciteSettingsService.invalidateCache();
       this.successMessage = 'Recite mode settings saved.';
-      if (this.reciteEnabled) {
-        void this.refreshOpenAiUsage();
-      }
       setTimeout(() => {
         this.successMessage = '';
         this.cdr.markForCheck();
@@ -293,28 +201,5 @@ export class MemorizationReciteSettingsComponent {
       this.isSaving = false;
       this.cdr.markForCheck();
     }
-  }
-
-  async refreshOpenAiUsage(): Promise<void> {
-    if (!this.reciteEnabled) {
-      return;
-    }
-    this.openAiUsageLoading = true;
-    this.cdr.markForCheck();
-
-    try {
-      this.openAiUsage = await this.reciteSettingsService.fetchOpenAiOrgUsage();
-    } catch (err) {
-      console.error('[MemorizationReciteSettings] OpenAI usage load failed:', err);
-      this.openAiUsage = { configured: false, error: 'Could not load OpenAI usage' };
-    } finally {
-      this.openAiUsageLoading = false;
-      this.cdr.markForCheck();
-    }
-  }
-
-  formatCost(usd: number): string {
-    if (usd < 0.01) return '$0.00';
-    return `$${usd.toFixed(2)}`;
   }
 }
