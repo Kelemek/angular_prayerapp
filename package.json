@@ -21,6 +21,8 @@
     "typecheck": "ng build --configuration development",
     "verify": "npm run typecheck && npm test -- --run",
     "pre-handoff": "node scripts/pre-handoff.js",
+    "check:deploy-gaps": "node scripts/supabase-deploy-gaps.mjs",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "cap:icons": "cp public/apple-touch-icon.png resources/logo.png && npx @capacitor/assets generate --iconBackgroundColor '#1a365d' --iconBackgroundColorDark '#1a365d' --splashBackgroundColor '#1a365d' --splashBackgroundColorDark '#1a365d'",
     "cap:icons:generate": "npx @capacitor/assets generate --iconBackgroundColor '#1a365d' --iconBackgroundColorDark '#1a365d' --splashBackgroundColor '#1a365d' --splashBackgroundColorDark '#1a365d'",
     "cap:sync": "npx cap sync",

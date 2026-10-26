@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Tooling — Supabase deploy gap check on push (October 25, 2026)
+- Production `eqiafsygvfaifhoaewxi` now deploys through Supabase GitHub Integration from the fork `cp-church/angular_prayerapp` (`main`). The first run deployed all 23 functions with `config.toml` `verify_jwt` flags.
+- New `npm run check:deploy-gaps` ([`scripts/supabase-deploy-gaps.mjs`](../scripts/supabase-deploy-gaps.mjs), tests in [`supabase-deploy-gaps.spec.ts`](../src/lib/supabase-deploy-gaps.spec.ts)) reports what a push needs beyond the Integration: functions missing from `config.toml`, removed functions to delete, new `Deno.env` secrets, edited or out-of-order migrations, and `config.toml` settings changes. The `.githooks/pre-push` hook runs it on every push without blocking, and `npm install` enables the hook through the `prepare` script. Agents follow [`.cursor/rules/supabase-deploy-gaps.mdc`](../.cursor/rules/supabase-deploy-gaps.mdc) to report the result after each push.
+
 ### Push — accept non-JWT service role key (October 25, 2026)
 - `send-push-notification` returned 403 "Not authorized" to reminder jobs (for example `send-user-hourly-memorization-reminders`) when `SUPABASE_SERVICE_ROLE_KEY` is a non-JWT `sb_secret_…` key, because it only recognized a `service_role` JWT. It now uses the same `isServiceRoleCredential` check as `send-email`, which accepts the configured key in `Authorization` or `apikey` ([`send-push-notification/access.ts`](../supabase/functions/send-push-notification/access.ts), [`send-push-access.spec.ts`](../src/lib/send-push-access.spec.ts)).
 

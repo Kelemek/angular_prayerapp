@@ -499,11 +499,12 @@ Enable the feature under **Admin → Settings → Content → Memorization Recit
 
 ### Supabase GitHub Integration (migrations + Edge Functions)
 
-On **TEST** `jcdhajfqtzipltvfslhu`, the linked repo (`Kelemek/angular_prayerapp`, branch `main`) runs migrations and deploys Edge Functions on push. **Production** `eqiafsygvfaifhoaewxi` is not on GitHub Integration until you enable it on purpose.
+Both projects deploy through GitHub Integration on push to `main`. **TEST** `jcdhajfqtzipltvfslhu` is linked to `Kelemek/angular_prayerapp`. **Production** `eqiafsygvfaifhoaewxi` is linked to the fork `cp-church/angular_prayerapp` (enabled October 25, 2026), so production deploys when you click **Sync fork** on cp-church. Do not commit directly to the fork.
 
 - **Migrations**: files under [`supabase/migrations/`](../supabase/migrations/). See [`supabase/MIGRATION_HISTORY.md`](../supabase/MIGRATION_HISTORY.md) before changing history on Cross Pointe projects.
 - **Edge Functions**: only folders listed in [`supabase/config.toml`](../supabase/config.toml) as `[functions.<name>]` are deployed. Undeclared folders are ignored (integration logs show **No functions to deploy**). Each block sets **`verify_jwt`** for the gateway; match [`deno.json`](../supabase/functions/) and the manual `supabase functions deploy` flags documented below (login/MFA and `send-email` / `planning-center-lookup` use `verify_jwt = false`; group/PC JWT paths and cron-invoked jobs use `true` — cron still passes the **service_role** JWT from Vault).
 - **Secrets** (API keys, `NOTION_TOKEN`, APNs, etc.) stay in the Supabase project dashboard; they are not read from git.
+- **Not handled by the Integration**: deleting a removed function, setting new secrets, re-running an edited migration, and `config.toml` settings outside `[functions.*]`. `npm run check:deploy-gaps` (also run by the `.githooks/pre-push` hook, which `npm install` enables through `prepare`) lists these for the commits being pushed and prints the manual command for each ([`scripts/supabase-deploy-gaps.mjs`](../scripts/supabase-deploy-gaps.mjs)). It never blocks the push.
 
 After changing `config.toml` or a function, push to `main` and confirm **Manage branches → main → View logs** lists function deploy steps. Manual deploy remains available: `supabase functions deploy <name> --project-ref jcdhajfqtzipltvfslhu` (add `--no-verify-jwt` only when `config.toml` has `verify_jwt = false` for that name).
 

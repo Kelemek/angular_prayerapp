@@ -1,0 +1,25 @@
+---
+description: Tell Mark what a push needs beyond the Supabase GitHub Integration
+alwaysApply: true
+---
+
+# Supabase deploy gaps on every push
+
+Both Supabase projects deploy through the GitHub Integration: Kelemek/angular_prayerapp `main` → TEST `jcdhajfqtzipltvfslhu`, and the fork cp-church/angular_prayerapp `main` (updated with **Sync fork**) → production `eqiafsygvfaifhoaewxi`. The Integration applies new migrations and deploys functions declared as `[functions.<name>]` in `supabase/config.toml`. Nothing else.
+
+Whenever you commit and push (or sync the fork), run **`npm run check:deploy-gaps`** for the pushed range and, in your reply, tell Mark **every** item it reports plus anything below it cannot detect, with the exact command and which project(s). If nothing applies, say so in one line.
+
+The script ([`scripts/supabase-deploy-gaps.mjs`](../../scripts/supabase-deploy-gaps.mjs), also run by the `.githooks/pre-push` hook) flags:
+
+- A function folder without a `[functions.*]` block (not deployed), or a block without a folder.
+- A removed function (deployed copy stays until `supabase functions delete`).
+- A new `Deno.env.get('NAME')` secret (`supabase secrets set` on each project).
+- An edited, renamed, or deleted existing migration (never re-run), or a new migration older than the latest one.
+- `config.toml` changes outside `[functions.*]` (verify in each dashboard).
+
+Also call out by reading the diff, since the script cannot see them:
+
+- Vault secrets, cron jobs, or other data a migration expects to already exist.
+- Supabase dashboard settings (auth providers, redirect URLs, SMTP, storage policies made in the UI).
+- Native app changes (`ios/`, `android/`) that need a store release; web changes deploy separately with the site build.
+- That production only gets the change after cp-church is synced.
