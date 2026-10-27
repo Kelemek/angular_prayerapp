@@ -6,6 +6,7 @@ import {
 } from "@angular/cdk/drag-drop";
 import type { PersonalCategoryFilterMode } from "../../types/presentation";
 import {
+  HOME_NAV_CHIP_TEXT_LOCK_CLASS,
   HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS,
   HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
@@ -120,7 +121,7 @@ export class HomePersonalCategoryFiltersComponent {
   }
 
   categoryChipShellClass(category: string): string {
-    return buildHomeSubFilterChipButtonClass({
+    return `${buildHomeSubFilterChipButtonClass({
       base: this.chipButtonClass,
       active: this.isPersonalCategorySelected(category),
       activeClass: this.personalCategoryActiveClass,
@@ -128,7 +129,7 @@ export class HomePersonalCategoryFiltersComponent {
       relative: true,
       disabled: this.isCategorySwapping(category),
       showDragHandle: this.chipReorderHandlesVisible,
-    });
+    })} ${HOME_NAV_CHIP_TEXT_LOCK_CLASS}`;
   }
 
   toggleChipReorderHandles(): void {

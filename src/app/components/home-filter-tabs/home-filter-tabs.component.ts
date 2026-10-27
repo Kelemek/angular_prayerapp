@@ -6,6 +6,7 @@ import { BadgeService } from "../../services/badge.service";
 import { homeHasSubFilterRowBelowTabs, isPublicAreaFilter } from "../../lib/home-community-filter";
 import {
   homeFilterTabClass,
+  HOME_NAV_TAB_TEXT_LOCK_CLASS,
   type HomeFilterTabAccent,
 } from "../../lib/home-sub-filter-chip-classes";
 import {
@@ -44,11 +45,11 @@ export class HomeFilterTabsComponent {
   }
 
   tabClass(accent: HomeFilterTabAccent, active: boolean): string {
-    return homeFilterTabClass({
+    return `${homeFilterTabClass({
       accent,
       active,
       hasSubRow: this.hasSubFilterRow,
-    });
+    })} ${HOME_NAV_TAB_TEXT_LOCK_CLASS}`;
   }
 
   readonly badgeService = inject(BadgeService);

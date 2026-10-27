@@ -154,6 +154,7 @@ describe("HomePersonalCategoryFiltersComponent", () => {
     expect(chip.className).toContain(
       HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS.split(" ")[0]
     );
+    expect(chip.className).toContain("home-nav-chip-text-lock");
     expect(
       chip.querySelector("[data-testid=card-actions-overflow-trigger]")
     ).toBeTruthy();

@@ -60,6 +60,18 @@ describe("HomePublicStatusFiltersComponent", () => {
     fixture?.destroy();
   });
 
+  it("marks each sub-filter chip host for mobile nav text lock", () => {
+    const chips = fixture.nativeElement.querySelectorAll(
+      "app-home-sub-filter-chip"
+    );
+    expect(chips.length).toBeGreaterThan(0);
+    for (const chip of chips) {
+      expect((chip as HTMLElement).className).toContain(
+        "home-nav-chip-text-lock"
+      );
+    }
+  });
+
   it("wraps each public status chip with the same flex-wrap host as prompt types", () => {
     const chipIds = [
       "tour-filter-current",

@@ -51,6 +51,22 @@ describe("HomeFilterTabsComponent", () => {
     fixture?.destroy();
   });
 
+  it("applies mobile nav text lock on main tab buttons", () => {
+    const tabIds = [
+      "tour-filter-public",
+      "tour-filter-groups",
+      "tour-filter-personal",
+      "tour-filter-memorize",
+    ];
+    for (const id of tabIds) {
+      const button = fixture.nativeElement.querySelector(
+        `#${id}`
+      ) as HTMLButtonElement;
+      expect(button).toBeTruthy();
+      expect(button.className).toContain("home-nav-tab-text-lock");
+    }
+  });
+
   it("shows main tab labels without catalog counts", () => {
     const labels: Record<string, string> = {
       "tour-filter-public": "Church",

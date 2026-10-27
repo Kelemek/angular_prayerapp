@@ -23,6 +23,7 @@ import { ModalChromeCloseButtonComponent } from '../modal-chrome-close-button/mo
 import { PrayerCardComponent } from '../prayer-card/prayer-card.component';
 import {
   HOME_GROUPS_SUB_FILTER_GROUP_CLASS,
+  HOME_NAV_CHIP_TEXT_LOCK_CLASS,
   HOME_PUBLIC_STATUS_CHIP_THEMES,
   HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
   HOME_SUB_FILTER_CHIP_ROW_CLASS,
@@ -259,14 +260,14 @@ export class HomeGroupsPanelComponent {
   }
 
   chipClass(group: PrayerGroupSummary): string {
-    return buildHomeSubFilterChipButtonClass({
+    return `${buildHomeSubFilterChipButtonClass({
       base: HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
       active: this.isGroupActive(group.id),
       activeClass: this.groupChipActive,
       inactiveClass: this.groupChipInactive,
       disabled: this.reordering,
       showDragHandle: this.chipReorderHandlesVisible,
-    });
+    })} ${HOME_NAV_CHIP_TEXT_LOCK_CLASS}`;
   }
 
   toggleChipReorderHandles(): void {

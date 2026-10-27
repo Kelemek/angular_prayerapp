@@ -1,3 +1,9 @@
+/** Below `sm`, fixed px typography in styles.css (Home main tabs only). */
+export const HOME_NAV_TAB_TEXT_LOCK_CLASS = "home-nav-tab-text-lock";
+
+/** Below `sm`, fixed px typography in styles.css (Home sub-filter + peer chips). */
+export const HOME_NAV_CHIP_TEXT_LOCK_CLASS = "home-nav-chip-text-lock";
+
 /** Folder-tab chrome shared by Home and the Info filter mock (label typography included). */
 export const HOME_FILTER_TAB_BASE_CLASS =
   "flex-1 min-w-0 px-3 py-2 text-center text-base font-semibold leading-tight text-gray-700 dark:text-gray-300 transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center";

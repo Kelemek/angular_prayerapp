@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { BadgeService } from "../../services/badge.service";
 import {
+  HOME_NAV_CHIP_TEXT_LOCK_CLASS,
   HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
   HOME_SUB_FILTER_CHIP_ROW_CLASS,
   HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
@@ -67,13 +68,13 @@ export class HomePromptTypeFiltersComponent {
   }
 
   promptChipButtonClass(active: boolean, hasBadge: boolean): string {
-    return buildHomeSubFilterChipButtonClass({
+    return `${buildHomeSubFilterChipButtonClass({
       base: this.chipButtonClass,
       active,
       activeClass: this.promptTypeActiveClass,
       inactiveClass: this.promptTypeInactiveClass,
       relative: hasBadge,
-    });
+    })} ${HOME_NAV_CHIP_TEXT_LOCK_CLASS}`;
   }
 
   get panelGroupClass(): string {

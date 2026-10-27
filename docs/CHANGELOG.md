@@ -6,6 +6,7 @@ Major features and milestones for the Prayer App.
 
 ### Home — Church tab + prayer (October 27, 2026)
 - The Church tab status filter row has a **+** chip (same style as Personal and Groups). It opens the new prayer form locked to church scope via [`PrayerFormLock`](src/app/lib/prayer-form-lock.ts) `{ scope: "church" }`, so the Church / Group / Personal visibility grid stays hidden. Anonymous church prayer is still available ([`home-public-status-filters`](src/app/components/home-public-status-filters/home-public-status-filters.component.ts), [`home-page-shell.ts`](src/app/lib/home-page-shell.ts)).
+- On viewports below `sm`, Home main tabs (Church / Group / Personal / Memorize) and sub-filter chips (+ / Current / Answered / Total / Prompts type chips / named group and personal category peer chips) use `home-nav-tab-text-lock` and `home-nav-chip-text-lock` with fixed px typography and chip height (36px) in [`src/styles.css`](../src/styles.css) so OS and in-app text size do not resize those controls; labels are not truncated. Header, body, and `sm+` scaling are unchanged.
 
 ### Tooling — Windows CI line endings (October 26, 2026)
 - The `windows-latest` test job failed to load [`supabase-deploy-gaps.spec.ts`](../src/lib/supabase-deploy-gaps.spec.ts) because Windows checked out the shebang script with CRLF line endings. [`.gitattributes`](../.gitattributes) now forces LF for `*.mjs` and `.githooks/*` ([`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)).

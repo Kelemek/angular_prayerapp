@@ -223,6 +223,24 @@ describe('HomeGroupsPanelComponent add chooser', () => {
     return fixture;
   }
 
+  it('marks group peer chips for mobile nav text lock', async () => {
+    const fixture = await renderPanel({
+      groups: [summary('g1', 'testing')],
+      selectedId: 'g1',
+      preferredGroupId: 'g1',
+    });
+    const labelButton = Array.from(
+      fixture.nativeElement.querySelectorAll('button'),
+    ).find((el: HTMLButtonElement) =>
+      el.textContent?.includes('testing'),
+    ) as HTMLButtonElement;
+    expect(labelButton).toBeTruthy();
+    expect(labelButton.parentElement?.className).toContain(
+      'home-nav-chip-text-lock',
+    );
+    fixture.destroy();
+  });
+
   it('opens the chooser from + without creating a group', async () => {
     const fixture = await renderPanel({
       groups: [summary('g1', 'Family')],

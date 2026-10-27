@@ -1,11 +1,14 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
-import { HOME_SUB_FILTER_CHIP_BASE_CLASS } from "../../lib/home-sub-filter-chip-classes";
+import {
+  HOME_NAV_CHIP_TEXT_LOCK_CLASS,
+  HOME_SUB_FILTER_CHIP_BASE_CLASS,
+} from "../../lib/home-sub-filter-chip-classes";
 
 @Component({
   selector: "app-home-sub-filter-chip",
   standalone: true,
   host: {
-    class: "flex min-w-0",
+    class: `${HOME_NAV_CHIP_TEXT_LOCK_CLASS} flex min-w-0`,
     "[class.flex-1]": "stretch",
   },
   template: `
