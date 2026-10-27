@@ -50,6 +50,7 @@ import {
   AdminFilterSelectComponent,
   type AdminFilterSelectOption,
 } from "../admin-filter-select/admin-filter-select.component";
+import type { PrayerFormLock } from "../../lib/prayer-form-lock";
 
 @Component({
   selector: "app-prayer-form",
@@ -74,12 +75,15 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   @Input() defaultPersonalPrayer = false;
   /** When true and the modal opens, default to Group Prayer if the person has a group. */
   @Input() defaultGroupPrayer = false;
+  /** When set, Church/Group/Personal cannot be changed. Null is the header Request picker. */
+  @Input() lock: PrayerFormLock | null = null;
   @Output() close = new EventEmitter<{ isPersonal?: boolean }>();
 
   visibility: "public" | "group" | "personal" = "public";
   private userPickedVisibility = false;
   private groupLoadToken = 0;
   groupChoices: PrayerGroupSummary[] = [];
+  groupsLoaded = false;
   selectedGroupId: string | null = null;
   isChurchMember = true;
 
@@ -147,11 +151,16 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes["isOpen"]?.currentValue === true) {
+    const opened = changes["isOpen"]?.currentValue === true;
+    const lockChanged = changes["lock"] != null;
+    if (opened) {
       this.userPickedVisibility = false;
       this.syncSessionFlags();
       this.applyDefaultVisibility();
       void this.loadGroupsForForm();
+    } else if (this.isOpen && lockChanged) {
+      this.userPickedVisibility = false;
+      this.applyDefaultVisibility();
     }
     if (this.isOpen) {
       this.loadUserInfo();
@@ -213,6 +222,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
   }
 
   pickVisibility(visibility: "public" | "group" | "personal"): void {
+    if (this.lock) return;
     this.userPickedVisibility = true;
     this.setVisibility(visibility);
   }
@@ -230,6 +240,7 @@ export class PrayerFormComponent implements OnInit, OnChanges {
 
   async loadGroupsForForm(): Promise<void> {
     const token = ++this.groupLoadToken;
+    this.groupsLoaded = false;
     let choices: PrayerGroupSummary[] = [];
     try {
       choices = await this.prayerGroupService.listGroups();
@@ -238,6 +249,12 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     }
     if (token !== this.groupLoadToken) return;
     this.groupChoices = choices;
+    this.groupsLoaded = true;
+    if (this.lock) {
+      this.applyLock();
+      this.cdr.markForCheck();
+      return;
+    }
     if (
       this.isOpen &&
       this.defaultGroupPrayer &&
@@ -263,7 +280,43 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     return this.groupChoices[0]?.id ?? null;
   }
 
+  private applyLock(): void {
+    const lock = this.lock;
+    if (!lock) return;
+    switch (lock.scope) {
+      case "personal":
+        this.setVisibility("personal");
+        return;
+      case "group":
+        this.setVisibility("group");
+        this.selectLockedGroup();
+        return;
+      default: {
+        const _exhaustive: never = lock;
+        return _exhaustive;
+      }
+    }
+  }
+
+  private selectLockedGroup(): void {
+    const lock = this.lock;
+    if (lock?.scope !== "group") return;
+    const requested = lock.groupId;
+    if (
+      requested &&
+      this.groupChoices.some((group) => group.id === requested)
+    ) {
+      this.selectedGroupId = requested;
+      return;
+    }
+    this.selectedGroupId = this.defaultGroupId();
+  }
+
   private applyDefaultVisibility(): void {
+    if (this.lock) {
+      this.applyLock();
+      return;
+    }
     if (this.defaultPersonalPrayer) {
       this.setVisibility("personal");
       return;

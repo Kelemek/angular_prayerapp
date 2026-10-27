@@ -7,13 +7,13 @@
       @if (isChurchMember) {
       <app-home-sub-filter-chip
         chipId="tour-filter-add-group"
-        chipAriaLabel="Add a group"
+        chipAriaLabel="Add a prayer or group"
         [stretch]="false"
         [active]="false"
         [layoutClass]="addGroupChipLayoutClass"
         [activeClass]="groupChipActive"
         [inactiveClass]="groupChipInactive"
-        (chipClick)="openCreateGroupModal()"
+        (chipClick)="openAddChooser()"
       >
         <svg
           class="size-6 shrink-0"
@@ -145,7 +145,7 @@
     <p class="text-gray-500 dark:text-gray-400">
       Groups are private prayers for the people you invite.
       @if (isChurchMember) {
-      Tap the + button to create one.
+      Tap the + button, then choose New group. New prayer is available after the group exists.
       } @else {
       You are not in a group yet.
       }
@@ -465,3 +465,11 @@
   (cancel)="cancelLeave()"
 />
 }
+
+<app-home-add-choice-modal
+  [isOpen]="addChooserOpen"
+  title="Add to Groups"
+  [options]="addChoices"
+  (choose)="onAddChoice($event)"
+  (close)="closeAddChooser()"
+/>

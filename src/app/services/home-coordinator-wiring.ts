@@ -409,12 +409,8 @@ function createHomeHelpTourBindings(
     closeHelp: () => {
       deps.modals.showHelp = false;
     },
-    openPrayerForm: () => {
-      deps.modals.showPrayerForm = true;
-    },
-    closePrayerForm: () => {
-      deps.modals.showPrayerForm = false;
-    },
+    openPrayerForm: () => deps.modals.openPrayerForm(),
+    closePrayerForm: () => deps.modals.onPrayerFormClose(),
     closeWalkthroughPersonalEdit: () => {
       deps.modals.showEditPersonalPrayer = false;
       deps.modals.editingPrayer = null;

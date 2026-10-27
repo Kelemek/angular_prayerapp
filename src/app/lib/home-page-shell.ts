@@ -19,6 +19,7 @@ import type { HomeHeaderHandlers } from "./home-header-handlers";
 import type { HomeModalsHostHandlers } from "./home-modals-host-handlers";
 import type { HomePrayerContentHandlers } from "./home-prayer-content-handlers";
 import { verseReferenceFromPrayer } from "./verse-memorization-description";
+import type { PrayerFormLock } from "./prayer-form-lock";
 
 export interface HomePageShellDeps {
   prayerCardActions: PrayerCardActionsFacade;
@@ -66,6 +67,7 @@ export interface HomePageShell {
   modals: {
     readonly activeFilter: HomeActiveFilter;
     readonly showPrayerForm: boolean;
+    readonly prayerFormLock: PrayerFormLock | null;
     readonly showSettings: boolean;
     readonly settingsScrollToSectionId: string | null;
     readonly showHelp: boolean;
@@ -115,6 +117,8 @@ export interface HomePageShell {
   };
   readonly getPromptCountByType: (type: string) => number;
   readonly getUnreadPromptCountByType: (type: string) => number;
+  openNewPersonalPrayer(): void;
+  openNewGroupPrayer(groupId: string | null): void;
 }
 
 export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
@@ -136,6 +140,9 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
     },
     get showPrayerForm() {
       return deps.modals.showPrayerForm;
+    },
+    get prayerFormLock() {
+      return deps.modals.prayerFormLock;
     },
     get showSettings() {
       return deps.modals.showSettings;
@@ -296,6 +303,10 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
     getPromptCountByType: (type) => deps.filter.getPromptCountByType(type),
     getUnreadPromptCountByType: (type) =>
       deps.filter.getUnreadPromptCountByType(type),
+    openNewPersonalPrayer: () =>
+      deps.modals.openPrayerForm({ scope: "personal" }),
+    openNewGroupPrayer: (groupId) =>
+      deps.modals.openPrayerForm({ scope: "group", groupId }),
   };
 }
 
@@ -312,9 +323,7 @@ export function createHomePageShellHandlers(
       },
       toggleSearchPanel: () => deps.modals.toggleSearchPanel(),
       openUserSettings: () => deps.modals.openUserSettings(),
-      openPrayerForm: () => {
-        deps.modals.showPrayerForm = true;
-      },
+      openPrayerForm: () => deps.modals.openPrayerForm(),
       navigateToAdmin: () => deps.adminNav.navigateToAdmin(),
       onPresentationLinkClick: (event) =>
         deps.presentationNav.onPresentationLinkClick(event),

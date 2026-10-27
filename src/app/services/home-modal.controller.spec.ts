@@ -99,6 +99,24 @@ describe("HomeModalController", () => {
     expect(adminAuthService.logout).toHaveBeenCalled();
   });
 
+  it("clears the prayer form lock when the form closes", () => {
+    controller.openPrayerForm({ scope: "group", groupId: "g1" });
+    expect(controller.showPrayerForm).toBe(true);
+    expect(controller.prayerFormLock).toEqual({ scope: "group", groupId: "g1" });
+
+    controller.onPrayerFormClose();
+    expect(controller.showPrayerForm).toBe(false);
+    expect(controller.prayerFormLock).toBeNull();
+    expect(host.markForCheck).toHaveBeenCalled();
+  });
+
+  it("opens the unlocked form over a stale lock", () => {
+    controller.prayerFormLock = { scope: "personal" };
+    controller.openPrayerForm();
+    expect(controller.showPrayerForm).toBe(true);
+    expect(controller.prayerFormLock).toBeNull();
+  });
+
   it("reloads member updates after member update save", () => {
     vi.useFakeTimers();
     controller.editingMemberUpdatePrayerId = "pc-member-abc";

@@ -3,13 +3,13 @@
   <div [class]="chipRowClass">
     <app-home-sub-filter-chip
       chipId="tour-filter-add-personal-category"
-      chipAriaLabel="Add a category"
+      chipAriaLabel="Add a prayer or category"
       [stretch]="false"
       [active]="false"
       [layoutClass]="addCategoryChipLayoutClass"
       [activeClass]="personalCategoryActiveClass"
       [inactiveClass]="namedChipInactiveClass"
-      (chipClick)="addCategory.emit()"
+      (chipClick)="openAddChooser()"
     >
       <svg
         class="size-6 shrink-0"
@@ -163,3 +163,11 @@
   (cancel)="cancelDeletePersonalCategory.emit()"
 />
 }
+
+<app-home-add-choice-modal
+  [isOpen]="addChooserOpen"
+  title="Add to Personal"
+  [options]="personalAddChoices"
+  (choose)="onAddChoice($event)"
+  (close)="closeAddChooser()"
+/>

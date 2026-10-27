@@ -15,9 +15,15 @@ import {
 import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
 import { HOME_SHELL_SECTION_GAP_CLASSES } from "../../lib/home-shell-spacing";
 import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
+import {
+  HomeAddChoiceModalComponent,
+  type HomeAddChoiceOption,
+} from "../home-add-choice-modal/home-add-choice-modal.component";
 import { CardActionsOverflowMenuComponent } from "../card-actions-overflow-menu/card-actions-overflow-menu.component";
 import type { CardActionsOverflowItem } from "../card-actions-overflow-menu/card-actions-overflow-menu.types";
 import { ConfirmationDialogComponent } from "../confirmation-dialog/confirmation-dialog.component";
+
+type PersonalAddChoice = "prayer" | "category";
 
 @Component({
   selector: "app-home-personal-category-filters",
@@ -28,6 +34,7 @@ import { ConfirmationDialogComponent } from "../confirmation-dialog/confirmation
     HomeSubFilterChipComponent,
     CardActionsOverflowMenuComponent,
     ConfirmationDialogComponent,
+    HomeAddChoiceModalComponent,
   ],
   templateUrl: "./home-personal-category-filters.component.html",
   host: { class: "block" },
@@ -56,10 +63,25 @@ export class HomePersonalCategoryFiltersComponent {
   @Output() categoryDragStarted = new EventEmitter<void>();
   @Output() categoryDragEnded = new EventEmitter<void>();
   @Output() addCategory = new EventEmitter<void>();
+  @Output() addPrayer = new EventEmitter<void>();
   @Output() renameCategory = new EventEmitter<string>();
   @Output() deleteCategory = new EventEmitter<string>();
   @Output() confirmDeletePersonalCategory = new EventEmitter<void>();
   @Output() cancelDeletePersonalCategory = new EventEmitter<void>();
+
+  addChooserOpen = false;
+  readonly personalAddChoices: readonly HomeAddChoiceOption<PersonalAddChoice>[] = [
+    {
+      id: "prayer",
+      label: "New prayer",
+      description: "Private prayer, only you see it",
+    },
+    {
+      id: "category",
+      label: "New category",
+      description: "A label for prayers only you see",
+    },
+  ];
 
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   /** Square chip matching group “Add a group”; plus icon inside. */
@@ -72,6 +94,30 @@ export class HomePersonalCategoryFiltersComponent {
   readonly subFilterGroupClass = HOME_PERSONAL_SUB_FILTER_GROUP_CLASS;
 
   chipReorderHandlesVisible = false;
+
+  openAddChooser(): void {
+    this.addChooserOpen = true;
+  }
+
+  closeAddChooser(): void {
+    this.addChooserOpen = false;
+  }
+
+  onAddChoice(id: PersonalAddChoice): void {
+    this.addChooserOpen = false;
+    switch (id) {
+      case "prayer":
+        this.addPrayer.emit();
+        return;
+      case "category":
+        this.addCategory.emit();
+        return;
+      default: {
+        const _exhaustive: never = id;
+        return _exhaustive;
+      }
+    }
+  }
 
   categoryChipShellClass(category: string): string {
     return buildHomeSubFilterChipButtonClass({

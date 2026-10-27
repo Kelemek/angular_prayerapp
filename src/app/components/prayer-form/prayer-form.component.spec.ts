@@ -1,6 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterEach } from 'vitest';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
-import { ChangeDetectorRef, DestroyRef, SimpleChanges } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  DestroyRef,
+  SimpleChanges,
+  ɵresolveComponentResources as resolveComponentResources,
+} from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { PrayerFormComponent } from './prayer-form.component';
 import { PrayerGroupService } from '../../services/prayer-group.service';
 import { PrayerService } from '../../services/prayer.service';
@@ -15,7 +24,11 @@ import {
 } from '../../services/help-driver-tour.service';
 import { BehaviorSubject, of } from 'rxjs';
 import { RichTextEditorsSettingsService } from '../../services/rich-text-editors-settings.service';
+import { PersonalCategoryColorService } from '../../services/personal-category-color.service';
 import type { User } from '@supabase/supabase-js';
+import type { PrayerFormLock } from '../../lib/prayer-form-lock';
+import { modalShellOverlayText } from '../modal-shell/modal-shell-test-dom';
+import { resetModalShellScrollLockForTests } from '../modal-shell/modal-shell-scroll-lock';
 
 describe('PrayerFormComponent', () => {
   let component: PrayerFormComponent;
@@ -261,6 +274,102 @@ describe('PrayerFormComponent', () => {
     it('hides Group Prayer when the person has no group', async () => {
       await component.loadGroupsForForm();
       expect(component.showGroupOption).toBe(false);
+    });
+
+    function formGroup(id: string, name: string) {
+      return {
+        id,
+        name,
+        color: '#2563EB',
+        role: 'owner' as const,
+        memberCount: 2,
+        updatesRequesterOnly: false,
+        answeredRequesterOnly: false,
+        prayForDisabled: false,
+      };
+    }
+
+    function groupsApi() {
+      return (
+        component as unknown as {
+          prayerGroupService: {
+            listGroups: ReturnType<typeof vi.fn>;
+            preferredGroupId: string | null;
+          };
+        }
+      ).prayerGroupService;
+    }
+
+    async function openAndLoad(): Promise<void> {
+      const load = vi.spyOn(component, 'loadGroupsForForm');
+      component.isOpen = true;
+      component.ngOnChanges(isOpenToTrue);
+      await load.mock.results.at(-1)?.value;
+    }
+
+    it('keeps a personal lock after groups load even when the tab would default to a group', async () => {
+      const groups = groupsApi();
+      groups.listGroups.mockResolvedValue([formGroup('g1', 'Family')]);
+      groups.preferredGroupId = 'g1';
+      component.lock = { scope: 'personal' };
+      component.defaultGroupPrayer = true;
+      await openAndLoad();
+      expect(component.visibility).toBe('personal');
+      expect(component.formData.is_personal).toBe(true);
+      component.pickVisibility('public');
+      expect(component.visibility).toBe('personal');
+    });
+
+    it('selects the locked group after groups load', async () => {
+      const groups = groupsApi();
+      groups.listGroups.mockResolvedValue([
+        formGroup('g1', 'Family'),
+        formGroup('g2', 'Work'),
+      ]);
+      groups.preferredGroupId = 'g2';
+      component.lock = { scope: 'group', groupId: 'g1' };
+      component.defaultPersonalPrayer = true;
+      await openAndLoad();
+      expect(component.visibility).toBe('group');
+      expect(component.selectedGroupId).toBe('g1');
+    });
+
+    it('falls back to the preferred group when the locked id is not in the list', async () => {
+      const groups = groupsApi();
+      groups.listGroups.mockResolvedValue([
+        formGroup('g1', 'Family'),
+        formGroup('g2', 'Work'),
+      ]);
+      groups.preferredGroupId = 'g2';
+      component.lock = { scope: 'group', groupId: 'missing' };
+      await openAndLoad();
+      expect(component.visibility).toBe('group');
+      expect(component.selectedGroupId).toBe('g2');
+    });
+
+    it('falls back to the first group when the locked id and preferred id are both missing', async () => {
+      const groups = groupsApi();
+      groups.listGroups.mockResolvedValue([
+        formGroup('g1', 'Family'),
+        formGroup('g2', 'Work'),
+      ]);
+      groups.preferredGroupId = 'not-listed';
+      component.lock = { scope: 'group', groupId: null };
+      await openAndLoad();
+      expect(component.selectedGroupId).toBe('g1');
+      expect(component.visibility).toBe('group');
+    });
+
+    it('stays on group when a group lock has no groups to choose', async () => {
+      groupsApi().listGroups.mockResolvedValue([]);
+      component.lock = { scope: 'group', groupId: null };
+      component.isChurchMember = true;
+      await openAndLoad();
+      component.formData.prayer_for = 'Someone';
+      component.formData.description = 'Please pray';
+      expect(component.visibility).toBe('group');
+      expect(component.selectedGroupId).toBeNull();
+      expect(component.isFormValid()).toBe(false);
     });
   });
 
@@ -938,5 +1047,175 @@ describe('PrayerFormComponent', () => {
     });
   });
 
+});
+
+describe('PrayerFormComponent visibility grid', () => {
+  const componentDir = dirname(fileURLToPath(import.meta.url));
+
+  beforeAll(async () => {
+    await resolveComponentResources((url) => {
+      const path = join(componentDir, url);
+      if (!existsSync(path)) {
+        throw new Error(`Component resource not found: ${url}`);
+      }
+      return Promise.resolve(readFileSync(path, 'utf-8'));
+    });
+  });
+
+  afterEach(() => {
+    resetModalShellScrollLockForTests();
+    document.body.style.overflow = '';
+  });
+
+  function formGroup(id: string, name: string) {
+    return {
+      id,
+      name,
+      color: '#2563EB',
+      role: 'owner' as const,
+      memberCount: 2,
+      updatesRequesterOnly: false,
+      answeredRequesterOnly: false,
+      prayForDisabled: false,
+    };
+  }
+
+  async function openForm(options: {
+    lock: PrayerFormLock | null;
+    defaultGroupPrayer?: boolean;
+    groups?: ReturnType<typeof formGroup>[];
+    groupsPromise?: Promise<ReturnType<typeof formGroup>[]>;
+    preferredGroupId?: string | null;
+  }) {
+    const listGroups = vi
+      .fn()
+      .mockReturnValue(options.groupsPromise ?? Promise.resolve(options.groups ?? []));
+    const component = new PrayerFormComponent(
+      {
+        addPrayer: vi.fn(),
+        addPersonalPrayer: vi.fn(),
+        getUniqueCategoriesForUser: vi.fn().mockResolvedValue([]),
+      } as unknown as PrayerService,
+      {
+        user$: new BehaviorSubject<User | null>(null),
+        isAdmin$: new BehaviorSubject(false),
+      } as unknown as AdminAuthService,
+      {
+        getCurrentSession: () => ({
+          email: 'test@example.com',
+          isChurchMember: true,
+          isActive: true,
+        }),
+      } as unknown as UserSessionService,
+      { client: { from: vi.fn() } } as unknown as SupabaseService,
+      { error: vi.fn(), success: vi.fn() } as unknown as ToastService,
+      {
+        loadColors: vi.fn().mockResolvedValue({}),
+        getColor: vi.fn().mockReturnValue('#2563EB'),
+        setColor: vi.fn(),
+      } as unknown as PersonalCategoryColorService,
+      { markForCheck: vi.fn(), detectChanges: vi.fn() } as unknown as ChangeDetectorRef,
+      { onDestroy: vi.fn() } as unknown as DestroyRef,
+      { getRichTextEditorsEnabled$: () => of(false) } as unknown as RichTextEditorsSettingsService,
+      {
+        listGroups,
+        addPrayer: vi.fn(),
+        preferredGroupId: options.preferredGroupId ?? null,
+      } as unknown as PrayerGroupService,
+    );
+    const cmp = (
+      PrayerFormComponent as unknown as {
+        ɵcmp: { factory: () => PrayerFormComponent };
+      }
+    ).ɵcmp;
+    const previousFactory = cmp.factory;
+    // Vitest strips constructor tokens, so TestBed cannot inject this class.
+    cmp.factory = () => component;
+    let fixture: ReturnType<typeof TestBed.createComponent<PrayerFormComponent>>;
+    try {
+      TestBed.configureTestingModule({ imports: [PrayerFormComponent] });
+      fixture = TestBed.createComponent(PrayerFormComponent);
+    } finally {
+      cmp.factory = previousFactory;
+    }
+    fixture.componentRef.setInput('lock', options.lock);
+    fixture.componentRef.setInput('defaultGroupPrayer', options.defaultGroupPrayer ?? false);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('hides the visibility grid and stays personal when locked, even if the tab defaults to group', async () => {
+    const fixture = await openForm({
+      lock: { scope: 'personal' },
+      defaultGroupPrayer: true,
+      groups: [formGroup('g1', 'Family')],
+      preferredGroupId: 'g1',
+    });
+    const text = modalShellOverlayText();
+    expect(text).not.toContain('Prayer Visibility');
+    expect(text).not.toContain('Church Prayer');
+    expect(text).not.toContain('Group Prayer');
+    expect(fixture.componentInstance.visibility).toBe('personal');
+    fixture.destroy();
+  });
+
+  it('hides the visibility grid and selects the locked group', async () => {
+    const fixture = await openForm({
+      lock: { scope: 'group', groupId: 'g1' },
+      defaultGroupPrayer: false,
+      groups: [formGroup('g1', 'Family'), formGroup('g2', 'Work')],
+      preferredGroupId: 'g2',
+    });
+    const text = modalShellOverlayText();
+    expect(text).not.toContain('Prayer Visibility');
+    expect(text).not.toContain('Church Prayer');
+    expect(text).toContain('Family');
+    expect(text).not.toContain('Loading groups');
+    expect(fixture.componentInstance.visibility).toBe('group');
+    expect(fixture.componentInstance.selectedGroupId).toBe('g1');
+    fixture.destroy();
+  });
+
+  it('explains that a group is needed when a group lock loads no groups', async () => {
+    const fixture = await openForm({
+      lock: { scope: 'group', groupId: null },
+      groups: [],
+    });
+    const text = modalShellOverlayText();
+    expect(text).toContain('Create a group first');
+    expect(text).not.toContain('Loading groups');
+    expect(text).not.toContain('Prayer Visibility');
+    fixture.destroy();
+  });
+
+  it('shows a loading note while a group lock waits for groups', async () => {
+    const fixture = await openForm({
+      lock: { scope: 'group', groupId: 'g1' },
+      groupsPromise: new Promise(() => undefined),
+    });
+    const text = modalShellOverlayText();
+    expect(text).toContain('Loading groups');
+    expect(text).not.toContain('Create a group first');
+    fixture.destroy();
+  });
+
+  it('still shows the visibility grid and defaults to group when Request opens with no lock', async () => {
+    const fixture = await openForm({
+      lock: null,
+      defaultGroupPrayer: true,
+      groups: [formGroup('g1', 'Family')],
+      preferredGroupId: 'g1',
+    });
+    const text = modalShellOverlayText();
+    expect(text).toContain('Prayer Visibility');
+    expect(text).toContain('Group Prayer');
+    expect(text).toContain('Church Prayer');
+    expect(fixture.componentInstance.visibility).toBe('group');
+    expect(fixture.componentInstance.selectedGroupId).toBe('g1');
+    fixture.destroy();
+  });
 });
 

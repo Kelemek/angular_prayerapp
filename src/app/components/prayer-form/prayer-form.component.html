@@ -98,7 +98,9 @@
           </div>
 
           <!-- Prayer Visibility Toggle Buttons -->
+          @if (!lock || visibility === 'group') {
           <div id="tour-prayer-visibility" class="space-y-2">
+            @if (!lock) {
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
@@ -181,6 +183,7 @@
                 </div>
               </button>
             </div>
+            }
             @if (visibility === 'group' && groupChoices.length > 0) {
             <div class="space-y-1">
               <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -194,8 +197,13 @@
                 ariaLabel="Group"
               />
             </div>
+            } @else if (visibility === 'group') {
+            <p class="text-sm text-gray-600 dark:text-gray-400" role="status">
+              {{ groupsLoaded ? 'You are not in a group yet. Create a group first.' : 'Loading groups…' }}
+            </p>
             }
           </div>
+          }
 
           <!-- Anonymous Checkbox - only show for church prayers -->
           @if (visibility === 'public') {

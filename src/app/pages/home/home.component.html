@@ -128,6 +128,7 @@
         [showPrayForButton]="showPrayForButton"
         [showPrayingCount]="showPrayingCount"
         [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+        (addPrayer)="shell.openNewGroupPrayer($event.groupId)"
       ></app-home-groups-panel>
       }
 
@@ -248,6 +249,7 @@
         (categoryDragStarted)="shell.personalCategory.actions.onCategoryDragStarted()"
         (categoryDragEnded)="shell.personalCategory.actions.onCategoryDragEnded()"
         (addCategory)="shell.personalCategory.actions.openCreatePersonalCategoryModal()"
+        (addPrayer)="shell.openNewPersonalPrayer()"
         (renameCategory)="shell.personalCategory.actions.openRenamePersonalCategoryModal($event)"
         (deleteCategory)="shell.personalCategory.actions.requestDeletePersonalCategory($event)"
         (confirmDeletePersonalCategory)="shell.personalCategory.actions.confirmDeletePersonalCategory()"
@@ -300,6 +302,7 @@
     #modalsHost
     [activeFilter]="shell.modals.activeFilter"
     [showPrayerForm]="shell.modals.showPrayerForm"
+    [prayerFormLock]="shell.modals.prayerFormLock"
     [showSettings]="shell.modals.showSettings"
     [settingsScrollToSectionId]="shell.modals.settingsScrollToSectionId"
     [showHelp]="shell.modals.showHelp"

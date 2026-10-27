@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Home + chips (October 26, 2026)
+- The Personal and Groups **+** chips open a chooser. **New category** and **New group** keep the flows they had before. **New prayer** opens the prayer form locked to that scope, with the Church, Group, and Personal buttons hidden. A group prayer still shows the group dropdown ([`home-add-choice-modal.component.ts`](../src/app/components/home-add-choice-modal/home-add-choice-modal.component.ts), [`prayer-form-lock.ts`](../src/app/lib/prayer-form-lock.ts)). Header **Request** still shows the full picker. With no groups, Groups **New prayer** stays disabled and says to create a group first (or **Loading groups…** while the group list is still loading). A group-locked form shows **Loading groups…** while groups load, and says to create a group first if none come back.
+
 ### Tooling — Supabase deploy gap check on push (October 25, 2026)
 - Production `eqiafsygvfaifhoaewxi` now deploys through Supabase GitHub Integration from the fork `cp-church/angular_prayerapp` (`main`). The first run deployed all 23 functions with `config.toml` `verify_jwt` flags.
 - New `npm run check:deploy-gaps` ([`scripts/supabase-deploy-gaps.mjs`](../scripts/supabase-deploy-gaps.mjs), tests in [`supabase-deploy-gaps.spec.ts`](../src/lib/supabase-deploy-gaps.spec.ts)) reports what a push needs beyond the Integration: functions missing from `config.toml`, removed functions to delete, new `Deno.env` secrets, edited or out-of-order migrations, and `config.toml` settings changes. The `.githooks/pre-push` hook runs it on every push without blocking, and `npm install` enables the hook through the `prepare` script. Agents follow [`.cursor/rules/supabase-deploy-gaps.mdc`](../.cursor/rules/supabase-deploy-gaps.mdc) to report the result after each push.

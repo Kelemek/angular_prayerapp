@@ -22,6 +22,7 @@ import type {
   MemorizedItem,
 } from "../../types/memorization";
 import type { HomeModalsHostHandlers } from "../../lib/home-modals-host-handlers";
+import type { PrayerFormLock } from "../../lib/prayer-form-lock";
 
 @Component({
   selector: "app-home-modals-host",
@@ -47,6 +48,7 @@ import type { HomeModalsHostHandlers } from "../../lib/home-modals-host-handlers
 export class HomeModalsHostComponent {
   @Input({ required: true }) activeFilter!: HomeActiveFilter;
   @Input({ required: true }) showPrayerForm!: boolean;
+  @Input() prayerFormLock: PrayerFormLock | null = null;
   @Input({ required: true }) showSettings!: boolean;
   @Input({ required: true }) settingsScrollToSectionId!: string | null;
   @Input({ required: true }) showHelp!: boolean;

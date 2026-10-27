@@ -3,13 +3,19 @@ import {
   ChangeDetectorRef,
   Component,
   DestroyRef,
+  EventEmitter,
   Input,
+  Output,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { HomeSubFilterChipComponent } from '../home-sub-filter-chip/home-sub-filter-chip.component';
+import {
+  HomeAddChoiceModalComponent,
+  type HomeAddChoiceOption,
+} from '../home-add-choice-modal/home-add-choice-modal.component';
 import { CardActionsOverflowMenuComponent } from '../card-actions-overflow-menu/card-actions-overflow-menu.component';
 import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card-actions-overflow-menu.types';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
@@ -63,6 +69,8 @@ import {
   type AdminFilterSelectOption,
 } from '../admin-filter-select/admin-filter-select.component';
 
+type GroupsAddChoice = 'prayer' | 'group';
+
 @Component({
   selector: 'app-home-groups-panel',
   standalone: true,
@@ -71,6 +79,7 @@ import {
     FormsModule,
     DragDropModule,
     HomeSubFilterChipComponent,
+    HomeAddChoiceModalComponent,
     CardActionsOverflowMenuComponent,
     ConfirmationDialogComponent,
     ModalChromeCloseButtonComponent,
@@ -89,6 +98,8 @@ export class HomeGroupsPanelComponent {
   @Input() showPrayForButton = true;
   @Input() showPrayingCount = true;
   @Input() prayerEncouragementEnabled = false;
+
+  @Output() addPrayer = new EventEmitter<{ groupId: string | null }>();
 
   readonly sectionGapClass = HOME_SHELL_SECTION_GAP_CLASSES;
   readonly panelClass = HOME_GROUPS_SUB_FILTER_GROUP_CLASS;
@@ -116,6 +127,7 @@ export class HomeGroupsPanelComponent {
   reordering = false;
   chipReorderHandlesVisible = false;
   submitting = false;
+  addChooserOpen = false;
   createOpen = false;
   createName = '';
   createColor = DEFAULT_PRAYER_GROUP_COLOR;
@@ -726,6 +738,57 @@ export class HomeGroupsPanelComponent {
         name: this.viewerName.trim() || null,
       },
     ];
+  }
+
+  get addChoices(): readonly HomeAddChoiceOption<GroupsAddChoice>[] {
+    const noGroups = this.groups.length === 0;
+    return [
+      {
+        id: 'prayer',
+        label: 'New prayer',
+        description: 'Share with a group',
+        disabled: noGroups,
+        hint: noGroups
+          ? this.loading
+            ? 'Loading groups…'
+            : 'Create a group first'
+          : undefined,
+      },
+      {
+        id: 'group',
+        label: 'New group',
+        description: 'Invite people to pray together',
+      },
+    ];
+  }
+
+  openAddChooser(): void {
+    this.addChooserOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  closeAddChooser(): void {
+    this.addChooserOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  onAddChoice(id: GroupsAddChoice): void {
+    this.addChooserOpen = false;
+    switch (id) {
+      case 'prayer':
+        this.addPrayer.emit({
+          groupId: this.selectedId ?? this.groupsApi.preferredGroupId,
+        });
+        this.cdr.markForCheck();
+        return;
+      case 'group':
+        this.openCreateGroupModal();
+        return;
+      default: {
+        const _exhaustive: never = id;
+        return _exhaustive;
+      }
+    }
   }
 
   openCreateGroupModal(): void {

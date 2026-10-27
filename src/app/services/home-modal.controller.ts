@@ -3,15 +3,16 @@ import { environment } from "../../environments/environment";
 import { TOUR_SETTINGS_FEEDBACK_SECTION_ID } from "../lib/help-tour-ids";
 import type { PrayerRequest, PrayerUpdate } from "./prayer.service";
 import type { AdminAuthService } from "./admin-auth.service";
+import type { PrayerFormLock } from "../lib/prayer-form-lock";
 
 export interface HomeModalHost {
   markForCheck(): void;
 }
 
 @Injectable()
-@Injectable()
 export class HomeModalController {
   showPrayerForm = false;
+  prayerFormLock: PrayerFormLock | null = null;
   showSearchPanel = false;
   showSettings = false;
   settingsScrollToSectionId: string | null = null;
@@ -42,8 +43,15 @@ export class HomeModalController {
     this.reloadMemberPrayerUpdates = deps.reloadMemberPrayerUpdates;
   }
 
+  openPrayerForm(lock: PrayerFormLock | null = null): void {
+    this.prayerFormLock = lock;
+    this.showPrayerForm = true;
+    this.requireHost().markForCheck();
+  }
+
   onPrayerFormClose(): void {
     this.showPrayerForm = false;
+    this.prayerFormLock = null;
     this.requireHost().markForCheck();
   }
 
