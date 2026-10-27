@@ -50,8 +50,11 @@ export class HomePublicStatusFiltersComponent {
     | "prompts"
     | "planning_center_list"
   >();
+  @Output() addPrayer = new EventEmitter<void>();
 
   readonly chipThemes = HOME_PUBLIC_STATUS_CHIP_THEMES;
+  readonly addPrayerChipLayoutClass =
+    "inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all";
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS;
   readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;

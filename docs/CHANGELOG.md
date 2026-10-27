@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Home — Church tab + prayer (October 27, 2026)
+- The Church tab status filter row has a **+** chip (same style as Personal and Groups). It opens the new prayer form locked to church scope via [`PrayerFormLock`](src/app/lib/prayer-form-lock.ts) `{ scope: "church" }`, so the Church / Group / Personal visibility grid stays hidden. Anonymous church prayer is still available ([`home-public-status-filters`](src/app/components/home-public-status-filters/home-public-status-filters.component.ts), [`home-page-shell.ts`](src/app/lib/home-page-shell.ts)).
+
 ### Tooling — Windows CI line endings (October 26, 2026)
 - The `windows-latest` test job failed to load [`supabase-deploy-gaps.spec.ts`](../src/lib/supabase-deploy-gaps.spec.ts) because Windows checked out the shebang script with CRLF line endings. [`.gitattributes`](../.gitattributes) now forces LF for `*.mjs` and `.githooks/*` ([`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)).
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHomePageShellHandlers } from "./home-page-shell";
+import { createHomePageShell, createHomePageShellHandlers } from "./home-page-shell";
 
 describe("createHomePageShellHandlers", () => {
   it("opens logout confirmation via modals controller", () => {
@@ -101,5 +101,32 @@ describe("createHomePageShellHandlers", () => {
 
     expect(setFilter).toHaveBeenCalledWith("memorize");
     expect(beginVerseMemorizationFromCard).toHaveBeenCalledWith("John 3:16", "esv");
+  });
+});
+
+describe("createHomePageShell", () => {
+  const minimalDeps = () =>
+    ({
+      modals: { openPrayerForm: vi.fn() } as never,
+      prayerCardActions: {} as never,
+      memberCardActions: {} as never,
+      filter: { getPromptCountByType: vi.fn(), getUnreadPromptCountByType: vi.fn() } as never,
+      personalCategory: {} as never,
+      memorizationPanel: {} as never,
+      helpTour: {} as never,
+      adminNav: {} as never,
+      presentationNav: {} as never,
+      memorizationRecommendationsService: {} as never,
+      planningCenterListId: () => null,
+      catalog: {} as never,
+      getActiveFilter: () => "current" as const,
+      getPersonalPrayers: () => [],
+    }) satisfies Parameters<typeof createHomePageShell>[0];
+
+  it("opens the church-locked prayer form from openNewChurchPrayer", () => {
+    const deps = minimalDeps();
+    const shell = createHomePageShell(deps);
+    shell.openNewChurchPrayer();
+    expect(deps.modals.openPrayerForm).toHaveBeenCalledWith({ scope: "church" });
   });
 });

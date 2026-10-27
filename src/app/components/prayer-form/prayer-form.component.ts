@@ -291,6 +291,9 @@ export class PrayerFormComponent implements OnInit, OnChanges {
         this.setVisibility("group");
         this.selectLockedGroup();
         return;
+      case "church":
+        this.setVisibility("public");
+        return;
       default: {
         const _exhaustive: never = lock;
         return _exhaustive;

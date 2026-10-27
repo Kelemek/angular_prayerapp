@@ -161,6 +161,7 @@
             planningCenter.planningCenterListMembers.length === 0
           "
           (selectFilter)="filter.setFilter($event)"
+          (addPrayer)="shell.openNewChurchPrayer()"
         ></app-home-public-status-filters>
 
         @if (activeFilter === 'prompts' && promptsCount > 0) {

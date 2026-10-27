@@ -83,6 +83,19 @@ describe("HomePublicStatusFiltersComponent", () => {
     }
   });
 
+  it("emits addPrayer when the church add chip is clicked", () => {
+    const addPrayer = vi.fn();
+    fixture.componentInstance.addPrayer.subscribe(addPrayer);
+
+    const addChip = fixture.nativeElement.querySelector(
+      "#tour-filter-add-church-prayer"
+    ) as HTMLButtonElement;
+    expect(addChip).toBeTruthy();
+    addChip.click();
+
+    expect(addPrayer).toHaveBeenCalledTimes(1);
+  });
+
   it("emits prompts when the Prompts chip is clicked", () => {
     const emitted: string[] = [];
     fixture.componentInstance.selectFilter.subscribe((value) =>

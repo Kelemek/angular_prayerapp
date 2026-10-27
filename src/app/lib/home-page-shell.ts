@@ -119,6 +119,7 @@ export interface HomePageShell {
   readonly getUnreadPromptCountByType: (type: string) => number;
   openNewPersonalPrayer(): void;
   openNewGroupPrayer(groupId: string | null): void;
+  openNewChurchPrayer(): void;
 }
 
 export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
@@ -307,6 +308,8 @@ export function createHomePageShell(deps: HomePageShellDeps): HomePageShell {
       deps.modals.openPrayerForm({ scope: "personal" }),
     openNewGroupPrayer: (groupId) =>
       deps.modals.openPrayerForm({ scope: "group", groupId }),
+    openNewChurchPrayer: () =>
+      deps.modals.openPrayerForm({ scope: "church" }),
   };
 }
 

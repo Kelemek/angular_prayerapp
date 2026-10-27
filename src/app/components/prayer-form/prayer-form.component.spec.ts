@@ -1147,6 +1147,21 @@ describe('PrayerFormComponent visibility grid', () => {
     return fixture;
   }
 
+  it('hides the visibility grid and stays church when church-locked, even if the tab defaults to group', async () => {
+    const fixture = await openForm({
+      lock: { scope: 'church' },
+      defaultGroupPrayer: true,
+      groups: [formGroup('g1', 'Family')],
+      preferredGroupId: 'g1',
+    });
+    const text = modalShellOverlayText();
+    expect(text).not.toContain('Prayer Visibility');
+    expect(text).not.toContain('Church Prayer');
+    expect(text).not.toContain('Group Prayer');
+    expect(fixture.componentInstance.visibility).toBe('public');
+    fixture.destroy();
+  });
+
   it('hides the visibility grid and stays personal when locked, even if the tab defaults to group', async () => {
     const fixture = await openForm({
       lock: { scope: 'personal' },
