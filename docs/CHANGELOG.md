@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Tooling — Windows CI line endings (October 26, 2026)
+- The `windows-latest` test job failed to load [`supabase-deploy-gaps.spec.ts`](../src/lib/supabase-deploy-gaps.spec.ts) because Windows checked out the shebang script with CRLF line endings. [`.gitattributes`](../.gitattributes) now forces LF for `*.mjs` and `.githooks/*` ([`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)).
+
 ### Home + chips (October 26, 2026)
 - The Personal and Groups **+** chips open a chooser. **New category** and **New group** keep the flows they had before. **New prayer** opens the prayer form locked to that scope, with the Church, Group, and Personal buttons hidden. A group prayer still shows the group dropdown ([`home-add-choice-modal.component.ts`](../src/app/components/home-add-choice-modal/home-add-choice-modal.component.ts), [`prayer-form-lock.ts`](../src/app/lib/prayer-form-lock.ts)). Header **Request** still shows the full picker. With no groups, Groups **New prayer** stays disabled and says to create a group first (or **Loading groups…** while the group list is still loading). A group-locked form shows **Loading groups…** while groups load, and says to create a group first if none come back.
 

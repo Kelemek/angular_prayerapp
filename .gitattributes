@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shebang scripts break with CRLF (Windows checkout); Vitest imports some of these.
+*.mjs text eol=lf
+.githooks/* text eol=lf

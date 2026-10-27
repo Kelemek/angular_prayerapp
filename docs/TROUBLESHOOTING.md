@@ -67,6 +67,14 @@ echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 ```
 
+### Windows CI: `SyntaxError: Invalid or unexpected token` in a spec that imports a script
+
+**Symptoms**: Only the `windows-latest` test job fails, with a whole suite (for example `src/lib/supabase-deploy-gaps.spec.ts`) reporting `SyntaxError: Invalid or unexpected token` and no tests run.
+
+**Cause**: Windows checks files out with CRLF line endings. Vitest cannot load a `#!/usr/bin/env node` script whose shebang line ends in CRLF.
+
+**Solution**: [`.gitattributes`](../.gitattributes) forces LF for `*.mjs` and `.githooks/*`. Keep new shebang scripts under those patterns (or add a pattern), and reproduce locally with `perl -pi -e 's/\n/\r\n/' <script>` followed by the spec run.
+
 ## Database Issues
 
 ### Memorize tab: "Failed to load memorization list"
