@@ -566,13 +566,21 @@ html {
   .home-nav-chip-text-lock {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    box-sizing: border-box;
+  }
+
+  .flex.w-full.gap-1:has(> .home-nav-tab-text-lock) {
+    gap: 4px;
+  }
+
+  .flex.w-full.flex-wrap.items-center.gap-2:has(.home-nav-chip-text-lock) {
+    gap: 8px;
   }
 
   .home-nav-tab-text-lock {
     font-size: 16px;
     line-height: 1.25;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding: 8px 12px;
   }
 
   .home-nav-tab-text-lock app-home-filter-badge-button button {
@@ -586,10 +594,57 @@ html {
     line-height: 1;
   }
 
+  /* app-home-sub-filter-chip host or draggable peer chip shell */
   .home-nav-chip-text-lock {
     height: 36px;
     min-height: 36px;
     max-height: 36px;
+  }
+
+  .home-nav-chip-text-lock > button {
+    box-sizing: border-box;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 1;
+  }
+
+  .home-nav-chip-text-lock > button:not(.pl-7):not(.size-9) {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .home-nav-chip-text-lock > button.size-9,
+  .home-nav-chip-text-lock.size-9 {
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
+    padding: 0;
+  }
+
+  div.home-nav-chip-text-lock.pl-7 {
+    padding-left: 28px;
+    padding-right: 12px;
+  }
+
+  div.home-nav-chip-text-lock.gap-1 {
+    gap: 4px;
+  }
+
+  .home-nav-chip-text-lock > button.flex.h-full {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .home-nav-chip-text-lock .w-7 {
+    width: 28px;
+  }
+
+  .home-nav-chip-text-lock svg.size-6 {
+    width: 24px;
+    height: 24px;
   }
 
   .home-nav-chip-text-lock,
