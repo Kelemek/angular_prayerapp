@@ -33,6 +33,7 @@ import {
   clearStaleChunkReloadGuard,
   STALE_CHUNK_RELOAD_GUARD_KEY,
 } from "./lib/stale-chunk-recovery";
+import { applyOsTextZoom, startOsTextZoomWatch } from "./lib/os-text-zoom";
 import { startWebRevisionWatch } from "./lib/web-revision-reload";
 
 // Add a global visibility check to ensure content stays visible during background refresh
@@ -174,6 +175,9 @@ function bootstrapApp(): void {
 const NATIVE_HYDRATE_BUDGET_MS = 1200;
 
 void (async () => {
+  applyOsTextZoom(document);
+  startOsTextZoomWatch(document);
+
   const isNative = Capacitor.isNativePlatform();
   if (isNative) {
     // A hung Capacitor callback (JS Eval error / UNIMPLEMENTED) must not block first paint.

@@ -325,6 +325,14 @@ VALUES ('prayer2024', 'admin@example.com');
 
 ## UI/Display Issues
 
+### Android: Home tabs or filter chips grow when OS font size is large
+
+**Symptoms**: On phone width, Church / Group / Personal / Memorize tabs or sub-filter chips (+ / Current / Answered / etc.) look larger after raising **Settings → Display → Font size** on Android. Header, Pray, Request, and prayer body text are expected to scale; only the Home nav chrome should stay fixed.
+
+**Expected**: [`os-text-zoom.ts`](../src/lib/os-text-zoom.ts) runs at boot and when the app returns to the foreground, sets `--os-text-zoom` on `html` when WebView text zoom is above 1, and locked labels use `calc(16px|12px / var(--os-text-zoom, 1))` under `max-width: 639px` ([`src/styles.css`](../src/styles.css)). Force-quit and reopen after changing OS font size so the probe runs again.
+
+**If labels still grow**: In remote WebView debugging, check `getComputedStyle(document.documentElement).getPropertyValue('--os-text-zoom')`. If it is empty while text is visibly zoomed, the px probe may not reflect your WebView build — report device/Android version; the fallback is reading preferred zoom via `@capacitor/text-zoom` (native plugin + store release), not global `setTextZoom(100)`.
+
 ### Native app shows old UI but Safari shows the latest deploy
 
 The iOS/Android shell often boots from **bundled** web (`https://localhost` inside the app), not Vercel. It should redirect to `https://cpprayer.cp-church.org` when online; if that fails once, you can stay on an old bundle until a foreground retry or reload runs ([`capacitor-live-boot.ts`](../src/lib/capacitor-live-boot.ts)).

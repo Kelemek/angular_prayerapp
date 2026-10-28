@@ -578,7 +578,7 @@ html {
   }
 
   .home-nav-tab-text-lock {
-    font-size: 16px;
+    font-size: calc(16px / var(--os-text-zoom, 1));
     line-height: 1.25;
     padding: 8px 12px;
   }
@@ -590,7 +590,7 @@ html {
     height: 20px;
     min-width: 20px;
     min-height: 20px;
-    font-size: 12px;
+    font-size: calc(12px / var(--os-text-zoom, 1));
     line-height: 1;
   }
 
@@ -649,7 +649,7 @@ html {
 
   .home-nav-chip-text-lock,
   .home-nav-chip-text-lock * {
-    font-size: 12px;
+    font-size: calc(12px / var(--os-text-zoom, 1));
     line-height: 1;
   }
 
