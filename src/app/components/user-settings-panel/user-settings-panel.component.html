@@ -64,15 +64,21 @@
     <span>Logout</span>
   </button>
   @if (host.hasAdminEmail$ | async) {
+  @let pendingApprovals = (pendingApprovalItemCount$ | async) ?? 0;
   <button
     type="button"
     (click)="host.navigateToAdmin()"
-    class="flex items-center justify-center gap-2 border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-500 dark:text-red-500 dark:hover:bg-red-900/30 sm:py-2.5 sm:text-base cursor-pointer rounded-lg"
+    class="relative flex items-center justify-center gap-2 border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-500 dark:text-red-500 dark:hover:bg-red-900/30 sm:py-2.5 sm:text-base cursor-pointer rounded-lg"
     title="Admin Portal"
-    aria-label="Admin Portal"
+    [attr.aria-label]="
+      pendingApprovals > 0
+        ? 'Admin Portal, ' + pendingApprovals + ' pending approvals'
+        : 'Admin Portal'
+    "
     data-testid="settings-admin-button"
   >
     <span>Admin</span>
+    <app-admin-pending-badge [count]="pendingApprovals" />
   </button>
   }
   </div>

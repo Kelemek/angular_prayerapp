@@ -10,6 +10,7 @@ import {
   HomeHeaderComponent,
   HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS,
 } from "./home-header.component";
+import { AdminPendingCountService } from "../../services/admin-pending-count.service";
 import { HOME_HEADER_CHIP_SIZE_LOCK_CLASS } from "../../lib/home-sub-filter-chip-classes";
 import {
   BRANDING_SERVICE_TOKEN,
@@ -48,6 +49,8 @@ function stubHandlers(): HomeHeaderHandlers {
 describe("HomeHeaderComponent", () => {
   let fixture: ComponentFixture<HomeHeaderComponent>;
   let brandingSubject: BehaviorSubject<BrandingData>;
+  let pendingCount$: BehaviorSubject<number>;
+  let handlers: HomeHeaderHandlers;
 
   beforeAll(async () => {
     await resolveComponentResources((url) =>
@@ -73,18 +76,25 @@ describe("HomeHeaderComponent", () => {
       getChurchWebsiteHref: vi.fn(() => null),
     };
 
+    pendingCount$ = new BehaviorSubject(0);
+    handlers = stubHandlers();
+
     await TestBed.configureTestingModule({
       imports: [HomeHeaderComponent],
       providers: [
         provideRouter([]),
         { provide: BRANDING_SERVICE_TOKEN, useValue: mockBranding },
+        {
+          provide: AdminPendingCountService,
+          useValue: { pendingApprovalItemCount$: pendingCount$ },
+        },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HomeHeaderComponent);
     fixture.componentRef.setInput("showSearchPanel", false);
     fixture.componentRef.setInput("presentationHandoffQueryParams", null);
-    fixture.componentRef.setInput("handlers", stubHandlers());
+    fixture.componentRef.setInput("handlers", handlers);
     fixture.detectChanges();
   });
 
@@ -118,5 +128,38 @@ describe("HomeHeaderComponent", () => {
     expect(slot.className).toContain("flex-1");
     expect(slot.className).toContain("[&_img]:max-w-full");
     expect(HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS).toContain("[&_img]:max-h-10");
+  });
+
+  function settingsButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector(
+      `#${TOUR_SETTINGS_BTN_ID}`,
+    ) as HTMLButtonElement;
+  }
+
+  it("hides the pending badge when the count is 0", () => {
+    pendingCount$.next(0);
+    fixture.detectChanges();
+    const button = settingsButton();
+    expect(button.querySelector('[data-testid="admin-pending-badge"]')).toBeNull();
+    expect(button.getAttribute("aria-label")).toBe("Settings");
+  });
+
+  it("shows the pending approval count on the settings gear", () => {
+    pendingCount$.next(4);
+    fixture.detectChanges();
+
+    const button = settingsButton();
+    const badge = button.querySelector('[data-testid="admin-pending-badge"]');
+    expect(badge?.textContent?.trim()).toBe("4");
+    expect(button.getAttribute("aria-label")).toBe("Settings, 4 pending approvals");
+    expect(button.classList.contains("relative")).toBe(true);
+  });
+
+  it("still opens settings when the gear is clicked with a pending badge", () => {
+    pendingCount$.next(4);
+    fixture.detectChanges();
+
+    settingsButton().click();
+    expect(handlers.openUserSettings).toHaveBeenCalledTimes(1);
   });
 });

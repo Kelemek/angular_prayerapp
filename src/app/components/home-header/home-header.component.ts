@@ -1,7 +1,9 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, inject, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { AppLogoComponent } from "../app-logo/app-logo.component";
+import { AdminPendingBadgeComponent } from "../admin-pending-badge/admin-pending-badge.component";
+import { AdminPendingCountService } from "../../services/admin-pending-count.service";
 import type { HomeHeaderHandlers } from "../../lib/home-header-handlers";
 import {
   HOME_HEADER_CHIP_SIZE_LOCK_CLASS,
@@ -24,10 +26,12 @@ export const HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS =
 @Component({
   selector: "app-home-header",
   standalone: true,
-  imports: [CommonModule, RouterModule, AppLogoComponent],
+  imports: [CommonModule, RouterModule, AppLogoComponent, AdminPendingBadgeComponent],
   templateUrl: "./home-header.component.html",
 })
 export class HomeHeaderComponent {
+  readonly pendingApprovalItemCount$ = inject(AdminPendingCountService).pendingApprovalItemCount$;
+
   readonly headerShellClass = `contrast-chip-surface w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md ${HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS}`;
   readonly logoToolbarSlotClass = HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS;
   readonly headerChipClass =

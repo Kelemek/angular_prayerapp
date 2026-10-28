@@ -66,12 +66,18 @@
                 <path d="m21 21-4.3-4.3"></path>
               </svg>
             </button>
+            @let pendingApprovals = (pendingApprovalItemCount$ | async) ?? 0;
             <button
               [id]="tourSettingsBtnId"
               type="button"
               (click)="handlers.openUserSettings()"
-              [class]="headerChipClass + ' btn-chip btn-chip-gray'"
+              [class]="headerChipClass + ' relative btn-chip btn-chip-gray'"
               title="Settings"
+              [attr.aria-label]="
+                pendingApprovals > 0
+                  ? 'Settings, ' + pendingApprovals + ' pending approvals'
+                  : 'Settings'
+              "
             >
               <svg
                 [class]="headerIconClass"
@@ -88,6 +94,7 @@
                 ></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
+              <app-admin-pending-badge [count]="pendingApprovals" />
             </button>
             <a
               [id]="tourPrayerModeBtnId"

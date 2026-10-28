@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AdminPendingBadgeComponent } from '../admin-pending-badge/admin-pending-badge.component';
+import { AdminPendingCountService } from '../../services/admin-pending-count.service';
 import { HourReminderSettingsSectionComponent } from '../hour-reminder-settings-section/hour-reminder-settings-section.component';
 import { UserSettingsPrintSectionComponent } from '../user-settings-print-section/user-settings-print-section.component';
 import { UserSettingsAppearanceSectionComponent } from '../user-settings-appearance-section/user-settings-appearance-section.component';
@@ -28,6 +30,7 @@ import { getWebBuildLabel } from '../../../lib/web-build-info';
     UserSettingsErrorBannerComponent,
     UserSettingsFeedbackSectionComponent,
     UserSettingsAccountSectionComponent,
+    AdminPendingBadgeComponent,
   ],
   templateUrl: './user-settings-panel.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -37,6 +40,14 @@ import { getWebBuildLabel } from '../../../lib/web-build-info';
 })
 export class UserSettingsPanelComponent {
   @Input({ required: true }) host!: UserSettingsFacade;
+
+  private readonly pendingCounts = inject(AdminPendingCountService);
+  readonly pendingApprovalItemCount$ = this.pendingCounts.pendingApprovalItemCount$;
+
+  constructor() {
+    // Settings mounts this panel on every open, so this is the open-time refresh.
+    void this.pendingCounts.refresh();
+  }
 
   readonly webBuildLabel = getWebBuildLabel();
 }

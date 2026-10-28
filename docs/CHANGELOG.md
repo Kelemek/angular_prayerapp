@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Admin pending approval count (October 28, 2026)
+- Admins see how many approval items are waiting on the Home Settings gear and on the Admin button inside Settings, without opening `/admin`. The number is the raw sum of pending prayers, prayer updates, deletion requests, update-deletion requests, and account requests. Two updates on one prayer count as two. The badge is hidden at 0 and shows 99+ above 99. Non-admins do not see it, and those count queries do not run for them, because the service holds the count at 0 unless the email is an admin. The badge clears when the queues are empty. [`AdminPendingCountService`](../src/app/services/admin-pending-count.service.ts) loads the total through [`fetchPendingCounts`](../src/app/services/admin-data-read.service.ts), and [`AdminPendingBadgeComponent`](../src/app/components/admin-pending-badge/admin-pending-badge.component.ts) draws the pill.
+
 ### Help — Prayer Groups (October 27, 2026)
 - Guided tours that highlight the prayer **Details** field now target `#tour-prayer-description-field` in [`prayer-form.component.html`](../src/app/components/prayer-form/prayer-form.component.html). With the rich text editor on (the default) there is no `#description` element, so the Creating Prayers, Personal Prayers, New Prayer Request, and Prayer Groups tours pointed at nothing (or at the Groups tab behind the form).
 - Help & Guidance includes **Prayer Groups** (`help_groups`) after Personal Prayers. The section is in the list, in search, and in **Full guided tour** only when the signed-in person has Groups on (`session.prayerGroupsEnabled`). [`filterHelpSectionsForViewer`](../src/app/lib/help-modal-filter.ts) is the visibility table. Home passes the flag through [`HomeModalsHostComponent`](../src/app/components/home-modals-host/home-modals-host.component.ts).

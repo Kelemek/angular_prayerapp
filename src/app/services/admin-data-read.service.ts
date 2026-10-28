@@ -16,6 +16,7 @@ import {
   mapUpdateDeletionRequestRow,
   mapUpdateWithPrayerTitle,
 } from '../lib/admin-data-map';
+import type { AdminPendingCounts } from '../lib/admin-pending-item-count';
 import type { AccountApprovalRequest } from '../types/admin-data';
 
 export interface AdminPendingSnapshot {
@@ -109,6 +110,46 @@ export class AdminDataReadService {
       pendingDeletionRequests,
       pendingUpdateDeletionRequests,
       pendingAccountRequests,
+    };
+  }
+
+  async fetchPendingCounts(): Promise<AdminPendingCounts> {
+    const supabaseClient = await this.supabase.getClientWhenReady();
+    const head = { count: 'exact' as const, head: true };
+
+    const [prayers, updates, deletionRequests, updateDeletionRequests, accountRequests] =
+      await Promise.all([
+        supabaseClient.from('prayers').select('id', head).eq('approval_status', 'pending'),
+        supabaseClient
+          .from('prayer_updates')
+          .select('id, prayers!inner(id)', head)
+          .eq('approval_status', 'pending'),
+        supabaseClient
+          .from('deletion_requests')
+          .select('id, prayers!inner(id)', head)
+          .eq('approval_status', 'pending'),
+        supabaseClient
+          .from('update_deletion_requests')
+          .select('id', head)
+          .eq('approval_status', 'pending'),
+        supabaseClient
+          .from('account_approval_requests')
+          .select('id', head)
+          .eq('approval_status', 'pending'),
+      ]);
+
+    if (prayers.error) throw prayers.error;
+    if (updates.error) throw updates.error;
+    if (deletionRequests.error) throw deletionRequests.error;
+    if (updateDeletionRequests.error) throw updateDeletionRequests.error;
+    if (accountRequests.error) throw accountRequests.error;
+
+    return {
+      prayers: prayers.count ?? 0,
+      updates: updates.count ?? 0,
+      deletionRequests: deletionRequests.count ?? 0,
+      updateDeletionRequests: updateDeletionRequests.count ?? 0,
+      accountRequests: accountRequests.count ?? 0,
     };
   }
 
