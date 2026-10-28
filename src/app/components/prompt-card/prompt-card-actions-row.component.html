@@ -1,4 +1,11 @@
-<div [class]="'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' + variantLayout.actionRowGap">
+<div
+  [class]="
+    'contrast-chip-surface flex flex-nowrap items-center min-w-0 ' +
+    actionRowMobileLockClass +
+    ' ' +
+    variantLayout.actionRowGap
+  "
+>
   @if (showPrayForButton && prayerEncouragementEnabled) {
     @if (canPrayFor) {
       <button

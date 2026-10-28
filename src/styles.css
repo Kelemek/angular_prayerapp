@@ -685,6 +685,31 @@ html {
     min-height: 20px;
     flex-shrink: 0;
   }
+
+  /* Prayer / prompt card action row (Add Update, Pray For, {n} Prayers) — home + presentation on phone */
+  .prayer-card-action-row-mobile-lock {
+    gap: 4px;
+  }
+
+  .prayer-card-action-row-mobile-lock > button,
+  .prayer-card-action-row-mobile-lock > span {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-size: calc(12px / var(--os-text-zoom, 1));
+    line-height: 1;
+  }
 }
 
 /* Base resets and global styles */

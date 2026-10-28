@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import {
+  PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS,
   PRAYER_CARD_HEADER_INSET_CLASSES,
   PRAYER_CARD_PERSONAL_CATEGORY_HEADER_INSET_CLASSES,
   PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES,
@@ -151,5 +152,24 @@ describe('PRAYER_CARD_PERSONAL_CATEGORY_HEADER_TEXT_CLASSES', () => {
     expect(tokens).toContain('text-[12px]');
     expect(tokens).toContain('sm:text-[14px]');
     expect(tokens).not.toContain('text-[14px]');
+  });
+});
+
+describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
+  it('is wired on prayer and prompt card action rows', () => {
+    const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '../components');
+    const prayerRow = readFileSync(
+      join(componentsDir, 'prayer-card/prayer-card-actions-row.component.html'),
+      'utf8'
+    );
+    const promptRow = readFileSync(
+      join(componentsDir, 'prompt-card/prompt-card-actions-row.component.html'),
+      'utf8'
+    );
+    expect(prayerRow).toContain('actionRowMobileLockClass');
+    expect(promptRow).toContain('actionRowMobileLockClass');
+    expect(PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS).toBe(
+      'prayer-card-action-row-mobile-lock'
+    );
   });
 });

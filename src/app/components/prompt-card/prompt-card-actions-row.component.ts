@@ -6,7 +6,10 @@ import {
   Output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { PromptCardVariantLayout } from '../../lib/prayer-card-layout';
+import {
+  PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS,
+  type PromptCardVariantLayout,
+} from '../../lib/prayer-card-layout';
 
 @Component({
   selector: 'app-prompt-card-actions-row',
@@ -16,6 +19,8 @@ import type { PromptCardVariantLayout } from '../../lib/prayer-card-layout';
   templateUrl: './prompt-card-actions-row.component.html',
 })
 export class PromptCardActionsRowComponent {
+  readonly actionRowMobileLockClass = PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS;
+
   @Input({ required: true }) variantLayout!: PromptCardVariantLayout;
   @Input({ required: true }) prayedForCount!: number;
   @Input({ required: true }) prayedForCountLabel!: string;

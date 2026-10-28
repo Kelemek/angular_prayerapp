@@ -116,6 +116,10 @@ export function getMetaHeaderBandLayoutClasses(
   return META_HEADER_BAND_LAYOUT;
 }
 
+/** Below `sm`, fixed action-chip sizes in styles.css (Add Update / Pray For / counts). */
+export const PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS =
+  'prayer-card-action-row-mobile-lock';
+
 export type PrayerCardVariant = 'home' | 'presentation';
 
 interface CardVariantChrome {

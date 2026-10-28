@@ -6,7 +6,10 @@ import {
   Output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
+import {
+  PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS,
+  type PrayerCardVariantLayout,
+} from '../../lib/prayer-card-layout';
 @Component({
   selector: 'app-prayer-card-actions-row',
   standalone: true,
@@ -15,6 +18,8 @@ import type { PrayerCardVariantLayout } from '../../lib/prayer-card-layout';
   templateUrl: './prayer-card-actions-row.component.html',
 })
 export class PrayerCardActionsRowComponent {
+  readonly actionRowMobileLockClass = PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS;
+
   @Input({ required: true }) variantLayout!: PrayerCardVariantLayout;
   @Input({ required: true }) showTourAnchors!: boolean;
   @Input({ required: true }) tourPersonalWalkthroughAnchors!: boolean;

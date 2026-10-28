@@ -23,6 +23,7 @@ import { PrayerEncouragementService } from '../../services/prayer-encouragement.
 import type { PrayerUpdateRecord } from '../../lib/prayer-update-header';
 import {
   getPrayerCardVariantLayout,
+  PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS,
   type PrayerCardVariant,
 } from '../../lib/prayer-card-layout';
 import {
@@ -120,6 +121,8 @@ import type { PersonalPrayerAnsweredStatusMode } from '../personal-prayer-answer
 export class PrayerCardComponent
   implements OnInit, OnChanges, OnDestroy, PrayerCardDeleteUiState
 {
+  readonly actionRowMobileLockClass = PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS;
+
   @Input() variant: PrayerCardVariant = 'home';
   @Input() prayer!: PrayerRequest;
   @Input() isAdmin = false;
