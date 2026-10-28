@@ -58,6 +58,13 @@ const config: CapacitorConfig = {
   appName: 'Prayer App',
   webDir: 'dist/prayerapp/browser',
   server: serverConfig,
+  plugins: {
+    Badge: {
+      persist: true,
+      // App open / resume must not clear the icon badge (on iOS that also clears notifications).
+      autoClear: false,
+    },
+  },
 };
 
 export default config;

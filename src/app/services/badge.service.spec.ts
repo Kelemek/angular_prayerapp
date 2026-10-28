@@ -2058,3 +2058,128 @@ describe('BadgeService - Additional Coverage Tests', () => {
   });
 });
 
+describe('BadgeService own content, displayed total, and readiness', () => {
+  let service: BadgeService;
+  let session$: BehaviorSubject<{ email: string; badgeFunctionalityEnabled: boolean } | null>;
+  let sessionInitialized: boolean;
+  let mockBadgeReadStateService: ReturnType<
+    typeof createBadgeServiceInjectorMock
+  >['mockBadgeReadStateService'];
+
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  beforeEach(async () => {
+    localStorage.clear();
+    sessionInitialized = true;
+    session$ = new BehaviorSubject<{ email: string; badgeFunctionalityEnabled: boolean } | null>({
+      email: 'me@example.com',
+      badgeFunctionalityEnabled: true,
+    });
+    const mockUserSessionService = {
+      userSession$: session$,
+      getUserEmail: () => session$.value?.email ?? null,
+      isSessionInitialized: () => sessionInitialized,
+    };
+    const harness = createBadgeServiceInjectorMock(mockUserSessionService);
+    mockBadgeReadStateService = harness.mockBadgeReadStateService;
+    const mockSupabaseService: any = {};
+    wireGatedSupabaseMock(mockSupabaseService);
+    service = new BadgeService(mockSupabaseService, harness.mockInjector as unknown as Injector);
+
+    localStorage.setItem(
+      'prayers_cache',
+      JSON.stringify({
+        data: [
+          {
+            id: 'mine',
+            status: 'current',
+            updated_at: '2024-01-01',
+            email: 'ME@example.com',
+            updates: [{ id: 'u-other', created_at: '2024-01-02', author_email: 'other@example.com' }],
+          },
+          {
+            id: 'theirs',
+            status: 'answered',
+            updated_at: '2024-01-01',
+            email: 'other@example.com',
+            updates: [{ id: 'u-mine', created_at: '2024-01-02', author_email: 'me@example.com' }],
+          },
+          { id: 'old', status: 'archived', updated_at: '2024-01-01', email: 'other@example.com' },
+        ],
+      })
+    );
+    localStorage.setItem(
+      'prompts_cache',
+      JSON.stringify({ data: [{ id: 'prompt-1', updated_at: '2024-01-01' }] })
+    );
+    await settle();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('excludes the viewer’s own prayers and updates from pill counts', async () => {
+    expect(await firstValueFrom(service.getBadgeCount$('prayers', 'current'))).toBe(1);
+    expect(await firstValueFrom(service.getBadgeCount$('prayers', 'answered'))).toBe(1);
+  });
+
+  it('getDisplayedBadgeTotal sums Current + Answered + Prompts and skips archived', () => {
+    expect(service.getDisplayedBadgeTotal()).toBe(3);
+  });
+
+  it('getDisplayedBadgeTotal is 0 when badge functionality is off', async () => {
+    session$.next({ email: 'me@example.com', badgeFunctionalityEnabled: false });
+    await settle();
+    expect(service.getDisplayedBadgeTotal()).toBe(0);
+  });
+
+  it('hides card dots for own prayers and own updates', () => {
+    expect(service.isPrayerUnread('mine', 'me@example.com')).toBe(false);
+    expect(service.isPrayerUnread('theirs', 'other@example.com')).toBe(true);
+    expect(service.isUpdateUnread('u-mine', 'Me@Example.com')).toBe(false);
+    expect(service.isUpdateUnread('u-other', 'other@example.com')).toBe(true);
+  });
+
+  it('is not resolved until read state is ready for the signed-in member', () => {
+    mockBadgeReadStateService.isReadyForReads.mockReturnValue(false);
+    expect(service.isDisplayedTotalResolved()).toBe(false);
+    mockBadgeReadStateService.isReadyForReads.mockReturnValue(true);
+    expect(service.isDisplayedTotalResolved()).toBe(true);
+  });
+
+  it('resolves to 0 on logout and counts again after re-login with the same email', async () => {
+    session$.next(null);
+    sessionInitialized = false;
+    await settle();
+    expect(service.isDisplayedTotalResolved()).toBe(true);
+    expect(service.getDisplayedBadgeTotal()).toBe(0);
+
+    session$.next({ email: 'me@example.com', badgeFunctionalityEnabled: true });
+    await settle();
+    expect(service.isDisplayedTotalResolved()).toBe(true);
+    expect(service.getDisplayedBadgeTotal()).toBe(3);
+  });
+
+  it('is not resolved on a cold start with no session before init finishes', async () => {
+    session$ = new BehaviorSubject<{ email: string; badgeFunctionalityEnabled: boolean } | null>(null);
+    sessionInitialized = false;
+    const coldSessionService = {
+      userSession$: session$,
+      getUserEmail: () => null,
+      isSessionInitialized: () => sessionInitialized,
+    };
+    const harness = createBadgeServiceInjectorMock(coldSessionService);
+    const mockSupabaseService: any = {};
+    wireGatedSupabaseMock(mockSupabaseService);
+    const coldService = new BadgeService(
+      mockSupabaseService,
+      harness.mockInjector as unknown as Injector
+    );
+    await settle();
+    expect(coldService.isDisplayedTotalResolved()).toBe(false);
+    sessionInitialized = true;
+    expect(coldService.isDisplayedTotalResolved()).toBe(true);
+  });
+});
+

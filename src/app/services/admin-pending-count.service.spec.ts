@@ -23,19 +23,29 @@ function zeroCounts(partial: Partial<AdminPendingCounts> = {}): AdminPendingCoun
 describe('AdminPendingCountService', () => {
   function setup() {
     const hasAdminEmail$ = new BehaviorSubject(false);
+    const loading$ = new BehaviorSubject(false);
+    const adminEligibilityResolved$ = new BehaviorSubject(true);
     const data$ = new BehaviorSubject<AdminData>({ ...EMPTY_ADMIN_DATA });
     const events = new Subject<Event>();
     const fetchPendingCounts = vi.fn().mockResolvedValue(zeroCounts());
     const service = new AdminPendingCountService(
-      { hasAdminEmail$ } as AdminAuthService,
+      { hasAdminEmail$, loading$, adminEligibilityResolved$ } as unknown as AdminAuthService,
       { fetchPendingCounts } as unknown as AdminDataReadService,
       { data$ } as unknown as AdminDataService,
       { events } as Router,
       { onDestroy: () => () => undefined } as unknown as DestroyRef,
     );
 
+    let iconCount: number | null | undefined;
+    service.iconPendingCount$.subscribe((value) => {
+      iconCount = value;
+    });
+
     return {
       hasAdminEmail$,
+      loading$,
+      adminEligibilityResolved$,
+      iconCount: () => iconCount,
       data$,
       events,
       fetchPendingCounts,
@@ -248,5 +258,66 @@ describe('AdminPendingCountService', () => {
     expect(await count()).toBe(4);
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  describe('iconPendingCount$', () => {
+    it('is null while auth restore or the admin check is still running', () => {
+      const { loading$, adminEligibilityResolved$, iconCount } = setup();
+      loading$.next(true);
+      expect(iconCount()).toBeNull();
+
+      loading$.next(false);
+      adminEligibilityResolved$.next(false);
+      expect(iconCount()).toBeNull();
+    });
+
+    it('is 0 for a resolved non-admin without querying', () => {
+      const { fetchPendingCounts, iconCount } = setup();
+      expect(iconCount()).toBe(0);
+      expect(fetchPendingCounts).not.toHaveBeenCalled();
+    });
+
+    it('stays null for an admin until the first count loads, then matches the gear total', async () => {
+      const { hasAdminEmail$, fetchPendingCounts, iconCount } = setup();
+      let resolveCounts: (counts: AdminPendingCounts) => void = () => undefined;
+      fetchPendingCounts.mockReturnValueOnce(
+        new Promise<AdminPendingCounts>((resolve) => {
+          resolveCounts = resolve;
+        }),
+      );
+
+      hasAdminEmail$.next(true);
+      expect(iconCount()).toBeNull();
+
+      resolveCounts(zeroCounts({ prayers: 2, accountRequests: 1 }));
+      await vi.waitFor(() => {
+        expect(iconCount()).toBe(3);
+      });
+    });
+
+    it('drops to 0 on logout and waits for a fresh count when the same admin logs back in', async () => {
+      const { hasAdminEmail$, fetchPendingCounts, iconCount } = setup();
+      fetchPendingCounts.mockResolvedValue(zeroCounts({ updates: 2 }));
+      hasAdminEmail$.next(true);
+      await vi.waitFor(() => {
+        expect(iconCount()).toBe(2);
+      });
+
+      hasAdminEmail$.next(false);
+      expect(iconCount()).toBe(0);
+
+      let resolveCounts: (counts: AdminPendingCounts) => void = () => undefined;
+      fetchPendingCounts.mockReturnValueOnce(
+        new Promise<AdminPendingCounts>((resolve) => {
+          resolveCounts = resolve;
+        }),
+      );
+      hasAdminEmail$.next(true);
+      expect(iconCount()).toBeNull();
+      resolveCounts(zeroCounts({ updates: 5 }));
+      await vi.waitFor(() => {
+        expect(iconCount()).toBe(5);
+      });
+    });
   });
 });

@@ -3,7 +3,14 @@ export interface BadgeCachedItem {
   status?: 'current' | 'answered' | 'archived';
   type?: string;
   updated_at: string;
-  updates?: Array<{ id: string; created_at: string; updated_at?: string }>;
+  /** Prayer requester email; prompts have no author. */
+  email?: string | null;
+  updates?: Array<{
+    id: string;
+    created_at: string;
+    updated_at?: string;
+    author_email?: string | null;
+  }>;
 }
 
 export interface BadgeReadPrayersData {

@@ -9,6 +9,7 @@ This guide walks you through setting up and using Capacitor with your Angular Pr
 3. **@capacitor/ios** - iOS platform support
 4. **@capacitor/android** - Android platform support
 5. **@capacitor/push-notifications** - Push notification support
+6. **@capawesome/capacitor-badge** - Home-screen app icon badge count (see [App icon badges](#app-icon-badges))
 
 ## Project Structure
 
@@ -131,6 +132,18 @@ if (this.capacitorService.isNative()) {
   console.log('Running on:', this.capacitorService.getPlatform()); // 'ios' or 'android'
 }
 ```
+
+### App icon badges
+
+The native app icon shows the member's in-app unread count: the same Current + Answered + Prompts total as the Home filter pills. The member's own prayers and updates do not count, and groups are not included. For an admin, the icon adds the pending approval count from the Settings gear (unread + pending approvals). Web does nothing.
+
+- **Plugin:** `@capawesome/capacitor-badge` (not `@capacitor/badge`). `capacitor.config.ts` sets `plugins.Badge = { persist: true, autoClear: false }`, so the count survives a restart and opening the app never clears it. The plugin reads these settings at build time, so after changing them run `npx cap sync` and rebuild the native app.
+- **Code:** [`AppIconBadgeService`](../../src/app/services/app-icon-badge.service.ts) is started from `AppComponent.initializeCapacitor()` on native only. It writes `Badge.set({ count })` whenever `BadgeService` changes (mark-read, mark-all, session or badge-setting change) and when the app returns to the foreground. It writes nothing until the session and badge read state have loaded, and skips the write when the icon already shows the right number.
+- **Admins:** the pending part comes from `AdminPendingCountService.iconPendingCount$`, which stays null (no icon write) until auth restore, the admin check, and the first pending count have finished. The service calls `refresh()` each time the app returns to the foreground.
+- **iOS caveat:** setting the count to 0 also clears delivered notifications. That only happens when the member has actually read everything, logs out, or turns badges off in Settings.
+- **Android caveat:** launchers decide how badges look. Many (including Pixel / stock Android) show a dot or nothing instead of a number.
+- **Older binaries:** a build made before the plugin was added reports `Badge` as unavailable, and the service skips it silently. The icon starts working once the member installs the new store build.
+- **Server push badge:** not set yet. `send-push-notification` sends no `aps.badge` / FCM `notificationCount`, so the icon updates only when the app runs.
 
 ## Android Setup Requirements
 

@@ -69,7 +69,7 @@ export class PrayerCardBadgeWire {
     for (const newUpdateId of newUpdateIds) {
       const update = currentPrayer.updates?.find((u) => u.id === newUpdateId);
       if (update && !this.updateBadges$.has(update.id)) {
-        this.ensureUpdateBadge(update.id);
+        this.ensureUpdateBadge(update);
       }
     }
     this.syncAllUpdateBadges(currentPrayer.updates);
@@ -95,20 +95,18 @@ export class PrayerCardBadgeWire {
     if (!updates?.length) {
       return;
     }
-    updates.forEach((update) => this.ensureUpdateBadge(update.id));
+    updates.forEach((update) => this.ensureUpdateBadge(update));
   }
 
-  private ensureUpdateBadge(updateId: string): void {
-    if (!this.updateBadges$.has(updateId)) {
+  private ensureUpdateBadge(update: PrayerUpdateRecord): void {
+    if (!this.updateBadges$.has(update.id)) {
       this.updateBadges$.set(
-        updateId,
-        new BehaviorSubject<boolean>(
-          this.badgeService.isUpdateUnread(updateId)
-        )
+        update.id,
+        new BehaviorSubject<boolean>(this.isUpdateUnread(update))
       );
       return;
     }
-    this.syncUpdateBadge(updateId);
+    this.syncUpdateBadge(update);
   }
 
   private syncPrayerBadge(): void {
@@ -117,14 +115,14 @@ export class PrayerCardBadgeWire {
       return;
     }
     this.prayerBadgeSubject$.next(
-      this.badgeService.isPrayerUnread(prayer.id)
+      this.badgeService.isPrayerUnread(prayer.id, prayer.email)
     );
   }
 
-  private syncUpdateBadge(updateId: string): void {
-    const subject = this.updateBadges$.get(updateId);
+  private syncUpdateBadge(update: PrayerUpdateRecord): void {
+    const subject = this.updateBadges$.get(update.id);
     if (subject) {
-      subject.next(this.badgeService.isUpdateUnread(updateId));
+      subject.next(this.isUpdateUnread(update));
     }
   }
 
@@ -132,6 +130,10 @@ export class PrayerCardBadgeWire {
     if (!updates?.length) {
       return;
     }
-    updates.forEach((update) => this.syncUpdateBadge(update.id));
+    updates.forEach((update) => this.syncUpdateBadge(update));
+  }
+
+  private isUpdateUnread(update: PrayerUpdateRecord): boolean {
+    return this.badgeService.isUpdateUnread(update.id, update.author_email);
   }
 }

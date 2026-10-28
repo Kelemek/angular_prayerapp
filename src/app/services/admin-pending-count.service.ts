@@ -3,8 +3,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import {
   BehaviorSubject,
+  combineLatest,
   distinctUntilChanged,
   filter,
+  map,
   pairwise,
   skip,
   type Observable,
@@ -19,10 +21,19 @@ import { AdminDataService } from './admin-data.service';
 
 @Injectable({ providedIn: 'root' })
 export class AdminPendingCountService {
-  private readonly countSubject = new BehaviorSubject(0);
-  readonly pendingApprovalItemCount$: Observable<number> = this.countSubject
-    .asObservable()
-    .pipe(distinctUntilChanged());
+  /** Null until the first count loads for the current admin, and after logout. */
+  private readonly countSubject = new BehaviorSubject<number | null>(null);
+  readonly pendingApprovalItemCount$: Observable<number> = this.countSubject.pipe(
+    map((count) => count ?? 0),
+    distinctUntilChanged(),
+  );
+
+  /**
+   * Same total for the native app icon, but null until it is known: auth restore and
+   * the admin check have finished and, for an admin, the first count has loaded.
+   * Non-admins resolve to 0.
+   */
+  readonly iconPendingCount$: Observable<number | null>;
 
   private eligible = false;
   // Every write source bumps this so only the newest result lands: a head-count that
@@ -36,13 +47,28 @@ export class AdminPendingCountService {
     private readonly router: Router,
     destroyRef: DestroyRef,
   ) {
+    this.iconPendingCount$ = combineLatest([
+      this.adminAuth.loading$,
+      this.adminAuth.adminEligibilityResolved$,
+      this.adminAuth.hasAdminEmail$,
+      this.countSubject,
+    ]).pipe(
+      map(([authLoading, eligibilityResolved, isAdmin, count]) => {
+        if (authLoading || !eligibilityResolved) {
+          return null;
+        }
+        return isAdmin ? count : 0;
+      }),
+      distinctUntilChanged(),
+    );
+
     this.adminAuth.hasAdminEmail$
       .pipe(distinctUntilChanged(), takeUntilDestroyed(destroyRef))
       .subscribe((eligible) => {
         this.eligible = eligible;
         if (!eligible) {
           this.epoch += 1;
-          this.countSubject.next(0);
+          this.countSubject.next(null);
           return;
         }
         void this.refresh();

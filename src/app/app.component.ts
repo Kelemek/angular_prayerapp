@@ -124,7 +124,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   /**
    * Initialize Capacitor service for mobile app features.
-   * Also inject PushNotificationService so it subscribes to pushToken$ and stores device tokens in the backend.
+   * Also inject PushNotificationService so it subscribes to pushToken$ and stores device tokens in the backend,
+   * and start AppIconBadgeService (native only) so the home-screen icon mirrors in-app unread.
    */
   private async initializeCapacitor(): Promise<void> {
     try {
@@ -138,6 +139,12 @@ export class AppComponent implements OnInit, OnDestroy {
       );
       this.injector.get(CapacitorService);
       this.injector.get(PushNotificationService);
+      if (Capacitor.isNativePlatform()) {
+        const { AppIconBadgeService } = await import(
+          "./services/app-icon-badge.service"
+        );
+        void this.injector.get(AppIconBadgeService).start();
+      }
     } catch (error) {
       console.debug("Capacitor service not available (running on web)", error);
     }

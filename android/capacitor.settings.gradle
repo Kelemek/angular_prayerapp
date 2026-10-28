@@ -8,5 +8,8 @@ project(':capacitor-preferences').projectDir = new File('../node_modules/@capaci
 include ':capacitor-push-notifications'
 project(':capacitor-push-notifications').projectDir = new File('../node_modules/@capacitor/push-notifications/android')
 
+include ':capawesome-capacitor-badge'
+project(':capawesome-capacitor-badge').projectDir = new File('../node_modules/@capawesome/capacitor-badge/android')
+
 include ':capgo-capacitor-printer'
 project(':capgo-capacitor-printer').projectDir = new File('../node_modules/@capgo/capacitor-printer/android')

@@ -18,6 +18,7 @@ import {
   isBadgePrayerUnread,
   isBadgePromptUnread,
   isBadgeUpdateUnread,
+  isViewerAuthored,
   mergeUniqueIds,
 } from '../lib/badge-count';
 import type {
@@ -41,6 +42,8 @@ export class BadgeService {
   private individualBadgeSubject$ = new Map<string, BehaviorSubject<boolean>>();
   private updateBadgesChanged$ = new Subject<void>();
   private badgeFunctionalityEnabled$ = new BehaviorSubject<boolean>(false);
+  private viewerEmail: string | null = null;
+  private hadSignedInSession = false;
   private storageListenerAttached = false;
 
   private userSessionService: UserSessionService | null = null;
@@ -83,11 +86,13 @@ export class BadgeService {
           )
         )
         .subscribe((session) => {
+          this.viewerEmail = session?.email ?? null;
           if (!session?.email) {
             console.log('[Badge] No user session, disabling badges');
             this.badgeFunctionalityEnabled$.next(false);
             return;
           }
+          this.hadSignedInSession = true;
           const isEnabled = session.badgeFunctionalityEnabled ?? false;
           console.log(`[Badge] User session updated, badge functionality: ${isEnabled}`);
           this.badgeFunctionalityEnabled$.next(isEnabled);
@@ -294,7 +299,8 @@ export class BadgeService {
         items,
         type,
         readState.getReadPrayersData(),
-        readState.getReadPromptsData()
+        readState.getReadPromptsData(),
+        this.viewerEmail
       );
     } catch (error) {
       console.warn(`Failed to get unread IDs for ${type}:`, error);
@@ -302,18 +308,52 @@ export class BadgeService {
     }
   }
 
-  isUpdateUnread(updateId: string): boolean {
+  isUpdateUnread(updateId: string, authorEmail?: string | null): boolean {
     if (!this.canShowUnreadState()) {
+      return false;
+    }
+    if (isViewerAuthored(authorEmail, this.viewerEmail)) {
       return false;
     }
     return isBadgeUpdateUnread(updateId, this.getReadState().getReadPrayersData());
   }
 
-  isPrayerUnread(prayerId: string): boolean {
+  isPrayerUnread(prayerId: string, creatorEmail?: string | null): boolean {
     if (!this.canShowUnreadState()) {
       return false;
     }
+    if (isViewerAuthored(creatorEmail, this.viewerEmail)) {
+      return false;
+    }
     return isBadgePrayerUnread(prayerId, this.getReadState().getReadPrayersData());
+  }
+
+  /**
+   * Current + Answered + Prompts, matching the home filter pills.
+   * 0 when badge functionality is off, since no pills are displayed then.
+   */
+  getDisplayedBadgeTotal(): number {
+    if (!this.badgeFunctionalityEnabled$.value) {
+      return 0;
+    }
+    return (
+      this.calculateBadgeCount('prayers', 'current') +
+      this.calculateBadgeCount('prayers', 'answered') +
+      this.calculateBadgeCount('prompts')
+    );
+  }
+
+  /**
+   * True once getDisplayedBadgeTotal() reflects the real session and read state.
+   * Before that the total is 0 only because nothing has loaded yet.
+   */
+  isDisplayedTotalResolved(): boolean {
+    const sessionService = this.getUserSessionService();
+    const email = sessionService.getUserEmail();
+    if (!email) {
+      return this.hadSignedInSession || sessionService.isSessionInitialized();
+    }
+    return this.viewerEmail === email && this.getReadState().isReadyForReads();
   }
 
   isPromptUnread(promptId: string): boolean {
@@ -457,7 +497,8 @@ export class BadgeService {
         type,
         readState.getReadPrayersData(),
         readState.getReadPromptsData(),
-        status
+        status,
+        this.viewerEmail
       );
     } catch (error) {
       console.warn(`Failed to calculate badge count for ${type}:`, error);
@@ -478,7 +519,8 @@ export class BadgeService {
         type,
         id,
         readState.getReadPrayersData(),
-        readState.getReadPromptsData()
+        readState.getReadPromptsData(),
+        this.viewerEmail
       );
     } catch (error) {
       console.warn(`Failed to check individual badge for ${type}:${id}:`, error);

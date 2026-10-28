@@ -51,6 +51,7 @@ export function formatApprovedCommunityPrayersFromDb(
         prayer_id: (u as { prayer_id: string }).prayer_id,
         content: (u as { content: string }).content,
         author: (u as { author: string }).author,
+        author_email: (u as { author_email?: string }).author_email,
         is_anonymous: (u as { is_anonymous?: boolean }).is_anonymous,
         created_at: (u as { created_at: string }).created_at,
       })),

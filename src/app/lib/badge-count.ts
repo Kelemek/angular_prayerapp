@@ -6,6 +6,15 @@ import type {
   BadgeReadPromptsData,
 } from './badge-types';
 
+/** The member's own prayers (`email`) and updates (`author_email`) never badge for them. */
+export function isViewerAuthored(
+  authorEmail: string | null | undefined,
+  viewerEmail: string | null | undefined
+): boolean {
+  const author = authorEmail?.trim().toLowerCase();
+  return !!author && author === viewerEmail?.trim().toLowerCase();
+}
+
 export function mergeUniqueIds(existing: string[], ids: string[]): string[] {
   return Array.from(new Set([...existing, ...ids]));
 }
@@ -91,7 +100,8 @@ export function calculateBadgeCount(
   type: BadgeItemType,
   readPrayers: BadgeReadPrayersData,
   readPrompts: BadgeReadPromptsData,
-  status?: BadgePrayerStatus
+  status?: BadgePrayerStatus,
+  viewerEmail?: string | null
 ): number {
   const readIds =
     type === 'prayers' ? readPrayers.prayers : readPrompts.prompts;
@@ -105,13 +115,16 @@ export function calculateBadgeCount(
       return;
     }
 
-    if (!readIds.includes(item.id)) {
+    if (!readIds.includes(item.id) && !isViewerAuthored(item.email, viewerEmail)) {
       count++;
     }
 
     if (item.updates && Array.isArray(item.updates)) {
       item.updates.forEach((update) => {
-        if (!readUpdateIds.includes(update.id)) {
+        if (
+          !readUpdateIds.includes(update.id) &&
+          !isViewerAuthored(update.author_email, viewerEmail)
+        ) {
           count++;
         }
       });
@@ -126,10 +139,11 @@ export function checkIndividualBadgeForItem(
   type: BadgeItemType,
   id: string,
   readPrayers: BadgeReadPrayersData,
-  readPrompts: BadgeReadPromptsData
+  readPrompts: BadgeReadPromptsData,
+  viewerEmail?: string | null
 ): boolean {
   const item = items.find((entry) => entry.id === id);
-  if (!item) {
+  if (!item || isViewerAuthored(item.email, viewerEmail)) {
     return false;
   }
 
@@ -142,12 +156,15 @@ export function getBadgeUnreadIds(
   items: BadgeCachedItem[],
   type: BadgeItemType,
   readPrayers: BadgeReadPrayersData,
-  readPrompts: BadgeReadPromptsData
+  readPrompts: BadgeReadPromptsData,
+  viewerEmail?: string | null
 ): string[] {
   const readIds =
     type === 'prayers' ? readPrayers.prayers : readPrompts.prompts;
 
-  return items.filter((item) => !readIds.includes(item.id)).map((item) => item.id);
+  return items
+    .filter((item) => !readIds.includes(item.id) && !isViewerAuthored(item.email, viewerEmail))
+    .map((item) => item.id);
 }
 
 export function isBadgePrayerUnread(

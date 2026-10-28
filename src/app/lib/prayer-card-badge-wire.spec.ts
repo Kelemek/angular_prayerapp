@@ -39,8 +39,29 @@ describe("PrayerCardBadgeWire", () => {
 
     expect(wire.updateBadges$.has("update-a")).toBe(false);
     expect(wire.updateBadges$.has("update-b")).toBe(true);
-    expect(badgeService.isPrayerUnread).toHaveBeenCalledWith("prayer-b");
-    expect(badgeService.isUpdateUnread).toHaveBeenCalledWith("update-b");
+    expect(badgeService.isPrayerUnread).toHaveBeenCalledWith("prayer-b", undefined);
+    expect(badgeService.isUpdateUnread).toHaveBeenCalledWith("update-b", undefined);
+  });
+
+  it("passes requester and update author emails so own content is not badged", () => {
+    const ownPrayer = {
+      ...prayer("prayer-a"),
+      email: "me@example.com",
+      updates: [
+        { id: "update-a", content: "Update", created_at: "2026-01-02", author_email: "me@example.com" },
+      ],
+    } as PrayerRequest;
+    const badgeService = {
+      isPrayerUnread: vi.fn(() => false),
+      isUpdateUnread: vi.fn(() => false),
+      getUpdateBadgesChanged$: vi.fn(),
+    };
+
+    const wire = new PrayerCardBadgeWire(badgeService as any, () => ownPrayer);
+    wire.rebindPrayer(ownPrayer);
+
+    expect(badgeService.isPrayerUnread).toHaveBeenCalledWith("prayer-a", "me@example.com");
+    expect(badgeService.isUpdateUnread).toHaveBeenCalledWith("update-a", "me@example.com");
   });
 
   it("clears stale unread state before syncing the new prayer on id change", () => {
