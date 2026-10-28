@@ -13,6 +13,7 @@ import {
   TOUR_FILTER_MEMBERS_ID,
   TOUR_FILTER_PROMPTS_ID,
   TOUR_FILTER_MEMORIZE_ID,
+  TOUR_FILTER_GROUPS_ID,
   TOUR_MEMORIZE_ACTION_BAR_ID,
   TOUR_MEMORIZE_ADD_VERSES_ID,
   TOUR_MEMORIZE_RECOMMENDED_ID,
@@ -165,6 +166,13 @@ export function getMemorizeFilterEl(): HTMLElement | null {
     return null;
   }
   return document.getElementById(TOUR_FILTER_MEMORIZE_ID);
+}
+
+export function getGroupsFilterEl(): HTMLElement | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  return document.getElementById(TOUR_FILTER_GROUPS_ID);
 }
 
 export function getMemorizeActionBarEl(): HTMLElement | null {

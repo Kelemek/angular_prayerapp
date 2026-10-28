@@ -2,6 +2,7 @@ export { runAppSettingsHelpSectionTour } from './app-settings-section-tour';
 export { runCreatingPrayersHelpSectionTour } from './creating-prayers-section-tour';
 export { runEmailSubscriptionHelpSectionTour } from './email-subscription-section-tour';
 export { runFeedbackHelpSectionTour } from './feedback-section-tour';
+export { runGroupsHelpSectionTour } from './groups-section-tour';
 export { runFilteringHelpSectionTour } from './filtering-section-tour';
 export { runManagingPrayerViewsTour } from './managing-prayer-views-tour';
 export { runMemorizeHelpSectionTour } from './memorize-section-tour';

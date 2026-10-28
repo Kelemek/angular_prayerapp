@@ -9,6 +9,7 @@ import * as dom from '../help-tour-dom';
 import type { HelpContent } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
 import type { NewPrayerRequestTourHooks } from '../help-tour-hooks';
+import { TOUR_PRAYER_DESCRIPTION_FIELD_ID } from '../help-tour-ids';
 
 export function runNewPrayerRequestTour(
   host: HelpTourDriverHost,
@@ -61,7 +62,7 @@ if (typeof document === 'undefined') {
         },
       },
       {
-        element: '#description',
+        element: `#${TOUR_PRAYER_DESCRIPTION_FIELD_ID}`,
         popover: {
           title: 'Prayer request details',
           description: 'Add the details so your community can pray meaningfully.',

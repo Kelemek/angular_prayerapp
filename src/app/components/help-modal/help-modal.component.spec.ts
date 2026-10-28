@@ -2564,3 +2564,76 @@ describe('HelpModalComponent - Settings modal chrome', () => {
     expect(overlayZ).toBeGreaterThan(scrollButtonZ);
   });
 });
+
+describe('HelpModalComponent prayer groups gating', () => {
+  function helpSection(id: string, title: string, order: number) {
+    return {
+      id,
+      title,
+      description: 'Help',
+      icon: '',
+      content: [{ subtitle: 'Overview', text: 'Details' }],
+      order,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: 'system',
+    };
+  }
+
+  const sections = [
+    helpSection('help_personal_prayers', 'Personal Prayers', 5),
+    helpSection('help_groups', 'Prayer Groups', 6),
+  ];
+
+  async function createModal() {
+    const { HelpModalComponent } = await import('./help-modal.component');
+    const helpContentService = {
+      getSections: vi.fn().mockReturnValue(of(sections)),
+      isLoading$: of(false),
+      error$: of(null),
+    };
+    const component = new HelpModalComponent(
+      helpContentService as never,
+      { bypassSecurityTrustHtml: vi.fn((html: string) => html) } as never,
+      { interruptGuidedTours: vi.fn() } as never,
+      { showToast: vi.fn() } as never,
+    );
+    component.ngOnInit();
+    return component;
+  }
+
+  it('hides Prayer Groups from the list and from search until Groups is on', async () => {
+    const component = await createModal();
+    component.prayerGroupsEnabled = false;
+    let listed: string[] = [];
+    component.filteredSections$.subscribe((rows) => {
+      listed = rows.map((row) => row.id);
+    });
+    expect(listed).toEqual(['help_personal_prayers']);
+
+    component.searchQuery = 'group';
+    component.onSearchChange();
+    expect(listed).toEqual([]);
+
+    component.prayerGroupsEnabled = true;
+    expect(listed).toEqual(['help_groups']);
+  });
+
+  it('omits Prayer Groups from the full tour until Groups is on', async () => {
+    const component = await createModal();
+    const tourSpy = vi.spyOn(component.fullGuidedTourRequested, 'emit');
+    component.prayerGroupsEnabled = false;
+    await component.onFullGuidedTour(new MouseEvent('click'));
+    expect(tourSpy.mock.calls[0]?.[0].map((section) => section.id)).toEqual([
+      'help_personal_prayers',
+    ]);
+
+    component.prayerGroupsEnabled = true;
+    await component.onFullGuidedTour(new MouseEvent('click'));
+    expect(tourSpy.mock.calls[1]?.[0].map((section) => section.id)).toEqual([
+      'help_personal_prayers',
+      'help_groups',
+    ]);
+  });
+});

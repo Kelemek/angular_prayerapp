@@ -18,9 +18,12 @@ import { UserSessionService } from '../../services/user-session.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import {
+  GROUPS_WALKTHROUGH_DESCRIPTION,
+  GROUPS_WALKTHROUGH_PRAYER_FOR,
   PERSONAL_PRAYER_WALKTHROUGH_CATEGORY,
   PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION,
   PERSONAL_PRAYER_WALKTHROUGH_PRAYER_FOR,
+  TOUR_PRAYER_DESCRIPTION_FIELD_ID,
 } from '../../services/help-driver-tour.service';
 import { BehaviorSubject, of } from 'rxjs';
 import { RichTextEditorsSettingsService } from '../../services/rich-text-editors-settings.service';
@@ -395,6 +398,30 @@ describe('PrayerFormComponent', () => {
       component.fillWalkthroughCategory();
       expect(component.formData.category).toBe(PERSONAL_PRAYER_WALKTHROUGH_CATEGORY);
       expect(component.showCategoryDropdown).toBe(false);
+    });
+
+    it('fillWalkthroughGroupPrayer fills the sample prayer and keeps the group lock', () => {
+      component.lock = { scope: 'group', groupId: 'walk' };
+      component.visibility = 'group';
+      component.selectedGroupId = 'walk';
+      component.fillWalkthroughGroupPrayer();
+      expect(component.formData.prayer_for).toBe(GROUPS_WALKTHROUGH_PRAYER_FOR);
+      expect(component.formData.description).toBe(GROUPS_WALKTHROUGH_DESCRIPTION);
+      expect(component.lock).toEqual({ scope: 'group', groupId: 'walk' });
+      expect(component.selectedGroupId).toBe('walk');
+      expect(component.visibility).toBe('group');
+    });
+
+    it('submitWalkthroughPrayerForm does not submit into a different group', () => {
+      const handleSubmitSpy = vi.spyOn(component as any, 'handleSubmit').mockImplementation(() => Promise.resolve());
+      component.lock = { scope: 'group', groupId: 'walk' };
+      component.visibility = 'group';
+      component.selectedGroupId = 'real-group';
+      component.currentUserEmail = 'u@example.com';
+      component.formData.prayer_for = GROUPS_WALKTHROUGH_PRAYER_FOR;
+      component.formData.description = GROUPS_WALKTHROUGH_DESCRIPTION;
+      component.submitWalkthroughPrayerForm();
+      expect(handleSubmitSpy).not.toHaveBeenCalled();
     });
 
     it('submitWalkthroughPrayerForm calls handleSubmit when valid', () => {
@@ -1086,6 +1113,7 @@ describe('PrayerFormComponent visibility grid', () => {
     groups?: ReturnType<typeof formGroup>[];
     groupsPromise?: Promise<ReturnType<typeof formGroup>[]>;
     preferredGroupId?: string | null;
+    richText?: boolean;
   }) {
     const listGroups = vi
       .fn()
@@ -1116,7 +1144,9 @@ describe('PrayerFormComponent visibility grid', () => {
       } as unknown as PersonalCategoryColorService,
       { markForCheck: vi.fn(), detectChanges: vi.fn() } as unknown as ChangeDetectorRef,
       { onDestroy: vi.fn() } as unknown as DestroyRef,
-      { getRichTextEditorsEnabled$: () => of(false) } as unknown as RichTextEditorsSettingsService,
+      {
+        getRichTextEditorsEnabled$: () => of(options.richText ?? false),
+      } as unknown as RichTextEditorsSettingsService,
       {
         listGroups,
         addPrayer: vi.fn(),
@@ -1216,6 +1246,21 @@ describe('PrayerFormComponent visibility grid', () => {
     expect(text).not.toContain('Create a group first');
     fixture.destroy();
   });
+
+  it.each([true, false])(
+    'renders the details tour anchor around the description field (rich text %s)',
+    async (richText) => {
+      const fixture = await openForm({
+        lock: { scope: 'group', groupId: 'g1' },
+        groups: [formGroup('g1', 'Family')],
+        richText,
+      });
+      const anchor = document.getElementById(TOUR_PRAYER_DESCRIPTION_FIELD_ID);
+      expect(anchor).not.toBeNull();
+      expect(anchor?.textContent).toContain('Prayer Request Details');
+      fixture.destroy();
+    },
+  );
 
   it('still shows the visibility grid and defaults to group when Request opens with no lock', async () => {
     const fixture = await openForm({

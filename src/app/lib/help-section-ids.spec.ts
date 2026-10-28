@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { HELP_SECTION_ID_FEEDBACK, HELP_SECTION_ID_PRINTING, helpSectionHasUiTour } from './help-section-ids';
+import {
+  HELP_SECTION_ID_FEEDBACK,
+  HELP_SECTION_ID_GROUPS,
+  HELP_SECTION_ID_PRINTING,
+  helpSectionHasUiTour,
+} from './help-section-ids';
 
 const envState = vi.hoisted(() => ({
   inAppFeedbackEnabled: true,
@@ -22,6 +27,10 @@ describe('helpSectionHasUiTour', () => {
   it('hides feedback tour when in-app feedback is disabled', () => {
     envState.inAppFeedbackEnabled = false;
     expect(helpSectionHasUiTour(HELP_SECTION_ID_FEEDBACK)).toBe(false);
+  });
+
+  it('includes a guided tour for Prayer Groups', () => {
+    expect(helpSectionHasUiTour(HELP_SECTION_ID_GROUPS)).toBe(true);
   });
 
   it('does not affect other sections', () => {

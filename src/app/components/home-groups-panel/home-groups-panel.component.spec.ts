@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HomeGroupsPanelComponent } from './home-groups-panel.component';
+import { TOUR_GROUP_CHIP_FIRST_ID } from '../../lib/help-tour-ids';
 import {
   PrayerGroupService,
   type PrayerGroupSummary,
@@ -237,6 +238,9 @@ describe('HomeGroupsPanelComponent add chooser', () => {
     expect(labelButton).toBeTruthy();
     expect(labelButton.parentElement?.className).toContain(
       'home-nav-chip-text-lock',
+    );
+    expect(fixture.nativeElement.querySelector(`#${TOUR_GROUP_CHIP_FIRST_ID}`)).toBe(
+      labelButton.parentElement?.parentElement,
     );
     fixture.destroy();
   });

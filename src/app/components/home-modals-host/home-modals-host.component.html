@@ -24,6 +24,7 @@
       <!-- Help Modal -->
       <app-help-modal
         [isOpen]="showHelp"
+        [prayerGroupsEnabled]="prayerGroupsEnabled"
         (closeModal)="handlers.closeHelp()"
         (startCreatingPrayersHelpSectionUiTour)="handlers.startHelpSectionTour($event)"
         (startFilteringHelpSectionUiTour)="handlers.startHelpSectionTour($event)"
@@ -31,6 +32,7 @@
         (startPrayerEncouragementUiTour)="handlers.startHelpSectionTour($event)"
         (startSearchPrayersUiTour)="handlers.startHelpSectionTour($event)"
         (startPersonalPrayersHelpSectionUiTour)="handlers.startHelpSectionTour($event)"
+        (startGroupsHelpSectionUiTour)="handlers.startHelpSectionTour($event)"
         (startMemorizeHelpSectionUiTour)="handlers.startHelpSectionTour($event)"
         (startPresentationModeHelpSectionUiTour)="handlers.startHelpSectionTour($event)"
         (startPrintingHelpSectionUiTour)="handlers.startHelpSectionTour($event)"

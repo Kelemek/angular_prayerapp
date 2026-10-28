@@ -6,6 +6,7 @@ export const HELP_SECTION_ID_PROMPTS = 'help_prompts';
 export const HELP_SECTION_ID_ENCOURAGEMENT = 'help_prayer_encouragement';
 export const HELP_SECTION_ID_SEARCH = 'help_search';
 export const HELP_SECTION_ID_PERSONAL_PRAYERS = 'help_personal_prayers';
+export const HELP_SECTION_ID_GROUPS = 'help_groups';
 export const HELP_SECTION_ID_MEMORIZE = 'help_memorize';
 export const HELP_SECTION_ID_PRESENTATION = 'help_presentation';
 export const HELP_SECTION_ID_PRINTING = 'help_printing';
@@ -22,6 +23,7 @@ export const HELP_SECTION_IDS_WITH_UI_TOUR: ReadonlySet<string> = new Set([
   HELP_SECTION_ID_ENCOURAGEMENT,
   HELP_SECTION_ID_SEARCH,
   HELP_SECTION_ID_PERSONAL_PRAYERS,
+  HELP_SECTION_ID_GROUPS,
   HELP_SECTION_ID_MEMORIZE,
   HELP_SECTION_ID_FILTERING,
   HELP_SECTION_ID_PRESENTATION,

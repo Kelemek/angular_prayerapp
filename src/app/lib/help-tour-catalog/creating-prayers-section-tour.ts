@@ -8,7 +8,7 @@ import {
 import * as dom from '../help-tour-dom';
 import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
-import { TOUR_PRAYER_UPDATE_ANONYMOUS_WRAP_ID, TOUR_PRAYER_UPDATE_MARK_ANSWERED_WRAP_ID } from '../help-tour-ids';
+import { TOUR_PRAYER_DESCRIPTION_FIELD_ID, TOUR_PRAYER_UPDATE_ANONYMOUS_WRAP_ID, TOUR_PRAYER_UPDATE_MARK_ANSWERED_WRAP_ID } from '../help-tour-ids';
 import type { CreatingPrayersHelpSectionTourHooks, UpdatingPrayerTourOptions } from '../help-tour-hooks';
 
 export function runCreatingPrayersHelpSectionTour(
@@ -68,7 +68,7 @@ if (typeof document === 'undefined') {
       },
     },
     {
-      element: '#description',
+      element: `#${TOUR_PRAYER_DESCRIPTION_FIELD_ID}`,
       popover: {
         title: 'Prayer request details',
         description: 'Add the details so your community can pray meaningfully.',

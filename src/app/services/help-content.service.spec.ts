@@ -76,6 +76,7 @@ describe('HelpContentService', () => {
         'help_prayer_encouragement',
         'help_search',
         'help_personal_prayers',
+        'help_groups',
         'help_memorize',
         'help_filtering',
         'help_presentation',
@@ -100,6 +101,12 @@ describe('HelpContentService', () => {
       sections.forEach((section, index) => {
         expect(section.order).toBe(index + 1);
       });
+      const orders = sections.map((section) => section.order);
+      expect(new Set(orders).size).toBe(orders.length);
+      const personal = sections.find((section) => section.id === 'help_personal_prayers');
+      const groups = sections.find((section) => section.id === 'help_groups');
+      expect(groups?.title).toBe('Prayer Groups');
+      expect(groups?.order).toBe((personal?.order ?? 0) + 1);
     });
 
     it('should load default sections during initialization', () => {

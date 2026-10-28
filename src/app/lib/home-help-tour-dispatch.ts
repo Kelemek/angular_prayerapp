@@ -1,7 +1,10 @@
 import type { HelpSection } from '../types/help-content';
 import { environment } from '../../environments/environment';
+import { HELP_SECTION_ID_GROUPS } from './help-section-ids';
+import { getGroupsFilterEl } from './help-tour-dom';
 import {
   startAppSettingsTour,
+  startGroupsTour,
   startCreatingPrayersTour,
   startEmailSubscriptionTour,
   startFeedbackTour,
@@ -41,6 +44,14 @@ export function dispatchHomeHelpSectionTour(
       return true;
     case 'help_personal_prayers':
       startPersonalPrayersTour(section, ctx);
+      return true;
+    case HELP_SECTION_ID_GROUPS:
+      // The tour starts after async cleanup, so the full guided tour can only skip
+      // this section when we report it here.
+      if (!ctx.host.isPrayerGroupsEnabled() || !getGroupsFilterEl()) {
+        return false;
+      }
+      void startGroupsTour(section, ctx);
       return true;
     case 'help_memorize':
       startMemorizeTour(section, ctx);

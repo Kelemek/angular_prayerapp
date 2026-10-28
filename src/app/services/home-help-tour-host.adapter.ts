@@ -12,6 +12,11 @@ import {
   PRESENTATION_HELP_TOUR_SESSION_KEY,
 } from "./help-driver-tour.service";
 import type { HomeActiveFilter } from "./home-deep-link-host.adapter";
+import {
+  groupsWalkthroughCleanupIds,
+  type GroupsWalkthroughCleanupGroup,
+} from "../lib/groups-walkthrough-cleanup";
+import type { GroupsHelpTourPanel } from "../lib/help-tour-hooks";
 
 export interface HomeHelpTourHostBindings {
   getActiveFilter(): HomeActiveFilter;
@@ -34,6 +39,7 @@ export interface HomeHelpTourPrayerFormHooks {
   fillWalkthroughDescription(): void;
   ensureWalkthroughPersonalSelected(): void;
   fillWalkthroughCategory(): void;
+  fillWalkthroughGroupPrayer(): void;
   submitWalkthroughPrayerForm(): void;
 }
 
@@ -57,6 +63,13 @@ export interface HomeHelpTourHost {
   clickWalkthroughAddUpdate(): void;
   narrowToWalkthroughCategoryFilter(): void;
   deleteWalkthroughTestPrayer(): void;
+  isPrayerGroupsEnabled(): boolean;
+  isChurchMember(): boolean;
+  getGroupCount(): number;
+  getGroupsPanelHooks(): GroupsHelpTourPanel | null;
+  openNewGroupPrayer(groupId: string): void;
+  deleteWalkthroughSampleGroups(): Promise<void>;
+  findWalkthroughGroupId(): Promise<string | null>;
   getCurrentPrayers(): Promise<PrayerRequest[]>;
   hasSessionEmail(): boolean;
   navigateToPresentation(): void;
@@ -78,9 +91,18 @@ export interface HomeHelpTourHostDependencies {
   getFilteredPersonalPrayers: () => PrayerRequest[];
   getPrayerFormHooks: () => HomeHelpTourPrayerFormHooks | null;
   refreshHomeCatalog: () => void;
+  prayerGroupService: {
+    getGroupsSnapshot(): readonly GroupsWalkthroughCleanupGroup[];
+    deleteGroup(groupId: string): Promise<void>;
+    refreshCatalogAfterWrite(): Promise<void>;
+  };
+  getGroupsPanel: () => GroupsHelpTourPanel | null;
+  openNewGroupPrayer: (groupId: string) => void;
 }
 
 export class HomeHelpTourHostAdapter implements HomeHelpTourHost {
+  private walkthroughCleanup: Promise<void> | null = null;
+
   constructor(private readonly deps: HomeHelpTourHostDependencies) {}
 
   closeHelp(): void {
@@ -168,6 +190,65 @@ export class HomeHelpTourHostAdapter implements HomeHelpTourHost {
     const prayer = this.getWalkthroughPersonalPrayer();
     if (prayer) {
       void this.deps.prayerCardActions.deleteCard(prayer);
+    }
+  }
+
+  isPrayerGroupsEnabled(): boolean {
+    return this.deps.userSessionService.getCurrentSession()?.prayerGroupsEnabled === true;
+  }
+
+  isChurchMember(): boolean {
+    return this.deps.userSessionService.getCurrentSession()?.isChurchMember !== false;
+  }
+
+  getGroupCount(): number {
+    return this.deps.prayerGroupService.getGroupsSnapshot().length;
+  }
+
+  getGroupsPanelHooks(): GroupsHelpTourPanel | null {
+    return this.deps.getGroupsPanel();
+  }
+
+  openNewGroupPrayer(groupId: string): void {
+    this.deps.openNewGroupPrayer(groupId);
+  }
+
+  deleteWalkthroughSampleGroups(): Promise<void> {
+    if (this.walkthroughCleanup) {
+      return this.walkthroughCleanup;
+    }
+    const run = this.performWalkthroughCleanup().finally(() => {
+      if (this.walkthroughCleanup === run) {
+        this.walkthroughCleanup = null;
+      }
+    });
+    this.walkthroughCleanup = run;
+    return run;
+  }
+
+  async findWalkthroughGroupId(): Promise<string | null> {
+    return (await this.refreshedWalkthroughGroupIds())[0] ?? null;
+  }
+
+  // createGroup does not wait for the catalog reload, so re-read before deciding
+  // which rows are the sample group.
+  private async refreshedWalkthroughGroupIds(): Promise<string[]> {
+    try {
+      await this.deps.prayerGroupService.refreshCatalogAfterWrite();
+    } catch {
+      // Keep scanning the snapshot already in memory.
+    }
+    return groupsWalkthroughCleanupIds(this.deps.prayerGroupService.getGroupsSnapshot());
+  }
+
+  private async performWalkthroughCleanup(): Promise<void> {
+    const ids = await this.refreshedWalkthroughGroupIds();
+    for (const id of ids) {
+      try {
+        await this.deps.prayerGroupService.deleteGroup(id);
+      } catch {
+        // A repeat, or a row that is already gone, ends in the same state.
+      }
     }
   }
 

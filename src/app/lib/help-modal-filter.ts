@@ -1,4 +1,27 @@
 import type { HelpSection } from '../types/help-content';
+import { HELP_SECTION_ID_GROUPS } from './help-section-ids';
+
+/** What the signed-in person can see. Help list, search, and the full tour all use this. */
+export interface HelpSectionViewer {
+  prayerGroupsEnabled: boolean;
+}
+
+const HELP_SECTION_VISIBLE_FOR_VIEWER: Record<
+  string,
+  (viewer: HelpSectionViewer) => boolean
+> = {
+  [HELP_SECTION_ID_GROUPS]: (viewer) => viewer.prayerGroupsEnabled,
+};
+
+export function filterHelpSectionsForViewer(
+  sections: HelpSection[],
+  viewer: HelpSectionViewer,
+): HelpSection[] {
+  return sections.filter((section) => {
+    const visible = HELP_SECTION_VISIBLE_FOR_VIEWER[section.id];
+    return visible ? visible(viewer) : true;
+  });
+}
 
 export function filterHelpModalSections(
   sections: HelpSection[],

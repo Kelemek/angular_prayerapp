@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { of } from "rxjs";
 import { HomeHelpTourHostAdapter } from "./home-help-tour-host.adapter";
-import { PERSONAL_PRAYER_WALKTHROUGH_CATEGORY } from "./help-driver-tour.service";
+import {
+  GROUPS_WALKTHROUGH_GROUP_NAME,
+  PERSONAL_PRAYER_WALKTHROUGH_CATEGORY,
+} from "./help-driver-tour.service";
+import type { GroupsWalkthroughCleanupGroup } from "../lib/groups-walkthrough-cleanup";
 
 describe("HomeHelpTourHostAdapter", () => {
   const bindings = {
@@ -22,10 +26,19 @@ describe("HomeHelpTourHostAdapter", () => {
 
   let adapter: HomeHelpTourHostAdapter;
   const refreshHomeCatalog = vi.fn();
+  const groups: GroupsWalkthroughCleanupGroup[] = [];
+  const deleteGroup = vi.fn(async (id: string) => {
+    const index = groups.findIndex((group) => group.id === id);
+    if (index >= 0) {
+      groups.splice(index, 1);
+    }
+  });
+  const refreshCatalogAfterWrite = vi.fn(async () => undefined);
 
   beforeEach(() => {
     vi.clearAllMocks();
     refreshHomeCatalog.mockClear();
+    groups.splice(0, groups.length);
     adapter = new HomeHelpTourHostAdapter({
       bindings,
       router: { navigate: vi.fn() } as any,
@@ -40,6 +53,13 @@ describe("HomeHelpTourHostAdapter", () => {
       getFilteredPersonalPrayers: vi.fn(() => []),
       getPrayerFormHooks: vi.fn(() => null),
       refreshHomeCatalog,
+      prayerGroupService: {
+        getGroupsSnapshot: () => groups,
+        deleteGroup,
+        refreshCatalogAfterWrite,
+      },
+      getGroupsPanel: () => null,
+      openNewGroupPrayer: vi.fn(),
     });
   });
 
@@ -56,6 +76,68 @@ describe("HomeHelpTourHostAdapter", () => {
     adapter.clearSelectedPromptTypes();
     expect(bindings.setSelectedPromptTypes).toHaveBeenCalledWith([]);
     expect(refreshHomeCatalog).toHaveBeenCalled();
+  });
+
+  it("deletes only a solo owner walkthrough group, and a second run deletes nothing", async () => {
+    groups.push(
+      {
+        id: "sample",
+        name: GROUPS_WALKTHROUGH_GROUP_NAME,
+        role: "owner",
+        memberCount: 1,
+      },
+      { id: "family", name: "Family", role: "owner", memberCount: 1 },
+      {
+        id: "shared-name",
+        name: GROUPS_WALKTHROUGH_GROUP_NAME,
+        role: "owner",
+        memberCount: 2,
+      },
+      {
+        id: "member-sample",
+        name: GROUPS_WALKTHROUGH_GROUP_NAME,
+        role: "member",
+        memberCount: 1,
+      },
+    );
+
+    await adapter.deleteWalkthroughSampleGroups();
+    await adapter.deleteWalkthroughSampleGroups();
+
+    expect(deleteGroup.mock.calls.map((call) => call[0])).toEqual(["sample"]);
+    expect(groups.map((group) => group.id)).toEqual([
+      "family",
+      "shared-name",
+      "member-sample",
+    ]);
+  });
+
+  it("still deletes a listed sample group when the catalog reload fails", async () => {
+    groups.push({
+      id: "sample",
+      name: GROUPS_WALKTHROUGH_GROUP_NAME,
+      role: "owner",
+      memberCount: 1,
+    });
+    refreshCatalogAfterWrite.mockRejectedValueOnce(new Error("offline"));
+
+    await adapter.deleteWalkthroughSampleGroups();
+
+    expect(groups.map((group) => group.id)).toEqual([]);
+  });
+
+  it("finds the sample group only after the catalog reload lists it", async () => {
+    groups.push({ id: "family", name: "Family", role: "owner", memberCount: 1 });
+    refreshCatalogAfterWrite.mockImplementationOnce(async () => {
+      groups.push({
+        id: "sample",
+        name: GROUPS_WALKTHROUGH_GROUP_NAME,
+        role: "owner",
+        memberCount: 1,
+      });
+    });
+
+    expect(await adapter.findWalkthroughGroupId()).toBe("sample");
   });
 
   it("narrowToWalkthroughCategoryFilter updates personal category bindings", () => {

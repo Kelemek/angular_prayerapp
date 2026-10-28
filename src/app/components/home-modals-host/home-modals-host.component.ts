@@ -52,6 +52,7 @@ export class HomeModalsHostComponent {
   @Input({ required: true }) showSettings!: boolean;
   @Input({ required: true }) settingsScrollToSectionId!: string | null;
   @Input({ required: true }) showHelp!: boolean;
+  @Input() prayerGroupsEnabled = false;
   @Input({ required: true }) showLogoutConfirmation!: boolean;
   @Input({ required: true }) showGroupProfile!: boolean;
   @Input({ required: true }) showEditPersonalPrayer!: boolean;

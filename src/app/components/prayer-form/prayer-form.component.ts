@@ -28,6 +28,8 @@ import { RichTextEditorsSettingsService } from "../../services/rich-text-editors
 import { PersonalCategoryColorService } from "../../services/personal-category-color.service";
 import { PersonalCategoryColorPickerComponent } from "../personal-category-color-picker/personal-category-color-picker.component";
 import {
+  GROUPS_WALKTHROUGH_DESCRIPTION,
+  GROUPS_WALKTHROUGH_PRAYER_FOR,
   PERSONAL_PRAYER_WALKTHROUGH_CATEGORY,
   PERSONAL_PRAYER_WALKTHROUGH_DESCRIPTION,
   PERSONAL_PRAYER_WALKTHROUGH_PRAYER_FOR,
@@ -539,6 +541,21 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     this.cdr.markForCheck();
   }
 
+  /** Hands-on Groups tour. Fills the sample text and keeps the group lock. */
+  fillWalkthroughGroupPrayer(): void {
+    this.formData.prayer_for = GROUPS_WALKTHROUGH_PRAYER_FOR;
+    this.formData.description = GROUPS_WALKTHROUGH_DESCRIPTION;
+    const lock = this.lock;
+    if (
+      lock?.scope === "group" &&
+      lock.groupId &&
+      this.groupChoices.some((group) => group.id === lock.groupId)
+    ) {
+      this.selectedGroupId = lock.groupId;
+    }
+    this.cdr.markForCheck();
+  }
+
   /** Hands-on tour — category sample value. */
   fillWalkthroughCategory(): void {
     this.formData.category = PERSONAL_PRAYER_WALKTHROUGH_CATEGORY;
@@ -566,8 +583,14 @@ export class PrayerFormComponent implements OnInit, OnChanges {
     this.cdr.markForCheck();
   }
 
-  /** Hands-on tour — submit when valid (personal prayer). */
+  /** Hands-on tour — submit when valid. A group lock never submits into a different group. */
   submitWalkthroughPrayerForm(): void {
+    if (this.lock?.scope === "group") {
+      const lockedId = this.lock.groupId;
+      if (!lockedId || this.selectedGroupId !== lockedId) {
+        return;
+      }
+    }
     if (!this.isFormValid() || this.isSubmitting) {
       return;
     }

@@ -13,6 +13,7 @@ export interface HomeAddChoiceOption<Id extends string = string> {
   description: string;
   disabled?: boolean;
   hint?: string;
+  tourId?: string;
 }
 
 @Component({
@@ -35,6 +36,7 @@ export interface HomeAddChoiceOption<Id extends string = string> {
             <button
               type="button"
               class="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-left text-gray-800 transition-all dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 enabled:cursor-pointer enabled:hover:border-gray-400 dark:enabled:hover:border-gray-500 disabled:cursor-not-allowed disabled:opacity-60"
+              [attr.id]="option.tourId || null"
               [disabled]="option.disabled === true"
               (click)="chooseOption(option)"
             >

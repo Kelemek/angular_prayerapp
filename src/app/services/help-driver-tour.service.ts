@@ -18,6 +18,8 @@ import type {
   EmailSubscriptionHelpTourHooks,
   FeedbackHelpTourHooks,
   FilteringHelpSectionTourHooks,
+  GroupsHelpSectionTourHooks,
+  GroupsTourMode,
   ManagingPrayerViewsTourHooks,
   MemorizeHelpSectionTourHooks,
   MemorizeHelpSectionTourOptions,
@@ -41,6 +43,7 @@ import {
   runEmailSubscriptionHelpSectionTour,
   runFeedbackHelpSectionTour,
   runFilteringHelpSectionTour,
+  runGroupsHelpSectionTour,
   runManagingPrayerViewsTour,
   runMemorizeHelpSectionTour,
   runNewPrayerRequestTour,
@@ -450,6 +453,14 @@ export class HelpDriverTourService {
     hooks: PersonalPrayersHelpSectionTourHooks,
   ): void {
     runPersonalPrayersHelpSectionTour(this.createTourHost(), section, hooks);
+  }
+
+  startGroupsHelpSectionTour(
+    section: { title: string; description: string },
+    mode: GroupsTourMode,
+    hooks: GroupsHelpSectionTourHooks,
+  ): void {
+    runGroupsHelpSectionTour(this.createTourHost(), section, mode, hooks);
   }
 
   startPresentationModePrayButtonPreludeTour(

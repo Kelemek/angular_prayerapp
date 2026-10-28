@@ -18,6 +18,7 @@ import type { BadgeService } from "./badge.service";
 import type { PrayerCardActionsFacade } from "./prayer-card-actions.facade";
 import type { PrayerAllowancePolicyService } from "./prayer-allowance-policy.service";
 import type { PrayerGroupService } from "./prayer-group.service";
+import type { GroupsHelpTourPanel } from "../lib/help-tour-hooks";
 import { HomeDeepLinkCoordinator } from "./home-deep-link.coordinator";
 import { applyVerseMemorizationDeepLink } from "../lib/verse-memorization-deep-link";
 import { HomeDeepLinkHostAdapter, type HomeActiveFilter } from "./home-deep-link-host.adapter";
@@ -62,6 +63,7 @@ export interface HomeCoordinatorWiringPage {
   refreshHomeCatalog(): void;
   getFilteredPersonalPrayers(): PrayerRequest[];
   getPrayerFormComp(): PrayerFormComponent | undefined;
+  getGroupsPanel(): GroupsHelpTourPanel | undefined;
   getMemorizeKeyboardBridge(): HTMLInputElement | undefined;
   scrollHomePromptIntoView(promptId: string): boolean;
   scrollHomePrayerIntoView(prayerId: string): boolean;
@@ -190,12 +192,18 @@ export function wireHomeCoordinators(
               prayerFormComp.ensureWalkthroughPersonalSelected(),
             fillWalkthroughCategory: () =>
               prayerFormComp.fillWalkthroughCategory(),
+            fillWalkthroughGroupPrayer: () =>
+              prayerFormComp.fillWalkthroughGroupPrayer(),
             submitWalkthroughPrayerForm: () =>
               prayerFormComp.submitWalkthroughPrayerForm(),
           }
         : null;
     },
     refreshHomeCatalog: () => page.refreshHomeCatalog(),
+    prayerGroupService: deps.prayerGroupService,
+    getGroupsPanel: () => page.getGroupsPanel() ?? null,
+    openNewGroupPrayer: (groupId) =>
+      deps.modals.openPrayerForm({ scope: "group", groupId }),
   });
   deps.helpTourLauncher.bindHost(helpTourHost);
 

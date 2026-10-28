@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   filterHelpModalSections,
+  filterHelpSectionsForViewer,
   sortActiveHelpSectionsForFullTour,
 } from './help-modal-filter';
 import type { HelpSection } from '../types/help-content';
@@ -49,6 +50,41 @@ describe('filterHelpModalSections', () => {
     expect(filterHelpModalSections(sections, 'technical')).toHaveLength(1);
     expect(filterHelpModalSections(sections, 'faq')).toHaveLength(1);
     expect(filterHelpModalSections(sections, 'pray daily')).toHaveLength(1);
+  });
+});
+
+describe('filterHelpSectionsForViewer', () => {
+  const sections = [
+    section('help_personal_prayers', { title: 'Personal Prayers', order: 5 }),
+    section('help_groups', { title: 'Prayer Groups', order: 6 }),
+    section('help_memorize', { title: 'Memorize', order: 7 }),
+  ];
+
+  it('hides Prayer Groups when the viewer does not have Groups', () => {
+    const visible = filterHelpSectionsForViewer(sections, {
+      prayerGroupsEnabled: false,
+    });
+    expect(visible.map((item) => item.id)).toEqual([
+      'help_personal_prayers',
+      'help_memorize',
+    ]);
+    expect(
+      sortActiveHelpSectionsForFullTour(visible).map((item) => item.id),
+    ).toEqual(['help_personal_prayers', 'help_memorize']);
+  });
+
+  it('keeps Prayer Groups when the viewer has Groups', () => {
+    const visible = filterHelpSectionsForViewer(sections, {
+      prayerGroupsEnabled: true,
+    });
+    expect(visible.map((item) => item.id)).toEqual([
+      'help_personal_prayers',
+      'help_groups',
+      'help_memorize',
+    ]);
+    expect(
+      sortActiveHelpSectionsForFullTour(visible).map((item) => item.id),
+    ).toEqual(['help_personal_prayers', 'help_groups', 'help_memorize']);
   });
 });
 

@@ -19,6 +19,7 @@ import { formatHelpContentHtml } from '../../lib/help-content-html';
 import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-classes';
 import {
   filterHelpModalSections,
+  filterHelpSectionsForViewer,
   sortActiveHelpSectionsForFullTour,
 } from '../../lib/help-modal-filter';
 import {
@@ -27,6 +28,7 @@ import {
   HELP_SECTION_ID_EMAIL_SUBSCRIPTION,
   HELP_SECTION_ID_FEEDBACK,
   HELP_SECTION_ID_FILTERING,
+  HELP_SECTION_ID_GROUPS,
   HELP_SECTION_ID_MEMORIZE,
   HELP_SECTION_ID_PERSONAL_PRAYERS,
   HELP_SECTION_ID_PRAYERS,
@@ -40,6 +42,7 @@ import {
 import {
   Observable,
   BehaviorSubject,
+  combineLatest,
   defaultIfEmpty,
   firstValueFrom,
 } from 'rxjs';
@@ -53,7 +56,13 @@ import { map, switchMap, take } from 'rxjs/operators';
   templateUrl: './help-modal.component.html',
 })
 export class HelpModalComponent implements OnInit {
+  private readonly prayerGroupsEnabled$ = new BehaviorSubject(false);
+
   @Input() isOpen = false;
+  @Input()
+  set prayerGroupsEnabled(value: boolean | null | undefined) {
+    this.prayerGroupsEnabled$.next(value === true);
+  }
   readonly shellBorderClass = CHURCH_GREEN_SHELL_BORDER_CLASS;
   @Output() closeModal = new EventEmitter<void>();
   @Output() startCreatingPrayersHelpSectionUiTour =
@@ -64,6 +73,7 @@ export class HelpModalComponent implements OnInit {
   @Output() startSearchPrayersUiTour = new EventEmitter<HelpSection>();
   @Output() startPersonalPrayersHelpSectionUiTour =
     new EventEmitter<HelpSection>();
+  @Output() startGroupsHelpSectionUiTour = new EventEmitter<HelpSection>();
   @Output() startMemorizeHelpSectionUiTour = new EventEmitter<HelpSection>();
   @Output() startPresentationModeHelpSectionUiTour =
     new EventEmitter<HelpSection>();
@@ -107,6 +117,7 @@ export class HelpModalComponent implements OnInit {
       [HELP_SECTION_ID_SEARCH]: this.startSearchPrayersUiTour,
       [HELP_SECTION_ID_PERSONAL_PRAYERS]:
         this.startPersonalPrayersHelpSectionUiTour,
+      [HELP_SECTION_ID_GROUPS]: this.startGroupsHelpSectionUiTour,
       [HELP_SECTION_ID_MEMORIZE]: this.startMemorizeHelpSectionUiTour,
       [HELP_SECTION_ID_PRESENTATION]:
         this.startPresentationModeHelpSectionUiTour,
@@ -125,12 +136,20 @@ export class HelpModalComponent implements OnInit {
     this.isLoading$ = this.helpContentService.isLoading$;
     this.error$ = this.helpContentService.error$;
 
-    this.filteredSections$ = this.searchQuerySubject.pipe(
-      switchMap((query) =>
-        this.helpContentService
-          .getSections()
-          .pipe(map((sections) => this.filterSections(sections, query)))
-      )
+    this.filteredSections$ = combineLatest([
+      this.searchQuerySubject,
+      this.prayerGroupsEnabled$,
+    ]).pipe(
+      switchMap(([query, prayerGroupsEnabled]) =>
+        this.helpContentService.getSections().pipe(
+          map((sections) =>
+            filterHelpModalSections(
+              filterHelpSectionsForViewer(sections, { prayerGroupsEnabled }),
+              query,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -139,7 +158,12 @@ export class HelpModalComponent implements OnInit {
   }
 
   filterSections(sections: HelpSection[], query: string): HelpSection[] {
-    return filterHelpModalSections(sections, query);
+    return filterHelpModalSections(
+      filterHelpSectionsForViewer(sections, {
+        prayerGroupsEnabled: this.prayerGroupsEnabled$.value,
+      }),
+      query,
+    );
   }
 
   async onFullGuidedTour(event: Event): Promise<void> {
@@ -164,7 +188,11 @@ export class HelpModalComponent implements OnInit {
       );
       return;
     }
-    const sorted = sortActiveHelpSectionsForFullTour(sections);
+    const sorted = sortActiveHelpSectionsForFullTour(
+      filterHelpSectionsForViewer(sections, {
+        prayerGroupsEnabled: this.prayerGroupsEnabled$.value,
+      }),
+    );
     if (sorted.length === 0) {
       return;
     }

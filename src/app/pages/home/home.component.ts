@@ -180,6 +180,8 @@ export class HomeComponent
   @ViewChild("modalsHost") private modalsHost?: HomeModalsHostComponent;
   @ViewChild(HomePrayerContentComponent)
   private prayerContent?: HomePrayerContentComponent;
+  @ViewChild(HomeGroupsPanelComponent)
+  private groupsPanel?: HomeGroupsPanelComponent;
   @ViewChild("memorizeKeyboardBridge")
   private memorizeKeyboardBridge?: ElementRef<HTMLInputElement>;
 
@@ -318,6 +320,10 @@ export class HomeComponent
 
   getPrayerFormComp(): PrayerFormComponent | undefined {
     return this.modalsHost?.prayerFormComp;
+  }
+
+  getGroupsPanel(): HomeGroupsPanelComponent | undefined {
+    return this.groupsPanel;
   }
 
   getMemorizeKeyboardBridge(): HTMLInputElement | undefined {

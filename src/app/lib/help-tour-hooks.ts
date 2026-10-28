@@ -120,6 +120,43 @@ export type FeedbackHelpTourHooks = PrintingHelpTourHooks;
 /** Same as printing (`help_settings` — App Settings overview). */
 export type AppSettingsHelpTourHooks = PrintingHelpTourHooks;
 
+/** Church members walk through creating a sample group. Group-only users only highlight existing UI. */
+export type GroupsTourMode =
+  | { kind: 'owner_walkthrough' }
+  | { kind: 'member_with_groups' }
+  | { kind: 'member_no_groups' };
+
+export type GroupsTourAudience =
+  | { kind: 'church_member' }
+  | { kind: 'group_only'; groupCount: number };
+
+/** Methods the Groups panel exposes for the help tour. */
+export interface GroupsHelpTourPanel {
+  fillWalkthroughCreateForm(): void;
+  createGroup(): Promise<void>;
+  openSettingsForTour(groupId: string): void;
+  closeSettings(): void;
+  openAddChooser(): void;
+  closeAddChooser(): void;
+  chooseAddGroupForTour(): void;
+  closeMembersModal(): void;
+}
+
+/** Hooks for the **Prayer Groups** help tour (`help_groups`). */
+export interface GroupsHelpSectionTourHooks {
+  markForCheck(): void;
+  openAddChooser(): void;
+  chooseAddGroupForTour(): void;
+  createWalkthroughGroup(): Promise<void>;
+  closeMembersModal(): void;
+  openSettingsForWalkthrough(): void;
+  closeSettings(): void;
+  openWalkthroughGroupPrayer(): void;
+  fillWalkthroughGroupPrayer(): void;
+  submitWalkthroughPrayerForm(): void;
+  deleteWalkthroughSampleGroups(): Promise<void>;
+}
+
 /** Hooks for the hands-on **Personal Prayers** help tour (`help_personal_prayers`). */
 export interface PersonalPrayersHelpSectionTourHooks {
   switchToPersonalFilter: () => void;

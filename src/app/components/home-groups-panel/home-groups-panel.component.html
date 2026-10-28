@@ -3,10 +3,10 @@
     @if (error) {
     <p class="mb-2 text-sm text-red-700 dark:text-red-200">{{ error }}</p>
     }
-    <div [class]="chipRowClass">
+    <div [class]="chipRowClass" [attr.id]="tourGroupsStatusRowId">
       @if (isChurchMember) {
       <app-home-sub-filter-chip
-        chipId="tour-filter-add-group"
+        [chipId]="tourAddGroupChipId"
         chipAriaLabel="Add a prayer or group"
         [stretch]="false"
         [active]="false"
@@ -29,7 +29,7 @@
       </app-home-sub-filter-chip>
       }
       <app-home-sub-filter-chip
-        chipId="tour-filter-groups-current"
+        [chipId]="tourGroupsCurrentChipId"
         [active]="filterMode === 'current'"
         [activeClass]="chipThemes.current.active"
         [inactiveClass]="groupChipInactive"
@@ -38,7 +38,7 @@
         Current ({{ counts.current }})
       </app-home-sub-filter-chip>
       <app-home-sub-filter-chip
-        chipId="tour-filter-groups-answered"
+        [chipId]="tourGroupsAnsweredChipId"
         [active]="filterMode === 'answered'"
         [activeClass]="chipThemes.answered.active"
         [inactiveClass]="groupChipInactive"
@@ -47,7 +47,7 @@
         Answered ({{ counts.answered }})
       </app-home-sub-filter-chip>
       <app-home-sub-filter-chip
-        chipId="tour-filter-groups-total"
+        [chipId]="tourGroupsTotalChipId"
         [active]="filterMode === 'total'"
         [activeClass]="chipThemes.total.active"
         [inactiveClass]="groupChipInactive"
@@ -66,9 +66,10 @@
       [cdkDropListDisabled]="reordering || !chipReorderHandlesVisible"
       [class]="chipRowClass + ' mt-2'"
     >
-      @for (group of groups; track group.id) {
+      @for (group of groups; track group.id; let isFirst = $first) {
       <div
         cdkDrag
+        [attr.id]="groupChipTourId(group, isFirst)"
         [cdkDragDisabled]="reordering || !chipReorderHandlesVisible"
         [class]="chipHostClass"
       >
@@ -113,7 +114,8 @@
 </div>
 
 <div class="space-y-3">
-  @for (prayer of visiblePrayers; track prayer.id) {
+  @for (prayer of visiblePrayers; track prayer.id; let isFirst = $first) {
+  <div [attr.id]="groupPrayerCardTourId(prayer, isFirst)">
   <app-prayer-card
     [attr.id]="'prayer-card-' + prayer.id"
     [prayer]="cardFor(prayer)"
@@ -137,9 +139,10 @@
     (groupAnsweredChange)="setAnswered(prayer.id, $event)"
     (prayedForCountChange)="onPrayedForCountChange($event)"
   />
+  </div>
   } @empty {
   @if (!loading) {
-  <div class="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-md dark:border-gray-700 dark:bg-gray-800">
+  <div class="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-md dark:border-gray-700 dark:bg-gray-800" [attr.id]="tourGroupsEmptyStateId">
     @if (groups.length === 0) {
     <h3 class="mb-2 text-lg font-medium text-gray-700 dark:text-gray-200">No groups yet</h3>
     <p class="text-gray-500 dark:text-gray-400">
@@ -163,7 +166,7 @@
 
 @if (createOpen) {
 <div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="createOpen = false">
-  <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+  <div class="modal-panel-edge w-full max-w-lg rounded-lg bg-white shadow-lg dark:bg-gray-800" [attr.id]="tourGroupsCreateModalId" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Create a group</h2>
       <button appModalChromeClose aria-label="Close" (click)="createOpen = false"></button>
@@ -209,7 +212,7 @@
 
 @if (membersTarget) {
 <div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="closeMembersModal()">
-  <div class="modal-panel-edge flex max-h-[min(100%,720px)] w-full max-w-lg flex-col rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+  <div class="modal-panel-edge flex max-h-[min(100%,720px)] w-full max-w-lg flex-col rounded-lg bg-white shadow-lg dark:bg-gray-800" [attr.id]="tourGroupsMembersModalId" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex shrink-0 items-center justify-between px-6 py-4">
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage members</h2>
@@ -236,6 +239,7 @@
         Invite by email
         <textarea
           rows="3"
+          [attr.id]="tourGroupsInviteId"
           [(ngModel)]="emailsDraft"
           name="emailsDraft"
           placeholder="name@example.com, another@example.com"
@@ -291,7 +295,7 @@
 
 @if (settingsTarget) {
 <div class="native-home-dialog-overlay fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 sm:items-center" (click)="closeSettings()">
-  <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" (click)="$event.stopPropagation()">
+  <div class="modal-panel-edge w-full max-w-md rounded-lg bg-white shadow-lg dark:bg-gray-800" [attr.id]="tourGroupsSettingsModalId" (click)="$event.stopPropagation()">
     <div class="modal-chrome-header flex items-center justify-between px-6 py-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Group settings</h2>
       <button appModalChromeClose aria-label="Close" (click)="closeSettings()"></button>

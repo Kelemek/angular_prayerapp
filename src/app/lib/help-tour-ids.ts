@@ -11,6 +11,29 @@ export const TOUR_FILTER_ANSWERED_ID = 'tour-filter-answered';
 export const TOUR_FILTER_MEMBERS_ID = 'tour-filter-members';
 export const TOUR_FILTER_PROMPTS_ID = 'tour-filter-prompts';
 export const TOUR_FILTER_MEMORIZE_ID = 'tour-filter-memorize';
+export const TOUR_FILTER_GROUPS_ID = 'tour-filter-groups';
+export const TOUR_FILTER_ADD_GROUP_ID = 'tour-filter-add-group';
+export const TOUR_FILTER_GROUPS_CURRENT_ID = 'tour-filter-groups-current';
+export const TOUR_FILTER_GROUPS_ANSWERED_ID = 'tour-filter-groups-answered';
+export const TOUR_FILTER_GROUPS_TOTAL_ID = 'tour-filter-groups-total';
+export const TOUR_GROUPS_STATUS_ROW_ID = 'tour-groups-status-row';
+export const TOUR_GROUP_CHIP_FIRST_ID = 'tour-group-chip-first';
+export const TOUR_GROUPS_WALKTHROUGH_CHIP_ID = 'tour-groups-walkthrough-chip';
+export const TOUR_GROUPS_ADD_CHOICE_PRAYER_ID = 'tour-groups-add-choice-prayer';
+export const TOUR_GROUPS_ADD_CHOICE_GROUP_ID = 'tour-groups-add-choice-group';
+export const TOUR_GROUPS_CREATE_MODAL_ID = 'tour-groups-create-modal';
+export const TOUR_GROUPS_MEMBERS_MODAL_ID = 'tour-groups-members-modal';
+export const TOUR_GROUPS_INVITE_ID = 'tour-groups-invite';
+export const TOUR_GROUPS_SETTINGS_MODAL_ID = 'tour-groups-settings-modal';
+export const TOUR_GROUPS_WALKTHROUGH_CARD_ID = 'tour-groups-walkthrough-card';
+export const TOUR_GROUPS_FIRST_CARD_ID = 'tour-groups-first-card';
+export const TOUR_GROUPS_EMPTY_STATE_ID = 'tour-groups-empty-state';
+
+/** Hands-on Prayer Groups help tour. Cleanup matches this name plus owner and a solo member list. */
+export const GROUPS_WALKTHROUGH_GROUP_NAME = 'Help Tour Sample Group';
+export const GROUPS_WALKTHROUGH_PRAYER_FOR = 'Test Group Prayer';
+export const GROUPS_WALKTHROUGH_DESCRIPTION =
+  'Test group prayer description for the guided walkthrough.';
 export const TOUR_MEMORIZE_ACTION_BAR_ID = 'tour-memorize-action-bar';
 export const TOUR_MEMORIZE_ADD_VERSES_ID = 'tour-memorize-add-verses';
 export const TOUR_MEMORIZE_RECOMMENDED_ID = 'tour-memorize-recommended';
@@ -62,6 +85,8 @@ export const PERSONAL_PRAYER_WALKTHROUGH_CATEGORY = 'Test Category';
 
 export const TOUR_PRAYER_CHOOSE_PERSONAL_ID = 'tour-prayer-choose-personal';
 export const TOUR_PRAYER_SUBMIT_REQUEST_ID = 'tour-prayer-submit-request';
+/** Wraps the details field, which has no `#description` element when the rich text editor is on. */
+export const TOUR_PRAYER_DESCRIPTION_FIELD_ID = 'tour-prayer-description-field';
 /** Community add-update modal — green **Add Update** submit (admin review applies when you send). */
 export const TOUR_PRAYER_UPDATE_SUBMIT_ID = 'tour-prayer-update-submit';
 /** Wrapper around anonymous checkbox + label (driver.js highlights the whole row). */

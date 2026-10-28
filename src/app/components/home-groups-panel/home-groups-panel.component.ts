@@ -41,6 +41,27 @@ import {
 import { parseInviteEmails } from '../../lib/home-group-invite-emails';
 import { groupPrayerUpdatesByPrayerId } from '../../lib/prayer-group-catalog-load';
 import type { PrayerRequest } from '../../lib/prayer-types';
+import { isGroupsWalkthroughGroup } from '../../lib/groups-walkthrough-cleanup';
+import {
+  GROUPS_WALKTHROUGH_GROUP_NAME,
+  GROUPS_WALKTHROUGH_PRAYER_FOR,
+  TOUR_FILTER_ADD_GROUP_ID,
+  TOUR_FILTER_GROUPS_ANSWERED_ID,
+  TOUR_FILTER_GROUPS_CURRENT_ID,
+  TOUR_FILTER_GROUPS_TOTAL_ID,
+  TOUR_GROUP_CHIP_FIRST_ID,
+  TOUR_GROUPS_ADD_CHOICE_GROUP_ID,
+  TOUR_GROUPS_ADD_CHOICE_PRAYER_ID,
+  TOUR_GROUPS_CREATE_MODAL_ID,
+  TOUR_GROUPS_EMPTY_STATE_ID,
+  TOUR_GROUPS_FIRST_CARD_ID,
+  TOUR_GROUPS_INVITE_ID,
+  TOUR_GROUPS_MEMBERS_MODAL_ID,
+  TOUR_GROUPS_SETTINGS_MODAL_ID,
+  TOUR_GROUPS_STATUS_ROW_ID,
+  TOUR_GROUPS_WALKTHROUGH_CARD_ID,
+  TOUR_GROUPS_WALKTHROUGH_CHIP_ID,
+} from '../../lib/help-tour-ids';
 import {
   GroupPrayerRow,
   GroupPrayerUpdateRow,
@@ -112,6 +133,16 @@ export class HomeGroupsPanelComponent {
   /** Square chip the same height as the other filters; the plus is drawn inside it. */
   readonly addGroupChipLayoutClass =
     'inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all';
+  readonly tourAddGroupChipId = TOUR_FILTER_ADD_GROUP_ID;
+  readonly tourGroupsCurrentChipId = TOUR_FILTER_GROUPS_CURRENT_ID;
+  readonly tourGroupsAnsweredChipId = TOUR_FILTER_GROUPS_ANSWERED_ID;
+  readonly tourGroupsTotalChipId = TOUR_FILTER_GROUPS_TOTAL_ID;
+  readonly tourGroupsStatusRowId = TOUR_GROUPS_STATUS_ROW_ID;
+  readonly tourGroupsEmptyStateId = TOUR_GROUPS_EMPTY_STATE_ID;
+  readonly tourGroupsCreateModalId = TOUR_GROUPS_CREATE_MODAL_ID;
+  readonly tourGroupsMembersModalId = TOUR_GROUPS_MEMBERS_MODAL_ID;
+  readonly tourGroupsInviteId = TOUR_GROUPS_INVITE_ID;
+  readonly tourGroupsSettingsModalId = TOUR_GROUPS_SETTINGS_MODAL_ID;
 
   groups: PrayerGroupSummary[] = [];
   prayers: GroupPrayerRow[] = [];
@@ -748,6 +779,7 @@ export class HomeGroupsPanelComponent {
         id: 'prayer',
         label: 'New prayer',
         description: 'Share with a group',
+        tourId: TOUR_GROUPS_ADD_CHOICE_PRAYER_ID,
         disabled: noGroups,
         hint: noGroups
           ? this.loading
@@ -759,6 +791,7 @@ export class HomeGroupsPanelComponent {
         id: 'group',
         label: 'New group',
         description: 'Invite people to pray together',
+        tourId: TOUR_GROUPS_ADD_CHOICE_GROUP_ID,
       },
     ];
   }
@@ -766,6 +799,48 @@ export class HomeGroupsPanelComponent {
   openAddChooser(): void {
     this.addChooserOpen = true;
     this.cdr.markForCheck();
+  }
+
+  fillWalkthroughCreateForm(): void {
+    this.createName = GROUPS_WALKTHROUGH_GROUP_NAME;
+    this.cdr.markForCheck();
+  }
+
+  chooseAddGroupForTour(): void {
+    this.onAddChoice('group');
+    this.fillWalkthroughCreateForm();
+  }
+
+  openSettingsForTour(groupId: string): void {
+    const group = this.groups.find((item) => item.id === groupId);
+    if (group?.role === 'owner') {
+      this.openSettings(group);
+    }
+  }
+
+  groupChipTourId(group: PrayerGroupSummary, isFirst: boolean): string | null {
+    if (isGroupsWalkthroughGroup(group)) {
+      return TOUR_GROUPS_WALKTHROUGH_CHIP_ID;
+    }
+    if (isFirst) {
+      return TOUR_GROUP_CHIP_FIRST_ID;
+    }
+    return null;
+  }
+
+  groupPrayerCardTourId(prayer: GroupPrayerRow, isFirst: boolean): string | null {
+    const group = this.groups.find((item) => item.id === prayer.group_id);
+    if (
+      prayer.prayer_for === GROUPS_WALKTHROUGH_PRAYER_FOR &&
+      group &&
+      isGroupsWalkthroughGroup(group)
+    ) {
+      return TOUR_GROUPS_WALKTHROUGH_CARD_ID;
+    }
+    if (isFirst) {
+      return TOUR_GROUPS_FIRST_CARD_ID;
+    }
+    return null;
   }
 
   closeAddChooser(): void {

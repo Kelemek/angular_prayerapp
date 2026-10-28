@@ -2,6 +2,8 @@ import { loadMemorizeListView } from './memorization/memorization-list-prefs';
 import type { HelpSection } from '../types/help-content';
 import type { HelpDriverTourService } from '../services/help-driver-tour.service';
 import { getCardActionsOverflowTriggerEl } from './help-card-actions-menu-tour';
+import type { GroupsTourAudience } from './help-tour-hooks';
+import { groupsTourModeForAudience } from './help-tour-catalog/groups-section-tour';
 import type { HomeHelpTourHost } from '../services/home-help-tour-host.adapter';
 
 export interface HomeHelpTourSectionStartContext {
@@ -176,6 +178,67 @@ export function startPersonalPrayersTour(section: HelpSection, ctx: HomeHelpTour
       },
       deleteWalkthroughTestPrayer: () => host.deleteWalkthroughTestPrayer(),
     }
+  );
+}
+
+export async function startGroupsTour(
+  section: HelpSection,
+  ctx: HomeHelpTourSectionStartContext,
+): Promise<void> {
+  const host = requireHost(ctx);
+  await host.deleteWalkthroughSampleGroups();
+  host.setFilter("groups");
+  host.markForCheck();
+  // The Groups panel is created on the next change-detection turn after setFilter.
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
+  const form = host.getPrayerFormHooks();
+  let walkthroughGroupId: string | null = null;
+  const audience: GroupsTourAudience = host.isChurchMember()
+    ? { kind: "church_member" }
+    : { kind: "group_only", groupCount: host.getGroupCount() };
+  ctx.helpDriverTourService.startGroupsHelpSectionTour(
+    { title: section.title, description: section.description },
+    groupsTourModeForAudience(audience),
+    {
+      markForCheck: () => host.markForCheck(),
+      openAddChooser: () => {
+        host.getGroupsPanelHooks()?.openAddChooser();
+        host.markForCheck();
+      },
+      chooseAddGroupForTour: () => {
+        host.getGroupsPanelHooks()?.chooseAddGroupForTour();
+        host.markForCheck();
+      },
+      createWalkthroughGroup: async () => {
+        await host.getGroupsPanelHooks()?.createGroup();
+        walkthroughGroupId = await host.findWalkthroughGroupId();
+        host.markForCheck();
+      },
+      closeMembersModal: () => {
+        host.getGroupsPanelHooks()?.closeMembersModal();
+        host.markForCheck();
+      },
+      openSettingsForWalkthrough: () => {
+        if (walkthroughGroupId) {
+          host.getGroupsPanelHooks()?.openSettingsForTour(walkthroughGroupId);
+        }
+        host.markForCheck();
+      },
+      closeSettings: () => {
+        host.getGroupsPanelHooks()?.closeSettings();
+        host.markForCheck();
+      },
+      openWalkthroughGroupPrayer: () => {
+        if (!walkthroughGroupId) {
+          return;
+        }
+        host.openNewGroupPrayer(walkthroughGroupId);
+        host.markForCheck();
+      },
+      fillWalkthroughGroupPrayer: () => form?.fillWalkthroughGroupPrayer(),
+      submitWalkthroughPrayerForm: () => form?.submitWalkthroughPrayerForm(),
+      deleteWalkthroughSampleGroups: () => host.deleteWalkthroughSampleGroups(),
+    },
   );
 }
 
