@@ -11,6 +11,10 @@ export const ANDROID_SCROLL_CLAMP_MS = 600;
 export const MEMORIZE_LISTEN_CONTROLS_DIALOG_ID = 'memorize-listen-controls-dialog';
 export const MEMORIZE_LISTEN_CONTROLS_TITLE_ID = 'memorize-listen-controls-title';
 
+/** Below `sm`, fixed toolbar chip sizes in styles.css (Listen / Start over / Hint / close). */
+export const MEMORIZE_PRACTICE_HEADER_TOOLBAR_LOCK_CLASS =
+  'memorize-practice-header-toolbar-lock';
+
 export type MemorizationStartRoundOption = { value: number; label: string };
 
 export const MEMORIZE_INTRO_START_ROUND_OPTIONS: MemorizationStartRoundOption[] = Array.from(

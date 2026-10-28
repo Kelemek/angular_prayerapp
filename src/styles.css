@@ -710,6 +710,54 @@ html {
     font-size: calc(12px / var(--os-text-zoom, 1));
     line-height: 1;
   }
+
+  /* Memorize practice modal header (Listen, Errors, Start over, Hint, close) */
+  app-memorization-practice-session-header.memorize-practice-header-toolbar-lock button {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 12px;
+    padding-right: 12px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-size: calc(14px / var(--os-text-zoom, 1));
+    line-height: 1;
+  }
+
+  app-memorization-practice-session-header.memorize-practice-header-toolbar-lock
+    button[aria-label='Close'] {
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
+    padding: 0;
+  }
+
+  app-memorization-practice-session-header.memorize-practice-header-toolbar-lock
+    button[aria-label='Close']
+    svg {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  app-memorization-practice-session-header.memorize-practice-header-toolbar-lock
+    [data-testid='memorize-error-count'] {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-size: calc(14px / var(--os-text-zoom, 1));
+    line-height: 1;
+  }
 }
 
 /* Base resets and global styles */
