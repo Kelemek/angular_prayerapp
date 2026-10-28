@@ -10,6 +10,7 @@ import {
   HomeHeaderComponent,
   HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS,
 } from "./home-header.component";
+import { HOME_HEADER_CHIP_SIZE_LOCK_CLASS } from "../../lib/home-sub-filter-chip-classes";
 import {
   BRANDING_SERVICE_TOKEN,
 } from "../app-logo/app-logo.component";
@@ -98,6 +99,15 @@ describe("HomeHeaderComponent", () => {
     expect(root.querySelectorAll(`#${TOUR_PRAYER_MODE_BTN_ID}`)).toHaveLength(1);
     expect(root.querySelectorAll(`#${TOUR_REQUEST_BTN_ID}`)).toHaveLength(1);
     expect(root.querySelector('[data-testid="home-header-logo-slot"]')).toBeTruthy();
+  });
+
+  it("marks header toolbar chips for mobile size lock (Pray/Request match icon chips)", () => {
+    const root = fixture.nativeElement as HTMLElement;
+    const chips = root.querySelectorAll("header .btn-chip");
+    expect(chips.length).toBe(5);
+    for (const chip of chips) {
+      expect(chip.classList.contains(HOME_HEADER_CHIP_SIZE_LOCK_CLASS)).toBe(true);
+    }
   });
 
   it("applies fluid logo slot classes so the logo yields space to header chips", () => {

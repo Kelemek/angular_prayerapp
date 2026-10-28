@@ -3,7 +3,10 @@ import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { AppLogoComponent } from "../app-logo/app-logo.component";
 import type { HomeHeaderHandlers } from "../../lib/home-header-handlers";
-import { HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS } from "../../lib/home-sub-filter-chip-classes";
+import {
+  HOME_HEADER_CHIP_SIZE_LOCK_CLASS,
+  HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS,
+} from "../../lib/home-sub-filter-chip-classes";
 import {
   TOUR_BTN_SEARCH_ID,
   TOUR_PRAYER_MODE_BTN_ID,
@@ -28,7 +31,7 @@ export class HomeHeaderComponent {
   readonly headerShellClass = `contrast-chip-surface w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md ${HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS}`;
   readonly logoToolbarSlotClass = HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS;
   readonly headerChipClass =
-    "flex items-center gap-1 px-2 py-2 sm:justify-center sm:h-12 sm:px-3 text-sm font-medium";
+    `flex items-center gap-1 px-2 py-2 sm:justify-center sm:h-12 sm:px-3 text-sm font-medium ${HOME_HEADER_CHIP_SIZE_LOCK_CLASS}`;
   readonly headerIconClass = "w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0";
 
   readonly tourSearchBtnId = TOUR_BTN_SEARCH_ID;

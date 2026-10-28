@@ -661,6 +661,30 @@ html {
     min-width: 20px;
     min-height: 20px;
   }
+
+  /* Home header Help / Search / Settings / Pray / Request — same chip height as icon buttons */
+  app-home-header header .home-header-chip-size-lock {
+    box-sizing: border-box;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-size: calc(14px / var(--os-text-zoom, 1));
+    line-height: 1;
+  }
+
+  app-home-header header .home-header-chip-size-lock svg {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    flex-shrink: 0;
+  }
 }
 
 /* Base resets and global styles */
