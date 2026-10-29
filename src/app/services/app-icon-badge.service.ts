@@ -47,6 +47,7 @@ export class AppIconBadgeService {
   private started = false;
   private lastAppliedCount: number | null = null;
   private pendingApprovals: number | null = null;
+  private syncQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private badgeService: BadgeService,
@@ -97,7 +98,13 @@ export class AppIconBadgeService {
     await this.sync();
   }
 
-  async sync(): Promise<void> {
+  /** Runs one write at a time; each reads the totals when it starts, so the last write is the newest. */
+  sync(): Promise<void> {
+    this.syncQueue = this.syncQueue.then(() => this.applyCount());
+    return this.syncQueue;
+  }
+
+  private async applyCount(): Promise<void> {
     if (!this.native.isAvailable()) {
       return;
     }

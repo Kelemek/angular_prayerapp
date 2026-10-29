@@ -34,6 +34,13 @@ export interface PushNotificationEvent {
   raw: PushNotificationSchema | ActionPerformed['notification'];
 }
 
+/** `data.target` on every push sent through `PushNotificationService.sendPushToAdmins`. */
+export const ADMIN_PUSH_TARGET = 'admin';
+
+export function isAdminPushEvent(event: PushNotificationEvent): boolean {
+  return event.data?.['target'] === ADMIN_PUSH_TARGET;
+}
+
 @Injectable({
   providedIn: 'root'
 })

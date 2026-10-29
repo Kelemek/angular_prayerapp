@@ -38,7 +38,10 @@ import {
 } from "./services/user-session.service";
 import { groupOnlyChurchSurfaceRedirect } from "./lib/church-member-access";
 import { churchPushTarget } from "./lib/prayer-groups-feature";
-import type { PushNotificationEvent } from "./services/capacitor.service";
+import {
+  isAdminPushEvent,
+  type PushNotificationEvent,
+} from "./services/capacitor.service";
 import {
   findAppScrollContainer,
   scrollAppContainerToTop,
@@ -473,7 +476,7 @@ export class AppComponent implements OnInit, OnDestroy {
       capacitorService.notificationEvents$
         .pipe(
           filter((event) => event.source === "tap"),
-          filter((event) => event.data?.["target"] === "admin")
+          filter(isAdminPushEvent)
         )
         .subscribe(() => {
           // Pre-fetch admin data so the approval list is ready when the page loads.

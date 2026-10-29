@@ -18,6 +18,7 @@ import {
 import { AdminAuthService } from './admin-auth.service';
 import { AdminDataReadService } from './admin-data-read.service';
 import { AdminDataService } from './admin-data.service';
+import { CapacitorService, isAdminPushEvent } from './capacitor.service';
 
 @Injectable({ providedIn: 'root' })
 export class AdminPendingCountService {
@@ -45,6 +46,7 @@ export class AdminPendingCountService {
     private readonly read: AdminDataReadService,
     private readonly adminData: AdminDataService,
     private readonly router: Router,
+    capacitor: CapacitorService,
     destroyRef: DestroyRef,
   ) {
     this.iconPendingCount$ = combineLatest([
@@ -96,6 +98,16 @@ export class AdminPendingCountService {
             previous.urlAfterRedirects.startsWith('/admin') &&
             !next.urlAfterRedirects.startsWith('/admin'),
         ),
+        takeUntilDestroyed(destroyRef),
+      )
+      .subscribe(() => {
+        void this.refresh();
+      });
+
+    // Admin pushes are sent after the pending row is saved, so one arriving means the queue changed.
+    capacitor.notificationEvents$
+      .pipe(
+        filter(isAdminPushEvent),
         takeUntilDestroyed(destroyRef),
       )
       .subscribe(() => {

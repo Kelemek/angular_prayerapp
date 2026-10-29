@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
-import { CapacitorService, PushNotificationToken } from './capacitor.service';
+import { ADMIN_PUSH_TARGET, CapacitorService, PushNotificationToken } from './capacitor.service';
 
 /**
  * Service for managing device tokens and push notification setup
@@ -307,7 +307,7 @@ export class PushNotificationService {
             emails,
             title: params.title,
             body: params.body,
-            data: { ...params.data, target: 'admin' },
+            data: { ...params.data, target: ADMIN_PUSH_TARGET },
           },
         }
       );

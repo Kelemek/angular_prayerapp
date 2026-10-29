@@ -8,6 +8,7 @@ import type { AdminAuthService } from './admin-auth.service';
 import type { AdminDataReadService } from './admin-data-read.service';
 import type { AdminDataService } from './admin-data.service';
 import { AdminPendingCountService } from './admin-pending-count.service';
+import type { CapacitorService, PushNotificationEvent } from './capacitor.service';
 
 function zeroCounts(partial: Partial<AdminPendingCounts> = {}): AdminPendingCounts {
   return {
@@ -27,12 +28,14 @@ describe('AdminPendingCountService', () => {
     const adminEligibilityResolved$ = new BehaviorSubject(true);
     const data$ = new BehaviorSubject<AdminData>({ ...EMPTY_ADMIN_DATA });
     const events = new Subject<Event>();
+    const notificationEvents$ = new Subject<PushNotificationEvent>();
     const fetchPendingCounts = vi.fn().mockResolvedValue(zeroCounts());
     const service = new AdminPendingCountService(
       { hasAdminEmail$, loading$, adminEligibilityResolved$ } as unknown as AdminAuthService,
       { fetchPendingCounts } as unknown as AdminDataReadService,
       { data$ } as unknown as AdminDataService,
       { events } as Router,
+      { notificationEvents$ } as unknown as CapacitorService,
       { onDestroy: () => () => undefined } as unknown as DestroyRef,
     );
 
@@ -48,6 +51,7 @@ describe('AdminPendingCountService', () => {
       iconCount: () => iconCount,
       data$,
       events,
+      notificationEvents$,
       fetchPendingCounts,
       service,
       count: () => firstValueFrom(service.pendingApprovalItemCount$),
@@ -240,6 +244,49 @@ describe('AdminPendingCountService', () => {
     events.next(new NavigationEnd(3, '/admin/settings', '/admin/settings'));
     await settle();
 
+    expect(fetchPendingCounts).toHaveBeenCalledTimes(1);
+  });
+
+  function pushEvent(
+    source: PushNotificationEvent['source'],
+    data: Record<string, string>,
+  ): PushNotificationEvent {
+    return { type: 'generic', source, data, raw: {} as PushNotificationEvent['raw'] };
+  }
+
+  it.each(['received', 'tap'] as const)(
+    'refreshes to the new total when an admin push is %s',
+    async (source) => {
+      const { hasAdminEmail$, notificationEvents$, fetchPendingCounts, count } = setup();
+      fetchPendingCounts.mockResolvedValueOnce(zeroCounts({ prayers: 1 }));
+      hasAdminEmail$.next(true);
+      await vi.waitFor(async () => {
+        expect(await count()).toBe(1);
+      });
+
+      fetchPendingCounts.mockResolvedValueOnce(zeroCounts({ prayers: 2 }));
+      notificationEvents$.next(pushEvent(source, { type: 'prayer', target: 'admin' }));
+
+      await vi.waitFor(async () => {
+        expect(await count()).toBe(2);
+      });
+      expect(fetchPendingCounts).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('ignores member pushes and admin pushes received by a non-admin', async () => {
+    const { hasAdminEmail$, notificationEvents$, fetchPendingCounts } = setup();
+    notificationEvents$.next(pushEvent('received', { type: 'prayer', target: 'admin' }));
+    await settle();
+    expect(fetchPendingCounts).not.toHaveBeenCalled();
+
+    hasAdminEmail$.next(true);
+    await vi.waitFor(() => {
+      expect(fetchPendingCounts).toHaveBeenCalledTimes(1);
+    });
+
+    notificationEvents$.next(pushEvent('received', { type: 'prayer_approved', prayerId: 'p1' }));
+    await settle();
     expect(fetchPendingCounts).toHaveBeenCalledTimes(1);
   });
 

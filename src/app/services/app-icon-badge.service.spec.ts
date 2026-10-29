@@ -200,6 +200,29 @@ describe('AppIconBadgeService', () => {
     warnSpy.mockRestore();
   });
 
+  it('waits for an in-flight write and finishes on the newest total', async () => {
+    const native = createNativeMock();
+    service.setNativeApiForTests(native);
+    await service.start();
+    native.set.mockClear();
+
+    let finishFirstWrite: () => void = () => undefined;
+    native.set.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finishFirstWrite = resolve)),
+    );
+    badgeService.getDisplayedBadgeTotal.mockReturnValue(7);
+    const first = service.sync();
+    await flush();
+    badgeService.getDisplayedBadgeTotal.mockReturnValue(5);
+    const second = service.sync();
+    await flush();
+    expect(native.set.mock.calls).toEqual([[7]]);
+
+    finishFirstWrite();
+    await Promise.all([first, second]);
+    expect(native.set.mock.calls).toEqual([[7], [5]]);
+  });
+
   it('start is idempotent', async () => {
     const native = createNativeMock();
     service.setNativeApiForTests(native);
