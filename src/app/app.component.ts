@@ -30,6 +30,7 @@ import { HelpDriverTourService } from "./services/help-driver-tour.service";
 import { AdminDataService } from "./services/admin-data.service";
 import { PosthogService } from "./services/posthog.service";
 import { ClientPreferencesService } from "./services/client-preferences.service";
+import { IconBadgeReportService } from "./services/icon-badge-report.service";
 import { combineLatest, filter, firstValueFrom, Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
 import {
@@ -128,9 +129,15 @@ export class AppComponent implements OnInit, OnDestroy {
   /**
    * Initialize Capacitor service for mobile app features.
    * Also inject PushNotificationService so it subscribes to pushToken$ and stores device tokens in the backend,
+   * start IconBadgeReportService on every platform so a later push can carry the icon number,
    * and start AppIconBadgeService (native only) so the home-screen icon mirrors in-app unread.
    */
   private async initializeCapacitor(): Promise<void> {
+    try {
+      void this.injector.get(IconBadgeReportService).start();
+    } catch (error) {
+      console.warn("[IconBadgeReport] Failed to start:", error);
+    }
     try {
       const { Capacitor } = await import("@capacitor/core");
       if (Capacitor.isNativePlatform()) {

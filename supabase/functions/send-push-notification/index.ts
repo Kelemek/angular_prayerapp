@@ -27,6 +27,7 @@ import {
   isPushServiceRoleCaller,
   type PushCallerKind,
 } from './access.ts';
+import { computeIconBadge, type IconBadgeReport } from './badge.ts';
 
 // Required when invoking from browser or Capacitor (origin capacitor://localhost)
 const corsHeaders = {
@@ -121,7 +122,8 @@ async function sendViaApns(
   deviceToken: string,
   title: string,
   body: string,
-  dataPayload: Record<string, string>
+  dataPayload: Record<string, string>,
+  badge: number | null,
 ): Promise<{ ok: boolean; errorData?: unknown }> {
   const jwt = await getApnsJwt();
   const host = apnsSandbox ? 'api.sandbox.push.apple.com' : 'api.push.apple.com';
@@ -130,6 +132,9 @@ async function sendViaApns(
     alert: { title, body },
     sound: 'default',
   };
+  if (badge !== null) {
+    aps.badge = badge;
+  }
   const bodyObj: Record<string, unknown> = { aps };
   for (const [k, v] of Object.entries(dataPayload)) {
     bodyObj[k] = v;
@@ -196,6 +201,119 @@ function json(body: unknown, status: number): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function distinctLowerEmails(tokens: { user_email: string | null }[]): string[] {
+  const seen = new Set<string>();
+  const emails: string[] = [];
+  for (const token of tokens) {
+    const email = token.user_email?.trim().toLowerCase() ?? '';
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    emails.push(email);
+  }
+  return emails;
+}
+
+function reportFromRow(row: {
+  icon_unread: number | null;
+  icon_badges_enabled: boolean | null;
+  icon_reported_at: string | null;
+}): IconBadgeReport {
+  if (!row.icon_reported_at) return null;
+  const unread = typeof row.icon_unread === 'number' && Number.isFinite(row.icon_unread)
+    ? row.icon_unread
+    : 0;
+  return {
+    unread,
+    badgesEnabled: row.icon_badges_enabled === true,
+    reportedAt: row.icon_reported_at,
+  };
+}
+
+function finiteCount(data: unknown): number | null {
+  return typeof data === 'number' && Number.isFinite(data) ? data : null;
+}
+
+/** Per recipient email. Null omits the badge so a lookup failure still sends the push. */
+async function loadIconBadges(
+  tokens: { user_email: string | null }[],
+): Promise<Map<string, number | null>> {
+  const emails = distinctLowerEmails(tokens);
+  const badges = new Map<string, number | null>();
+  for (const email of emails) badges.set(email, null);
+  if (emails.length === 0) return badges;
+
+  try {
+    const { data: rows, error: rowError } = await supabase
+      .from('user_badge_read_state')
+      .select('user_email, icon_unread, icon_badges_enabled, icon_reported_at')
+      .in('user_email', emails);
+    if (rowError) {
+      console.error('icon badge state lookup failed:', rowError);
+      return badges;
+    }
+
+    const reports = new Map<string, IconBadgeReport>();
+    for (const row of rows ?? []) {
+      const email = row.user_email?.trim().toLowerCase();
+      if (!email) continue;
+      reports.set(email, reportFromRow(row));
+    }
+
+    const { data: subscribers, error: adminError } = await supabase
+      .from('email_subscribers')
+      .select('email, is_admin')
+      .eq('is_admin', true);
+    if (adminError) {
+      console.error('icon badge admin lookup failed:', adminError);
+      return badges;
+    }
+
+    const recipients = new Set(emails);
+    const admins = new Set<string>();
+    for (const row of subscribers ?? []) {
+      const email = row.email?.trim().toLowerCase();
+      if (email && recipients.has(email)) admins.add(email);
+    }
+
+    let pendingTotal = 0;
+    let pendingOk = true;
+    if (admins.size > 0) {
+      const { data, error } = await supabase.rpc('admin_pending_item_total');
+      const count = finiteCount(data);
+      if (error || count === null) {
+        console.error('admin_pending_item_total failed:', error ?? data);
+        pendingOk = false;
+      } else {
+        pendingTotal = count;
+      }
+    }
+
+    await Promise.all(emails.map(async (email) => {
+      const report = reports.get(email) ?? null;
+      if (report === null) return;
+      const isAdmin = admins.has(email);
+      if (isAdmin && !pendingOk) return;
+      try {
+        const { data, error } = await supabase.rpc('icon_badge_new_since', {
+          p_email: email,
+          p_since: report.reportedAt,
+        });
+        const newSince = finiteCount(data);
+        if (error || newSince === null) {
+          console.error('icon_badge_new_since failed:', email, error ?? data);
+          return;
+        }
+        badges.set(email, computeIconBadge(report, isAdmin, newSince, pendingTotal));
+      } catch (error) {
+        console.error('icon_badge_new_since failed:', email, error);
+      }
+    }));
+  } catch (error) {
+    console.error('icon badge lookup failed:', error);
+  }
+  return badges;
 }
 
 Deno.serve(async (req: Request) => {
@@ -274,6 +392,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const dataPayload = stringifyData(payload.data);
+    const iconBadges = await loadIconBadges(tokens);
     let successCount = 0;
     let failureCount = 0;
     let firstFailureReason: string | null = null;
@@ -302,13 +421,16 @@ Deno.serve(async (req: Request) => {
       };
 
       try {
+        const badgeEmail = tokenRecord.user_email?.trim().toLowerCase() ?? '';
+        const badge = iconBadges.get(badgeEmail) ?? null;
         if (tokenRecord.platform === 'ios') {
           // iOS: Capacitor gives APNs device token → send via APNs
           const result = await sendViaApns(
             tokenRecord.token,
             payload.title,
             payload.body,
-            dataPayload
+            dataPayload,
+            badge,
           );
           if (result.ok) {
             successCount++;
@@ -352,7 +474,9 @@ Deno.serve(async (req: Request) => {
           data: Object.keys(dataPayload).length ? dataPayload : undefined,
           android: {
             priority: 'high' as const,
-            notification: { channelId: 'prayers' },
+            notification: badge === null
+              ? { channelId: 'prayers' }
+              : { channelId: 'prayers', notification_count: badge },
           },
         };
 

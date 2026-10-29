@@ -135,6 +135,10 @@ export class BadgeService {
     return this.badgeFunctionalityEnabled$.asObservable();
   }
 
+  isBadgeFunctionalityEnabled(): boolean {
+    return this.badgeFunctionalityEnabled$.value;
+  }
+
   getPrayerBadgesChanged$(status: BadgePrayerStatus): Observable<void> {
     return this.updateBadgesChanged$.asObservable();
   }
