@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
-import { CapacitorService } from './capacitor.service';
+import { CapacitorService, isAdminPushEvent } from './capacitor.service';
 import { ToastService } from './toast.service';
 
 vi.mock('@capacitor/core', () => ({
@@ -257,6 +257,30 @@ describe('CapacitorService', () => {
       expect(events[0].type).toBe('prayer_update');
       expect(events[0].source).toBe('received');
       expect(events[0].data).toEqual({ type: 'prayer_update', prayerId: 'p1' });
+    });
+
+    it('a badge-only push shows no toast but still emits so the icon and admin count refresh', async () => {
+      let receivedCb: (notification: any) => void = () => {};
+      vi.mocked(PushNotifications.addListener).mockImplementation((name: string, cb: any) => {
+        if (name === 'pushNotificationReceived') receivedCb = cb;
+        return Promise.resolve({ remove: vi.fn() });
+      });
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+      vi.mocked(Capacitor.getPlatform).mockReturnValue('android');
+      vi.mocked(PushNotifications.requestPermissions).mockResolvedValue({ receive: 'granted' } as any);
+      vi.mocked(PushNotifications.register).mockResolvedValue();
+
+      const nativeService = new CapacitorService(mockToastService as unknown as ToastService);
+      await nativeService.initializeCapacitor();
+      const events: any[] = [];
+      nativeService.notificationEvents$.subscribe((e) => events.push(e));
+
+      receivedCb({ data: { type: 'badge_refresh', target: 'admin', badge: '0' } });
+
+      expect(mockToastService.success).not.toHaveBeenCalled();
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe('badge_refresh');
+      expect(isAdminPushEvent(events[0])).toBe(true);
     });
 
     it('when pushNotificationActionPerformed listener fires, notificationEvents$ emits with source tap', async () => {

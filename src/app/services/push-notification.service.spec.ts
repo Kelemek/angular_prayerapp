@@ -51,6 +51,24 @@ describe('PushNotificationService', () => {
     localStorage.clear();
   });
 
+  describe('sendAdminBadgeRefresh', () => {
+    it('asks the edge function for a badge-only push with no recipients or text', async () => {
+      mockSupabase.client.functions.invoke = vi.fn().mockResolvedValue({ error: null });
+      await service.sendAdminBadgeRefresh();
+      expect(mockSupabase.client.functions.invoke).toHaveBeenCalledWith('send-push-notification', {
+        body: { badgeOnly: true },
+      });
+    });
+
+    it('logs and swallows a failed badge refresh', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockSupabase.client.functions.invoke = vi.fn().mockResolvedValue({ error: new Error('boom') });
+      await expect(service.sendAdminBadgeRefresh()).resolves.toBeUndefined();
+      expect(errorSpy).toHaveBeenCalledWith('Admin badge refresh push failed:', expect.any(Error));
+      errorSpy.mockRestore();
+    });
+  });
+
   describe('sendPushToAdmins', () => {
     it('loads admin notification recipients and invokes edge function', async () => {
       const admins = [

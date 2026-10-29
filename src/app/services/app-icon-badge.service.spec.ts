@@ -7,6 +7,7 @@ import {
 } from './app-icon-badge.service';
 import { BadgeService } from './badge.service';
 import { AdminPendingCountService } from './admin-pending-count.service';
+import type { CapacitorService, PushNotificationEvent } from './capacitor.service';
 import { APP_BECAME_VISIBLE_EVENT } from '../../lib/visible-page-recovery';
 
 const capacitorCore = vi.hoisted(() => ({
@@ -28,11 +29,10 @@ vi.mock('@capawesome/capacitor-badge', () => ({
   Badge: capawesomeBadge,
 }));
 
-function createNativeMock(options: { available?: boolean; initialCount?: number } = {}) {
+function createNativeMock(options: { available?: boolean } = {}) {
   return {
     isAvailable: vi.fn(() => options.available ?? true),
     requestPermissions: vi.fn(async () => undefined),
-    get: vi.fn(async () => options.initialCount ?? 0),
     set: vi.fn(async () => undefined),
   } satisfies AppIconBadgeNativeApi;
 }
@@ -48,6 +48,7 @@ describe('AppIconBadgeService', () => {
   let updateBadgesChanged$: Subject<void>;
   let badgesEnabled$: BehaviorSubject<boolean>;
   let pendingApprovals$: BehaviorSubject<number | null>;
+  let notificationEvents$: Subject<PushNotificationEvent>;
   let adminPendingCount: { iconPendingCount$: BehaviorSubject<number | null>; refresh: ReturnType<typeof vi.fn> };
   let badgeService: {
     getUpdateBadgesChanged$: ReturnType<typeof vi.fn>;
@@ -68,11 +69,13 @@ describe('AppIconBadgeService', () => {
     pendingApprovals$ = new BehaviorSubject<number | null>(0);
     adminPendingCount = {
       iconPendingCount$: pendingApprovals$,
-      refresh: vi.fn(async () => undefined),
+      refresh: vi.fn(async () => true),
     };
+    notificationEvents$ = new Subject<PushNotificationEvent>();
     service = new AppIconBadgeService(
       badgeService as unknown as BadgeService,
-      adminPendingCount as unknown as AdminPendingCountService
+      adminPendingCount as unknown as AdminPendingCountService,
+      { notificationEvents$ } as unknown as CapacitorService,
     );
   });
 
@@ -100,7 +103,7 @@ describe('AppIconBadgeService', () => {
   it('does not write while the pending count is still loading', async () => {
     badgeService.getDisplayedBadgeTotal.mockReturnValue(0);
     pendingApprovals$.next(null);
-    const native = createNativeMock({ initialCount: 4 });
+    const native = createNativeMock();
     service.setNativeApiForTests(native);
     await service.start();
     updateBadgesChanged$.next();
@@ -109,7 +112,7 @@ describe('AppIconBadgeService', () => {
 
     pendingApprovals$.next(4);
     await flush();
-    expect(native.set).not.toHaveBeenCalled();
+    expect(native.set.mock.calls).toEqual([[4]]);
   });
 
   it('refreshes pending approvals when the app becomes visible', async () => {
@@ -126,7 +129,6 @@ describe('AppIconBadgeService', () => {
     await service.start();
     await service.sync();
     expect(native.requestPermissions).not.toHaveBeenCalled();
-    expect(native.get).not.toHaveBeenCalled();
     expect(native.set).not.toHaveBeenCalled();
   });
 
@@ -141,7 +143,7 @@ describe('AppIconBadgeService', () => {
   it('does not write 0 at launch before the total is resolved', async () => {
     badgeService.isDisplayedTotalResolved.mockReturnValue(false);
     badgeService.getDisplayedBadgeTotal.mockReturnValue(0);
-    const native = createNativeMock({ initialCount: 6 });
+    const native = createNativeMock();
     service.setNativeApiForTests(native);
     await service.start();
     updateBadgesChanged$.next();
@@ -150,14 +152,28 @@ describe('AppIconBadgeService', () => {
     expect(native.set).not.toHaveBeenCalled();
   });
 
-  it('skips set when the persisted icon already matches the total', async () => {
-    const native = createNativeMock({ initialCount: 4 });
+  it('writes the first total even when Badge.get() reports the same stored count', async () => {
+    capacitorCore.isNativePlatform.mockReturnValue(true);
+    capacitorCore.isPluginAvailable.mockReturnValue(true);
+    capawesomeBadge.get.mockResolvedValue({ count: 4 });
+    capawesomeBadge.set.mockClear();
+    service.setNativeApiForTests(createCapawesomeAppIconBadgeNative());
+    await service.start();
+    expect(capawesomeBadge.set).toHaveBeenCalledWith({ count: 4 });
+  });
+
+  it('skips repeat writes of an unchanged total', async () => {
+    const native = createNativeMock();
     service.setNativeApiForTests(native);
     await service.start();
+    native.set.mockClear();
+
+    updateBadgesChanged$.next();
+    await flush();
     expect(native.set).not.toHaveBeenCalled();
   });
 
-  it('re-syncs on mark-read changes and never clears just because the app became visible', async () => {
+  it('rewrites the unchanged total when the app becomes visible, without clearing it', async () => {
     const native = createNativeMock();
     service.setNativeApiForTests(native);
     await service.start();
@@ -166,10 +182,83 @@ describe('AppIconBadgeService', () => {
     badgeService.getDisplayedBadgeTotal.mockReturnValue(2);
     updateBadgesChanged$.next();
     await flush();
-    expect(native.set).toHaveBeenCalledWith(2);
+    expect(native.set.mock.calls).toEqual([[2]]);
 
-    native.set.mockClear();
     window.dispatchEvent(new CustomEvent(APP_BECAME_VISIBLE_EVENT));
+    await flush();
+    expect(native.set.mock.calls).toEqual([[2], [2]]);
+  });
+
+  it.each(['received', 'tap'] as const)(
+    'rewrites the unchanged total after a push is %s, correcting a number the push set',
+    async (source) => {
+      const native = createNativeMock();
+      service.setNativeApiForTests(native);
+      await service.start();
+      native.set.mockClear();
+
+      notificationEvents$.next({ type: 'generic', source, data: { badge: '5' }, raw: {} as never });
+      await flush();
+      expect(native.set.mock.calls).toEqual([[4]]);
+    },
+  );
+
+  it('keeps a forced rewrite pending until the totals resolve', async () => {
+    const native = createNativeMock();
+    service.setNativeApiForTests(native);
+    await service.start();
+    native.set.mockClear();
+
+    pendingApprovals$.next(null);
+    notificationEvents$.next({ type: 'badge_refresh', source: 'received', raw: {} as never });
+    await flush();
+    expect(native.set).not.toHaveBeenCalled();
+
+    pendingApprovals$.next(0);
+    await flush();
+    expect(native.set.mock.calls).toEqual([[4]]);
+  });
+
+  it('waits for the fresh pending count before rewriting after an admin push', async () => {
+    pendingApprovals$.next(1);
+    const native = createNativeMock();
+    service.setNativeApiForTests(native);
+    await service.start();
+    native.set.mockClear();
+
+    let finishRefresh: () => void = () => undefined;
+    adminPendingCount.refresh.mockImplementationOnce(
+      () => new Promise<boolean>((resolve) => (finishRefresh = () => resolve(true))),
+    );
+    notificationEvents$.next({
+      type: 'badge_refresh',
+      source: 'received',
+      data: { type: 'badge_refresh', target: 'admin' },
+      raw: {} as never,
+    });
+    await flush();
+    expect(native.set).not.toHaveBeenCalled();
+
+    pendingApprovals$.next(0);
+    finishRefresh();
+    await flush();
+    expect(native.set.mock.calls).toEqual([[4], [4]]);
+  });
+
+  it('leaves the icon alone when the pending refresh after an admin push fails', async () => {
+    pendingApprovals$.next(1);
+    const native = createNativeMock();
+    service.setNativeApiForTests(native);
+    await service.start();
+    native.set.mockClear();
+
+    adminPendingCount.refresh.mockResolvedValueOnce(false);
+    notificationEvents$.next({
+      type: 'badge_refresh',
+      source: 'received',
+      data: { type: 'badge_refresh', target: 'admin' },
+      raw: {} as never,
+    });
     await flush();
     expect(native.set).not.toHaveBeenCalled();
   });
@@ -243,10 +332,9 @@ describe('createCapawesomeAppIconBadgeNative', () => {
     expect(api.isAvailable()).toBe(true);
   });
 
-  it('delegates permissions, get, and set to Capawesome Badge', async () => {
+  it('delegates permissions and set to Capawesome Badge', async () => {
     const api = createCapawesomeAppIconBadgeNative();
     await api.requestPermissions();
-    await expect(api.get()).resolves.toBe(5);
     await api.set(3);
     expect(capawesomeBadge.requestPermissions).toHaveBeenCalled();
     expect(capawesomeBadge.set).toHaveBeenCalledWith({ count: 3 });

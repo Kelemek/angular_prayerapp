@@ -4,13 +4,13 @@ import { Badge } from '@capawesome/capacitor-badge';
 import { merge } from 'rxjs';
 import { AdminPendingCountService } from './admin-pending-count.service';
 import { BadgeService } from './badge.service';
+import { CapacitorService, isAdminPushEvent } from './capacitor.service';
 import { APP_BECAME_VISIBLE_EVENT } from '../../lib/visible-page-recovery';
 
 export interface AppIconBadgeNativeApi {
   /** False on web and on native binaries built before the plugin was added. */
   isAvailable(): boolean;
   requestPermissions(): Promise<void>;
-  get(): Promise<number>;
   set(count: number): Promise<void>;
 }
 
@@ -20,10 +20,6 @@ export function createCapawesomeAppIconBadgeNative(): AppIconBadgeNativeApi {
       Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Badge'),
     async requestPermissions() {
       await Badge.requestPermissions();
-    },
-    async get() {
-      const { count } = await Badge.get();
-      return count;
     },
     async set(count: number) {
       await Badge.set({ count });
@@ -36,8 +32,10 @@ export function createCapawesomeAppIconBadgeNative(): AppIconBadgeNativeApi {
  * pending approvals (the Settings gear number).
  * Web is a no-op. `persist` / `autoClear: false` live in capacitor.config.ts.
  *
- * On iOS, setting 0 also clears delivered notifications, so the icon is only
- * written once both parts are resolved and the value changed.
+ * The icon is only written once both parts are resolved, because on iOS setting 0
+ * also clears delivered notifications. `Badge.get()` is never trusted: on iOS it
+ * returns the plugin's own stored value, which a push `aps.badge` does not update,
+ * so the first write and every write after resume or a push are forced.
  */
 @Injectable({
   providedIn: 'root',
@@ -45,13 +43,15 @@ export function createCapawesomeAppIconBadgeNative(): AppIconBadgeNativeApi {
 export class AppIconBadgeService {
   private native: AppIconBadgeNativeApi = createCapawesomeAppIconBadgeNative();
   private started = false;
+  /** Null forces the next resolved total to be written. */
   private lastAppliedCount: number | null = null;
   private pendingApprovals: number | null = null;
   private syncQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private badgeService: BadgeService,
-    private adminPendingCount: AdminPendingCountService
+    private adminPendingCount: AdminPendingCountService,
+    private capacitor: CapacitorService
   ) {}
 
   /** Test seam so specs can inject a fake native API. */
@@ -73,7 +73,6 @@ export class AppIconBadgeService {
 
     try {
       await this.native.requestPermissions();
-      this.lastAppliedCount = await this.native.get();
     } catch (error) {
       console.warn('[AppIconBadge] Failed to initialize native badge:', error);
     }
@@ -91,16 +90,37 @@ export class AppIconBadgeService {
     });
 
     window.addEventListener(APP_BECAME_VISIBLE_EVENT, () => {
-      void this.adminPendingCount.refresh();
-      void this.sync();
+      void this.refreshPendingThenRewrite();
+    });
+
+    this.capacitor.notificationEvents$.subscribe((event) => {
+      void (isAdminPushEvent(event) ? this.refreshPendingThenRewrite() : this.sync({ force: true }));
     });
 
     await this.sync();
   }
 
-  /** Runs one write at a time; each reads the totals when it starts, so the last write is the newest. */
-  sync(): Promise<void> {
-    this.syncQueue = this.syncQueue.then(() => this.applyCount());
+  /**
+   * Rewriting before the fresh pending count lands would briefly put the old total back on the icon.
+   * If the refresh fails, the icon is left alone: a push may already have set the right number.
+   */
+  private async refreshPendingThenRewrite(): Promise<void> {
+    if (await this.adminPendingCount.refresh()) {
+      await this.sync({ force: true });
+    }
+  }
+
+  /**
+   * Runs one write at a time; each reads the totals when it starts, so the last write is the newest.
+   * `force` rewrites an unchanged total because the OS icon may have been changed behind our back.
+   */
+  sync(options: { force?: boolean } = {}): Promise<void> {
+    this.syncQueue = this.syncQueue.then(() => {
+      if (options.force) {
+        this.lastAppliedCount = null;
+      }
+      return this.applyCount();
+    });
     return this.syncQueue;
   }
 

@@ -12,8 +12,12 @@ import type { AccountApprovalRequest } from '../types/admin-data';
 import { EmailNotificationService } from './email-notification.service';
 import { PushNotificationService } from './push-notification.service';
 
+export const ADMIN_BADGE_REFRESH_DELAY_MS = 1500;
+
 @Injectable({ providedIn: 'root' })
 export class AdminDataNotifyService {
+  private adminBadgeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(
     private readonly emailNotification: EmailNotificationService,
     private readonly pushNotification: PushNotificationService,
@@ -259,6 +263,20 @@ export class AdminDataNotifyService {
     } catch (emailError) {
       console.error('Failed to send denial email:', emailError);
     }
+  }
+
+  /**
+   * After a decision shrinks a pending queue, other admins' app icons need the new total.
+   * A burst of decisions sends one badge-only push once the burst settles.
+   */
+  refreshAdminIconBadges(): void {
+    if (this.adminBadgeRefreshTimer !== null) {
+      clearTimeout(this.adminBadgeRefreshTimer);
+    }
+    this.adminBadgeRefreshTimer = setTimeout(() => {
+      this.adminBadgeRefreshTimer = null;
+      void this.pushNotification.sendAdminBadgeRefresh();
+    }, ADMIN_BADGE_REFRESH_DELAY_MS);
   }
 
   async sendSubscriberWelcomeEmail(email: string): Promise<void> {

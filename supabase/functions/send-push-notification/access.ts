@@ -1,4 +1,5 @@
 import { isServiceRoleCredential } from "../send-email/access.ts";
+import type { PushRequest } from "./payload.ts";
 
 export type PushCallerKind =
   | "service_role"
@@ -6,7 +7,7 @@ export type PushCallerKind =
   | "subscriber"
   | "anonymous";
 
-export type PushAccess = "raw" | "admin_recipients" | "deny";
+export type PushAccess = "raw" | "admin_recipients" | "all_admins" | "deny";
 
 /** Accepts a service_role JWT or the configured key itself (`sb_secret_…` keys are not JWTs). */
 export function isPushServiceRoleCaller(
@@ -17,15 +18,22 @@ export function isPushServiceRoleCaller(
   return isServiceRoleCredential(authorizationHeader, apiKeyHeader, serviceRoleKey);
 }
 
-/** Service role and admins may choose recipients. A subscriber may reach only admins. */
+/**
+ * Service role and admins may choose recipients, and only they may refresh every admin's badge.
+ * A subscriber may reach only admins.
+ */
 export function decidePushAccess(
   caller: PushCallerKind,
-  sendToAll: boolean
+  request: PushRequest
 ): PushAccess {
-  if (caller === "service_role" || caller === "admin") {
+  const trusted = caller === "service_role" || caller === "admin";
+  if (request.kind === "badge_only") {
+    return trusted ? "all_admins" : "deny";
+  }
+  if (trusted) {
     return "raw";
   }
-  if (caller === "subscriber" && !sendToAll) {
+  if (caller === "subscriber" && !request.sendToAll) {
     return "admin_recipients";
   }
   return "deny";
@@ -35,6 +43,16 @@ export interface AdminPushRow {
   email?: string | null;
   receive_admin_push?: boolean | null;
   is_blocked?: boolean | null;
+}
+
+/** Every unblocked admin, whatever their admin push setting: the icon counts pending for all of them. */
+export function allAdminRecipientEmails(admins: AdminPushRow[]): string[] {
+  const chosen: string[] = [];
+  for (const admin of admins) {
+    const stored = admin.email?.trim() ?? "";
+    if (stored && admin.is_blocked !== true) chosen.push(stored);
+  }
+  return chosen;
 }
 
 /** Keeps requested addresses that are unblocked admins with admin push enabled. */

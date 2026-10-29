@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AdminDataService, type AdminData } from './admin-data.service';
 import { AdminDataReadService } from './admin-data-read.service';
 import { AdminDataCommandService } from './admin-data-command.service';
-import { AdminDataNotifyService } from './admin-data-notify.service';
+import { ADMIN_BADGE_REFRESH_DELAY_MS, AdminDataNotifyService } from './admin-data-notify.service';
 import { SupabaseService } from './supabase.service';
 import { PrayerService } from './prayer.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -30,6 +30,7 @@ describe('AdminDataService', () => {
   let mockPrayerService: any;
   let mockEmailNotificationService: any;
   let mockPushNotificationService: any;
+  let commandService: AdminDataCommandService;
 
   const createMockQueryChain = (returnData: any = null, returnError: any = null) => ({
     select: vi.fn(() => ({
@@ -112,12 +113,14 @@ describe('AdminDataService', () => {
 
     mockPushNotificationService = {
       sendPushToSubscribers: vi.fn(() => Promise.resolve()),
-      sendPushToEmails: vi.fn(() => Promise.resolve())
+      sendPushToEmails: vi.fn(() => Promise.resolve()),
+      sendAdminBadgeRefresh: vi.fn(() => Promise.resolve()),
     } as unknown as PushNotificationService;
 
+    commandService = new AdminDataCommandService(mockSupabaseService);
     service = new AdminDataService(
       new AdminDataReadService(mockSupabaseService),
-      new AdminDataCommandService(mockSupabaseService),
+      commandService,
       new AdminDataNotifyService(mockEmailNotificationService, mockPushNotificationService),
       mockPrayerService,
     );
@@ -129,6 +132,87 @@ describe('AdminDataService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  describe('admin icon badge refresh', () => {
+    const account = { id: 'a1', email: 'new@x.com', first_name: 'New', last_name: 'Member' };
+    const decisions: Array<[string, () => void, (s: AdminDataService) => Promise<void>]> = [
+      ['approvePrayer', () => {
+        vi.spyOn(commandService, 'approvePrayer').mockResolvedValue();
+        vi.spyOn(commandService, 'tryFetchPrayerById').mockResolvedValue(null);
+      }, (s) => s.approvePrayer('p1')],
+      ['denyPrayer', () => {
+        vi.spyOn(commandService, 'denyPrayer').mockResolvedValue({ id: 'p1' } as never);
+      }, (s) => s.denyPrayer('p1', 'r')],
+      ['approveUpdate', () => {
+        vi.spyOn(commandService, 'approveUpdate').mockResolvedValue(null);
+      }, (s) => s.approveUpdate('u1')],
+      ['denyUpdate', () => {
+        vi.spyOn(commandService, 'denyUpdate').mockResolvedValue({ id: 'u1' } as never);
+      }, (s) => s.denyUpdate('u1', 'r')],
+      ['approveDeletionRequest', () => {
+        vi.spyOn(commandService, 'approveDeletionRequest').mockResolvedValue();
+      }, (s) => s.approveDeletionRequest('d1')],
+      ['denyDeletionRequest', () => {
+        vi.spyOn(commandService, 'denyDeletionRequest').mockResolvedValue();
+      }, (s) => s.denyDeletionRequest('d1', 'r')],
+      ['approveUpdateDeletionRequest', () => {
+        vi.spyOn(commandService, 'approveUpdateDeletionRequest').mockResolvedValue();
+      }, (s) => s.approveUpdateDeletionRequest('d1')],
+      ['denyUpdateDeletionRequest', () => {
+        vi.spyOn(commandService, 'denyUpdateDeletionRequest').mockResolvedValue();
+      }, (s) => s.denyUpdateDeletionRequest('d1', 'r')],
+      ['approveAccountRequest', () => {
+        vi.spyOn(commandService, 'approveAccountRequest').mockResolvedValue(account as never);
+      }, (s) => s.approveAccountRequest('a1')],
+      ['denyAccountRequest', () => {
+        vi.spyOn(commandService, 'denyAccountRequest').mockResolvedValue(account as never);
+      }, (s) => s.denyAccountRequest('a1', 'r')],
+    ];
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it.each(decisions)('%s sends one admin badge refresh once the decision is saved', async (_name, stub, decide) => {
+      stub();
+      await decide(service);
+      expect(mockPushNotificationService.sendAdminBadgeRefresh).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(ADMIN_BADGE_REFRESH_DELAY_MS);
+      expect(mockPushNotificationService.sendAdminBadgeRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('coalesces a burst of decisions into one badge refresh', async () => {
+      vi.spyOn(commandService, 'approveDeletionRequest').mockResolvedValue();
+      vi.spyOn(commandService, 'denyDeletionRequest').mockResolvedValue();
+
+      await service.approveDeletionRequest('d1');
+      await vi.advanceTimersByTimeAsync(ADMIN_BADGE_REFRESH_DELAY_MS - 1);
+      await service.denyDeletionRequest('d2', 'r');
+      await vi.advanceTimersByTimeAsync(ADMIN_BADGE_REFRESH_DELAY_MS - 1);
+      expect(mockPushNotificationService.sendAdminBadgeRefresh).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(mockPushNotificationService.sendAdminBadgeRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not refresh admin badges when a decision fails to save', async () => {
+      vi.spyOn(commandService, 'approvePrayer').mockRejectedValue(new Error('save failed'));
+      await expect(service.approvePrayer('p1')).rejects.toThrow('save failed');
+      await vi.advanceTimersByTimeAsync(ADMIN_BADGE_REFRESH_DELAY_MS);
+      expect(mockPushNotificationService.sendAdminBadgeRefresh).not.toHaveBeenCalled();
+    });
+
+    it('does not refresh admin badges for an edit, which leaves the queue the same size', async () => {
+      vi.spyOn(commandService, 'editPrayer').mockResolvedValue();
+      await service.editPrayer('p1', { title: 'New' });
+      await vi.advanceTimersByTimeAsync(ADMIN_BADGE_REFRESH_DELAY_MS);
+      expect(mockPushNotificationService.sendAdminBadgeRefresh).not.toHaveBeenCalled();
+    });
   });
 
   it('should have initial empty data state', async () => {

@@ -23,11 +23,19 @@ import { createAppleNotificationJwt } from 'jsr:@narumincho/apple-notification-j
 import { jwtRole } from '../send-email/access.ts';
 import {
   adminPushRecipientEmails,
+  allAdminRecipientEmails,
   decidePushAccess,
   isPushServiceRoleCaller,
   type PushCallerKind,
 } from './access.ts';
 import { computeIconBadge, type IconBadgeReport } from './badge.ts';
+import {
+  buildApnsRequest,
+  buildFcmMessage,
+  logContent,
+  parsePushRequest,
+  type PushRequest,
+} from './payload.ts';
 
 // Required when invoking from browser or Capacitor (origin capacitor://localhost)
 const corsHeaders = {
@@ -36,15 +44,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
   'Access-Control-Max-Age': '86400'
 };
-
-interface PushNotificationRequest {
-  emails?: string[];
-  sendToAll?: boolean;
-  title: string;
-  body: string;
-  data?: Record<string, string>;
-  platform?: 'ios' | 'android' | 'both';
-}
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -76,16 +75,6 @@ function getFcmProjectId(): string {
     throw new Error('FCM_SERVICE_ACCOUNT_JSON must contain project_id');
   }
   return sa.project_id;
-}
-
-/** FCM HTTP v1 requires all data values to be strings. */
-function stringifyData(data: Record<string, string> | undefined): Record<string, string> {
-  if (!data) return {};
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(data)) {
-    out[k] = typeof v === 'string' ? v : JSON.stringify(v);
-  }
-  return out;
 }
 
 // --- APNs (iOS): Capacitor gives APNs device token, not FCM token ---
@@ -120,35 +109,22 @@ async function getApnsJwt(): Promise<string> {
 /** Send one notification via APNs (iOS device token). */
 async function sendViaApns(
   deviceToken: string,
-  title: string,
-  body: string,
-  dataPayload: Record<string, string>,
+  request: PushRequest,
   badge: number | null,
 ): Promise<{ ok: boolean; errorData?: unknown }> {
   const jwt = await getApnsJwt();
   const host = apnsSandbox ? 'api.sandbox.push.apple.com' : 'api.push.apple.com';
   const url = `https://${host}/3/device/${encodeURIComponent(deviceToken)}`;
-  const aps: Record<string, unknown> = {
-    alert: { title, body },
-    sound: 'default',
-  };
-  if (badge !== null) {
-    aps.badge = badge;
-  }
-  const bodyObj: Record<string, unknown> = { aps };
-  for (const [k, v] of Object.entries(dataPayload)) {
-    bodyObj[k] = v;
-  }
+  const apns = buildApnsRequest(request, badge);
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'authorization': `Bearer ${jwt}`,
       'apns-topic': apnsBundleId,
-      'apns-push-type': 'alert',
-      'apns-priority': '10',
+      ...apns.headers,
       'content-type': 'application/json',
     },
-    body: JSON.stringify(bodyObj),
+    body: JSON.stringify(apns.body),
   });
   if (res.ok) return { ok: true };
   const errorData = await res.json().catch(() => ({}));
@@ -328,24 +304,20 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const payload: PushNotificationRequest = await req.json();
-
-    if (!payload.title || !payload.body) {
-      return json({ error: 'title and body are required' }, 400);
+    const request = parsePushRequest(await req.json());
+    if ('error' in request) {
+      return json({ error: request.error }, 400);
     }
+    const sendToAll = request.kind === 'alert' && request.sendToAll;
 
-    if (!payload.emails && !payload.sendToAll) {
-      return json({ error: 'emails or sendToAll is required' }, 400);
-    }
-
-    const caller = await resolvePushCaller(req);
-    const access = decidePushAccess(caller, payload.sendToAll === true);
+    const access = decidePushAccess(await resolvePushCaller(req), request);
     if (access === 'deny') {
       return json({ error: 'Not authorized' }, 403);
     }
 
-    let recipientEmails = payload.emails;
-    if (access === 'admin_recipients') {
+    const requested = request.kind === 'alert' ? request.emails : undefined;
+    let recipientEmails = requested;
+    if (access !== 'raw') {
       const { data: admins, error: adminFetchError } = await supabase
         .from('email_subscribers')
         .select('email, receive_admin_push, is_blocked')
@@ -354,20 +326,20 @@ Deno.serve(async (req: Request) => {
         console.error('admin push recipient lookup failed:', adminFetchError);
         return json({ error: 'Failed to load recipients' }, 500);
       }
-      recipientEmails = adminPushRecipientEmails(payload.emails ?? [], admins ?? []);
-      if (recipientEmails.length === 0) {
-        return json({ message: 'No device tokens found', sent: 0, failed: 0 }, 200);
-      }
+      recipientEmails = access === 'all_admins'
+        ? allAdminRecipientEmails(admins ?? [])
+        : adminPushRecipientEmails(requested ?? [], admins ?? []);
     }
-
-    const platform = payload.platform || 'both';
+    if (!sendToAll && recipientEmails?.length === 0) {
+      return json({ message: 'No device tokens found', sent: 0, failed: 0 }, 200);
+    }
 
     let query = supabase.from('device_tokens').select('id, token, platform, user_email');
-    if (!payload.sendToAll && recipientEmails) {
+    if (!sendToAll && recipientEmails) {
       query = query.in('user_email', recipientEmails);
     }
-    if (platform !== 'both') {
-      query = query.eq('platform', platform);
+    if (request.platform !== 'both') {
+      query = query.eq('platform', request.platform);
     }
 
     const { data: tokens, error: queryError } = await query;
@@ -391,10 +363,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const dataPayload = stringifyData(payload.data);
     const iconBadges = await loadIconBadges(tokens);
     let successCount = 0;
     let failureCount = 0;
+    let skippedCount = 0;
     let firstFailureReason: string | null = null;
 
     // FCM only for Android (token is FCM token)
@@ -414,24 +386,21 @@ Deno.serve(async (req: Request) => {
     for (const tokenRecord of tokens) {
       const logRow = {
         device_token_id: tokenRecord.id,
-        title: payload.title,
-        body: payload.body,
-        data: payload.data ?? undefined,
+        ...logContent(request),
         user_email: tokenRecord.user_email,
       };
 
+      const badgeEmail = tokenRecord.user_email?.trim().toLowerCase() ?? '';
+      const badge = iconBadges.get(badgeEmail) ?? null;
+      if (request.kind === 'badge_only' && badge === null) {
+        skippedCount++;
+        continue;
+      }
+
       try {
-        const badgeEmail = tokenRecord.user_email?.trim().toLowerCase() ?? '';
-        const badge = iconBadges.get(badgeEmail) ?? null;
         if (tokenRecord.platform === 'ios') {
           // iOS: Capacitor gives APNs device token → send via APNs
-          const result = await sendViaApns(
-            tokenRecord.token,
-            payload.title,
-            payload.body,
-            dataPayload,
-            badge,
-          );
+          const result = await sendViaApns(tokenRecord.token, request, badge);
           if (result.ok) {
             successCount++;
             await supabase.from('push_notification_log').insert({
@@ -468,17 +437,7 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        const message = {
-          token: tokenRecord.token,
-          notification: { title: payload.title, body: payload.body },
-          data: Object.keys(dataPayload).length ? dataPayload : undefined,
-          android: {
-            priority: 'high' as const,
-            notification: badge === null
-              ? { channelId: 'prayers' }
-              : { channelId: 'prayers', notification_count: badge },
-          },
-        };
+        const message = buildFcmMessage(tokenRecord.token, request, badge);
 
         const fcmResponse = await fetch(fcmUrl, {
           method: 'POST',
@@ -526,6 +485,7 @@ Deno.serve(async (req: Request) => {
       total: tokens.length,
       sent: successCount,
       failed: failureCount,
+      skipped: skippedCount,
     };
     if (firstFailureReason) body.failureReason = firstFailureReason;
 

@@ -115,19 +115,22 @@ export class AdminPendingCountService {
       });
   }
 
-  async refresh(): Promise<void> {
+  /** Resolves false only when the fetch failed, so the in-memory count may be stale. */
+  async refresh(): Promise<boolean> {
     if (!this.eligible) {
-      return;
+      return true;
     }
     const epoch = ++this.epoch;
     try {
       const counts = await this.read.fetchPendingCounts();
       if (epoch !== this.epoch || !this.eligible) {
-        return;
+        return true;
       }
       this.countSubject.next(sumPendingApprovalItems(counts));
+      return true;
     } catch (error) {
       console.error('Error fetching pending approval counts:', error);
+      return false;
     }
   }
 }

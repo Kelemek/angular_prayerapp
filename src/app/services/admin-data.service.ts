@@ -83,6 +83,7 @@ export class AdminDataService {
 
   async approvePrayer(id: string): Promise<void> {
     await this.command.approvePrayer(id);
+    this.notify.refreshAdminIconBadges();
     const prayer = await this.command.tryFetchPrayerById(id);
     if (prayer) {
       this.notify.notifyPrayerApproved(prayer);
@@ -97,6 +98,7 @@ export class AdminDataService {
 
   async denyPrayer(id: string, reason: string): Promise<void> {
     const prayer = await this.command.denyPrayer(id, reason);
+    this.notify.refreshAdminIconBadges();
     this.notify.notifyPrayerDenied(prayer, reason);
     await this.refreshAfterMutation();
   }
@@ -113,6 +115,7 @@ export class AdminDataService {
 
   async approveUpdate(id: string): Promise<void> {
     const update = await this.command.approveUpdate(id);
+    this.notify.refreshAdminIconBadges();
     if (update) {
       this.notify.notifyUpdateApproved(update);
     }
@@ -126,6 +129,7 @@ export class AdminDataService {
 
   async denyUpdate(id: string, reason: string): Promise<void> {
     const update = await this.command.denyUpdate(id, reason);
+    this.notify.refreshAdminIconBadges();
     this.notify.notifyUpdateDenied(update, reason);
     await this.refreshAfterMutation();
   }
@@ -144,32 +148,38 @@ export class AdminDataService {
 
   async approveDeletionRequest(id: string): Promise<void> {
     await this.command.approveDeletionRequest(id);
+    this.notify.refreshAdminIconBadges();
     await this.refreshAfterMutation();
   }
 
   async denyDeletionRequest(id: string, reason: string): Promise<void> {
     await this.command.denyDeletionRequest(id, reason);
+    this.notify.refreshAdminIconBadges();
     await this.refreshAfterMutation();
   }
 
   async approveUpdateDeletionRequest(id: string): Promise<void> {
     await this.command.approveUpdateDeletionRequest(id);
+    this.notify.refreshAdminIconBadges();
     await this.refreshAfterMutation();
   }
 
   async denyUpdateDeletionRequest(id: string, reason: string): Promise<void> {
     await this.command.denyUpdateDeletionRequest(id, reason);
+    this.notify.refreshAdminIconBadges();
     await this.refreshAfterMutation();
   }
 
   async approveAccountRequest(id: string): Promise<void> {
     const request = await this.command.approveAccountRequest(id);
+    this.notify.refreshAdminIconBadges();
     await this.notify.notifyAccountApproved(request);
     await this.fetchAdminData(true, true);
   }
 
   async denyAccountRequest(id: string, reason: string): Promise<void> {
     const request = await this.command.denyAccountRequest(id);
+    this.notify.refreshAdminIconBadges();
     await this.notify.notifyAccountDenied(request);
     await this.fetchAdminData(true, true);
   }

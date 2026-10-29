@@ -300,7 +300,7 @@ describe('AdminPendingCountService', () => {
     });
 
     fetchPendingCounts.mockRejectedValueOnce(new Error('offline'));
-    await service.refresh();
+    await expect(service.refresh()).resolves.toBe(false);
 
     expect(await count()).toBe(4);
     expect(errorSpy).toHaveBeenCalled();

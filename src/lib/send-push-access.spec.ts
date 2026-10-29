@@ -1,9 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
   adminPushRecipientEmails,
+  allAdminRecipientEmails,
   decidePushAccess,
   isPushServiceRoleCaller,
 } from "../../supabase/functions/send-push-notification/access";
+import type { PushRequest } from "../../supabase/functions/send-push-notification/payload";
+
+const badgeOnly: PushRequest = { kind: "badge_only", platform: "both" };
+
+function alert(sendToAll: boolean): PushRequest {
+  return {
+    kind: "alert",
+    emails: ["a@example.com"],
+    sendToAll,
+    title: "T",
+    body: "B",
+    data: {},
+    platform: "both",
+  };
+}
 
 function tokenWithRole(role: string): string {
   const payload = btoa(JSON.stringify({ role }))
@@ -28,18 +44,36 @@ describe("send-push access", () => {
   });
 
   it("lets the service role and an admin choose recipients", () => {
-    expect(decidePushAccess("service_role", true)).toBe("raw");
-    expect(decidePushAccess("admin", false)).toBe("raw");
+    expect(decidePushAccess("service_role", alert(true))).toBe("raw");
+    expect(decidePushAccess("admin", alert(false))).toBe("raw");
   });
 
   it("limits a subscriber to admin devices and refuses a broadcast", () => {
-    expect(decidePushAccess("subscriber", false)).toBe("admin_recipients");
-    expect(decidePushAccess("subscriber", true)).toBe("deny");
+    expect(decidePushAccess("subscriber", alert(false))).toBe("admin_recipients");
+    expect(decidePushAccess("subscriber", alert(true))).toBe("deny");
   });
 
   it("refuses a logged-out caller", () => {
-    expect(decidePushAccess("anonymous", false)).toBe("deny");
-    expect(decidePushAccess("anonymous", true)).toBe("deny");
+    expect(decidePushAccess("anonymous", alert(false))).toBe("deny");
+    expect(decidePushAccess("anonymous", alert(true))).toBe("deny");
+  });
+
+  it("lets only admins and the service role refresh every admin badge", () => {
+    expect(decidePushAccess("admin", badgeOnly)).toBe("all_admins");
+    expect(decidePushAccess("service_role", badgeOnly)).toBe("all_admins");
+    expect(decidePushAccess("subscriber", badgeOnly)).toBe("deny");
+    expect(decidePushAccess("anonymous", badgeOnly)).toBe("deny");
+  });
+
+  it("refreshes badges for every unblocked admin, even with admin push off", () => {
+    expect(
+      allAdminRecipientEmails([
+        { email: "On@example.com", receive_admin_push: true },
+        { email: "off@example.com", receive_admin_push: false },
+        { email: "blocked@example.com", is_blocked: true },
+        { email: "  " },
+      ])
+    ).toEqual(["On@example.com", "off@example.com"]);
   });
 
   it("keeps only requested admins who receive admin push", () => {

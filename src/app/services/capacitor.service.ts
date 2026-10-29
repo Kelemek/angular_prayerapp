@@ -25,6 +25,7 @@ export type PushNotificationEventType =
   | 'prayer_item_reminder'
   | 'memorization_reminder'
   | 'verse_memorization_prayer'
+  | 'badge_refresh'
   | 'generic';
 
 export interface PushNotificationEvent {
@@ -208,14 +209,14 @@ export class CapacitorService {
    * Handle incoming push notification when app is in foreground
    */
   private handlePushNotification(notification: PushNotificationSchema): void {
-    const title = notification.title || 'Prayer App';
-    const body = notification.body || 'You have a new notification';
-    
-    // Show toast notification
-    this.toastService.success(body);
+    const type = (notification.data?.type as PushNotificationEventType) || 'generic';
+
+    // Badge-only pushes carry no text; they only nudge the icon and admin counts.
+    if (type !== 'badge_refresh') {
+      this.toastService.success(notification.body || 'You have a new notification');
+    }
 
     // Emit an app-level event so services/components can react (e.g. refresh prayers)
-    const type = (notification.data?.type as PushNotificationEventType) || 'generic';
     this.notificationEventsSubject.next({
       type,
       source: 'received',

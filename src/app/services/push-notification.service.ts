@@ -321,6 +321,23 @@ export class PushNotificationService {
   }
 
   /**
+   * Silent badge-only push to every admin device; the server computes each icon number.
+   * Failures are logged but do not throw.
+   */
+  async sendAdminBadgeRefresh(): Promise<void> {
+    try {
+      const { error } = await this.supabase.client.functions.invoke('send-push-notification', {
+        body: { badgeOnly: true },
+      });
+      if (error) {
+        console.error('Admin badge refresh push failed:', error);
+      }
+    } catch (err) {
+      console.error('Error sending admin badge refresh push:', err);
+    }
+  }
+
+  /**
    * Remove device token (user logs out)
    */
   async removeDeviceToken(): Promise<void> {
