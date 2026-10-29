@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Release — native store version 3.1 (October 28, 2026)
+- iOS `MARKETING_VERSION` and Android `versionName` are **3.1** (Android `versionCode` **71**, iOS `CURRENT_PROJECT_VERSION` **6**). [`APP_BUNDLE_VERSION`](../src/lib/app-analytics-context.ts) matches so PostHog `app_version` stays in sync with the stores.
+
 ### Push carries the app icon badge (October 28, 2026)
 - Every push now includes the recipient's icon number, so iOS updates the home-screen badge while the app is backgrounded or closed. Android launchers that honor `notification_count` do the same. [`send-push-notification`](../supabase/functions/send-push-notification/index.ts) sets `aps.badge` and FCM `android.notification.notification_count`.
 - Any signed-in device, including the website, reports the current unread total (Current + Answered + Prompts, or 0 when badges are off) on `user_badge_read_state` through [`IconBadgeReportService`](../src/app/services/icon-badge-report.service.ts) and `report_icon_badge_unread`. The next push adds prayers, updates, and prompts that became unread after that report, and adds the live pending-approval total for admins. A person who has never reported gets no badge field, so the push leaves the icon number unchanged. [`AppIconBadgeService`](../src/app/services/app-icon-badge.service.ts) still writes the icon while the app is open. Migration: [`20261028193000_icon_badge_push.sql`](../supabase/migrations/20261028193000_icon_badge_push.sql).
