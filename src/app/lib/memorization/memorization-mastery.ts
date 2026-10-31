@@ -1,18 +1,18 @@
-import type {
-  MemorizationMasterLevel,
-  MemorizationPracticeSessionRecord,
-  MemorizedItem,
-} from '../../types/memorization';
+import type { MemorizationMasterLevel, MemorizedItem } from '../../types/memorization';
 
 export function countCompletedSessions(item: MemorizedItem): number {
   return item.practiceSessions.filter((s) => s.completed).length;
 }
 
+export const LEARNING_COMPLETED_BELOW = 3;
+
+export const PRACTICING_COMPLETED_BELOW = 9;
+
 export function masterLevelFromCompletedCount(
   completedCount: number
 ): MemorizationMasterLevel {
-  if (completedCount < 3) return 'learning';
-  if (completedCount < 9) return 'practicing';
+  if (completedCount < LEARNING_COMPLETED_BELOW) return 'learning';
+  if (completedCount < PRACTICING_COMPLETED_BELOW) return 'practicing';
   return 'mastered';
 }
 
@@ -60,23 +60,6 @@ export function groupItemsByMasterLevel(items: MemorizedItem[]): {
         void _exhaustive;
       }
     }
-  }
-  return { learning, practicing, mastered };
-}
-
-/** Site-wide / list totals for Learning / Practicing / Mastered. */
-export function countByMasterLevel(
-  items: Array<{ practiceSessions: MemorizationPracticeSessionRecord[] }>
-): { learning: number; practicing: number; mastered: number } {
-  let learning = 0;
-  let practicing = 0;
-  let mastered = 0;
-  for (const item of items) {
-    const completed = item.practiceSessions.filter((s) => s.completed).length;
-    const level = masterLevelFromCompletedCount(completed);
-    if (level === 'learning') learning += 1;
-    else if (level === 'practicing') practicing += 1;
-    else mastered += 1;
   }
   return { learning, practicing, mastered };
 }

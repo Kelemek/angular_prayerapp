@@ -12,7 +12,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { AdminDataService, type AdminData } from '../../services/admin-data.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
-import { AnalyticsService, type AnalyticsStats } from '../../services/analytics.service';
+import { AnalyticsService } from '../../services/analytics.service';
 import {
   SendNotificationDialogComponent,
   type NotificationType,
@@ -24,6 +24,10 @@ import { AdminApprovalsPanelComponent } from '../../components/admin-approvals-p
 import { AdminDeletionsPanelComponent } from '../../components/admin-deletions-panel/admin-deletions-panel.component';
 import { AdminAccountsPanelComponent } from '../../components/admin-accounts-panel/admin-accounts-panel.component';
 import { AdminSettingsPanelComponent } from '../../components/admin-settings-panel/admin-settings-panel.component';
+import {
+  emptyAdminAnalyticsStats,
+  type AnalyticsStats,
+} from '../../lib/admin-analytics-tiles';
 import {
   type AdminTab,
   type ConsolidatedApproval,
@@ -56,23 +60,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   activeSettingsTab: AdminSettingsTab = 'analytics';
   adminData: AdminData | null = null;
   consolidatedApprovals: ConsolidatedApproval[] = [];
-  analyticsStats: AnalyticsStats = {
-    todayPageViews: 0,
-    weekPageViews: 0,
-    monthPageViews: 0,
-    yearPageViews: 0,
-    totalPageViews: 0,
-    totalPrayers: 0,
-    currentPrayers: 0,
-    answeredPrayers: 0,
-    archivedPrayers: 0,
-    totalSubscribers: 0,
-    memorizationTotal: 0,
-    memorizationLearning: 0,
-    memorizationPracticing: 0,
-    memorizationMastered: 0,
-    loading: false,
-  };
+  analyticsStats: AnalyticsStats = emptyAdminAnalyticsStats(false);
 
   showSendNotificationDialog = false;
   showAdminHelp = false;

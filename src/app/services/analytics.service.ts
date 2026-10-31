@@ -1,26 +1,12 @@
 import { Injectable } from '@angular/core';
-import { countByMasterLevel } from '../lib/memorization/memorization-mastery';
-import type { MemorizationPracticeSessionRecord } from '../types/memorization';
+import {
+  ADMIN_SITE_ANALYTICS_TILES,
+  emptyAdminAnalyticsStats,
+  type AdminAnalyticsStatKey,
+  type AnalyticsStats,
+} from '../lib/admin-analytics-tiles';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
-
-export interface AnalyticsStats {
-  todayPageViews: number;
-  weekPageViews: number;
-  monthPageViews: number;
-  yearPageViews: number;
-  totalPageViews: number;
-  totalPrayers: number;
-  currentPrayers: number;
-  answeredPrayers: number;
-  archivedPrayers: number;
-  totalSubscribers: number;
-  memorizationTotal: number;
-  memorizationLearning: number;
-  memorizationPracticing: number;
-  memorizationMastered: number;
-  loading: boolean;
-}
 
 /** Presets for Site Analytics activity chart (maps to window + RPC bucket). */
 export type PageViewTimeSeriesPreset =
@@ -93,6 +79,55 @@ function enumerateUtcBucketStarts(
   return keys;
 }
 
+export interface AnalyticsWindowStarts {
+  today: Date;
+  week: Date;
+  month: Date;
+  year: Date;
+}
+
+export function analyticsWindowStarts(now: Date): AnalyticsWindowStarts {
+  const today = new Date(now.getTime());
+  today.setHours(0, 0, 0, 0);
+
+  const week = new Date(now.getTime());
+  week.setDate(week.getDate() - week.getDay());
+  week.setHours(0, 0, 0, 0);
+
+  const month = new Date(now.getTime());
+  month.setDate(1);
+  month.setHours(0, 0, 0, 0);
+
+  const year = new Date(now.getTime());
+  year.setMonth(0, 1);
+  year.setHours(0, 0, 0, 0);
+
+  return { today, week, month, year };
+}
+
+function finiteStat(value: unknown): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function countsFromAnalyticsPayload(payload: unknown): Record<AdminAnalyticsStatKey, number> {
+  const body =
+    payload !== null && typeof payload === 'object' && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>)
+      : null;
+  const counts = {} as Record<AdminAnalyticsStatKey, number>;
+  for (const tile of ADMIN_SITE_ANALYTICS_TILES) {
+    counts[tile.statKey] = finiteStat(body?.[tile.statKey]);
+  }
+  return counts;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -155,221 +190,25 @@ export class AnalyticsService {
   }
 
   async getStats(): Promise<AnalyticsStats> {
-    const stats: AnalyticsStats = {
-      todayPageViews: 0,
-      weekPageViews: 0,
-      monthPageViews: 0,
-      yearPageViews: 0,
-      totalPageViews: 0,
-      totalPrayers: 0,
-      currentPrayers: 0,
-      answeredPrayers: 0,
-      archivedPrayers: 0,
-      totalSubscribers: 0,
-      memorizationTotal: 0,
-      memorizationLearning: 0,
-      memorizationPracticing: 0,
-      memorizationMastered: 0,
-      loading: true
-    };
-
+    const stats = emptyAdminAnalyticsStats(true);
     try {
-      const now = new Date();
-      
-      // Today: from 12 AM to 12 AM (00:00:00 to 23:59:59.999) local time
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      
-      // Week: Sunday 12 AM to current time (current calendar week)
-      const weekStart = new Date();
-      const dayOfWeek = weekStart.getDay(); // 0 = Sunday
-      weekStart.setDate(weekStart.getDate() - dayOfWeek);
-      weekStart.setHours(0, 0, 0, 0);
-      
-      // Month: 1st of current month 12 AM to current time
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-
-      // Year: Jan 1 of current year 12 AM to current time
-      const yearStart = new Date();
-      yearStart.setMonth(0); // January
-      yearStart.setDate(1);
-      yearStart.setHours(0, 0, 0, 0);
-
-      // Convert local times to ISO strings for database queries
-      // The database stores created_at in UTC, but we need to query based on local time
-      const todayStartISO = todayStart.toISOString();
-      const weekStartISO = weekStart.toISOString();
-      const monthStartISO = monthStart.toISOString();
-      const yearStartISO = yearStart.toISOString();
-
-      // Execute all queries in parallel for better performance
-      const [
-        totalResult,
-        todayResult,
-        weekResult,
-        monthResult,
-        yearResult,
-        prayersResult,
-        currentPrayersResult,
-        answeredPrayersResult,
-        archivedPrayersResult,
-        subscribersResult,
-        memorizedItemsResult
-      ] = await Promise.all([
-        // Total page views
-        (await this.supabase.db())
-          .from('analytics')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_type', 'page_view'),
-
-        // Today's page views
-        (await this.supabase.db())
-          .from('analytics')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_type', 'page_view')
-          .gte('created_at', todayStartISO),
-
-        // Week's page views (current calendar week - Sunday to now)
-        (await this.supabase.db())
-          .from('analytics')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_type', 'page_view')
-          .gte('created_at', weekStartISO),
-
-        // Month's page views (current calendar month - 1st to now)
-        (await this.supabase.db())
-          .from('analytics')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_type', 'page_view')
-          .gte('created_at', monthStartISO),
-
-        // Year's page views (current year - Jan 1 to now)
-        (await this.supabase.db())
-          .from('analytics')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_type', 'page_view')
-          .gte('created_at', yearStartISO),
-
-        // Total prayers count
-        (await this.supabase.db())
-          .from('prayers')
-          .select('*', { count: 'exact', head: true }),
-
-        // Current prayers (status = 'current')
-        (await this.supabase.db())
-          .from('prayers')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'current'),
-
-        // Answered prayers (status = 'answered')
-        (await this.supabase.db())
-          .from('prayers')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'answered'),
-
-        // Archived prayers (status = 'archived')
-        (await this.supabase.db())
-          .from('prayers')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'archived'),
-
-        // Total subscribers
-        (await this.supabase.db())
-          .from('email_subscribers')
-          .select('*', { count: 'exact', head: true }),
-
-        // Memorization mastery (site-wide; levels derived from practice_sessions)
-        (await this.supabase.db()).from('memorized_items').select('practice_sessions')
-      ]);
-
-      // Process results
-      if (totalResult.error) {
-        console.error('Error fetching total page views:', totalResult.error);
+      const bounds = analyticsWindowStarts(new Date());
+      const { data, error } = await (await this.supabase.db()).rpc('admin_site_analytics_stats', {
+        p_today: bounds.today.toISOString(),
+        p_week: bounds.week.toISOString(),
+        p_month: bounds.month.toISOString(),
+        p_year: bounds.year.toISOString(),
+      });
+      if (error) {
+        console.error('Error fetching analytics stats:', error);
       } else {
-        stats.totalPageViews = totalResult.count || 0;
+        Object.assign(stats, countsFromAnalyticsPayload(data));
       }
-
-      if (todayResult.error) {
-        console.error('Error fetching today page views:', todayResult.error);
-      } else {
-        stats.todayPageViews = todayResult.count || 0;
-      }
-
-      if (weekResult.error) {
-        console.error('Error fetching week page views:', weekResult.error);
-      } else {
-        stats.weekPageViews = weekResult.count || 0;
-      }
-
-      if (monthResult.error) {
-        console.error('Error fetching month page views:', monthResult.error);
-      } else {
-        stats.monthPageViews = monthResult.count || 0;
-      }
-
-      if (yearResult.error) {
-        console.error('Error fetching year page views:', yearResult.error);
-      } else {
-        stats.yearPageViews = yearResult.count || 0;
-      }
-
-      if (prayersResult.error) {
-        console.error('Error fetching prayers count:', prayersResult.error);
-      } else {
-        stats.totalPrayers = prayersResult.count || 0;
-      }
-
-      if (currentPrayersResult.error) {
-        console.error('Error fetching current prayers count:', currentPrayersResult.error);
-      } else {
-        stats.currentPrayers = currentPrayersResult.count || 0;
-      }
-
-      if (answeredPrayersResult.error) {
-        console.error('Error fetching answered prayers count:', answeredPrayersResult.error);
-      } else {
-        stats.answeredPrayers = answeredPrayersResult.count || 0;
-      }
-
-      if (archivedPrayersResult.error) {
-        console.error('Error fetching archived prayers count:', archivedPrayersResult.error);
-      } else {
-        stats.archivedPrayers = archivedPrayersResult.count || 0;
-      }
-
-      if (subscribersResult.error) {
-        console.error('Error fetching subscribers count:', subscribersResult.error);
-      } else {
-        stats.totalSubscribers = subscribersResult.count || 0;
-      }
-
-      if (memorizedItemsResult.error) {
-        console.error('Error fetching memorization mastery counts:', memorizedItemsResult.error);
-      } else {
-        const rows = (memorizedItemsResult.data ?? []) as Array<{
-          practice_sessions?: MemorizationPracticeSessionRecord[] | null;
-        }>;
-        const mastery = countByMasterLevel(
-          rows.map((row) => ({
-            practiceSessions: Array.isArray(row.practice_sessions)
-              ? row.practice_sessions
-              : [],
-          }))
-        );
-        stats.memorizationTotal = rows.length;
-        stats.memorizationLearning = mastery.learning;
-        stats.memorizationPracticing = mastery.practicing;
-        stats.memorizationMastered = mastery.mastered;
-      }
-
     } catch (error) {
       console.error('Error fetching analytics stats:', error);
     } finally {
       stats.loading = false;
     }
-
     return stats;
   }
 

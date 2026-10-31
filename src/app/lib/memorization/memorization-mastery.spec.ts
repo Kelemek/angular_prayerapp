@@ -3,9 +3,10 @@ import {
   getMasterLevel,
   countCompletedSessions,
   groupItemsByMasterLevel,
-  countByMasterLevel,
   masterLevelFromCompletedCount,
   masterLevelLabel,
+  LEARNING_COMPLETED_BELOW,
+  PRACTICING_COMPLETED_BELOW,
 } from './memorization-mastery';
 import type { MemorizedItem } from '../../types/memorization';
 
@@ -98,11 +99,13 @@ describe('groupItemsByMasterLevel', () => {
 
 describe('masterLevelFromCompletedCount', () => {
   it('maps thresholds to levels', () => {
+    expect(LEARNING_COMPLETED_BELOW).toBe(3);
+    expect(PRACTICING_COMPLETED_BELOW).toBe(9);
     expect(masterLevelFromCompletedCount(0)).toBe('learning');
-    expect(masterLevelFromCompletedCount(2)).toBe('learning');
-    expect(masterLevelFromCompletedCount(3)).toBe('practicing');
-    expect(masterLevelFromCompletedCount(8)).toBe('practicing');
-    expect(masterLevelFromCompletedCount(9)).toBe('mastered');
+    expect(masterLevelFromCompletedCount(LEARNING_COMPLETED_BELOW - 1)).toBe('learning');
+    expect(masterLevelFromCompletedCount(LEARNING_COMPLETED_BELOW)).toBe('practicing');
+    expect(masterLevelFromCompletedCount(PRACTICING_COMPLETED_BELOW - 1)).toBe('practicing');
+    expect(masterLevelFromCompletedCount(PRACTICING_COMPLETED_BELOW)).toBe('mastered');
   });
 });
 
@@ -114,23 +117,3 @@ describe('masterLevelLabel', () => {
   });
 });
 
-describe('countByMasterLevel', () => {
-  it('returns numeric totals per level', () => {
-    const counts = countByMasterLevel([
-      { practiceSessions: completedSessions(1) },
-      { practiceSessions: completedSessions(2) },
-      { practiceSessions: completedSessions(5) },
-      { practiceSessions: completedSessions(10) },
-      { practiceSessions: completedSessions(12) },
-    ]);
-    expect(counts).toEqual({ learning: 2, practicing: 1, mastered: 2 });
-  });
-
-  it('returns zeros for an empty list', () => {
-    expect(countByMasterLevel([])).toEqual({
-      learning: 0,
-      practicing: 0,
-      mastered: 0,
-    });
-  });
-});

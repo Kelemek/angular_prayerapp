@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import type { AnalyticsStats } from '../../services/analytics.service';
-import { buildAdminAnalyticsTileViews } from '../../lib/admin-analytics-tiles';
+import {
+  buildAdminAnalyticsTileViews,
+  type AnalyticsStats,
+} from '../../lib/admin-analytics-tiles';
 import { AdminAnalyticsStatTileComponent } from '../admin-analytics-stat-tile/admin-analytics-stat-tile.component';
 import { SiteAnalyticsActivityChartComponent } from '../site-analytics-activity-chart/site-analytics-activity-chart.component';
 
