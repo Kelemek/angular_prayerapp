@@ -69,7 +69,7 @@ export const ADMIN_SITE_ANALYTICS_TILES = [
   {
     statKey: 'groupMembers',
     label: 'Members',
-    subtitle: 'church members in groups',
+    subtitle: 'church members',
     accent: 'group',
     icon: 'users',
   },

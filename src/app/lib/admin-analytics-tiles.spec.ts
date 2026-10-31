@@ -69,7 +69,7 @@ describe('admin-analytics-tiles', () => {
     });
     expect(byKey.get('groupMembers')).toMatchObject({
       label: 'Members',
-      subtitle: 'church members in groups',
+      subtitle: 'church members',
       icon: 'users',
       accent: 'group',
     });
