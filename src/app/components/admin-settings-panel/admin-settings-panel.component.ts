@@ -24,7 +24,7 @@ import { MemorizationReciteSettingsComponent } from '../memorization-recite-sett
 import { AdminSiteAnalyticsPanelComponent } from '../admin-site-analytics-panel/admin-site-analytics-panel.component';
 import { AdminSettingsToolsPanelComponent } from '../admin-settings-tools-panel/admin-settings-tools-panel.component';
 import { ADMIN_SETTINGS_TABS, type AdminSettingsTab } from '../../lib/admin-settings-tabs';
-import type { AnalyticsStats } from '../../services/analytics.service';
+import type { AnalyticsStats } from '../../lib/admin-analytics-tiles';
 
 @Component({
   selector: 'app-admin-settings-panel',

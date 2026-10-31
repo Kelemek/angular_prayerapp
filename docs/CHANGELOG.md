@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Site Analytics uses one admin stats call (October 31, 2026)
+- Site Analytics loads every metric card with one admin call, `admin_site_analytics_stats`, defined in [`20261031180000_admin_site_analytics_stats.sql`](../supabase/migrations/20261031180000_admin_site_analytics_stats.sql). [`getStats`](../src/app/services/analytics.service.ts) sends the four local window starts and no longer counts those rows in the browser.
+- Six group tiles sit after Subscribers and before the memorization tiles. Memorized-verse totals, including bible-book rows, are counted in Postgres from `practice_sessions`. A person in two groups counts once, using `is_prayer_group_member_row`. If one count fails, that card is 0 and the other cards keep their numbers.
+
 ### Release — native store version 3.1 (October 28, 2026)
 - iOS `MARKETING_VERSION` and Android `versionName` are **3.1** (Android `versionCode` **71**, iOS `CURRENT_PROJECT_VERSION` **6**). [`APP_BUNDLE_VERSION`](../src/lib/app-analytics-context.ts) matches so PostHog `app_version` stays in sync with the stores.
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AnalyticsService } from './analytics.service';
+import { AnalyticsService, analyticsWindowStarts } from './analytics.service';
+import { ADMIN_SITE_ANALYTICS_TILES, emptyAdminAnalyticsStats } from '../lib/admin-analytics-tiles';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
 import { wireGatedSupabaseMock } from '../testing/supabase-service-mock';
@@ -307,380 +308,162 @@ describe('AnalyticsService', () => {
     });
   });
 
+  describe('analyticsWindowStarts', () => {
+    it('uses local Sunday midnight when now is Sunday, and does not change the input', () => {
+      const now = new Date(2026, 10, 1, 18, 30, 45, 12);
+      expect(now.getDay()).toBe(0);
+      const stamp = now.getTime();
+      const starts = analyticsWindowStarts(now);
+      expect(now.getTime()).toBe(stamp);
+      const sunday = new Date(2026, 10, 1, 0, 0, 0, 0);
+      expect(starts.today.getTime()).toBe(sunday.getTime());
+      expect(starts.week.getTime()).toBe(sunday.getTime());
+      expect(starts.month.getTime()).toBe(sunday.getTime());
+      expect(starts.year.getTime()).toBe(new Date(2026, 0, 1, 0, 0, 0, 0).getTime());
+    });
+
+    it('uses the local 1st when now is the first of a month', () => {
+      const now = new Date(2026, 9, 1, 9, 15, 0);
+      expect(now.getDate()).toBe(1);
+      expect(now.getDay()).toBe(4);
+      const starts = analyticsWindowStarts(now);
+      expect(starts.today.getTime()).toBe(new Date(2026, 9, 1, 0, 0, 0, 0).getTime());
+      expect(starts.month.getTime()).toBe(starts.today.getTime());
+      expect(starts.week.getTime()).toBe(new Date(2026, 8, 27, 0, 0, 0, 0).getTime());
+      expect(starts.week.getDay()).toBe(0);
+      expect(starts.year.getTime()).toBe(new Date(2026, 0, 1, 0, 0, 0, 0).getTime());
+    });
+
+    it('uses local January 1 when now is January 1', () => {
+      const now = new Date(2026, 0, 1, 16, 0, 0);
+      expect(now.getMonth()).toBe(0);
+      expect(now.getDate()).toBe(1);
+      const starts = analyticsWindowStarts(now);
+      const newYear = new Date(2026, 0, 1, 0, 0, 0, 0);
+      expect(starts.today.getTime()).toBe(newYear.getTime());
+      expect(starts.month.getTime()).toBe(newYear.getTime());
+      expect(starts.year.getTime()).toBe(newYear.getTime());
+      expect(starts.week.getTime()).toBe(new Date(2025, 11, 28, 0, 0, 0, 0).getTime());
+      expect(starts.week.getDay()).toBe(0);
+    });
+
+    it('keeps local midnight across the spring DST change', () => {
+      const now = new Date(2026, 2, 11, 15, 45, 30);
+      expect(now.getDay()).toBe(3);
+      const stamp = now.getTime();
+      const starts = analyticsWindowStarts(now);
+      expect(now.getTime()).toBe(stamp);
+      expect(starts.today.getTime()).toBe(new Date(2026, 2, 11, 0, 0, 0, 0).getTime());
+      expect(starts.week.getTime()).toBe(new Date(2026, 2, 8, 0, 0, 0, 0).getTime());
+      expect(starts.week.getDay()).toBe(0);
+      expect(starts.week.getHours()).toBe(0);
+      expect(starts.today.getHours()).toBe(0);
+      expect(starts.month.getTime()).toBe(new Date(2026, 2, 1, 0, 0, 0, 0).getTime());
+      expect(starts.year.getTime()).toBe(new Date(2026, 0, 1, 0, 0, 0, 0).getTime());
+      if (starts.week.getTimezoneOffset() !== starts.today.getTimezoneOffset()) {
+        expect(starts.week.getUTCHours()).not.toBe(starts.today.getUTCHours());
+      }
+    });
+  });
+
   describe('getStats', () => {
-    it('should return default stats structure', async () => {
+    it('returns 0 for every card when the body is not an object', async () => {
       const stats = await service.getStats();
+      expect(stats).toEqual(emptyAdminAnalyticsStats(false));
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledTimes(1);
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'admin_site_analytics_stats',
+        expect.objectContaining({
+          p_today: expect.any(String),
+          p_week: expect.any(String),
+          p_month: expect.any(String),
+          p_year: expect.any(String),
+        })
+      );
+      expect(mockSupabaseClient.from).not.toHaveBeenCalled();
+      expect(mockSupabaseService.from).not.toHaveBeenCalled();
+    });
 
-      expect(stats).toEqual({
-        todayPageViews: 0,
-        weekPageViews: 0,
-        monthPageViews: 0,
-        yearPageViews: 0,
-        totalPageViews: 0,
-        totalPrayers: 0,
-        currentPrayers: 0,
-        answeredPrayers: 0,
-        archivedPrayers: 0,
-        totalSubscribers: 0,
-        memorizationTotal: 0,
-        memorizationLearning: 0,
-        memorizationPracticing: 0,
-        memorizationMastered: 0,
-        loading: false
+    it('sends one admin_site_analytics_stats call with the local window starts', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 0, 15, 14, 30, 0));
+      expect(new Date(2026, 0, 15).getDay()).toBe(4);
+      expect(new Date(2026, 0, 11).getDay()).toBe(0);
+      mockSupabaseClient.rpc = vi.fn(() => Promise.resolve({ data: {}, error: null }));
+      try {
+        await service.getStats();
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledTimes(1);
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('admin_site_analytics_stats', {
+          p_today: new Date(2026, 0, 15, 0, 0, 0, 0).toISOString(),
+          p_week: new Date(2026, 0, 11, 0, 0, 0, 0).toISOString(),
+          p_month: new Date(2026, 0, 1, 0, 0, 0, 0).toISOString(),
+          p_year: new Date(2026, 0, 1, 0, 0, 0, 0).toISOString(),
+        });
+        expect(mockSupabaseClient.from).not.toHaveBeenCalled();
+        expect(mockSupabaseService.from).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('maps every catalog key, including numeric strings', async () => {
+      const data: Record<string, unknown> = {};
+      const expected = emptyAdminAnalyticsStats(false);
+      ADMIN_SITE_ANALYTICS_TILES.forEach((tile, index) => {
+        const n = index + 1;
+        data[tile.statKey] = index % 2 === 0 ? String(n) : n;
+        expected[tile.statKey] = n;
       });
-    });
-
-    it('should fetch and return analytics stats', async () => {
+      mockSupabaseClient.rpc = vi.fn(() => Promise.resolve({ data, error: null }));
       const stats = await service.getStats();
-
-      // Since the default mock returns 0 for all counts, just verify the structure is correct
-      expect(stats).toEqual(expect.objectContaining({
-        todayPageViews: expect.any(Number),
-        weekPageViews: expect.any(Number),
-        monthPageViews: expect.any(Number),
-        yearPageViews: expect.any(Number),
-        totalPageViews: expect.any(Number),
-        totalPrayers: expect.any(Number),
-        currentPrayers: expect.any(Number),
-        answeredPrayers: expect.any(Number),
-        archivedPrayers: expect.any(Number),
-        totalSubscribers: expect.any(Number),
-        memorizationTotal: expect.any(Number),
-        memorizationLearning: expect.any(Number),
-        memorizationPracticing: expect.any(Number),
-        memorizationMastered: expect.any(Number),
-        loading: false
-      }));
+      expect(stats).toEqual(expected);
     });
 
-    it('should handle errors for individual stat queries', async () => {
+    it('returns 0 for a missing or invalid key and keeps the other numbers', async () => {
+      const data: Record<string, unknown> = {};
+      for (const tile of ADMIN_SITE_ANALYTICS_TILES) {
+        data[tile.statKey] = 4;
+      }
+      delete data.prayerGroups;
+      data.groupMembers = 0;
+      data.todayPageViews = null;
+      data.weekPageViews = 'nope';
+      data.monthPageViews = true;
+      data.yearPageViews = Number.POSITIVE_INFINITY;
+      mockSupabaseClient.rpc = vi.fn(() => Promise.resolve({ data, error: null }));
+      const stats = await service.getStats();
+      expect(stats.prayerGroups).toBe(0);
+      expect(stats.groupMembers).toBe(0);
+      expect(stats.groupNonMembers).toBe(4);
+      expect(stats.todayPageViews).toBe(0);
+      expect(stats.weekPageViews).toBe(0);
+      expect(stats.monthPageViews).toBe(0);
+      expect(stats.yearPageViews).toBe(0);
+      expect(stats.totalPageViews).toBe(4);
+      expect(stats.loading).toBe(false);
+    });
+
+    it('resolves zeros when the RPC returns an error', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const error = new Error('Query failed');
-
-      const createErrorChain = () => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => Promise.resolve({ count: null, error }))
-          }))
-        }))
-      });
-
-      const createErrorSimpleChain = () => ({
-        select: vi.fn(() => Promise.resolve({ count: null, error }))
-      });
-
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'analytics') {
-          return createErrorChain();
-        } else if (table === 'prayers') {
-          return createErrorSimpleChain();
-        } else if (table === 'email_subscribers') {
-          return createErrorSimpleChain();
-        } else if (table === 'memorized_items') {
-          return {
-            select: vi.fn(() => Promise.resolve({ data: null, error }))
-          };
-        }
-        return createErrorSimpleChain();
-      });
-
-      const stats = await service.getStats();
-
-      // Should return default values on error
-      expect(stats.totalPageViews).toBe(0);
-      expect(stats.totalPrayers).toBe(0);
-      expect(stats.totalSubscribers).toBe(0);
-      expect(stats.memorizationTotal).toBe(0);
-      expect(stats.memorizationLearning).toBe(0);
-      expect(stats.memorizationPracticing).toBe(0);
-      expect(stats.memorizationMastered).toBe(0);
-      
+      mockSupabaseClient.rpc = vi.fn(() =>
+        Promise.resolve({
+          data: { totalPageViews: 8 },
+          error: { message: 'Not authorized' },
+        })
+      );
+      await expect(service.getStats()).resolves.toEqual(emptyAdminAnalyticsStats(false));
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle exceptions in getStats', async () => {
+    it('resolves zeros when the RPC rejects', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      mockSupabaseClient.from = vi.fn(() => {
-        throw new Error('Unexpected error');
-      });
-
-      const stats = await service.getStats();
-
-      expect(stats.totalPageViews).toBe(0);
+      mockSupabaseClient.rpc = vi.fn(() => Promise.reject(new Error('network')));
+      await expect(service.getStats()).resolves.toEqual(emptyAdminAnalyticsStats(false));
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Error fetching analytics stats:',
         expect.any(Error)
       );
-      consoleErrorSpy.mockRestore();
-    });
-
-    it('should calculate correct date ranges', async () => {
-      const selectSpy = vi.fn();
-      const eqSpy = vi.fn();
-      const gteSpy = vi.fn(() => Promise.resolve({ count: 0, error: null }));
-
-      mockSupabaseClient.from = vi.fn(() => ({
-        select: selectSpy.mockReturnValue({
-          eq: eqSpy.mockReturnValue({
-            gte: gteSpy
-          })
-        })
-      }));
-
-      await service.getStats();
-
-      // Verify date calculations (calls with gte for today, week, month)
-      const gteCallsWithDates = (gteSpy.mock.calls as any[]).filter(
-        (call) => call.length > 0 && call[0] === 'created_at'
-      );
-      
-      // Should have calls for today, week, and month
-      expect(gteCallsWithDates.length).toBeGreaterThanOrEqual(3);
-    });
-  });
-
-  describe('getStats - comprehensive coverage', () => {
-    it('should return stats with positive values', async () => {
-      let eqCallCount = 0;
-      let prayersSelectCount = 0;
-
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'analytics') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => {
-                eqCallCount++;
-                if (eqCallCount === 1) {
-                  // First eq returns result directly (no gte)
-                  return Promise.resolve({ count: 100, error: null });
-                }
-                // Subsequent eq calls return gte chain
-                return {
-                  gte: vi.fn(function(col: string, val: string) {
-                    if (eqCallCount === 2) return Promise.resolve({ count: 50, error: null });
-                    if (eqCallCount === 3) return Promise.resolve({ count: 75, error: null });
-                    if (eqCallCount === 4) return Promise.resolve({ count: 90, error: null });
-                    if (eqCallCount === 5) return Promise.resolve({ count: 100, error: null });
-                    return Promise.resolve({ count: 0, error: null });
-                  })
-                };
-              })
-            }))
-          };
-        } else if (table === 'prayers') {
-          return {
-            select: vi.fn(() => {
-              prayersSelectCount++;
-              if (prayersSelectCount === 1) {
-                // First select = total prayers (no eq chaining)
-                return Promise.resolve({ count: 50, error: null });
-              }
-              // Other selects have eq chaining
-              return {
-                eq: vi.fn(function(column: string, value: any) {
-                  if (value === 'current') return Promise.resolve({ count: 30, error: null });
-                  if (value === 'answered') return Promise.resolve({ count: 15, error: null });
-                  if (value === 'archived') return Promise.resolve({ count: 5, error: null });
-                  return Promise.resolve({ count: 50, error: null });
-                })
-              };
-            })
-          };
-        } else if (table === 'email_subscribers') {
-          return {
-            select: vi.fn(() => Promise.resolve({ count: 25, error: null })),
-          };
-        } else if (table === 'memorized_items') {
-          const completed = (n: number) =>
-            Array.from({ length: n }, (_, i) => ({
-              date: i,
-              wrongAttempts: 0,
-              correctKeystrokes: 1,
-              completed: true,
-            }));
-          return {
-            select: vi.fn(() =>
-              Promise.resolve({
-                data: [
-                  { practice_sessions: completed(1) },
-                  { practice_sessions: completed(5) },
-                  { practice_sessions: completed(10) },
-                  { practice_sessions: null },
-                ],
-                error: null,
-              })
-            ),
-          };
-        }
-        return { select: vi.fn(() => Promise.resolve({ count: 0, error: null })) };
-      });
-
-      const stats = await service.getStats();
-
-      expect(stats.totalPageViews).toBe(100);
-      expect(stats.todayPageViews).toBe(50);
-      expect(stats.weekPageViews).toBe(75);
-      expect(stats.monthPageViews).toBe(90);
-      expect(stats.yearPageViews).toBe(100);
-      expect(stats.totalPrayers).toBe(50);
-      expect(stats.currentPrayers).toBe(30);
-      expect(stats.answeredPrayers).toBe(15);
-      expect(stats.archivedPrayers).toBe(5);
-      expect(stats.totalSubscribers).toBe(25);
-      expect(stats.memorizationTotal).toBe(4);
-      expect(stats.memorizationLearning).toBe(2);
-      expect(stats.memorizationPracticing).toBe(1);
-      expect(stats.memorizationMastered).toBe(1);
-      expect(stats.loading).toBe(false);
-    });
-
-    it('should handle different counts for each time period', async () => {
-      let eqCallCount = 0;
-
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'analytics') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => {
-                eqCallCount++;
-                if (eqCallCount === 1) {
-                  // First eq returns result directly (no gte)
-                  return Promise.resolve({ count: 100, error: null });
-                }
-                // Subsequent calls return gte chain
-                return {
-                  gte: vi.fn(() => {
-                    if (eqCallCount === 2) return Promise.resolve({ count: 5, error: null });
-                    if (eqCallCount === 3) return Promise.resolve({ count: 20, error: null });
-                    if (eqCallCount === 4) return Promise.resolve({ count: 80, error: null });
-                    if (eqCallCount === 5) return Promise.resolve({ count: 100, error: null });
-                    return Promise.resolve({ count: 0, error: null });
-                  })
-                };
-              })
-            }))
-          };
-        }
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => Promise.resolve({ count: 0, error: null }))
-          }))
-        };
-      });
-
-      const stats = await service.getStats();
-
-      expect(stats.totalPageViews).toBe(100);
-      expect(stats.todayPageViews).toBe(5);
-      expect(stats.weekPageViews).toBe(20);
-      expect(stats.monthPageViews).toBe(80);
-      expect(stats.yearPageViews).toBe(100);
-    });
-
-    it('should handle null count values', async () => {
-      mockSupabaseClient.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => Promise.resolve({ count: null, error: null }))
-          }))
-        }))
-      }));
-
-      const stats = await service.getStats();
-
-      expect(stats.totalPageViews).toBe(0);
-      expect(stats.loading).toBe(false);
-    });
-
-    it('should handle errors in specific queries', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const error = new Error('Query failed');
-      let prayersSelectCount = 0;
-
-      mockSupabaseClient.from = vi.fn((table: string) => {
-        if (table === 'analytics') {
-          let eqCallCount = 0;
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => {
-                eqCallCount++;
-                return {
-                  gte: vi.fn(() => Promise.resolve({ count: null, error }))
-                };
-              })
-            }))
-          };
-        } else if (table === 'prayers') {
-          return {
-            select: vi.fn(() => {
-              prayersSelectCount++;
-              return {
-                eq: vi.fn(function(column: string, value: string) {
-                  // Return error for some status queries
-                  if (value === 'current') return Promise.resolve({ count: null, error });
-                  if (value === 'answered') return Promise.resolve({ count: 15, error: null });
-                  if (value === 'archived') return Promise.resolve({ count: null, error });
-                  return Promise.resolve({ count: 50, error: null });
-                })
-              };
-            })
-          };
-        } else if (table === 'email_subscribers') {
-          return {
-            select: vi.fn(() => Promise.resolve({ count: 25, error: null })),
-          };
-        } else if (table === 'memorized_items') {
-          return {
-            select: vi.fn(() => Promise.resolve({ data: null, error }))
-          };
-        }
-        return { select: vi.fn(() => Promise.resolve({ count: 0, error: null })) };
-      });
-
-      const stats = await service.getStats();
-
-      expect(stats.yearPageViews).toBe(0);
-      expect(stats.currentPrayers).toBe(0);
-      expect(stats.archivedPrayers).toBe(0);
-      expect(stats.memorizationTotal).toBe(0);
-      expect(stats.memorizationLearning).toBe(0);
-      expect(stats.loading).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledTimes(7); // All error branches logged
-      consoleErrorSpy.mockRestore();
-    });
-
-    it('should set loading to false in finally block', async () => {
-      mockSupabaseClient.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ count: 0, error: null })),
-          gte: vi.fn(() => Promise.resolve({ count: 0, error: null }))
-        }))
-      }));
-
-      const stats = await service.getStats();
-
-      expect(stats.loading).toBe(false);
-    });
-
-    it('should handle Promise.all rejection gracefully', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      mockSupabaseClient.from = vi.fn(() => {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => Promise.reject(new Error('DB error'))),
-            gte: vi.fn(() => Promise.reject(new Error('DB error')))
-          }))
-        };
-      });
-
-      // Should not throw, just log error
-      const stats = await service.getStats();
-
-      expect(stats.loading).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
   });

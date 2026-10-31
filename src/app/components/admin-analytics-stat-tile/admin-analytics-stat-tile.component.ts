@@ -5,6 +5,33 @@ import {
   type AdminAnalyticsAccent,
 } from '../../lib/admin-analytics-tiles';
 
+export function assertAdminAnalyticsTileIcon(icon: AdminAnalyticsTileIcon): void {
+  switch (icon) {
+    case 'eye':
+    case 'calendar-week':
+    case 'trending':
+    case 'clock-year':
+    case 'users-all':
+    case 'heart':
+    case 'check-circle':
+    case 'check':
+    case 'archive':
+    case 'subscribers':
+    case 'book':
+    case 'book-open':
+    case 'practice-clock':
+    case 'mastered':
+    case 'groups':
+    case 'users':
+    case 'user-x':
+      return;
+    default: {
+      const leftover: never = icon;
+      throw new Error(`Unknown analytics tile icon: ${String(leftover)}`);
+    }
+  }
+}
+
 @Component({
   selector: 'app-admin-analytics-stat-tile',
   standalone: true,
@@ -92,6 +119,26 @@ import {
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             }
+            @case ('groups') {
+              <path d="M3 7V5c0-1.1.9-2 2-2h2"></path>
+              <path d="M17 3h2c1.1 0 2 .9 2 2v2"></path>
+              <path d="M21 17v2c0 1.1-.9 2-2 2h-2"></path>
+              <path d="M7 21H5c-1.1 0-2-.9-2-2v-2"></path>
+              <path d="M8 7h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"></path>
+              <path d="M11 12h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z"></path>
+            }
+            @case ('users') {
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.128a4 4 0 0 1 0 7.744"></path>
+            }
+            @case ('user-x') {
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M17 8 L22 13"></path>
+              <path d="M22 8 L17 13"></path>
+            }
             @default {}
           }
         </svg>
@@ -109,7 +156,18 @@ export class AdminAnalyticsStatTileComponent {
   @Input({ required: true }) value!: number;
   @Input({ required: true }) subtitle!: string;
   @Input({ required: true }) accent!: AdminAnalyticsAccent;
-  @Input({ required: true }) icon!: AdminAnalyticsTileIcon;
+
+  private iconName!: AdminAnalyticsTileIcon;
+
+  @Input({ required: true })
+  set icon(value: AdminAnalyticsTileIcon) {
+    assertAdminAnalyticsTileIcon(value);
+    this.iconName = value;
+  }
+
+  get icon(): AdminAnalyticsTileIcon {
+    return this.iconName;
+  }
 
   get accentClasses(): { border: string; icon: string; value: string } {
     return ADMIN_ANALYTICS_ACCENT_CLASSES[this.accent];
