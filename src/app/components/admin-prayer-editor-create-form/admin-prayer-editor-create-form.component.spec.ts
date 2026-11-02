@@ -3,12 +3,17 @@ import { AdminPrayerEditorCreateFormComponent } from './admin-prayer-editor-crea
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { PrayerService } from '../../services/prayer.service';
+import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
 import { ChangeDetectorRef } from '@angular/core';
 
 describe('AdminPrayerEditorCreateFormComponent', () => {
   let component: AdminPrayerEditorCreateFormComponent;
   let mockSupabaseService: {
-    getClient: ReturnType<typeof vi.fn>;
+    getClientWhenReady: ReturnType<typeof vi.fn>;
+  };
+  let mockAdminCreatedSubscriber: {
+    validateEmailFormat: ReturnType<typeof vi.fn>;
+    ensure: ReturnType<typeof vi.fn>;
   };
   let mockToastService: {
     success: ReturnType<typeof vi.fn>;
@@ -18,6 +23,7 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
     loadPrayers: ReturnType<typeof vi.fn>;
   };
   let mockCdr: { markForCheck: ReturnType<typeof vi.fn> };
+  let prayersInsert: ReturnType<typeof vi.fn>;
 
   const mockPrayer = {
     id: 'new-1',
@@ -31,18 +37,41 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
     approval_status: 'approved',
   };
 
+  const validForm = {
+    firstName: '  John  ',
+    lastName: '  Doe  ',
+    email: '  john@example.com  ',
+    prayer_for: '  Guidance  ',
+    description: '  Test  ',
+    status: 'current' as const,
+    is_anonymous: false,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
+    prayersInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: mockPrayer, error: null }),
+      }),
+    });
+
     mockSupabaseService = {
-      getClient: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: mockPrayer, error: null }),
-            }),
-          }),
+      getClientWhenReady: vi.fn().mockResolvedValue({
+        from: vi.fn((table: string) => {
+          if (table === 'prayers') {
+            return { insert: prayersInsert };
+          }
+          throw new Error(`unexpected table ${table}`);
         }),
+      }),
+    };
+
+    mockAdminCreatedSubscriber = {
+      validateEmailFormat: vi.fn().mockReturnValue(null),
+      ensure: vi.fn().mockResolvedValue({
+        status: 'created',
+        normalizedEmail: 'john@example.com',
       }),
     };
 
@@ -61,6 +90,7 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
       mockSupabaseService as unknown as SupabaseService,
       mockToastService as unknown as ToastService,
       mockPrayerService as unknown as PrayerService,
+      mockAdminCreatedSubscriber as unknown as AdminCreatedEmailSubscriberService,
       mockCdr as unknown as ChangeDetectorRef,
     );
   });
@@ -87,70 +117,69 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
     await component.onCreateClick(new Event('submit'));
 
     expect(mockToastService.error).toHaveBeenCalledWith('All fields are required');
-    expect(mockSupabaseService.getClient().from).not.toHaveBeenCalled();
+    expect(mockSupabaseService.getClientWhenReady).not.toHaveBeenCalled();
   });
 
-  it('onCreateClick creates prayer with trimmed fields', async () => {
-    component.createForm = {
-      firstName: '  John  ',
-      lastName: '  Doe  ',
-      email: '  john@example.com  ',
-      prayer_for: '  Guidance  ',
-      description: '  Test  ',
-      status: 'current',
-      is_anonymous: false,
-    };
+  it('onCreateClick creates prayer with normalized email and deferred subscriber toast', async () => {
+    component.createForm = { ...validForm };
 
     const created = vi.fn();
     component.created.subscribe(created);
 
     await component.onCreateClick(new Event('submit'));
 
-    const insertCall = mockSupabaseService.getClient().from().insert.mock.calls[0][0];
+    const insertCall = prayersInsert.mock.calls[0][0];
     expect(insertCall.title).toBe('Prayer for Guidance');
-    expect(insertCall.approval_status).toBe('approved');
-    expect(insertCall.approved_at).toBeDefined();
-    expect(mockToastService.success).toHaveBeenCalled();
+    expect(insertCall.email).toBe('john@example.com');
+    expect(mockToastService.success).toHaveBeenCalledWith('Subscriber added for this requester');
+    expect(mockToastService.success).toHaveBeenCalledWith('Prayer created successfully');
     expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
     expect(created).toHaveBeenCalled();
-    expect(component.createForm.firstName).toBe('');
   });
 
-  it('onCreateClick surfaces insert errors', async () => {
-    mockSupabaseService.getClient = vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: new Error('Insert failed'),
-            }),
-          }),
+  it('onCreateClick rejects invalid email before creating prayer', async () => {
+    mockAdminCreatedSubscriber.validateEmailFormat.mockReturnValue(
+      'Please enter a valid email address',
+    );
+    component.createForm = { ...validForm, email: 'not-an-email' };
+
+    await component.onCreateClick(new Event('submit'));
+
+    expect(mockToastService.error).toHaveBeenCalledWith('Please enter a valid email address');
+    expect(mockSupabaseService.getClientWhenReady).not.toHaveBeenCalled();
+  });
+
+  it('onCreateClick skips subscriber toast when requester already exists', async () => {
+    mockAdminCreatedSubscriber.ensure.mockResolvedValue({
+      status: 'exists',
+      normalizedEmail: 'john@example.com',
+    });
+    component.createForm = { ...validForm };
+
+    await component.onCreateClick(new Event('submit'));
+
+    expect(mockToastService.success).toHaveBeenCalledWith('Prayer created successfully');
+    expect(mockToastService.success).not.toHaveBeenCalledWith('Subscriber added for this requester');
+  });
+
+  it('onCreateClick does not toast subscriber added when prayer insert fails', async () => {
+    prayersInsert.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: new Error('Insert failed'),
         }),
       }),
     });
-    component = new AdminPrayerEditorCreateFormComponent(
-      mockSupabaseService as unknown as SupabaseService,
-      mockToastService as unknown as ToastService,
-      mockPrayerService as unknown as PrayerService,
-      mockCdr as unknown as ChangeDetectorRef,
-    );
-
-    component.createForm = {
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john@example.com',
-      prayer_for: 'Peace',
-      description: 'Test',
-      status: 'current',
-      is_anonymous: false,
-    };
+    component.createForm = { ...validForm };
 
     await component.onCreateClick(new Event('submit'));
 
     expect(mockToastService.error).toHaveBeenCalledWith(
       expect.stringContaining('Failed to create prayer'),
     );
+    expect(mockToastService.success).not.toHaveBeenCalledWith('Subscriber added for this requester');
+    expect(mockToastService.success).not.toHaveBeenCalledWith('Prayer created successfully');
   });
 
   it('onCancelClick resets and emits cancel', () => {

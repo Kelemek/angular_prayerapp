@@ -6,6 +6,11 @@ import {
 } from '../lib/admin-data-map';
 import type { AccountApprovalRequest } from '../types/admin-data';
 import type { PrayerRequest, PrayerUpdate } from '../types/prayer';
+import {
+  buildAdminCreatedEmailSubscriberInsertRow,
+  resolvePlanningCenterMetaForAdminCreatedSubscriber,
+} from '../lib/admin-created-email-subscriber';
+import { insertEmailSubscriberRow } from '../lib/prayer-community-db';
 import { PlanningCenterRestService } from './planning-center-rest.service';
 import { SupabaseService } from './supabase.service';
 
@@ -289,28 +294,19 @@ export class AdminDataCommandService {
     if (fetchError) throw fetchError;
     if (!request) throw new Error('Account approval request not found');
 
-    let inPlanningCenter: boolean | null = null;
-    let planningCenterCheckedAt: string | null = null;
-    try {
-      const pcResult = await this.planningCenterRest.lookupPersonByEmail(
-        request.email.toLowerCase(),
-        false
-      );
-      inPlanningCenter = pcResult.count > 0;
-      planningCenterCheckedAt = new Date().toISOString();
-    } catch (pcError) {
-      console.error('[AccountApproval] Planning Center lookup failed:', pcError);
-    }
-
-    const { error: insertError } = await client.from('email_subscribers').insert({
-      email: request.email.toLowerCase(),
-      name: `${request.first_name} ${request.last_name}`,
-      is_active: true,
-      is_admin: false,
-      receive_admin_emails: false,
-      in_planning_center: inPlanningCenter,
-      planning_center_checked_at: planningCenterCheckedAt,
-    });
+    const normalizedEmail = request.email.toLowerCase();
+    const subscriberName = `${request.first_name} ${request.last_name}`.trim();
+    const pcMeta = await resolvePlanningCenterMetaForAdminCreatedSubscriber(
+      (email, includePeople) =>
+        this.planningCenterRest.lookupPersonByEmail(email, includePeople),
+      normalizedEmail,
+    );
+    const row = buildAdminCreatedEmailSubscriberInsertRow(
+      subscriberName,
+      normalizedEmail,
+      pcMeta,
+    );
+    const { error: insertError } = await insertEmailSubscriberRow(client, row);
     if (insertError) throw insertError;
 
     const { error: deleteError } = await client.from('account_approval_requests').delete().eq('id', id);

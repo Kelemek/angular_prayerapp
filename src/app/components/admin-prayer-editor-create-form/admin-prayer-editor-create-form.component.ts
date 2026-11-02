@@ -10,18 +10,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSubscriberPickComponent } from '../admin-subscriber-pick/admin-subscriber-pick.component';
 import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
-import { RichTextViewComponent } from '../rich-text-view/rich-text-view.component';
 import { splitSubscriberName, type SubscriberPickRow } from '../../lib/admin-subscriber-pick';
 import {
   EMPTY_PRAYER_EDITOR_CREATE_FORM,
-  prayerEditorApprovalStatusColor,
-  prayerEditorStatusColor,
   type PrayerEditorCreateForm,
   type PrayerEditorPrayer,
 } from '../../lib/admin-prayer-editor-types';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { PrayerService } from '../../services/prayer.service';
+import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
 
 @Component({
   selector: 'app-admin-prayer-editor-create-form',
@@ -51,6 +49,7 @@ export class AdminPrayerEditorCreateFormComponent {
     private readonly supabaseService: SupabaseService,
     private readonly toast: ToastService,
     private readonly prayerService: PrayerService,
+    private readonly adminCreatedSubscriber: AdminCreatedEmailSubscriberService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
@@ -87,22 +86,40 @@ export class AdminPrayerEditorCreateFormComponent {
       return;
     }
 
+    const emailError = this.adminCreatedSubscriber.validateEmailFormat(this.createForm.email);
+    if (emailError) {
+      this.toast.error(emailError);
+      return;
+    }
+
     try {
       this.saving = true;
       this.cdr.markForCheck();
 
       const fullName = `${this.createForm.firstName.trim()} ${this.createForm.lastName.trim()}`;
+      const client = await this.supabaseService.getClientWhenReady();
+      const subscriberOutcome = await this.adminCreatedSubscriber.ensure(
+        fullName,
+        this.createForm.email,
+      );
+
+      if (subscriberOutcome.status === 'invalid') {
+        this.toast.error(subscriberOutcome.error);
+        return;
+      }
+
+      const normalizedEmail = subscriberOutcome.normalizedEmail;
+      const subscriberWasCreated = subscriberOutcome.status === 'created';
       const generatedTitle = `Prayer for ${this.createForm.prayer_for.trim()}`;
       const approvedAt = new Date().toISOString();
 
-      const { data, error: insertError } = await this.supabaseService
-        .getClient()
+      const { data, error: insertError } = await client
         .from('prayers')
         .insert({
           title: generatedTitle,
           description: this.createForm.description.trim(),
           requester: fullName,
-          email: this.createForm.email.trim() || null,
+          email: normalizedEmail,
           prayer_for: this.createForm.prayer_for.trim(),
           status: this.createForm.status,
           is_anonymous: this.createForm.is_anonymous,
@@ -117,6 +134,9 @@ export class AdminPrayerEditorCreateFormComponent {
       }
 
       this.resetForm();
+      if (subscriberWasCreated) {
+        this.toast.success('Subscriber added for this requester');
+      }
       this.toast.success('Prayer created successfully');
       this.created.emit(data as PrayerEditorPrayer);
       await this.prayerService.loadPrayers();

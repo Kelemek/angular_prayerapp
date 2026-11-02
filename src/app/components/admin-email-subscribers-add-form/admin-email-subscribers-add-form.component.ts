@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import type { PlanningCenterPerson } from '../../../lib/planning-center';
 import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
@@ -16,6 +15,7 @@ import {
   EMAIL_SUBSCRIBER_PC_SEARCH_DEBOUNCE_MS,
   EMAIL_SUBSCRIBER_PC_SEARCH_MIN_CHARS,
 } from '../../lib/admin-email-subscribers';
+import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
 
 export interface EmailSubscriberAddedEvent {
   email: string;
@@ -53,8 +53,8 @@ export class AdminEmailSubscribersAddFormComponent {
   private pcSearchTourDemoBlockManualSubmit = false;
 
   constructor(
-    private readonly supabase: SupabaseService,
     private readonly planningCenterRest: PlanningCenterRestService,
+    private readonly adminCreatedSubscriber: AdminCreatedEmailSubscriberService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
     private readonly appRef: ApplicationRef,
@@ -198,14 +198,21 @@ export class AdminEmailSubscribersAddFormComponent {
       this.appRef.tick();
       await Promise.resolve();
 
-      const normalizedEmail = this.newEmail.toLowerCase().trim();
-      const { data: existing } = await (await this.supabase.db())
-        .from('email_subscribers')
-        .select('email')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      const addOutcome = await this.adminCreatedSubscriber.ensure(
+        this.newName,
+        this.newEmail,
+      );
 
-      if (existing) {
+      if (addOutcome.status === 'invalid') {
+        this.reportError.emit(addOutcome.error);
+        this.submitting = false;
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        this.appRef.tick();
+        return;
+      }
+
+      if (addOutcome.status === 'exists') {
         this.reportError.emit('This email address is already subscribed');
         this.submitting = false;
         this.cdr.markForCheck();
@@ -214,34 +221,8 @@ export class AdminEmailSubscribersAddFormComponent {
         return;
       }
 
-      let inPlanningCenter: boolean | null = null;
-      let planningCenterCheckedAt: string | null = null;
-
-      try {
-        const pcResult = await this.planningCenterRest.lookupPersonByEmail(
-          normalizedEmail,
-          false
-        );
-        inPlanningCenter = pcResult.count > 0;
-        planningCenterCheckedAt = new Date().toISOString();
-      } catch (pcError) {
-        console.error('[Email Subscribers] Planning Center check failed:', pcError);
-      }
-
-      const { error } = await (await this.supabase.from('email_subscribers')).insert({
-        name: this.newName.trim(),
-        email: normalizedEmail,
-        is_active: true,
-        is_admin: false,
-        receive_admin_emails: false,
-        in_planning_center: inPlanningCenter,
-        planning_center_checked_at: planningCenterCheckedAt,
-      });
-
-      if (error) throw error;
-
       this.subscriberAdded.emit({
-        email: normalizedEmail,
+        email: addOutcome.normalizedEmail,
         successMessage: 'Subscriber added successfully!',
       });
       this.resetForm();

@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { isSubscriberEmailFormatValid } from './subscriber-email-format';
 
 export type AddAdminValidationResult =
   | { ok: true; email: string; name: string }
@@ -13,7 +12,7 @@ export function validateAddAdminInput(
   if (!email.trim() || !name.trim()) {
     return { ok: false, error: 'Email and name are required' };
   }
-  if (!EMAIL_REGEX.test(email)) {
+  if (!isSubscriberEmailFormatValid(email)) {
     return { ok: false, error: 'Please enter a valid email address' };
   }
   return {
