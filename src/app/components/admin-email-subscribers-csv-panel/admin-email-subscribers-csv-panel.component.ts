@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 import type { EmailSubscriberCsvRow } from '../../lib/admin-email-subscribers';
+import { buildAdminCreatedEmailSubscriberInsertRow } from '../../lib/admin-created-email-subscriber';
 
 export interface EmailSubscribersCsvUploadResult {
   successMessage: string;
@@ -165,15 +166,10 @@ export class AdminEmailSubscribersCsvPanelComponent {
           }
         }
 
-        return {
-          name: r.name,
-          email: r.email.toLowerCase(),
-          is_active: true,
-          is_admin: false,
-          receive_admin_emails: false,
-          in_planning_center: inPlanningCenter,
-          planning_center_checked_at: planningCenterCheckedAt,
-        };
+        return buildAdminCreatedEmailSubscriberInsertRow(r.name, r.email.toLowerCase(), {
+          inPlanningCenter,
+          planningCenterCheckedAt,
+        });
       });
 
       const { error: insertError } = await (await this.supabase.db())

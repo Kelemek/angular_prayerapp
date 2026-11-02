@@ -16,10 +16,7 @@ import {
   EMAIL_SUBSCRIBER_PC_SEARCH_DEBOUNCE_MS,
   EMAIL_SUBSCRIBER_PC_SEARCH_MIN_CHARS,
 } from '../../lib/admin-email-subscribers';
-import {
-  addAdminManualEmailSubscriberIfNew,
-  resolvePlanningCenterMetaForManualSubscriber,
-} from '../../lib/admin-email-subscriber-manual-add';
+import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
 
 export interface EmailSubscriberAddedEvent {
   email: string;
@@ -59,6 +56,7 @@ export class AdminEmailSubscribersAddFormComponent {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly planningCenterRest: PlanningCenterRestService,
+    private readonly adminCreatedSubscriber: AdminCreatedEmailSubscriberService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
     private readonly appRef: ApplicationRef,
@@ -202,21 +200,22 @@ export class AdminEmailSubscribersAddFormComponent {
       this.appRef.tick();
       await Promise.resolve();
 
-      const client = await this.supabase.getClientWhenReady();
-      const addResult = await addAdminManualEmailSubscriberIfNew(
-        client,
+      const addOutcome = await this.adminCreatedSubscriber.ensure(
         this.newName,
         this.newEmail,
-        (normalizedEmail) =>
-          resolvePlanningCenterMetaForManualSubscriber(
-            (email, includePeople) =>
-              this.planningCenterRest.lookupPersonByEmail(email, includePeople),
-            normalizedEmail,
-          ),
       );
 
-      if (!addResult.ok) {
-        this.reportError.emit(addResult.error);
+      if (addOutcome.status === 'invalid') {
+        this.reportError.emit(addOutcome.error);
+        this.submitting = false;
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        this.appRef.tick();
+        return;
+      }
+
+      if (addOutcome.status === 'exists') {
+        this.reportError.emit('This email address is already subscribed');
         this.submitting = false;
         this.cdr.markForCheck();
         this.cdr.detectChanges();
@@ -225,7 +224,7 @@ export class AdminEmailSubscribersAddFormComponent {
       }
 
       this.subscriberAdded.emit({
-        email: addResult.normalizedEmail,
+        email: addOutcome.normalizedEmail,
         successMessage: 'Subscriber added successfully!',
       });
       this.resetForm();

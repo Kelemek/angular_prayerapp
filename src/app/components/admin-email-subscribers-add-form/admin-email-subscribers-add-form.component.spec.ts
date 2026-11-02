@@ -3,12 +3,14 @@ import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { AdminEmailSubscribersAddFormComponent } from './admin-email-subscribers-add-form.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
+import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
 import { ToastService } from '../../services/toast.service';
 import { ChangeDetectorRef, ApplicationRef } from '@angular/core';
 
 describe('AdminEmailSubscribersAddFormComponent', () => {
   let component: AdminEmailSubscribersAddFormComponent;
   let mockSupabase: { client: { from: ReturnType<typeof vi.fn> } };
+  let mockAdminCreatedSubscriber: { ensure: ReturnType<typeof vi.fn> };
   let mockToast: { error: ReturnType<typeof vi.fn>; info: ReturnType<typeof vi.fn> };
   let mockCdr: { markForCheck: ReturnType<typeof vi.fn>; detectChanges: ReturnType<typeof vi.fn> };
   let mockAppRef: { tick: ReturnType<typeof vi.fn> };
@@ -16,16 +18,15 @@ describe('AdminEmailSubscribersAddFormComponent', () => {
   beforeEach(() => {
     mockSupabase = wireGatedSupabaseMock({
       client: {
-        from: vi.fn(() => ({
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-            })),
-          })),
-          insert: vi.fn().mockResolvedValue({ error: null }),
-        })),
+        from: vi.fn(),
       },
     });
+    mockAdminCreatedSubscriber = {
+      ensure: vi.fn().mockResolvedValue({
+        status: 'created',
+        normalizedEmail: 'jane@example.com',
+      }),
+    };
     mockToast = { error: vi.fn(), info: vi.fn() };
     mockCdr = { markForCheck: vi.fn(), detectChanges: vi.fn() };
     mockAppRef = { tick: vi.fn() };
@@ -38,6 +39,7 @@ describe('AdminEmailSubscribersAddFormComponent', () => {
     component = new AdminEmailSubscribersAddFormComponent(
       mockSupabase as unknown as SupabaseService,
       mockPlanningCenterRest as unknown as PlanningCenterRestService,
+      mockAdminCreatedSubscriber as unknown as AdminCreatedEmailSubscriberService,
       mockToast as unknown as ToastService,
       mockCdr as unknown as ChangeDetectorRef,
       mockAppRef as unknown as ApplicationRef,
@@ -51,10 +53,55 @@ describe('AdminEmailSubscribersAddFormComponent', () => {
     expect(component.pcSearchTab).toBe(false);
   });
 
-  it('onCreateClick rejects empty form', async () => {
+  it('handleAddSubscriber rejects empty form', async () => {
     const reportError = vi.fn();
     component.reportError.subscribe(reportError);
     await component.handleAddSubscriber();
     expect(reportError).toHaveBeenCalledWith('Name and email are required');
+  });
+
+  it('handleAddSubscriber emits success when subscriber is created', async () => {
+    component.newName = 'Jane Doe';
+    component.newEmail = 'jane@example.com';
+    const subscriberAdded = vi.fn();
+    component.subscriberAdded.subscribe(subscriberAdded);
+
+    await component.handleAddSubscriber();
+
+    expect(mockAdminCreatedSubscriber.ensure).toHaveBeenCalledWith('Jane Doe', 'jane@example.com');
+    expect(subscriberAdded).toHaveBeenCalledWith({
+      email: 'jane@example.com',
+      successMessage: 'Subscriber added successfully!',
+    });
+  });
+
+  it('handleAddSubscriber reports duplicate subscriber', async () => {
+    mockAdminCreatedSubscriber.ensure.mockResolvedValue({
+      status: 'exists',
+      normalizedEmail: 'jane@example.com',
+    });
+    component.newName = 'Jane Doe';
+    component.newEmail = 'jane@example.com';
+    const reportError = vi.fn();
+    component.reportError.subscribe(reportError);
+
+    await component.handleAddSubscriber();
+
+    expect(reportError).toHaveBeenCalledWith('This email address is already subscribed');
+  });
+
+  it('handleAddSubscriber reports invalid email from ensure', async () => {
+    mockAdminCreatedSubscriber.ensure.mockResolvedValue({
+      status: 'invalid',
+      error: 'Please enter a valid email address',
+    });
+    component.newName = 'Jane Doe';
+    component.newEmail = 'bad';
+    const reportError = vi.fn();
+    component.reportError.subscribe(reportError);
+
+    await component.handleAddSubscriber();
+
+    expect(reportError).toHaveBeenCalledWith('Please enter a valid email address');
   });
 });
