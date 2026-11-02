@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Prayer Editor create flow auto-adds missing subscribers (November 2, 2026)
+- Admin **Create New Prayer** now ensures the requester exists in `email_subscribers` before saving the prayer. Missing emails use the same manual add defaults as **Subscribers → Email → Add Subscriber** (including optional Planning Center lookup), via [`admin-email-subscriber-manual-add.ts`](../src/app/lib/admin-email-subscriber-manual-add.ts). [`admin-prayer-editor-create-form`](../src/app/components/admin-prayer-editor-create-form/admin-prayer-editor-create-form.component.ts) shows a success toast when a new subscriber is created; duplicate emails are idempotent (unique on `email`). Invalid email format is rejected before any database write.
+
 ### Site Analytics uses one admin stats call (October 31, 2026)
 - Site Analytics loads every metric card with one admin call, `admin_site_analytics_stats`, defined in [`20261031180000_admin_site_analytics_stats.sql`](../supabase/migrations/20261031180000_admin_site_analytics_stats.sql). [`getStats`](../src/app/services/analytics.service.ts) sends the four local window starts and no longer counts those rows in the browser.
 - Six group tiles sit after Subscribers and before the memorization tiles. Memorized-verse totals, including bible-book rows, are counted in Postgres from `practice_sessions`. A person in two groups counts once, using `is_prayer_group_member_row`. If one count fails, that card is 0 and the other cards keep their numbers.

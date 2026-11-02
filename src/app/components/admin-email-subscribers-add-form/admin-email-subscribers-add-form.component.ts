@@ -16,6 +16,10 @@ import {
   EMAIL_SUBSCRIBER_PC_SEARCH_DEBOUNCE_MS,
   EMAIL_SUBSCRIBER_PC_SEARCH_MIN_CHARS,
 } from '../../lib/admin-email-subscribers';
+import {
+  addAdminManualEmailSubscriberIfNew,
+  resolvePlanningCenterMetaForManualSubscriber,
+} from '../../lib/admin-email-subscriber-manual-add';
 
 export interface EmailSubscriberAddedEvent {
   email: string;
@@ -198,15 +202,21 @@ export class AdminEmailSubscribersAddFormComponent {
       this.appRef.tick();
       await Promise.resolve();
 
-      const normalizedEmail = this.newEmail.toLowerCase().trim();
-      const { data: existing } = await (await this.supabase.db())
-        .from('email_subscribers')
-        .select('email')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      const client = await this.supabase.getClientWhenReady();
+      const addResult = await addAdminManualEmailSubscriberIfNew(
+        client,
+        this.newName,
+        this.newEmail,
+        (normalizedEmail) =>
+          resolvePlanningCenterMetaForManualSubscriber(
+            (email, includePeople) =>
+              this.planningCenterRest.lookupPersonByEmail(email, includePeople),
+            normalizedEmail,
+          ),
+      );
 
-      if (existing) {
-        this.reportError.emit('This email address is already subscribed');
+      if (!addResult.ok) {
+        this.reportError.emit(addResult.error);
         this.submitting = false;
         this.cdr.markForCheck();
         this.cdr.detectChanges();
@@ -214,34 +224,8 @@ export class AdminEmailSubscribersAddFormComponent {
         return;
       }
 
-      let inPlanningCenter: boolean | null = null;
-      let planningCenterCheckedAt: string | null = null;
-
-      try {
-        const pcResult = await this.planningCenterRest.lookupPersonByEmail(
-          normalizedEmail,
-          false
-        );
-        inPlanningCenter = pcResult.count > 0;
-        planningCenterCheckedAt = new Date().toISOString();
-      } catch (pcError) {
-        console.error('[Email Subscribers] Planning Center check failed:', pcError);
-      }
-
-      const { error } = await (await this.supabase.from('email_subscribers')).insert({
-        name: this.newName.trim(),
-        email: normalizedEmail,
-        is_active: true,
-        is_admin: false,
-        receive_admin_emails: false,
-        in_planning_center: inPlanningCenter,
-        planning_center_checked_at: planningCenterCheckedAt,
-      });
-
-      if (error) throw error;
-
       this.subscriberAdded.emit({
-        email: normalizedEmail,
+        email: addResult.normalizedEmail,
         successMessage: 'Subscriber added successfully!',
       });
       this.resetForm();
