@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import type { PlanningCenterPerson } from '../../../lib/planning-center';
 import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
@@ -54,7 +53,6 @@ export class AdminEmailSubscribersAddFormComponent {
   private pcSearchTourDemoBlockManualSubmit = false;
 
   constructor(
-    private readonly supabase: SupabaseService,
     private readonly planningCenterRest: PlanningCenterRestService,
     private readonly adminCreatedSubscriber: AdminCreatedEmailSubscriberService,
     private readonly toast: ToastService,

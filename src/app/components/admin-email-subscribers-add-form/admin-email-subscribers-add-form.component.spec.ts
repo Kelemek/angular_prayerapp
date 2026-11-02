@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { wireGatedSupabaseMock } from '../../testing/supabase-service-mock';
 import { AdminEmailSubscribersAddFormComponent } from './admin-email-subscribers-add-form.component';
-import { SupabaseService } from '../../services/supabase.service';
 import { PlanningCenterRestService } from '../../services/planning-center-rest.service';
 import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
 import { ToastService } from '../../services/toast.service';
@@ -9,18 +7,12 @@ import { ChangeDetectorRef, ApplicationRef } from '@angular/core';
 
 describe('AdminEmailSubscribersAddFormComponent', () => {
   let component: AdminEmailSubscribersAddFormComponent;
-  let mockSupabase: { client: { from: ReturnType<typeof vi.fn> } };
   let mockAdminCreatedSubscriber: { ensure: ReturnType<typeof vi.fn> };
   let mockToast: { error: ReturnType<typeof vi.fn>; info: ReturnType<typeof vi.fn> };
   let mockCdr: { markForCheck: ReturnType<typeof vi.fn>; detectChanges: ReturnType<typeof vi.fn> };
   let mockAppRef: { tick: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockSupabase = wireGatedSupabaseMock({
-      client: {
-        from: vi.fn(),
-      },
-    });
     mockAdminCreatedSubscriber = {
       ensure: vi.fn().mockResolvedValue({
         status: 'created',
@@ -37,7 +29,6 @@ describe('AdminEmailSubscribersAddFormComponent', () => {
     };
 
     component = new AdminEmailSubscribersAddFormComponent(
-      mockSupabase as unknown as SupabaseService,
       mockPlanningCenterRest as unknown as PlanningCenterRestService,
       mockAdminCreatedSubscriber as unknown as AdminCreatedEmailSubscriberService,
       mockToast as unknown as ToastService,
