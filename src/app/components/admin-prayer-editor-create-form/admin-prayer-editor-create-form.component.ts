@@ -20,6 +20,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { PrayerService } from '../../services/prayer.service';
 import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
+import { AdminDataService } from '../../services/admin-data.service';
 
 @Component({
   selector: 'app-admin-prayer-editor-create-form',
@@ -50,6 +51,7 @@ export class AdminPrayerEditorCreateFormComponent {
     private readonly toast: ToastService,
     private readonly prayerService: PrayerService,
     private readonly adminCreatedSubscriber: AdminCreatedEmailSubscriberService,
+    private readonly adminData: AdminDataService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
@@ -110,6 +112,15 @@ export class AdminPrayerEditorCreateFormComponent {
 
       const normalizedEmail = subscriberOutcome.normalizedEmail;
       const subscriberWasCreated = subscriberOutcome.status === 'created';
+      if (subscriberWasCreated) {
+        try {
+          await this.adminData.sendSubscriberWelcomeEmail(normalizedEmail);
+          this.toast.success('Welcome email sent to subscriber');
+        } catch (welcomeError: unknown) {
+          console.error('Error sending welcome email:', welcomeError);
+          this.toast.error('Failed to send welcome email');
+        }
+      }
       const generatedTitle = `Prayer for ${this.createForm.prayer_for.trim()}`;
       const approvedAt = new Date().toISOString();
 

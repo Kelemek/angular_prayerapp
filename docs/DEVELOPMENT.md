@@ -642,6 +642,7 @@ prayers$ = this.prayersSubject.asObservable();
 - **Data source**: **`email_subscribers`** via Supabase client—**`name`** and **`email`** only, ordered by name, **`limit`** `userSearchResultLimit` (**20**).
 - **Query UX**: **`userSearchMinChars`** (**2**) before search runs; **350 ms** debounce on `ngModelChange`; **escaped** `ilike` wildcards; **in-flight sequence** counter so slower responses do not overwrite newer queries.
 - **Selection**: Dropdown rows call **`selectSubscriberUser`** on **`mousedown`** (avoids blur closing the list before click); first token of `name` → **first name**, remainder → **last name**, `email` copied; lookup state reset after pick.
+- **New subscriber**: Create saves a missing requester with [`AdminCreatedEmailSubscriberService.ensure`](src/app/services/admin-created-email-subscriber.service.ts), then calls [`AdminDataService.sendSubscriberWelcomeEmail`](src/app/services/admin-data.service.ts) for that address. There is no confirm dialog. An email that already exists is left alone. A welcome failure does not block the prayer. Email Subscribers still asks before sending.
 
 ### Prayer Editor search (admin Tools)
 

@@ -4,6 +4,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { PrayerService } from '../../services/prayer.service';
 import { AdminCreatedEmailSubscriberService } from '../../services/admin-created-email-subscriber.service';
+import { AdminDataService } from '../../services/admin-data.service';
 import { ChangeDetectorRef } from '@angular/core';
 
 describe('AdminPrayerEditorCreateFormComponent', () => {
@@ -21,6 +22,9 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
   };
   let mockPrayerService: {
     loadPrayers: ReturnType<typeof vi.fn>;
+  };
+  let mockAdminData: {
+    sendSubscriberWelcomeEmail: ReturnType<typeof vi.fn>;
   };
   let mockCdr: { markForCheck: ReturnType<typeof vi.fn> };
   let prayersInsert: ReturnType<typeof vi.fn>;
@@ -84,6 +88,10 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
       loadPrayers: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockAdminData = {
+      sendSubscriberWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+    };
+
     mockCdr = { markForCheck: vi.fn() };
 
     component = new AdminPrayerEditorCreateFormComponent(
@@ -91,6 +99,7 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
       mockToastService as unknown as ToastService,
       mockPrayerService as unknown as PrayerService,
       mockAdminCreatedSubscriber as unknown as AdminCreatedEmailSubscriberService,
+      mockAdminData as unknown as AdminDataService,
       mockCdr as unknown as ChangeDetectorRef,
     );
   });
@@ -131,6 +140,8 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
     const insertCall = prayersInsert.mock.calls[0][0];
     expect(insertCall.title).toBe('Prayer for Guidance');
     expect(insertCall.email).toBe('john@example.com');
+    expect(mockAdminData.sendSubscriberWelcomeEmail).toHaveBeenCalledWith('john@example.com');
+    expect(mockToastService.success).toHaveBeenCalledWith('Welcome email sent to subscriber');
     expect(mockToastService.success).toHaveBeenCalledWith('Subscriber added for this requester');
     expect(mockToastService.success).toHaveBeenCalledWith('Prayer created successfully');
     expect(mockPrayerService.loadPrayers).toHaveBeenCalled();
@@ -158,6 +169,7 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
 
     await component.onCreateClick(new Event('submit'));
 
+    expect(mockAdminData.sendSubscriberWelcomeEmail).not.toHaveBeenCalled();
     expect(mockToastService.success).toHaveBeenCalledWith('Prayer created successfully');
     expect(mockToastService.success).not.toHaveBeenCalledWith('Subscriber added for this requester');
   });
@@ -178,8 +190,24 @@ describe('AdminPrayerEditorCreateFormComponent', () => {
     expect(mockToastService.error).toHaveBeenCalledWith(
       expect.stringContaining('Failed to create prayer'),
     );
+    expect(mockAdminData.sendSubscriberWelcomeEmail).toHaveBeenCalledWith('john@example.com');
+    expect(mockToastService.success).toHaveBeenCalledWith('Welcome email sent to subscriber');
     expect(mockToastService.success).not.toHaveBeenCalledWith('Subscriber added for this requester');
     expect(mockToastService.success).not.toHaveBeenCalledWith('Prayer created successfully');
+  });
+
+  it('onCreateClick still creates the prayer when the welcome email fails', async () => {
+    mockAdminData.sendSubscriberWelcomeEmail.mockRejectedValue(new Error('mail down'));
+    component.createForm = { ...validForm };
+
+    const created = vi.fn();
+    component.created.subscribe(created);
+
+    await component.onCreateClick(new Event('submit'));
+
+    expect(mockToastService.error).toHaveBeenCalledWith('Failed to send welcome email');
+    expect(mockToastService.success).toHaveBeenCalledWith('Prayer created successfully');
+    expect(created).toHaveBeenCalled();
   });
 
   it('onCancelClick resets and emits cancel', () => {
