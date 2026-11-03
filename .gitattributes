@@ -4,3 +4,6 @@
 # Shebang scripts break with CRLF (Windows checkout); Vitest imports some of these.
 *.mjs text eol=lf
 .githooks/* text eol=lf
+
+# Hashed test fixtures must stay byte-exact on every OS (no CRLF on Windows).
+src/utils/fixtures/** -text
