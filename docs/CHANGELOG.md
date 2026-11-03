@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Quality gate for the current diff (November 3, 2026)
+- Agents can run one check on whatever branch they are working on. The procedure is [`.cursor/skills/quality-gate/SKILL.md`](../.cursor/skills/quality-gate/SKILL.md). Hard checks are `npm run pre-handoff` (lint, typecheck, unit tests, and Edge Function Deno tests) and production `npm run build`. The skill reviews the diff against the default base (`origin/HEAD`, otherwise `origin/main`), tries Bugbot once, and records **Bugbot not available** when that subagent cannot launch. UI, route, auth, and admin diffs point at [`.cursor/skills/verify-prayerapp/SKILL.md`](../.cursor/skills/verify-prayerapp/SKILL.md) without blocking on MFA. How to run it is in [Development — Quality gate](DEVELOPMENT.md#quality-gate).
+
 ### Admin subscriber HTML keeps table layout (November 3, 2026)
 - Pasted HTML in **Send email to all subscribers** keeps table layout. [`sanitizeEmailHtml`](../src/utils/markdown.ts) now uses its own allowlist (`table`, `thead`, `tbody`, `tfoot`, `tr`, `td`, `th`, `div`, `span`, `h1`, `h2`, `center`, `font`, plus `role`, `align`, `valign`, `bgcolor`, `cellpadding`, `cellspacing`, `border`, `colspan`, and `rowspan`). Markdown and prayer text still use the short list in [`markdownToSafeHtml`](../src/utils/markdown.ts). Script tags, style tags, event handlers, and `javascript:` links are still removed. An image that already sets a style property keeps that property. Missing image properties are filled in.
 - The compose box warns when the paste contains a code fence. Text before an opening html fence, and a closing fence at the end, are removed before the email is queued ([`admin-subscriber-email-broadcast.component.ts`](../src/app/components/admin-subscriber-email-broadcast/admin-subscriber-email-broadcast.component.ts)).

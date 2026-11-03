@@ -5,7 +5,7 @@ For developers working on the Prayer App codebase.
 ## Table of Contents
 
 1. [Architecture](#architecture) (includes [Public Routes](#public-routes), [Info Page](#info-page), and [Admin portal: nested settings](#admin-portal-nested-settings-cards-and-change-detection))
-2. [Testing](#testing)
+2. [Testing](#testing) (includes [Quality gate](#quality-gate))
 3. [Code Quality](#code-quality)
 4. [Performance](#performance)
 5. [Timezone Implementation](#timezone-implementation)
@@ -678,6 +678,21 @@ npm run lint
 ```
 
 Agents: see [AGENTS.md](../AGENTS.md) and [`.cursor/skills/pre-handoff/SKILL.md`](../.cursor/skills/pre-handoff/SKILL.md). Cursor **`stop` hook** ([`.cursor/hooks.json`](../.cursor/hooks.json)) auto-continues the agent until `npm run pre-handoff` has passed for the current diff under `src/app`, `src/lib`, or `supabase/migrations`. After `pre-handoff` passes, run **`ReadLints`** on touched files and complete the **logic review** in [`.cursor/rules/verify-before-done.mdc`](../.cursor/rules/verify-before-done.mdc). `npm run verify` alone does not catch session/cache/RxJS logic bugs.
+
+### Quality gate
+
+One check for the diff on the current branch (committed range versus the default base, plus uncommitted changes). The default base is the branch `origin/HEAD` points at, otherwise `origin/main`. Agents follow [`.cursor/skills/quality-gate/SKILL.md`](../.cursor/skills/quality-gate/SKILL.md).
+
+```bash
+npm run pre-handoff
+npm run build
+```
+
+`npm run pre-handoff` is lint, typecheck, unit tests (`npm test -- --run` inside `verify`), and Edge Function Deno tests. It does not run production `npm run build`, so the gate runs that next. Do not use watch mode (`npm test` with no `--run`).
+
+The skill then reviews that diff, tries Bugbot once, and records **Bugbot not available** when that subagent cannot launch. That is not a failure. When the diff changes UI, routes, auth, or admin screens, also run [`.cursor/skills/verify-prayerapp/SKILL.md`](../.cursor/skills/verify-prayerapp/SKILL.md) for the affected feature. Docs-only and pure-logic diffs skip the browser. The gate does not block on MFA admin login.
+
+A loop installed outside this repo can read [`.cursor/skills/quality-gate-loop/overrides.md`](../.cursor/skills/quality-gate-loop/overrides.md) for the same two commands. The project skill stands alone.
 
 ### Agent verification in the running app (pstack)
 
