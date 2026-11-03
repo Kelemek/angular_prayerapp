@@ -28,14 +28,55 @@ const ALLOWED_TAGS = [
 
 const ALLOWED_ATTR = ['href', 'title', 'target', 'rel', 'style', 'src', 'alt', 'width', 'height'];
 
-const SANITIZE_CONFIG = {
-  ALLOWED_TAGS,
-  ALLOWED_ATTR,
-  FORBID_ATTR: ['class', 'id'],
-  KEEP_CONTENT: true,
+const PASTED_BROADCAST_TAGS = [
+  ...ALLOWED_TAGS,
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'tr',
+  'td',
+  'th',
+  'div',
+  'span',
+  'h1',
+  'h2',
+  'center',
+  'font',
+];
+
+const PASTED_BROADCAST_ATTR = [
+  ...ALLOWED_ATTR,
+  'role',
+  'align',
+  'valign',
+  'bgcolor',
+  'cellpadding',
+  'cellspacing',
+  'border',
+  'colspan',
+  'rowspan',
+];
+
+type HtmlSanitizeProfile = {
+  allowedTags: readonly string[];
+  allowedAttr: readonly string[];
+  structuralMarkers: readonly string[];
 };
 
-const ALLOWED_TAG_SET = new Set(ALLOWED_TAGS.map((tag) => tag.toUpperCase()));
+const MARKDOWN_PROFILE: HtmlSanitizeProfile = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttr: ALLOWED_ATTR,
+  structuralMarkers: ['<ul', '<ol', '<blockquote'],
+};
+
+const PASTED_BROADCAST_PROFILE: HtmlSanitizeProfile = {
+  allowedTags: PASTED_BROADCAST_TAGS,
+  allowedAttr: PASTED_BROADCAST_ATTR,
+  structuralMarkers: ['<table', '<tr', '<td'],
+};
+
+const SANITIZE_FORBID_ATTR = ['class', 'id'];
 
 function isSafeHref(value: string): boolean {
   const trimmed = value.trim().toLowerCase();
@@ -87,11 +128,56 @@ function isPassthroughPurify(purify: DomPurifyInstance): boolean {
 }
 
 /** Some DOM implementations (e.g. happy-dom in Vitest) drop allowlisted parents but keep children. */
-function sanitizeLostStructuralTags(rawHtml: string, sanitized: string): boolean {
+function sanitizeLostStructuralTags(
+  rawHtml: string,
+  sanitized: string,
+  markers: readonly string[]
+): boolean {
   const raw = rawHtml.toLowerCase();
   const out = sanitized.toLowerCase();
-  const markers = ['<ul', '<ol', '<blockquote'];
   return markers.some((marker) => raw.includes(marker) && !out.includes(marker));
+}
+
+function stylePropertyNames(style: string): Set<string> {
+  const names = new Set<string>();
+  for (const declaration of style.split(';')) {
+    const colon = declaration.indexOf(':');
+    if (colon <= 0) {
+      continue;
+    }
+    const name = declaration.slice(0, colon).trim().toLowerCase();
+    if (name) {
+      names.add(name);
+    }
+  }
+  return names;
+}
+
+function fillMissingStyleProperties(existing: string | null, defaults: string): string {
+  const current = existing ?? '';
+  const have = stylePropertyNames(current);
+  const missing: string[] = [];
+  for (const declaration of defaults.split(';')) {
+    const trimmed = declaration.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const colon = trimmed.indexOf(':');
+    if (colon <= 0) {
+      continue;
+    }
+    const name = trimmed.slice(0, colon).trim().toLowerCase();
+    if (!have.has(name)) {
+      missing.push(trimmed);
+    }
+  }
+  if (!current.trim()) {
+    return missing.join(';');
+  }
+  if (missing.length === 0) {
+    return current;
+  }
+  return `${current.trim().replace(/;\s*$/, '')};${missing.join(';')}`;
 }
 
 function createWindowBoundPurify(win: Window): DomPurifyInstance {
@@ -183,17 +269,20 @@ function applyRichHtmlEnhancements(root: ParentNode | null | undefined): void {
     if (!node.getAttribute('alt')) {
       node.setAttribute('alt', '');
     }
-    if (!node.getAttribute('style')) {
-      node.setAttribute('style', INLINE_STYLES['IMG']);
+    const filledStyle = fillMissingStyleProperties(node.getAttribute('style'), INLINE_STYLES['IMG']);
+    if (node.getAttribute('style') !== filledStyle) {
+      node.setAttribute('style', filledStyle);
     }
   });
 }
 
-function stripToAllowlistedHtml(html: string, doc: Document): string {
+function stripToAllowlistedHtml(html: string, doc: Document, profile: HtmlSanitizeProfile): string {
   if (typeof doc.createElement !== 'function') {
     return html;
   }
 
+  const allowedTags = new Set(profile.allowedTags.map((tag) => tag.toUpperCase()));
+  const allowedAttr = new Set(profile.allowedAttr);
   const template = doc.createElement('template');
   template.innerHTML = html;
   const source = template.content ?? template;
@@ -208,7 +297,7 @@ function stripToAllowlistedHtml(html: string, doc: Document): string {
 
     const el = node as Element;
     const tag = el.tagName;
-    if (!ALLOWED_TAG_SET.has(tag)) {
+    if (!allowedTags.has(tag)) {
       const fragment = doc.createDocumentFragment();
       Array.from(el.childNodes).forEach((child) => {
         const cleaned = cloneCleanTree(child);
@@ -221,7 +310,7 @@ function stripToAllowlistedHtml(html: string, doc: Document): string {
 
     const out = doc.createElement(tag.toLowerCase());
     Array.from(el.attributes).forEach((attr) => {
-      if (!ALLOWED_ATTR.includes(attr.name)) {
+      if (!allowedAttr.has(attr.name)) {
         return;
       }
       if (attr.name === 'href' && !isSafeHref(attr.value)) {
@@ -263,28 +352,36 @@ function postProcessHtml(html: string): string {
   return container.innerHTML;
 }
 
-/**
- * Sanitize already-authored HTML for email (Admin broadcast HTML paste).
- * Same allowlist as {@link markdownToSafeHtml} (including safe HTTPS / root-relative images).
- */
-export function sanitizeEmailHtml(html: string | null | undefined): string {
-  if (!html) return '';
-  const rawHtml = String(html);
-
+function sanitizeWithProfile(rawHtml: string, profile: HtmlSanitizeProfile): string {
   const purify = getDomPurify();
-  let out = purify.sanitize(rawHtml, SANITIZE_CONFIG);
+  let out = purify.sanitize(rawHtml, {
+    ALLOWED_TAGS: [...profile.allowedTags],
+    ALLOWED_ATTR: [...profile.allowedAttr],
+    FORBID_ATTR: SANITIZE_FORBID_ATTR,
+    KEEP_CONTENT: true,
+  });
 
   const useAllowlistFallback =
     typeof document !== 'undefined' &&
-    (isPassthroughPurify(purify) || sanitizeLostStructuralTags(rawHtml, out));
+    (isPassthroughPurify(purify) ||
+      sanitizeLostStructuralTags(rawHtml, out, profile.structuralMarkers));
 
   if (useAllowlistFallback) {
-    out = stripToAllowlistedHtml(rawHtml, document);
+    out = stripToAllowlistedHtml(rawHtml, document, profile);
   } else {
     out = postProcessHtml(out);
   }
 
   return out;
+}
+
+/**
+ * Sanitize pasted HTML for the admin subscriber broadcast.
+ * Wider tag list than {@link markdownToSafeHtml}. Href and image src checks still apply.
+ */
+export function sanitizeEmailHtml(html: string | null | undefined): string {
+  if (!html) return '';
+  return sanitizeWithProfile(String(html), PASTED_BROADCAST_PROFILE);
 }
 
 export function markdownToSafeHtml(markdown: string | null | undefined): string {
@@ -294,7 +391,7 @@ export function markdownToSafeHtml(markdown: string | null | undefined): string 
   const rawHtml = normalizeMarkedDelToStrike(
     typeof parsed === 'string' ? parsed : String(parsed)
   );
-  return sanitizeEmailHtml(rawHtml);
+  return sanitizeWithProfile(rawHtml, MARKDOWN_PROFILE);
 }
 
 /**
