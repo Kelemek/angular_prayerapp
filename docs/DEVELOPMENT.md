@@ -302,7 +302,7 @@ interface BrandingData {
 // Email queue management
 - sendApprovedPrayerNotification()   // Queue email
 - sendDeniedPrayerNotification()     // Queue email
-- queueAdminManualBroadcastToSubscribers() // Admin Email: manual broadcast to non-blocked subscribers (ignores is_active); excludes Security → Test Account email; template admin_subscriber_manual_broadcast; accepts `bodyHtml` (sanitized) or `bodyMarkdown`
+- queueAdminManualBroadcastToSubscribers() // Admin Email: manual broadcast to non-blocked subscribers (ignores is_active); excludes Security → Test Account email; template admin_subscriber_manual_broadcast; accepts `bodyHtml` (sanitizeEmailHtml pasted-broadcast allowlist, including tables) or `bodyMarkdown` (markdownToSafeHtml short allowlist)
 - getManualBroadcastRecipientEmails() / getManualBroadcastRecipientCount() // Same recipient rules as the manual broadcast (for UI count)
 - triggerEmailProcessor()            // Invoke GitHub Action
 ```

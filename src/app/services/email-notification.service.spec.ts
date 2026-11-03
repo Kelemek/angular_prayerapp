@@ -366,6 +366,45 @@ describe("EmailNotificationService", () => {
     expect(vars.broadcastBodyHtml).toContain("01-find-memorize.png");
   });
 
+  it("queueAdminManualBroadcastToSubscribers keeps table layout in pasted HTML", async () => {
+    mockSupabase.client.from = vi.fn((table: string) => {
+      if (table === "admin_settings") {
+        return mockAdminSettingsForBroadcast(null);
+      }
+      if (table === "email_subscribers") {
+        return {
+          select: vi.fn().mockReturnValue(eqChain({
+            data: [{ email: "a@x.com" }],
+            error: null,
+          }, 2)),
+        };
+      }
+      return { insert: vi.fn().mockResolvedValue({ error: null }) };
+    });
+    mockSupabase.client.functions.invoke.mockResolvedValue({
+      data: { success: true },
+      error: null,
+    });
+    const enqueueSpy = vi
+      .spyOn(service, "enqueueEmail")
+      .mockResolvedValue(undefined);
+
+    await service.queueAdminManualBroadcastToSubscribers({
+      subject: "Groups",
+      bodyHtml:
+        '<table role="presentation" cellpadding="0"><tr><td style="color:#1f4e79">New: Prayer Groups</td></tr></table><script>alert(1)</script><a href="javascript:alert(1)">bad</a>',
+    });
+
+    const vars = enqueueSpy.mock.calls[0][2] as { broadcastBodyHtml: string };
+    expect(vars.broadcastBodyHtml).toContain("<table");
+    expect(vars.broadcastBodyHtml).toContain("<tr");
+    expect(vars.broadcastBodyHtml).toContain("<td");
+    expect(vars.broadcastBodyHtml).toContain("color:#1f4e79");
+    expect(vars.broadcastBodyHtml).toContain('cellpadding="0"');
+    expect(vars.broadcastBodyHtml).not.toContain("<script");
+    expect(vars.broadcastBodyHtml).not.toContain("javascript:");
+  });
+
   it("queueAdminManualBroadcastToSubscribers excludes configured test account email (case-insensitive)", async () => {
     const churchEq = vi.fn().mockResolvedValue({
       data: [{ email: "App-Test@Example.COM" }, { email: "real@church.org" }],

@@ -288,7 +288,7 @@ export class EmailNotificationService {
     subject: string;
     /** TipTap / Markdown body (converted with markdownToSafeHtml). */
     bodyMarkdown?: string;
-    /** Pasted HTML body (sanitized with sanitizeEmailHtml). Prefer for marketing emails with screenshots. */
+    /** Pasted HTML body (sanitized with the broadcast allowlist in sanitizeEmailHtml). Prefer for marketing emails with screenshots. */
     bodyHtml?: string;
   }): Promise<{ queued: number }> {
     const broadcastSubject = options.subject.trim();

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ChangeDetectorRef } from '@angular/core';
-import { AdminSubscriberEmailBroadcastComponent } from './admin-subscriber-email-broadcast.component';
+import {
+  AdminSubscriberEmailBroadcastComponent,
+  stripAdminBroadcastHtmlFences,
+} from './admin-subscriber-email-broadcast.component';
 import { EmailNotificationService } from '../../services/email-notification.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -289,6 +292,40 @@ describe('AdminSubscriberEmailBroadcastComponent', () => {
       expect(component.bodyMarkdown).toBe('');
       expect(component.sending).toBe(false);
       expect(component.recipientCount).toBe(10);
+    });
+
+    it('strips a chat preamble and html fence before queueing pasted HTML', async () => {
+      mockEmail.queueAdminManualBroadcastToSubscribers.mockResolvedValue({ queued: 2 });
+      const component = createComponent();
+      component.bodyFormat = 'html';
+      component.subject = 'Groups';
+      component.bodyHtml =
+        'The block below is the whole email.\n```html\n<table><tr><td>Hi</td></tr></table>\n```\n';
+
+      expect(component.showHtmlFenceWarning).toBe(true);
+      await component.onConfirmSend();
+
+      expect(mockEmail.queueAdminManualBroadcastToSubscribers).toHaveBeenCalledWith({
+        subject: 'Groups',
+        bodyHtml: '<table><tr><td>Hi</td></tr></table>',
+      });
+    });
+
+    it('warns on a bare code fence and still queues the paste', async () => {
+      mockEmail.queueAdminManualBroadcastToSubscribers.mockResolvedValue({ queued: 1 });
+      const component = createComponent();
+      component.bodyFormat = 'html';
+      component.subject = 'Note';
+      component.bodyHtml = '<p>See ``` this</p>';
+
+      expect(component.showHtmlFenceWarning).toBe(true);
+      expect(stripAdminBroadcastHtmlFences(component.bodyHtml)).toBe('<p>See ``` this</p>');
+      await component.onConfirmSend();
+
+      expect(mockEmail.queueAdminManualBroadcastToSubscribers).toHaveBeenCalledWith({
+        subject: 'Note',
+        bodyHtml: '<p>See ``` this</p>',
+      });
     });
 
     it('queues HTML body when format is html', async () => {

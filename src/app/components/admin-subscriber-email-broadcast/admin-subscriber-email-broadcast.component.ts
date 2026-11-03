@@ -13,6 +13,21 @@ import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation
 
 export type AdminBroadcastBodyFormat = 'html' | 'markdown';
 
+const HTML_FENCE_OPEN = /```[ \t]*html\b[^\S\r\n]*(?:\r?\n)?/i;
+
+export function stripAdminBroadcastHtmlFences(source: string): string {
+  const open = HTML_FENCE_OPEN.exec(source);
+  if (!open || open.index === undefined) {
+    return source;
+  }
+  let body = source.slice(open.index + open[0].length);
+  const closeAt = body.lastIndexOf('```');
+  if (closeAt !== -1 && body.slice(closeAt + 3).trim() === '') {
+    body = body.slice(0, closeAt);
+  }
+  return body.trim();
+}
+
 @Component({
   selector: 'app-admin-subscriber-email-broadcast',
   standalone: true,
@@ -175,6 +190,11 @@ export type AdminBroadcastBodyFormat = 'html' | 'markdown';
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-inset-surface text-gray-900 dark:text-gray-100 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Broadcast message HTML"
               ></textarea>
+              @if (showHtmlFenceWarning) {
+                <p role="status" class="mt-1.5 text-xs text-amber-800 dark:text-amber-200">
+                  {{ htmlFenceWarningText }}
+                </p>
+              }
             } @else {
               <app-rich-text-editor
                 [(ngModel)]="bodyMarkdown"
@@ -226,6 +246,8 @@ export class AdminSubscriberEmailBroadcastComponent implements OnInit {
   bodyFormat: AdminBroadcastBodyFormat = 'html';
   bodyMarkdown = '';
   bodyHtml = '';
+  readonly htmlFenceWarningText =
+    'This paste includes ```. Text before an opening ```html fence, and a closing ``` at the end, are removed before the email is queued.';
   recipientCount: number | null = null;
   recipientCountLoading = true;
   sending = false;
@@ -244,6 +266,10 @@ export class AdminSubscriberEmailBroadcastComponent implements OnInit {
 
   ngOnInit(): void {
     void this.loadRecipientCount();
+  }
+
+  get showHtmlFenceWarning(): boolean {
+    return this.bodyFormat === 'html' && this.bodyHtml.includes('```');
   }
 
   get canSend(): boolean {
@@ -321,7 +347,7 @@ export class AdminSubscriberEmailBroadcastComponent implements OnInit {
     try {
       const queueOptions =
         this.bodyFormat === 'html'
-          ? { subject: this.subject, bodyHtml: this.bodyHtml }
+          ? { subject: this.subject, bodyHtml: stripAdminBroadcastHtmlFences(this.bodyHtml) }
           : { subject: this.subject, bodyMarkdown: this.bodyMarkdown };
       const { queued } = await this.emailNotification.queueAdminManualBroadcastToSubscribers(queueOptions);
       if (queued === 0) {
