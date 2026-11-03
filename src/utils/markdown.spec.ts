@@ -1,5 +1,15 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it, afterEach, vi } from 'vitest';
 import { htmlToPlainText, markdownToPlainText, markdownToSafeHtml, sanitizeEmailHtml } from './markdown';
+
+const GROUPS_ANNOUNCEMENT_FIXTURE = join(
+  dirname(fileURLToPath(import.meta.url)),
+  'fixtures/groups-announcement-site.html'
+);
+const GROUPS_ANNOUNCEMENT_SHA256 = '624ba290fd5af887a26af2769a07e7d50e12b7fd99c4156bc9026522a747164d';
 
 describe('markdownToPlainText', () => {
   it('returns empty string for null/undefined/empty input', () => {
@@ -144,6 +154,14 @@ describe('markdownToSafeHtml', () => {
     expect(html).not.toContain('<div');
   });
 
+  it('still unwraps table markup on the markdown path', () => {
+    const html = markdownToSafeHtml('<table><tr><td><strong>cell</strong></td></tr></table>');
+    expect(html).toContain('<strong>cell</strong>');
+    expect(html).not.toContain('<table');
+    expect(html).not.toContain('<tr');
+    expect(html).not.toContain('<td');
+  });
+
   it('renders https and root-relative images for email broadcasts', () => {
     const httpsHtml = markdownToSafeHtml(
       '![Find Memorize](https://cpprayer.cp-church.org/marketing/memorize/01-find-memorize.png)'
@@ -189,6 +207,59 @@ describe('sanitizeEmailHtml', () => {
     expect(html).toContain('01-find-memorize.png');
     expect(html).not.toContain('<script');
   });
+
+  it('keeps table layout and inline styles from a pasted broadcast', () => {
+    const bytes = readFileSync(GROUPS_ANNOUNCEMENT_FIXTURE);
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe(GROUPS_ANNOUNCEMENT_SHA256);
+    const fixture = bytes.toString('utf8');
+    const html = sanitizeEmailHtml(fixture);
+
+    expect(html.match(/<table\b/gi)?.length).toBe(fixture.match(/<table\b/gi)?.length);
+    expect(html.match(/<tr\b/gi)?.length).toBe(fixture.match(/<tr\b/gi)?.length);
+    expect(html.match(/<td\b/gi)?.length).toBe(fixture.match(/<td\b/gi)?.length);
+    expect(html).toContain('background:#eef4ea');
+    expect(html).toContain('border-left:4px solid #2e7d32');
+    expect(html).toContain('cellpadding="0"');
+    expect(html).toContain('role="presentation"');
+    expect(html).toContain('bgcolor="#1f4e79"');
+    expect(html).toContain('align="center"');
+    expect(html).toContain('valign="middle"');
+    expect(html).toContain('max-width:560px');
+    expect(html).toContain('border:1px solid #d9d4cc');
+    expect(html).toContain('border-radius:6px');
+    expect(html).toContain('border-radius:8px');
+    expect(html).toContain('New: Prayer Groups');
+  });
+
+  it('strips scripts, style blocks, event handlers, and javascript links from pasted HTML', () => {
+    const html = sanitizeEmailHtml(
+      '<table><tr><td onclick="alert(1)" style="color:#333333">Hi</td></tr></table><script>alert(1)</script><style>body{color:red}</style><a href="javascript:alert(1)">bad</a>'
+    );
+    expect(html).toContain('<table');
+    expect(html).toContain('<tr');
+    expect(html).toContain('<td');
+    expect(html).toContain('color:#333333');
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('<style');
+    expect(html).not.toContain('onclick');
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('alert(1)');
+    expect(html).not.toContain('body{color:red}');
+  });
+
+  it('fills missing image style properties and keeps ones the paste already set', () => {
+    const html = sanitizeEmailHtml(
+      '<img src="https://cpprayer.cp-church.org/email/groups/step1.png" alt="Step" style="display:block;width:100%;max-width:560px;height:auto;border:1px solid #d9d4cc;border-radius:6px;">'
+    );
+    expect(html).toContain('max-width:560px');
+    expect(html).toContain('border-radius:6px');
+    expect(html).toContain('border:1px solid #d9d4cc');
+    expect(html).toContain('display:block');
+    expect(html).toContain('margin:12px 0');
+    expect(html).not.toContain('border-radius:8px');
+    expect(html).not.toContain('max-width:100%');
+    expect(html).not.toContain('border:0');
+  });
 });
 
 describe('htmlToPlainText', () => {
@@ -220,6 +291,19 @@ describe('markdownToSafeHtml allowlist fallback', () => {
     }));
     return import('./markdown');
   }
+
+  it('keeps pasted broadcast tables when DOMPurify passthrough keeps scripts', async () => {
+    const { sanitizeEmailHtml: sanitize } = await loadMarkdownWithPassthroughPurify();
+    const html = sanitize(
+      '<div><table><tr><td style="color:#333">cell</td></tr></table><script>alert(1)</script><a href="javascript:alert(1)">bad</a></div>'
+    );
+    expect(html).toContain('<table');
+    expect(html).toContain('<td');
+    expect(html).toContain('color:#333');
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('alert(1)');
+  });
 
   it('strips unsafe content when DOMPurify passthrough keeps scripts', async () => {
     const { markdownToSafeHtml: safeHtml } = await loadMarkdownWithPassthroughPurify();
