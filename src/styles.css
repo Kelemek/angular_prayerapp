@@ -693,7 +693,7 @@ html {
 
   /* Prayer / prompt card action row (Add Update, Journal, Pray For, {n} Prayers) — home + presentation on phone */
   .prayer-card-action-row-mobile-lock {
-    gap: 2px;
+    gap: 4px;
   }
 
   .prayer-card-action-row-mobile-lock > button,
@@ -708,37 +708,16 @@ html {
     max-height: 32px;
     padding-top: 0;
     padding-bottom: 0;
-    padding-left: 4px;
-    padding-right: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     font-size: calc(12px / var(--os-text-zoom, 1));
     line-height: 1;
   }
 
-  /* Journal keeps its word. 10px labels, 2px padding, and an 8px inset into
-     the card padding fit Add Update, Journal, Prayed For, and "128 Prayers"
-     in a 320px card at text scale 1.25 (about 252px). Prompt rows stay at 12px. */
-  .prayer-card-action-row-mobile-lock:has(> button.prayer-card-journal-button) {
-    gap: 1px;
-    margin-left: -8px;
-    margin-right: -8px;
-  }
-
-  .prayer-card-action-row-mobile-lock:has(> button.prayer-card-journal-button) > button,
-  .prayer-card-action-row-mobile-lock:has(> button.prayer-card-journal-button) > span {
-    padding-left: 2px;
-    padding-right: 2px;
-    font-size: calc(10px / var(--os-text-zoom, 1));
-  }
-
-  .prayer-card-action-row-mobile-lock > button.prayer-card-journal-button {
-    gap: 2px;
-  }
-
-  .prayer-card-action-row-mobile-lock .prayer-card-journal-icon {
-    width: 12px;
-    height: 12px;
+  .prayer-card-journal-label {
+    display: none;
   }
 
   /* Memorize practice modal header (Listen, Errors, Start over, Hint, close) */
@@ -787,29 +766,6 @@ html {
     text-size-adjust: 100%;
     font-size: calc(14px / var(--os-text-zoom, 1));
     line-height: 1;
-  }
-}
-
-.prayer-card-action-row-slot {
-  container-name: prayer-actions;
-  container-type: inline-size;
-  width: 100%;
-  min-width: 0;
-}
-
-/* Presentation text-base/text-lg padding overflows a narrow card at the largest
-   text size. Cap padding and gap until the card is wide enough for them. */
-@media (min-width: 640px) {
-  @container prayer-actions (max-width: 720px) {
-    .prayer-card-action-row-mobile-lock:has(> button.prayer-card-journal-button) {
-      gap: 6px;
-    }
-
-    .prayer-card-action-row-mobile-lock:has(> button.prayer-card-journal-button) > button,
-    .prayer-card-action-row-mobile-lock:has(> button.prayer-card-journal-button) > span {
-      padding-left: 8px;
-      padding-right: 8px;
-    }
   }
 }
 
