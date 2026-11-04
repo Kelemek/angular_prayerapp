@@ -44,7 +44,7 @@ describe("PresentationSettingsThemePickerComponent", () => {
 
   it.each<[string, PresentationSettingsThemeOption]>([
     ["Dark", "dark"],
-    ["Black mode", "black"],
+    ["Night", "black"],
     ["System", "system"],
   ])('emits themeChange with "%s" when %s is clicked', (label, theme) => {
     const emitted: PresentationSettingsThemeOption[] = [];

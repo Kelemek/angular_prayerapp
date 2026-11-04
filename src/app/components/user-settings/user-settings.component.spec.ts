@@ -1027,7 +1027,7 @@ describe('UserSettingsComponent', () => {
       expect(component.themeOptions[0].value).toBe('light');
       expect(component.themeOptions[1].value).toBe('dark');
       expect(component.themeOptions[2].value).toBe('black');
-      expect(component.themeOptions[2].label).toBe('Black mode');
+      expect(component.themeOptions[2].label).toBe('Night');
       expect(component.themeOptions[3].value).toBe('system');
     });
   });

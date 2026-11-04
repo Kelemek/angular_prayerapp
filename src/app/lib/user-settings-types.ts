@@ -21,7 +21,7 @@ export const USER_SETTINGS_THEME_OPTIONS: Array<{
   },
   {
     value: 'black',
-    label: 'Black mode',
+    label: 'Night',
     icon: '<circle cx="12" cy="12" r="9"></circle>',
   },
   {
