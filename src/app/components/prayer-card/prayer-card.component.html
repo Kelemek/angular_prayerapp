@@ -75,7 +75,7 @@
           Memorize
         </button>
       </div>
-      } @else if (viewState.showActionRow) {
+      } @else if (viewState.showJournalButton) {
       <app-prayer-card-actions-row
         [variantLayout]="variantLayout"
         [showTourAnchors]="showTourAnchors"
@@ -89,11 +89,14 @@
         [canPrayFor]="(canPrayFor$ | async) ?? false"
         [showAddUpdate]="viewState.showAddUpdateButton"
         [showPrayForButton]="showPrayForOnCard"
-        [showPrayingCount]="showPrayingCount"
+        [showPrayingCount]="showPrayingCountOnCard"
         [prayerEncouragementEnabled]="prayerEncouragementEnabled"
         [cooldownHours]="cooldownHours"
+        [journalKind]="journalKind"
+        [journalPrayerId]="prayer.id"
         (addUpdate)="toggleAddUpdate()"
         (prayFor)="onPrayForClick()"
+        (openJournal)="openJournal()"
       />
       }
 
@@ -102,7 +105,7 @@
         [variantLayout]="variantLayout"
         [prayerUpdates]="prayerUpdateList"
         [displayedUpdates]="getDisplayedUpdates()"
-        [showTopMargin]="viewState.showActionRow"
+        [showTopMargin]="viewState.showJournalButton"
         [showAllUpdates]="showAllUpdates"
         [shouldShowToggle]="shouldShowToggleButton()"
         [showTourAnchors]="showTourAnchors"
@@ -149,6 +152,8 @@
       [titleSnapshot]="prayer.title || ('Prayer for ' + prayer.prayer_for)"
       [reminders]="remindersForThisPrayer()"
       [showPrayForModal]="showPrayForModal"
+      [showJournal]="showJournal"
+      [journalKind]="journalKind"
       [usesPersonalCooldown]="viewState.usesPersonalCooldown"
       (closeAddUpdate)="closeAddUpdateForm()"
       (addUpdateSubmit)="onAddUpdateSubmit($event)"
@@ -165,5 +170,6 @@
       (remindersChange)="onPrayerRemindersChanged($event)"
       (confirmPrayFor)="onConfirmPrayForFromModal($event)"
       (cancelPrayFor)="onCancelPrayForModal()"
+      (closeJournal)="closeJournal()"
     />
     </div>

@@ -691,7 +691,7 @@ html {
     flex-shrink: 0;
   }
 
-  /* Prayer / prompt card action row (Add Update, Pray For, {n} Prayers) — home + presentation on phone */
+  /* Prayer / prompt card action row (Add Update, Journal, Pray For, {n} Prayers) — home + presentation on phone */
   .prayer-card-action-row-mobile-lock {
     gap: 4px;
   }
@@ -714,6 +714,10 @@ html {
     text-size-adjust: 100%;
     font-size: calc(12px / var(--os-text-zoom, 1));
     line-height: 1;
+  }
+
+  .prayer-card-journal-label {
+    display: none;
   }
 
   /* Memorize practice modal header (Listen, Errors, Start over, Hint, close) */
@@ -763,6 +767,30 @@ html {
     font-size: calc(14px / var(--os-text-zoom, 1));
     line-height: 1;
   }
+}
+
+.prayer-card-journal-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.journal-pencil-body,
+.journal-pencil-eraser {
+  fill: none;
+}
+
+.prayer-card-journal-button-noted .journal-pencil-body,
+.prayer-card-journal-button-noted .journal-pencil-eraser {
+  stroke-width: 1;
+}
+
+.prayer-card-journal-button-noted .journal-pencil-body {
+  fill: #f5b942;
+}
+
+.prayer-card-journal-button-noted .journal-pencil-eraser {
+  fill: #e03a3a;
 }
 
 /* Base resets and global styles */

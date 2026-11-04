@@ -56,9 +56,12 @@ import {
   type CardMotionView,
 } from "../../lib/presentation-card-motion";
 import {
+  isPresentationPrayer,
   prayerFromSlideItem,
   promptFromSlideItem,
 } from "../../lib/presentation-slide-item";
+import { journalEntriesForPrayers } from "../../lib/prayer-journal-note";
+import { syncPrayerJournalFeed } from "../../lib/prayer-journal-feed";
 import { shuffleCopy } from "../../lib/shuffle-copy";
 import type { PrayerRequest } from "../../services/prayer.service";
 import { wirePresentationClientPreferencesSync } from "../../lib/presentation-client-preferences-sync";
@@ -233,6 +236,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
       .subscribe((servicePrompts) => {
         this.catalog.syncPromptsFromService(servicePrompts);
         this.clampCurrentIndexToVisibleDeck();
+        this.syncJournalDeck();
         this.cdr.markForCheck();
       });
     this.userSessionService.userSession$
@@ -287,6 +291,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   onSlideItemRemoved(id: string): void {
     this.catalog.removeItem(id);
     this.clampCurrentIndexToVisibleDeck();
+    this.syncJournalDeck();
     this.cdr.markForCheck();
   }
 
@@ -309,6 +314,17 @@ export class PresentationComponent implements OnInit, OnDestroy {
     if (cancelled && this.playback.isPlaying) {
       this.playback.startAutoAdvance();
     }
+    this.syncJournalDeck();
+  }
+
+  private syncJournalDeck(): void {
+    const prayers = this.items.filter(isPresentationPrayer);
+    syncPrayerJournalFeed(journalEntriesForPrayers(prayers), [
+      "community",
+      "personal",
+      "group",
+      "member",
+    ]);
   }
 
   async onSlideItemMutated(id: string): Promise<void> {
@@ -317,6 +333,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    syncPrayerJournalFeed([], ["community", "personal", "group", "member"]);
     this.cardMotion.destroy();
     this.destroy$.next();
     this.destroy$.complete();
@@ -447,6 +464,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   async loadContent(): Promise<void> {
     await this.contentCoordinator.loadAll(this);
+    this.syncJournalDeck();
     this.maybeStartPresentationHelpTourFromSession();
   }
 

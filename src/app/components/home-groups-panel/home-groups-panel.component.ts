@@ -21,6 +21,7 @@ import type { CardActionsOverflowItem } from '../card-actions-overflow-menu/card
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
 import { ModalChromeCloseButtonComponent } from '../modal-chrome-close-button/modal-chrome-close-button.component';
 import { PrayerCardComponent } from '../prayer-card/prayer-card.component';
+import { syncPrayerJournalFeed } from '../../lib/prayer-journal-feed';
 import {
   HOME_GROUPS_SUB_FILTER_GROUP_CLASS,
   HOME_NAV_CHIP_TEXT_LOCK_CLASS,
@@ -190,6 +191,9 @@ export class HomeGroupsPanelComponent {
     private readonly cdr: ChangeDetectorRef,
     destroyRef: DestroyRef,
   ) {
+    destroyRef.onDestroy(() => {
+      syncPrayerJournalFeed([], ['group']);
+    });
     this.restoreGroupsTabChipStateFromService();
     this.groupsApi.groups$
       .pipe(takeUntilDestroyed(destroyRef))
@@ -205,6 +209,10 @@ export class HomeGroupsPanelComponent {
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((prayers) => {
         this.prayers = prayers;
+        syncPrayerJournalFeed(
+          prayers.map((prayer) => ({ kind: 'group', prayerId: prayer.id })),
+          ['group']
+        );
         this.applyPendingGroupPrayerDeepLink();
         this.cdr.markForCheck();
       });

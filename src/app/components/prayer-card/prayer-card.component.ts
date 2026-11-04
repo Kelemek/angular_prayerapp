@@ -75,6 +75,10 @@ import {
   prayerUpdateFromRecord,
 } from '../../lib/prayer-card-mutations';
 import { computePrayerCardViewState } from '../../lib/prayer-card-view-state';
+import {
+  journalKindForCard,
+  type PrayerJournalKind,
+} from '../../lib/prayer-journal-note';
 import { scheduleHomePrayerVirtualScrollRemeasure } from '../../lib/home-prayer-virtual-scroll';
 import type {
   PrayerCardAddUpdateEvent,
@@ -197,6 +201,7 @@ export class PrayerCardComponent
   updateConfirmationMessage = '';
   updateConfirmationId: string | null = null;
   showPrayForModal = false;
+  showJournal = false;
   richTextEditorsEnabled = true;
   categoryPickerOpen = false;
   showReminderModal = false;
@@ -244,6 +249,7 @@ export class PrayerCardComponent
       const currentId = changes['prayer'].currentValue?.id;
       if (previousId !== currentId) {
         this.showPrayForModal = false;
+        this.showJournal = false;
         this.showReminderModal = false;
         this.allPrayerItemReminders = [];
         this.showAllUpdates = false;
@@ -304,7 +310,29 @@ export class PrayerCardComponent
   }
 
   get showPrayForOnCard(): boolean {
-    return this.showPrayForButton && !this.groupPrayForDisabled;
+    return (
+      this.viewState.showActionRow &&
+      this.showPrayForButton &&
+      !this.groupPrayForDisabled
+    );
+  }
+
+  get showPrayingCountOnCard(): boolean {
+    return this.viewState.showActionRow && this.showPrayingCount;
+  }
+
+  get journalKind(): PrayerJournalKind {
+    return journalKindForCard(this.prayer, this.isPersonal, this.groupName);
+  }
+
+  openJournal(): void {
+    this.showJournal = true;
+    this.cdr.markForCheck();
+  }
+
+  closeJournal(): void {
+    this.showJournal = false;
+    this.cdr.markForCheck();
   }
 
   get showPrayedForBadgeOnCard(): boolean {

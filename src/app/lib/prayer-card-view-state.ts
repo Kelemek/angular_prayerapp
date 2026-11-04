@@ -49,6 +49,7 @@ export interface PrayerCardViewState {
   showDeleteButton: boolean;
   showReminderButton: boolean;
   showAddUpdateButton: boolean;
+  showJournalButton: boolean;
   showActionRow: boolean;
   isVerseMemorizationPrayer: boolean;
   showMemorizeButton: boolean;
@@ -114,6 +115,7 @@ export function computePrayerCardViewState(
       isGroupPrayer
     ),
     showAddUpdateButton,
+    showJournalButton: !isVersePrayer,
     showActionRow:
       !isVersePrayer &&
       (showAddUpdateButton || groupPrayForAllowed),

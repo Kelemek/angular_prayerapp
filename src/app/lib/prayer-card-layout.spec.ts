@@ -172,4 +172,53 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
       'prayer-card-action-row-mobile-lock'
     );
   });
+
+  it('keeps Journal between Add Update and Pray For and uses the shared button classes', () => {
+    const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '../components');
+    const prayerRow = readFileSync(
+      join(componentsDir, 'prayer-card/prayer-card-actions-row.component.html'),
+      'utf8'
+    );
+    const promptRow = readFileSync(
+      join(componentsDir, 'prompt-card/prompt-card-actions-row.component.html'),
+      'utf8'
+    );
+    const addUpdate = prayerRow.indexOf('Add Update');
+    const journal = prayerRow.indexOf('prayer-card-journal-button');
+    const prayFor = prayerRow.indexOf('Pray For');
+    expect(addUpdate).toBeGreaterThan(-1);
+    expect(journal).toBeGreaterThan(addUpdate);
+    expect(prayFor).toBeGreaterThan(journal);
+    expect(prayerRow).toContain('variantLayout.actionButtonClasses');
+    expect(promptRow).not.toContain('prayer-card-journal-button');
+  });
+
+  it('hides the Journal word on a phone and keeps the restored padding and gap', () => {
+    const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '../components');
+    const prayerRow = readFileSync(
+      join(componentsDir, 'prayer-card/prayer-card-actions-row.component.html'),
+      'utf8'
+    );
+    expect(prayerRow).toContain('class="prayer-card-journal-label">Journal</span>');
+    expect(prayerRow).toContain('btn-chip-blue');
+
+    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    const mediaStart = css.indexOf('@media (max-width: 639px)');
+    const lock = css.indexOf('.prayer-card-action-row-mobile-lock', mediaStart);
+    const memorize = css.indexOf('Memorize practice modal header', lock);
+    const phoneLock = css.slice(lock, memorize);
+    expect(phoneLock).toContain('gap: 4px');
+    expect(phoneLock).toContain('padding-left: 8px');
+    expect(phoneLock).toContain('padding-right: 8px');
+    expect(phoneLock).toContain('font-size: calc(12px / var(--os-text-zoom, 1))');
+    expect(phoneLock).toContain('.prayer-card-journal-label {\n    display: none;\n  }');
+    expect(phoneLock).not.toContain('padding-left: 2px');
+    expect(phoneLock).not.toContain('padding-left: 4px');
+    expect(phoneLock).not.toContain('gap: 1px');
+    expect(phoneLock).not.toContain('gap: 2px');
+    expect(phoneLock).not.toContain('margin-left: -8px');
+    expect(phoneLock).not.toContain('font-size: calc(10px / var(--os-text-zoom, 1))');
+    expect(phoneLock).not.toContain('width: 32px');
+    expect(css.slice(memorize)).not.toContain('.prayer-card-journal-label');
+  });
 });

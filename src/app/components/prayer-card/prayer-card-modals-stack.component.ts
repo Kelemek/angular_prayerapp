@@ -21,6 +21,8 @@ import { PrayerDeleteRequestModalComponent } from '../prayer-delete-request-moda
 import type { PrayerDeleteRequestPayload } from '../prayer-delete-request-modal/prayer-delete-request-modal.component';
 import { PrayerItemReminderModalComponent } from '../prayer-item-reminder-modal/prayer-item-reminder-modal.component';
 import { PrayerCardPrayForModalComponent } from './prayer-card-pray-for-modal.component';
+import { PrayerJournalModalComponent } from '../prayer-journal-modal/prayer-journal-modal.component';
+import type { PrayerJournalKind } from '../../lib/prayer-journal-note';
 import type { PrayerCardAddUpdateTourElementIds } from '../../lib/prayer-card-tour-ids';
 import type {
   PrayerItemReminder,
@@ -44,6 +46,7 @@ import {
     PersonalPrayerAnsweredStatusModalComponent,
     PrayerItemReminderModalComponent,
     PrayerCardPrayForModalComponent,
+    PrayerJournalModalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prayer-card-modals-stack.component.html',
@@ -77,6 +80,8 @@ export class PrayerCardModalsStackComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) titleSnapshot!: string;
   @Input() reminders: PrayerItemReminder[] = [];
   @Input() showPrayForModal = false;
+  @Input() showJournal = false;
+  @Input() journalKind: PrayerJournalKind = 'community';
   @Input() usesPersonalCooldown = false;
 
   @Output() closeAddUpdate = new EventEmitter<void>();
@@ -94,6 +99,7 @@ export class PrayerCardModalsStackComponent implements OnChanges, OnDestroy {
   @Output() remindersChange = new EventEmitter<PrayerItemReminder[]>();
   @Output() confirmPrayFor = new EventEmitter<boolean>();
   @Output() cancelPrayFor = new EventEmitter<void>();
+  @Output() closeJournal = new EventEmitter<void>();
 
   ngOnChanges(): void {
     this.syncBodyPortal();

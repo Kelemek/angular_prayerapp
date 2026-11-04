@@ -19,6 +19,23 @@ describe("prayerCardModalsStackHasOpenModal", () => {
         personalAnsweredStatusModalMode: null,
         showReminderModal: false,
         showPrayForModal: false,
+        showJournal: false,
+      })
+    ).toBe(true);
+  });
+
+  it("returns true when the journal modal is open", () => {
+    expect(
+      prayerCardModalsStackHasOpenModal({
+        showAddUpdateForm: false,
+        showDeleteRequestForm: false,
+        showUpdateDeleteRequestForm: null,
+        showConfirmationDialog: false,
+        showUpdateConfirmationDialog: false,
+        personalAnsweredStatusModalMode: null,
+        showReminderModal: false,
+        showPrayForModal: false,
+        showJournal: true,
       })
     ).toBe(true);
   });
@@ -34,6 +51,7 @@ describe("prayerCardModalsStackHasOpenModal", () => {
         personalAnsweredStatusModalMode: null,
         showReminderModal: false,
         showPrayForModal: false,
+        showJournal: false,
       })
     ).toBe(false);
   });
