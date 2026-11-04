@@ -150,15 +150,15 @@
   /* Background colors - light theme (church cream so white cards have more contrast) */
   @apply bg-[#E8E5E1]!;
 
-  /* Background colors - dark theme */
+  /* Background colors - dark theme. Black mode overrides --surface-page. */
   .dark & {
-    @apply bg-[#2B2B2B]!;
+    background-color: var(--surface-page, #2b2b2b) !important;
   }
 }
 @utility bg-gray-100 {
   @apply bg-[#DDD8D2]!;
   .dark & {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @utility bg-gray-200 {
@@ -170,25 +170,25 @@
 @utility bg-gray-300 {
   @apply bg-[#988F83]!;
   .dark & {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @utility bg-gray-700 {
   @apply bg-[#6B6256]!;
   .dark & {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @utility bg-gray-800 {
   @apply bg-white!;
   .dark & {
-    @apply bg-[#1F2937]!;
+    background-color: var(--surface-card, #1f2937) !important;
   }
 }
 @utility bg-gray-900 {
   @apply bg-[#E8E5E1]!;
   .dark & {
-    @apply bg-[#2B2B2B]!;
+    background-color: var(--surface-page, #2b2b2b) !important;
   }
 }
 /* Inset field/panel fills: cream wells on white cards; dark semi-transparent gray-700.
@@ -196,7 +196,7 @@
 @utility bg-inset-surface {
   background-color: #e8e5e1 !important;
   .dark & {
-    background-color: rgb(55 65 81 / 0.6) !important;
+    background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
 }
 /*
@@ -207,19 +207,19 @@
 @utility bg-home-filter-tab-inactive {
   background-color: var(--color-church-surface-inactive) !important;
   .dark & {
-    background-color: #1f2937 !important;
+    background-color: var(--surface-card, #1f2937) !important;
   }
   &:hover {
     background-color: var(--color-church-cream) !important;
   }
   .dark &:hover {
-    background-color: var(--color-inset-surface-on-card-dark) !important;
+    background-color: var(--surface-inset-hover, var(--color-inset-surface-on-card-dark)) !important;
   }
 }
 @utility bg-inset-surface-muted {
   background-color: #ddd8d2 !important;
   .dark & {
-    background-color: rgb(55 65 81 / 0.6) !important;
+    background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
 }
 /* Meta header bands + rich-text toolbar + modal chrome headers/footers. */
@@ -233,13 +233,13 @@
 @utility bg-inset-surface-interactive {
   background-color: #e8e5e1 !important;
   .dark & {
-    background-color: rgb(55 65 81 / 0.6) !important;
+    background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
   &:hover {
     background-color: #ddd8d2 !important;
   }
   .dark &:hover {
-    background-color: rgb(55 65 81 / 0.8) !important;
+    background-color: var(--surface-inset-hover, rgb(55 65 81 / 0.8)) !important;
   }
 }
 /* Outlined chip action buttons (shared hover/focus fills). Pair .btn-chip with a color variant. */
@@ -331,30 +331,30 @@ html.dark .personal-category-header-band {
   color: var(--category-pill-text-dark);
 }
 @utility dark {
-  /* Background colors - dark theme */
+  /* Background colors - dark theme. Black mode overrides the surface variables. */
   & .bg-gray-50 {
-    @apply bg-[#2B2B2B]!;
+    background-color: var(--surface-page, #2b2b2b) !important;
   }
   & .bg-gray-100 {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
   & .bg-gray-200 {
     @apply bg-[#2F5F54]!;
   }
   & .bg-gray-300 {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
   & .bg-gray-600 {
     @apply bg-[#2F5F54]!;
   }
   & .bg-gray-700 {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
   & .bg-gray-800 {
-    @apply bg-[#1F2937]!;
+    background-color: var(--surface-card, #1f2937) !important;
   }
   & .bg-gray-900 {
-    @apply bg-[#2B2B2B]!;
+    background-color: var(--surface-page, #2b2b2b) !important;
   }
 
   /* Text colors - dark theme */
@@ -397,10 +397,10 @@ html.dark .personal-category-header-band {
     @apply bg-[#0047AB]!;
   }
   & .bg-blue-700 {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
   & .hover\:bg-blue-700:hover {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @utility bg-gray-600 {
@@ -498,7 +498,7 @@ html.dark .personal-category-header-band {
 @utility bg-blue-700 {
   @apply bg-[#3E5266]!;
   .dark & {
-    @apply bg-[#3E5266]!;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @layer utilities {
@@ -513,7 +513,7 @@ html.dark .personal-category-header-band {
     background-color: #3E5266 !important;
   }
   .dark .hover\:bg-blue-700:hover {
-    background-color: #3E5266 !important;
+    background-color: var(--surface-raised, #3e5266) !important;
   }
   /* Prevent layout shift when scrollbar appears/disappears */
   html {
@@ -540,6 +540,11 @@ html.dark .personal-category-header-band {
 }
 
 html.dark {
+  --surface-page: #2b2b2b;
+  --surface-card: #1f2937;
+  --surface-raised: #3e5266;
+  --surface-inset: rgb(55 65 81 / 0.6);
+  --surface-inset-hover: rgb(55 65 81 / 0.8);
   --color-card-meta-header-band-dark: rgb(17 24 39 / 0.5);
   --bg-primary: #1F2937;
   --bg-secondary: #2B2B2B;
@@ -1253,6 +1258,84 @@ html.dark .help-driver-popover .driver-popover-close-btn:focus,
 .dark .help-driver-popover .driver-popover-close-btn:focus {
   color: #f9fafb !important;
   background-color: transparent !important;
+}
+
+/*
+  Black mode keeps the dark class so text, borders, logos, and charts stay put.
+  Surface utilities read --surface-* (set above on html.dark). These overrides
+  retint those variables and the compiled dark: variant selectors. A plain
+  .bg-gray-900 rule loses to .dark .dark\:bg-gray-900:is(.dark *).
+*/
+html.black {
+  color-scheme: dark;
+  --surface-page: #000000;
+  --surface-card: #121212;
+  --surface-raised: #1c1c1c;
+  --surface-inset: #1c1c1c;
+  --surface-inset-hover: #262626;
+  --color-gray-700: #1c1c1c;
+  --color-gray-800: #121212;
+  --color-gray-900: #000000;
+  --color-gray-950: #000000;
+  --bg-primary: #121212;
+  --bg-secondary: #000000;
+  --bg-tertiary: #1c1c1c;
+  --header-bg-dark: rgb(0 0 0 / 0.92);
+  --color-church-navy: #121212;
+  --color-church-slate: #000000;
+  --color-primary-800: #000000;
+  --color-primary-900: #121212;
+  --color-card-meta-header-band-dark: rgb(0 0 0 / 0.72);
+  --color-inset-surface-on-card-dark: #1c1c1c;
+}
+
+html.black body,
+html.black.dark body,
+html.black.dark body::before,
+html.black.dark body::after {
+  background-color: var(--surface-page);
+}
+
+html.black .dark\:bg-gray-50:is(.dark *),
+html.black .dark\:bg-gray-900:is(.dark *) {
+  background-color: var(--surface-page) !important;
+}
+
+html.black .dark\:bg-gray-800:is(.dark *),
+html.black .dark\:bg-slate-800:is(.dark *) {
+  background-color: var(--surface-card) !important;
+}
+
+html.black .dark\:bg-gray-100:is(.dark *),
+html.black .dark\:bg-gray-300:is(.dark *),
+html.black .dark\:bg-gray-700:is(.dark *),
+html.black .dark\:bg-blue-700:is(.dark *) {
+  background-color: var(--surface-raised) !important;
+}
+
+html.black .dark\:bg-gray-800\/50:is(.dark *),
+html.black .dark\:bg-gray-800\/70:is(.dark *),
+html.black .dark\:bg-gray-800\/80:is(.dark *),
+html.black .dark\:bg-gray-800\/90:is(.dark *),
+html.black .dark\:bg-gray-800\/95:is(.dark *),
+html.black .dark\:bg-gray-950\/95:is(.dark *) {
+  background-color: rgb(0 0 0 / 0.92) !important;
+}
+
+html.black .dark\:bg-gray-900\/20:is(.dark *),
+html.black .dark\:bg-gray-900\/30:is(.dark *),
+html.black .dark\:bg-gray-900\/40:is(.dark *),
+html.black .dark\:bg-gray-900\/50:is(.dark *) {
+  background-color: var(--surface-card) !important;
+}
+
+html.black .dark\:hover\:bg-gray-700:is(.dark *):hover,
+html.black .dark\:hover\:bg-gray-700\/40:is(.dark *):hover,
+html.black .dark\:hover\:bg-gray-700\/50:is(.dark *):hover,
+html.black .dark\:hover\:bg-gray-800:is(.dark *):hover,
+html.black .dark\:hover\:bg-gray-800\/70:is(.dark *):hover,
+html.black .dark\:hover\:bg-blue-700:is(.dark *):hover {
+  background-color: var(--surface-inset-hover) !important;
 }
 
 /* Safari can leave content-visibility subtrees unpainted after a tab freeze. */

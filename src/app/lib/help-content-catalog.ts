@@ -607,7 +607,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Theme Options',
-            text: 'Choose from different theme options to customize the app appearance. Light mode is best for bright environments, dark mode reduces eye strain in low light, and system mode automatically follows your device\'s theme preference. Your selected theme preference is saved automatically.',
+            text: 'Choose from different theme options to customize the app appearance. Light mode is best for bright environments, dark mode reduces eye strain in low light, and black mode uses a black background for night viewing. System mode follows your device\'s light or dark preference. Your selected theme preference is saved automatically.',
           },
           {
             subtitle: 'Text size',

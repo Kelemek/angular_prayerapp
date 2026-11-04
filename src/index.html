@@ -19,6 +19,7 @@
       body { background-color: #E8E5E1; margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
       /* Align dark body background with app shell container so header and safe-area overlay blend consistently */
       html.dark body { background-color: #2B2B2B; }
+      html.black body { background-color: #000000; }
       
       /* Prevent iOS zoom on input focus */
       input[type="text"], input[type="email"], textarea, select {
@@ -75,16 +76,20 @@
       (function() {
         const theme = localStorage.getItem('theme') || 'system';
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+        const isBlack = theme === 'black';
+        const isDark = isBlack || theme === 'dark' || (theme === 'system' && prefersDark);
 
         if (isDark) {
           document.documentElement.classList.add('dark');
         }
+        if (isBlack) {
+          document.documentElement.classList.add('black');
+        }
 
-        // Update theme-color meta to match header background in light/dark
+        // Keep theme-color in sync with ThemeService (light #E8E5E1, dark #1F2937, black #000000).
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) {
-          meta.setAttribute('content', isDark ? '#1F2937' : '#E8E5E1');
+          meta.setAttribute('content', isBlack ? '#000000' : isDark ? '#1F2937' : '#E8E5E1');
         }
       })();
       

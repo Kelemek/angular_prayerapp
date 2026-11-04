@@ -134,54 +134,43 @@ export const formatTime = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-/**
- * Apply theme to the document
- * @param theme The theme to apply ('light', 'dark', or 'system')
- */
-export const applyTheme = (theme: 'light' | 'dark' | 'system'): void => {
+export type PresentationDocumentTheme = 'light' | 'dark' | 'black' | 'system';
+
+function paintPresentationTheme(theme: PresentationDocumentTheme): void {
   const root = document.documentElement;
-  
-  let effectiveTheme: 'light' | 'dark';
-  
+  let effectiveDark = theme === 'dark' || theme === 'black';
   if (theme === 'system') {
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    effectiveTheme = systemPrefersDark ? 'dark' : 'light';
-  } else {
-    effectiveTheme = theme as 'light' | 'dark';
+    effectiveDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
-  
-  if (effectiveTheme === 'dark') {
+
+  if (effectiveDark) {
     root.classList.add('dark');
   } else {
     root.classList.remove('dark');
   }
-  
+  if (theme === 'black') {
+    root.classList.add('black');
+  } else {
+    root.classList.remove('black');
+  }
+}
+
+/**
+ * Apply theme to the document.
+ */
+export const applyTheme = (theme: PresentationDocumentTheme): void => {
+  paintPresentationTheme(theme);
   localStorage.setItem('theme', theme);
 };
 
 /**
- * Handle theme change and apply immediately
- * @param newTheme The new theme to apply
- * @param setTheme State setter function for theme
+ * Handle theme change and apply immediately.
  */
 export const handleThemeChange = (
-  newTheme: 'light' | 'dark' | 'system',
-  setTheme: (theme: 'light' | 'dark' | 'system') => void
+  newTheme: PresentationDocumentTheme,
+  setTheme: (theme: PresentationDocumentTheme) => void
 ): void => {
   setTheme(newTheme);
   localStorage.setItem('theme', newTheme);
-  
-  // Apply theme immediately
-  if (newTheme === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (prefersDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  } else if (newTheme === 'dark') {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
+  paintPresentationTheme(newTheme);
 };

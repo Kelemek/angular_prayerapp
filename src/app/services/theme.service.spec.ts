@@ -7,7 +7,7 @@ describe('ThemeService', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.remove('dark', 'black');
     // Mock window.matchMedia
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -27,7 +27,7 @@ describe('ThemeService', () => {
 
   afterEach(() => {
     localStorage.clear();
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.remove('dark', 'black');
     vi.restoreAllMocks();
   });
 
@@ -116,6 +116,92 @@ describe('ThemeService', () => {
 
       service.setTheme('system');
       expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
+  });
+
+  describe('black mode', () => {
+    it('adds the dark and black classes, persists black, and sets theme-color', () => {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+
+      service.setTheme('black');
+
+      expect(service.getTheme()).toBe('black');
+      expect(service.isDark()).toBe(true);
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      expect(document.documentElement.classList.contains('black')).toBe(true);
+      expect(localStorage.getItem('theme')).toBe('black');
+      expect(meta.getAttribute('content')).toBe('#000000');
+
+      meta.remove();
+    });
+
+    it('removes the black class when switching to dark and keeps dark text styles', () => {
+      service.setTheme('black');
+      service.setTheme('dark');
+
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      expect(document.documentElement.classList.contains('black')).toBe(false);
+    });
+
+    it('keeps system on the existing light or dark palette', () => {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+
+      const setPrefersDark = (prefersDark: boolean) => {
+        Object.defineProperty(window, 'matchMedia', {
+          writable: true,
+          value: vi.fn().mockImplementation(query => ({
+            matches: query === '(prefers-color-scheme: dark)' ? prefersDark : !prefersDark,
+            media: query,
+            onchange: null,
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+          })),
+        });
+      };
+
+      service.setTheme('black');
+      setPrefersDark(true);
+      service.setTheme('system');
+
+      expect(service.getTheme()).toBe('system');
+      expect(localStorage.getItem('theme')).toBe('system');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      expect(document.documentElement.classList.contains('black')).toBe(false);
+      expect(meta.getAttribute('content')).toBe('#1F2937');
+
+      setPrefersDark(false);
+      service.setTheme('system');
+
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+      expect(document.documentElement.classList.contains('black')).toBe(false);
+      expect(meta.getAttribute('content')).toBe('#E8E5E1');
+
+      meta.remove();
+    });
+
+    it('restores black from localStorage on the next service', () => {
+      localStorage.setItem('theme', 'black');
+      const restored = new ThemeService();
+
+      expect(restored.getTheme()).toBe('black');
+      expect(document.documentElement.classList.contains('black')).toBe(true);
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
+
+    it('toggle from black returns to light', () => {
+      service.setTheme('black');
+      service.toggleTheme();
+
+      expect(service.getTheme()).toBe('light');
+      expect(document.documentElement.classList.contains('black')).toBe(false);
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
     });
   });
 

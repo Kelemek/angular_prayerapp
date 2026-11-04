@@ -8,6 +8,11 @@ describe('parseClientPreferencesJson', () => {
     expect(parseClientPreferencesJson('x')).toBeUndefined();
   });
 
+  it('parses black and drops an unknown theme string', () => {
+    expect(parseClientPreferencesJson({ theme: 'black' })?.theme).toBe('black');
+    expect(parseClientPreferencesJson({ theme: 'oled', skipPrayForExplanationModal: true })?.theme).toBeUndefined();
+  });
+
   it('parses valid theme and skip modal flag', () => {
     const parsed = parseClientPreferencesJson({
       theme: 'dark',

@@ -55,7 +55,7 @@ Quick links:
 - **Native apps**: iOS and Android via Capacitor with push notifications — see [`docs/Capacitor/`](docs/Capacitor/CAPACITOR_GETTING_STARTED.md)
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Real-time Updates**: Live prayer updates using Supabase real-time subscriptions
-- **Theme Support**: Light and dark mode with persistent user preferences
+- **Theme Support**: Light, dark, and black mode with persistent user preferences
 - **Text Size**: Default, Larger, or Largest text in Settings; preference saved and applied app-wide
 - **Prayer reminders**: Optional hourly nudges at chosen clock hours (device time zone); email and/or push based on subscription settings
 - **Memorization reminders**: Separate hourly nudges for the Memorize tab (`?filter=memorize` deep links)
@@ -79,7 +79,7 @@ Quick links:
 - Clean, intuitive design focused on readability and accessibility
 - WCAG 2.1 AA accessibility compliance with ARIA labels
 - Keyboard navigation support
-- Dark mode with system preference detection
+- Dark mode and black mode, with system preference detection for light or dark
 - Color-coded prayer statuses and categories
 
 ### 🔒 Security Features

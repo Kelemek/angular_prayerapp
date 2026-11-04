@@ -9,7 +9,9 @@ import { CommonModule } from "@angular/common";
 import { PresentationSettingsSectionCardComponent } from "./presentation-settings-section-card.component";
 import { PresentationSettingsThemePickerComponent } from "./presentation-settings-theme-picker.component";
 
-export type PresentationSettingsThemeOption = "light" | "dark" | "system";
+import type { Theme } from "../../services/theme.service";
+
+export type PresentationSettingsThemeOption = Theme;
 
 @Component({
   selector: "app-presentation-settings-theme-section",

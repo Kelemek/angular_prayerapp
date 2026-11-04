@@ -108,7 +108,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Theme',
         description:
-          'Choose <strong>Light</strong>, <strong>Dark</strong>, or <strong>System</strong>. Your choice saves automatically.',
+          'Choose <strong>Light</strong>, <strong>Dark</strong>, <strong>Black mode</strong>, or <strong>System</strong>. Your choice saves automatically.',
         side: 'bottom',
         align: 'start',
       },
