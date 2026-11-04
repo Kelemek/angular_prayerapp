@@ -504,6 +504,213 @@ describe('PresentationComponent', () => {
     expect(onTouchEndSpy).not.toHaveBeenCalled();
   });
 
+  it('slides the current card left and the next card in from the right', () => {
+    vi.useFakeTimers();
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    component.catalog.prayers = [
+      { id: 'p1', prayer_for: 'Ada' } as any,
+      { id: 'p2', prayer_for: 'Ben' } as any,
+    ];
+    component.contentTypes = ['prayers'];
+    component.currentIndex = 0;
+    component.loop = true;
+
+    component.playback.nextSlide();
+    expect(component.currentIndex).toBe(0);
+    expect(component.cardFrame.currentTransform).toBe('translate3d(0,0,0)');
+    expect(component.cardFrame.incomingTransform).toBe('translate3d(100%,0,0)');
+    expect(component.cardFrame.incomingIndex).toBe(1);
+
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+    expect(component.cardFrame.currentTransform).toBe('translate3d(-100%,0,0)');
+    expect(component.cardFrame.incomingTransform).toBe('translate3d(0,0,0)');
+
+    component.playback.nextSlide();
+    vi.advanceTimersByTime(320);
+    expect(component.currentIndex).toBe(1);
+    expect(component.cardFrame.incomingIndex).toBeNull();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('drops a slide when the visible index is reset before it finishes', () => {
+    vi.useFakeTimers();
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    component.catalog.prayers = [
+      { id: 'p1', prayer_for: 'Ada' } as any,
+      { id: 'p2', prayer_for: 'Ben' } as any,
+      { id: 'p3', prayer_for: 'Cam' } as any,
+    ];
+    component.contentTypes = ['prayers'];
+    component.currentIndex = 0;
+    component.playback.nextSlide();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+    component.currentIndex = 2;
+    vi.advanceTimersByTime(400);
+    expect(component.currentIndex).toBe(2);
+    expect(component.cardFrame.incomingIndex).toBeNull();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('reduced motion changes the card immediately and does not slide', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: String(query).includes('reduce'),
+    }));
+    component.catalog.prayers = [
+      { id: 'p1', prayer_for: 'Ada' } as any,
+      { id: 'p2', prayer_for: 'Ben' } as any,
+    ];
+    component.contentTypes = ['prayers'];
+    component.currentIndex = 1;
+
+    component.playback.previousSlide();
+
+    expect(component.currentIndex).toBe(0);
+    expect(component.cardFrame.transition).toBe("none");
+    expect(component.cardFrame.incomingIndex).toBeNull();
+    expect(component.cardFrame.currentTransform).toBe('translate3d(0,0,0)');
+    vi.unstubAllGlobals();
+  });
+
+  it('a short swipe follows the finger and snaps back on the same card', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    component.catalog.prayers = [
+      { id: 'p1', prayer_for: 'Ada' } as any,
+      { id: 'p2', prayer_for: 'Ben' } as any,
+    ];
+    component.contentTypes = ['prayers'];
+    component.currentIndex = 0;
+    const touch = (x: number, y: number) =>
+      ({ touches: [{ clientX: x, clientY: y }] }) as unknown as TouchEvent;
+
+    component.onTouchStart(touch(180, 20));
+    component.onTouchMove(touch(150, 24));
+    expect(component.cardFrame.currentTransform).toBe('translate3d(-30px,0,0)');
+    expect(component.cardFrame.transition).toBe("none");
+
+    component.onTouchEnd();
+    expect(component.currentIndex).toBe(0);
+    expect(component.cardFrame.transition).toBe("eased");
+    vi.advanceTimersByTime(320);
+    expect(component.currentIndex).toBe(0);
+    expect(component.cardFrame.currentTransform).toBe('translate3d(0,0,0)');
+    expect(component.cardFrame.incomingIndex).toBeNull();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('restarts autoplay when the visible deck shrinks during a slide', () => {
+    vi.useFakeTimers();
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    component.catalog.prayers = [
+      { id: 'p1', prayer_for: 'Ada' } as any,
+      { id: 'p2', prayer_for: 'Ben' } as any,
+      { id: 'p3', prayer_for: 'Cam' } as any,
+    ];
+    component.contentTypes = ['prayers'];
+    component.currentIndex = 2;
+    component.loop = true;
+    component.playback.isPlaying = true;
+    const restart = vi.spyOn(component.playback, 'startAutoAdvance');
+    component.playback.nextSlide();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+    restart.mockClear();
+
+    component.onSlideItemRemoved('p3');
+
+    expect(component.currentIndex).toBe(1);
+    expect(component.playback.isPlaying).toBe(true);
+    expect(restart).toHaveBeenCalled();
+    vi.advanceTimersByTime(400);
+    expect(component.currentIndex).toBe(1);
+    expect(component.cardFrame.incomingIndex).toBeNull();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('a filter reset during a slide does not commit the old neighbor', () => {
+    vi.useFakeTimers();
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    component.catalog.prayers = [
+      { id: 'p1', prayer_for: 'Ada' } as any,
+      { id: 'p2', prayer_for: 'Ben' } as any,
+      { id: 'p3', prayer_for: 'Cam' } as any,
+    ];
+    component.contentTypes = ['prayers'];
+    component.currentIndex = 0;
+    component.playback.nextSlide();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    component.togglePersonalCategory('family');
+    vi.advanceTimersByTime(400);
+
+    expect(component.currentIndex).toBe(0);
+    expect(component.cardFrame.incomingIndex).toBeNull();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('a swipe that starts during a slide does not advance after the slide ends', () => {
+    vi.useFakeTimers();
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    component.catalog.prayers = [
+      { id: 'p1', prayer_for: 'Ada' } as any,
+      { id: 'p2', prayer_for: 'Ben' } as any,
+      { id: 'p3', prayer_for: 'Cam' } as any,
+    ];
+    component.contentTypes = ['prayers'];
+    component.currentIndex = 0;
+    component.loop = true;
+    const touch = (x: number, y: number) =>
+      ({ touches: [{ clientX: x, clientY: y }] }) as unknown as TouchEvent;
+
+    component.playback.nextSlide();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+    component.onTouchStart(touch(200, 20));
+    vi.advanceTimersByTime(320);
+    expect(component.currentIndex).toBe(1);
+
+    component.onTouchMove(touch(40, 20));
+    component.onTouchEnd();
+
+    expect(component.currentIndex).toBe(1);
+    expect(component.cardMotion.state.phase).toBe('rest');
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it('handleKeyboard uppercase P toggles play', () => {
     const spy = vi.spyOn(playback, 'togglePlay');
     component.handleKeyboard({ key: 'P', preventDefault: () => {} } as unknown as KeyboardEvent);

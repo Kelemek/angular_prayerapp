@@ -1,4 +1,5 @@
 import type { ChangeDetectorRef } from "@angular/core";
+import type { PresentationCardMotion } from "../lib/presentation-card-motion";
 import { isPresentationPrayer } from "../lib/presentation-slide-item";
 import type { PresentationSlideItem } from "./presentation-catalog.store";
 import type { PresentationPlaybackHost } from "./presentation-playback.controller";
@@ -14,6 +15,7 @@ export interface PresentationPlaybackPageState {
   presentationScrollRef?: { nativeElement: HTMLElement };
   items: PresentationSlideItem[];
   currentItem: PresentationSlideItem | undefined;
+  cardMotion?: PresentationCardMotion | null;
 }
 
 export class PresentationPlaybackHostAdapter implements PresentationPlaybackHost {
@@ -80,5 +82,9 @@ export class PresentationPlaybackHostAdapter implements PresentationPlaybackHost
 
   detectChanges(): void {
     this.cdr.detectChanges();
+  }
+
+  getCardMotion(): PresentationCardMotion | null {
+    return this.page.cardMotion ?? null;
   }
 }

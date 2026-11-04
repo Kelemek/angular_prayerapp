@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NgZone } from '@angular/core';
+import { PresentationCardMotion } from '../lib/presentation-card-motion';
 import {
   PresentationPlaybackController,
   type PresentationPlaybackHost,
@@ -93,6 +94,7 @@ function createHost(
     isPrayerItem: (item): item is PresentationSlideItem & { description: string } =>
       'description' in item,
     getScrollRoot: () => null,
+    getCardMotion: () => null as PresentationCardMotion | null,
     markForCheck: () => {
       state.markForCheckCalls++;
     },
@@ -715,6 +717,78 @@ describe('PresentationPlaybackController', () => {
 
       vi.advanceTimersByTime(5000);
       expect(controller.showPresentationCompleteNotification).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it('manual next waits for the slide before changing index, and a repeat does not queue', () => {
+      vi.useFakeTimers();
+      const frames: FrameRequestCallback[] = [];
+      vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+      const host = createHost({ items: threeSlides() });
+      const motion = new PresentationCardMotion({
+        onFrame: () => {},
+        prefersReducedMotion: () => false,
+      });
+      host.getCardMotion = () => motion;
+      controller.bindHost(host);
+
+      controller.nextSlide();
+      expect(host.currentIndex).toBe(0);
+      expect(motion.frame({ index: 0, count: 3, loop: true }).incomingTransform).toBe(
+        'translate3d(100%,0,0)',
+      );
+      controller.nextSlide();
+      frames.splice(0).forEach((callback) => callback(0));
+      frames.splice(0).forEach((callback) => callback(0));
+      expect(motion.frame({ index: 0, count: 3, loop: true }).currentTransform).toBe(
+        'translate3d(-100%,0,0)',
+      );
+
+      vi.advanceTimersByTime(320);
+      expect(host.currentIndex).toBe(1);
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it('reduced motion keeps the index change immediate', () => {
+      const host = createHost({ items: threeSlides(), currentIndex: 1 });
+      const motion = new PresentationCardMotion({
+        onFrame: () => {},
+        prefersReducedMotion: () => true,
+      });
+      host.getCardMotion = () => motion;
+      controller.bindHost(host);
+
+      controller.previousSlide();
+      expect(host.currentIndex).toBe(0);
+      expect(motion.state.phase).toBe('rest');
+      expect(motion.frame({ index: 0, count: 3, loop: true }).incomingIndex).toBeNull();
+    });
+
+    it('auto-advance still fades instead of sliding', () => {
+      vi.useFakeTimers();
+      const host = createHost({
+        items: threeSlides(),
+        displayDuration: 1,
+        loop: true,
+      });
+      const motion = new PresentationCardMotion({
+        onFrame: () => {},
+        prefersReducedMotion: () => false,
+      });
+      host.getCardMotion = () => motion;
+      controller.bindHost(host);
+      controller.isPlaying = true;
+      controller.startAutoAdvance();
+      vi.advanceTimersByTime(1000);
+      expect(controller.slideCardFaded).toBe(true);
+      expect(motion.state.phase).toBe('rest');
+      vi.advanceTimersByTime(400);
+      expect(host.currentIndex).toBe(1);
+      expect(motion.state.phase).toBe('rest');
       vi.useRealTimers();
     });
 

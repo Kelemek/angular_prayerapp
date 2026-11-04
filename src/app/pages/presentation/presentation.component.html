@@ -18,6 +18,7 @@
 
       <!-- Main Content Display -->
       @if (!loading && items.length > 0) {
+      @let frame = cardFrame;
       <div
         [class]="
           'presentation-main px-3 md:px-6 pt-3 md:pt-4 transition-all duration-300 relative z-0 ' +
@@ -30,30 +31,37 @@
             class="presentation-scroll card-stack-shadow grid h-full min-h-0 place-items-center overflow-hidden overflow-x-hidden overscroll-none"
           >
             <div
-              class="presentation-card-slot presentation-slide-fade w-full min-w-0 max-h-full min-h-0"
+              class="presentation-card-stage presentation-slide-fade w-full min-w-0 max-h-full min-h-0"
               [class.presentation-slide-faded]="playback.slideCardFaded"
+              [style.--presentation-card-slide-ms]="cardSlideDuration"
             >
-              @let slideItem = currentItem;
-              @if (slideItem) {
-              @let showPrayForButton =
-                (userSessionService.getShowPrayForButton$() | async) ?? true;
-              @let showPrayingCount =
-                (userSessionService.getShowPrayingCount$() | async) ?? true;
-              @let prayerEncouragementEnabled =
-                (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) ??
-                false;
-              <app-presentation-slide-card
-                [prayer]="slidePrayerFromItem(slideItem)"
-                [prompt]="slidePromptFromItem(slideItem)"
-                [showPrayForButton]="showPrayForButton"
-                [showPrayingCount]="showPrayingCount"
-                [prayerEncouragementEnabled]="prayerEncouragementEnabled"
-                (prayerPrayedForCountChange)="onPresentationPrayerPrayedForCountChange($event)"
-                (promptPrayedForCountChange)="onPresentationPromptPrayedForCountChange($event)"
-                (personalPrayerCategoryChange)="onPresentationPersonalPrayerCategoryChange($event)"
-                (itemRemoved)="onSlideItemRemoved($event)"
-                (itemMutated)="onSlideItemMutated($event)"
-              />
+              <div
+                class="presentation-card-layer"
+                [class.presentation-card-layer-immediate]="frame.transition === 'none'"
+                [style.transform]="frame.currentTransform"
+              >
+                <ng-container
+                  *ngTemplateOutlet="
+                    presentationSlide;
+                    context: { $implicit: currentItem }
+                  "
+                />
+              </div>
+              @if (frame.incomingIndex !== null) {
+              <div
+                class="presentation-card-layer"
+                inert
+                aria-hidden="true"
+                [class.presentation-card-layer-immediate]="frame.transition === 'none'"
+                [style.transform]="frame.incomingTransform"
+              >
+                <ng-container
+                  *ngTemplateOutlet="
+                    presentationSlide;
+                    context: { $implicit: slideItemAt(frame.incomingIndex) }
+                  "
+                />
+              </div>
               }
             </div>
           </div>
@@ -214,4 +222,28 @@
       </div>
       }
     </div>
+
+<ng-template #presentationSlide let-slideItem>
+  @if (slideItem) {
+  @let showPrayForButton =
+    (userSessionService.getShowPrayForButton$() | async) ?? true;
+  @let showPrayingCount =
+    (userSessionService.getShowPrayingCount$() | async) ?? true;
+  @let prayerEncouragementEnabled =
+    (prayerEncouragementService.getPrayerEncouragementEnabled$() | async) ??
+    false;
+  <app-presentation-slide-card
+    [prayer]="slidePrayerFromItem(slideItem)"
+    [prompt]="slidePromptFromItem(slideItem)"
+    [showPrayForButton]="showPrayForButton"
+    [showPrayingCount]="showPrayingCount"
+    [prayerEncouragementEnabled]="prayerEncouragementEnabled"
+    (prayerPrayedForCountChange)="onPresentationPrayerPrayedForCountChange($event)"
+    (promptPrayedForCountChange)="onPresentationPromptPrayedForCountChange($event)"
+    (personalPrayerCategoryChange)="onPresentationPersonalPrayerCategoryChange($event)"
+    (itemRemoved)="onSlideItemRemoved($event)"
+    (itemMutated)="onSlideItemMutated($event)"
+  />
+  }
+</ng-template>
   

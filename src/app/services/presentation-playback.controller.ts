@@ -5,6 +5,12 @@ import type { PresentationSlideItem } from "./presentation-catalog.store";
 import type { PrayerRequest } from "./prayer.service";
 import { markdownToPlainText } from "../../utils/markdown";
 import {
+  neighborIndex,
+  type ManualSlideOutcome,
+  type PresentationCardMotion,
+  type SlideDirection,
+} from "../lib/presentation-card-motion";
+import {
   computePlayModeScrollTop,
   findPresentationSlideScrollElement,
   PRESENTATION_PLAY_SLIDE_FADE_MS,
@@ -23,6 +29,7 @@ export interface PresentationPlaybackHost {
   getScrollRoot(): HTMLElement | null;
   markForCheck(): void;
   detectChanges(): void;
+  getCardMotion?(): PresentationCardMotion | null;
 }
 
 @Injectable()
@@ -71,6 +78,7 @@ export class PresentationPlaybackController {
         return;
       }
       if (!host.loop && !this.loopOffPlaySessionActive) {
+        this.cardMotion()?.cancelToRest();
         host.currentIndex = 0;
         this.loopOffPlaySessionActive = true;
       }
@@ -167,16 +175,38 @@ export class PresentationPlaybackController {
     if (this.showPresentationCompleteNotification || host.getSlideCount() === 0) {
       return;
     }
+    if (this.cardMotion()?.isAnimating()) return;
 
-    if (this.isPlaying) {
-      this.clearIntervals();
-      this.advanceWithPlayFade(() => this.tryAdvanceSlide());
+    const index = neighborIndex(this.deckPosition(), "next");
+    if (index === null) {
+      this.cardMotion()?.cancelToRest();
+      if (this.isPlaying) {
+        this.clearIntervals();
+        this.advanceWithPlayFade(() => this.tryAdvanceSlide());
+        return;
+      }
+      this.completePresentationCycle();
       return;
     }
 
-    const advanced = this.tryAdvanceSlide();
-    if (!advanced && !host.loop && host.getSlideCount() > 0) {
-      this.completePresentationCycle();
+    const outcome = this.startManualSlide("next", index);
+    switch (outcome) {
+      case "started":
+      case "ignored":
+        return;
+      case "instant":
+      case "unavailable":
+        if (this.isPlaying) {
+          this.clearIntervals();
+          this.advanceWithPlayFade(() => this.tryAdvanceSlide());
+          return;
+        }
+        this.tryAdvanceSlide();
+        return;
+      default: {
+        const unreachable: never = outcome;
+        return unreachable;
+      }
     }
   }
 
@@ -185,20 +215,29 @@ export class PresentationPlaybackController {
     if (this.showPresentationCompleteNotification || host.getSlideCount() === 0) {
       return;
     }
+    if (this.cardMotion()?.isAnimating()) return;
 
-    if (!host.loop && host.currentIndex === 0) {
+    const index = neighborIndex(this.deckPosition(), "previous");
+    if (index === null) {
+      this.releaseUncommittedDrag();
       return;
     }
 
-    host.currentIndex = host.loop
-      ? host.currentIndex === 0
-        ? host.getSlideCount() - 1
-        : host.currentIndex - 1
-      : host.currentIndex - 1;
-    host.markForCheck();
-
-    if (this.isPlaying) {
-      this.startAutoAdvance();
+    const outcome = this.startManualSlide("previous", index);
+    switch (outcome) {
+      case "started":
+      case "ignored":
+        return;
+      case "instant":
+      case "unavailable":
+        host.currentIndex = index;
+        host.markForCheck();
+        if (this.isPlaying) this.startAutoAdvance();
+        return;
+      default: {
+        const unreachable: never = outcome;
+        return unreachable;
+      }
     }
   }
 
@@ -228,6 +267,7 @@ export class PresentationPlaybackController {
       return;
     }
 
+    this.cardMotion()?.cancelToRest();
     host.currentIndex = 0;
     this.loopOffPlaySessionActive = true;
     this.clearIntervals();
@@ -358,22 +398,55 @@ export class PresentationPlaybackController {
 
   private tryAdvanceSlide(): boolean {
     const host = this.requireHost();
-    if (host.getSlideCount() === 0) {
-      return false;
-    }
+    const index = neighborIndex(this.deckPosition(), "next");
+    if (index === null) return false;
+    host.currentIndex = index;
+    host.markForCheck();
+    return true;
+  }
 
-    if (host.loop) {
-      host.currentIndex = (host.currentIndex + 1) % host.getSlideCount();
-      host.markForCheck();
-      return true;
-    }
+  private deckPosition() {
+    const host = this.requireHost();
+    return {
+      index: host.currentIndex,
+      count: host.getSlideCount(),
+      loop: host.loop,
+    };
+  }
 
-    if (host.currentIndex < host.getSlideCount() - 1) {
-      host.currentIndex++;
-      host.markForCheck();
-      return true;
-    }
+  private cardMotion(): PresentationCardMotion | null {
+    return this.requireHost().getCardMotion?.() ?? null;
+  }
 
-    return false;
+  private startManualSlide(
+    direction: SlideDirection,
+    index: number,
+  ): ManualSlideOutcome | "unavailable" {
+    const motion = this.cardMotion();
+    if (!motion) return "unavailable";
+    const fromIndex = this.requireHost().currentIndex;
+    const outcome = motion.beginSlide(direction, index, () => {
+      const host = this.requireHost();
+      motion.takePlayInterrupt();
+      if (host.currentIndex === fromIndex) {
+        host.currentIndex = index;
+        host.markForCheck();
+      }
+      if (this.isPlaying) this.startAutoAdvance();
+    });
+    if (outcome === "started") {
+      if (this.isPlaying) this.clearIntervals();
+      this.requireHost().markForCheck();
+    }
+    return outcome;
+  }
+
+  private releaseUncommittedDrag(): void {
+    const motion = this.cardMotion();
+    if (!motion) return;
+    const resume = () => {
+      if (motion.takePlayInterrupt() && this.isPlaying) this.startAutoAdvance();
+    };
+    if (!motion.snapBack(resume)) resume();
   }
 }
