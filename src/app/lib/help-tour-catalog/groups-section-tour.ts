@@ -333,7 +333,7 @@ function ownerWalkthroughSteps(build: GroupsStepBuild): DriveStep[] {
       popover: {
         title: 'Leave, transfer, or delete',
         description:
-          'An owner transfers ownership before leaving. <strong>Delete group</strong> removes the group and every prayer in it. A group-only person who leaves their last group loses the account and is signed out.',
+          'The last owner transfers ownership before leaving. Another owner can leave without transferring. <strong>Delete group</strong> removes the group and every prayer in it. A group-only person who leaves their last group loses the account and is signed out.',
         side: 'bottom',
         align: 'start',
       },
@@ -443,7 +443,7 @@ function memberWithGroupsSteps(build: GroupsStepBuild): DriveStep[] {
       popover: {
         title: 'Leaving a group',
         description:
-          'Any member can leave from <strong>Manage members</strong>. The owner has to transfer ownership first. If this is your only group and you are not a church member, leaving deletes your account and signs you out.',
+          'Any member can leave from <strong>Manage members</strong>. The last owner has to transfer ownership first. If this is your only group and you are not a church member, leaving deletes your account and signs you out.',
         side: 'bottom',
         align: 'start',
       },

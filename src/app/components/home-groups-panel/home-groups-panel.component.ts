@@ -40,6 +40,8 @@ import {
   type GroupFilterMode,
 } from '../../lib/home-group-catalog';
 import { parseInviteEmails } from '../../lib/home-group-invite-emails';
+import { activeOwnerCount, mustTransferBeforeLeaving } from '../../lib/prayer-group-owners';
+import { HomeGroupOwnerControlsComponent } from './home-group-owner-controls.component';
 import { groupPrayerUpdatesByPrayerId } from '../../lib/prayer-group-catalog-load';
 import type { PrayerRequest } from '../../lib/prayer-types';
 import { isGroupsWalkthroughGroup } from '../../lib/groups-walkthrough-cleanup';
@@ -109,6 +111,7 @@ type GroupsAddChoice = 'prayer' | 'group';
     PrayerCardComponent,
     AdminFilterSelectComponent,
     PersonalCategoryColorPickerComponent,
+    HomeGroupOwnerControlsComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-groups-panel.component.html',
@@ -180,6 +183,9 @@ export class HomeGroupsPanelComponent {
   pendingTransferEmail: string | null = null;
   emailsDraft = '';
   transferEmail = '';
+  readonly reloadMembersForOwners = (
+    groupId: string,
+  ): Promise<PrayerGroupMemberRow[] | null> => this.loadMembers(groupId);
   private membersLoadToken = 0;
 
   constructor(
@@ -278,7 +284,7 @@ export class HomeGroupsPanelComponent {
     const member = this.members.find((row) => row.user_email === email);
     const label = member?.name || member?.user_email || email;
     const groupName = this.membersTarget?.name ?? 'this group';
-    return `Make ${label} the owner of "${groupName}"? You will become a member.`;
+    return `Make ${label} an owner of "${groupName}"? You will become a member. Other owners stay owners.`;
   }
 
   get visiblePrayers(): GroupPrayerRow[] {
@@ -566,18 +572,19 @@ export class HomeGroupsPanelComponent {
     }
   }
 
-  async removeMember(email: string): Promise<void> {
-    if (!this.membersTarget) return;
-    try {
-      await this.groupsApi.removeMember(this.membersTarget.id, email);
-      await this.loadMembers(this.membersTarget.id);
-    } catch (err: unknown) {
-      this.toast.error(err instanceof Error ? err.message : 'Could not remove that member');
-    }
+  onOwnerSubmitting(active: boolean): void {
+    this.submitting = active;
+    this.cdr.markForCheck();
   }
 
   leave(group: PrayerGroupSummary): void {
-    if (group.role === 'owner') {
+    const owners =
+      this.membersTarget?.id === group.id
+        ? activeOwnerCount(this.members.map((row) => row.role))
+        : group.role === 'owner'
+          ? 1
+          : 0;
+    if (mustTransferBeforeLeaving(group.role, owners)) {
       this.toast.info(
         'Transfer ownership to another member before you can leave this group.',
       );
@@ -967,17 +974,19 @@ export class HomeGroupsPanelComponent {
     this.cdr.markForCheck();
   }
 
-  private async loadMembers(groupId: string): Promise<void> {
+  private async loadMembers(groupId: string): Promise<PrayerGroupMemberRow[] | null> {
     const token = ++this.membersLoadToken;
     try {
       const rows = await this.groupsApi.listMembers(groupId);
-      if (token !== this.membersLoadToken || this.membersTarget?.id !== groupId) return;
+      if (token !== this.membersLoadToken || this.membersTarget?.id !== groupId) return null;
       this.members = rows;
       this.cdr.markForCheck();
+      return rows;
     } catch (err: unknown) {
-      if (token !== this.membersLoadToken || this.membersTarget?.id !== groupId) return;
+      if (token !== this.membersLoadToken || this.membersTarget?.id !== groupId) return null;
       this.toast.error(err instanceof Error ? err.message : 'Could not load members');
       this.cdr.markForCheck();
+      return null;
     }
   }
 }

@@ -282,11 +282,11 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Inviting and managing members',
-            text: 'After you create a group, Manage members opens so you can invite people. Open it again from the group chip **⋯** menu. Owners invite by email. Separate addresses with commas. Each invite sends a welcome email. The list shows each person and their role, owner or member. The owner can **Remove** another member. Every member can open Manage members to see who is in the group.',
+            text: 'After you create a group, Manage members opens so you can invite people. Open it again from the group chip **⋯** menu. Owners invite by email. Separate addresses with commas. Each invite sends a welcome email. An owner can select members and choose **Make owner**, or add an owner by email. If that email already has an account, they become an owner. If it does not, the same invite is sent and they become an owner when they sign up. The list shows each person and their role, owner or member. An owner can **Remove** a member, and can remove or make another owner a member when at least one owner will remain. Every member can open Manage members to see who is in the group.',
           },
           {
             subtitle: 'Transfer ownership, leave, and delete',
-            text: 'The owner has to transfer ownership to another member before leaving. Transfer is in Manage members, and you confirm before it happens. After you transfer, you stay in the group as a member. **Leave group** is on Manage members. **Delete group** is in the **⋯** menu for the owner only. Deleting the group removes its prayers. If a group-only account leaves its last group, that account is deleted and the app signs you out. A church member who leaves a group keeps their church account.',
+            text: 'The last owner has to transfer ownership to another member before leaving. Another owner can leave without transferring. Transfer is in Manage members, and you confirm before it happens. After you transfer, you stay in the group as a member, and any other owners stay owners. **Leave group** is on Manage members. **Delete group** is in the **⋯** menu for an owner. Deleting the group removes its prayers. If a group-only account leaves its last group, that account is deleted and the app signs you out. A church member who leaves a group keeps their church account.',
           },
           {
             subtitle: 'Selecting and reordering groups',

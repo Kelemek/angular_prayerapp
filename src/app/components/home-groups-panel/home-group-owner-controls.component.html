@@ -1,0 +1,78 @@
+<div class="space-y-4">
+<ul class="space-y-2">
+  @for (member of members; track member.user_email) {
+  <li class="flex items-center justify-between gap-2 text-sm">
+    <label class="flex min-w-0 items-center gap-2">
+      @if (showOwnerPick(member)) {
+      <input
+        type="checkbox"
+        class="rounded border-gray-900 dark:border-white focus:ring-2 focus:ring-[#39704D]"
+        [checked]="isOwnerPick(member.user_email)"
+        [attr.aria-label]="'Make ' + (member.name || member.user_email) + ' an owner'"
+        (change)="toggleOwnerPick(member.user_email, $event)"
+      />
+      }
+      <span class="min-w-0">
+        <span class="block truncate text-gray-800 dark:text-gray-100">{{ member.name || member.user_email }}</span>
+        <span class="block text-xs capitalize text-gray-500">{{ member.role }}</span>
+      </span>
+    </label>
+    <span class="flex shrink-0 items-center gap-3">
+      @if (showOtherOwnerActions(member)) {
+      <button type="button" class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200" (click)="askDemote(member.user_email)">Make member</button>
+      }
+      @if (showRemove(member)) {
+      <button type="button" class="cursor-pointer text-sm font-medium text-red-600" (click)="removeMember(member.user_email)">Remove</button>
+      }
+    </span>
+  </li>
+  }
+</ul>
+@if (group.role === 'owner' && ownerPick.length > 0) {
+<button
+  type="button"
+  class="min-h-11 px-4 py-2 text-sm font-medium btn-chip btn-chip-blue disabled:cursor-not-allowed disabled:opacity-50"
+  (click)="promoteSelected()"
+  [disabled]="submitting"
+>
+  Make owner
+</button>
+}
+<ng-content />
+@if (group.role === 'owner') {
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+  Add an owner by email
+  <textarea
+    rows="2"
+    [(ngModel)]="ownerEmailsDraft"
+    name="ownerEmailsDraft"
+    placeholder="name@example.com"
+    class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+  ></textarea>
+</label>
+<p class="text-xs text-gray-500 dark:text-gray-400">
+  Someone who already has an account becomes an owner now. Someone with no account gets the usual group invite and becomes an owner when they sign up.
+</p>
+<button
+  type="button"
+  class="min-h-11 px-4 py-2 text-sm font-medium btn-chip disabled:cursor-not-allowed"
+  [class.btn-chip-blue]="canAddOwnersByEmail && !submitting"
+  [class.btn-chip-gray]="!canAddOwnersByEmail || submitting"
+  [class.opacity-50]="!canAddOwnersByEmail || submitting"
+  (click)="addOwnersByEmail()"
+  [disabled]="submitting || !canAddOwnersByEmail"
+>
+  Add owners
+</button>
+}
+</div>
+
+@if (pendingDemoteEmail) {
+<app-confirmation-dialog
+  title="Make member?"
+  [message]="demoteConfirmMessage"
+  confirmText="Make member"
+  (confirm)="confirmDemote()"
+  (cancel)="cancelDemote()"
+/>
+}
