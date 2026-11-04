@@ -788,6 +788,11 @@ html {
   fill: none;
 }
 
+.prayer-card-journal-button-noted .journal-pencil-body,
+.prayer-card-journal-button-noted .journal-pencil-eraser {
+  stroke-width: 1;
+}
+
 .prayer-card-journal-button-noted .journal-pencil-body {
   fill: #f5b942;
 }

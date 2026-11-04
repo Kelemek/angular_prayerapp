@@ -72,6 +72,10 @@ describe('PrayerCardActionsRowComponent journal', () => {
     expect(journal.querySelector('.journal-pencil-eraser')).toBeTruthy();
 
     const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    expect(journal.querySelector('svg')?.getAttribute('stroke-width')).toBe('2');
+    expect(css).toContain(
+      '.prayer-card-journal-button-noted .journal-pencil-body,\n.prayer-card-journal-button-noted .journal-pencil-eraser {\n  stroke-width: 1;'
+    );
     expect(css).toContain('.prayer-card-journal-button-noted .journal-pencil-body {\n  fill: #f5b942;');
     expect(css).toContain('.prayer-card-journal-button-noted .journal-pencil-eraser {\n  fill: #e03a3a;');
     expect(css).not.toContain('fill: currentColor');
