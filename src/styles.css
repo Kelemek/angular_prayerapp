@@ -783,8 +783,17 @@ html {
   flex-shrink: 0;
 }
 
-.prayer-card-journal-button-filled .journal-pencil-body {
-  fill: currentColor;
+.journal-pencil-body,
+.journal-pencil-eraser {
+  fill: none;
+}
+
+.prayer-card-journal-button-noted .journal-pencil-body {
+  fill: #f5b942;
+}
+
+.prayer-card-journal-button-noted .journal-pencil-eraser {
+  fill: #e03a3a;
 }
 
 /* Base resets and global styles */

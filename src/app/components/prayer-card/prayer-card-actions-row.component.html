@@ -30,8 +30,8 @@
     aria-label="Private journal"
     [class]="
       variantLayout.actionButtonClasses +
-      ' prayer-card-journal-button inline-flex items-center justify-center gap-1 btn-chip btn-chip-gray' +
-      (hasJournalNote ? ' prayer-card-journal-button-filled' : '')
+      ' prayer-card-journal-button inline-flex items-center justify-center gap-1 btn-chip btn-chip-blue' +
+      (hasJournalNote ? ' prayer-card-journal-button-noted' : '')
     "
   >
     <svg
@@ -46,9 +46,12 @@
     >
       <path
         class="journal-pencil-body"
-        d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+        d="M15 5 3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497L19 9Z"
       />
-      <path d="m15 5 4 4" />
+      <path
+        class="journal-pencil-eraser"
+        d="M21.174 6.812a1 1 0 0 0-3.986-3.987L15 5l4 4Z"
+      />
     </svg>
     <span class="prayer-card-journal-label">Journal</span>
   </button>

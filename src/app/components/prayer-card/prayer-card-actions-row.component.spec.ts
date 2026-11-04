@@ -60,15 +60,29 @@ describe('PrayerCardActionsRowComponent journal', () => {
     expect(names).toEqual(['Add Update', 'Private journal', 'Pray For']);
   });
 
-  it('fills the pencil when a note exists', async () => {
+  it('uses the Pray For blue and colors the pencil when a note exists', async () => {
     await renderRow(true);
-    const filledButton = screen.getByRole('button', { name: 'Private journal' });
-    expect(filledButton.className).toContain('prayer-card-journal-button-filled');
+    const journal = screen.getByRole('button', { name: 'Private journal' });
+    const prayFor = screen.getByRole('button', { name: 'Pray For' });
+    expect(journal.className).toContain('btn-chip-blue');
+    expect(prayFor.className).toContain('btn-chip-blue');
+    expect(journal.className).not.toContain('btn-chip-gray');
+    expect(journal.className).toContain('prayer-card-journal-button-noted');
+    expect(journal.querySelector('.journal-pencil-body')).toBeTruthy();
+    expect(journal.querySelector('.journal-pencil-eraser')).toBeTruthy();
+
+    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    expect(css).toContain('.prayer-card-journal-button-noted .journal-pencil-body {\n  fill: #f5b942;');
+    expect(css).toContain('.prayer-card-journal-button-noted .journal-pencil-eraser {\n  fill: #e03a3a;');
+    expect(css).not.toContain('fill: currentColor');
   });
 
-  it('leaves the pencil outline when no note exists', async () => {
+  it('leaves the pencil outline with no colored fills when no note exists', async () => {
     await renderRow(false);
     const outline = screen.getByRole('button', { name: 'Private journal' });
-    expect(outline.className).not.toContain('prayer-card-journal-button-filled');
+    expect(outline.className).toContain('btn-chip-blue');
+    expect(outline.className).not.toContain('prayer-card-journal-button-noted');
+    expect(outline.querySelector('.journal-pencil-body')).toBeTruthy();
+    expect(outline.querySelector('.journal-pencil-eraser')).toBeTruthy();
   });
 });
