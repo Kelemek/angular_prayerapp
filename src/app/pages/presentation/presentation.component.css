@@ -12,6 +12,7 @@
 }
 .presentation-card-stage {
   display: grid;
+  align-items: center;
   overflow: hidden;
   touch-action: pan-y;
 }
