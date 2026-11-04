@@ -51,6 +51,11 @@ import {
   getPresentationEmptyContentMessage,
 } from "../../lib/presentation-content-messages";
 import {
+  PRESENTATION_CARD_SLIDE_MS,
+  PresentationCardMotion,
+  type CardMotionView,
+} from "../../lib/presentation-card-motion";
+import {
   prayerFromSlideItem,
   promptFromSlideItem,
 } from "../../lib/presentation-slide-item";
@@ -118,6 +123,11 @@ export class PresentationComponent implements OnInit, OnDestroy {
   showSmartModeDetails = false;
 
   initialPeriodElapsed = false;
+
+  readonly cardMotion = new PresentationCardMotion({
+    onFrame: () => this.cdr.detectChanges(),
+  });
+  readonly cardSlideDuration = `${PRESENTATION_CARD_SLIDE_MS}ms`;
 
   @ViewChild("presentationScroll")
   presentationScrollRef?: ElementRef<HTMLElement>;
@@ -281,8 +291,23 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   private clampCurrentIndexToVisibleDeck(): void {
-    if (this.currentIndex >= this.items.length) {
+    const pastEnd = this.currentIndex >= this.items.length;
+    const missingTarget = this.cardMotion.targetsMissingIndex(this.items.length);
+    if (!pastEnd && !missingTarget) return;
+    if (pastEnd) {
       this.currentIndex = Math.max(0, this.items.length - 1);
+    }
+    if (this.cardMotion.cancelToRest() && this.playback.isPlaying) {
+      this.playback.startAutoAdvance();
+    }
+    this.cdr.markForCheck();
+  }
+
+  private resetToFirstSlide(): void {
+    const cancelled = this.cardMotion.cancelToRest();
+    this.currentIndex = 0;
+    if (cancelled && this.playback.isPlaying) {
+      this.playback.startAutoAdvance();
     }
   }
 
@@ -292,6 +317,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.cardMotion.destroy();
     this.destroy$.next();
     this.destroy$.complete();
     this.helpDriverTourService.destroy();
@@ -334,7 +360,10 @@ export class PresentationComponent implements OnInit, OnDestroy {
 
   @HostListener("touchmove", ["$event"])
   onTouchMove(event: TouchEvent): void {
-    this.controlsInput.onTouchMove(event);
+    if (!this.presentationHostsReady()) {
+      return;
+    }
+    this.controlsInput.onTouchMove(event, this.controlsInputHost);
   }
 
   @HostListener("touchend")
@@ -391,7 +420,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
   }
 
   private async reloadContentAfterRemotePresentationSettings(): Promise<void> {
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     await this.scheduleFilterReload(() => this.loadContent());
     this.cdr.markForCheck();
   }
@@ -454,7 +483,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
     } else {
       this.selectedPersonalCategories.push(category);
     }
-    this.currentIndex = 0; // Reset to first item when filters change
+    this.resetToFirstSlide();
   }
 
   isPersonalCategorySelected(category: string): boolean {
@@ -465,28 +494,75 @@ export class PresentationComponent implements OnInit, OnDestroy {
     return this.items[this.currentIndex];
   }
 
+  get cardFrame(): CardMotionView {
+    return this.cardMotion.frame({
+      index: this.currentIndex,
+      count: this.items.length,
+      loop: this.loop,
+    });
+  }
+
+  slideItemAt(index: number): PresentationSlideItem | undefined {
+    return this.items[index];
+  }
+
+  acceptsPresentationTouchGesture(): boolean {
+    return !this.cardMotion.isAnimating();
+  }
+
+  onPresentationTouchGestureStart(): void {
+    this.cardMotion.beginGesture();
+  }
+
+  onPresentationTouchDrag(dx: number, dy: number): void {
+    const axis = this.cardMotion.updateDrag(dx, dy);
+    if (
+      axis === "horizontal" &&
+      this.playback.isPlaying &&
+      !this.cardMotion.hasPlayInterrupt()
+    ) {
+      this.playback.clearIntervals();
+      this.cardMotion.interruptPlay();
+    }
+    this.cdr.markForCheck();
+  }
+
+  onPresentationTouchSwipeCancel(): void {
+    const snapping = this.cardMotion.snapBack(() => {
+      this.resumePlayAfterDrag();
+      this.cdr.markForCheck();
+    });
+    if (!snapping) this.resumePlayAfterDrag();
+  }
+
+  private resumePlayAfterDrag(): void {
+    if (this.cardMotion.takePlayInterrupt() && this.playback.isPlaying) {
+      this.playback.startAutoAdvance();
+    }
+  }
+
   async refreshContent(): Promise<void> {
     await this.loadContent();
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     this.cdr.markForCheck();
   }
 
   async handleContentTypeChange(): Promise<void> {
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     this.persistSettings();
     await this.scheduleFilterReload(() => this.loadContent());
     this.cdr.markForCheck();
   }
 
   async handleStatusFilterChange(): Promise<void> {
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     this.persistSettings();
     await this.scheduleFilterReload(() => this.refetchPrayerScopedContent());
     this.cdr.markForCheck();
   }
 
   async handleTimeFilterChange(): Promise<void> {
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     this.persistSettings();
     await this.scheduleFilterReload(() => this.refetchPrayerScopedContent());
     this.cdr.markForCheck();
@@ -499,14 +575,14 @@ export class PresentationComponent implements OnInit, OnDestroy {
   handlePersonalCategoriesChange(categories: string[]): void {
     this.selectedPersonalCategories = categories;
     this.refreshCombinedShuffleIfNeeded();
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     this.cdr.markForCheck();
   }
 
   handlePromptCategoriesChange(categories: string[]): void {
     this.selectedPromptCategories = categories;
     this.refreshCombinedShuffleIfNeeded();
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     this.cdr.markForCheck();
   }
 
@@ -548,7 +624,7 @@ export class PresentationComponent implements OnInit, OnDestroy {
     } else {
       await this.scheduleFilterReload(() => this.loadContent());
     }
-    this.currentIndex = 0;
+    this.resetToFirstSlide();
     this.cdr.markForCheck();
   }
 

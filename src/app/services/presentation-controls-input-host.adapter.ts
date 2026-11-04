@@ -5,6 +5,10 @@ import type {
 export interface PresentationControlsInputPageState {
   showControls: boolean;
   initialPeriodElapsed: boolean;
+  onPresentationTouchGestureStart?(): void;
+  onPresentationTouchDrag?(dx: number, dy: number): void;
+  onPresentationTouchSwipeCancel?(): void;
+  acceptsPresentationTouchGesture?(): boolean;
 }
 
 export class PresentationControlsInputHostAdapter
@@ -50,5 +54,21 @@ export class PresentationControlsInputHostAdapter
 
   onExitPresentation(): void {
     this.callbacks.onExitPresentation();
+  }
+
+  onTouchGestureStart(): void {
+    this.page.onPresentationTouchGestureStart?.();
+  }
+
+  onTouchDrag(dx: number, dy: number): void {
+    this.page.onPresentationTouchDrag?.(dx, dy);
+  }
+
+  onTouchSwipeCancel(): void {
+    this.page.onPresentationTouchSwipeCancel?.();
+  }
+
+  acceptsTouchGesture(): boolean {
+    return this.page.acceptsPresentationTouchGesture?.() ?? true;
   }
 }

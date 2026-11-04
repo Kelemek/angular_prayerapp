@@ -12,6 +12,8 @@ function createHost(overrides: Partial<{
     previous: vi.fn(),
     toggle: vi.fn(),
     exit: vi.fn(),
+    drag: vi.fn(),
+    cancel: vi.fn(),
   };
   return {
     get showControls() {
@@ -30,6 +32,9 @@ function createHost(overrides: Partial<{
     onPreviousSlide: () => state.previous(),
     onTogglePlay: () => state.toggle(),
     onExitPresentation: () => state.exit(),
+    onTouchDrag: (dx: number, dy: number) => state.drag(dx, dy),
+    onTouchSwipeCancel: () => state.cancel(),
+    acceptsTouchGesture: undefined as (() => boolean) | undefined,
     spies: state,
   };
 }
@@ -121,10 +126,104 @@ describe("PresentationControlsInputController", () => {
     expect(host.showControls).toBe(true);
   });
 
-  it("onTouchMove updates touchEnd value", () => {
-    (controller as any).touchEnd = null;
-    controller.onTouchMove({ touches: [{ clientX: 123 }] } as unknown as TouchEvent);
-    expect((controller as any).touchEnd).toBe(123);
+  it("onTouchMove reports how far the finger moved", () => {
+    const host = createHost();
+    controller.onTouchStart(
+      { touches: [{ clientX: 200, clientY: 10 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 150, clientY: 14 }] } as unknown as TouchEvent,
+      host
+    );
+    expect(host.spies.drag).toHaveBeenCalledWith(-50, 4);
+  });
+
+  it("onTouchEnd cancels a short swipe instead of advancing", () => {
+    const host = createHost();
+    controller.onTouchStart(
+      { touches: [{ clientX: 100, clientY: 10 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 80, clientY: 12 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchEnd(host);
+    expect(host.spies.next).not.toHaveBeenCalled();
+    expect(host.spies.previous).not.toHaveBeenCalled();
+    expect(host.spies.cancel).toHaveBeenCalledOnce();
+  });
+
+  it("onTouchEnd does not change slides on a vertical swipe", () => {
+    const host = createHost();
+    controller.onTouchStart(
+      { touches: [{ clientX: 200, clientY: 20 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 120, clientY: 180 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchEnd(host);
+    expect(host.spies.next).not.toHaveBeenCalled();
+    expect(host.spies.cancel).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a vertical lock when the finger later moves sideways", () => {
+    const host = createHost();
+    controller.onTouchStart(
+      { touches: [{ clientX: 200, clientY: 20 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 200, clientY: 40 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 40, clientY: 40 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchEnd(host);
+    expect(host.spies.drag).not.toHaveBeenCalled();
+    expect(host.spies.next).not.toHaveBeenCalled();
+    expect(host.spies.cancel).toHaveBeenCalledOnce();
+  });
+
+  it("drops a gesture that starts while a transition is running", () => {
+    const host = createHost();
+    host.acceptsTouchGesture = () => false;
+    controller.onTouchStart(
+      { touches: [{ clientX: 200, clientY: 20 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 40, clientY: 20 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchEnd(host);
+    expect(host.spies.next).not.toHaveBeenCalled();
+    expect(host.spies.drag).not.toHaveBeenCalled();
+    expect(host.spies.cancel).not.toHaveBeenCalled();
+  });
+
+  it("keeps a horizontal lock when the finger later moves down", () => {
+    const host = createHost();
+    controller.onTouchStart(
+      { touches: [{ clientX: 200, clientY: 20 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 140, clientY: 20 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchMove(
+      { touches: [{ clientX: 140, clientY: 200 }] } as unknown as TouchEvent,
+      host
+    );
+    controller.onTouchEnd(host);
+    expect(host.spies.next).toHaveBeenCalledOnce();
+    expect(host.spies.cancel).not.toHaveBeenCalled();
   });
 
   it("onTouchStart sets lastTap for a single tap", () => {
