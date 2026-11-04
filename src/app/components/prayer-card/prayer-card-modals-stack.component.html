@@ -79,3 +79,12 @@
   (cancel)="cancelPrayFor.emit()"
 />
 }
+
+@if (showJournal) {
+<app-prayer-journal-modal
+  [kind]="journalKind"
+  [prayerId]="prayerId"
+  [richTextEditorsEnabled]="richTextEditorsEnabled"
+  (close)="closeJournal.emit()"
+/>
+}

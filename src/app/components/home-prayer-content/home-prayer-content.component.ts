@@ -3,6 +3,7 @@ import {
   EventEmitter,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
   ViewChild,
@@ -26,6 +27,8 @@ import { PrayerRequest } from "../../services/prayer.service";
 import type { MemorizedItem } from "../../types/memorization";
 import type { HomePrayerContentHandlers } from "../../lib/home-prayer-content-handlers";
 import { isCommunityPrayerFilter } from "../../lib/home-community-filter";
+import { journalEntriesForPrayers } from "../../lib/prayer-journal-note";
+import { syncPrayerJournalFeed } from "../../lib/prayer-journal-feed";
 import {
   HOME_PRAYER_VIRTUAL_SCROLL_ITEM_CLASSES,
   HOME_PROMPT_VIRTUAL_SCROLL_ITEM_CLASSES,
@@ -64,7 +67,7 @@ export type HomePersonalCategoryPickerOpenChange = {
   templateUrl: "./home-prayer-content.component.html",
   styleUrl: "./home-prayer-content.component.css",
 })
-export class HomePrayerContentComponent implements OnChanges {
+export class HomePrayerContentComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) contentHidden!: boolean;
   @Input({ required: true }) activeFilter!: HomeActiveFilter;
   @Input({ required: true }) filters!: PrayerFilters;
@@ -131,6 +134,41 @@ export class HomePrayerContentComponent implements OnChanges {
     ) {
       this.promptTailReconciledContentEnd = null;
       this.schedulePromptVirtualScrollTailReconcile();
+    }
+    this.syncJournalFeed(changes);
+  }
+
+  ngOnDestroy(): void {
+    syncPrayerJournalFeed([], ["personal", "member", "community"]);
+  }
+
+  private syncJournalFeed(changes: SimpleChanges): void {
+    if (
+      this.activeFilter === "personal" &&
+      (changes["filteredPersonalPrayers"] || changes["activeFilter"])
+    ) {
+      syncPrayerJournalFeed(
+        journalEntriesForPrayers(this.filteredPersonalPrayers, true),
+        ["personal"]
+      );
+    }
+    if (
+      this.activeFilter === "planning_center_list" &&
+      (changes["filteredPlanningCenterPrayers"] || changes["activeFilter"])
+    ) {
+      syncPrayerJournalFeed(
+        journalEntriesForPrayers(this.filteredPlanningCenterPrayers),
+        ["member"]
+      );
+    }
+    if (
+      isCommunityPrayerFilter(this.activeFilter) &&
+      (changes["displayedPublicPrayers"] || changes["activeFilter"])
+    ) {
+      syncPrayerJournalFeed(
+        journalEntriesForPrayers(this.displayedPublicPrayers),
+        ["community"]
+      );
     }
   }
 

@@ -1087,6 +1087,22 @@ The **Pray For** feature lets community members indicate they have prayed for a 
 
 ---
 
+## Prayer journal
+
+Each non-verse prayer card has a private scratchpad. The button sits on [`prayer-card-actions-row`](src/app/components/prayer-card/prayer-card-actions-row.component.ts), between Add Update and Pray For, including the presentation card (it wraps the same prayer card). Prompt cards do not have it. Verse memorization cards keep the Memorize button and do not show Journal. [`showJournalButton`](src/app/lib/prayer-card-view-state.ts) is separate from `showActionRow`, so a card that hides Pray For still shows Journal, and a card that previously hid the whole row does not suddenly show Pray For.
+
+The modal is [`prayer-journal-modal`](src/app/components/prayer-journal-modal/prayer-journal-modal.component.ts), hosted by [`prayer-card-modals-stack`](src/app/components/prayer-card/prayer-card-modals-stack.component.ts). `showJournal` is part of the virtual-scroll portal check in [`prayer-card-modals-portal.ts`](src/app/lib/prayer-card-modals-portal.ts). The editor is the existing rich text editor (12rem minimum). When rich text is turned off, the modal uses a textarea. Save flushes the editor to markdown, then [`PrayerJournalService`](src/app/services/prayer-journal.service.ts) writes the row.
+
+**Table.** [`20261104180000_prayer_journal_notes.sql`](../supabase/migrations/20261104180000_prayer_journal_notes.sql) creates `prayer_journal_notes`: `user_id` (auth user, cascade delete), `prayer_kind` (`community`, `group`, `personal`, or `member`), `prayer_id` (text, so Planning Center `pc-member-…` ids fit), `content`, `created_at`, `updated_at`. One row per `(user_id, prayer_kind, prayer_id)`. Policies are owner-only for `authenticated`: `user_id = auth.uid()` on select, insert, update, and delete. There is no admin or anon policy. A `BEFORE UPDATE` trigger sets `updated_at` and does not read `content`.
+
+**How text reaches the database.** The service uses the Supabase query builder only: `.upsert` with a values object, `.select` / `.delete` / `.eq` / `.in` with bound arguments. It does not interpolate the note into a SQL string, and the migration has no dynamic `EXECUTE`. [`sanitizeJournalNoteContent`](src/app/lib/prayer-journal-note.ts) runs on save and again when the note is loaded for the editor. It always calls `markdownToSafeHtml`. If the source has no HTML tag, the original trimmed text is what gets stored, so a string such as `'); drop table x;--` round-trips. If the source contains HTML, the sanitized HTML is stored. Empty content deletes the row. The column allows 1 to 20000 characters.
+
+**Indicator.** [`prayer-journal-feed.ts`](src/app/lib/prayer-journal-feed.ts) keeps the prayers currently on screen. Home personal, member, and community lists call it from [`home-prayer-content`](src/app/components/home-prayer-content/home-prayer-content.component.ts). The Groups tab calls it from [`home-groups-panel`](src/app/components/home-groups-panel/home-groups-panel.component.ts). The presentation page calls it when the deck loads or the visible set changes. Those callers are plain functions, so components built with `new` in tests do not take a new constructor argument. The service loads matching rows in chunks of 100 (`prayer_id` and `prayer_kind`) and sets a signal. The pencil is filled when that key is present. Logout clears the set. An in-flight load is ignored when the account changes or when a save or delete lands while that load is still running. Leaving Home, Groups, or the presentation page drops that screen's ids from the next batch.
+
+**Phone layout.** Under 640px, `.prayer-card-action-row-mobile-lock` in [`styles.css`](../src/styles.css) uses a 2px gap and 4px horizontal padding, and `.prayer-card-journal-button` is a 32px icon with the word Journal hidden. Prompt rows share that lock, so their phone padding is tighter too. At 640px and wider, Journal uses `actionButtonClasses` from [`prayer-card-layout.ts`](src/app/lib/prayer-card-layout.ts) and scales with the app text size.
+
+---
+
 ## Prayer Archiving System
 
 The prayer archiving system automatically archives prayers when specific criteria are met, preventing the prayer list from becoming too large while keeping active prayers visible.

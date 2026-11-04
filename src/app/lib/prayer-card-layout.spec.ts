@@ -172,4 +172,52 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
       'prayer-card-action-row-mobile-lock'
     );
   });
+
+  it('keeps Journal between Add Update and Pray For and uses the shared button classes', () => {
+    const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '../components');
+    const prayerRow = readFileSync(
+      join(componentsDir, 'prayer-card/prayer-card-actions-row.component.html'),
+      'utf8'
+    );
+    const promptRow = readFileSync(
+      join(componentsDir, 'prompt-card/prompt-card-actions-row.component.html'),
+      'utf8'
+    );
+    const addUpdate = prayerRow.indexOf('Add Update');
+    const journal = prayerRow.indexOf('prayer-card-journal-button');
+    const prayFor = prayerRow.indexOf('Pray For');
+    expect(addUpdate).toBeGreaterThan(-1);
+    expect(journal).toBeGreaterThan(addUpdate);
+    expect(prayFor).toBeGreaterThan(journal);
+    expect(prayerRow).toContain('variantLayout.actionButtonClasses');
+    expect(promptRow).not.toContain('prayer-card-journal-button');
+  });
+
+  it('fits Add Update, an icon Journal, Prayed For, and the count on a 320px phone', () => {
+    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    const mediaStart = css.indexOf('@media (max-width: 639px)');
+    const lock = css.indexOf('.prayer-card-action-row-mobile-lock', mediaStart);
+    const memorize = css.indexOf('Memorize practice modal header', lock);
+    const phoneLock = css.slice(lock, memorize);
+    expect(phoneLock).toContain('gap: 2px');
+    expect(phoneLock).toContain('padding-left: 4px');
+    expect(phoneLock).not.toContain('padding-left: 8px');
+    const journalRule = phoneLock.indexOf('button.prayer-card-journal-button');
+    expect(journalRule).toBeGreaterThan(-1);
+    expect(phoneLock.slice(journalRule)).toContain('width: 32px');
+    expect(phoneLock).toContain('.prayer-card-journal-label');
+    expect(phoneLock).toContain('display: none');
+
+    const textControl = (label: string, paddingPx: number) =>
+      label.length * 7 + paddingPx * 2;
+    const rowWidth = (paddingPx: number) =>
+      textControl('Add Update', paddingPx) +
+      32 +
+      textControl('Prayed For', paddingPx) +
+      textControl('128 Prayers', paddingPx) +
+      2 * 3;
+    const innerWidthAtLargestText = 320 - 2 * 16 * 1.25;
+    expect(rowWidth(4)).toBeLessThanOrEqual(innerWidthAtLargestText);
+    expect(rowWidth(8)).toBeGreaterThan(innerWidthAtLargestText);
+  });
 });

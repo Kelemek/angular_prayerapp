@@ -12,6 +12,7 @@ export function prayerCardModalsStackHasOpenModal(state: {
   personalAnsweredStatusModalMode: unknown;
   showReminderModal: boolean;
   showPrayForModal: boolean;
+  showJournal: boolean;
 }): boolean {
   return (
     state.showAddUpdateForm ||
@@ -21,7 +22,8 @@ export function prayerCardModalsStackHasOpenModal(state: {
     state.showUpdateConfirmationDialog ||
     state.personalAnsweredStatusModalMode !== null ||
     state.showReminderModal ||
-    state.showPrayForModal
+    state.showPrayForModal ||
+    state.showJournal
   );
 }
 

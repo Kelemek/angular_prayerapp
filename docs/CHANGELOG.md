@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Private journal on each prayer card (November 4, 2026)
+- Every church, group, personal, and member prayer card has a **Journal** button between Add Update and Pray For. Verse cards keep Memorize only, and prompt cards are unchanged. The button opens one private note for that prayer. The same person can save, edit, or delete it. A filled pencil means a note is already stored. The feed loads that indicator in one batched read per list, not one query per card.
+- The note is stored in [`prayer_journal_notes`](../supabase/migrations/20261104180000_prayer_journal_notes.sql). Row level security lets the signed-in user read and write only their own rows (`user_id = auth.uid()`). Note text is sent as a query-builder value (`.upsert` / `.select` / `.delete` / `.in`). It is not concatenated into SQL. On save and when the note is shown again, [`sanitizeJournalNoteContent`](../src/app/lib/prayer-journal-note.ts) runs [`markdownToSafeHtml`](../src/utils/markdown.ts). Plain text, including SQL-like punctuation, is stored unchanged. HTML is replaced with the sanitized result.
+- On a phone, the shared action row uses a 2px gap and 4px horizontal padding, and Journal is a 32px icon, so Add Update, Journal, Prayed For, and the count stay on one line. At 640px and wider the word Journal returns and the buttons follow the card's existing text size. See [Prayer journal](DEVELOPMENT.md#prayer-journal).
+
 ### Presentation cards stay centered during a slide (November 4, 2026)
 - A shorter card no longer comes in at the top of the taller card and then drops to the middle when the slide ends. Each card stays vertically centered for the whole slide, including a taller card coming in, a finger drag, and a snap back. The two cards still share one grid cell. [`.presentation-card-stage`](../src/app/pages/presentation/presentation.component.css) uses `align-items: center`, and the scroll area still centers that stage. [`presentation-card-slide-layout.spec.ts`](../src/app/pages/presentation/presentation-card-slide-layout.spec.ts) fails when that centering is missing. A 480px card and a 140px card would otherwise shift the short card's center by 170px.
 

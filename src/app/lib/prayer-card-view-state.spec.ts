@@ -34,6 +34,8 @@ describe('computePrayerCardViewState', () => {
     expect(state.isVerseMemorizationPrayer).toBe(true);
     expect(state.showMemorizeButton).toBe(true);
     expect(state.showAddUpdateButton).toBe(false);
+    expect(state.showJournalButton).toBe(false);
+    expect(state.showActionRow).toBe(false);
   });
 
   it('does not show Memorize for standard community prayers', () => {
@@ -61,5 +63,18 @@ describe('computePrayerCardViewState', () => {
     });
     expect(state.showAddUpdateButton).toBe(false);
     expect(state.showActionRow).toBe(true);
+    expect(state.showJournalButton).toBe(true);
+  });
+
+  it('shows Journal when Add Update is hidden for a non-verse prayer', () => {
+    const prayer = { ...basePrayer, content_kind: 'standard' as const };
+    const state = computePrayerCardViewState({
+      ...baseInput,
+      prayer,
+      updatesAllowed: 'admin-only',
+    });
+    expect(state.showAddUpdateButton).toBe(false);
+    expect(state.showActionRow).toBe(false);
+    expect(state.showJournalButton).toBe(true);
   });
 });
