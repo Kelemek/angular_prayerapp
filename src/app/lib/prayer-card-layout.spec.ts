@@ -193,7 +193,15 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     expect(promptRow).not.toContain('prayer-card-journal-button');
   });
 
-  it('fits Add Update, an icon Journal, Prayed For, and the count on a 320px phone', () => {
+  it('keeps the word Journal beside the pencil on a narrow phone and a narrow presentation card', () => {
+    const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '../components');
+    const prayerRow = readFileSync(
+      join(componentsDir, 'prayer-card/prayer-card-actions-row.component.html'),
+      'utf8'
+    );
+    expect(prayerRow).toContain('prayer-card-action-row-slot');
+    expect(prayerRow).toContain('class="prayer-card-journal-label">Journal</span>');
+
     const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
     const mediaStart = css.indexOf('@media (max-width: 639px)');
     const lock = css.indexOf('.prayer-card-action-row-mobile-lock', mediaStart);
@@ -201,23 +209,59 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     const phoneLock = css.slice(lock, memorize);
     expect(phoneLock).toContain('gap: 2px');
     expect(phoneLock).toContain('padding-left: 4px');
+    expect(phoneLock).toContain('padding-left: 2px');
+    expect(phoneLock).toContain('margin-left: -8px');
+    expect(phoneLock).toContain('font-size: calc(10px / var(--os-text-zoom, 1))');
+    expect(phoneLock).toContain('width: 12px');
     expect(phoneLock).not.toContain('padding-left: 8px');
-    const journalRule = phoneLock.indexOf('button.prayer-card-journal-button');
-    expect(journalRule).toBeGreaterThan(-1);
-    expect(phoneLock.slice(journalRule)).toContain('width: 32px');
-    expect(phoneLock).toContain('.prayer-card-journal-label');
-    expect(phoneLock).toContain('display: none');
+    expect(phoneLock).not.toContain('width: 32px');
+    expect(phoneLock).not.toContain('display: none');
+    expect(phoneLock).not.toContain('.prayer-card-journal-label');
 
-    const textControl = (label: string, paddingPx: number) =>
-      label.length * 7 + paddingPx * 2;
-    const rowWidth = (paddingPx: number) =>
-      textControl('Add Update', paddingPx) +
-      32 +
-      textControl('Prayed For', paddingPx) +
-      textControl('128 Prayers', paddingPx) +
-      2 * 3;
-    const innerWidthAtLargestText = 320 - 2 * 16 * 1.25;
-    expect(rowWidth(4)).toBeLessThanOrEqual(innerWidthAtLargestText);
-    expect(rowWidth(8)).toBeGreaterThan(innerWidthAtLargestText);
+    const compactStart = css.indexOf('@container prayer-actions (max-width: 720px)');
+    expect(compactStart).toBeGreaterThan(-1);
+    const compact = css.slice(compactStart, css.indexOf('.prayer-card-journal-icon', compactStart));
+    expect(compact).toContain('gap: 6px');
+    expect(compact).toContain('padding-left: 8px');
+
+    const border = 2;
+    const text = (label: string, charPx: number) => label.length * charPx;
+    const control = (label: string, charPx: number, pad: number) =>
+      text(label, charPx) + pad * 2 + border;
+    const journal = (charPx: number, pad: number, icon: number, iconGap: number) =>
+      icon + iconGap + text('Journal', charPx) + pad * 2 + border;
+    const row = (
+      prayLabel: string,
+      charPx: number,
+      pad: number,
+      icon: number,
+      iconGap: number,
+      gap: number
+    ) =>
+      control('Add Update', charPx, pad) +
+      journal(charPx, pad, icon, iconGap) +
+      control(prayLabel, charPx, pad) +
+      control('128 Prayers', charPx, pad) +
+      gap * 3;
+
+    const phoneScale = 1.25;
+    const phoneRem = 16 * phoneScale;
+    const phoneContent = 320 - phoneRem * 2 - 4 - phoneRem * 2;
+    const phoneAvailable = phoneContent + 8 * 2;
+    expect(phoneContent).toBe(236);
+    expect(row('Pray For', 5.5, 2, 12, 2, 1)).toBeLessThanOrEqual(phoneAvailable);
+    expect(row('Prayed For', 5.5, 2, 12, 2, 1)).toBeLessThanOrEqual(phoneAvailable);
+    expect(row('Prayed For', 5.5, 4, 12, 2, 1)).toBeGreaterThan(phoneAvailable);
+
+    const presentationContent = (viewport: number, pageRem: number, cardRem: number) =>
+      viewport - pageRem * phoneRem * 2 - 2 - cardRem * phoneRem * 2;
+    const at640 = presentationContent(640, 0.75, 1.5);
+    const at768 = presentationContent(768, 1.5, 2);
+    expect(at640).toBe(548);
+    expect(at768).toBe(626);
+    expect(row('Prayed For', 11, 8, 16, 5, 6)).toBeLessThanOrEqual(at640);
+    expect(row('Prayed For', 12.375, 8, 16, 5, 6)).toBeLessThanOrEqual(at768);
+    expect(row('Prayed For', 12.375, 20, 16, 5, 15)).toBeLessThanOrEqual(720);
+    expect(row('Prayed For', 11, 20, 16, 5, 15)).toBeGreaterThan(at640);
   });
 });
