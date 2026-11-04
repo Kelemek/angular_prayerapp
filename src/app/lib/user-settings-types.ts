@@ -1,4 +1,6 @@
-export type ThemeOption = 'light' | 'dark' | 'system';
+import type { Theme } from '../services/theme.service';
+
+export type ThemeOption = Theme;
 export type PrintRange = 'week' | 'twoweeks' | 'month' | 'year' | 'all';
 
 export const USER_SETTINGS_THEME_OPTIONS: Array<{
@@ -16,6 +18,11 @@ export const USER_SETTINGS_THEME_OPTIONS: Array<{
     value: 'dark',
     label: 'Dark',
     icon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>',
+  },
+  {
+    value: 'black',
+    label: 'Night',
+    icon: '<circle cx="12" cy="12" r="9"></circle>',
   },
   {
     value: 'system',

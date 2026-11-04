@@ -50,7 +50,7 @@ function readSkipPrayForModal(): boolean {
 function readTheme(): Theme | undefined {
   try {
     const theme = localStorage.getItem('theme');
-    if (theme === 'light' || theme === 'dark' || theme === 'system') {
+    if (theme === 'light' || theme === 'dark' || theme === 'black' || theme === 'system') {
       return theme;
     }
   } catch {

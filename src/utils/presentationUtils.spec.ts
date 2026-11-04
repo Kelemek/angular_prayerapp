@@ -465,7 +465,23 @@ describe('presentationUtils', () => {
       applyTheme('system');
 
       expect(mockRoot.classList.add).toHaveBeenCalledWith('dark');
+      expect(mockRoot.classList.add).not.toHaveBeenCalledWith('black');
+      expect(mockRoot.classList.remove).toHaveBeenCalledWith('black');
       expect(localStorage.setItem).toHaveBeenCalledWith('theme', 'system');
+    });
+
+    it('applies black as the dark class plus the black class', () => {
+      applyTheme('black');
+
+      expect(mockRoot.classList.add).toHaveBeenCalledWith('dark');
+      expect(mockRoot.classList.add).toHaveBeenCalledWith('black');
+      expect(localStorage.setItem).toHaveBeenCalledWith('theme', 'black');
+    });
+
+    it('removes the black class when applying light', () => {
+      applyTheme('light');
+
+      expect(mockRoot.classList.remove).toHaveBeenCalledWith('black');
     });
 
     it('should apply system theme as light when system prefers light', () => {
@@ -474,6 +490,8 @@ describe('presentationUtils', () => {
       applyTheme('system');
 
       expect(mockRoot.classList.remove).toHaveBeenCalledWith('dark');
+      expect(mockRoot.classList.add).not.toHaveBeenCalledWith('black');
+      expect(mockRoot.classList.remove).toHaveBeenCalledWith('black');
       expect(localStorage.setItem).toHaveBeenCalledWith('theme', 'system');
     });
   });
@@ -482,7 +500,7 @@ describe('presentationUtils', () => {
     let mockDocumentElement: HTMLElement;
     let mockLocalStorage: { [key: string]: string };
     let mockMatchMedia: ReturnType<typeof vi.fn>;
-    let mockSetTheme: ReturnType<typeof vi.fn<(theme: 'light' | 'dark' | 'system') => void>>;
+    let mockSetTheme: ReturnType<typeof vi.fn<(theme: 'light' | 'dark' | 'black' | 'system') => void>>;
 
 
     beforeEach(() => {
@@ -563,6 +581,22 @@ describe('presentationUtils', () => {
       expect(mockSetTheme).toHaveBeenCalledWith('system');
       expect(localStorage.setItem).toHaveBeenCalledWith('theme', 'system');
       expect(mockDocumentElement.classList.add).toHaveBeenCalledWith('dark');
+      expect(mockDocumentElement.classList.add).not.toHaveBeenCalledWith('black');
+      expect(mockDocumentElement.classList.remove).toHaveBeenCalledWith('black');
+    });
+
+    it('applies black through handleThemeChange', () => {
+      handleThemeChange('black', mockSetTheme);
+
+      expect(mockSetTheme).toHaveBeenCalledWith('black');
+      expect(mockDocumentElement.classList.add).toHaveBeenCalledWith('dark');
+      expect(mockDocumentElement.classList.add).toHaveBeenCalledWith('black');
+    });
+
+    it('removes the black class when handleThemeChange selects light', () => {
+      handleThemeChange('light', mockSetTheme);
+
+      expect(mockDocumentElement.classList.remove).toHaveBeenCalledWith('black');
     });
 
     it('should handle system theme with light preference', () => {
@@ -573,6 +607,8 @@ describe('presentationUtils', () => {
       expect(mockSetTheme).toHaveBeenCalledWith('system');
       expect(localStorage.setItem).toHaveBeenCalledWith('theme', 'system');
       expect(mockDocumentElement.classList.remove).toHaveBeenCalledWith('dark');
+      expect(mockDocumentElement.classList.add).not.toHaveBeenCalledWith('black');
+      expect(mockDocumentElement.classList.remove).toHaveBeenCalledWith('black');
     });
   });
 });

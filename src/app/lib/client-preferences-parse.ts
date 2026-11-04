@@ -9,7 +9,7 @@ import { MEMORIZE_LISTEN_SPEEDS } from './memorization/memorizeListenSpeedStorag
 import type { MemorizeListenSpeed } from './memorization/memorizeListenSpeedStorage';
 
 const TEXT_SIZES: readonly TextSize[] = ['normal', 'large', 'largest'];
-const THEMES: readonly Theme[] = ['light', 'dark', 'system'];
+const THEMES: readonly Theme[] = ['light', 'dark', 'black', 'system'];
 
 function isTextSize(value: unknown): value is TextSize {
   return typeof value === 'string' && (TEXT_SIZES as readonly string[]).includes(value);

@@ -67,6 +67,7 @@ export function showUserSettingsTimedSuccess(
 const THEME_SUCCESS_LABEL: Record<ThemeOption, string> = {
   light: 'Light',
   dark: 'Dark',
+  black: 'Night',
   system: 'System',
 };
 

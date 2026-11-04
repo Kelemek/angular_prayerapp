@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Night theme (November 4, 2026)
+- Settings and the presentation settings theme picker both label this choice **Night**, with a circle outline. The page background is black (`#000000`) and cards are a near-black gray (`#121212`). Text, borders, the dark logo, and charts stay on the existing dark palette so contrast does not drop. The stored value stays `black`.
+- The saved value is the string `black` in the `theme` localStorage key and in `email_subscribers.client_preferences`. The device mirror reader keeps `black`, so a later sign-in does not replace it with an older cloud theme. Unknown values still fall back to system. There is no database migration.
+- [`ThemeService`](../src/app/services/theme.service.ts) keeps the `dark` class and adds `black` only when Night is selected. Surface overrides are at the end of [`styles.css`](../src/styles.css). The boot script in [`src/index.html`](../src/index.html) sets both classes and `theme-color` `#000000` before Angular loads. System mode is unchanged: it still follows `prefers-color-scheme` for light or dark, uses the existing light and dark colors, and never selects black.
+
 ### Quality gate for the current diff (November 3, 2026)
 - Agents can run one check on whatever branch they are working on. The procedure is [`.cursor/skills/quality-gate/SKILL.md`](../.cursor/skills/quality-gate/SKILL.md). Hard checks are `npm run pre-handoff` (lint, typecheck, unit tests, and Edge Function Deno tests) and production `npm run build`. The skill reviews the diff against the default base (`origin/HEAD`, otherwise `origin/main`), tries Bugbot once, and records **Bugbot not available** when that subagent cannot launch. UI, route, auth, and admin diffs point at [`.cursor/skills/verify-prayerapp/SKILL.md`](../.cursor/skills/verify-prayerapp/SKILL.md) without blocking on MFA. How to run it is in [Development — Quality gate](DEVELOPMENT.md#quality-gate).
 

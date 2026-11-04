@@ -1,6 +1,17 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, fromEvent } from 'rxjs';
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark' | 'black' | 'system';
+
+/** Browser chrome color. Keep in sync with the boot script in src/index.html. */
+const THEME_COLOR_LIGHT = '#E8E5E1';
+const THEME_COLOR_DARK = '#1F2937';
+const THEME_COLOR_BLACK = '#000000';
+
+const THEMES: readonly Theme[] = ['light', 'dark', 'black', 'system'];
+
+function isStoredTheme(value: string): value is Theme {
+  return (THEMES as readonly string[]).includes(value);
+}
 
 export type SetThemeOptions = {
   /** When false, updates DOM/state only (e.g. logged-out login screen). Default true. */
@@ -31,36 +42,43 @@ export class ThemeService {
   }
 
   private readThemeFromLocalStorage(): Theme | null {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system')) {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme && isStoredTheme(savedTheme)) {
       return savedTheme;
     }
     return null;
   }
 
+  private prefersDark(): boolean {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
   private applyTheme(theme: Theme, persistToLocalStorage = true): void {
     const root = document.documentElement;
-    
-    // Determine the actual theme to apply
-    let effectiveTheme: 'light' | 'dark';
-    
-    if (theme === 'system') {
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      effectiveTheme = systemPrefersDark ? 'dark' : 'light';
-    } else {
-      effectiveTheme = theme as 'light' | 'dark';
-    }
-    
-    // Apply the theme class
-    if (effectiveTheme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    
+    const effectiveDark =
+      theme === 'dark' || theme === 'black' || (theme === 'system' && this.prefersDark());
+
+    root.classList.toggle('dark', effectiveDark);
+    root.classList.toggle('black', theme === 'black');
+    this.syncThemeColor(theme, effectiveDark);
+
     if (persistToLocalStorage) {
       localStorage.setItem('theme', theme);
     }
+  }
+
+  private syncThemeColor(theme: Theme, effectiveDark: boolean): void {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!(meta instanceof HTMLMetaElement)) {
+      return;
+    }
+    let content = THEME_COLOR_LIGHT;
+    if (theme === 'black') {
+      content = THEME_COLOR_BLACK;
+    } else if (effectiveDark) {
+      content = THEME_COLOR_DARK;
+    }
+    meta.setAttribute('content', content);
   }
 
   private listenToSystemThemeChanges(): void {
@@ -119,8 +137,11 @@ export class ThemeService {
    */
   isDark(): boolean {
     const theme = this.themeSubject.value;
+    if (theme === 'black') {
+      return true;
+    }
     if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return this.prefersDark();
     }
     return theme === 'dark';
   }

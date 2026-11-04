@@ -34,6 +34,14 @@ describe('user-settings-timed-success', () => {
     expect(host.markForCheck).toHaveBeenCalledTimes(2);
   });
 
+  it('names Night when that theme is saved in Settings', () => {
+    const host = createHost();
+
+    showUserSettingsThemeSaved(host, 'black');
+
+    expect(host.successTheme).toBe('✅ Theme set to Night');
+  });
+
   it('shows text size success', () => {
     const host = createHost();
 
