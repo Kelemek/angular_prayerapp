@@ -7,15 +7,12 @@ import {
   Input,
   Output,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
-import { parseInviteEmails } from '../../lib/home-group-invite-emails';
 import {
   activeOwnerCount,
   canChangeOtherOwner,
   canGrantGroupOwnership,
   normalizeGroupEmail,
-  prayerGroupOwnerInviteNotice,
 } from '../../lib/prayer-group-owners';
 import {
   PrayerGroupMemberRow,
@@ -27,7 +24,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-home-group-owner-controls',
   standalone: true,
-  imports: [FormsModule, ConfirmationDialogComponent],
+  imports: [ConfirmationDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-group-owner-controls.component.html',
   host: { class: 'block' },
@@ -43,7 +40,6 @@ export class HomeGroupOwnerControlsComponent {
 
   @Output() submittingChange = new EventEmitter<boolean>();
 
-  ownerEmailsDraft = '';
   ownerPick: string[] = [];
   pendingDemoteEmail: string | null = null;
   private alive = true;
@@ -57,10 +53,6 @@ export class HomeGroupOwnerControlsComponent {
     destroyRef.onDestroy(() => {
       this.alive = false;
     });
-  }
-
-  get canAddOwnersByEmail(): boolean {
-    return parseInviteEmails(this.ownerEmailsDraft).length > 0;
   }
 
   get demoteConfirmMessage(): string {
@@ -132,32 +124,6 @@ export class HomeGroupOwnerControlsComponent {
           this.ownerPick = this.ownerPick.filter((email) => !owners.has(email));
         }
       }
-      this.setSubmitting(false);
-    }
-  }
-
-  async addOwnersByEmail(): Promise<void> {
-    if (!canGrantGroupOwnership(this.group.role)) return;
-    const groupId = this.group.id;
-    const emails = parseInviteEmails(this.ownerEmailsDraft);
-    if (emails.length === 0) return;
-    this.setSubmitting(true);
-    try {
-      for (const email of emails) {
-        if (!this.sameGroup(groupId)) return;
-        const result = await this.groupsApi.invite(groupId, email, 'owner');
-        const notice = prayerGroupOwnerInviteNotice(email, result, result.emailError === null);
-        if (notice.tone === 'info') this.toast.info(notice.text);
-        else this.toast.success(notice.text);
-        if (result.emailError) this.toast.error(result.emailError);
-      }
-      if (!this.sameGroup(groupId)) return;
-      this.ownerEmailsDraft = '';
-      await this.groupsApi.refreshCatalogAfterWrite();
-      await this.reloadMembers(groupId);
-    } catch (err: unknown) {
-      this.toast.error(err instanceof Error ? err.message : 'Could not add that owner');
-    } finally {
       this.setSubmitting(false);
     }
   }

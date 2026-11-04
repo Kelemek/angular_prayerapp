@@ -428,36 +428,29 @@ describe('PrayerGroupService owners', () => {
     );
   }
 
-  it('asks the invite function to add an owner and still sends the welcome email for a new person', async () => {
-    const rpc = vi.fn().mockResolvedValue({
-      data: { created_subscriber: true, already_owner: false, was_member: false, role: 'owner' },
-      error: null,
-    });
+  it('invites by email as a member and sends the welcome email', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { created_subscriber: true }, error: null });
     const invoke = vi.fn().mockResolvedValue({ error: null });
     const service = serviceWithRpc(rpc, invoke);
-    const result = await service.invite('g1', 'new@example.com', 'owner');
+    const result = await service.invite('g1', 'new@example.com');
     expect(rpc).toHaveBeenCalledWith('invite_prayer_group_member', {
       p_group_id: 'g1',
       p_email: 'new@example.com',
-      p_role: 'owner',
     });
     expect(invoke).toHaveBeenCalledWith('notify-group-activity', {
       body: { kind: 'invite', groupId: 'g1', email: 'new@example.com' },
     });
-    expect(result.createdSubscriber).toBe(true);
     expect(result.emailError).toBeNull();
   });
 
-  it('does not send another welcome email when the person is already a member', async () => {
-    const rpc = vi.fn().mockResolvedValue({
-      data: { created_subscriber: false, already_owner: false, was_member: true, role: 'owner' },
-      error: null,
-    });
-    const invoke = vi.fn();
+  it('returns the welcome-email failure without reading an invite payload', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    const invoke = vi.fn().mockResolvedValue({ error: new Error('mailbox unavailable') });
     const service = serviceWithRpc(rpc, invoke);
-    const result = await service.invite('g1', 'pat@example.com', 'owner');
-    expect(invoke).not.toHaveBeenCalled();
-    expect(result.wasMember).toBe(true);
+    const result = await service.invite('g1', 'new@example.com');
+    expect(result).toEqual({
+      emailError: 'mailbox unavailable',
+    });
   });
 
   it('changes a role through set_prayer_group_member_role', async () => {

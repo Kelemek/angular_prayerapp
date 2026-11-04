@@ -18,11 +18,7 @@ import {
   DEFAULT_PRAYER_GROUP_COLOR,
   normalizePrayerGroupColor,
 } from '../lib/prayer-group-color';
-import {
-  readPrayerGroupInvitePayload,
-  type PrayerGroupInvitePayload,
-  type PrayerGroupRole,
-} from '../lib/prayer-group-owners';
+import { type PrayerGroupRole } from '../lib/prayer-group-owners';
 import type { GroupFilterMode } from '../lib/home-group-catalog';
 
 export { DEFAULT_PRAYER_GROUP_COLOR, normalizePrayerGroupColor };
@@ -76,7 +72,7 @@ export interface PrayerGroupMemberRow {
   name: string | null;
 }
 
-export type PrayerGroupInviteResult = PrayerGroupInvitePayload & {
+export type PrayerGroupInviteResult = {
   emailError: string | null;
 };
 
@@ -535,31 +531,20 @@ export class PrayerGroupService {
     return data as string;
   }
 
-  async invite(
-    groupId: string,
-    email: string,
-    role: PrayerGroupRole = 'member',
-  ): Promise<PrayerGroupInviteResult> {
+  async invite(groupId: string, email: string): Promise<PrayerGroupInviteResult> {
     const client = await this.supabase.db();
-    const { data, error } = await client.rpc('invite_prayer_group_member', {
+    const { error } = await client.rpc('invite_prayer_group_member', {
       p_group_id: groupId,
       p_email: email,
-      p_role: role,
     });
     if (error) throw error;
-    const payload = readPrayerGroupInvitePayload(data);
-    const skipWelcome = role === 'owner' && payload.wasMember;
-    if (skipWelcome) {
-      return { ...payload, emailError: null };
-    }
     const { error: notifyError } = await client.functions.invoke('notify-group-activity', {
       body: { kind: 'invite', groupId, email },
     });
     if (!notifyError) {
-      return { ...payload, emailError: null };
+      return { emailError: null };
     }
     return {
-      ...payload,
       emailError: await messageFromFunctionsInvokeError(
         notifyError,
         'Added to the group, but the invitation email could not be sent',

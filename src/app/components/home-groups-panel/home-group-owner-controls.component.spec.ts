@@ -24,9 +24,7 @@ describe('HomeGroupOwnerControlsComponent', () => {
       prayForDisabled: false,
     };
     panel.ownerPick = ['pat@example.com'];
-    panel.ownerEmailsDraft = 'pat@example.com';
     await panel.promoteSelected();
-    await panel.addOwnersByEmail();
     expect(setMemberRole).not.toHaveBeenCalled();
     expect(invite).not.toHaveBeenCalled();
   });

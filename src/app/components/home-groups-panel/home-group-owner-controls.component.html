@@ -39,32 +39,6 @@
 </button>
 }
 <ng-content />
-@if (group.role === 'owner') {
-<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-  Add an owner by email
-  <textarea
-    rows="2"
-    [(ngModel)]="ownerEmailsDraft"
-    name="ownerEmailsDraft"
-    placeholder="name@example.com"
-    class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
-  ></textarea>
-</label>
-<p class="text-xs text-gray-500 dark:text-gray-400">
-  Someone who already has an account becomes an owner now. Someone with no account gets the usual group invite and becomes an owner when they sign up.
-</p>
-<button
-  type="button"
-  class="min-h-11 px-4 py-2 text-sm font-medium btn-chip disabled:cursor-not-allowed"
-  [class.btn-chip-blue]="canAddOwnersByEmail && !submitting"
-  [class.btn-chip-gray]="!canAddOwnersByEmail || submitting"
-  [class.opacity-50]="!canAddOwnersByEmail || submitting"
-  (click)="addOwnersByEmail()"
-  [disabled]="submitting || !canAddOwnersByEmail"
->
-  Add owners
-</button>
-}
 </div>
 
 @if (pendingDemoteEmail) {

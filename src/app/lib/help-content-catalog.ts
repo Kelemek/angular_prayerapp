@@ -282,7 +282,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Inviting and managing members',
-            text: 'After you create a group, Manage members opens so you can invite people. Open it again from the group chip **⋯** menu. Owners invite by email. Separate addresses with commas. Each invite sends a welcome email. An owner can select members and choose **Make owner**, or add an owner by email. If that email already has an account, they become an owner. If it does not, the same invite is sent and they become an owner when they sign up. The list shows each person and their role, owner or member. An owner can **Remove** a member, and can remove or make another owner a member when at least one owner will remain. Every member can open Manage members to see who is in the group.',
+            text: 'After you create a group, Manage members opens so you can invite people. Open it again from the group chip **⋯** menu. Owners invite by email. Separate addresses with commas. Each invite sends a welcome email and adds a member. To add an owner, invite them first, then select that member and choose **Make owner**. The list shows each person and their role, owner or member. An owner can **Remove** a member, and can remove or make another owner a member when at least one owner will remain. Every member can open Manage members to see who is in the group.',
           },
           {
             subtitle: 'Transfer ownership, leave, and delete',

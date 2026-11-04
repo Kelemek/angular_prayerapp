@@ -3,8 +3,6 @@ import {
   canChangeOtherOwner,
   canGrantGroupOwnership,
   mustTransferBeforeLeaving,
-  prayerGroupOwnerInviteNotice,
-  readPrayerGroupInvitePayload,
 } from './prayer-group-owners';
 
 describe('canGrantGroupOwnership', () => {
@@ -79,53 +77,5 @@ describe('canChangeOtherOwner', () => {
         owners: 2,
       }),
     ).toBe(false);
-  });
-});
-
-describe('prayerGroupOwnerInviteNotice', () => {
-  it('tells the owner an unknown email becomes an owner after signup', () => {
-    expect(
-      prayerGroupOwnerInviteNotice(
-        'new@example.com',
-        { createdSubscriber: true, alreadyOwner: false, wasMember: false },
-        true,
-      ),
-    ).toEqual({
-      tone: 'success',
-      text: 'No account for new@example.com yet. An invite was sent. They will be an owner when they sign up.',
-    });
-  });
-
-  it('does not claim an invite was sent when the email failed', () => {
-    expect(
-      prayerGroupOwnerInviteNotice(
-        'new@example.com',
-        { createdSubscriber: true, alreadyOwner: false, wasMember: false },
-        false,
-      ).text,
-    ).toBe('No account for new@example.com yet. They will be an owner when they sign up.');
-  });
-
-  it('names an existing account as an owner now', () => {
-    expect(
-      prayerGroupOwnerInviteNotice(
-        'pat@example.com',
-        { createdSubscriber: false, alreadyOwner: false, wasMember: true },
-        false,
-      ),
-    ).toEqual({ tone: 'success', text: 'pat@example.com is now an owner.' });
-  });
-
-  it('reads the invite payload without treating missing fields as true', () => {
-    expect(readPrayerGroupInvitePayload({ created_subscriber: true })).toEqual({
-      createdSubscriber: true,
-      alreadyOwner: false,
-      wasMember: false,
-    });
-    expect(readPrayerGroupInvitePayload(null)).toEqual({
-      createdSubscriber: false,
-      alreadyOwner: false,
-      wasMember: false,
-    });
   });
 });
