@@ -58,6 +58,16 @@ describe('client-preferences-local', () => {
     expect(prefs?.textSize).toBe('large');
   });
 
+  it('keeps a local black theme ahead of an older cloud theme', () => {
+    localStorage.setItem('theme', 'black');
+    const { preferences, divergedFromInput } = reconcileClientPreferencesWithDevice(
+      { theme: 'dark' },
+      'user@example.com'
+    );
+    expect(preferences.theme).toBe('black');
+    expect(divergedFromInput).toBe(true);
+  });
+
   it('reconcileClientPreferencesWithDevice prefers textSize localStorage over session json', () => {
     localStorage.setItem('textSize', 'normal');
     const { preferences, divergedFromInput } = reconcileClientPreferencesWithDevice(
