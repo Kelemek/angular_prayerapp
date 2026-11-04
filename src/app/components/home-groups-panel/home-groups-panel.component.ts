@@ -40,7 +40,7 @@ import {
   type GroupFilterMode,
 } from '../../lib/home-group-catalog';
 import { parseInviteEmails } from '../../lib/home-group-invite-emails';
-import { activeOwnerCount, mustTransferBeforeLeaving } from '../../lib/prayer-group-owners';
+import { activeOwnerCount, lastOwnerCannotLeave } from '../../lib/prayer-group-owners';
 import { HomeGroupOwnerControlsComponent } from './home-group-owner-controls.component';
 import { groupPrayerUpdatesByPrayerId } from '../../lib/prayer-group-catalog-load';
 import type { PrayerRequest } from '../../lib/prayer-types';
@@ -89,10 +89,6 @@ import { ToastService } from '../../services/toast.service';
 import { PrayerItemReminderService } from '../../services/prayer-item-reminder.service';
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { HomeDeepLinkCoordinator } from '../../services/home-deep-link.coordinator';
-import {
-  AdminFilterSelectComponent,
-  type AdminFilterSelectOption,
-} from '../admin-filter-select/admin-filter-select.component';
 
 type GroupsAddChoice = 'prayer' | 'group';
 
@@ -109,7 +105,6 @@ type GroupsAddChoice = 'prayer' | 'group';
     ConfirmationDialogComponent,
     ModalChromeCloseButtonComponent,
     PrayerCardComponent,
-    AdminFilterSelectComponent,
     PersonalCategoryColorPickerComponent,
     HomeGroupOwnerControlsComponent,
   ],
@@ -168,7 +163,7 @@ export class HomeGroupsPanelComponent {
   createName = '';
   createColor = DEFAULT_PRAYER_GROUP_COLOR;
   membersTarget: PrayerGroupSummary | null = null;
-  /** First open after creating a group: invite-only (no leave / transfer). */
+  /** First open after creating a group: invite-only (no leave). */
   membersModalPostCreate = false;
   renameTarget: PrayerGroupSummary | null = null;
   settingsTarget: PrayerGroupSummary | null = null;
@@ -180,9 +175,7 @@ export class HomeGroupsPanelComponent {
   renameColor = DEFAULT_PRAYER_GROUP_COLOR;
   pendingDelete: PrayerGroupSummary | null = null;
   pendingLeaveGroup: PrayerGroupSummary | null = null;
-  pendingTransferEmail: string | null = null;
   emailsDraft = '';
-  transferEmail = '';
   readonly reloadMembersForOwners = (
     groupId: string,
   ): Promise<PrayerGroupMemberRow[] | null> => this.loadMembers(groupId);
@@ -277,14 +270,6 @@ export class HomeGroupsPanelComponent {
 
   get canSendInvites(): boolean {
     return parseInviteEmails(this.emailsDraft).length > 0;
-  }
-
-  get transferConfirmMessage(): string {
-    const email = this.pendingTransferEmail ?? '';
-    const member = this.members.find((row) => row.user_email === email);
-    const label = member?.name || member?.user_email || email;
-    const groupName = this.membersTarget?.name ?? 'this group';
-    return `Make ${label} an owner of "${groupName}"? You will become a member. Other owners stay owners.`;
   }
 
   get visiblePrayers(): GroupPrayerRow[] {
@@ -584,9 +569,9 @@ export class HomeGroupsPanelComponent {
         : group.role === 'owner'
           ? 1
           : 0;
-    if (mustTransferBeforeLeaving(group.role, owners)) {
+    if (lastOwnerCannotLeave(group.role, owners)) {
       this.toast.info(
-        'Transfer ownership to another member before you can leave this group.',
+        'Make another member an owner before you leave this group.',
       );
       return;
     }
@@ -615,51 +600,6 @@ export class HomeGroupsPanelComponent {
       if (this.selectedId === group.id) this.selectStatus('current');
     } catch (err: unknown) {
       this.toast.error(err instanceof Error ? err.message : 'Could not leave the group');
-    } finally {
-      this.cdr.markForCheck();
-    }
-  }
-
-  get transferMemberOptions(): AdminFilterSelectOption[] {
-    return this.members
-      .filter(
-        (member) =>
-          member.user_email !== this.viewerEmail && member.role !== 'owner',
-      )
-      .map((member) => ({
-        value: member.user_email,
-        label: member.name || member.user_email,
-      }));
-  }
-
-  onTransferEmailChange(email: string): void {
-    if (!email) {
-      this.transferEmail = '';
-      this.cdr.markForCheck();
-      return;
-    }
-    this.pendingTransferEmail = email;
-    this.transferEmail = '';
-    this.cdr.markForCheck();
-  }
-
-  cancelTransfer(): void {
-    this.pendingTransferEmail = null;
-    this.transferEmail = '';
-    this.cdr.markForCheck();
-  }
-
-  async confirmTransfer(): Promise<void> {
-    const email = this.pendingTransferEmail;
-    this.pendingTransferEmail = null;
-    if (!this.membersTarget || !email) return;
-    try {
-      await this.groupsApi.transfer(this.membersTarget.id, email);
-      this.transferEmail = '';
-      this.membersTarget = { ...this.membersTarget, role: 'member' };
-      this.toast.success('Ownership transferred');
-    } catch (err: unknown) {
-      this.toast.error(err instanceof Error ? err.message : 'Could not transfer ownership');
     } finally {
       this.cdr.markForCheck();
     }
@@ -767,8 +707,6 @@ export class HomeGroupsPanelComponent {
     this.membersTarget = group;
     this.membersModalPostCreate = options?.postCreate === true;
     this.emailsDraft = '';
-    this.transferEmail = '';
-    this.pendingTransferEmail = null;
     this.members =
       this.groupsApi.membersForGroup(group.id) ?? this.fallbackMembersForViewer(group);
     this.cdr.markForCheck();

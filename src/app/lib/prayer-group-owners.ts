@@ -9,8 +9,8 @@ export function activeOwnerCount(roles: readonly PrayerGroupRole[]): number {
   return roles.filter((role) => role === 'owner').length;
 }
 
-/** The last owner leaves only through transfer. A co-owner may leave. */
-export function mustTransferBeforeLeaving(
+/** The last owner stays until another member is an owner. A co-owner may leave. */
+export function lastOwnerCannotLeave(
   viewerRole: PrayerGroupRole,
   owners: number,
 ): boolean {

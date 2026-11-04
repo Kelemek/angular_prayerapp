@@ -571,16 +571,6 @@ export class PrayerGroupService {
     return data === true;
   }
 
-  async transfer(groupId: string, email: string): Promise<void> {
-    const client = await this.supabase.db();
-    const { error } = await client.rpc('transfer_prayer_group_ownership', {
-      p_group_id: groupId,
-      p_new_owner_email: email,
-    });
-    if (error) throw error;
-    await this.refreshCatalogAfterWrite();
-  }
-
   async completeMemberProfile(firstName: string, lastName: string): Promise<void> {
     const first = firstName.trim();
     const last = lastName.trim();

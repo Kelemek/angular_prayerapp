@@ -74,7 +74,7 @@ describe('HomeGroupsPanelComponent groups tab chip state', () => {
     expect(panel.selectedId).toBe('group-42');
   });
 
-  it('tells the last owner to transfer before leaving', () => {
+  it('last owner cannot leave until another owner exists', () => {
     const info = vi.fn();
     const panel = new HomeGroupsPanelComponent(
       groupsApi as unknown as PrayerGroupService,
@@ -100,7 +100,7 @@ describe('HomeGroupsPanelComponent groups tab chip state', () => {
     panel.members = [{ user_email: 'owner@example.com', role: 'owner', name: 'Owner' }];
     panel.leave(group);
     expect(info).toHaveBeenCalledWith(
-      'Transfer ownership to another member before you can leave this group.',
+      'Make another member an owner before you leave this group.',
     );
     expect(panel.pendingLeaveGroup).toBeNull();
   });

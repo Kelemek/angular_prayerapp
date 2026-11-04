@@ -285,8 +285,8 @@ export function getDefaultHelpSections(): HelpSection[] {
             text: 'After you create a group, Manage members opens so you can invite people. Open it again from the group chip **⋯** menu. Owners invite by email. Separate addresses with commas. Each invite sends a welcome email and adds a member. To add an owner, invite them first, then select that member and choose **Make owner**. The list shows each person and their role, owner or member. An owner can **Remove** a member, and can remove or make another owner a member when at least one owner will remain. Every member can open Manage members to see who is in the group.',
           },
           {
-            subtitle: 'Transfer ownership, leave, and delete',
-            text: 'The last owner has to transfer ownership to another member before leaving. Another owner can leave without transferring. Transfer is in Manage members, and you confirm before it happens. After you transfer, you stay in the group as a member, and any other owners stay owners. **Leave group** is on Manage members. **Delete group** is in the **⋯** menu for an owner. Deleting the group removes its prayers. If a group-only account leaves its last group, that account is deleted and the app signs you out. A church member who leaves a group keeps their church account.',
+            subtitle: 'Leave and delete',
+            text: 'The last owner has to make another member an owner before leaving. Another owner can leave. **Leave group** is on Manage members. **Delete group** is in the **⋯** menu for an owner. Deleting the group removes its prayers. If a group-only account leaves its last group, that account is deleted and the app signs you out. A church member who leaves a group keeps their church account.',
           },
           {
             subtitle: 'Selecting and reordering groups',

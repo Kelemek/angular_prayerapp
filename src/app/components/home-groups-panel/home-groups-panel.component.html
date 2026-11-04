@@ -243,19 +243,6 @@
         </label>
         }
       </app-home-group-owner-controls>
-      @if (membersTarget.role === 'owner' && !membersModalPostCreate) {
-      <div class="space-y-1">
-        <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Transfer ownership</span>
-        <app-admin-filter-select
-          class="block w-full"
-          [value]="transferEmail"
-          (valueChange)="onTransferEmailChange($event)"
-          [options]="transferMemberOptions"
-          placeholder="Select a member"
-          ariaLabel="Member to transfer ownership to"
-        />
-      </div>
-      }
     </div>
     <div
       class="modal-chrome-footer flex shrink-0 items-center gap-3 px-6 py-4"
@@ -440,18 +427,6 @@
   [isDangerous]="true"
   (confirm)="confirmDelete()"
   (cancel)="pendingDelete = null"
-/>
-}
-
-@if (pendingTransferEmail) {
-<app-confirmation-dialog
-  title="Transfer ownership?"
-  [message]="transferConfirmMessage"
-  details="You become a member. Other owners stay owners. You manage the group again only if an owner adds you."
-  confirmText="Transfer ownership"
-  [isDangerous]="true"
-  (confirm)="confirmTransfer()"
-  (cancel)="cancelTransfer()"
 />
 }
 

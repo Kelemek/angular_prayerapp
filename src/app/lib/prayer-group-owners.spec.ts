@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canChangeOtherOwner,
   canGrantGroupOwnership,
-  mustTransferBeforeLeaving,
+  lastOwnerCannotLeave,
 } from './prayer-group-owners';
 
 describe('canGrantGroupOwnership', () => {
@@ -15,18 +15,18 @@ describe('canGrantGroupOwnership', () => {
   });
 });
 
-describe('mustTransferBeforeLeaving', () => {
-  it('stops the last owner', () => {
-    expect(mustTransferBeforeLeaving('owner', 1)).toBe(true);
-    expect(mustTransferBeforeLeaving('owner', 0)).toBe(true);
+describe('lastOwnerCannotLeave', () => {
+  it('stops the last owner until another owner exists', () => {
+    expect(lastOwnerCannotLeave('owner', 1)).toBe(true);
+    expect(lastOwnerCannotLeave('owner', 0)).toBe(true);
   });
 
   it('lets a co-owner leave', () => {
-    expect(mustTransferBeforeLeaving('owner', 2)).toBe(false);
+    expect(lastOwnerCannotLeave('owner', 2)).toBe(false);
   });
 
   it('lets a member leave', () => {
-    expect(mustTransferBeforeLeaving('member', 1)).toBe(false);
+    expect(lastOwnerCannotLeave('member', 1)).toBe(false);
   });
 });
 

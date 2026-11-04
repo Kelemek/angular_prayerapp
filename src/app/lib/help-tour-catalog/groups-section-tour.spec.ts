@@ -105,7 +105,7 @@ describe('runGroupsHelpSectionTour', () => {
       'Submit',
       'Your group prayer',
       'Prayer actions',
-      'Leave, transfer, or delete',
+      'Leave or delete',
       'Done with the sample group',
     ]);
     for (const step of steps) {
