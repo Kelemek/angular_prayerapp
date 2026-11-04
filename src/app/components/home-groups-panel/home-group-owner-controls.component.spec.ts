@@ -28,4 +28,30 @@ describe('HomeGroupOwnerControlsComponent', () => {
     expect(setMemberRole).not.toHaveBeenCalled();
     expect(invite).not.toHaveBeenCalled();
   });
+
+  it('shows the database message when Make owner returns a plain PostgREST error', async () => {
+    const setMemberRole = vi
+      .fn()
+      .mockRejectedValue({ message: 'permission denied for function is_prayer_group_member_row' });
+    const error = vi.fn();
+    const panel = new HomeGroupOwnerControlsComponent(
+      { setMemberRole } as unknown as PrayerGroupService,
+      { error, info: vi.fn(), success: vi.fn() } as never,
+      { markForCheck: vi.fn() } as unknown as ChangeDetectorRef,
+      { onDestroy: vi.fn() } as unknown as DestroyRef,
+    );
+    panel.group = {
+      id: 'g1',
+      name: 'test',
+      color: '#2563EB',
+      role: 'owner',
+      memberCount: 3,
+      updatesRequesterOnly: false,
+      answeredRequesterOnly: false,
+      prayForDisabled: false,
+    };
+    panel.ownerPick = ['gmail@example.com'];
+    await panel.promoteSelected();
+    expect(error).toHaveBeenCalledWith('permission denied for function is_prayer_group_member_row');
+  });
 });

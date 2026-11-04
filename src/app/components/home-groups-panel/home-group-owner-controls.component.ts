@@ -7,6 +7,7 @@ import {
   Input,
   Output,
 } from '@angular/core';
+import { extractSupabaseErrorMessage } from '../../lib/prayer-error-message';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
 import {
   activeOwnerCount,
@@ -113,7 +114,7 @@ export class HomeGroupOwnerControlsComponent {
         this.toast.success(emails.length === 1 ? 'They are an owner now' : 'They are owners now');
       }
     } catch (err: unknown) {
-      this.toast.error(err instanceof Error ? err.message : 'Could not add that owner');
+      this.toast.error(extractSupabaseErrorMessage(err, 'Could not add that owner'));
     } finally {
       if (this.sameGroup(groupId)) {
         const rows = await this.reloadMembers(groupId);
@@ -150,7 +151,7 @@ export class HomeGroupOwnerControlsComponent {
       await this.reloadMembers(groupId);
       this.toast.success('They are a member now');
     } catch (err: unknown) {
-      this.toast.error(err instanceof Error ? err.message : 'Could not change that role');
+      this.toast.error(extractSupabaseErrorMessage(err, 'Could not change that role'));
     } finally {
       this.cdr.markForCheck();
     }
@@ -165,7 +166,7 @@ export class HomeGroupOwnerControlsComponent {
       this.ownerPick = this.ownerPick.filter((picked) => picked !== email);
       await this.reloadMembers(groupId);
     } catch (err: unknown) {
-      this.toast.error(err instanceof Error ? err.message : 'Could not remove that member');
+      this.toast.error(extractSupabaseErrorMessage(err, 'Could not remove that member'));
     }
   }
 

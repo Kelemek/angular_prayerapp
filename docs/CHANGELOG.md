@@ -5,7 +5,7 @@ Major features and milestones for the Prayer App.
 ## [Current] - February 2026
 
 ### Prayer groups can have more than one owner (November 4, 2026)
-- An owner adds owners from **Manage members** on the group chip. Invite the person as a member, then select that member and choose **Make owner**. The email invite stays a member invite. There is no separate add-owner email box.
+- An owner adds owners from **Manage members** on the group chip. Invite the person as a member, then select that member and choose **Make owner**. The email invite stays a member invite. There is no separate add-owner email box. **Make owner** was failing when the change committed: the owner-floor trigger ran as the signed-in user and could not call `is_prayer_group_member_row`. The trigger now runs as its owner. The toast shows that database message when the request fails.
 - Another owner can be removed or made a member when at least one owner remains. The last owner still cannot leave, be removed, or be demoted. That still goes through **Transfer ownership**, which steps the caller down and makes the chosen member an owner. Other owners stay owners. Transfer still only moves to a church member.
 - Ownership is `prayer_group_members.role`, not `prayer_groups.created_by_email`. Existing owner rows stay owners. A group that has members and no active owner is repaired by promoting the creator when they are still a member, otherwise the earliest active member. A group that still exists cannot drop to zero active owners. Site admins do not gain group management. They can add an owner only when they already are one. See [Prayer group owners](DEVELOPMENT.md#prayer-group-owners).
 
