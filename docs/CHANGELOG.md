@@ -22,7 +22,7 @@ Major features and milestones for the Prayer App.
 
 ### Help — prayer journal and Night theme in existing sections (November 5, 2026)
 - **Help copy** (single Help modal, no new Tutorials section): **Creating Prayers** documents private **Journal** notes on cards; **App Settings** and **Presentation Mode** document **Night** vs **Dark** vs **Light** / **System** in [`help-content-catalog.ts`](src/app/lib/help-content-catalog.ts).
-- **Guided tours**: **Creating Prayers** tour adds Journal steps via [`journal-card-tour-steps.ts`](src/app/lib/help-tour-catalog/journal-card-tour-steps.ts) (`#tour-prayer-journal`, `#tour-prayer-journal-modal`). **App Settings** (themes tutorial) adds a **Night vs Dark** step on `#tour-settings-theme-night`; fixes theme block anchor `#tour-settings-theme`.
+- **Guided tours**: **Creating Prayers** tour adds Journal steps via [`journal-card-tour-steps.ts`](src/app/lib/help-tour-catalog/journal-card-tour-steps.ts) (`#tour-prayer-journal`, `#tour-prayer-journal-modal`). **App Settings** and **Presentation Mode** themes tours add a **Night vs Dark** step (`#tour-settings-theme-night`, `#tour-presentation-setting-theme-night`); fixes Home theme block anchor `#tour-settings-theme`.
 
 ### Night theme (November 4, 2026)
 - Settings and the presentation settings theme picker both label this choice **Night**, with a circle outline. The page background is black (`#000000`) and cards are a near-black gray (`#121212`). Text, borders, the dark logo, and charts stay on the existing dark palette so contrast does not drop. The stored value stays `black`.

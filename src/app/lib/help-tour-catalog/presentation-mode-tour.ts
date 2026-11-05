@@ -8,7 +8,7 @@ import {
 import * as dom from '../help-tour-dom';
 import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
-import { TOUR_PRESENTATION_SETTINGS_MODAL_ID, TOUR_PRESENTATION_SETTING_DURATION_ID, TOUR_PRESENTATION_SETTING_SMART_INFO_ID, TOUR_PRESENTATION_SETTING_SMART_ID, TOUR_PRESENTATION_PREV_ID, TOUR_PRESENTATION_PLAY_ID, TOUR_PRESENTATION_NEXT_ID, TOUR_PRESENTATION_SETTINGS_BTN_ID, TOUR_PRESENTATION_SETTING_THEME_ID, TOUR_PRESENTATION_SETTING_CONTENT_TYPE_ID, TOUR_PRESENTATION_SETTING_RANDOMIZE_ID, TOUR_PRESENTATION_SETTING_TIME_FILTER_ID, TOUR_PRESENTATION_SETTING_STATUS_ID, TOUR_PRESENTATION_SETTING_TIMER_ID, TOUR_PRESENTATION_EXIT_ID } from '../help-tour-ids';
+import { TOUR_PRESENTATION_SETTINGS_MODAL_ID, TOUR_PRESENTATION_SETTING_DURATION_ID, TOUR_PRESENTATION_SETTING_SMART_INFO_ID, TOUR_PRESENTATION_SETTING_SMART_ID, TOUR_PRESENTATION_PREV_ID, TOUR_PRESENTATION_PLAY_ID, TOUR_PRESENTATION_NEXT_ID, TOUR_PRESENTATION_SETTINGS_BTN_ID, TOUR_PRESENTATION_SETTING_THEME_ID, TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID, TOUR_PRESENTATION_SETTING_CONTENT_TYPE_ID, TOUR_PRESENTATION_SETTING_RANDOMIZE_ID, TOUR_PRESENTATION_SETTING_TIME_FILTER_ID, TOUR_PRESENTATION_SETTING_STATUS_ID, TOUR_PRESENTATION_SETTING_TIMER_ID, TOUR_PRESENTATION_EXIT_ID } from '../help-tour-ids';
 import type { PresentationModeTourHooks } from '../help-tour-hooks';
 
 export function runPresentationModeTour(
@@ -47,6 +47,9 @@ if (typeof document === 'undefined') {
     document.getElementById(TOUR_PRESENTATION_SETTING_SMART_INFO_ID) ??
     document.getElementById(TOUR_PRESENTATION_SETTING_SMART_ID) ??
     modalOrBar();
+
+  const themeEl = (): HTMLElement =>
+    document.getElementById(TOUR_PRESENTATION_SETTING_THEME_ID) ?? modalOrBar();
 
   const steps: DriveStep[] = [
     {
@@ -117,10 +120,22 @@ if (typeof document === 'undefined') {
       },
     },
     {
-      element: () => document.getElementById(TOUR_PRESENTATION_SETTING_THEME_ID) ?? modalOrBar(),
+      element: () => themeEl(),
       popover: {
         title: 'Theme',
-        description: '<strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, or follow the <strong>System</strong> appearance.',
+        description:
+          'Pick <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, or <strong>System</strong>. The next step focuses on <strong>Night</strong>. One choice applies across presentation and the rest of the app.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: () =>
+        document.getElementById(TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID) ?? themeEl(),
+      popover: {
+        title: 'Night vs Dark',
+        description:
+          '<strong>Night</strong> (circle outline icon) uses a true black background for low-light rooms—it is separate from <strong>Dark</strong>, which uses the standard dark gray palette. The label is <strong>Night</strong>, not “Black mode”. The same choice applies in Home <strong>Settings</strong>. <strong>System</strong> follows your device and never selects Night automatically.',
         side: 'bottom',
         align: 'start',
       },

@@ -118,6 +118,7 @@ export const TOUR_PRESENTATION_SETTINGS_BTN_ID = 'tour-presentation-settings';
 export const TOUR_PRESENTATION_EXIT_ID = 'tour-presentation-exit';
 export const TOUR_PRESENTATION_SETTINGS_MODAL_ID = 'tour-presentation-settings-modal';
 export const TOUR_PRESENTATION_SETTING_THEME_ID = 'tour-presentation-setting-theme';
+export const TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID = 'tour-presentation-setting-theme-night';
 export const TOUR_PRESENTATION_SETTING_SMART_ID = 'tour-presentation-setting-smart';
 export const TOUR_PRESENTATION_SETTING_DURATION_ID = 'tour-presentation-setting-duration';
 export const TOUR_PRESENTATION_SETTING_SMART_INFO_ID = 'tour-presentation-setting-smart-info';
