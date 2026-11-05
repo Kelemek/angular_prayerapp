@@ -16,6 +16,7 @@ import { PrayerJournalService } from '../../services/prayer-journal.service';
 import { ToastService } from '../../services/toast.service';
 import { ModalShellComponent } from '../modal-shell/modal-shell.component';
 import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.component';
+import { TOUR_PRAYER_JOURNAL_MODAL_ID } from '../../lib/help-tour-ids';
 
 @Component({
   selector: 'app-prayer-journal-modal',
@@ -24,6 +25,7 @@ import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.co
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-modal-shell
+      [attr.id]="TOUR_PRAYER_JOURNAL_MODAL_ID"
       title="Journal"
       titleId="prayer-journal-modal-title"
       closeAriaLabel="Close journal"
@@ -81,6 +83,8 @@ import { RichTextEditorComponent } from '../rich-text-editor/rich-text-editor.co
   `,
 })
 export class PrayerJournalModalComponent implements OnInit, OnDestroy {
+  protected readonly TOUR_PRAYER_JOURNAL_MODAL_ID = TOUR_PRAYER_JOURNAL_MODAL_ID;
+
   private readonly journal = inject(PrayerJournalService);
   private readonly toast = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);

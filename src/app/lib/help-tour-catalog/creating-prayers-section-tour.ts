@@ -8,6 +8,7 @@ import {
 import * as dom from '../help-tour-dom';
 import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
+import { appendJournalCardTourSteps } from './journal-card-tour-steps';
 import { TOUR_PRAYER_DESCRIPTION_FIELD_ID, TOUR_PRAYER_UPDATE_ANONYMOUS_WRAP_ID, TOUR_PRAYER_UPDATE_MARK_ANSWERED_WRAP_ID } from '../help-tour-ids';
 import type { CreatingPrayersHelpSectionTourHooks, UpdatingPrayerTourOptions } from '../help-tour-hooks';
 
@@ -182,6 +183,27 @@ if (typeof document === 'undefined') {
         'Tap <strong>Add Update</strong> to send what you entered. For <strong>community</strong> prayers, updates are <strong>reviewed by an admin</strong> before everyone sees them—like new requests. You may get an email when yours is approved or needs attention. <strong>Personal</strong> updates don’t go through that queue.',
       side: 'top',
       align: 'start',
+      onNextClick: (_element, _step, { driver: drv }) => {
+        document
+          .querySelector<HTMLElement>('[aria-label="Close add update dialog"]')
+          ?.click();
+        window.setTimeout(() => {
+          drv.refresh();
+          drv.moveNext();
+        }, 220);
+      },
+    },
+  });
+
+  appendJournalCardTourSteps(steps, () => dom.getTourJournalButtonEl());
+
+  steps.push({
+    popover: {
+      title: 'Done',
+      description:
+        'You’ve seen community requests, updates, and private <strong>Journal</strong> notes. Filter tiles and personal prayers have their own Help tours.',
+      side: 'bottom',
+      align: 'center',
       onNextClick: host.popoverNextKillsTour(),
     },
   });

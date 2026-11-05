@@ -42,6 +42,8 @@ import {
   TOUR_SETTINGS_DEFAULT_VIEW_ID,
   TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID,
   TOUR_ADD_UPDATE_BTN_ID,
+  TOUR_PRAYER_JOURNAL_BTN_ID,
+  TOUR_WALKTHROUGH_JOURNAL_BTN_ID,
   TOUR_PRAYER_PRAY_FOR_ID,
   TOUR_PRAYER_REMINDER_BELL_ID,
   TOUR_PRAYER_SEARCH_ID,
@@ -280,6 +282,16 @@ export function getTourAddUpdateButtonEl(): HTMLElement | null {
     return null;
   }
   return document.getElementById(TOUR_ADD_UPDATE_BTN_ID);
+}
+
+export function getTourJournalButtonEl(): HTMLElement | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  return (
+    document.getElementById(TOUR_PRAYER_JOURNAL_BTN_ID) ??
+    document.getElementById(TOUR_WALKTHROUGH_JOURNAL_BTN_ID)
+  );
 }
 
 export function getPrayerSubmitRequestEl(): HTMLElement | null {

@@ -28,6 +28,7 @@ export class PrayerCardActionsRowComponent {
   @Input({ required: true }) showTourAnchors!: boolean;
   @Input({ required: true }) tourPersonalWalkthroughAnchors!: boolean;
   @Input({ required: true }) tourUpdateAnchors!: boolean;
+  @Input({ required: true }) tourJournalAnchors!: boolean;
   @Input({ required: true }) tourPrayForEncouragementAnchors!: boolean;
   @Input({ required: true }) prayedForCount!: number;
   @Input({ required: true }) prayedForCountLabel!: string;

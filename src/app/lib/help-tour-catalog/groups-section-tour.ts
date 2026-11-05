@@ -150,7 +150,7 @@ function openOverflowIn(id: string): void {
 
 function ownerWalkthroughSteps(build: GroupsStepBuild): DriveStep[] {
   const { anchor, menuAnchored, advance, hooks } = build;
-  return [
+  const steps: DriveStep[] = [
     {
       popover: {
         title: build.title,
@@ -349,6 +349,7 @@ function ownerWalkthroughSteps(build: GroupsStepBuild): DriveStep[] {
       },
     },
   ];
+  return steps;
 }
 
 function memberWithGroupsSteps(build: GroupsStepBuild): DriveStep[] {

@@ -28,6 +28,13 @@
     (click)="openJournal.emit()"
     title="Private note for this prayer"
     aria-label="Private journal"
+    [attr.id]="
+      showTourAnchors && tourPersonalWalkthroughAnchors
+        ? 'tour-walkthrough-journal'
+        : showTourAnchors && tourJournalAnchors
+          ? 'tour-prayer-journal'
+          : null
+    "
     [class]="
       variantLayout.actionButtonClasses +
       ' prayer-card-journal-button inline-flex items-center justify-center gap-1 btn-chip btn-chip-blue' +

@@ -35,6 +35,7 @@ import {
   TOUR_SETTINGS_FEEDBACK_TYPE_ID,
   TOUR_SETTINGS_FEEDBACK_DETAILS_ID,
   TOUR_SETTINGS_THEME_ID,
+  TOUR_SETTINGS_THEME_NIGHT_ID,
   TOUR_SETTINGS_TEXT_SIZE_ID,
   TOUR_SETTINGS_PUSH_ID,
   TOUR_SETTINGS_BADGES_ID,
@@ -53,6 +54,7 @@ import {
   TOUR_PRESENTATION_EXIT_ID,
   TOUR_PRESENTATION_SETTINGS_MODAL_ID,
   TOUR_PRESENTATION_SETTING_THEME_ID,
+  TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID,
   TOUR_PRESENTATION_SETTING_SMART_ID,
   TOUR_PRESENTATION_SETTING_DURATION_ID,
   TOUR_PRESENTATION_SETTING_CONTENT_TYPE_ID,
@@ -1399,6 +1401,7 @@ describe('HelpDriverTourService', () => {
     mountEl(TOUR_PRESENTATION_EXIT_ID);
     mountEl(TOUR_PRESENTATION_SETTINGS_MODAL_ID, 'div');
     mountEl(TOUR_PRESENTATION_SETTING_THEME_ID, 'div');
+    mountEl(TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID);
     mountEl(TOUR_PRESENTATION_SETTING_SMART_ID, 'div');
     mountEl(TOUR_PRESENTATION_SETTING_DURATION_ID, 'div');
     mountEl(TOUR_PRESENTATION_SETTING_CONTENT_TYPE_ID, 'div');
@@ -1639,13 +1642,13 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts with 11 steps by default and 12 with anonymous step', () => {
+    it('starts with 14 steps by default and 15 with anonymous step', () => {
       mountEl(TOUR_REQUEST_BTN_DESKTOP_ID);
       stubWideMatchMedia(true);
       service.startCreatingPrayersHelpSectionTour(section, hooks());
-      expect(vi.mocked(driver).mock.calls[0][0]?.steps?.length).toBe(11);
+      expect(vi.mocked(driver).mock.calls[0][0]?.steps?.length).toBe(14);
       service.startCreatingPrayersHelpSectionTour(section, hooks(), { includeAnonymousUpdateStep: true });
-      expect(vi.mocked(driver).mock.calls[1][0]?.steps?.length).toBe(12);
+      expect(vi.mocked(driver).mock.calls[1][0]?.steps?.length).toBe(15);
       vi.unstubAllGlobals();
     });
 
@@ -1831,6 +1834,7 @@ describe('HelpDriverTourService', () => {
       mountSettingsGear(true);
       mountEl(TOUR_SETTINGS_PRINT_ROW_ID, 'div');
       mountEl(TOUR_SETTINGS_THEME_ID, 'div');
+      mountEl(TOUR_SETTINGS_THEME_NIGHT_ID);
       mountEl(TOUR_SETTINGS_TEXT_SIZE_ID, 'div');
       mountEl(TOUR_SETTINGS_EMAIL_SUBSCRIPTION_ID, 'div');
       mountEl(TOUR_SETTINGS_PUSH_ID, 'div');
@@ -1844,11 +1848,11 @@ describe('HelpDriverTourService', () => {
       vi.useFakeTimers();
       service.startAppSettingsHelpSectionTour(section, h);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(14);
-      resolveStepElements(config, Array.from({ length: 14 }, (_, i) => i));
+      expect(config?.steps?.length).toBe(15);
+      resolveStepElements(config, Array.from({ length: 15 }, (_, i) => i));
       fireStepNext(config, 0);
       vi.advanceTimersByTime(420);
-      fireStepNext(config, 13);
+      fireStepNext(config, 14);
       expect(h.closeSettings).toHaveBeenCalled();
       vi.useRealTimers();
       vi.unstubAllGlobals();
@@ -1943,12 +1947,12 @@ describe('HelpDriverTourService', () => {
       vi.useFakeTimers();
       service.startPresentationModeTour(section, h);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(17);
-      resolveStepElements(config, Array.from({ length: 17 }, (_, i) => i));
+      expect(config?.steps?.length).toBe(18);
+      resolveStepElements(config, Array.from({ length: 18 }, (_, i) => i));
       fireStepNext(config, 5);
       vi.advanceTimersByTime(380);
       expect(h.openSettings).toHaveBeenCalled();
-      const closeSettingsIdx = 15;
+      const closeSettingsIdx = 16;
       fireStepNext(config, closeSettingsIdx);
       vi.advanceTimersByTime(280);
       expect(h.closeSettings).toHaveBeenCalled();
@@ -1958,7 +1962,7 @@ describe('HelpDriverTourService', () => {
         driver: {} as never,
       });
       expect(h.onFullGuidedTourInterrupted).toHaveBeenCalled();
-      fireStepNext(config, 16);
+      fireStepNext(config, 17);
       expect(h.persistFullGuidedTourQueue).toHaveBeenCalled();
       expect(h.exitPresentation).toHaveBeenCalled();
       vi.useRealTimers();

@@ -8,7 +8,7 @@ import {
 import * as dom from '../help-tour-dom';
 import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
-import { TOUR_SETTINGS_PRINT_ROW_ID, TOUR_SETTINGS_THEME_ID, TOUR_SETTINGS_TEXT_SIZE_ID, TOUR_SETTINGS_EMAIL_SUBSCRIPTION_ID, TOUR_SETTINGS_PUSH_ID, TOUR_SETTINGS_BADGES_ID, TOUR_SETTINGS_PRAYER_ENCOURAGEMENT_ID, TOUR_SETTINGS_DEFAULT_VIEW_ID, TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID, TOUR_SETTINGS_PRAYER_REMINDERS_ID, TOUR_SETTINGS_FEEDBACK_SECTION_ID } from '../help-tour-ids';
+import { TOUR_SETTINGS_PRINT_ROW_ID, TOUR_SETTINGS_THEME_ID, TOUR_SETTINGS_THEME_NIGHT_ID, TOUR_SETTINGS_TEXT_SIZE_ID, TOUR_SETTINGS_EMAIL_SUBSCRIPTION_ID, TOUR_SETTINGS_PUSH_ID, TOUR_SETTINGS_BADGES_ID, TOUR_SETTINGS_PRAYER_ENCOURAGEMENT_ID, TOUR_SETTINGS_DEFAULT_VIEW_ID, TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID, TOUR_SETTINGS_PRAYER_REMINDERS_ID, TOUR_SETTINGS_FEEDBACK_SECTION_ID } from '../help-tour-ids';
 import type { AppSettingsHelpTourHooks } from '../help-tour-hooks';
 import { environment } from '../../../environments/environment';
 
@@ -108,7 +108,18 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Theme',
         description:
-          'Choose <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, or <strong>System</strong>. Your choice saves automatically.',
+          'Pick <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, or <strong>System</strong>. The next step focuses on <strong>Night</strong>. Your choice saves automatically.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: () =>
+        document.getElementById(TOUR_SETTINGS_THEME_NIGHT_ID) ?? themeEl(),
+      popover: {
+        title: 'Night vs Dark',
+        description:
+          '<strong>Night</strong> (circle outline icon) uses a true black background for very low light—it is separate from <strong>Dark</strong>, which uses the standard dark gray palette. The same choice applies in <strong>presentation mode</strong> settings. <strong>System</strong> follows your device light or dark preference and never selects Night automatically.',
         side: 'bottom',
         align: 'start',
       },

@@ -59,6 +59,7 @@ export const TOUR_SETTINGS_FEEDBACK_SECTION_ID = 'tour-settings-feedback-section
 export const TOUR_SETTINGS_FEEDBACK_TYPE_ID = 'tour-settings-feedback-type';
 export const TOUR_SETTINGS_FEEDBACK_DETAILS_ID = 'tour-settings-feedback-details';
 export const TOUR_SETTINGS_THEME_ID = 'tour-settings-theme';
+export const TOUR_SETTINGS_THEME_NIGHT_ID = 'tour-settings-theme-night';
 export const TOUR_SETTINGS_TEXT_SIZE_ID = 'tour-settings-text-size';
 export const TOUR_SETTINGS_PUSH_ID = 'tour-settings-push-notifications';
 export const TOUR_SETTINGS_BADGES_ID = 'tour-settings-badges';
@@ -67,6 +68,11 @@ export const TOUR_SETTINGS_DEFAULT_VIEW_ID = 'tour-settings-default-view';
 export const TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID = 'tour-settings-memorization-strict-mode';
 /** First prayer card in the list: “Add Update” opens the add-update modal (see `PrayerCardComponent.tourUpdateAnchors`). */
 export const TOUR_ADD_UPDATE_BTN_ID = 'tour-prayer-add-update';
+/** **Journal** on the first community card (`tourJournalAnchors`) or personal walkthrough card. */
+export const TOUR_PRAYER_JOURNAL_BTN_ID = 'tour-prayer-journal';
+export const TOUR_WALKTHROUGH_JOURNAL_BTN_ID = 'tour-walkthrough-journal';
+/** Root of [`PrayerJournalModalComponent`] for guided tours. */
+export const TOUR_PRAYER_JOURNAL_MODAL_ID = 'tour-prayer-journal-modal';
 /** **Pray For** / **Prayed For** on the first community card (see `PrayerCardComponent.tourPrayForEncouragementAnchors`). */
 export const TOUR_PRAYER_PRAY_FOR_ID = 'tour-prayer-pray-for';
 /** Reminder row in the first community prayer card menu (see `PrayerCardComponent.tourPrayerReminderBellAnchors`). */
@@ -112,6 +118,7 @@ export const TOUR_PRESENTATION_SETTINGS_BTN_ID = 'tour-presentation-settings';
 export const TOUR_PRESENTATION_EXIT_ID = 'tour-presentation-exit';
 export const TOUR_PRESENTATION_SETTINGS_MODAL_ID = 'tour-presentation-settings-modal';
 export const TOUR_PRESENTATION_SETTING_THEME_ID = 'tour-presentation-setting-theme';
+export const TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID = 'tour-presentation-setting-theme-night';
 export const TOUR_PRESENTATION_SETTING_SMART_ID = 'tour-presentation-setting-smart';
 export const TOUR_PRESENTATION_SETTING_DURATION_ID = 'tour-presentation-setting-duration';
 export const TOUR_PRESENTATION_SETTING_SMART_INFO_ID = 'tour-presentation-setting-smart-info';
