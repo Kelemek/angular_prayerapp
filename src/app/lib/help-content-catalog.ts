@@ -443,6 +443,10 @@ export function getDefaultHelpSections(): HelpSection[] {
             subtitle: 'Presentation Settings',
             text: 'Access the settings icon during presentation mode to customize your experience. You can enable a timer to track prayer time, sort prayers by different criteria, and filter which prayers are displayed. These options help you control the flow and focus of your group prayer time.',
           },
+          {
+            subtitle: 'Theme (Light, Dark, Night, System)',
+            text: 'In presentation **Settings**, choose the same theme options as Home **Settings**: **Light**, **Dark**, **Night**, or **System**. **Night** uses a true black background for low-light rooms; **Dark** uses the standard dark gray palette. **System** follows your device and does not pick **Night** automatically. The label is **Night** (circle outline icon), not “Black mode”. One choice applies across the app and presentation.',
+          },
         ],
         order: 9,
         isActive: true,
