@@ -277,28 +277,27 @@ describe("LoginAuthCoordinator", () => {
     expect(adminAuthService.logout).not.toHaveBeenCalled();
   });
 
-  it("resolvePostVerificationFlow sends group-only users without the flag to Personal", async () => {
+  it('resolvePostVerificationFlow defaults group-only members to the Group tab', async () => {
     const { coordinator, supabaseService } = makeDeps();
     mockLoginFromTables(supabaseService, {
       subscriberRow: {
-        id: "sub",
-        email: "group@example.com",
-        name: "Group Member",
+        id: 'sub',
+        email: 'group@example.com',
+        name: 'Group Member',
         is_blocked: false,
         is_church_member: false,
         church_downgraded_at: null,
-        prayer_groups_enabled: false,
       },
     });
 
     const result = await coordinator.resolvePostVerificationFlow(
-      "group@example.com",
-      "/",
+      'group@example.com',
+      '/',
     );
 
     expect(result).toEqual({
-      kind: "navigate",
-      destination: "/?filter=personal",
+      kind: 'navigate',
+      destination: '/?filter=groups',
     });
   });
 

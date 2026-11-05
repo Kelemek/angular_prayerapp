@@ -7,33 +7,36 @@ describe('groupMemberNeedsProfile', () => {
       false,
     );
     expect(
-      groupMemberNeedsProfile({ isChurchMember: false, fullName: 'Jane' }),
+      groupMemberNeedsProfile({
+        isChurchMember: false,
+        fullName: 'Jane',
+        email: 'j@example.com',
+      }),
     ).toBe(false);
   });
 
-  it('is true for group-only users without a name when groups are enabled', () => {
+  it('is true for group-only users without a name when signed in', () => {
     expect(
       groupMemberNeedsProfile({
         isChurchMember: false,
         fullName: '',
-        prayerGroupsEnabled: true,
+        email: 'g@example.com',
       }),
     ).toBe(true);
     expect(
       groupMemberNeedsProfile({
         isChurchMember: false,
         fullName: '  ',
-        prayerGroupsEnabled: true,
+        email: 'g@example.com',
       }),
     ).toBe(true);
   });
 
-  it('is false when prayer groups are disabled for the account', () => {
+  it('is false without a session email', () => {
     expect(
       groupMemberNeedsProfile({
         isChurchMember: false,
         fullName: '',
-        prayerGroupsEnabled: false,
       }),
     ).toBe(false);
   });

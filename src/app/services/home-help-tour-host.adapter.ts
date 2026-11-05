@@ -17,6 +17,7 @@ import {
   type GroupsWalkthroughCleanupGroup,
 } from "../lib/groups-walkthrough-cleanup";
 import type { GroupsHelpTourPanel } from "../lib/help-tour-hooks";
+import { isPrayerGroupsFeatureEnabled } from "../lib/prayer-groups-feature";
 
 export interface HomeHelpTourHostBindings {
   getActiveFilter(): HomeActiveFilter;
@@ -194,7 +195,9 @@ export class HomeHelpTourHostAdapter implements HomeHelpTourHost {
   }
 
   isPrayerGroupsEnabled(): boolean {
-    return this.deps.userSessionService.getCurrentSession()?.prayerGroupsEnabled === true;
+    return isPrayerGroupsFeatureEnabled(
+      this.deps.userSessionService.getCurrentSession(),
+    );
   }
 
   isChurchMember(): boolean {

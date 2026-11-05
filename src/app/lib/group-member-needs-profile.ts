@@ -3,7 +3,7 @@ import { isPrayerGroupsFeatureEnabled } from './prayer-groups-feature';
 export interface GroupMemberProfileSession {
   isChurchMember?: boolean;
   fullName?: string;
-  prayerGroupsEnabled?: boolean;
+  email?: string;
 }
 
 /** Group-only accounts must set a display name before using the app. */

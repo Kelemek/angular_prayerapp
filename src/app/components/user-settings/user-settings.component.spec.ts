@@ -1910,7 +1910,6 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should save groups as the default prayer view', async () => {
-      component.prayerGroupsEnabled = true;
       const updateSpy = vi.fn(() => ({
         eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
       }));
@@ -2584,7 +2583,7 @@ describe('UserSettingsComponent', () => {
         email: 'group@example.com',
         isChurchMember: false,
         defaultPrayerView: 'current',
-        prayerGroupsEnabled: true,
+        email: 'g@example.com',
       });
       component.isOpen = true;
       component.ngOnChanges({

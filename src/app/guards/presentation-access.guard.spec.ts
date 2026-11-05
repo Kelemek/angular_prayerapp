@@ -9,7 +9,7 @@ type MockSession = {
   sessionInitialized$: BehaviorSubject<boolean>;
   userSession$: BehaviorSubject<{
     isChurchMember?: boolean;
-    prayerGroupsEnabled?: boolean;
+    email?: string;
   } | null>;
 };
 
@@ -49,7 +49,7 @@ describe('presentationAccessGuard', () => {
       sessionInitialized$: new BehaviorSubject(true),
       userSession$: new BehaviorSubject<{
         isChurchMember?: boolean;
-        prayerGroupsEnabled?: boolean;
+        email?: string;
       } | null>({ isChurchMember: true }),
     };
   });
@@ -64,7 +64,7 @@ describe('presentationAccessGuard', () => {
   it('keeps group-only users on a groups presentation handoff', async () => {
     mockSession.userSession$.next({
       isChurchMember: false,
-      prayerGroupsEnabled: true,
+      email: 'group@example.com',
     });
     const result = await firstValueFrom(
       presentationAccessGuard(routeWithHomeTypes('groups'), {} as never)
@@ -75,7 +75,7 @@ describe('presentationAccessGuard', () => {
   it('redirects group-only users away from church presentation types', async () => {
     mockSession.userSession$.next({
       isChurchMember: false,
-      prayerGroupsEnabled: true,
+      email: 'group@example.com',
     });
     const result = await firstValueFrom(
       presentationAccessGuard(routeWithHomeTypes('prayers'), {} as never)

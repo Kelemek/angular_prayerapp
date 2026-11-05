@@ -14,19 +14,13 @@ describe('safeInternalReturnUrl', () => {
 });
 
 describe('groupOnlyLoginDestination', () => {
-  it('uses a safe group deep link when groups are enabled', () => {
-    expect(
-      groupOnlyLoginDestination('/?filter=groups&groupId=abc', true),
-    ).toBe('/?filter=groups&groupId=abc');
+  it('uses a safe group deep link', () => {
+    expect(groupOnlyLoginDestination('/?filter=groups&groupId=abc')).toBe(
+      '/?filter=groups&groupId=abc',
+    );
   });
 
   it('defaults to the Group tab when returnUrl is not a group deep link', () => {
-    expect(groupOnlyLoginDestination('/', true)).toBe('/?filter=groups');
-  });
-
-  it('sends users without the flag to Personal', () => {
-    expect(groupOnlyLoginDestination('/?filter=groups', false)).toBe(
-      '/?filter=personal',
-    );
+    expect(groupOnlyLoginDestination('/')).toBe('/?filter=groups');
   });
 });

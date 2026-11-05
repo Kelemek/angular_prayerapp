@@ -306,9 +306,8 @@ describe('PresentationComponent', () => {
 
     it('strips church types from mixed presentation content for group-only users', async () => {
       mockUserSessionService.userSessionSubject.next({
-        email: 'group@example.com',
+        email: 'g@example.com',
         isChurchMember: false,
-        prayerGroupsEnabled: true,
       });
       mockPresentationSettingsService.load.mockReturnValue({
         contentTypes: ['prayers', 'groups'],

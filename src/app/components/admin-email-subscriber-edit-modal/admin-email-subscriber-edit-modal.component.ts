@@ -25,12 +25,10 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
   @Output() saved = new EventEmitter<{
     id: string;
     name: string;
-    prayer_groups_enabled: boolean;
   }>();
   @Output() closed = new EventEmitter<void>();
 
   editName = '';
-  editPrayerGroupsEnabled = false;
   editSaving = false;
   membershipSaving = false;
   editError: string | null = null;
@@ -43,7 +41,6 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
 
   ngOnChanges(): void {
     this.editName = this.subscriber.name || '';
-    this.editPrayerGroupsEnabled = this.subscriber.prayer_groups_enabled === true;
     this.editError = null;
     this.editSaving = false;
     this.membershipSaving = false;
@@ -97,7 +94,6 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
         .from('email_subscribers')
         .update({
           name: trimmedName,
-          prayer_groups_enabled: this.editPrayerGroupsEnabled,
         })
         .eq('id', this.subscriber.id);
 
@@ -107,7 +103,6 @@ export class AdminEmailSubscriberEditModalComponent implements OnChanges {
       this.saved.emit({
         id: this.subscriber.id,
         name: trimmedName,
-        prayer_groups_enabled: this.editPrayerGroupsEnabled,
       });
     } catch (err: unknown) {
       console.error('Error updating subscriber:', err);

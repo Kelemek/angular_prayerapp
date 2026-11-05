@@ -61,7 +61,7 @@ describe("HomeRefreshCoordinator", () => {
     expect(host.setRefreshing).toHaveBeenCalledWith(false);
   });
 
-  it("does not load group catalog when prayer groups are disabled", async () => {
+  it("loads group catalog when the session has an email", async () => {
     const loadCatalog = vi.fn().mockResolvedValue(undefined);
     coordinator.bindHost(host, {
       prayerService: {
@@ -71,7 +71,6 @@ describe("HomeRefreshCoordinator", () => {
       userSessionService: {
         getCurrentSession: vi.fn(() => ({
           email: "user@example.com",
-          prayerGroupsEnabled: false,
         })),
       } as any,
       personalCategoryColorService: {
@@ -85,6 +84,6 @@ describe("HomeRefreshCoordinator", () => {
 
     await coordinator.onPullToRefresh();
 
-    expect(loadCatalog).not.toHaveBeenCalled();
+    expect(loadCatalog).toHaveBeenCalledWith(false);
   });
 });

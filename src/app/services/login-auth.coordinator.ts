@@ -92,12 +92,11 @@ export class LoginAuthCoordinator {
       }
     }
 
-    const groupsFeatureOn = subscriber?.prayer_groups_enabled === true;
     const destination = groupOnly
-      ? groupOnlyLoginDestination(returnUrl, groupsFeatureOn)
+      ? groupOnlyLoginDestination(returnUrl)
       : this.resolveDestination(returnUrl);
 
-    if (groupOnly && groupsFeatureOn && !(subscriber.name?.trim())) {
+    if (groupOnly && !(subscriber.name?.trim())) {
       return { kind: "show_group_profile", destination };
     }
 
@@ -142,9 +141,7 @@ export class LoginAuthCoordinator {
       console.warn("[AdminLogin] Failed to load user session:", sessionError);
     }
 
-    const session = this.userSessionService.getCurrentSession();
-    const groupsHome =
-      session?.prayerGroupsEnabled === true ? "/?filter=groups" : "/?filter=personal";
+    const groupsHome = '/?filter=groups';
     const destination =
       input.returnUrl && input.returnUrl !== "/" && input.returnUrl !== "/admin"
         ? input.returnUrl
@@ -300,14 +297,13 @@ export class LoginAuthCoordinator {
     is_church_member?: boolean | null;
     church_downgraded_at?: string | null;
     is_blocked?: boolean | null;
-    prayer_groups_enabled?: boolean | null;
   } | null> {
     try {
       const client = await this.supabaseService.getClientWhenReady();
       const { data, error } = await client
         .from("email_subscribers")
         .select(
-          "id, email, name, is_blocked, is_church_member, church_downgraded_at, prayer_groups_enabled",
+          "id, email, name, is_blocked, is_church_member, church_downgraded_at",
         )
         .eq("email", email.toLowerCase())
         .maybeSingle();

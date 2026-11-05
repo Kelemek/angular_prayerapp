@@ -2603,35 +2603,24 @@ describe('HelpModalComponent prayer groups gating', () => {
     return component;
   }
 
-  it('hides Prayer Groups from the list and from search until Groups is on', async () => {
+  it('includes Prayer Groups in the list and in search', async () => {
     const component = await createModal();
-    component.prayerGroupsEnabled = false;
     let listed: string[] = [];
     component.filteredSections$.subscribe((rows) => {
       listed = rows.map((row) => row.id);
     });
-    expect(listed).toEqual(['help_personal_prayers']);
+    expect(listed).toEqual(['help_personal_prayers', 'help_groups']);
 
     component.searchQuery = 'group';
     component.onSearchChange();
-    expect(listed).toEqual([]);
-
-    component.prayerGroupsEnabled = true;
     expect(listed).toEqual(['help_groups']);
   });
 
-  it('omits Prayer Groups from the full tour until Groups is on', async () => {
+  it('includes Prayer Groups in the full tour', async () => {
     const component = await createModal();
     const tourSpy = vi.spyOn(component.fullGuidedTourRequested, 'emit');
-    component.prayerGroupsEnabled = false;
     await component.onFullGuidedTour(new MouseEvent('click'));
     expect(tourSpy.mock.calls[0]?.[0].map((section) => section.id)).toEqual([
-      'help_personal_prayers',
-    ]);
-
-    component.prayerGroupsEnabled = true;
-    await component.onFullGuidedTour(new MouseEvent('click'));
-    expect(tourSpy.mock.calls[1]?.[0].map((section) => section.id)).toEqual([
       'help_personal_prayers',
       'help_groups',
     ]);

@@ -7,19 +7,19 @@ import {
 } from './church-member-access';
 
 describe('church-member-access', () => {
-  it('sends group-only users to groups when the flag is on', () => {
+  it('sends group-only users to groups when signed in', () => {
     expect(
       groupOnlyHomeRedirect({
         isChurchMember: false,
-        prayerGroupsEnabled: true,
-      })
+        email: 'g@example.com',
+      }),
     ).toEqual({
       commands: ['/'],
       queryParams: { filter: 'groups' },
     });
   });
 
-  it('sends group-only users to personal when groups are off', () => {
+  it('sends group-only users to personal without a session email', () => {
     expect(groupOnlyHomeRedirect({ isChurchMember: false })).toEqual({
       commands: ['/'],
       queryParams: { filter: 'personal' },
@@ -31,7 +31,7 @@ describe('church-member-access', () => {
       permittedPresentationTypesForSession({ isChurchMember: true }, [
         'prayers',
         'prompts',
-      ])
+      ]),
     ).toEqual({
       kind: 'allow',
       contentTypes: ['prayers', 'prompts'],
@@ -41,18 +41,18 @@ describe('church-member-access', () => {
   it('keeps group Pray handoff for group-only users', () => {
     expect(
       permittedPresentationTypesForSession(
-        { isChurchMember: false, prayerGroupsEnabled: true },
-        ['groups']
-      )
+        { isChurchMember: false, email: 'g@example.com' },
+        ['groups'],
+      ),
     ).toEqual({ kind: 'allow', contentTypes: ['groups'] });
   });
 
   it('redirects a church-only presentation handoff for group-only users', () => {
     expect(
       permittedPresentationTypesForSession(
-        { isChurchMember: false, prayerGroupsEnabled: true },
-        ['prayers']
-      )
+        { isChurchMember: false, email: 'g@example.com' },
+        ['prayers'],
+      ),
     ).toEqual({
       kind: 'redirect',
       redirect: {
@@ -65,15 +65,17 @@ describe('church-member-access', () => {
   it('redirects bare presentation for group-only users', () => {
     expect(
       permittedPresentationTypesForSession(
-        { isChurchMember: false, prayerGroupsEnabled: true },
-        null
-      ).kind
+        { isChurchMember: false,
+          email: 'g@example.com',
+        },
+        null,
+      ).kind,
     ).toBe('redirect');
   });
 
   it('reads homeTypes from the presentation query', () => {
     expect(
-      presentationTypesFromQuery((key) => (key === 'homeTypes' ? 'groups' : null))
+      presentationTypesFromQuery((key) => (key === 'homeTypes' ? 'groups' : null)),
     ).toEqual(['groups']);
   });
 
@@ -81,9 +83,9 @@ describe('church-member-access', () => {
     expect(
       groupOnlyChurchSurfaceRedirect({
         path: '/admin',
-        session: { isChurchMember: false, prayerGroupsEnabled: true },
+        session: { isChurchMember: false, email: 'g@example.com' },
         query: () => null,
-      })
+      }),
     ).toEqual({
       commands: ['/'],
       queryParams: { filter: 'groups' },
@@ -94,9 +96,9 @@ describe('church-member-access', () => {
     expect(
       groupOnlyChurchSurfaceRedirect({
         path: '/presentation?homeTypes=groups',
-        session: { isChurchMember: false, prayerGroupsEnabled: true },
+        session: { isChurchMember: false, email: 'g@example.com' },
         query: (key) => (key === 'homeTypes' ? 'groups' : null),
-      })
+      }),
     ).toBeNull();
   });
 
@@ -104,9 +106,9 @@ describe('church-member-access', () => {
     expect(
       groupOnlyChurchSurfaceRedirect({
         path: '/presentation?homeTypes=prayers',
-        session: { isChurchMember: false, prayerGroupsEnabled: true },
+        session: { isChurchMember: false, email: 'g@example.com' },
         query: (key) => (key === 'homeTypes' ? 'prayers' : null),
-      })?.queryParams
+      })?.queryParams,
     ).toEqual({ filter: 'groups' });
   });
 
@@ -116,7 +118,7 @@ describe('church-member-access', () => {
         path: '/admin',
         session: { isChurchMember: true },
         query: () => null,
-      })
+      }),
     ).toBeNull();
   });
 });
