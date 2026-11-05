@@ -1,6 +1,6 @@
 <!-- Theme Selector -->
       <div
-        id="tour-settings-host.theme"
+        id="tour-settings-theme"
         class="settings-modal-section-card rounded-lg p-3 sm:p-4"
       >
         <div class="flex items-start gap-2 sm:gap-3">
@@ -81,6 +81,7 @@
               </button>
               <button
                 (click)="host.handleThemeChange('black')"
+                id="tour-settings-theme-night"
                 [ngClass]="{
                   'border-blue-500 bg-blue-200 dark:bg-blue-900/20':
                     host.theme === 'black',

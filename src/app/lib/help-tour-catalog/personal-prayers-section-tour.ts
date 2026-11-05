@@ -10,7 +10,6 @@ import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
 import { PERSONAL_PRAYER_WALKTHROUGH_PRAYER_FOR, PERSONAL_PRAYER_WALKTHROUGH_CATEGORY, TOUR_PERSONAL_CATEGORY_FILTERS_ID, TOUR_WALKTHROUGH_PERSONAL_DRAG_HANDLE_ID, TOUR_WALKTHROUGH_PERSONAL_CARD_ID, TOUR_PRAYER_CHOOSE_PERSONAL_ID, TOUR_PRAYER_SUBMIT_REQUEST_ID, TOUR_PRAYER_DESCRIPTION_FIELD_ID, TOUR_WALKTHROUGH_PERSONAL_ANSWERED_ID, TOUR_WALKTHROUGH_PERSONAL_EDIT_ID, TOUR_PERSONAL_EDIT_MODAL_ROOT_ID, TOUR_WALKTHROUGH_ADD_UPDATE_ID, TOUR_WALKTHROUGH_UPDATE_CONTENT_ID, TOUR_WALKTHROUGH_PERSONAL_DELETE_ID } from '../help-tour-ids';
 import type { PersonalPrayersHelpSectionTourHooks } from '../help-tour-hooks';
-import { appendJournalCardTourSteps } from './journal-card-tour-steps';
 
 export function runPersonalPrayersHelpSectionTour(
   host: HelpTourDriverHost,
@@ -207,11 +206,6 @@ if (typeof document === 'undefined') {
         onNextClick: advance(() => hooks.clickWalkthroughAddUpdate(), 180),
       },
     },
-  ];
-
-  appendJournalCardTourSteps(steps, () => dom.getTourJournalButtonEl());
-
-  steps.push(
     {
       element: () => categoryOrFilterEl(),
       popover: {
@@ -249,7 +243,7 @@ if (typeof document === 'undefined') {
         },
       },
     },
-  );
+  ];
 
   const d = host.startTourDriver({
     showProgress: true,

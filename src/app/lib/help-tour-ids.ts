@@ -59,6 +59,7 @@ export const TOUR_SETTINGS_FEEDBACK_SECTION_ID = 'tour-settings-feedback-section
 export const TOUR_SETTINGS_FEEDBACK_TYPE_ID = 'tour-settings-feedback-type';
 export const TOUR_SETTINGS_FEEDBACK_DETAILS_ID = 'tour-settings-feedback-details';
 export const TOUR_SETTINGS_THEME_ID = 'tour-settings-theme';
+export const TOUR_SETTINGS_THEME_NIGHT_ID = 'tour-settings-theme-night';
 export const TOUR_SETTINGS_TEXT_SIZE_ID = 'tour-settings-text-size';
 export const TOUR_SETTINGS_PUSH_ID = 'tour-settings-push-notifications';
 export const TOUR_SETTINGS_BADGES_ID = 'tour-settings-badges';

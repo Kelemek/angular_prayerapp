@@ -40,7 +40,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Private journal on prayer cards',
-            text: 'On each church prayer card, tap **Journal** (between **Add Update** and **Pray For**) to open a private note for that prayer. Only you can read, edit, or delete it—other people never see your journal text. Save stores the note; when a note exists, the pencil icon shows a colored tip on the card. Journal works the same on **Personal**, **Group**, **Members**, and **presentation** prayer cards (not on prompt or verse cards).',
+            text: 'On each church prayer card, tap **Journal** (between **Add Update** and **Pray For**) to open a private note for that prayer. Only you can read, edit, or delete it—other people never see your journal text. Save stores the note; when a note exists, the pencil icon shows a colored tip on the card. The same **Journal** button appears on personal, group, member, and presentation prayer cards (not on prompt or verse cards).',
           },
           {
             subtitle: 'Mark as Anonymous',
@@ -216,10 +216,6 @@ export function getDefaultHelpSections(): HelpSection[] {
             text: 'Click the "Update" button on a personal prayer to add a prayer update. Prayer updates let you track progress, answered prayers, or new developments. You can add multiple updates to show how your prayer has progressed. When adding an update, you can check "Mark this prayer as answered" to mark it as answered if applicable.',
           },
           {
-            subtitle: 'Private journal on personal cards',
-            text: 'Tap **Journal** on the card action row to keep a private note for that personal prayer. The note is stored per user per prayer—only you see it. Use it for reflections, Scripture, or reminders separate from shared **updates**.',
-          },
-          {
             subtitle: 'Editing Prayer Updates',
             text: 'Open the **card menu** on any prayer update, then tap **Edit update** to modify the update content. You can also check "Mark this prayer as answered" while editing an update—the same option as when adding an update. This allows you to correct typos, add more details, or clarify what you wrote. Your edits are saved instantly. You can also delete updates from that same menu if needed.',
           },
@@ -318,7 +314,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Updates, editing, answered, and Pray For',
-            text: '**Add update** on a card records progress. **Journal** opens a private note only you can read (same button as on church and personal cards). **Edit prayer** changes the subject and details for the person who wrote the prayer. **Mark as answered** moves the prayer under **Answered**. **Pray For** lets members mark that they prayed, and the count shows on the card. If the owner turned on requester-only updates, only the author can add updates. The same rule applies when only the requester can mark a prayer answered. If Pray For is disabled for the group, that button is hidden. Open the **card menu** for Edit, Mark as answered, and Delete.',
+            text: '**Add update** on a card records progress. **Edit prayer** changes the subject and details for the person who wrote the prayer. **Mark as answered** moves the prayer under **Answered**. **Pray For** lets members mark that they prayed, and the count shows on the card. If the owner turned on requester-only updates, only the author can add updates. The same rule applies when only the requester can mark a prayer answered. If Pray For is disabled for the group, that button is hidden. Open the **card menu** for Edit, Mark as answered, and Delete.',
           },
           {
             subtitle: 'Who can delete a prayer',
@@ -446,14 +442,6 @@ export function getDefaultHelpSections(): HelpSection[] {
           {
             subtitle: 'Presentation Settings',
             text: 'Access the settings icon during presentation mode to customize your experience. You can enable a timer to track prayer time, sort prayers by different criteria, and filter which prayers are displayed. These options help you control the flow and focus of your group prayer time.',
-          },
-          {
-            subtitle: 'Journal and Pray For in presentation',
-            text: 'Prayer slides use the same card action row as Home. **Journal** keeps a private note for that slide’s prayer (only you see it). **Pray For** follows the same rules as on the home page when Prayer Encouragement is enabled.',
-          },
-          {
-            subtitle: 'Theme in presentation settings',
-            text: 'Open **Settings** in the presentation toolbar to pick **Light**, **Dark**, **Night**, or **System**. **Night** uses a true black background for low-light rooms; **Dark** uses the standard dark gray palette. This choice is separate from Home **Settings → Theme** but uses the same saved preference.',
           },
         ],
         order: 9,

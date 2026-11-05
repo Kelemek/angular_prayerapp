@@ -6,7 +6,6 @@ import {
 } from '../help-card-actions-menu-tour';
 import * as dom from '../help-tour-dom';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
-import { appendJournalCardTourSteps } from './journal-card-tour-steps';
 import type {
   GroupsHelpSectionTourHooks,
   GroupsTourAudience,
@@ -307,24 +306,7 @@ function ownerWalkthroughSteps(build: GroupsStepBuild): DriveStep[] {
       popover: {
         title: 'Your group prayer',
         description:
-          '<strong>Add update</strong>, <strong>Journal</strong> (private note), and <strong>Pray For</strong> sit on the card when that group allows them. Tap <strong>Next</strong> to try <strong>Journal</strong>, then we open the card menu. Those actions are not saved.',
-        side: 'top',
-        align: 'start',
-      },
-    },
-  ];
-
-  appendJournalCardTourSteps(steps, () => dom.getTourJournalButtonEl());
-
-  steps.push(
-    {
-      element: () =>
-        document.getElementById(TOUR_GROUPS_WALKTHROUGH_CARD_ID) ??
-        document.getElementById(TOUR_GROUPS_FIRST_CARD_ID) ??
-        anchor(TOUR_FILTER_GROUPS_ID)(),
-      popover: {
-        title: 'Card menu',
-        description: 'Next opens the <strong>card menu</strong> on your sample group prayer.',
+          '<strong>Add update</strong> and <strong>Pray For</strong> sit on the card when that group allows them. Next opens the card menu. Those actions are not run.',
         side: 'top',
         align: 'start',
         onNextClick: advance(
@@ -366,7 +348,7 @@ function ownerWalkthroughSteps(build: GroupsStepBuild): DriveStep[] {
         onNextClick: () => build.finishSample(),
       },
     },
-  );
+  ];
   return steps;
 }
 

@@ -35,6 +35,7 @@ import {
   TOUR_SETTINGS_FEEDBACK_TYPE_ID,
   TOUR_SETTINGS_FEEDBACK_DETAILS_ID,
   TOUR_SETTINGS_THEME_ID,
+  TOUR_SETTINGS_THEME_NIGHT_ID,
   TOUR_SETTINGS_TEXT_SIZE_ID,
   TOUR_SETTINGS_PUSH_ID,
   TOUR_SETTINGS_BADGES_ID,
@@ -1307,7 +1308,7 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts hands-on walkthrough when Request and Personal filter exist (19 steps)', () => {
+    it('starts hands-on walkthrough when Request and Personal filter exist (17 steps)', () => {
       const req = document.createElement('button');
       req.id = TOUR_REQUEST_BTN_MOBILE_ID;
       document.body.appendChild(req);
@@ -1317,7 +1318,7 @@ describe('HelpDriverTourService', () => {
       service.startPersonalPrayersHelpSectionTour(sampleSection, handsOnHooks);
       expect(driver).toHaveBeenCalledTimes(1);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(19);
+      expect(config?.steps?.length).toBe(17);
       expect(config?.steps?.[0]?.element).toBeUndefined();
       const titles = (config?.steps ?? []).map((step) => step.popover?.title);
       expect(titles).toEqual(
@@ -1831,6 +1832,7 @@ describe('HelpDriverTourService', () => {
       mountSettingsGear(true);
       mountEl(TOUR_SETTINGS_PRINT_ROW_ID, 'div');
       mountEl(TOUR_SETTINGS_THEME_ID, 'div');
+      mountEl(TOUR_SETTINGS_THEME_NIGHT_ID);
       mountEl(TOUR_SETTINGS_TEXT_SIZE_ID, 'div');
       mountEl(TOUR_SETTINGS_EMAIL_SUBSCRIPTION_ID, 'div');
       mountEl(TOUR_SETTINGS_PUSH_ID, 'div');
@@ -1844,11 +1846,11 @@ describe('HelpDriverTourService', () => {
       vi.useFakeTimers();
       service.startAppSettingsHelpSectionTour(section, h);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(14);
-      resolveStepElements(config, Array.from({ length: 14 }, (_, i) => i));
+      expect(config?.steps?.length).toBe(15);
+      resolveStepElements(config, Array.from({ length: 15 }, (_, i) => i));
       fireStepNext(config, 0);
       vi.advanceTimersByTime(420);
-      fireStepNext(config, 13);
+      fireStepNext(config, 14);
       expect(h.closeSettings).toHaveBeenCalled();
       vi.useRealTimers();
       vi.unstubAllGlobals();
