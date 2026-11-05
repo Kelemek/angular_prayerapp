@@ -33,6 +33,7 @@ async function renderRow(present: boolean) {
       showTourAnchors: false,
       tourPersonalWalkthroughAnchors: false,
       tourUpdateAnchors: false,
+      tourJournalAnchors: false,
       tourPrayForEncouragementAnchors: false,
       prayedForCount: 1,
       prayedForCountLabel: 'Prayers',

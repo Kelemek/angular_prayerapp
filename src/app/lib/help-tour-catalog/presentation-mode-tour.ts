@@ -120,7 +120,8 @@ if (typeof document === 'undefined') {
       element: () => document.getElementById(TOUR_PRESENTATION_SETTING_THEME_ID) ?? modalOrBar(),
       popover: {
         title: 'Theme',
-        description: '<strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, or follow the <strong>System</strong> appearance.',
+        description:
+          '<strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong> (true black for low-light rooms), or <strong>System</strong> (matches device light/dark, not Night). Same preference as Home Settings.',
         side: 'bottom',
         align: 'start',
       },

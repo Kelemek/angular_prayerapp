@@ -1307,7 +1307,7 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts hands-on walkthrough when Request and Personal filter exist (17 steps)', () => {
+    it('starts hands-on walkthrough when Request and Personal filter exist (19 steps)', () => {
       const req = document.createElement('button');
       req.id = TOUR_REQUEST_BTN_MOBILE_ID;
       document.body.appendChild(req);
@@ -1317,7 +1317,7 @@ describe('HelpDriverTourService', () => {
       service.startPersonalPrayersHelpSectionTour(sampleSection, handsOnHooks);
       expect(driver).toHaveBeenCalledTimes(1);
       const config = vi.mocked(driver).mock.calls[0][0];
-      expect(config?.steps?.length).toBe(17);
+      expect(config?.steps?.length).toBe(19);
       expect(config?.steps?.[0]?.element).toBeUndefined();
       const titles = (config?.steps ?? []).map((step) => step.popover?.title);
       expect(titles).toEqual(
@@ -1639,13 +1639,13 @@ describe('HelpDriverTourService', () => {
       expect(driver).not.toHaveBeenCalled();
     });
 
-    it('starts with 11 steps by default and 12 with anonymous step', () => {
+    it('starts with 14 steps by default and 15 with anonymous step', () => {
       mountEl(TOUR_REQUEST_BTN_DESKTOP_ID);
       stubWideMatchMedia(true);
       service.startCreatingPrayersHelpSectionTour(section, hooks());
-      expect(vi.mocked(driver).mock.calls[0][0]?.steps?.length).toBe(11);
+      expect(vi.mocked(driver).mock.calls[0][0]?.steps?.length).toBe(14);
       service.startCreatingPrayersHelpSectionTour(section, hooks(), { includeAnonymousUpdateStep: true });
-      expect(vi.mocked(driver).mock.calls[1][0]?.steps?.length).toBe(12);
+      expect(vi.mocked(driver).mock.calls[1][0]?.steps?.length).toBe(15);
       vi.unstubAllGlobals();
     });
 

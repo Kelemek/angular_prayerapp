@@ -796,6 +796,10 @@ export class HomeGroupsPanelComponent {
     return null;
   }
 
+  groupJournalTourAnchors(prayer: GroupPrayerRow): boolean {
+    return this.groupPrayerCardTourId(prayer, false) === TOUR_GROUPS_WALKTHROUGH_CARD_ID;
+  }
+
   closeAddChooser(): void {
     this.addChooserOpen = false;
     this.cdr.markForCheck();

@@ -142,6 +142,7 @@ export class PrayerCardComponent
     'everyone';
   @Input() activeFilter: PrayerCardActiveFilter = 'total';
   @Input() tourUpdateAnchors = false;
+  @Input() tourJournalAnchors = false;
   @Input() tourPrayForEncouragementAnchors = false;
   @Input() tourPrayerReminderBellAnchors = false;
   @Input() tourPersonalWalkthroughAnchors = false;

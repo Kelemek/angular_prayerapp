@@ -67,6 +67,11 @@ export const TOUR_SETTINGS_DEFAULT_VIEW_ID = 'tour-settings-default-view';
 export const TOUR_SETTINGS_MEMORIZATION_STRICT_MODE_ID = 'tour-settings-memorization-strict-mode';
 /** First prayer card in the list: “Add Update” opens the add-update modal (see `PrayerCardComponent.tourUpdateAnchors`). */
 export const TOUR_ADD_UPDATE_BTN_ID = 'tour-prayer-add-update';
+/** **Journal** on the first community card (`tourJournalAnchors`) or personal walkthrough card. */
+export const TOUR_PRAYER_JOURNAL_BTN_ID = 'tour-prayer-journal';
+export const TOUR_WALKTHROUGH_JOURNAL_BTN_ID = 'tour-walkthrough-journal';
+/** Root of [`PrayerJournalModalComponent`] for guided tours. */
+export const TOUR_PRAYER_JOURNAL_MODAL_ID = 'tour-prayer-journal-modal';
 /** **Pray For** / **Prayed For** on the first community card (see `PrayerCardComponent.tourPrayForEncouragementAnchors`). */
 export const TOUR_PRAYER_PRAY_FOR_ID = 'tour-prayer-pray-for';
 /** Reminder row in the first community prayer card menu (see `PrayerCardComponent.tourPrayerReminderBellAnchors`). */
