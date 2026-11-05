@@ -75,6 +75,14 @@ sudo sysctl -p
 
 **Solution**: [`.gitattributes`](../.gitattributes) forces LF for `*.mjs` and `.githooks/*`. Keep new shebang scripts under those patterns (or add a pattern), and reproduce locally with `perl -pi -e 's/\n/\r\n/' <script>` followed by the spec run.
 
+### Windows CI: Vitest `toContain` fails on multiline CSS snippets from `src/styles.css`
+
+**Symptoms**: Only `windows-latest` fails specs such as [`prayer-card-layout.spec.ts`](../src/app/lib/prayer-card-layout.spec.ts) or [`prayer-card-actions-row.component.spec.ts`](../src/app/components/prayer-card/prayer-card-actions-row.component.spec.ts), with `expected … to contain` strings that embed `\n`.
+
+**Cause**: Windows checks out `src/styles.css` with CRLF. Assertions that compare against LF-only multiline literals do not match.
+
+**Solution**: After `readFileSync`, normalize line endings with `.replace(/\r\n/g, '\n')` before multiline `toContain` checks (or assert with regex / single-line snippets). Optionally force LF checkout via [`.gitattributes`](../.gitattributes) (`src/styles.css text eol=lf`), same idea as the `*.mjs` fix in [CHANGELOG](CHANGELOG.md#tooling--windows-ci-line-endings-october-26-2026).
+
 ## Database Issues
 
 ### Memorize tab: "Failed to load memorization list"

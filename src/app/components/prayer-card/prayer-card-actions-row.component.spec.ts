@@ -72,7 +72,10 @@ describe('PrayerCardActionsRowComponent journal', () => {
     expect(journal.querySelector('.journal-pencil-body')).toBeTruthy();
     expect(journal.querySelector('.journal-pencil-eraser')).toBeTruthy();
 
-    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8').replace(
+      /\r\n/g,
+      '\n'
+    );
     expect(journal.querySelector('svg')?.getAttribute('stroke-width')).toBe('2');
     expect(css).toContain(
       '.prayer-card-journal-button-noted .journal-pencil-body,\n.prayer-card-journal-button-noted .journal-pencil-eraser {\n  stroke-width: 1;'
