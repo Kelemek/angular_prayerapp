@@ -135,7 +135,7 @@ describe('PrayerGroupService.createGroup', () => {
       { invalidate } as never,
       {
         userSession$: new BehaviorSubject(null),
-        getCurrentSession: vi.fn().mockReturnValue({ prayer_groups_enabled: true }),
+        getCurrentSession: vi.fn().mockReturnValue({ email: 'member@example.com' }),
       } as never,
     );
     vi.spyOn(service, 'loadCatalog').mockImplementation(loadCatalog);

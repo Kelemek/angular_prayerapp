@@ -42,7 +42,6 @@ import {
 import {
   Observable,
   BehaviorSubject,
-  combineLatest,
   defaultIfEmpty,
   firstValueFrom,
 } from 'rxjs';
@@ -56,13 +55,7 @@ import { map, switchMap, take } from 'rxjs/operators';
   templateUrl: './help-modal.component.html',
 })
 export class HelpModalComponent implements OnInit {
-  private readonly prayerGroupsEnabled$ = new BehaviorSubject(false);
-
   @Input() isOpen = false;
-  @Input()
-  set prayerGroupsEnabled(value: boolean | null | undefined) {
-    this.prayerGroupsEnabled$.next(value === true);
-  }
   readonly shellBorderClass = CHURCH_GREEN_SHELL_BORDER_CLASS;
   @Output() closeModal = new EventEmitter<void>();
   @Output() startCreatingPrayersHelpSectionUiTour =
@@ -136,15 +129,12 @@ export class HelpModalComponent implements OnInit {
     this.isLoading$ = this.helpContentService.isLoading$;
     this.error$ = this.helpContentService.error$;
 
-    this.filteredSections$ = combineLatest([
-      this.searchQuerySubject,
-      this.prayerGroupsEnabled$,
-    ]).pipe(
-      switchMap(([query, prayerGroupsEnabled]) =>
+    this.filteredSections$ = this.searchQuerySubject.pipe(
+      switchMap((query) =>
         this.helpContentService.getSections().pipe(
           map((sections) =>
             filterHelpModalSections(
-              filterHelpSectionsForViewer(sections, { prayerGroupsEnabled }),
+              filterHelpSectionsForViewer(sections),
               query,
             ),
           ),
@@ -159,9 +149,7 @@ export class HelpModalComponent implements OnInit {
 
   filterSections(sections: HelpSection[], query: string): HelpSection[] {
     return filterHelpModalSections(
-      filterHelpSectionsForViewer(sections, {
-        prayerGroupsEnabled: this.prayerGroupsEnabled$.value,
-      }),
+      filterHelpSectionsForViewer(sections),
       query,
     );
   }
@@ -189,9 +177,7 @@ export class HelpModalComponent implements OnInit {
       return;
     }
     const sorted = sortActiveHelpSectionsForFullTour(
-      filterHelpSectionsForViewer(sections, {
-        prayerGroupsEnabled: this.prayerGroupsEnabled$.value,
-      }),
+      filterHelpSectionsForViewer(sections),
     );
     if (sorted.length === 0) {
       return;

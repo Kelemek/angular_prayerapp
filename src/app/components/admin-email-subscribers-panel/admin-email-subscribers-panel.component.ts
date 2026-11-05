@@ -91,7 +91,6 @@ export class AdminEmailSubscribersPanelComponent {
   @Output() editSaved = new EventEmitter<{
     id: string;
     name: string;
-    prayer_groups_enabled: boolean;
   }>();
   @Output() editClosed = new EventEmitter<void>();
 

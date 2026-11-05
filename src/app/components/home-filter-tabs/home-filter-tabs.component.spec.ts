@@ -51,6 +51,17 @@ describe("HomeFilterTabsComponent", () => {
     fixture?.destroy();
   });
 
+  it("shows Group tab by default before session loads", () => {
+    fixture.componentInstance.showChurchTab = false;
+    fixture.componentInstance.showGroupsTab = true;
+    fixture.detectChanges();
+    const groups = fixture.nativeElement.querySelector(
+      "#tour-filter-groups",
+    ) as HTMLButtonElement;
+    expect(groups).toBeTruthy();
+    expect(groups.textContent?.replace(/\s+/g, " ").trim()).toBe("Group");
+  });
+
   it("applies mobile nav text lock on main tab buttons", () => {
     const tabIds = [
       "tour-filter-public",

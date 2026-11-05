@@ -227,14 +227,9 @@ export class EmailSubscribersFacade {
     });
   }
 
-  onEditSaved(event: {
-    id: string;
-    name: string;
-    prayer_groups_enabled: boolean;
-  }): void {
+  onEditSaved(event: { id: string; name: string }): void {
     this.allSubscribers = patchEmailSubscriberEdit(this.allSubscribers, event.id, {
       name: event.name,
-      prayer_groups_enabled: event.prayer_groups_enabled,
     });
     this.loadPageData();
     this.closeEditSubscriberModal();

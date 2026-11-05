@@ -60,23 +60,8 @@ describe('filterHelpSectionsForViewer', () => {
     section('help_memorize', { title: 'Memorize', order: 7 }),
   ];
 
-  it('hides Prayer Groups when the viewer does not have Groups', () => {
-    const visible = filterHelpSectionsForViewer(sections, {
-      prayerGroupsEnabled: false,
-    });
-    expect(visible.map((item) => item.id)).toEqual([
-      'help_personal_prayers',
-      'help_memorize',
-    ]);
-    expect(
-      sortActiveHelpSectionsForFullTour(visible).map((item) => item.id),
-    ).toEqual(['help_personal_prayers', 'help_memorize']);
-  });
-
-  it('keeps Prayer Groups when the viewer has Groups', () => {
-    const visible = filterHelpSectionsForViewer(sections, {
-      prayerGroupsEnabled: true,
-    });
+  it('always includes Prayer Groups in help', () => {
+    const visible = filterHelpSectionsForViewer(sections);
     expect(visible.map((item) => item.id)).toEqual([
       'help_personal_prayers',
       'help_groups',

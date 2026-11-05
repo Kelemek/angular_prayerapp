@@ -138,7 +138,7 @@ describe('AppComponent', () => {
   const sessionInitializedSubject = new BehaviorSubject(true);
   const userSessionSubject = new BehaviorSubject<{
     isChurchMember?: boolean;
-    prayerGroupsEnabled?: boolean;
+    email?: string;
   } | null>({ isChurchMember: true });
 
   function createAppComponent(): AppComponent {
@@ -249,7 +249,7 @@ describe('AppComponent', () => {
       mockRouter.navigate.mockClear();
       userSessionSubject.next({
         isChurchMember: false,
-        prayerGroupsEnabled: true,
+        email: 'group@example.com',
       });
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
         queryParams: { filter: 'groups' },
@@ -1478,7 +1478,7 @@ describe('AppComponent', () => {
             sessionInitialized$: new BehaviorSubject(true).asObservable(),
             userSession$: new BehaviorSubject({
               isChurchMember: true,
-              prayerGroupsEnabled: true,
+              email: 'group@example.com',
             }).asObservable(),
           };
         }
@@ -1526,7 +1526,7 @@ describe('AppComponent', () => {
             sessionInitialized$: sessionReady.asObservable(),
             userSession$: new BehaviorSubject({
               isChurchMember: false,
-              prayerGroupsEnabled: true,
+              email: 'group@example.com',
             }).asObservable(),
           };
         }
@@ -1578,7 +1578,7 @@ describe('AppComponent', () => {
             sessionInitialized$: new BehaviorSubject(true).asObservable(),
             userSession$: new BehaviorSubject({
               isChurchMember: true,
-              prayerGroupsEnabled: true,
+              email: 'group@example.com',
             }).asObservable(),
           };
         }

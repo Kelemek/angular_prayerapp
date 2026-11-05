@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Groups tab universal (November 5, 2026)
+- The **Group** Home tab renders immediately with **Personal** and **Memorize** during initial skeleton loading. It no longer waits on `session.prayerGroupsEnabled`. The **Church** tab still waits for a settled church-member session ([`home.component.html`](../src/app/pages/home/home.component.html), [`churchContentVisible`](../src/app/lib/prayer-groups-feature.ts)).
+- Retired the per-account **`prayer_groups_enabled`** rollout in the app. Admins no longer toggle Groups on the subscriber edit modal. Group **membership**, ownership, and RLS still gate data. Migration [`20261105040000_prayer_groups_universal_eligibility.sql`](../supabase/migrations/20261105040000_prayer_groups_universal_eligibility.sql) makes `prayer_groups_enabled()` true for any unblocked subscriber, backfills the column, and documents deferred column removal. Apply on test `jcdhajfqtzipltvfslhu` before relying on RLS there; production follows the usual fork sync.
+
 ### Tooling — Windows CI `styles.css` specs (November 5, 2026)
 - The `windows-latest` job failed [`prayer-card-layout.spec.ts`](src/app/lib/prayer-card-layout.spec.ts) and [`prayer-card-actions-row.component.spec.ts`](src/app/components/prayer-card/prayer-card-actions-row.component.spec.ts) because CRLF checkout broke multiline `toContain` checks on [`styles.css`](src/styles.css). Those specs normalize line endings after `readFileSync` ([`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)).
 

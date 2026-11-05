@@ -328,9 +328,7 @@ export class HomeLifecycleCoordinator {
       .pipe(
         filter((session): session is NonNullable<typeof session> => !!session),
         distinctUntilChanged(
-          (prev, curr) =>
-            prev.isChurchMember === curr.isChurchMember &&
-            prev.prayerGroupsEnabled === curr.prayerGroupsEnabled,
+          (prev, curr) => prev.isChurchMember === curr.isChurchMember,
         ),
         skip(1),
         takeUntil(destroy$)

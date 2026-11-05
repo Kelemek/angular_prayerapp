@@ -9,7 +9,7 @@ type MockSession = {
   sessionInitialized$: BehaviorSubject<boolean>;
   userSession$: BehaviorSubject<{
     isChurchMember?: boolean;
-    prayerGroupsEnabled?: boolean;
+    email?: string;
   } | null>;
 };
 
@@ -41,7 +41,7 @@ describe('churchMemberGuard', () => {
       sessionInitialized$: new BehaviorSubject(false),
       userSession$: new BehaviorSubject<{
         isChurchMember?: boolean;
-        prayerGroupsEnabled?: boolean;
+        email?: string;
       } | null>(null),
     };
   });
@@ -59,7 +59,7 @@ describe('churchMemberGuard', () => {
   it('waits for session init instead of trusting a cached group-only row', async () => {
     mockSession.userSession$.next({
       isChurchMember: false,
-      prayerGroupsEnabled: true,
+      email: 'group@example.com',
     });
 
     const pending = firstValueFrom(churchMemberGuard({} as never, {} as never));

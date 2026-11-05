@@ -2,35 +2,30 @@ import { isPublicAreaFilter } from './home-community-filter';
 import type { HomeActiveFilter } from '../services/home-deep-link-host.adapter';
 
 export interface PrayerGroupsFeatureSession {
-  prayerGroupsEnabled?: boolean;
+  email?: string;
   isChurchMember?: boolean;
   defaultPrayerView?: 'current' | 'personal' | 'groups';
 }
 
+/** True when the viewer has a signed-in subscriber session (Groups tab + catalog). */
 export function isPrayerGroupsFeatureEnabled(
   session: PrayerGroupsFeatureSession | null | undefined,
 ): boolean {
-  return session?.prayerGroupsEnabled === true;
+  return Boolean(session?.email?.trim());
 }
 
-/** Distinct key for group catalog loads (email + feature flag). */
+/** Distinct key for group catalog loads (normalized email). */
 export function prayerGroupCatalogSessionGateKey(
-  session: (PrayerGroupsFeatureSession & { email?: string }) | null | undefined,
+  session: PrayerGroupsFeatureSession | null | undefined,
 ): string | null {
   const email = session?.email?.trim().toLowerCase();
-  if (!email) {
-    return null;
-  }
-  return `${email}:${isPrayerGroupsFeatureEnabled(session)}`;
+  return email || null;
 }
 
 export function sanitizeHomeAreaFilter(
   filter: HomeActiveFilter,
   session: PrayerGroupsFeatureSession,
 ): HomeActiveFilter {
-  if (filter === 'groups' && !isPrayerGroupsFeatureEnabled(session)) {
-    return session.isChurchMember !== false ? 'current' : 'personal';
-  }
   return filter;
 }
 
@@ -43,7 +38,7 @@ export function resolveHomeFilterFromSession(
     session.defaultPrayerView ??
     'current') as HomeActiveFilter;
   if (session.isChurchMember === false && isPublicAreaFilter(next)) {
-    next = isPrayerGroupsFeatureEnabled(session) ? 'groups' : 'personal';
+    next = 'groups';
   }
   return sanitizeHomeAreaFilter(next, session);
 }

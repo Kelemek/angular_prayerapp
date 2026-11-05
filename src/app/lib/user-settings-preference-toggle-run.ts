@@ -405,9 +405,6 @@ export async function runUserSettingsDefaultViewChange(
   if (!email) {
     return;
   }
-  if (newView === 'groups' && !host.prayerGroupsEnabled) {
-    return;
-  }
 
   const previousView =
     host.defaultPrayerViewBeforeSave ??

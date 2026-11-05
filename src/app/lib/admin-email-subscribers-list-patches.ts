@@ -56,7 +56,7 @@ export function patchEmailSubscriberName(
 export function patchEmailSubscriberEdit(
   rows: EmailSubscriberRow[],
   id: string,
-  patch: Pick<EmailSubscriberRow, 'name' | 'prayer_groups_enabled'>,
+  patch: Pick<EmailSubscriberRow, 'name'>,
 ): EmailSubscriberRow[] {
   return rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
 }

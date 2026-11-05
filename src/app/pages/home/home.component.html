@@ -113,14 +113,14 @@
           (userSessionService.sessionInitialized$ | async) === true &&
           session?.isChurchMember !== false
         "
-        [showGroupsTab]="session?.prayerGroupsEnabled === true"
+        [showGroupsTab]="true"
         [currentPrayerBadge$]="currentPrayerBadge$"
         [answeredPrayerBadge$]="answeredPrayerBadge$"
         (tabSelected)="filter.setFilter($event)"
         (publicTabSelected)="filter.selectPublicTab()"
       ></app-home-filter-tabs>
 
-      @if (activeFilter === 'groups' && session?.prayerGroupsEnabled === true) {
+      @if (activeFilter === 'groups') {
       <app-home-groups-panel
         [isChurchMember]="session?.isChurchMember !== false"
         [viewerEmail]="session?.email ?? ''"
@@ -307,7 +307,6 @@
     [showSettings]="shell.modals.showSettings"
     [settingsScrollToSectionId]="shell.modals.settingsScrollToSectionId"
     [showHelp]="shell.modals.showHelp"
-    [prayerGroupsEnabled]="modalSession?.prayerGroupsEnabled === true"
     [showLogoutConfirmation]="shell.modals.showLogoutConfirmation"
     [showGroupProfile]="groupMemberNeedsProfile(modalSession)"
     [showEditPersonalPrayer]="shell.modals.showEditPersonalPrayer"

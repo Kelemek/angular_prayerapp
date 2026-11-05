@@ -86,7 +86,7 @@ describe("HomeFilterCoordinator", () => {
   it("clamps church tabs to groups for group-only sessions", () => {
     host.getPrayerGroupsSession = vi.fn(() => ({
       isChurchMember: false,
-      prayerGroupsEnabled: true,
+      email: 'g@example.com',
     }));
 
     coordinator.setFilter("current");
@@ -97,7 +97,7 @@ describe("HomeFilterCoordinator", () => {
   it("selectPublicTab clamps group-only sessions to groups", () => {
     host.getPrayerGroupsSession = vi.fn(() => ({
       isChurchMember: false,
-      prayerGroupsEnabled: true,
+      email: 'g@example.com',
     }));
     host.getPageState = vi.fn(() => ({
       activeFilter: "prompts" as const,

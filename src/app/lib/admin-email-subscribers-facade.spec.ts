@@ -475,7 +475,6 @@ describe('EmailSubscribersFacade', () => {
       facade.onEditSaved({
         id: 'sub-1',
         name: 'New Name',
-        prayer_groups_enabled: true,
       });
 
       expect(facade.allSubscribers[0]?.name).toBe('New Name');
