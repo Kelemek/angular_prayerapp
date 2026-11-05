@@ -331,9 +331,9 @@ function ownerWalkthroughSteps(build: GroupsStepBuild): DriveStep[] {
         document.getElementById(TOUR_GROUP_CHIP_FIRST_ID) ??
         anchor(TOUR_FILTER_GROUPS_ID)(),
       popover: {
-        title: 'Leave, transfer, or delete',
+        title: 'Leave or delete',
         description:
-          'An owner transfers ownership before leaving. <strong>Delete group</strong> removes the group and every prayer in it. A group-only person who leaves their last group loses the account and is signed out.',
+          'The last owner makes another member an owner before leaving. Another owner can leave. <strong>Delete group</strong> removes the group and every prayer in it. A group-only person who leaves their last group loses the account and is signed out.',
         side: 'bottom',
         align: 'start',
       },
@@ -443,7 +443,7 @@ function memberWithGroupsSteps(build: GroupsStepBuild): DriveStep[] {
       popover: {
         title: 'Leaving a group',
         description:
-          'Any member can leave from <strong>Manage members</strong>. The owner has to transfer ownership first. If this is your only group and you are not a church member, leaving deletes your account and signs you out.',
+          'Any member can leave from <strong>Manage members</strong>. The last owner has to make another member an owner first. If this is your only group and you are not a church member, leaving deletes your account and signs you out.',
         side: 'bottom',
         align: 'start',
       },

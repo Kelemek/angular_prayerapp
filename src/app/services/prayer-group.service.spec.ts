@@ -415,3 +415,53 @@ describe('PrayerGroupService group activity notify', () => {
     });
   });
 });
+
+describe('PrayerGroupService owners', () => {
+  function serviceWithRpc(rpc: ReturnType<typeof vi.fn>, invoke: ReturnType<typeof vi.fn>) {
+    return new PrayerGroupService(
+      { db: async () => ({ rpc, functions: { invoke } }) } as never,
+      { invalidate: vi.fn(), get: vi.fn(), set: vi.fn() } as never,
+      {
+        userSession$: new BehaviorSubject(null),
+        getCurrentSession: vi.fn(),
+      } as never,
+    );
+  }
+
+  it('invites by email as a member and sends the welcome email', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { created_subscriber: true }, error: null });
+    const invoke = vi.fn().mockResolvedValue({ error: null });
+    const service = serviceWithRpc(rpc, invoke);
+    const result = await service.invite('g1', 'new@example.com');
+    expect(rpc).toHaveBeenCalledWith('invite_prayer_group_member', {
+      p_group_id: 'g1',
+      p_email: 'new@example.com',
+    });
+    expect(invoke).toHaveBeenCalledWith('notify-group-activity', {
+      body: { kind: 'invite', groupId: 'g1', email: 'new@example.com' },
+    });
+    expect(result.emailError).toBeNull();
+  });
+
+  it('returns the welcome-email failure without reading an invite payload', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    const invoke = vi.fn().mockResolvedValue({ error: new Error('mailbox unavailable') });
+    const service = serviceWithRpc(rpc, invoke);
+    const result = await service.invite('g1', 'new@example.com');
+    expect(result).toEqual({
+      emailError: 'mailbox unavailable',
+    });
+  });
+
+  it('changes a role through set_prayer_group_member_role', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    const service = serviceWithRpc(rpc, vi.fn());
+    vi.spyOn(service, 'refreshCatalogAfterWrite').mockResolvedValue();
+    await service.setMemberRole('g1', 'pat@example.com', 'owner');
+    expect(rpc).toHaveBeenCalledWith('set_prayer_group_member_role', {
+      p_group_id: 'g1',
+      p_email: 'pat@example.com',
+      p_role: 'owner',
+    });
+  });
+});

@@ -74,6 +74,69 @@ describe('HomeGroupsPanelComponent groups tab chip state', () => {
     expect(panel.selectedId).toBe('group-42');
   });
 
+  it('last owner cannot leave until another owner exists', () => {
+    const info = vi.fn();
+    const panel = new HomeGroupsPanelComponent(
+      groupsApi as unknown as PrayerGroupService,
+      {} as never,
+      { error: vi.fn(), info, success: vi.fn() } as never,
+      {} as never,
+      deepLinks as never,
+      { markForCheck: vi.fn() } as unknown as ChangeDetectorRef,
+      { onDestroy: vi.fn() } as unknown as DestroyRef,
+    );
+    const group = {
+      id: 'g1',
+      name: 'Family',
+      color: '#2563EB',
+      role: 'owner' as const,
+      memberCount: 1,
+      updatesRequesterOnly: false,
+      answeredRequesterOnly: false,
+      prayForDisabled: false,
+    };
+    panel.membersTarget = group;
+    panel.viewerEmail = 'owner@example.com';
+    panel.members = [{ user_email: 'owner@example.com', role: 'owner', name: 'Owner' }];
+    panel.leave(group);
+    expect(info).toHaveBeenCalledWith(
+      'Make another member an owner before you leave this group.',
+    );
+    expect(panel.pendingLeaveGroup).toBeNull();
+  });
+
+  it('lets a co-owner leave without transferring', () => {
+    const info = vi.fn();
+    const panel = new HomeGroupsPanelComponent(
+      groupsApi as unknown as PrayerGroupService,
+      {} as never,
+      { error: vi.fn(), info, success: vi.fn() } as never,
+      {} as never,
+      deepLinks as never,
+      { markForCheck: vi.fn() } as unknown as ChangeDetectorRef,
+      { onDestroy: vi.fn() } as unknown as DestroyRef,
+    );
+    const group = {
+      id: 'g1',
+      name: 'Family',
+      color: '#2563EB',
+      role: 'owner' as const,
+      memberCount: 2,
+      updatesRequesterOnly: false,
+      answeredRequesterOnly: false,
+      prayForDisabled: false,
+    };
+    panel.membersTarget = group;
+    panel.viewerEmail = 'owner@example.com';
+    panel.members = [
+      { user_email: 'owner@example.com', role: 'owner', name: 'Owner' },
+      { user_email: 'other@example.com', role: 'owner', name: 'Other' },
+    ];
+    panel.leave(group);
+    expect(info).not.toHaveBeenCalled();
+    expect(panel.pendingLeaveGroup).toBe(group);
+  });
+
   it('includes Settings in the owner overflow menu only', () => {
     const panel = createPanel();
     const ownerItems = panel.overflowItems({

@@ -10,8 +10,9 @@ For developers working on the Prayer App codebase.
 4. [Performance](#performance)
 5. [Timezone Implementation](#timezone-implementation)
 6. [Prayer Encouragement (Pray For)](#prayer-encouragement-pray-for)
-7. [Prayer Archiving System](#prayer-archiving-system)
-8. [Contributing](#contributing)
+7. [Prayer group owners](#prayer-group-owners)
+8. [Prayer Archiving System](#prayer-archiving-system)
+9. [Contributing](#contributing)
 
 ---
 
@@ -1084,6 +1085,21 @@ The **Pray For** feature lets community members indicate they have prayed for a 
 - **Database:** `admin_settings`: `prayer_encouragement_enabled` (boolean), `prayer_encouragement_cooldown_hours` (integer, default 4). `prayers`: `prayed_for_count`. `personal_prayers`: `prayed_for_count` (RPC `increment_personal_prayed_for_count(uuid, p_user_email)`). `member_prayed_for_counts`: shared counts keyed by Planning Center `person_id` (RPC `increment_member_prayed_for_count(text)`). `prompt_prayed_for_counts`: per-user counts keyed by `(prompt_id, user_email)` (RPCs `get_prompt_prayed_for_counts(uuid[], text)` and `increment_prompt_prayed_for_count(uuid, text)`; MFA/JWT auth same as personal Pray For). `email_subscribers`: `show_pray_for_button`, `show_praying_count`, `personal_prayer_cooldown_hours`, **`client_preferences`** (`jsonb`, nullable). Migrations: `20260224_prayer_encouragement.sql`, `20260225_prayer_encouragement_cooldown_hours.sql`, `20260327120000_email_subscribers_prayer_encouragement_ui.sql`, `20260726120000_personal_prayer_prayed_for_count.sql`, `20260727160000_member_prayed_for_counts.sql`, `20260727170000_prompt_prayed_for_counts.sql`, `20261011120000_email_subscribers_client_preferences.sql`.
 - **Help:** In-app Help & Guidance includes “Prayer Encouragement (Pray For)”, **Using Prayer Prompts**, and **App Settings** topics for encouragement toggles and cooldown (`help-content.service.ts`).
 - **Prayer groups:** Owners configure per-group behavior from the group chip **Settings** menu ([`home-groups-panel`](src/app/components/home-groups-panel/home-groups-panel.component.ts)). Flags on `prayer_groups` (`updates_requester_only`, `answered_requester_only`, `pray_for_disabled`) default false. UI gates live in [`prayer-card-permissions.ts`](src/app/lib/prayer-card-permissions.ts); writes are enforced by migration [`20261023120000_prayer_group_settings.sql`](../supabase/migrations/20261023120000_prayer_group_settings.sql). Church `admin_settings.updates_allowed` does not apply to group cards.
+
+---
+
+## Prayer group owners
+
+A prayer group has one or more owners. The fact lives on [`prayer_group_members.role`](../supabase/migrations/20261018200000_prayer_groups.sql) (`owner` or `member`). `prayer_groups.created_by_email` is the creator, and transfer rewrites it to the person who just received ownership. It is not the authorization check. [`is_prayer_group_owner`](../supabase/migrations/20261021310000_owner_any_member_caller_guard.sql) is true for every active owner, so edit, delete, invite, settings, and prayer deletion already apply to any owner.
+
+[`20261104223000_prayer_group_multiple_owners.sql`](../supabase/migrations/20261104223000_prayer_group_multiple_owners.sql) keeps that model and removes the single-owner gates:
+
+- **Add an owner.** Manage members, on the group chip menu. The controls are [`home-group-owner-controls`](../src/app/components/home-groups-panel/home-group-owner-controls.component.ts), hosted by [`home-groups-panel`](../src/app/components/home-groups-panel/home-groups-panel.component.ts). The email invite calls `invite_prayer_group_member(uuid, text)` and always adds a member. Selecting members and choosing **Make owner** calls `set_prayer_group_member_role`. [`20261105001000_prayer_group_invite_stays_member.sql`](../supabase/migrations/20261105001000_prayer_group_invite_stays_member.sql) drops the three-argument invite, so an email cannot create an owner. A repeat invite does not change an existing role.
+- **Who can do it.** The caller must already be an owner. `set_prayer_group_member_role` and the invite function both raise before they write when `is_prayer_group_owner` is false. Authenticated clients cannot update `prayer_group_members` directly. Site admins are not given a separate path.
+- **Last owner.** Remove, demote, and leave refuse when the caller would leave the group with no active owner. Leave says to make another member an owner first. [`20261105030000_prayer_group_no_transfer.sql`](../supabase/migrations/20261105030000_prayer_group_no_transfer.sql) replaces `transfer_prayer_group_ownership` so it raises and does not demote the caller or rewrite `created_by_email`. A deferred constraint trigger repeats the same floor after delete or role change, and it allows deleting the group because the group row is already gone. [`20261105020000_prayer_group_owner_trigger_definer.sql`](../supabase/migrations/20261105020000_prayer_group_owner_trigger_definer.sql) makes that trigger security definer. It calls `is_prayer_group_member_row`, which authenticated users cannot execute, and the check runs at commit rather than inside the role RPC. The later migration keeps that definer.
+- **Co-owners.** Another owner can be removed or made a member. A co-owner can leave. The old leave function deleted the whole group when any owner left. It no longer does that.
+
+Emails are `lower(trim(...))` and must look like `local@domain.tld`. The functions use those variables in static SQL. They do not concatenate them into a statement.
 
 ---
 

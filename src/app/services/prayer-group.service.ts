@@ -18,6 +18,7 @@ import {
   DEFAULT_PRAYER_GROUP_COLOR,
   normalizePrayerGroupColor,
 } from '../lib/prayer-group-color';
+import { type PrayerGroupRole } from '../lib/prayer-group-owners';
 import type { GroupFilterMode } from '../lib/home-group-catalog';
 
 export { DEFAULT_PRAYER_GROUP_COLOR, normalizePrayerGroupColor };
@@ -26,7 +27,7 @@ export interface PrayerGroupSummary {
   id: string;
   name: string;
   color: string;
-  role: 'owner' | 'member';
+  role: PrayerGroupRole;
   memberCount: number;
   updatesRequesterOnly: boolean;
   answeredRequesterOnly: boolean;
@@ -67,9 +68,13 @@ export function normalizePrayerGroupSummary(
 
 export interface PrayerGroupMemberRow {
   user_email: string;
-  role: 'owner' | 'member';
+  role: PrayerGroupRole;
   name: string | null;
 }
+
+export type PrayerGroupInviteResult = {
+  emailError: string | null;
+};
 
 export interface GroupPrayerRow {
   id: string;
@@ -526,7 +531,7 @@ export class PrayerGroupService {
     return data as string;
   }
 
-  async invite(groupId: string, email: string): Promise<{ emailError: string | null }> {
+  async invite(groupId: string, email: string): Promise<PrayerGroupInviteResult> {
     const client = await this.supabase.db();
     const { error } = await client.rpc('invite_prayer_group_member', {
       p_group_id: groupId,
@@ -547,22 +552,23 @@ export class PrayerGroupService {
     };
   }
 
+  async setMemberRole(groupId: string, email: string, role: PrayerGroupRole): Promise<void> {
+    const client = await this.supabase.db();
+    const { error } = await client.rpc('set_prayer_group_member_role', {
+      p_group_id: groupId,
+      p_email: email,
+      p_role: role,
+    });
+    if (error) throw error;
+    await this.refreshCatalogAfterWrite();
+  }
+
   async leave(groupId: string): Promise<boolean> {
     const client = await this.supabase.db();
     const { data, error } = await client.rpc('leave_prayer_group', { p_group_id: groupId });
     if (error) throw error;
     await this.refreshCatalogAfterWrite();
     return data === true;
-  }
-
-  async transfer(groupId: string, email: string): Promise<void> {
-    const client = await this.supabase.db();
-    const { error } = await client.rpc('transfer_prayer_group_ownership', {
-      p_group_id: groupId,
-      p_new_owner_email: email,
-    });
-    if (error) throw error;
-    await this.refreshCatalogAfterWrite();
   }
 
   async completeMemberProfile(firstName: string, lastName: string): Promise<void> {
