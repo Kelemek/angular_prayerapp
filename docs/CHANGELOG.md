@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Tooling — Windows CI `styles.css` specs (November 5, 2026)
+- The `windows-latest` job failed [`prayer-card-layout.spec.ts`](src/app/lib/prayer-card-layout.spec.ts) and [`prayer-card-actions-row.component.spec.ts`](src/app/components/prayer-card/prayer-card-actions-row.component.spec.ts) because CRLF checkout broke multiline `toContain` checks on [`styles.css`](src/styles.css). Those specs normalize line endings after `readFileSync` ([`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)).
+
 ### Prayer groups can have more than one owner (November 4, 2026)
 - An owner adds owners from **Manage members** on the group chip. Invite the person as a member, then select that member and choose **Make owner**. The email invite stays a member invite. There is no separate add-owner email box. **Make owner** was failing when the change committed: the owner-floor trigger ran as the signed-in user and could not call `is_prayer_group_member_row`. The trigger now runs as its owner. The toast shows that database message when the request fails.
 - Another owner can be removed or made a member when at least one owner remains. The last owner cannot leave, be removed, or be demoted until another member is an owner. **Leave group** says to make another member an owner first. Manage members no longer has **Transfer ownership**. The old transfer function refuses and does not change roles.

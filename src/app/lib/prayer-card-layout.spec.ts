@@ -202,7 +202,10 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     expect(prayerRow).toContain('class="prayer-card-journal-label">Journal</span>');
     expect(prayerRow).toContain('btn-chip-blue');
 
-    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8').replace(
+      /\r\n/g,
+      '\n'
+    );
     const mediaStart = css.indexOf('@media (max-width: 639px)');
     const lock = css.indexOf('.prayer-card-action-row-mobile-lock', mediaStart);
     const memorize = css.indexOf('Memorize practice modal header', lock);
