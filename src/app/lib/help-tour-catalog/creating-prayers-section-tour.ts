@@ -183,6 +183,15 @@ if (typeof document === 'undefined') {
         'Tap <strong>Add Update</strong> to send what you entered. For <strong>community</strong> prayers, updates are <strong>reviewed by an admin</strong> before everyone sees them—like new requests. You may get an email when yours is approved or needs attention. <strong>Personal</strong> updates don’t go through that queue.',
       side: 'top',
       align: 'start',
+      onNextClick: (_element, _step, { driver: drv }) => {
+        document
+          .querySelector<HTMLElement>('[aria-label="Close add update dialog"]')
+          ?.click();
+        window.setTimeout(() => {
+          drv.refresh();
+          drv.moveNext();
+        }, 220);
+      },
     },
   });
 
