@@ -142,26 +142,35 @@ describe("homeFilterTabClass", () => {
 });
 
 describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
-  it("uses bordered chips with accent rings", () => {
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain("ring");
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain(
-      "var(--home-tab-public-border)"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.answered.active).toContain(
-      "border-[#39704D]"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.archived.active).toContain(
-      "border-[#C9A961]"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.total.active).toContain(
-      "border-gray-500"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.prompts.active).toContain(
-      "var(--home-tab-prompts-border)"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.members.active).toContain(
-      "var(--home-tab-members-border)"
-    );
+  it("uses public tab accent for all church status active chips", () => {
+    for (const key of [
+      "current",
+      "answered",
+      "archived",
+      "total",
+      "prompts",
+      "members",
+    ] as const) {
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toBe(
+        HOME_PUBLIC_STATUS_CHIP_THEMES.current.active
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toContain(
+        "var(--home-tab-public-border)"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toContain("ring");
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "#39704D"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "#C9A961"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "border-gray-500"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toContain(
+        "bg-home-panel-blue-chip-active"
+      );
+    }
   });
 
   it("uses CSS variable tab fills and lighter chip fills than panels", () => {
@@ -177,14 +186,8 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
     expect(HOME_FILTER_TAB_ACTIVE_FILL.memorize).toContain(
       "var(--home-tab-memorize-bg)"
     );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain(
-      "bg-home-panel-blue-chip-active"
-    );
     expect(HOME_PUBLIC_STATUS_CHIP_THEMES.answered.active).toContain(
-      "bg-home-panel-green-status-chip-active"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.archived.active).toContain(
-      "bg-home-panel-amber-status-chip-active"
+      "bg-home-panel-blue-chip-active"
     );
   });
 

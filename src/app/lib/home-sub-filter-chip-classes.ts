@@ -291,15 +291,6 @@ export const HOME_PERSONAL_PANEL_CHIP_ACTIVE_FILL_CLASS =
 export const HOME_PROMPTS_PANEL_CHIP_ACTIVE_FILL_CLASS =
   "bg-home-panel-stone-chip-active dark:bg-home-panel-stone-chip-active-dark";
 
-const HOME_GREEN_STATUS_CHIP_ACTIVE_FILL_CLASS =
-  "bg-home-panel-green-status-chip-active dark:bg-home-panel-green-status-chip-active-dark";
-
-const HOME_AMBER_STATUS_CHIP_ACTIVE_FILL_CLASS =
-  "bg-home-panel-amber-status-chip-active dark:bg-home-panel-amber-status-chip-active-dark";
-
-const HOME_GRAY_STATUS_CHIP_ACTIVE_FILL_CLASS =
-  "bg-home-panel-gray-status-chip-active dark:bg-home-panel-gray-status-chip-active-dark";
-
 const HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS =
   "border !border-[var(--home-tab-public-border)] dark:!border-[var(--home-tab-public-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-public-border)] dark:ring-[var(--home-tab-public-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
 const HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS =
@@ -311,46 +302,35 @@ const HOME_TAB_PROMPTS_CHIP_ACTIVE_CLASS =
 const HOME_TAB_MEMORIZE_CHIP_ACTIVE_CLASS =
   "border !border-[var(--home-tab-memorize-border)] dark:!border-[var(--home-tab-memorize-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-memorize-border)] dark:ring-[var(--home-tab-memorize-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
 
-/** Tailwind active/inactive pairs for public community sub-chips. */
+const HOME_PUBLIC_STATUS_CHIP_INACTIVE =
+  HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+  " hover:border-[var(--home-tab-public-border)] dark:hover:border-[var(--home-tab-public-border)]";
+
+/** Church tab Current / Answered / Archived / Total / Prompts / Members — same selected styling (public accent). */
 export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
   current: {
     active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[var(--home-tab-public-border)] dark:hover:border-[var(--home-tab-public-border)]",
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   answered: {
-    active:
-      `border !border-[#39704D] dark:!border-[#39704D] ${HOME_GREEN_STATUS_CHIP_ACTIVE_FILL_CLASS} ring ring-[#39704D] dark:ring-[#39704D] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[#39704D] dark:hover:border-[#39704D]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   archived: {
-    active:
-      `border !border-[#C9A961] dark:!border-[#C9A961] ${HOME_AMBER_STATUS_CHIP_ACTIVE_FILL_CLASS} ring ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[#C9A961] dark:hover:border-[#C9A961]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   total: {
-    active:
-      `border !border-gray-500 dark:!border-gray-400 ${HOME_GRAY_STATUS_CHIP_ACTIVE_FILL_CLASS} ring ring-gray-500 dark:ring-gray-400 ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-gray-500 dark:hover:border-gray-400",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   prompts: {
-    active: HOME_TAB_PROMPTS_CHIP_ACTIVE_CLASS,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[var(--home-tab-prompts-border)] dark:hover:border-[var(--home-tab-prompts-border)]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   members: {
-    active: HOME_TAB_MEMBERS_CHIP_ACTIVE_CLASS,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[var(--home-tab-members-border)] dark:hover:border-[var(--home-tab-members-border)]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
 } as const;
 
