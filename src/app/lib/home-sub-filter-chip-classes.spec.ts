@@ -119,16 +119,17 @@ describe("homeFilterTabClass", () => {
     expect(cls).not.toContain("border-b-0");
   });
 
-  it("uses inactive chrome for unselected tabs", () => {
+  it("uses per-accent inactive CSS vars for unselected tabs", () => {
     const cls = homeFilterTabClass({
       accent: "personal",
       active: false,
       hasSubRow: true,
     });
     expect(cls).toContain("rounded-t-lg");
-    expect(cls).toContain("bg-home-filter-tab-inactive");
-    expect(cls).not.toContain("dark:bg-gray-800");
-    expect(cls).toContain("border-church-surface-inactive-tab-border");
+    expect(cls).toContain("var(--home-tab-personal-inactive-bg)");
+    expect(cls).toContain("var(--home-tab-personal-inactive-border)");
+    expect(cls).toContain("home-filter-tab-inactive-chrome");
+    expect(cls).not.toContain("bg-home-filter-tab-inactive");
     expect(cls).not.toContain("border-[2px]");
     expect(cls).not.toContain("z-10");
   });

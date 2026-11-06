@@ -74,31 +74,55 @@ export const HOME_TAB_CSS_VAR = {
     bg: "--home-tab-public-bg",
     bgDark: "--home-tab-public-bg-dark",
     border: "--home-tab-public-border",
+    inactiveBg: "--home-tab-public-inactive-bg",
+    inactiveBgDark: "--home-tab-public-inactive-bg-dark",
+    inactiveBorder: "--home-tab-public-inactive-border",
+    inactiveBorderDark: "--home-tab-public-inactive-border-dark",
   },
   groups: {
     bg: "--home-tab-groups-bg",
     bgDark: "--home-tab-groups-bg-dark",
     border: "--home-tab-groups-border",
+    inactiveBg: "--home-tab-groups-inactive-bg",
+    inactiveBgDark: "--home-tab-groups-inactive-bg-dark",
+    inactiveBorder: "--home-tab-groups-inactive-border",
+    inactiveBorderDark: "--home-tab-groups-inactive-border-dark",
   },
   members: {
     bg: "--home-tab-members-bg",
     bgDark: "--home-tab-members-bg-dark",
     border: "--home-tab-members-border",
+    inactiveBg: "--home-tab-members-inactive-bg",
+    inactiveBgDark: "--home-tab-members-inactive-bg-dark",
+    inactiveBorder: "--home-tab-members-inactive-border",
+    inactiveBorderDark: "--home-tab-members-inactive-border-dark",
   },
   personal: {
     bg: "--home-tab-personal-bg",
     bgDark: "--home-tab-personal-bg-dark",
     border: "--home-tab-personal-border",
+    inactiveBg: "--home-tab-personal-inactive-bg",
+    inactiveBgDark: "--home-tab-personal-inactive-bg-dark",
+    inactiveBorder: "--home-tab-personal-inactive-border",
+    inactiveBorderDark: "--home-tab-personal-inactive-border-dark",
   },
   memorize: {
     bg: "--home-tab-memorize-bg",
     bgDark: "--home-tab-memorize-bg-dark",
     border: "--home-tab-memorize-border",
+    inactiveBg: "--home-tab-memorize-inactive-bg",
+    inactiveBgDark: "--home-tab-memorize-inactive-bg-dark",
+    inactiveBorder: "--home-tab-memorize-inactive-border",
+    inactiveBorderDark: "--home-tab-memorize-inactive-border-dark",
   },
   prompts: {
     bg: "--home-tab-prompts-bg",
     bgDark: "--home-tab-prompts-bg-dark",
     border: "--home-tab-prompts-border",
+    inactiveBg: "--home-tab-prompts-inactive-bg",
+    inactiveBgDark: "--home-tab-prompts-inactive-bg-dark",
+    inactiveBorder: "--home-tab-prompts-inactive-border",
+    inactiveBorderDark: "--home-tab-prompts-inactive-border-dark",
   },
 } as const;
 
@@ -111,6 +135,28 @@ function homeTabAccentFillClasses(accent: HomeTabCssAccent): string {
     `dark:border-[var(${v.border})]`,
   ].join(" ");
 }
+
+/** Per-accent inactive tab chrome (defaults on :root = shared church inactive wash). */
+function homeTabInactiveClasses(accent: HomeTabCssAccent): string {
+  const v = HOME_TAB_CSS_VAR[accent];
+  return [
+    `bg-[var(${v.inactiveBg})]`,
+    `dark:bg-[var(${v.inactiveBgDark})]`,
+    "border",
+    `border-[var(${v.inactiveBorder})]`,
+    `dark:border-[var(${v.inactiveBorderDark})]`,
+    "home-filter-tab-inactive-chrome",
+  ].join(" ");
+}
+
+export const HOME_FILTER_TAB_INACTIVE_FILL = {
+  public: homeTabInactiveClasses("public"),
+  personal: homeTabInactiveClasses("personal"),
+  prompts: homeTabInactiveClasses("prompts"),
+  memorize: homeTabInactiveClasses("memorize"),
+  members: homeTabInactiveClasses("members"),
+  groups: homeTabInactiveClasses("groups"),
+} as const;
 
 function homeSubFilterGroupClass(accent: HomeTabCssAccent): string {
   const v = HOME_TAB_CSS_VAR[accent];
@@ -154,7 +200,7 @@ export function homeFilterTabClass(options: {
   const { accent, active, hasSubRow } = options;
   const shape = hasSubRow ? "rounded-t-lg" : "rounded-lg";
   if (!active) {
-    return `${HOME_FILTER_TAB_BASE_CLASS} ${shape} ${HOME_FILTER_TAB_INACTIVE_CLASS}`;
+    return `${HOME_FILTER_TAB_BASE_CLASS} ${shape} ${HOME_FILTER_TAB_INACTIVE_FILL[accent]}`;
   }
   const fill = HOME_FILTER_TAB_ACTIVE_FILL[accent];
   const border = hasSubRow
