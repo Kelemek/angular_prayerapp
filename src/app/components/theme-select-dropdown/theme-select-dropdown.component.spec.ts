@@ -53,6 +53,19 @@ describe('ThemeSelectDropdownComponent', () => {
     expect(values).toEqual(['christmas-dark']);
   });
 
+  it('uses the gospel blossom icon: stroke petals and a filled center', () => {
+    const html = readComponentResource('./theme-select-dropdown.component.html');
+    expect(html).toContain('viewBox="3.5 3.5 17 17"');
+    expect(html).toContain('stroke-width="1"');
+    expect(html).toContain('<circle cx="12" cy="12" r="3" fill="currentColor"></circle>');
+    expect(html).toContain('<circle cx="12" cy="7.1" r="2.65"></circle>');
+    expect(html).toContain('<circle cx="16.55" cy="10.45" r="2.65"></circle>');
+    expect(html).toContain('<circle cx="14.75" cy="15.45" r="2.65"></circle>');
+    expect(html).toContain('<circle cx="9.25" cy="15.45" r="2.65"></circle>');
+    expect(html).toContain('<circle cx="7.45" cy="10.45" r="2.65"></circle>');
+    expect(html).not.toContain('M12 3c0 2.5');
+  });
+
   it('exposes tour anchor ids on seasonal options', () => {
     component.toggleOpen();
     fixture.detectChanges();
