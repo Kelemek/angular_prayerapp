@@ -9,9 +9,9 @@ import { CommonModule } from "@angular/common";
 import { PresentationSettingsSectionCardComponent } from "./presentation-settings-section-card.component";
 import { PresentationSettingsThemePickerComponent } from "./presentation-settings-theme-picker.component";
 
-import type { Theme } from "../../services/theme.service";
+import type { ThemeSelection } from "../../services/theme.service";
 
-export type PresentationSettingsThemeOption = Theme;
+export type PresentationSettingsThemeOption = ThemeSelection;
 
 @Component({
   selector: "app-presentation-settings-theme-section",
@@ -26,6 +26,6 @@ export type PresentationSettingsThemeOption = Theme;
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class PresentationSettingsThemeSectionComponent {
-  @Input() theme: PresentationSettingsThemeOption = "system";
+  @Input() theme: PresentationSettingsThemeOption = { family: "default", mode: "system" };
   @Output() themeChange = new EventEmitter<PresentationSettingsThemeOption>();
 }

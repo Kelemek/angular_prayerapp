@@ -1,4 +1,4 @@
-import type { Theme } from '../services/theme.service';
+import type { ThemeFamily, ThemeMode } from '../services/theme.service';
 import type { TextSize } from '../services/text-size.service';
 import type { PresentationSettings } from './presentation';
 import type { BibleTranslation } from './memorization';
@@ -8,7 +8,10 @@ import type { MemorizeListenSpeed } from '../lib/memorization/memorizeListenSpee
 export interface ClientPreferences {
   skipPrayForExplanationModal?: boolean;
   presentationSettings?: PresentationSettings;
-  theme?: Theme;
+  /** @deprecated Migrated to themeFamily + themeMode; read once for migration. */
+  theme?: string;
+  themeFamily?: ThemeFamily;
+  themeMode?: ThemeMode;
   textSize?: TextSize;
   memorizeListView?: MemorizeListView;
   memorizeTableSort?: MemorizeTableSortPrefs;

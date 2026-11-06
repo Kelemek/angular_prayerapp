@@ -4,7 +4,7 @@
 
 @source './**/*.{html,ts}';
 @source inline(
-  "bg-[var(--home-tab-public-bg)] bg-[var(--home-tab-public-inactive-bg)] bg-[var(--home-tab-groups-bg)] bg-[var(--home-tab-groups-inactive-bg)] bg-[var(--home-tab-personal-bg)] bg-[var(--home-tab-personal-inactive-bg)] bg-[var(--home-tab-memorize-bg)] bg-[var(--home-tab-memorize-inactive-bg)] bg-[var(--home-tab-members-bg)] bg-[var(--home-tab-prompts-bg)]"
+  "bg-[var(--home-tab-public-bg)] bg-[var(--home-tab-public-sub-filter-bg)] dark:bg-[var(--home-tab-public-sub-filter-bg-dark)] bg-[var(--home-tab-public-inactive-bg)] bg-[var(--home-tab-groups-bg)] bg-[var(--home-tab-groups-sub-filter-bg)] dark:bg-[var(--home-tab-groups-sub-filter-bg-dark)] bg-[var(--home-tab-groups-inactive-bg)] bg-[var(--home-tab-personal-bg)] bg-[var(--home-tab-personal-sub-filter-bg)] dark:bg-[var(--home-tab-personal-sub-filter-bg-dark)] bg-[var(--home-tab-personal-inactive-bg)] bg-[var(--home-tab-memorize-bg)] bg-[var(--home-tab-memorize-sub-filter-bg)] dark:bg-[var(--home-tab-memorize-sub-filter-bg-dark)] bg-[var(--home-tab-memorize-inactive-bg)] bg-[var(--home-tab-members-bg)] bg-[var(--home-tab-prompts-bg)] bg-[var(--home-tab-prompts-sub-filter-bg)] dark:bg-[var(--home-tab-prompts-sub-filter-bg-dark)]"
 );
 
 @custom-variant dark (&:is(.dark *));
@@ -621,6 +621,19 @@ html.dark .personal-category-header-band {
   --home-tab-prompts-bg: #d6d3d1;
   --home-tab-prompts-bg-dark: rgb(28 25 23 / 0.4);
   --home-tab-prompts-border: #988f83;
+  /* Connected sub-filter rows: defaults match folder tab fills (themes may retune dark panel only). */
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   /* Inactive main tabs: shared church wash (per-accent vars for seasonal overrides). */
   --home-tab-public-inactive-bg: var(--color-church-surface-inactive);
   --home-tab-public-inactive-bg-dark: var(--surface-card, #1f2937);
@@ -1475,6 +1488,64 @@ html.black .dark\:hover\:bg-blue-700:is(.dark *):hover {
   background-color: var(--surface-inset-hover) !important;
 }
 
+/*
+  Day (High Contrast light) — cool slate canvas, pure white cards, strong edges.
+  Deliberately unlike Default Light’s warm cream: reads as the light counterpart
+  to Night’s separated layers (page vs card). No .dark on html.
+*/
+html.day {
+  color-scheme: light;
+  /* Mid slate page so white/off-white surfaces pop (not pale blue-gray like before). */
+  --surface-page: #94a3b8;
+  --surface-card: #ffffff;
+  --surface-raised: #f1f5f9;
+  --surface-inset: #f8fafc;
+  --surface-inset-hover: #e2e8f0;
+  --theme-surface-page: #94a3b8;
+  --theme-surface-card: #ffffff;
+  --theme-surface-raised: #f1f5f9;
+  --theme-surface-raised-alt: #e2e8f0;
+  --theme-surface-muted: #475569;
+  --theme-surface-inset: #f8fafc;
+  --theme-surface-inset-muted: #f1f5f9;
+  --theme-text-body: #020617;
+  --theme-text-secondary: #0f172a;
+  --theme-text-muted: #334155;
+  --theme-border: #475569;
+  --theme-border-light: #cbd5e1;
+  --theme-action-primary: #020617;
+  --theme-action-primary-hover: #000000;
+  --theme-action-blue: #1d4ed8;
+  --theme-action-blue-muted: #1e40af;
+  --theme-chrome-border: #020617;
+  --theme-safe-area-chrome: #94a3b8;
+  --color-church-cream: #94a3b8;
+  --color-church-gray-warm: #334155;
+  --color-church-navy: #020617;
+  --color-church-slate: #0f172a;
+  --color-church-green: #0f766e;
+  --color-church-green-medium: #115e59;
+  --color-church-green-dark: #134e4a;
+  --color-church-blue: #1d4ed8;
+  --color-church-blue-dark: #1e3a8a;
+  /* Modal chrome bands: slate step between page and white cards (not default cream). */
+  --color-card-meta-header-band: #e2e8f0;
+  --header-bg-light: rgb(148 163 184 / 0.92);
+  --bg-primary: #ffffff;
+  --bg-secondary: #94a3b8;
+  --bg-tertiary: #e2e8f0;
+  --text-primary: #020617;
+  --text-secondary: #0f172a;
+  --text-muted: #334155;
+  --border-color: #475569;
+}
+
+html.day body,
+html.day body::before,
+html.day body::after {
+  background-color: var(--surface-page);
+}
+
 /* Blossom — light floral palette (no .dark on html). */
 html.blossom {
   color-scheme: light;
@@ -1580,6 +1651,18 @@ html.blossom {
   --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
   --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   --color-home-panel-blue-chip-active: color-mix(in srgb, #f6d5de 44%, white);
   --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #f6d5de 44%, white);
   --color-home-panel-personal-chip-active: color-mix(in srgb, #dc8a9e 50%, white);
@@ -1673,10 +1756,196 @@ html.blossom .cp-toast--success {
   color: var(--color-blue-700) !important;
   border-color: var(--color-blue-600) !important;
 }
-html.blossom.dark .cp-toast--success {
-  background-color: color-mix(in oklab, var(--color-blue-900) 20%, transparent) !important;
-  color: var(--color-blue-300) !important;
-  border-color: var(--color-blue-500) !important;
+
+/*
+  Blossom Dark — resolved `blossom-dark`: html.dark + html.blossom-dark overlay.
+  Plum surfaces + Home --home-tab-* ladder (not default Church blue tab borders).
+  Use html.dark.blossom-dark (not html.blossom-dark alone): :root { --home-tab-* } appears
+  later in the stylesheet and would otherwise win the cascade for inherited custom props on html.
+*/
+html.dark.blossom-dark {
+  color-scheme: dark;
+  --surface-page: #2d1a28;
+  --surface-card: #3b2434;
+  --surface-raised: #4a2d40;
+  --surface-inset: #3b2434;
+  --surface-inset-hover: #4a2d40;
+  /* Modal/settings scroll well vs section cards (mirror light Blossom --theme-surface-* split). */
+  --theme-surface-page: #2d1a28;
+  --theme-surface-card: #3b2434;
+  --theme-surface-raised: #4a2d40;
+  --theme-surface-raised-alt: #523848;
+  --theme-surface-muted: #8e4a5e;
+  --theme-surface-inset: #3b2434;
+  --theme-surface-inset-muted: #4a2d40;
+  --theme-border: #6b2d45;
+  --theme-border-light: color-mix(in srgb, #6b2d45 70%, #4a3048);
+  --color-gray-700: #4a2d40;
+  --color-gray-800: #3b2434;
+  --color-gray-900: #2d1a28;
+  --color-gray-950: #1f1219;
+  --theme-action-primary: #e8849a;
+  --theme-action-primary-hover: #c45b76;
+  --theme-action-blue: #93c5fd;
+  --theme-action-blue-muted: #60a5fa;
+  --theme-safe-area-chrome-dark: #2d1a28;
+  --bg-primary: #3b2434;
+  --bg-secondary: #2d1a28;
+  --bg-tertiary: #4a2d40;
+  --header-bg-dark: rgb(45 26 40 / 0.92);
+  --color-church-navy: #3b2434;
+  --color-church-slate: #2d1a28;
+  --color-church-green: #e8849a;
+  --color-church-green-medium: #c45b76;
+  --color-church-green-dark: #8e4a5e;
+  --color-church-green-chip-text-dark: #fce7f0;
+  --color-church-green-chip-fill-dark: rgb(232 132 154 / 0.28);
+  --color-church-green-chip-fill-dark-hover: rgb(232 132 154 / 0.42);
+  --text-primary: #fdf2f8;
+  --text-secondary: #fbcfe8;
+  --text-muted: #f9a8d4;
+  --border-color: #6b2d45;
+  --accent-primary: #e8849a;
+  --theme-chrome-border: #6b2d45;
+  --color-card-meta-header-band-dark: rgb(45 26 40 / 0.72);
+  --color-inset-surface-on-card-dark: #3b2434;
+  /* Home sub-filter inactive chips: same rose/plum family as light Blossom (not gray/green church inactive). */
+  --color-church-cream: #2d1a28;
+  --color-church-gray-warm: #8e4a5e;
+  --color-church-surface-inactive: color-mix(in srgb, #2a1822 78%, #6b2d45);
+  --color-church-surface-inactive-hover: color-mix(in srgb, #2a1822 65%, #8e4a5e);
+  --color-church-surface-inactive-border: color-mix(in srgb, #8e4a5e 55%, #4a3048);
+  --color-church-surface-inactive-tab-border: color-mix(in srgb, #c45b76 55%, #2a1822);
+  --home-tab-public-bg: #4a3048;
+  --home-tab-public-bg-dark: #3d2840;
+  --home-tab-public-border: #c45b76;
+  --home-tab-groups-bg: #523848;
+  --home-tab-groups-bg-dark: #453040;
+  --home-tab-groups-border: #e8849a;
+  --home-tab-members-bg: #523848;
+  --home-tab-members-bg-dark: #453040;
+  --home-tab-members-border: #e8849a;
+  --home-tab-personal-bg: #5c2d40;
+  --home-tab-personal-bg-dark: #4a3048;
+  --home-tab-personal-border: #f9a8d4;
+  --home-tab-memorize-bg: #6b3650;
+  --home-tab-memorize-bg-dark: #5c2d40;
+  --home-tab-memorize-border: #fbcfe8;
+  --home-tab-prompts-bg: #4a3048;
+  --home-tab-prompts-bg-dark: #3d2840;
+  --home-tab-prompts-border: #c45b76;
+  --home-tab-inactive-bg: #2a1822;
+  --home-tab-inactive-bg-dark: #2a1822;
+  --home-tab-inactive-border: #8e4a5e;
+  --home-tab-inactive-border-dark: #8e4a5e;
+  --home-tab-public-inactive-bg: var(--home-tab-inactive-bg);
+  --home-tab-public-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
+  --home-tab-public-inactive-border: var(--home-tab-inactive-border);
+  --home-tab-public-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-groups-inactive-bg: var(--home-tab-inactive-bg);
+  --home-tab-groups-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
+  --home-tab-groups-inactive-border: var(--home-tab-inactive-border);
+  --home-tab-groups-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-members-inactive-bg: var(--home-tab-inactive-bg);
+  --home-tab-members-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
+  --home-tab-members-inactive-border: var(--home-tab-inactive-border);
+  --home-tab-members-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-personal-inactive-bg: var(--home-tab-inactive-bg);
+  --home-tab-personal-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
+  --home-tab-personal-inactive-border: var(--home-tab-inactive-border);
+  --home-tab-personal-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-memorize-inactive-bg: var(--home-tab-inactive-bg);
+  --home-tab-memorize-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
+  --home-tab-memorize-inactive-border: var(--home-tab-inactive-border);
+  --home-tab-memorize-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-prompts-inactive-bg: var(--home-tab-inactive-bg);
+  --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
+  --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
+  --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --color-home-panel-blue-chip-active: color-mix(in srgb, #4a3048 50%, #e8849a);
+  --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #3d2840 55%, #c45b76);
+  --color-home-panel-personal-chip-active: color-mix(in srgb, #5c2d40 48%, #fbcfe8);
+  --color-home-panel-personal-chip-active-dark: color-mix(in srgb, #4a3048 50%, #e8849a);
+  --color-home-panel-stone-chip-active: color-mix(in srgb, #4a3048 52%, #f9a8d4);
+  --color-home-panel-stone-chip-active-dark: color-mix(in srgb, #3d2840 55%, #c45b76);
+  /* “Success” status row: rose/plum ladder like light Blossom (no forest-green mix). */
+  --color-home-panel-green-status-chip-active: color-mix(in srgb, #523848 42%, #e8849a);
+  --color-home-panel-green-status-chip-active-dark: color-mix(in srgb, #453040 48%, #c45b76);
+  --color-home-panel-amber-status-chip-active: color-mix(in srgb, #c45b76 35%, #422006);
+  --color-home-panel-gray-status-chip-active: color-mix(in srgb, #8e4a5e 40%, #4a3048);
+  --color-home-panel-gray-status-chip-active-dark: color-mix(in srgb, #6b2d45 45%, #3d2840);
+  /*
+    Sub-filter panel fills: in dark mode the panel used `--home-tab-*-bg-dark` (step down) while
+    active folder tabs (and tour z-10 anchors) use the primary `--home-tab-*-bg`, so the row read
+    mismatched. Dark sub-filter row matches the tab / tour anchor fill; light half aliases to the same.
+  */
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg);
+}
+
+html.dark.blossom-dark body,
+html.dark.blossom-dark body::before,
+html.dark.blossom-dark body::after {
+  background-color: var(--surface-page);
+}
+
+html.dark.blossom-dark .home-filter-tab-inactive-chrome {
+  background-color: var(--home-tab-inactive-bg-dark) !important;
+  border-color: var(--home-tab-inactive-border-dark) !important;
+  border-style: solid;
+  border-width: 2px;
+}
+html.dark.blossom-dark #tour-filter-public.z-10 {
+  background-color: var(--home-tab-public-bg) !important;
+  border-color: var(--home-tab-public-border) !important;
+}
+html.dark.blossom-dark #tour-filter-groups.z-10 {
+  background-color: var(--home-tab-groups-bg) !important;
+  border-color: var(--home-tab-groups-border) !important;
+}
+html.dark.blossom-dark #tour-filter-personal.z-10 {
+  background-color: var(--home-tab-personal-bg) !important;
+  border-color: var(--home-tab-personal-border) !important;
+}
+html.dark.blossom-dark #tour-filter-memorize.z-10 {
+  background-color: var(--home-tab-memorize-bg) !important;
+  border-color: var(--home-tab-memorize-border) !important;
+}
+html.dark.blossom-dark .home-filter-tab-inactive-chrome:hover {
+  background-color: var(--surface-inset-hover) !important;
+}
+
+html.dark.blossom-dark .dark\:bg-gray-50:is(.dark *),
+html.dark.blossom-dark .dark\:bg-gray-900:is(.dark *) {
+  background-color: var(--surface-page) !important;
+}
+
+html.dark.blossom-dark .dark\:bg-gray-800:is(.dark *),
+html.dark.blossom-dark .dark\:bg-slate-800:is(.dark *) {
+  background-color: var(--surface-card) !important;
+}
+
+html.dark.blossom-dark .dark\:bg-gray-100:is(.dark *),
+html.dark.blossom-dark .dark\:bg-gray-300:is(.dark *),
+html.dark.blossom-dark .dark\:bg-gray-700:is(.dark *),
+html.dark.blossom-dark .dark\:bg-blue-700:is(.dark *) {
+  background-color: var(--surface-raised) !important;
+}
+
+html.dark.blossom-dark .cp-toast--success {
+  background-color: color-mix(in oklab, var(--color-blue-900) 22%, transparent) !important;
+  color: rgb(147 197 253) !important;
+  border-color: rgb(96 165 250) !important;
 }
 
 /* Christmas Light — warmer cream, forest chrome, crimson CTAs, richer gold.
@@ -1788,6 +2057,18 @@ html.christmas-light {
   --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
   --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   --color-home-panel-blue-chip-active: color-mix(in srgb, #e7b4b8 78%, white);
   --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #e7b4b8 78%, white);
   --color-home-panel-personal-chip-active: color-mix(in srgb, #e4c06a 78%, #fff6e4);
@@ -1807,7 +2088,16 @@ html.christmas-light body::after {
 html.christmas-light .modal-chrome-header,
 html.christmas-light .modal-chrome-footer,
 html.christmas-light .settings-modal-header,
-html.christmas-light .settings-modal-footer {
+html.christmas-light .settings-modal-footer,
+html.day .modal-chrome-header,
+html.day .modal-chrome-footer,
+html.day .settings-modal-header,
+html.day .settings-modal-footer {
+  border-color: var(--theme-chrome-border);
+}
+
+html.day .modal-chrome-border-b,
+html.day .modal-chrome-border-t {
   border-color: var(--theme-chrome-border);
 }
 
@@ -1816,10 +2106,14 @@ html.blossom app-help-modal .modal-panel-edge,
 html.blossom app-admin-help-modal .modal-panel-edge,
 html.christmas-light app-help-modal .modal-panel-edge,
 html.christmas-light app-admin-help-modal .modal-panel-edge,
+html.day app-help-modal .modal-panel-edge,
+html.day app-admin-help-modal .modal-panel-edge,
 html.blossom app-user-settings .settings-modal-panel,
 html.christmas-light app-user-settings .settings-modal-panel,
+html.day app-user-settings .settings-modal-panel,
 html.blossom app-modal-shell .modal-shell-panel,
-html.christmas-light app-modal-shell .modal-shell-panel {
+html.christmas-light app-modal-shell .modal-shell-panel,
+html.day app-modal-shell .modal-shell-panel {
   background-color: var(--theme-surface-card) !important;
   border-color: var(--theme-chrome-border);
 }
@@ -1827,24 +2121,65 @@ html.blossom app-help-modal .settings-modal-body,
 html.blossom app-admin-help-modal .settings-modal-body,
 html.christmas-light app-help-modal .settings-modal-body,
 html.christmas-light app-admin-help-modal .settings-modal-body,
+html.day app-help-modal .settings-modal-body,
+html.day app-admin-help-modal .settings-modal-body,
 html.blossom app-user-settings .settings-modal-body,
 html.christmas-light app-user-settings .settings-modal-body,
+html.day app-user-settings .settings-modal-body,
 html.blossom app-modal-shell .settings-modal-body,
 html.christmas-light app-modal-shell .settings-modal-body,
+html.day app-modal-shell .settings-modal-body,
 html.blossom app-presentation-settings-modal .modal-shell-body,
-html.christmas-light app-presentation-settings-modal .modal-shell-body {
+html.christmas-light app-presentation-settings-modal .modal-shell-body,
+html.day app-presentation-settings-modal .modal-shell-body {
   background-color: var(--surface-page) !important;
 }
 html.blossom app-help-modal .settings-modal-section-card,
 html.blossom app-admin-help-modal .settings-modal-section-card,
 html.christmas-light app-help-modal .settings-modal-section-card,
 html.christmas-light app-admin-help-modal .settings-modal-section-card,
+html.day app-help-modal .settings-modal-section-card,
+html.day app-admin-help-modal .settings-modal-section-card,
 html.blossom app-user-settings .settings-modal-section-card,
 html.christmas-light app-user-settings .settings-modal-section-card,
+html.day app-user-settings .settings-modal-section-card,
 html.blossom app-modal-shell .settings-modal-section-card,
-html.christmas-light app-modal-shell .settings-modal-section-card {
+html.christmas-light app-modal-shell .settings-modal-section-card,
+html.day app-modal-shell .settings-modal-section-card {
   background-color: var(--theme-surface-card) !important;
   border-color: var(--theme-border) !important;
+}
+
+/*
+  Blossom Dark: modal shells use themed card fill; scroll wells use page tint (same split as light Blossom).
+  Covers Help, Settings, app-modal-shell, group modals, pray-for, memorize practice, admin dialogs, etc.
+*/
+html.dark.blossom-dark .modal-panel-edge,
+html.dark.blossom-dark .modal-shell-panel,
+html.dark.blossom-dark .settings-modal-panel {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-chrome-border);
+}
+html.dark.blossom-dark .modal-shell-body {
+  background-color: var(--theme-surface-page) !important;
+}
+html.dark.blossom-dark app-help-modal .settings-modal-body,
+html.dark.blossom-dark app-admin-help-modal .settings-modal-body,
+html.dark.blossom-dark app-user-settings .settings-modal-body,
+html.dark.blossom-dark app-modal-shell .settings-modal-body,
+html.dark.blossom-dark app-presentation-settings-modal .modal-shell-body {
+  background-color: var(--theme-surface-page) !important;
+}
+html.dark.blossom-dark app-help-modal .settings-modal-section-card,
+html.dark.blossom-dark app-admin-help-modal .settings-modal-section-card,
+html.dark.blossom-dark app-user-settings .settings-modal-section-card,
+html.dark.blossom-dark app-modal-shell .settings-modal-section-card {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-border) !important;
+}
+/* Memorize practice: inner scroll strips use the same utility as the shell unless this class overrides (Blossom Dark). */
+html.dark.blossom-dark .memorize-practice-scroll-well {
+  background-color: var(--theme-surface-page) !important;
 }
 
 html.christmas-light .text-green-600,
@@ -1963,6 +2298,18 @@ html.christmas-dark {
   --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
   --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   --color-home-panel-blue-chip-active: color-mix(in srgb, #3a1820 55%, #8e141e);
   --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #3a1820 55%, #8e141e);
   --color-home-panel-personal-chip-active: color-mix(in srgb, #4a1224 50%, #c4a35a);
@@ -2071,6 +2418,15 @@ html.christmas-light app-prayer-update-row {
 html.christmas-dark app-prayer-update-row {
   --prayer-update-row-shell-bg: #163328;
   --prayer-update-row-header-bg: rgb(10 31 24 / 0.72);
+}
+/*
+  Blossom Dark: prayer cards use --surface-card (e.g. dark:bg-gray-800 → #3b2434) while the
+  prayer-update-row utility fell back to --surface-inset, also #3b2434 — identical nested fills.
+  Nesting uses page-tint shell + raised header band (same relationship as light Blossom).
+*/
+html.dark.blossom-dark app-prayer-update-row {
+  --prayer-update-row-shell-bg: #2d1a28;
+  --prayer-update-row-header-bg: #4a2d40;
 }
 app-prayer-update-row .bg-card-meta-header-band {
   background-color: var(

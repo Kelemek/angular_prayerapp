@@ -2345,7 +2345,8 @@ describe('UserSessionService', () => {
         clientPreferences: { theme: 'dark' as const, textSize: 'normal' as const },
       };
       const prepared = (service as any).prepareCachedSessionForPublish(session);
-      expect(prepared.clientPreferences?.theme).toBe('light');
+      expect(prepared.clientPreferences?.themeFamily).toBe('default');
+      expect(prepared.clientPreferences?.themeMode).toBe('light');
       expect(prepared).not.toBe(session);
     });
   });

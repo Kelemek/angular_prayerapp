@@ -1,9 +1,11 @@
-import type { Theme } from '../services/theme.service';
+import type { ThemeSelection } from '../services/theme.service';
 
-export type ThemeOption = Theme;
+export type ThemeOption = ThemeSelection;
 
 export {
-  THEME_SELECT_OPTIONS as USER_SETTINGS_THEME_OPTIONS,
-  THEME_SUCCESS_LABEL,
-  themeSelectLabel,
+  THEME_FAMILY_OPTIONS as USER_SETTINGS_THEME_FAMILY_OPTIONS,
+  THEME_MODE_OPTIONS as USER_SETTINGS_THEME_MODE_OPTIONS,
+  closedFamilyTriggerLabel,
+  resolvedThemeSuccessLabel,
+  themeSelectionTriggerSummary,
 } from './theme-options';

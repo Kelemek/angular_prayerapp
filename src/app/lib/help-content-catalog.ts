@@ -444,8 +444,8 @@ export function getDefaultHelpSections(): HelpSection[] {
             text: 'Access the settings icon during presentation mode to customize your experience. You can enable a timer to track prayer time, sort prayers by different criteria, and filter which prayers are displayed. These options help you control the flow and focus of your group prayer time.',
           },
           {
-            subtitle: 'Theme (Light, Dark, Night, seasonal, System)',
-            text: 'In presentation **Settings**, open the **Theme** dropdown for the same options as Home **Settings**: **Light**, **Dark**, **Night**, **Blossom**, **Christmas Light**, **Christmas Dark**, or **System**. **Night** uses a true black background; **Christmas Dark** uses a pine palette with dark text styling. **Blossom** and **Christmas Light** are light seasonal palettes. **System** follows your device and only switches between standard light and dark—it never picks **Night** or seasonal themes automatically. One choice applies across the app and presentation.',
+            subtitle: 'Theme (family + mode)',
+            text: 'In presentation **Settings**, use the same **Family** and **Mode** controls as Home **Settings**. **Family**: **Default** (standard light/dark), **High Contrast** (**Day** light palette and **Night** true black), **Blossom** (Blossom Light / Blossom Dark), or **Christmas** (Christmas Light / Christmas Dark). **Mode**: **Light**, **Dark**, or **System**. **System** follows your device *within the selected family*—for example Christmas + System picks Christmas Light or Christmas Dark from the OS. One choice applies across the app and presentation.',
           },
         ],
         order: 9,
@@ -615,7 +615,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Theme Options',
-            text: 'Open **Settings** (gear in the header), use the **Theme** dropdown, and choose **Light**, **Dark**, **Night**, **Blossom**, **Christmas Light**, **Christmas Dark**, or **System**. **Night** is true black for very low light. **Blossom** and **Christmas Light** are optional light seasonal palettes. **Christmas Dark** is a pine-and-gold dark palette. **System** follows your device light/dark preference and never picks Night or seasonal themes automatically. Your choice saves to this device and syncs with your account preferences.',
+            text: 'Open **Settings** (gear in the header). Under **Theme Preference**, pick a **Family** and a **Mode**. **Family**: **Default**, **High Contrast**, **Blossom**, or **Christmas**. **Mode**: **Light**, **Dark**, or **System** (follows your device *within that family*). High Contrast’s light look is **Day**; its dark look is **Night** (true black). Blossom adds **Blossom Dark** alongside Blossom Light. Christmas maps to Christmas Light and Christmas Dark. Your choice saves to this device and syncs with your account preferences.',
           },
           {
             subtitle: 'Text size',

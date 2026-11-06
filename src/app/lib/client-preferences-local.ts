@@ -4,7 +4,16 @@ import {
   parsePresentationSettingsJson,
 } from '../services/presentation-settings.service';
 import { getPresentationSettingsDefaults } from './presentation-settings-defaults';
-import { isStoredTheme, type Theme } from '../services/theme.service';
+import {
+  LEGACY_THEME_STORAGE_KEY,
+  isLegacyStoredTheme,
+  isThemeFamily,
+  isThemeMode,
+  migrateLegacyTheme,
+  THEME_STORAGE_FAMILY_KEY,
+  THEME_STORAGE_MODE_KEY,
+  type ThemeSelection,
+} from '../services/theme.service';
 import type { TextSize } from '../services/text-size.service';
 import {
   DEFAULT_MEMORIZE_LIST_VIEW,
@@ -47,11 +56,16 @@ function readSkipPrayForModal(): boolean {
   }
 }
 
-function readTheme(): Theme | undefined {
+function readThemeSelectionFromLocalStorage(): ThemeSelection | undefined {
   try {
-    const theme = localStorage.getItem('theme');
-    if (theme && isStoredTheme(theme)) {
-      return theme;
+    const fam = localStorage.getItem(THEME_STORAGE_FAMILY_KEY);
+    const mod = localStorage.getItem(THEME_STORAGE_MODE_KEY);
+    if (isThemeFamily(fam) && isThemeMode(mod)) {
+      return { family: fam, mode: mod };
+    }
+    const legacy = localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+    if (legacy && isLegacyStoredTheme(legacy)) {
+      return migrateLegacyTheme(legacy);
     }
   } catch {
     /* ignore */
@@ -83,6 +97,23 @@ function readPresentationSettings(): ClientPreferences['presentationSettings'] {
   } catch {
     return defaults;
   }
+}
+
+function selectionFromPrefs(prefs: ClientPreferences): ThemeSelection | undefined {
+  if (isThemeFamily(prefs.themeFamily) && isThemeMode(prefs.themeMode)) {
+    return { family: prefs.themeFamily, mode: prefs.themeMode };
+  }
+  if (prefs.theme && isLegacyStoredTheme(prefs.theme)) {
+    return migrateLegacyTheme(prefs.theme);
+  }
+  return undefined;
+}
+
+function selectionsEqual(a: ThemeSelection | undefined, b: ThemeSelection | undefined): boolean {
+  if (!a || !b) {
+    return false;
+  }
+  return a.family === b.family && a.mode === b.mode;
 }
 
 /** Whether unscoped local keys may be seeded for this email (shared-device guard). */
@@ -127,8 +158,12 @@ export function reconcileClientPreferencesWithDevice(
     preferences.textSize = local.textSize;
     divergedFromInput = true;
   }
-  if (local.theme && local.theme !== prefs.theme) {
-    preferences.theme = local.theme;
+  const localSel = selectionFromPrefs(local);
+  const prefsSel = selectionFromPrefs(prefs);
+  if (localSel && !selectionsEqual(localSel, prefsSel)) {
+    preferences.themeFamily = localSel.family;
+    preferences.themeMode = localSel.mode;
+    delete preferences.theme;
     divergedFromInput = true;
   }
   return { preferences, divergedFromInput };
@@ -147,9 +182,10 @@ export function readClientPreferencesFromLocalMirrors(): ClientPreferences {
   if (readSkipPrayForModal()) {
     prefs.skipPrayForExplanationModal = true;
   }
-  const theme = readTheme();
-  if (theme) {
-    prefs.theme = theme;
+  const sel = readThemeSelectionFromLocalStorage();
+  if (sel) {
+    prefs.themeFamily = sel.family;
+    prefs.themeMode = sel.mode;
   }
   const textSize = readTextSize();
   if (textSize) {
@@ -211,7 +247,8 @@ export function buildClientPreferencesFromLocal(
     return {
       skipPrayForExplanationModal: false,
       presentationSettings: defaults,
-      theme: 'system',
+      themeFamily: 'default',
+      themeMode: 'system',
       textSize: 'normal',
       memorizeListView: DEFAULT_MEMORIZE_LIST_VIEW,
       memorizeTableSort: { ...DEFAULT_MEMORIZE_TABLE_SORT },
@@ -228,7 +265,7 @@ export function buildClientPreferencesFromLocal(
 export function buildClientPreferencesForPersist(
   normalizedEmail: string,
   sessionPrefs: ClientPreferences | undefined,
-  appearance: { theme: Theme; textSize: TextSize }
+  appearance: { theme: ThemeSelection; textSize: TextSize }
 ): ClientPreferences | undefined {
   const base = buildClientPreferencesFromLocalForPersist(
     normalizedEmail,
@@ -239,7 +276,8 @@ export function buildClientPreferencesForPersist(
   }
   return {
     ...base,
-    theme: appearance.theme,
+    themeFamily: appearance.theme.family,
+    themeMode: appearance.theme.mode,
     textSize: appearance.textSize,
   };
 }
@@ -249,7 +287,9 @@ export function clearClientPreferenceLocalMirrors(): void {
     localStorage.removeItem(CLIENT_PREFERENCES_LEGACY_CLAIM_KEY);
     localStorage.removeItem(PRAY_FOR_MODAL_DO_NOT_SHOW_KEY);
     localStorage.removeItem(PRESENTATION_SETTINGS_STORAGE_KEY);
-    localStorage.removeItem('theme');
+    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+    localStorage.removeItem(THEME_STORAGE_FAMILY_KEY);
+    localStorage.removeItem(THEME_STORAGE_MODE_KEY);
     localStorage.removeItem('textSize');
     localStorage.removeItem(MEMORIZE_LIST_VIEW_KEY);
     localStorage.removeItem(MEMORIZE_TABLE_SORT_KEY);
@@ -277,8 +317,11 @@ export function applyClientPreferencesToLocalMirrors(
       );
     }
 
-    if (prefs.theme) {
-      localStorage.setItem('theme', prefs.theme);
+    const sel = selectionFromPrefs(prefs);
+    if (sel) {
+      localStorage.setItem(THEME_STORAGE_FAMILY_KEY, sel.family);
+      localStorage.setItem(THEME_STORAGE_MODE_KEY, sel.mode);
+      localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
     }
     if (prefs.textSize) {
       localStorage.setItem('textSize', prefs.textSize);

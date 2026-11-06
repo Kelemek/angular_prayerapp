@@ -1,7 +1,7 @@
 import type { TextSize } from '../services/text-size.service';
 import type { UserSettingsFacade } from './user-settings-facade';
-import { THEME_SUCCESS_LABEL } from './theme-options';
-import type { ThemeOption } from './user-settings-types';
+import type { ResolvedTheme } from '../services/theme.service';
+import { resolvedThemeSuccessLabel } from './theme-options';
 
 export type UserSettingsSuccessField =
   | 'successTheme'
@@ -73,12 +73,12 @@ const TEXT_SIZE_SUCCESS_LABEL: Record<TextSize, string> = {
 
 export function showUserSettingsThemeSaved(
   host: UserSettingsFacade,
-  theme: ThemeOption,
+  resolved: ResolvedTheme,
 ): void {
   showUserSettingsTimedSuccess(
     host,
     'successTheme',
-    `✅ Theme set to ${THEME_SUCCESS_LABEL[theme]}`,
+    `✅ Theme set to ${resolvedThemeSuccessLabel(resolved)}`,
   );
 }
 

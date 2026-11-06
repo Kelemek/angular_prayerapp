@@ -95,7 +95,9 @@ describe('PresentationComponent', () => {
   };
   let mockThemeService: {
     getTheme: ReturnType<typeof vi.fn>;
+    getSelection: ReturnType<typeof vi.fn>;
     setTheme: ReturnType<typeof vi.fn>;
+    setSelection: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -144,8 +146,10 @@ describe('PresentationComponent', () => {
       updatesAllowed: 'everyone',
     };
     mockThemeService = {
-      getTheme: vi.fn(() => 'system' as const),
+      getTheme: vi.fn(() => ({ family: 'default', mode: 'system' as const })),
+      getSelection: vi.fn(() => ({ family: 'default', mode: 'system' as const })),
       setTheme: vi.fn(),
+      setSelection: vi.fn(),
     };
     mockCdr = { markForCheck: vi.fn(), detectChanges: vi.fn() };
     mockNgZone = { run: (fn: Function) => fn() } as unknown as NgZone;
@@ -453,8 +457,11 @@ describe('PresentationComponent', () => {
   });
 
   it('handleThemeChange delegates to ThemeService', () => {
-    component.handleThemeChange('dark');
-    expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
+    component.handleThemeChange({ family: 'default', mode: 'dark' });
+    expect(mockThemeService.setSelection).toHaveBeenCalledWith({
+      family: 'default',
+      mode: 'dark',
+    });
   });
 
   it('setupControlsAutoHide treats device as mobile when touch present', () => {

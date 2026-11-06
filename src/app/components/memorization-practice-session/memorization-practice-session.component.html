@@ -87,7 +87,7 @@
           @if (phase === 'intro') {
             <div
               #practiceScroll
-              class="relative px-4 py-4 flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y"
+              class="memorize-practice-scroll-well relative px-4 py-4 flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y"
             >
               <app-memorization-practice-session-intro
                 [isBibleBooks]="isBibleBooks"
@@ -104,7 +104,7 @@
             <div
               #practiceScroll
               id="practiceScroll"
-              class="relative isolate bg-white dark:bg-gray-800 px-4 pt-0 pb-4 flex-1 min-h-0 overscroll-y-contain touch-pan-y"
+              class="memorize-practice-scroll-well relative isolate bg-white dark:bg-gray-800 px-4 pt-0 pb-4 flex-1 min-h-0 overscroll-y-contain touch-pan-y"
               [class.overflow-y-hidden]="phase === 'done'"
               [class.flex]="phase === 'done'"
               [class.flex-col]="phase === 'done'"

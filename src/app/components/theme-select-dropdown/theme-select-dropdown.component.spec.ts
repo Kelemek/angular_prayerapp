@@ -6,8 +6,9 @@ import { ɵresolveComponentResources as resolveComponentResources } from '@angul
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ThemeSelectDropdownComponent } from './theme-select-dropdown.component';
 import {
-  PRESENTATION_THEME_SELECT_OPTIONS,
-  THEME_SELECT_OPTIONS,
+  PRESENTATION_THEME_FAMILY_OPTIONS,
+  THEME_FAMILY_OPTIONS,
+  THEME_MODE_OPTIONS,
 } from '../../lib/theme-options';
 
 const componentDir = dirname(fileURLToPath(import.meta.url));
@@ -27,18 +28,19 @@ describe('ThemeSelectDropdownComponent', () => {
     );
   });
 
-  let fixture: ComponentFixture<ThemeSelectDropdownComponent>;
-  let component: ThemeSelectDropdownComponent;
+  let fixture: ComponentFixture<ThemeSelectDropdownComponent<string>>;
+  let component: ThemeSelectDropdownComponent<string>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ThemeSelectDropdownComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(ThemeSelectDropdownComponent);
+    fixture = TestBed.createComponent(ThemeSelectDropdownComponent<string>);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput('theme', 'light');
-    fixture.componentRef.setInput('options', THEME_SELECT_OPTIONS);
+    fixture.componentRef.setInput('value', 'default');
+    fixture.componentRef.setInput('options', THEME_FAMILY_OPTIONS);
+    fixture.componentRef.setInput('iconVariant', 'family');
     fixture.detectChanges();
   });
 
@@ -46,19 +48,26 @@ describe('ThemeSelectDropdownComponent', () => {
     fixture?.destroy();
   });
 
-  it('emits themeChange when selecting from the list', () => {
+  it('emits valueChange when selecting from the list', () => {
     const values: string[] = [];
-    component.themeChange.subscribe((v) => values.push(v));
+    component.valueChange.subscribe((v) => values.push(v));
 
     component.toggleOpen();
     fixture.detectChanges();
-    component.selectTheme('christmas-dark');
-    expect(values).toEqual(['christmas-dark']);
+    component.selectValue('christmas');
+    expect(values).toEqual(['christmas']);
   });
 
-  it('uses the gospel sun icon for Light, with filled rays', () => {
+  it('uses the gospel sun icon for Light mode, with filled rays', () => {
     const html = readComponentResource('./theme-select-dropdown.component.html');
-    const light = html.slice(html.indexOf("@case ('light')"), html.indexOf("@case ('dark')"));
+    const modeLight = html.slice(
+      html.indexOf("@if (iconVariant === 'mode')"),
+      html.indexOf('@else {'),
+    );
+    const light = modeLight.slice(
+      modeLight.indexOf("@case ('light')"),
+      modeLight.indexOf("@case ('dark')"),
+    );
     expect(light).toContain('fill="currentColor"');
     expect(light).toContain('M12 2.25a.75.75 0 01.75.75v2.25');
     expect(light).toContain('M7.5 12a4.5 4.5 0 119 0');
@@ -79,15 +88,15 @@ describe('ThemeSelectDropdownComponent', () => {
     expect(html).not.toContain('M12 3c0 2.5');
   });
 
-  it('renders an icon on every settings theme row', () => {
-    fixture.componentRef.setInput('dropdownKey', 'user-settings-theme');
+  it('renders an icon on every settings family row', () => {
+    fixture.componentRef.setInput('dropdownKey', 'user-settings-theme-family');
     fixture.detectChanges();
     component.toggleOpen();
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('[role="option"]');
-    expect(rows).toHaveLength(THEME_SELECT_OPTIONS.length);
-    expect(THEME_SELECT_OPTIONS).toHaveLength(7);
+    expect(rows).toHaveLength(THEME_FAMILY_OPTIONS.length);
+    expect(THEME_FAMILY_OPTIONS).toHaveLength(4);
 
     const byId = (id: string): HTMLElement => {
       const row = fixture.nativeElement.querySelector(`#${id}`);
@@ -96,50 +105,38 @@ describe('ThemeSelectDropdownComponent', () => {
       return row as HTMLElement;
     };
 
-    const light = byId('user-settings-theme-opt-light');
-    expect(light.getAttribute('aria-selected')).toBe('true');
-    expect(light.querySelector('path')?.getAttribute('d')).toContain('M12 2.25');
-    expect(light.textContent).toContain('Light');
-    expect(light.textContent).toContain('✓');
+    const def = byId('user-settings-theme-family-opt-default');
+    expect(def.getAttribute('aria-selected')).toBe('true');
+    expect(def.querySelector('path')?.getAttribute('d')).toContain('M12 2.25');
+    expect(def.textContent).toContain('Default');
+    expect(def.textContent).toContain('✓');
 
-    const dark = byId('user-settings-theme-opt-dark');
-    expect(dark.getAttribute('aria-selected')).toBe('false');
-    expect(dark.querySelector('svg')?.getAttribute('class')).toContain('text-blue-600');
+    const hc = byId('tour-settings-theme-high-contrast');
+    expect(hc.getAttribute('aria-selected')).toBe('false');
 
-    byId('tour-settings-theme-night');
     const blossom = byId('tour-settings-theme-blossom');
     expect(blossom.innerHTML).toContain('r="2.65"');
     expect(blossom.querySelector('svg')?.getAttribute('class')).toContain('text-[#C45B76]');
 
-    byId('tour-settings-theme-christmas-light');
-    const christmasDark = byId('tour-settings-theme-christmas-dark');
-    expect(christmasDark.querySelector('svg')?.getAttribute('class')).toContain(
-      'text-[#C4A35A]',
-    );
-    const system = byId('user-settings-theme-opt-system');
-    expect(system.textContent).toContain('System');
-    expect(system.getAttribute('aria-selected')).toBe('false');
-    expect(THEME_SELECT_OPTIONS.map((option) => option.value)).toEqual([
-      'light',
-      'dark',
-      'black',
+    byId('tour-settings-theme-christmas');
+    expect(THEME_FAMILY_OPTIONS.map((option) => option.value)).toEqual([
+      'default',
+      'high-contrast',
       'blossom',
-      'christmas-light',
-      'christmas-dark',
-      'system',
+      'christmas',
     ]);
   });
 
-  it('renders an icon on every presentation theme row', () => {
-    fixture.componentRef.setInput('dropdownKey', 'presentation-theme');
-    fixture.componentRef.setInput('options', PRESENTATION_THEME_SELECT_OPTIONS);
-    fixture.componentRef.setInput('theme', 'christmas-dark');
+  it('renders an icon on every presentation family row', () => {
+    fixture.componentRef.setInput('dropdownKey', 'presentation-theme-family');
+    fixture.componentRef.setInput('options', PRESENTATION_THEME_FAMILY_OPTIONS);
+    fixture.componentRef.setInput('value', 'christmas');
     fixture.detectChanges();
     component.toggleOpen();
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('[role="option"]');
-    expect(rows).toHaveLength(7);
+    expect(rows).toHaveLength(4);
     for (const row of rows) {
       expect(row.querySelector('svg')).toBeTruthy();
     }
@@ -148,16 +145,12 @@ describe('ThemeSelectDropdownComponent', () => {
     ).toBeTruthy();
     expect(
       fixture.nativeElement
-        .querySelector('#tour-presentation-setting-theme-christmas-dark')
+        .querySelector('#tour-presentation-setting-theme-christmas')
         ?.getAttribute('aria-selected'),
     ).toBe('true');
-    const system = fixture.nativeElement.querySelector('#presentation-theme-opt-system');
-    expect(system?.textContent).toContain('System');
-    expect(system?.querySelector('svg')).toBeTruthy();
-    expect(PRESENTATION_THEME_SELECT_OPTIONS.at(-1)?.value).toBe('system');
   });
 
-  it('sizes the open list so System, the last theme, is not clipped', () => {
+  it('sizes the open list so the last option is not clipped', () => {
     const html = readComponentResource('./theme-select-dropdown.component.html');
     const list = html.slice(html.indexOf('role="listbox"'), html.indexOf('@for'));
     expect(list).toContain('max-h-96');
@@ -166,10 +159,10 @@ describe('ThemeSelectDropdownComponent', () => {
     expect(html).toContain('track option.value');
   });
 
-  it('keeps the Christmas Light icon forest on light and lighter on a dark host', () => {
+  it('keeps the Christmas tree icon forest on light and lighter on a dark host', () => {
     document.documentElement.classList.add('dark');
     try {
-      fixture.componentRef.setInput('theme', 'christmas-light');
+      fixture.componentRef.setInput('value', 'christmas');
       fixture.detectChanges();
       component.toggleOpen();
       fixture.detectChanges();
@@ -178,16 +171,16 @@ describe('ThemeSelectDropdownComponent', () => {
         'button .christmas-light-theme-icon',
       );
       const rowIcon = fixture.nativeElement.querySelector(
-        '#tour-settings-theme-christmas-light .christmas-light-theme-icon',
+        '#tour-settings-theme-christmas .christmas-light-theme-icon',
       );
       expect(triggerIcon).toBeTruthy();
       expect(rowIcon).toBeTruthy();
 
       for (const icon of [triggerIcon, rowIcon]) {
-        const iconClass = icon.getAttribute('class') ?? '';
+        const iconClass = icon!.getAttribute('class') ?? '';
         expect(iconClass).toContain('text-[#1F4D36]');
         expect(iconClass).toContain('dark:text-emerald-300');
-        const ornament = icon.querySelector('circle');
+        const ornament = icon!.querySelector('circle');
         const ornamentClass = ornament?.getAttribute('class') ?? '';
         expect(ornamentClass).toContain('fill-[#C4A35A]');
         expect(ornamentClass).toContain('dark:fill-amber-300');
@@ -197,15 +190,11 @@ describe('ThemeSelectDropdownComponent', () => {
     }
   });
 
-  it('exposes tour anchor ids on seasonal options', () => {
+  it('exposes tour anchor ids on seasonal family options', () => {
     component.toggleOpen();
     fixture.detectChanges();
-    expect(
-      fixture.nativeElement.querySelector('#tour-settings-theme-night'),
-    ).toBeTruthy();
-    expect(
-      fixture.nativeElement.querySelector('#tour-settings-theme-blossom'),
-    ).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#tour-settings-theme-high-contrast')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#tour-settings-theme-blossom')).toBeTruthy();
   });
 
   it('moves active index with arrow keys while open', () => {
@@ -216,6 +205,20 @@ describe('ThemeSelectDropdownComponent', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     fixture.detectChanges();
 
-    expect(component.activeIndex).toBe((start + 1) % THEME_SELECT_OPTIONS.length);
+    expect(component.activeIndex).toBe((start + 1) % THEME_FAMILY_OPTIONS.length);
+  });
+
+  it('renders mode options with monitor icon for system', () => {
+    fixture.componentRef.setInput('options', THEME_MODE_OPTIONS);
+    fixture.componentRef.setInput('value', 'system');
+    fixture.componentRef.setInput('iconVariant', 'mode');
+    fixture.componentRef.setInput('dropdownKey', 'user-settings-theme-mode');
+    fixture.detectChanges();
+    component.toggleOpen();
+    fixture.detectChanges();
+
+    const system = fixture.nativeElement.querySelector('#tour-settings-theme-mode-system');
+    expect(system?.textContent ?? '').toContain('System');
+    expect(system?.querySelector('rect')).toBeTruthy();
   });
 });

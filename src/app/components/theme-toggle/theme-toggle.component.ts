@@ -9,7 +9,7 @@ import { ThemeService } from "../../services/theme.service";
     <button
       (click)="toggleTheme()"
       class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-      [title]="'Current theme: ' + themeService.getTheme()"
+      [title]="'Current theme: ' + themeService.getAppearanceTitleSummary()"
     >
       <!-- Sun icon (light mode) -->
       @if (!themeService.isDark()) {

@@ -28,7 +28,8 @@ describe('client-preferences-local', () => {
     localStorage.setItem('theme', 'dark');
     const prefs = buildClientPreferencesFromLocal('user@example.com');
     expect(prefs.skipPrayForExplanationModal).toBe(true);
-    expect(prefs.theme).toBe('dark');
+    expect(prefs.themeFamily).toBe('default');
+    expect(prefs.themeMode).toBe('dark');
     expect(localStorage.getItem(CLIENT_PREFERENCES_LEGACY_CLAIM_KEY)).toBe(
       'user@example.com'
     );
@@ -40,21 +41,24 @@ describe('client-preferences-local', () => {
     const prefs = buildClientPreferencesFromLocal('second@example.com', {
       allowLegacyKeys: false,
     });
-    expect(prefs.theme).toBe('system');
+    expect(prefs.themeFamily).toBe('default');
+    expect(prefs.themeMode).toBe('system');
   });
 
   it('buildClientPreferencesFromLocalForPersist keeps session baseline on shared device', () => {
     localStorage.setItem(CLIENT_PREFERENCES_LEGACY_CLAIM_KEY, 'first@example.com');
     localStorage.setItem('theme', 'dark');
     const sessionPrefs = {
-      theme: 'light' as const,
+      themeFamily: 'default' as const,
+      themeMode: 'light' as const,
       textSize: 'large' as const,
     };
     const prefs = buildClientPreferencesFromLocalForPersist(
       'second@example.com',
       sessionPrefs
     );
-    expect(prefs?.theme).toBe('dark');
+    expect(prefs?.themeFamily).toBe('default');
+    expect(prefs?.themeMode).toBe('dark');
     expect(prefs?.textSize).toBe('large');
   });
 
@@ -64,14 +68,19 @@ describe('client-preferences-local', () => {
       { theme: 'dark' },
       'user@example.com'
     );
-    expect(preferences.theme).toBe('black');
+    expect(preferences.themeFamily).toBe('high-contrast');
+    expect(preferences.themeMode).toBe('dark');
     expect(divergedFromInput).toBe(true);
   });
 
   it('reconcileClientPreferencesWithDevice prefers textSize localStorage over session json', () => {
     localStorage.setItem('textSize', 'normal');
     const { preferences, divergedFromInput } = reconcileClientPreferencesWithDevice(
-      { textSize: 'largest', theme: 'light' },
+      {
+        textSize: 'largest',
+        themeFamily: 'default',
+        themeMode: 'light',
+      },
       'user@example.com'
     );
     expect(preferences.textSize).toBe('normal');

@@ -33,7 +33,7 @@ export function runUserSettingsOpenChange(
     host.deps.adminAuthService.refreshAdminEmailEligibility(
       host.getCurrentUserEmail()
     );
-    host.theme = host.deps.themeService.getTheme() as ThemeOption;
+    host.theme = host.deps.themeService.getSelection();
     host.textSize = host.deps.textSizeService.getTextSize();
 
     host.isInitialLoad = true;

@@ -17,7 +17,7 @@ import { PromptService } from "../../services/prompt.service";
 import { PrayerEncouragementService } from "../../services/prayer-encouragement.service";
 import { UserSessionService } from "../../services/user-session.service";
 import { PlanningCenterListService } from "../../services/planning-center-list.service";
-import { ThemeService, type Theme } from "../../services/theme.service";
+import { ThemeService, type ThemeSelection } from "../../services/theme.service";
 import {
   HomeReturnContext,
   PRESENTATION_STATUS_FILTERS_DEFAULT,
@@ -661,8 +661,8 @@ export class PresentationComponent implements OnInit, OnDestroy {
     return getPresentationEmptyContentMessage(this.contentTypes);
   }
 
-  handleThemeChange(newTheme: Theme): void {
-    this.themeService.setTheme(newTheme);
+  handleThemeChange(newTheme: ThemeSelection): void {
+    this.themeService.setSelection(newTheme);
   }
 
   startPrayerTimer(): void {

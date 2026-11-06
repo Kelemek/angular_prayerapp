@@ -7,7 +7,7 @@ import { ThemeService } from '../services/theme.service';
 export function resetAppearanceForLoggedOutView(injector: Injector): void {
   try {
     runApplyingClientPreferencesFromSession(() => {
-      injector.get(ThemeService).setTheme('system', { persist: false });
+      injector.get(ThemeService).setSelection({ family: 'default', mode: 'system' }, { persist: false });
       injector.get(TextSizeService).setTextSize('normal', { persist: false });
     });
   } catch {

@@ -1,6 +1,24 @@
-<app-theme-select-dropdown
-  [theme]="theme"
-  [options]="options"
-  dropdownKey="presentation-theme"
-  (themeChange)="themeChange.emit($event)"
-/>
+<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+  <div>
+    <div class="mb-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">Family</div>
+    <app-theme-select-dropdown
+      [value]="theme.family"
+      [options]="familyOptions"
+      [triggerLabelOverride]="familyTriggerLabel"
+      iconVariant="family"
+      dropdownKey="presentation-theme-family"
+      tourAnchorId="tour-presentation-setting-theme"
+      (valueChange)="onFamily($event)"
+    />
+  </div>
+  <div>
+    <div class="mb-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">Mode</div>
+    <app-theme-select-dropdown
+      [value]="theme.mode"
+      [options]="modeOptions"
+      iconVariant="mode"
+      dropdownKey="presentation-theme-mode"
+      (valueChange)="onMode($event)"
+    />
+  </div>
+</div>

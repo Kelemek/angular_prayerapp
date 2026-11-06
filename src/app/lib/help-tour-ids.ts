@@ -59,7 +59,8 @@ export const TOUR_SETTINGS_FEEDBACK_SECTION_ID = 'tour-settings-feedback-section
 export const TOUR_SETTINGS_FEEDBACK_TYPE_ID = 'tour-settings-feedback-type';
 export const TOUR_SETTINGS_FEEDBACK_DETAILS_ID = 'tour-settings-feedback-details';
 export const TOUR_SETTINGS_THEME_ID = 'tour-settings-theme';
-export const TOUR_SETTINGS_THEME_NIGHT_ID = 'tour-settings-theme-night';
+/** Second step of theme tour: **High Contrast** family row in the Family dropdown (Day/Night resolved palettes). */
+export const TOUR_SETTINGS_THEME_HIGH_CONTRAST_ID = 'tour-settings-theme-high-contrast';
 export const TOUR_SETTINGS_THEME_BLOSSOM_ID = 'tour-settings-theme-blossom';
 export const TOUR_SETTINGS_THEME_CHRISTMAS_LIGHT_ID = 'tour-settings-theme-christmas-light';
 export const TOUR_SETTINGS_THEME_CHRISTMAS_DARK_ID = 'tour-settings-theme-christmas-dark';
@@ -121,7 +122,8 @@ export const TOUR_PRESENTATION_SETTINGS_BTN_ID = 'tour-presentation-settings';
 export const TOUR_PRESENTATION_EXIT_ID = 'tour-presentation-exit';
 export const TOUR_PRESENTATION_SETTINGS_MODAL_ID = 'tour-presentation-settings-modal';
 export const TOUR_PRESENTATION_SETTING_THEME_ID = 'tour-presentation-setting-theme';
-export const TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID = 'tour-presentation-setting-theme-night';
+export const TOUR_PRESENTATION_SETTING_THEME_HIGH_CONTRAST_ID =
+  'tour-presentation-setting-theme-high-contrast';
 export const TOUR_PRESENTATION_SETTING_THEME_BLOSSOM_ID = 'tour-presentation-setting-theme-blossom';
 export const TOUR_PRESENTATION_SETTING_THEME_CHRISTMAS_LIGHT_ID =
   'tour-presentation-setting-theme-christmas-light';

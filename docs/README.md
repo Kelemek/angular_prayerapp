@@ -52,7 +52,7 @@ A comprehensive prayer request management and Scripture memorization system for 
 - ✅ **Admin**: Memorize Recommendations (categories + verses), Recite mode toggle and usage, site-wide mastery analytics
 
 ### User experience
-- ✅ Theme system (light, dark, Night, Blossom, Christmas Light/Dark, System)
+- ✅ Theme system: **family** (Default, High Contrast, Blossom, Christmas) + **mode** (Light, Dark, System); High Contrast resolves to **Day** / **Night**, Blossom to Blossom Light / Dark, Christmas to Christmas Light / Dark
 - ✅ **Text size** (Settings): Users can choose Default, Larger, or Largest text; preference is saved and applied app-wide for easier reading.
 - ✅ **Prayer reminders** (Settings): Optional nudges at chosen clock times in **15-minute** steps (device time zone); email and/or push depending on **Email subscription** and push registration. Separate from community prayer-update reminders. In-app Help: **Prayer reminders** topic + **App Settings** subsection.
 - ✅ **Per-prayer reminders**: Once / daily / weekly reminders on a specific prayer (community, personal, or Members) from the bell on the card; same 15-minute slots and email/push channels.

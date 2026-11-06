@@ -6,6 +6,7 @@ import { ɵresolveComponentResources as resolveComponentResources } from "@angul
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { PresentationSettingsThemeSectionComponent } from "./presentation-settings-theme-section.component";
 import type { PresentationSettingsThemeOption } from "./presentation-settings-theme-section.component";
+import { ThemeService } from "../../services/theme.service";
 
 const componentDir = dirname(fileURLToPath(import.meta.url));
 
@@ -36,6 +37,9 @@ describe("PresentationSettingsThemeSectionComponent", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PresentationSettingsThemeSectionComponent],
+      providers: [
+        { provide: ThemeService, useValue: { getResolvedTheme: () => "light" as const } },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PresentationSettingsThemeSectionComponent);
@@ -57,18 +61,18 @@ describe("PresentationSettingsThemeSectionComponent", () => {
     const emitted: PresentationSettingsThemeOption[] = [];
     component.themeChange.subscribe((value) => emitted.push(value));
 
-    const trigger = fixture.nativeElement.querySelector(
-      'button[aria-haspopup="listbox"]',
+    const familyTrigger = fixture.nativeElement.querySelector(
+      '[data-settings-dropdown-trigger="presentation-theme-family"]',
     ) as HTMLButtonElement;
-    trigger.click();
+    familyTrigger.click();
     fixture.detectChanges();
 
-    const lightOption = Array.from(
+    const christmas = Array.from(
       fixture.nativeElement.querySelectorAll('[role="option"]'),
-    ).find((el: Element) => el.textContent?.includes("Light")) as HTMLElement;
-    lightOption.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    ).find((el: Element) => el.textContent?.includes("Christmas")) as HTMLElement;
+    christmas.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     fixture.detectChanges();
 
-    expect(emitted).toEqual(["light"]);
+    expect(emitted).toEqual([{ family: "christmas", mode: "system" }]);
   });
 });

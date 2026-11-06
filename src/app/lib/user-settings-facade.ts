@@ -22,9 +22,11 @@ import {
 import { markUserSettingsAllItemsAsRead } from './user-settings-badge-mark-read';
 import { runUserSettingsPreferencesLoad } from './user-settings-preferences-load';
 import {
-  USER_SETTINGS_THEME_OPTIONS,
+  USER_SETTINGS_THEME_FAMILY_OPTIONS,
+  USER_SETTINGS_THEME_MODE_OPTIONS,
   type ThemeOption,
 } from './user-settings-types';
+import { closedFamilyTriggerLabel } from './theme-options';
 import {
   getUserSettingsDisplayName,
   getUserSettingsUserInfo,
@@ -50,7 +52,7 @@ export class UserSettingsFacade {
   showPrayingCount: boolean | null = null;
   personalPrayerCooldownHours = 4;
   personalPrayerCooldownEdited = false;
-  theme: ThemeOption = 'system';
+  theme: ThemeOption = { family: 'default', mode: 'system' };
   textSize: TextSize = 'normal';
   saving = false;
   savingNotification = false;
@@ -88,7 +90,15 @@ export class UserSettingsFacade {
   isInitialLoad = false;
   scrollToSectionTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly themeOptions = USER_SETTINGS_THEME_OPTIONS;
+  readonly themeFamilyOptions = USER_SETTINGS_THEME_FAMILY_OPTIONS;
+  readonly themeModeOptions = USER_SETTINGS_THEME_MODE_OPTIONS;
+
+  get familyTriggerLabel(): string {
+    return closedFamilyTriggerLabel(
+      this.theme.family,
+      this.deps.themeService.getResolvedTheme()
+    );
+  }
 
   constructor(public readonly deps: UserSettingsFacadeDeps) {}
 
@@ -140,7 +150,7 @@ export class UserSettingsFacade {
   }
 
   initUserSettings(): void {
-    this.theme = this.deps.themeService.getTheme() as ThemeOption;
+    this.theme = this.deps.themeService.getSelection();
     this.textSize = this.deps.textSizeService.getTextSize();
 
     const userInfo = getUserSettingsUserInfo();
@@ -182,13 +192,22 @@ export class UserSettingsFacade {
     this.destroy$.complete();
   }
 
-  handleThemeChange(newTheme: ThemeOption): void {
-    if (this.theme === newTheme) {
+  handleThemeFamilyChange(family: ThemeOption['family']): void {
+    if (this.theme.family === family) {
       return;
     }
-    this.theme = newTheme;
-    this.deps.themeService.setTheme(newTheme);
-    showUserSettingsThemeSaved(this, newTheme);
+    this.theme = { ...this.theme, family };
+    this.deps.themeService.setThemeFamily(family);
+    showUserSettingsThemeSaved(this, this.deps.themeService.getResolvedTheme());
+  }
+
+  handleThemeModeChange(mode: ThemeOption['mode']): void {
+    if (this.theme.mode === mode) {
+      return;
+    }
+    this.theme = { ...this.theme, mode };
+    this.deps.themeService.setThemeMode(mode);
+    showUserSettingsThemeSaved(this, this.deps.themeService.getResolvedTheme());
   }
 
   handleTextSizeChange(size: TextSize): void {
