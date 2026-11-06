@@ -14,18 +14,19 @@ import { HOME_SHELL_SECTION_GAP_CLASSES } from '../../lib/home-shell-spacing';
 const ACTION_BTN_BASE =
   'flex flex-1 items-center justify-center whitespace-nowrap rounded-lg border px-2 py-2 text-[14px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer sm:flex-none sm:px-4';
 
-/** Outlined blue — lighter fill than the Memorize panel (`bg-blue-200`). */
+/** Outlined accent — lighter fill than the Memorize panel wash. */
+const MEMORIZE_TAB_BORDER = "var(--home-tab-memorize-border)";
 const MEMORIZE_TAB_CHIP =
-  `!border-[#0047AB] ${HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS} text-gray-700 ring ring-[#0047AB] ring-offset-0 dark:!border-[#0047AB] dark:text-gray-300 dark:ring-[#0047AB]`;
+  `!border-[${MEMORIZE_TAB_BORDER}] ${HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS} text-gray-700 ring ring-[${MEMORIZE_TAB_BORDER}] ring-offset-0 dark:!border-[${MEMORIZE_TAB_BORDER}] dark:text-gray-300 dark:ring-[${MEMORIZE_TAB_BORDER}]`;
 
 const SOFT_BLUE_BTN = `border ${MEMORIZE_TAB_CHIP}`;
 
-/** Hover/active on inactive buttons — same outlined blue as Add Verses. */
+/** Hover/active on inactive buttons — same outlined accent as Add Verses. */
 const MEMORIZE_TAB_CHIP_HOVER =
-  'hover:border hover:!border-[#0047AB] hover:!bg-home-panel-blue-chip-active hover:!text-gray-700 hover:ring hover:ring-[#0047AB] hover:ring-offset-0 dark:hover:!border-[#0047AB] dark:hover:!bg-home-panel-blue-chip-active-dark dark:hover:!text-gray-300 dark:hover:ring-[#0047AB]';
+  `hover:border hover:!border-[${MEMORIZE_TAB_BORDER}] hover:!bg-home-panel-blue-chip-active hover:!text-gray-700 hover:ring hover:ring-[${MEMORIZE_TAB_BORDER}] hover:ring-offset-0 dark:hover:!border-[${MEMORIZE_TAB_BORDER}] dark:hover:!bg-home-panel-blue-chip-active-dark dark:hover:!text-gray-300 dark:hover:ring-[${MEMORIZE_TAB_BORDER}]`;
 
 const MEMORIZE_TAB_CHIP_ACTIVE =
-  'active:border active:!border-[#0047AB] active:!bg-home-panel-blue-chip-active active:!text-gray-700 active:ring active:ring-[#0047AB] active:ring-offset-0 dark:active:!border-[#0047AB] dark:active:!bg-home-panel-blue-chip-active-dark dark:active:!text-gray-300 dark:active:ring-[#0047AB]';
+  `active:border active:!border-[${MEMORIZE_TAB_BORDER}] active:!bg-home-panel-blue-chip-active active:!text-gray-700 active:ring active:ring-[${MEMORIZE_TAB_BORDER}] active:ring-offset-0 dark:active:!border-[${MEMORIZE_TAB_BORDER}] dark:active:!bg-home-panel-blue-chip-active-dark dark:active:!text-gray-300 dark:active:ring-[${MEMORIZE_TAB_BORDER}]`;
 
 /**
  * Neutral at rest; hover/active match Verses / active Memorize tab.
@@ -43,7 +44,7 @@ const VIEW_BTN_BASE =
 
 /** Selected segment — fill only; no ring (avoids hover/active size jump). */
 const VIEW_BTN_ACTIVE =
-  'border-transparent !bg-blue-200 !text-gray-700 dark:!bg-blue-950 dark:!text-gray-300';
+  "border-transparent !bg-[var(--home-tab-memorize-bg)] !text-gray-700 dark:!bg-[var(--home-tab-memorize-bg-dark)] dark:!text-gray-300";
 
 /** Unselected segment — color change on hover only. */
 const VIEW_BTN_INACTIVE =

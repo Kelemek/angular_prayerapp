@@ -561,6 +561,25 @@ html.dark .personal-category-header-band {
   --theme-chrome-border: #2f5f54;
   --theme-safe-area-chrome: #e8e5e1;
   --theme-safe-area-chrome-dark: #1f2937;
+  /* Home main folder tabs + connected panels (defaults = current church palette). */
+  --home-tab-public-bg: #bfdbfe;
+  --home-tab-public-bg-dark: #172554;
+  --home-tab-public-border: #0047ab;
+  --home-tab-groups-bg: #e2e8f0;
+  --home-tab-groups-bg-dark: rgb(30 58 138 / 0.4);
+  --home-tab-groups-border: #0047ab;
+  --home-tab-members-bg: #e2e8f0;
+  --home-tab-members-bg-dark: rgb(30 58 138 / 0.4);
+  --home-tab-members-border: #0047ab;
+  --home-tab-personal-bg: var(--color-church-green-tint);
+  --home-tab-personal-bg-dark: rgb(20 83 45 / 0.4);
+  --home-tab-personal-border: #2f5f54;
+  --home-tab-memorize-bg: #bfdbfe;
+  --home-tab-memorize-bg-dark: #172554;
+  --home-tab-memorize-border: #0047ab;
+  --home-tab-prompts-bg: #d6d3d1;
+  --home-tab-prompts-bg-dark: rgb(28 25 23 / 0.4);
+  --home-tab-prompts-border: #988f83;
 }
 
 html.dark {
@@ -1449,6 +1468,24 @@ html.blossom {
   --accent-primary: #c45b76;
   --accent-secondary: #6b1e33;
   --accent-gold: #c45b76;
+  --home-tab-public-bg: #fce8ee;
+  --home-tab-public-bg-dark: #fce8ee;
+  --home-tab-public-border: #f6d5de;
+  --home-tab-groups-bg: #fff7f9;
+  --home-tab-groups-bg-dark: #fff7f9;
+  --home-tab-groups-border: #efb6c4;
+  --home-tab-members-bg: #fff7f9;
+  --home-tab-members-bg-dark: #fff7f9;
+  --home-tab-members-border: #efb6c4;
+  --home-tab-personal-bg: #f6d5de;
+  --home-tab-personal-bg-dark: #f6d5de;
+  --home-tab-personal-border: #c45b76;
+  --home-tab-memorize-bg: #efb6c4;
+  --home-tab-memorize-bg-dark: #efb6c4;
+  --home-tab-memorize-border: #6b1e33;
+  --home-tab-prompts-bg: #fff7f9;
+  --home-tab-prompts-bg-dark: #fff7f9;
+  --home-tab-prompts-border: #efb6c4;
 }
 
 html.blossom body,
@@ -1557,6 +1594,24 @@ html.christmas-light {
   --accent-primary: #8e141e;
   --accent-secondary: #c4a35a;
   --accent-gold: #c4a35a;
+  --home-tab-public-bg: #fde8ea;
+  --home-tab-public-bg-dark: #fde8ea;
+  --home-tab-public-border: #8e141e;
+  --home-tab-groups-bg: #e8f0e6;
+  --home-tab-groups-bg-dark: #e8f0e6;
+  --home-tab-groups-border: #1f4d36;
+  --home-tab-members-bg: #e8f0e6;
+  --home-tab-members-bg-dark: #e8f0e6;
+  --home-tab-members-border: #1f4d36;
+  --home-tab-personal-bg: #f5edd4;
+  --home-tab-personal-bg-dark: #f5edd4;
+  --home-tab-personal-border: #c4a35a;
+  --home-tab-memorize-bg: #f0d4d6;
+  --home-tab-memorize-bg-dark: #f0d4d6;
+  --home-tab-memorize-border: #5c0d14;
+  --home-tab-prompts-bg: #f7f1e4;
+  --home-tab-prompts-bg-dark: #f7f1e4;
+  --home-tab-prompts-border: #8e141e;
 }
 
 html.christmas-light body,
@@ -1642,6 +1697,24 @@ html.christmas-dark {
   --accent-secondary: #c4a35a;
   --accent-gold: #c4a35a;
   --theme-chrome-border: #1f4d36;
+  --home-tab-public-bg: #2a1216;
+  --home-tab-public-bg-dark: #2a1216;
+  --home-tab-public-border: #8e141e;
+  --home-tab-groups-bg: #1f4d36;
+  --home-tab-groups-bg-dark: #163328;
+  --home-tab-groups-border: #c4a35a;
+  --home-tab-members-bg: #1f4d36;
+  --home-tab-members-bg-dark: #163328;
+  --home-tab-members-border: #c4a35a;
+  --home-tab-personal-bg: #241820;
+  --home-tab-personal-bg-dark: #163328;
+  --home-tab-personal-border: #8e141e;
+  --home-tab-memorize-bg: #0f2e22;
+  --home-tab-memorize-bg-dark: #0a1f18;
+  --home-tab-memorize-border: #5c0d14;
+  --home-tab-prompts-bg: #163328;
+  --home-tab-prompts-bg-dark: #0a1f18;
+  --home-tab-prompts-border: #8e141e;
 }
 
 html.christmas-dark body,

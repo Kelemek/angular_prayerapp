@@ -102,7 +102,7 @@ describe("HomeFilterTabsComponent", () => {
     const church = fixture.nativeElement.querySelector(
       "#tour-filter-public"
     ) as HTMLButtonElement;
-    expect(church.className).toContain("bg-blue-200");
+    expect(church.className).toContain("var(--home-tab-public-bg)");
     expect(church.className).toContain("rounded-t-lg");
   });
 });

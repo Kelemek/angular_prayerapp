@@ -25,6 +25,7 @@ import { syncPrayerJournalFeed } from '../../lib/prayer-journal-feed';
 import {
   HOME_GROUPS_SUB_FILTER_GROUP_CLASS,
   HOME_NAV_CHIP_TEXT_LOCK_CLASS,
+  HOME_GROUPS_PANEL_CHIP_THEMES,
   HOME_PUBLIC_STATUS_CHIP_THEMES,
   HOME_SUB_FILTER_CHIP_DRAG_STRETCH_CLASS,
   HOME_SUB_FILTER_CHIP_ROW_CLASS,
@@ -127,8 +128,8 @@ export class HomeGroupsPanelComponent {
   readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipThemes = HOME_PUBLIC_STATUS_CHIP_THEMES;
-  readonly groupChipActive = HOME_PUBLIC_STATUS_CHIP_THEMES.members.active;
-  readonly groupChipInactive = HOME_PUBLIC_STATUS_CHIP_THEMES.members.inactive;
+  readonly groupChipActive = HOME_GROUPS_PANEL_CHIP_THEMES.active;
+  readonly groupChipInactive = HOME_GROUPS_PANEL_CHIP_THEMES.inactive;
   /** Square chip the same height as the other filters; the plus is drawn inside it. */
   readonly addGroupChipLayoutClass =
     'inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all';
