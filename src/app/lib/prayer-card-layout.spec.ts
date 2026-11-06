@@ -224,4 +224,14 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     expect(phoneLock).not.toContain('width: 32px');
     expect(css.slice(memorize)).not.toContain('.prayer-card-journal-label');
   });
+
+  it('documents seasonal prayer update row body lighter than header band', () => {
+    const cssPath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../styles.css'
+    );
+    const css = readFileSync(cssPath, 'utf8');
+    expect(css).toContain('--color-prayer-update-row-body');
+    expect(css).toContain('app-prayer-update-row > div.bg-inset-surface');
+  });
 });

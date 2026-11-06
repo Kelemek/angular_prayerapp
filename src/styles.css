@@ -1474,6 +1474,7 @@ html.blossom {
   --theme-chrome-border: #6b1e33;
   --theme-safe-area-chrome: #fce8ee;
   --color-card-meta-header-band: #f6d5de;
+  --color-prayer-update-row-body: #fff7f9;
   --color-church-cream: #fce8ee;
   --color-church-gray-warm: #8e4a5e;
   --color-church-navy: #6b1e33;
@@ -1637,6 +1638,18 @@ html.blossom .border-blue-600 {
   border-color: var(--theme-action-blue) !important;
 }
 
+/*
+  Prayer update rows: meta header band darker than inset body on seasonal themes.
+  Default Light keeps band (#d6d1cb) vs inset (#e8e5e1) without this override.
+*/
+html.blossom app-prayer-update-row > div.bg-inset-surface,
+html.christmas-light app-prayer-update-row > div.bg-inset-surface {
+  background-color: var(--color-prayer-update-row-body) !important;
+}
+html.christmas-dark app-prayer-update-row > div.bg-inset-surface {
+  background-color: var(--color-prayer-update-row-body-dark) !important;
+}
+
 /* Christmas Light — cream, forest chrome, crimson CTAs (no .dark on html). */
 html.christmas-light {
   color-scheme: light;
@@ -1664,6 +1677,7 @@ html.christmas-light {
   --theme-chrome-border: #1f4d36;
   --theme-safe-area-chrome: #f7f1e4;
   --color-card-meta-header-band: #e8f0e6;
+  --color-prayer-update-row-body: #fffcf6;
   --color-church-cream: #f7f1e4;
   --color-church-gray-warm: #3d5c4a;
   --color-church-navy: #1f4d36;
@@ -1829,6 +1843,7 @@ html.christmas-dark {
   --color-primary-800: #0f2e22;
   --color-primary-900: #163328;
   --color-card-meta-header-band-dark: rgb(10 31 24 / 0.72);
+  --color-prayer-update-row-body-dark: #163328;
   --color-inset-surface-on-card-dark: #1f4d36;
   --text-primary: #f7f1e4;
   --text-secondary: #d4e4d6;

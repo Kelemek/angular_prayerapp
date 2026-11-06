@@ -18,7 +18,7 @@ const CARD_SHELL_RADIUS_3XL = 'shell-radius-3xl';
 
 export const PRAYER_CARD_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_SHELL_BORDER_W_2}`;
 
-/** Seals update-row outer corners (1px border). Pair with `bg-inset-surface`. */
+/** Seals update-row outer corners (1px border). Pair with `bg-inset-surface` on the shell; seasonal themes lighten the body via `--color-prayer-update-row-body` in styles.css. */
 export const PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_SHELL_BORDER_W_1}`;
 
 /** Top radius for meta header bands inside a 2px `rounded-lg` home shell. */
