@@ -53,6 +53,16 @@ describe('ThemeSelectDropdownComponent', () => {
     expect(values).toEqual(['christmas-dark']);
   });
 
+  it('uses the gospel sun icon for Light, with filled rays', () => {
+    const html = readComponentResource('./theme-select-dropdown.component.html');
+    const light = html.slice(html.indexOf("@case ('light')"), html.indexOf("@case ('dark')"));
+    expect(light).toContain('fill="currentColor"');
+    expect(light).toContain('M12 2.25a.75.75 0 01.75.75v2.25');
+    expect(light).toContain('M7.5 12a4.5 4.5 0 119 0');
+    expect(light).not.toContain('<line');
+    expect(light).not.toContain('<circle');
+  });
+
   it('uses the gospel blossom icon: stroke petals and a filled center', () => {
     const html = readComponentResource('./theme-select-dropdown.component.html');
     expect(html).toContain('viewBox="3.5 3.5 17 17"');
