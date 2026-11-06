@@ -1,6 +1,13 @@
 import { parsePresentationSettingsJson } from '../services/presentation-settings.service';
 import { getPresentationSettingsDefaults } from './presentation-settings-defaults';
-import { isStoredTheme, type Theme } from '../services/theme.service';
+import {
+  isLegacyStoredTheme,
+  isThemeFamily,
+  isThemeMode,
+  migrateLegacyTheme,
+  type ThemeFamily,
+  type ThemeMode,
+} from '../services/theme.service';
 import type { TextSize } from '../services/text-size.service';
 import type { ClientPreferences } from '../types/client-preferences';
 import { isBibleTranslation } from '../types/memorization';
@@ -11,10 +18,6 @@ import type { MemorizeListenSpeed } from './memorization/memorizeListenSpeedStor
 const TEXT_SIZES: readonly TextSize[] = ['normal', 'large', 'largest'];
 function isTextSize(value: unknown): value is TextSize {
   return typeof value === 'string' && (TEXT_SIZES as readonly string[]).includes(value);
-}
-
-function isTheme(value: unknown): value is Theme {
-  return typeof value === 'string' && isStoredTheme(value);
 }
 
 function isMemorizeListView(value: unknown): value is MemorizeListView {
@@ -64,9 +67,32 @@ export function parseClientPreferencesJson(value: unknown): ClientPreferences | 
     }
   }
 
-  if (isTheme(raw['theme'])) {
-    result.theme = raw['theme'];
+  let family: ThemeFamily | undefined;
+  let mode: ThemeMode | undefined;
+  if (isThemeFamily(raw['themeFamily'])) {
+    family = raw['themeFamily'];
   }
+  if (isThemeMode(raw['themeMode'])) {
+    mode = raw['themeMode'];
+  }
+
+  if (isLegacyStoredTheme(raw['theme'])) {
+    const migrated = migrateLegacyTheme(raw['theme']);
+    if (family === undefined) {
+      family = migrated.family;
+    }
+    if (mode === undefined) {
+      mode = migrated.mode;
+    }
+  }
+
+  if (family !== undefined) {
+    result.themeFamily = family;
+  }
+  if (mode !== undefined) {
+    result.themeMode = mode;
+  }
+
   if (isTextSize(raw['textSize'])) {
     result.textSize = raw['textSize'];
   }

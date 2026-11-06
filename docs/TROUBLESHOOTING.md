@@ -394,12 +394,16 @@ const [receiveNotifications, setReceiveNotifications] = useState<boolean>();
 **Symptoms**: Theme not changing or persisting
 
 **Solutions**:
-1. Check localStorage:
+1. Check localStorage (family + mode; legacy `theme` may still be present until migrated):
 ```javascript
-localStorage.getItem('theme')
+localStorage.getItem('themeFamily')
+localStorage.getItem('themeMode')
+localStorage.getItem('theme') // legacy
 ```
 2. Clear and reload:
 ```javascript
+localStorage.removeItem('themeFamily');
+localStorage.removeItem('themeMode');
 localStorage.removeItem('theme');
 location.reload();
 ```

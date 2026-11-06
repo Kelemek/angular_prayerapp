@@ -6,6 +6,7 @@ import { SimpleChange, ɵresolveComponentResources as resolveComponentResources 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PresentationSettingsModalComponent } from './presentation-settings-modal.component';
 import { PresentationSettingsFiltersPanelComponent } from './presentation-settings-filters-panel.component';
+import { ThemeService } from '../../services/theme.service';
 
 describe('PresentationSettingsModalComponent', () => {
   let component: PresentationSettingsModalComponent;
@@ -24,7 +25,7 @@ describe('PresentationSettingsModalComponent', () => {
       expect(component.visible).toBe(false);
     });
     it('should have theme default to system', () => {
-      expect(component.theme).toBe('system');
+      expect(component.theme).toEqual({ family: 'default', mode: 'system' });
     });
     it('should have contentTypes default to prayers', () => {
       expect(component.contentTypes).toEqual(['prayers']);
@@ -112,6 +113,9 @@ describe('PresentationSettingsModalComponent (template)', () => {
 
     await TestBed.configureTestingModule({
       imports: [PresentationSettingsModalComponent],
+      providers: [
+        { provide: ThemeService, useValue: { getResolvedTheme: () => 'light' as const } },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PresentationSettingsModalComponent);
@@ -158,23 +162,23 @@ describe('PresentationSettingsModalComponent (template)', () => {
   });
 
   it('forwards themeChange from the theme section', () => {
-    const emitted: string[] = [];
+    const emitted: { family: string; mode: string }[] = [];
     component.themeChange.subscribe((value) => emitted.push(value));
 
     const panel = document.querySelector('#tour-presentation-settings-modal');
-    const trigger = panel?.querySelector(
-      'button[aria-haspopup="listbox"]',
+    const familyTrigger = panel?.querySelector(
+      '[data-settings-dropdown-trigger="presentation-theme-family"]',
     ) as HTMLButtonElement;
-    expect(trigger).toBeTruthy();
-    trigger.click();
+    expect(familyTrigger).toBeTruthy();
+    familyTrigger.click();
     fixture.detectChanges();
 
-    const lightOption = Array.from(
+    const christmas = Array.from(
       panel?.querySelectorAll('[role="option"]') ?? [],
-    ).find((el: Element) => el.textContent?.includes('Light')) as HTMLElement;
-    lightOption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    ).find((el: Element) => el.textContent?.includes('Christmas')) as HTMLElement;
+    christmas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     fixture.detectChanges();
 
-    expect(emitted).toEqual(['light']);
+    expect(emitted).toEqual([{ family: 'christmas', mode: 'system' }]);
   });
 });

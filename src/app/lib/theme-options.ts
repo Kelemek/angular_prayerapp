@@ -1,54 +1,93 @@
-import type { Theme } from '../services/theme.service';
+import {
+  type ResolvedTheme,
+  type ThemeFamily,
+  type ThemeMode,
+  type ThemeSelection,
+  resolveThemeFromSelection,
+} from '../services/theme.service';
 
-export type ThemeSelectOption = {
-  value: Theme;
+export type ThemeFamilySelectOption = {
+  value: ThemeFamily;
   label: string;
-  /** Optional element id for guided tours (Night / seasonal themes). */
+  /** Optional tour id for the row in open list. */
   tourOptionId?: string;
 };
 
-/** Display order for settings and presentation theme dropdowns. */
-export const THEME_SELECT_OPTIONS: readonly ThemeSelectOption[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
+export type ThemeModeSelectOption = {
+  value: ThemeMode;
+  label: string;
+  tourOptionId?: string;
+};
+
+/** Display order: Family (left dropdown). */
+export const THEME_FAMILY_OPTIONS: readonly ThemeFamilySelectOption[] = [
+  { value: 'default', label: 'Default' },
   {
-    value: 'black',
-    label: 'Night',
-    tourOptionId: 'tour-settings-theme-night',
+    value: 'high-contrast',
+    label: 'High Contrast',
+    tourOptionId: 'tour-settings-theme-high-contrast',
   },
   { value: 'blossom', label: 'Blossom', tourOptionId: 'tour-settings-theme-blossom' },
-  {
-    value: 'christmas-light',
-    label: 'Christmas Light',
-    tourOptionId: 'tour-settings-theme-christmas-light',
-  },
-  {
-    value: 'christmas-dark',
-    label: 'Christmas Dark',
-    tourOptionId: 'tour-settings-theme-christmas-dark',
-  },
-  { value: 'system', label: 'System' },
+  { value: 'christmas', label: 'Christmas', tourOptionId: 'tour-settings-theme-christmas' },
 ];
 
-export const PRESENTATION_THEME_SELECT_OPTIONS: readonly ThemeSelectOption[] =
-  THEME_SELECT_OPTIONS.map((option) => ({
+/** Display order: Mode (right dropdown). */
+export const THEME_MODE_OPTIONS: readonly ThemeModeSelectOption[] = [
+  { value: 'light', label: 'Light', tourOptionId: 'tour-settings-theme-mode-light' },
+  { value: 'dark', label: 'Dark', tourOptionId: 'tour-settings-theme-mode-dark' },
+  { value: 'system', label: 'System', tourOptionId: 'tour-settings-theme-mode-system' },
+];
+
+export const PRESENTATION_THEME_FAMILY_OPTIONS: readonly ThemeFamilySelectOption[] =
+  THEME_FAMILY_OPTIONS.map((option) => ({
     ...option,
     tourOptionId: option.tourOptionId
       ? option.tourOptionId.replace('tour-settings-', 'tour-presentation-setting-')
       : undefined,
   }));
 
-export function themeSelectLabel(theme: Theme): string {
-  const match = THEME_SELECT_OPTIONS.find((o) => o.value === theme);
-  return match?.label ?? 'System';
-}
+export const PRESENTATION_THEME_MODE_OPTIONS: readonly ThemeModeSelectOption[] =
+  THEME_MODE_OPTIONS.map((option) => ({
+    ...option,
+    tourOptionId: option.tourOptionId
+      ? option.tourOptionId.replace('tour-settings-', 'tour-presentation-setting-')
+      : undefined,
+  }));
 
-export const THEME_SUCCESS_LABEL: Record<Theme, string> = {
-  light: 'Light',
-  dark: 'Dark',
+const RESOLVED_SUCCESS_LABEL: Record<ResolvedTheme, string> = {
+  light: 'Default Light',
+  dark: 'Default Dark',
+  day: 'Day',
   black: 'Night',
-  blossom: 'Blossom',
+  blossom: 'Blossom Light',
+  'blossom-dark': 'Blossom Dark',
   'christmas-light': 'Christmas Light',
   'christmas-dark': 'Christmas Dark',
-  system: 'System',
 };
+
+export function resolvedThemeSuccessLabel(resolved: ResolvedTheme): string {
+  return RESOLVED_SUCCESS_LABEL[resolved];
+}
+
+export function closedFamilyTriggerLabel(
+  family: ThemeFamily,
+  resolved: ResolvedTheme,
+): string {
+  if (family === 'high-contrast') {
+    return resolved === 'day' ? 'Day' : 'Night';
+  }
+  const opt = THEME_FAMILY_OPTIONS.find((o) => o.value === family);
+  return opt?.label ?? family;
+}
+
+export function themeSelectionTriggerSummary(selection: ThemeSelection, prefersDark: boolean): string {
+  const resolved = resolveThemeFromSelection(selection.family, selection.mode, prefersDark);
+  const family = closedFamilyTriggerLabel(selection.family, resolved);
+  const mode =
+    selection.mode === 'system'
+      ? 'System'
+      : selection.mode === 'light'
+        ? 'Light'
+        : 'Dark';
+  return `${family} · ${mode}`;
+}

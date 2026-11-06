@@ -3,7 +3,7 @@ import { merge, Subscription } from 'rxjs';
 import { distinctUntilChanged, filter, skip } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
-import { ThemeService } from './theme.service';
+import { ThemeService, type LegacyStoredTheme } from './theme.service';
 import { TextSizeService } from './text-size.service';
 import { PresentationSettingsService } from './presentation-settings.service';
 import type { ClientPreferences } from '../types/client-preferences';
@@ -129,7 +129,7 @@ export class ClientPreferencesService implements OnDestroy {
       normalizedEmail,
       sessionPrefs,
       {
-        theme: this.themeService.getTheme(),
+        theme: this.themeService.getSelection(),
         textSize: this.textSizeService.getTextSize(),
       }
     );
@@ -204,8 +204,13 @@ export class ClientPreferencesService implements OnDestroy {
     if (!clientPreferencesEqual(prefs, this.lastAppliedPrefs)) {
       runApplyingClientPreferencesFromSession(() => {
         applyClientPreferencesToLocalMirrors(prefs);
-        if (prefs.theme) {
-          this.themeService.setTheme(prefs.theme);
+        if (prefs.themeFamily && prefs.themeMode) {
+          this.themeService.setSelection({
+            family: prefs.themeFamily,
+            mode: prefs.themeMode,
+          });
+        } else if (prefs.theme) {
+          this.themeService.setTheme(prefs.theme as LegacyStoredTheme);
         }
         if (prefs.textSize) {
           this.textSizeService.setTextSize(prefs.textSize);

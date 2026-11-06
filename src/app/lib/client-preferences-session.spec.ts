@@ -3,7 +3,7 @@ import { resolveClientPreferencesFromSubscriberRow } from './client-preferences-
 
 describe('resolveClientPreferencesFromSubscriberRow', () => {
   it('returns preserved prefs without seeding', () => {
-    const preserved = { theme: 'dark' as const };
+    const preserved = { themeFamily: 'default' as const, themeMode: 'dark' as const };
     const result = resolveClientPreferencesFromSubscriberRow(
       { client_preferences: null },
       'user@example.com',
@@ -19,13 +19,20 @@ describe('resolveClientPreferencesFromSubscriberRow', () => {
       undefined
     );
     expect(result.seedToDatabase).toBeNull();
-    expect(result.preferences?.theme).toBe('light');
+    expect(result.preferences?.themeFamily).toBe('default');
+    expect(result.preferences?.themeMode).toBe('light');
   });
 
   it('prefers local text size when DB row is stale and schedules re-persist', () => {
     localStorage.setItem('textSize', 'large');
     const result = resolveClientPreferencesFromSubscriberRow(
-      { client_preferences: { theme: 'light', textSize: 'normal' } },
+      {
+        client_preferences: {
+          themeFamily: 'default',
+          themeMode: 'light',
+          textSize: 'normal',
+        },
+      },
       'user@example.com',
       undefined
     );
@@ -42,7 +49,8 @@ describe('resolveClientPreferencesFromSubscriberRow', () => {
       undefined
     );
     expect(result.seedToDatabase).not.toBeNull();
-    expect(result.preferences?.theme).toBe('dark');
+    expect(result.preferences?.themeFamily).toBe('default');
+    expect(result.preferences?.themeMode).toBe('dark');
     localStorage.clear();
   });
 

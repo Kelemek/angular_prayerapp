@@ -11,8 +11,13 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
-import type { ThemeSelectOption } from '../../lib/theme-options';
-import type { Theme } from '../../services/theme.service';
+
+/** Dropdown row: value + label + optional tour id. */
+export type ThemeDropdownOption<T extends string = string> = {
+  value: T;
+  label: string;
+  tourOptionId?: string;
+};
 
 @Component({
   selector: 'app-theme-select-dropdown',
@@ -24,33 +29,37 @@ import type { Theme } from '../../services/theme.service';
     class: 'block',
   },
 })
-export class ThemeSelectDropdownComponent {
+export class ThemeSelectDropdownComponent<T extends string = string> {
   private readonly cdr = inject(ChangeDetectorRef);
 
-  @Input({ required: true }) theme!: Theme;
-  @Input({ required: true }) options!: readonly ThemeSelectOption[];
+  @Input({ required: true }) value!: T;
+  @Input({ required: true }) options!: readonly ThemeDropdownOption<T>[];
+  /** When set, replaces the closed-state label (e.g. family row shows Day/Night for High Contrast). */
+  @Input() triggerLabelOverride: string | null = null;
+  /** Which icon set to render in rows and trigger. */
+  @Input() iconVariant: 'family' | 'mode' = 'family';
   @Input() tourAnchorId = '';
   @Input() dropdownKey = 'theme';
 
-  @Output() themeChange = new EventEmitter<Theme>();
+  @Output() valueChange = new EventEmitter<T>();
 
   @ViewChild('triggerButton') triggerButton?: ElementRef<HTMLButtonElement>;
 
   open = false;
   activeIndex = -1;
 
-  get selectedOption(): ThemeSelectOption | undefined {
-    return this.options.find((o) => o.value === this.theme);
+  get selectedOption(): ThemeDropdownOption<T> | undefined {
+    return this.options.find((o) => o.value === this.value);
   }
 
   get displayLabel(): string {
-    return this.selectedOption?.label ?? 'System';
+    return this.triggerLabelOverride ?? this.selectedOption?.label ?? '';
   }
 
   toggleOpen(): void {
     this.open = !this.open;
     if (this.open) {
-      const idx = this.options.findIndex((o) => o.value === this.theme);
+      const idx = this.options.findIndex((o) => o.value === this.value);
       this.activeIndex = idx >= 0 ? idx : 0;
     }
     this.cdr.markForCheck();
@@ -62,9 +71,9 @@ export class ThemeSelectDropdownComponent {
     this.cdr.markForCheck();
   }
 
-  selectTheme(value: Theme): void {
-    if (value !== this.theme) {
-      this.themeChange.emit(value);
+  selectValue(next: T): void {
+    if (next !== this.value) {
+      this.valueChange.emit(next);
     }
     this.close();
     this.triggerButton?.nativeElement.focus();
@@ -96,7 +105,7 @@ export class ThemeSelectDropdownComponent {
     }
     if (event.key === 'Enter' && this.activeIndex >= 0) {
       event.preventDefault();
-      this.selectTheme(this.options[this.activeIndex].value);
+      this.selectValue(this.options[this.activeIndex].value);
     }
   }
 

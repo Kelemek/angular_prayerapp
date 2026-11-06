@@ -1475,6 +1475,60 @@ html.black .dark\:hover\:bg-blue-700:is(.dark *):hover {
   background-color: var(--surface-inset-hover) !important;
 }
 
+/*
+  Day (High Contrast light) — crisp paper, strong ink; inverse of Night’s OLED intent.
+  No .dark on html.
+*/
+html.day {
+  color-scheme: light;
+  --surface-page: #f5f7fa;
+  --surface-card: #ffffff;
+  --surface-raised: #e2e8f0;
+  --surface-inset: #f1f5f9;
+  --surface-inset-hover: #e2e8f0;
+  --theme-surface-page: #f5f7fa;
+  --theme-surface-card: #ffffff;
+  --theme-surface-raised: #e2e8f0;
+  --theme-surface-raised-alt: #cbd5e1;
+  --theme-surface-muted: #64748b;
+  --theme-surface-inset: #f1f5f9;
+  --theme-surface-inset-muted: #e2e8f0;
+  --theme-text-body: #0f172a;
+  --theme-text-secondary: #1e293b;
+  --theme-text-muted: #475569;
+  --theme-border: #94a3b8;
+  --theme-border-light: #e2e8f0;
+  --theme-action-primary: #0f172a;
+  --theme-action-primary-hover: #020617;
+  --theme-action-blue: #1d4ed8;
+  --theme-action-blue-muted: #1e40af;
+  --theme-chrome-border: #0f172a;
+  --theme-safe-area-chrome: #f5f7fa;
+  --color-church-cream: #f5f7fa;
+  --color-church-gray-warm: #475569;
+  --color-church-navy: #0f172a;
+  --color-church-slate: #020617;
+  --color-church-green: #0f766e;
+  --color-church-green-medium: #115e59;
+  --color-church-green-dark: #134e4a;
+  --color-church-blue: #1d4ed8;
+  --color-church-blue-dark: #1e3a8a;
+  --header-bg-light: rgb(245 247 250 / 0.92);
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f7fa;
+  --bg-tertiary: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #475569;
+  --border-color: #94a3b8;
+}
+
+html.day body,
+html.day body::before,
+html.day body::after {
+  background-color: var(--surface-page);
+}
+
 /* Blossom — light floral palette (no .dark on html). */
 html.blossom {
   color-scheme: light;
@@ -1677,6 +1731,77 @@ html.blossom.dark .cp-toast--success {
   background-color: color-mix(in oklab, var(--color-blue-900) 20%, transparent) !important;
   color: var(--color-blue-300) !important;
   border-color: var(--color-blue-500) !important;
+}
+
+/*
+  Blossom Dark — dark class + overlay; plum surfaces (not pure Night black).
+*/
+html.blossom-dark {
+  color-scheme: dark;
+  --surface-page: #2d1a28;
+  --surface-card: #3b2434;
+  --surface-raised: #4a2d40;
+  --surface-inset: #3b2434;
+  --surface-inset-hover: #4a2d40;
+  --color-gray-700: #4a2d40;
+  --color-gray-800: #3b2434;
+  --color-gray-900: #2d1a28;
+  --color-gray-950: #1f1219;
+  --theme-action-primary: #e8849a;
+  --theme-action-primary-hover: #c45b76;
+  --theme-action-blue: #93c5fd;
+  --theme-action-blue-muted: #60a5fa;
+  --theme-safe-area-chrome-dark: #2d1a28;
+  --bg-primary: #3b2434;
+  --bg-secondary: #2d1a28;
+  --bg-tertiary: #4a2d40;
+  --header-bg-dark: rgb(45 26 40 / 0.92);
+  --color-church-navy: #3b2434;
+  --color-church-slate: #2d1a28;
+  --color-church-green: #e8849a;
+  --color-church-green-medium: #c45b76;
+  --color-church-green-dark: #8e4a5e;
+  --color-church-green-chip-text-dark: #fce7f0;
+  --color-church-green-chip-fill-dark: rgb(232 132 154 / 0.28);
+  --color-church-green-chip-fill-dark-hover: rgb(232 132 154 / 0.42);
+  --text-primary: #fdf2f8;
+  --text-secondary: #fbcfe8;
+  --text-muted: #f9a8d4;
+  --border-color: #6b2d45;
+  --accent-primary: #e8849a;
+  --theme-chrome-border: #6b2d45;
+  --color-card-meta-header-band-dark: rgb(45 26 40 / 0.72);
+  --color-inset-surface-on-card-dark: #3b2434;
+}
+
+html.blossom-dark body,
+html.blossom-dark.dark body,
+html.blossom-dark.dark body::before,
+html.blossom-dark.dark body::after {
+  background-color: var(--surface-page);
+}
+
+html.blossom-dark .dark\:bg-gray-50:is(.dark *),
+html.blossom-dark .dark\:bg-gray-900:is(.dark *) {
+  background-color: var(--surface-page) !important;
+}
+
+html.blossom-dark .dark\:bg-gray-800:is(.dark *),
+html.blossom-dark .dark\:bg-slate-800:is(.dark *) {
+  background-color: var(--surface-card) !important;
+}
+
+html.blossom-dark .dark\:bg-gray-100:is(.dark *),
+html.blossom-dark .dark\:bg-gray-300:is(.dark *),
+html.blossom-dark .dark\:bg-gray-700:is(.dark *),
+html.blossom-dark .dark\:bg-blue-700:is(.dark *) {
+  background-color: var(--surface-raised) !important;
+}
+
+html.blossom-dark .cp-toast--success {
+  background-color: color-mix(in oklab, var(--color-blue-900) 22%, transparent) !important;
+  color: rgb(147 197 253) !important;
+  border-color: rgb(96 165 250) !important;
 }
 
 /* Christmas Light — warmer cream, forest chrome, crimson CTAs, richer gold.

@@ -9,8 +9,11 @@ describe('parseClientPreferencesJson', () => {
   });
 
   it('parses blossom and drops an unknown theme string', () => {
-    expect(parseClientPreferencesJson({ theme: 'blossom' })?.theme).toBe('blossom');
-    expect(parseClientPreferencesJson({ theme: 'oled', skipPrayForExplanationModal: true })?.theme).toBeUndefined();
+    expect(parseClientPreferencesJson({ theme: 'blossom' })).toEqual({
+      themeFamily: 'blossom',
+      themeMode: 'light',
+    });
+    expect(parseClientPreferencesJson({ theme: 'oled', skipPrayForExplanationModal: true })?.themeFamily).toBeUndefined();
   });
 
   it('parses valid theme and skip modal flag', () => {
@@ -18,7 +21,8 @@ describe('parseClientPreferencesJson', () => {
       theme: 'dark',
       skipPrayForExplanationModal: true,
     });
-    expect(parsed?.theme).toBe('dark');
+    expect(parsed?.themeFamily).toBe('default');
+    expect(parsed?.themeMode).toBe('dark');
     expect(parsed?.skipPrayForExplanationModal).toBe(true);
   });
 

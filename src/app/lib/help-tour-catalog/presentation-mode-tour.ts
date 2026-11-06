@@ -8,7 +8,24 @@ import {
 import * as dom from '../help-tour-dom';
 import type { HelpContent, HelpSection } from '../../types/help-content';
 import type { HelpTourDriverHost } from '../help-tour-driver-host';
-import { TOUR_PRESENTATION_SETTINGS_MODAL_ID, TOUR_PRESENTATION_SETTING_DURATION_ID, TOUR_PRESENTATION_SETTING_SMART_INFO_ID, TOUR_PRESENTATION_SETTING_SMART_ID, TOUR_PRESENTATION_PREV_ID, TOUR_PRESENTATION_PLAY_ID, TOUR_PRESENTATION_NEXT_ID, TOUR_PRESENTATION_SETTINGS_BTN_ID, TOUR_PRESENTATION_SETTING_THEME_ID, TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID, TOUR_PRESENTATION_SETTING_CONTENT_TYPE_ID, TOUR_PRESENTATION_SETTING_RANDOMIZE_ID, TOUR_PRESENTATION_SETTING_TIME_FILTER_ID, TOUR_PRESENTATION_SETTING_STATUS_ID, TOUR_PRESENTATION_SETTING_TIMER_ID, TOUR_PRESENTATION_EXIT_ID } from '../help-tour-ids';
+import {
+  TOUR_PRESENTATION_SETTINGS_MODAL_ID,
+  TOUR_PRESENTATION_SETTING_DURATION_ID,
+  TOUR_PRESENTATION_SETTING_SMART_INFO_ID,
+  TOUR_PRESENTATION_SETTING_SMART_ID,
+  TOUR_PRESENTATION_PREV_ID,
+  TOUR_PRESENTATION_PLAY_ID,
+  TOUR_PRESENTATION_NEXT_ID,
+  TOUR_PRESENTATION_SETTINGS_BTN_ID,
+  TOUR_PRESENTATION_SETTING_THEME_ID,
+  TOUR_PRESENTATION_SETTING_THEME_HIGH_CONTRAST_ID,
+  TOUR_PRESENTATION_SETTING_CONTENT_TYPE_ID,
+  TOUR_PRESENTATION_SETTING_RANDOMIZE_ID,
+  TOUR_PRESENTATION_SETTING_TIME_FILTER_ID,
+  TOUR_PRESENTATION_SETTING_STATUS_ID,
+  TOUR_PRESENTATION_SETTING_TIMER_ID,
+  TOUR_PRESENTATION_EXIT_ID,
+} from '../help-tour-ids';
 import type { PresentationModeTourHooks } from '../help-tour-hooks';
 
 export function runPresentationModeTour(
@@ -124,18 +141,18 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Theme',
         description:
-          'Open the <strong>Theme</strong> dropdown for <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, seasonal palettes, or <strong>System</strong>. The next step focuses on <strong>Night</strong>. One choice applies across presentation and the rest of the app.',
+          'Use <strong>Family</strong> and <strong>Mode</strong> the same as Home Settings. <strong>System</strong> mode follows your device <em>within the family you pick</em>. One choice applies across presentation and the rest of the app.',
         side: 'bottom',
         align: 'start',
       },
     },
     {
       element: () =>
-        document.getElementById(TOUR_PRESENTATION_SETTING_THEME_NIGHT_ID) ?? themeEl(),
+        document.getElementById(TOUR_PRESENTATION_SETTING_THEME_HIGH_CONTRAST_ID) ?? themeEl(),
       popover: {
-        title: 'Night vs Dark',
+        title: 'High Contrast (Day & Night)',
         description:
-          '<strong>Night</strong> uses true black for low-light rooms—separate from <strong>Dark</strong>. <strong>System</strong> follows your device and only picks standard light or dark—not Night or seasonal themes. Open the dropdown and select <strong>Night</strong> to highlight this option.',
+          'Open <strong>Family</strong> and choose <strong>High Contrast</strong>. <strong>Day</strong> is the bright light palette; <strong>Night</strong> is true black. With <strong>System</strong> mode, the trigger shows Day or Night from your OS.',
         side: 'bottom',
         align: 'start',
       },

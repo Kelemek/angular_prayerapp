@@ -10,17 +10,33 @@
             >
               Theme Preference
             </div>
-            <app-theme-select-dropdown
-              [theme]="host.theme"
-              [options]="host.themeOptions"
-              tourAnchorId=""
-              dropdownKey="user-settings-theme"
-              (themeChange)="host.handleThemeChange($event)"
-            />
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div>
+                <div class="mb-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">Family</div>
+                <app-theme-select-dropdown
+                  [value]="host.theme.family"
+                  [options]="host.themeFamilyOptions"
+                  [triggerLabelOverride]="host.familyTriggerLabel"
+                  iconVariant="family"
+                  dropdownKey="user-settings-theme-family"
+                  (valueChange)="host.handleThemeFamilyChange($event)"
+                />
+              </div>
+              <div>
+                <div class="mb-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">Mode</div>
+                <app-theme-select-dropdown
+                  [value]="host.theme.mode"
+                  [options]="host.themeModeOptions"
+                  iconVariant="mode"
+                  dropdownKey="user-settings-theme-mode"
+                  (valueChange)="host.handleThemeModeChange($event)"
+                />
+              </div>
+            </div>
             <p
               class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2"
             >
-              Choose your preferred color theme or use your system settings
+              Pick a theme family and Light, Dark, or System (follows your device within that family)
             </p>
             <app-user-settings-success-alert
               [message]="host.successTheme"

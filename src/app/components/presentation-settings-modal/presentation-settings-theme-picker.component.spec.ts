@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { ɵresolveComponentResources as resolveComponentResources } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PresentationSettingsThemePickerComponent } from './presentation-settings-theme-picker.component';
+import { ThemeService } from '../../services/theme.service';
 
 const componentDir = dirname(fileURLToPath(import.meta.url));
 
@@ -35,11 +36,14 @@ describe('PresentationSettingsThemePickerComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PresentationSettingsThemePickerComponent],
+      providers: [
+        { provide: ThemeService, useValue: { getResolvedTheme: () => 'light' as const } },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PresentationSettingsThemePickerComponent);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput('theme', 'light');
+    fixture.componentRef.setInput('theme', { family: 'default', mode: 'light' });
     fixture.detectChanges();
   });
 
@@ -47,39 +51,50 @@ describe('PresentationSettingsThemePickerComponent', () => {
     fixture?.destroy();
   });
 
-  it('renders a theme dropdown with seven options when opened', () => {
-    const trigger = fixture.nativeElement.querySelector(
+  it('renders family and mode dropdowns with four and three options when opened', () => {
+    const triggers = fixture.nativeElement.querySelectorAll(
       'button[aria-haspopup="listbox"]',
-    ) as HTMLButtonElement;
-    expect(trigger).toBeTruthy();
-    trigger.click();
+    );
+    expect(triggers.length).toBe(2);
+    (triggers[0] as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    const options = fixture.nativeElement.querySelectorAll('[role="option"]');
-    expect(options.length).toBe(7);
+    let options = fixture.nativeElement.querySelectorAll('[role="option"]');
+    expect(options.length).toBe(4);
+
+    (triggers[0] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (triggers[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    options = fixture.nativeElement.querySelectorAll('[role="option"]');
+    expect(options.length).toBe(3);
   });
 
-  it('emits themeChange when an option is chosen', () => {
-    const emitted: string[] = [];
+  it('emits themeChange when a family option is chosen', () => {
+    const emitted: { family: string; mode: string }[] = [];
     component.themeChange.subscribe((value) => emitted.push(value));
 
-    const trigger = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    trigger.click();
+    const familyTrigger = fixture.nativeElement.querySelector(
+      '[data-settings-dropdown-trigger="presentation-theme-family"]',
+    ) as HTMLButtonElement;
+    familyTrigger.click();
     fixture.detectChanges();
 
-    const nightOption = Array.from(
+    const christmas = Array.from(
       fixture.nativeElement.querySelectorAll('[role="option"]'),
-    ).find((el: Element) => el.textContent?.includes('Night')) as HTMLElement;
-    nightOption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    ).find((el: Element) => el.textContent?.includes('Christmas')) as HTMLElement;
+    christmas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     fixture.detectChanges();
 
-    expect(emitted).toEqual(['black']);
+    expect(emitted).toEqual([{ family: 'christmas', mode: 'light' }]);
   });
 
-  it('shows the current theme label on the trigger', () => {
-    fixture.componentRef.setInput('theme', 'blossom');
+  it('shows the current family label on the trigger', () => {
+    fixture.componentRef.setInput('theme', { family: 'blossom', mode: 'light' });
     fixture.detectChanges();
-    const trigger = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    expect(trigger.textContent).toContain('Blossom');
+    const familyTrigger = fixture.nativeElement.querySelector(
+      '[data-settings-dropdown-trigger="presentation-theme-family"]',
+    ) as HTMLButtonElement;
+    expect(familyTrigger?.textContent).toContain('Blossom');
   });
 });

@@ -1,10 +1,12 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output, inject } from "@angular/core";
 import { ThemeSelectDropdownComponent } from "../theme-select-dropdown/theme-select-dropdown.component";
 import {
-  PRESENTATION_THEME_SELECT_OPTIONS,
-  type ThemeSelectOption,
+  PRESENTATION_THEME_FAMILY_OPTIONS,
+  PRESENTATION_THEME_MODE_OPTIONS,
 } from "../../lib/theme-options";
-import type { PresentationSettingsThemeOption } from "./presentation-settings-theme-section.component";
+import type { ThemeSelection } from "../../services/theme.service";
+import { closedFamilyTriggerLabel } from "../../lib/theme-options";
+import { ThemeService } from "../../services/theme.service";
 
 @Component({
   selector: "app-presentation-settings-theme-picker",
@@ -13,10 +15,27 @@ import type { PresentationSettingsThemeOption } from "./presentation-settings-th
   templateUrl: "./presentation-settings-theme-picker.component.html",
 })
 export class PresentationSettingsThemePickerComponent {
-  @Input() theme: PresentationSettingsThemeOption = "system";
+  @Input() theme: ThemeSelection = { family: "default", mode: "system" };
 
-  @Output() themeChange = new EventEmitter<PresentationSettingsThemeOption>();
+  @Output() themeChange = new EventEmitter<ThemeSelection>();
 
-  readonly options: readonly ThemeSelectOption[] =
-    PRESENTATION_THEME_SELECT_OPTIONS;
+  private readonly themeService = inject(ThemeService);
+
+  readonly familyOptions = PRESENTATION_THEME_FAMILY_OPTIONS;
+  readonly modeOptions = PRESENTATION_THEME_MODE_OPTIONS;
+
+  get familyTriggerLabel(): string {
+    return closedFamilyTriggerLabel(
+      this.theme.family,
+      this.themeService.getResolvedTheme()
+    );
+  }
+
+  onFamily(family: ThemeSelection["family"]): void {
+    this.themeChange.emit({ ...this.theme, family });
+  }
+
+  onMode(mode: ThemeSelection["mode"]): void {
+    this.themeChange.emit({ ...this.theme, mode });
+  }
 }

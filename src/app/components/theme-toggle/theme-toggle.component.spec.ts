@@ -120,7 +120,7 @@ describe('ThemeToggleComponent', () => {
       fixture.detectChanges();
       
       const button = fixture.nativeElement.querySelector('button');
-      expect(button.getAttribute('title')).toBe('Current theme: light');
+      expect(button.getAttribute('title')).toBe('Current theme: Default · Light');
     });
 
     it('should update title when theme changes', () => {
@@ -128,7 +128,7 @@ describe('ThemeToggleComponent', () => {
       fixture.detectChanges();
       
       const button = fixture.nativeElement.querySelector('button');
-      expect(button.getAttribute('title')).toBe('Current theme: dark');
+      expect(button.getAttribute('title')).toBe('Current theme: Default · Dark');
     });
 
     it('should show system theme in title when theme is system', () => {
@@ -136,7 +136,7 @@ describe('ThemeToggleComponent', () => {
       fixture.detectChanges();
       
       const button = fixture.nativeElement.querySelector('button');
-      expect(button.getAttribute('title')).toBe('Current theme: system');
+      expect(button.getAttribute('title')).toBe('Current theme: Default · System');
     });
   });
 
@@ -176,12 +176,12 @@ describe('ThemeToggleComponent', () => {
   });
 
   describe('service interaction', () => {
-    it('should call getTheme from service for title attribute', () => {
-      const getThemeSpy = vi.spyOn(component.themeService, 'getTheme');
+    it('should call getAppearanceTitleSummary from service for title attribute', () => {
+      const summarySpy = vi.spyOn(component.themeService, 'getAppearanceTitleSummary');
       
       fixture.detectChanges();
       
-      expect(getThemeSpy).toHaveBeenCalled();
+      expect(summarySpy).toHaveBeenCalled();
     });
 
     it('should call isDark from service for icon display', () => {

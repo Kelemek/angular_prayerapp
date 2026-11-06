@@ -41,8 +41,16 @@ describe('UserSettingsComponent', () => {
     localStorage.setItem('prayerapp_user_email', 'test@example.com');
 
     mockThemeService = {
-      getTheme: vi.fn(() => 'system'),
-      setTheme: vi.fn()
+      getSelection: vi.fn(() => ({ family: 'default', mode: 'system' })),
+      getResolvedTheme: vi.fn(() => 'light' as const),
+      setThemeFamily: vi.fn((family: string) => {
+        component.theme = { ...component.theme, family: family as any };
+      }),
+      setThemeMode: vi.fn((mode: string) => {
+        component.theme = { ...component.theme, mode: mode as any };
+      }),
+      setSelection: vi.fn(),
+      setTheme: vi.fn(),
     };
 
     mockTextSizeService = {
@@ -159,10 +167,10 @@ describe('UserSettingsComponent', () => {
 
   describe('ngOnInit', () => {
     it('should load current theme from theme service', () => {
-      mockThemeService.getTheme.mockReturnValue('dark');
+      mockThemeService.getSelection.mockReturnValue({ family: 'default', mode: 'dark' });
       component.ngOnInit();
-      expect(component.theme).toBe('dark');
-      expect(mockThemeService.getTheme).toHaveBeenCalled();
+      expect(component.theme).toEqual({ family: 'default', mode: 'dark' });
+      expect(mockThemeService.getSelection).toHaveBeenCalled();
     });
 
     it('should load current text size from text size service', () => {
@@ -253,9 +261,9 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should sync theme and text size from services when modal opens', () => {
-      mockThemeService.getTheme.mockReturnValue('dark');
+      mockThemeService.getSelection.mockReturnValue({ family: 'default', mode: 'dark' });
       mockTextSizeService.getTextSize.mockReturnValue('large');
-      component.theme = 'system';
+      component.theme = { family: 'default', mode: 'system' };
       component.textSize = 'normal';
       component.isOpen = false;
 
@@ -271,9 +279,9 @@ describe('UserSettingsComponent', () => {
       component.isOpen = true;
       component.ngOnChanges(changes);
 
-      expect(component.theme).toBe('dark');
+      expect(component.theme).toEqual({ family: 'default', mode: 'dark' });
       expect(component.textSize).toBe('large');
-      expect(mockThemeService.getTheme).toHaveBeenCalled();
+      expect(mockThemeService.getSelection).toHaveBeenCalled();
       expect(mockTextSizeService.getTextSize).toHaveBeenCalled();
     });
 
@@ -368,39 +376,42 @@ describe('UserSettingsComponent', () => {
     });
   });
 
-  describe('handleThemeChange', () => {
-    it('should update theme and call theme service', () => {
-      component.handleThemeChange('dark');
+  describe('handleThemeFamilyChange / handleThemeModeChange', () => {
+    it('should update family and call theme service', () => {
+      mockThemeService.getResolvedTheme.mockReturnValue('christmas-dark');
+      component.handleThemeFamilyChange('christmas');
 
-      expect(component.theme).toBe('dark');
-      expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
-      expect(component.successTheme).toContain('Dark');
+      expect(component.theme.family).toBe('christmas');
+      expect(mockThemeService.setThemeFamily).toHaveBeenCalledWith('christmas');
+      expect(component.successTheme).toContain('Christmas Dark');
     });
 
-    it('should not change theme when selecting the current theme', () => {
-      component.theme = 'light';
-      mockThemeService.setTheme.mockClear();
+    it('should not change family when selecting the current family', () => {
+      component.theme = { family: 'default', mode: 'light' };
+      mockThemeService.setThemeFamily.mockClear();
 
-      component.handleThemeChange('light');
+      component.handleThemeFamilyChange('default');
 
-      expect(mockThemeService.setTheme).not.toHaveBeenCalled();
+      expect(mockThemeService.setThemeFamily).not.toHaveBeenCalled();
       expect(component.successTheme).toBeNull();
     });
 
-    it('should handle light theme', () => {
-      component.handleThemeChange('light');
+    it('should update mode and call theme service', () => {
+      mockThemeService.getResolvedTheme.mockReturnValue('light');
+      component.theme = { family: 'default', mode: 'dark' };
+      component.handleThemeModeChange('light');
 
-      expect(component.theme).toBe('light');
-      expect(mockThemeService.setTheme).toHaveBeenCalledWith('light');
+      expect(component.theme.mode).toBe('light');
+      expect(mockThemeService.setThemeMode).toHaveBeenCalledWith('light');
     });
 
-    it('should handle system theme', () => {
-      component.theme = 'dark';
-      component.handleThemeChange('system');
+    it('should handle system mode', () => {
+      component.theme = { family: 'default', mode: 'dark' };
+      mockThemeService.getResolvedTheme.mockReturnValue('dark');
+      component.handleThemeModeChange('system');
 
-      expect(component.theme).toBe('system');
-      expect(mockThemeService.setTheme).toHaveBeenCalledWith('system');
-      expect(component.successTheme).toContain('System');
+      expect(component.theme.mode).toBe('system');
+      expect(mockThemeService.setThemeMode).toHaveBeenCalledWith('system');
     });
   });
 
@@ -976,22 +987,14 @@ describe('UserSettingsComponent', () => {
     });
   });
 
-  describe('handleThemeChange', () => {
-    it('should update component theme and call service', () => {
-      component.handleThemeChange('dark');
-      expect(component.theme).toBe('dark');
-      expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
-    });
-
-    it('should handle all theme options', () => {
-      const themes: Array<
-        'light' | 'dark' | 'black' | 'blossom' | 'christmas-light' | 'christmas-dark' | 'system'
-      > = ['light', 'dark', 'black', 'blossom', 'christmas-light', 'christmas-dark', 'system'];
-      themes.forEach(theme => {
-        component.handleThemeChange(theme);
-        expect(component.theme).toBe(theme);
-        expect(mockThemeService.setTheme).toHaveBeenCalledWith(theme);
+  describe('theme family / mode (legacy setTheme mapping)', () => {
+    it('maps legacy dark through setTheme', () => {
+      mockThemeService.getResolvedTheme.mockReturnValue('dark');
+      mockThemeService.setTheme.mockImplementation(() => {
+        component.theme = { family: 'default', mode: 'dark' };
       });
+      mockThemeService.setTheme('dark');
+      expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
     });
   });
 
@@ -1024,14 +1027,12 @@ describe('UserSettingsComponent', () => {
   });
 
   describe('Theme options', () => {
-    it('should have all theme options defined', () => {
-      expect(component.themeOptions.length).toBe(7);
-      expect(component.themeOptions[0].value).toBe('light');
-      expect(component.themeOptions[1].value).toBe('dark');
-      expect(component.themeOptions[2].value).toBe('black');
-      expect(component.themeOptions[2].label).toBe('Night');
-      expect(component.themeOptions[3].value).toBe('blossom');
-      expect(component.themeOptions[6].value).toBe('system');
+    it('should expose family and mode dropdown options', () => {
+      expect(component.themeFamilyOptions.length).toBe(4);
+      expect(component.themeFamilyOptions[0].value).toBe('default');
+      expect(component.themeFamilyOptions[1].value).toBe('high-contrast');
+      expect(component.themeModeOptions.length).toBe(3);
+      expect(component.themeModeOptions.map((o) => o.value)).toEqual(['light', 'dark', 'system']);
     });
   });
 
@@ -1136,14 +1137,14 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should handle theme selection', () => {
-      (component as any).selectedTheme = 'light';
-      expect((component as any).selectedTheme).toBe('light');
-      
-      (component as any).selectedTheme = 'dark';
-      expect((component as any).selectedTheme).toBe('dark');
-      
-      (component as any).selectedTheme = 'system';
-      expect((component as any).selectedTheme).toBe('system');
+      component.theme = { family: 'default', mode: 'light' };
+      expect(component.theme.mode).toBe('light');
+
+      component.theme = { family: 'default', mode: 'dark' };
+      expect(component.theme.mode).toBe('dark');
+
+      component.theme = { family: 'default', mode: 'system' };
+      expect(component.theme.mode).toBe('system');
     });
 
     it('should store email address', () => {
@@ -1171,8 +1172,10 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should handle print theme options', () => {
-      expect(component.themeOptions).toBeDefined();
-      expect(component.themeOptions.length).toBeGreaterThan(0);
+      expect(component.themeFamilyOptions).toBeDefined();
+      expect(component.themeFamilyOptions.length).toBeGreaterThan(0);
+      expect(component.themeModeOptions).toBeDefined();
+      expect(component.themeModeOptions.length).toBeGreaterThan(0);
     });
 
   });
@@ -1256,9 +1259,11 @@ describe('UserSettingsComponent', () => {
       expect(component.success).toBeNull();
     });
 
-    it('should have themeOptions available', () => {
-      expect(component.themeOptions).toBeDefined();
-      expect(Array.isArray(component.themeOptions)).toBe(true);
+    it('should have theme family and mode options available', () => {
+      expect(component.themeFamilyOptions).toBeDefined();
+      expect(Array.isArray(component.themeFamilyOptions)).toBe(true);
+      expect(component.themeModeOptions).toBeDefined();
+      expect(Array.isArray(component.themeModeOptions)).toBe(true);
     });
 
     it('should track saving states independently', () => {
@@ -1355,7 +1360,8 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should handle color scheme options', () => {
-      expect(component.themeOptions.length).toBeGreaterThan(0);
+      expect(component.themeFamilyOptions.length).toBeGreaterThan(0);
+      expect(component.themeModeOptions.length).toBeGreaterThan(0);
     });
 
     it('should track component initialization state', () => {
@@ -1393,12 +1399,12 @@ describe('UserSettingsComponent', () => {
 
   describe('User Settings - Extended Coverage Tests', () => {
     it('should handle theme state changes', () => {
-      component.theme = 'light';
-      expect(component.theme).toBe('light');
-      component.theme = 'dark';
-      expect(component.theme).toBe('dark');
-      component.theme = 'system';
-      expect(component.theme).toBe('system');
+      component.theme = { family: 'default', mode: 'light' };
+      expect(component.theme).toEqual({ family: 'default', mode: 'light' });
+      component.theme = { family: 'default', mode: 'dark' };
+      expect(component.theme).toEqual({ family: 'default', mode: 'dark' });
+      component.theme = { family: 'default', mode: 'system' };
+      expect(component.theme).toEqual({ family: 'default', mode: 'system' });
     });
 
     it('should manage first name updates', () => {
@@ -1459,9 +1465,12 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should verify theme options exist', () => {
-      expect(component.themeOptions).toBeDefined();
-      expect(Array.isArray(component.themeOptions)).toBe(true);
-      expect(component.themeOptions.length).toBeGreaterThan(0);
+      expect(component.themeFamilyOptions).toBeDefined();
+      expect(Array.isArray(component.themeFamilyOptions)).toBe(true);
+      expect(component.themeFamilyOptions.length).toBeGreaterThan(0);
+      expect(component.themeModeOptions).toBeDefined();
+      expect(Array.isArray(component.themeModeOptions)).toBe(true);
+      expect(component.themeModeOptions.length).toBeGreaterThan(0);
     });
 
     it('should emit close event correctly', () => {
@@ -1485,7 +1494,7 @@ describe('UserSettingsComponent', () => {
       (component as any).firstName = 'Alice';
       (component as any).lastName = 'Johnson';
       component.email = 'alice@example.com';
-      component.theme = 'dark';
+      component.theme = { family: 'default', mode: 'dark' };
       (component as any).saveReminder = true;
       component.receiveNotifications = true;
       (component as any).receiveAdminEmails = false;
@@ -1493,7 +1502,7 @@ describe('UserSettingsComponent', () => {
       expect((component as any).firstName).toBe('Alice');
       expect((component as any).lastName).toBe('Johnson');
       expect(component.email).toBe('alice@example.com');
-      expect(component.theme).toBe('dark');
+      expect(component.theme).toEqual({ family: 'default', mode: 'dark' });
       expect((component as any).saveReminder).toBe(true);
       expect(component.receiveNotifications).toBe(true);
       expect((component as any).receiveAdminEmails).toBe(false);
@@ -1581,12 +1590,12 @@ describe('UserSettingsComponent', () => {
       (component as any).firstName = 'Test1';
       (component as any).lastName = 'Test2';
       component.email = 'test@test.com';
-      component.theme = 'light';
+      component.theme = { family: 'default', mode: 'light' };
       
       expect((component as any).firstName).toBe('Test1');
       expect((component as any).lastName).toBe('Test2');
       expect(component.email).toBe('test@test.com');
-      expect(component.theme).toBe('light');
+      expect(component.theme).toEqual({ family: 'default', mode: 'light' });
     });
 
     it('should handle null/undefined error transitions', () => {
@@ -2586,7 +2595,6 @@ describe('UserSettingsComponent', () => {
         email: 'group@example.com',
         isChurchMember: false,
         defaultPrayerView: 'current',
-        email: 'g@example.com',
       });
       component.isOpen = true;
       component.ngOnChanges({

@@ -41,7 +41,7 @@ export class PresentationSettingsModalComponent implements OnChanges {
   filtersPanel?: PresentationSettingsFiltersPanelComponent;
 
   @Input() visible = false;
-  @Input() theme: PresentationSettingsThemeOption = "system";
+  @Input() theme: PresentationSettingsThemeOption = { family: "default", mode: "system" };
   @Input() smartMode = true;
   @Input() displayDuration = 10;
   @Input() contentTypes: SelectablePresentationContentType[] = ["prayers"];

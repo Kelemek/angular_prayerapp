@@ -20,7 +20,9 @@
       /* Align dark body background with app shell container so header and safe-area overlay blend consistently */
       html.dark body { background-color: #2B2B2B; }
       html.black body { background-color: #000000; }
+      html.day body { background-color: #F5F7FA; }
       html.blossom body { background-color: #FCE8EE; }
+      html.blossom-dark body { background-color: #2D1A28; }
       html.christmas-light body { background-color: #F0E2C4; }
       html.christmas-dark body { background-color: #0A1F18; }
       
@@ -75,37 +77,78 @@
     <title>Cross Pointe Church - Prayer Requests</title>
     <script src="/boot-recovery.js"></script>
     <script>
-      // Apply theme immediately to prevent flash and sync theme-color with header
+      // Apply theme immediately (family + mode) — keep in sync with ThemeService
       (function() {
-        var theme = localStorage.getItem('theme') || 'system';
+        var THEME_F = 'themeFamily';
+        var THEME_M = 'themeMode';
+        var LEGACY = 'theme';
         var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var validThemes = ['light', 'dark', 'black', 'blossom', 'christmas-light', 'christmas-dark', 'system'];
-        if (validThemes.indexOf(theme) === -1) {
-          theme = 'system';
-        }
-        var overlayClasses = ['black', 'blossom', 'christmas-light', 'christmas-dark'];
-        var isOverlay = overlayClasses.indexOf(theme) !== -1;
-        var isDark =
-          theme === 'dark' ||
-          theme === 'black' ||
-          theme === 'christmas-dark' ||
-          (theme === 'system' && prefersDark);
 
-        if (isDark) {
-          document.documentElement.classList.add('dark');
+        function migrateLegacy(t) {
+          switch (t) {
+            case 'light': return { family: 'default', mode: 'light' };
+            case 'dark': return { family: 'default', mode: 'dark' };
+            case 'black': return { family: 'high-contrast', mode: 'dark' };
+            case 'blossom': return { family: 'blossom', mode: 'light' };
+            case 'christmas-light': return { family: 'christmas', mode: 'light' };
+            case 'christmas-dark': return { family: 'christmas', mode: 'dark' };
+            case 'system':
+            default: return { family: 'default', mode: 'system' };
+          }
         }
-        if (isOverlay) {
-          document.documentElement.classList.add(theme);
+
+        function lightOf(family) {
+          if (family === 'default') return 'light';
+          if (family === 'high-contrast') return 'day';
+          if (family === 'blossom') return 'blossom';
+          return 'christmas-light';
+        }
+        function darkOf(family) {
+          if (family === 'default') return 'dark';
+          if (family === 'high-contrast') return 'black';
+          if (family === 'blossom') return 'blossom-dark';
+          return 'christmas-dark';
+        }
+        function resolve(family, mode) {
+          if (mode === 'system') {
+            return prefersDark ? darkOf(family) : lightOf(family);
+          }
+          return mode === 'light' ? lightOf(family) : darkOf(family);
+        }
+
+        var fam = localStorage.getItem(THEME_F);
+        var mod = localStorage.getItem(THEME_M);
+        var sel =
+          ['default', 'high-contrast', 'blossom', 'christmas'].indexOf(fam) !== -1 &&
+          ['light', 'dark', 'system'].indexOf(mod) !== -1
+            ? { family: fam, mode: mod }
+            : migrateLegacy(localStorage.getItem(LEGACY) || 'system');
+
+        var resolved = resolve(sel.family, sel.mode);
+        var overlays = ['black', 'blossom', 'blossom-dark', 'christmas-light', 'christmas-dark', 'day'];
+        var isDark =
+          resolved === 'dark' ||
+          resolved === 'black' ||
+          resolved === 'blossom-dark' ||
+          resolved === 'christmas-dark';
+
+        var root = document.documentElement;
+        root.classList.toggle('dark', isDark);
+        for (var o = 0; o < overlays.length; o++) {
+          root.classList.toggle(overlays[o], resolved === overlays[o]);
         }
 
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) {
           var themeColor = '#E8E5E1';
-          if (theme === 'black') themeColor = '#000000';
-          else if (theme === 'blossom') themeColor = '#FCE8EE';
-          else if (theme === 'christmas-light') themeColor = '#F0E2C4';
-          else if (theme === 'christmas-dark') themeColor = '#0A1F18';
-          else if (theme === 'dark' || (theme === 'system' && prefersDark)) themeColor = '#1F2937';
+          if (resolved === 'day') themeColor = '#F5F7FA';
+          else if (resolved === 'black') themeColor = '#000000';
+          else if (resolved === 'blossom') themeColor = '#FCE8EE';
+          else if (resolved === 'blossom-dark') themeColor = '#2D1A28';
+          else if (resolved === 'christmas-light') themeColor = '#F0E2C4';
+          else if (resolved === 'christmas-dark') themeColor = '#0A1F18';
+          else if (resolved === 'dark') themeColor = '#1F2937';
+          else if (resolved === 'light') themeColor = '#E8E5E1';
           meta.setAttribute('content', themeColor);
         }
       })();

@@ -2,6 +2,19 @@
  * Utility functions for presentation mode
  */
 
+import {
+  LEGACY_THEME_STORAGE_KEY,
+  THEME_STORAGE_FAMILY_KEY,
+  THEME_STORAGE_MODE_KEY,
+  applyResolvedThemeToDocument,
+  isLegacyStoredTheme,
+  migrateLegacyTheme,
+  resolveThemeFromSelection,
+  type LegacyStoredTheme,
+  type ThemeFamily,
+  type ThemeMode,
+} from '../app/services/theme.service';
+
 interface Prayer {
   id: string;
   title: string;
@@ -136,31 +149,36 @@ export const formatTime = (seconds: number): string => {
 
 export type PresentationDocumentTheme = 'light' | 'dark' | 'black' | 'system';
 
-function paintPresentationTheme(theme: PresentationDocumentTheme): void {
-  const root = document.documentElement;
-  let effectiveDark = theme === 'dark' || theme === 'black';
-  if (theme === 'system') {
-    effectiveDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
+function prefersDarkScheme(): boolean {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
-  if (effectiveDark) {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
+function documentThemeFromPresentation(
+  theme: PresentationDocumentTheme
+): { family: ThemeFamily; mode: ThemeMode } {
   if (theme === 'black') {
-    root.classList.add('black');
-  } else {
-    root.classList.remove('black');
+    return { family: 'high-contrast', mode: 'dark' };
   }
+  if (theme === 'system') {
+    return { family: 'default', mode: 'system' };
+  }
+  return { family: 'default', mode: theme === 'dark' ? 'dark' : 'light' };
 }
 
 /**
- * Apply theme to the document.
+ * Apply theme to the document (tests / utilities). Writes themeFamily + themeMode.
  */
 export const applyTheme = (theme: PresentationDocumentTheme): void => {
-  paintPresentationTheme(theme);
-  localStorage.setItem('theme', theme);
+  const sel = documentThemeFromPresentation(theme);
+  const resolved = resolveThemeFromSelection(sel.family, sel.mode, prefersDarkScheme());
+  applyResolvedThemeToDocument(resolved);
+  try {
+    localStorage.setItem(THEME_STORAGE_FAMILY_KEY, sel.family);
+    localStorage.setItem(THEME_STORAGE_MODE_KEY, sel.mode);
+    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
 };
 
 /**
@@ -171,6 +189,16 @@ export const handleThemeChange = (
   setTheme: (theme: PresentationDocumentTheme) => void
 ): void => {
   setTheme(newTheme);
-  localStorage.setItem('theme', newTheme);
-  paintPresentationTheme(newTheme);
+  applyTheme(newTheme);
 };
+
+/** For tests that still set `localStorage.theme` directly. */
+export function legacyLocalStorageToResolved(
+  stored: LegacyStoredTheme | string | null
+) {
+  if (!stored || !isLegacyStoredTheme(stored)) {
+    return resolveThemeFromSelection('default', 'system', prefersDarkScheme());
+  }
+  const sel = migrateLegacyTheme(stored);
+  return resolveThemeFromSelection(sel.family, sel.mode, prefersDarkScheme());
+}

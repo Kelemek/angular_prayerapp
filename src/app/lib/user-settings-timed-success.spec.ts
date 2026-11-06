@@ -25,7 +25,7 @@ describe('user-settings-timed-success', () => {
 
     showUserSettingsThemeSaved(host, 'dark');
 
-    expect(host.successTheme).toBe('✅ Theme set to Dark');
+    expect(host.successTheme).toBe('✅ Theme set to Default Dark');
     expect(host.markForCheck).toHaveBeenCalled();
 
     vi.advanceTimersByTime(3000);
@@ -58,6 +58,6 @@ describe('user-settings-timed-success', () => {
     clearUserSettingsSuccessTimers(host);
     vi.advanceTimersByTime(3000);
 
-    expect(host.successTheme).toBe('✅ Theme set to Light');
+    expect(host.successTheme).toBe('✅ Theme set to Default Light');
   });
 });
