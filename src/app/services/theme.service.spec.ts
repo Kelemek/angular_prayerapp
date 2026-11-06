@@ -1,13 +1,22 @@
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { firstValueFrom } from 'rxjs';
-import { ThemeService } from './theme.service';
+import { THEME_COLOR_CHRISTMAS_LIGHT, ThemeService } from './theme.service';
 
 describe('ThemeService', () => {
   let service: ThemeService;
 
   beforeEach(() => {
     localStorage.clear();
-    document.documentElement.classList.remove('dark', 'black');
+    document.documentElement.classList.remove(
+      'dark',
+      'black',
+      'blossom',
+      'christmas-light',
+      'christmas-dark',
+    );
     // Mock window.matchMedia
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -27,7 +36,13 @@ describe('ThemeService', () => {
 
   afterEach(() => {
     localStorage.clear();
-    document.documentElement.classList.remove('dark', 'black');
+    document.documentElement.classList.remove(
+      'dark',
+      'black',
+      'blossom',
+      'christmas-light',
+      'christmas-dark',
+    );
     vi.restoreAllMocks();
   });
 
@@ -201,6 +216,55 @@ describe('ThemeService', () => {
 
       expect(service.getTheme()).toBe('light');
       expect(document.documentElement.classList.contains('black')).toBe(false);
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+    });
+  });
+
+  describe('seasonal and floral themes', () => {
+    it('applies blossom without dark class', () => {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+
+      service.setTheme('blossom');
+
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+      expect(document.documentElement.classList.contains('blossom')).toBe(true);
+      expect(service.isDark()).toBe(false);
+      expect(meta.getAttribute('content')).toBe('#FCE8EE');
+
+      meta.remove();
+    });
+
+    it('applies christmas-dark with dark and overlay classes', () => {
+      service.setTheme('christmas-dark');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      expect(document.documentElement.classList.contains('christmas-dark')).toBe(true);
+      expect(service.isDark()).toBe(true);
+    });
+
+    it('deepens Christmas Light past the original cream without dropping crimson or forest', () => {
+      expect(THEME_COLOR_CHRISTMAS_LIGHT).toBe('#F0E2C4');
+      const css = readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), '../../styles.css'),
+        'utf8'
+      );
+      const block = css.match(/html\.christmas-light \{[\s\S]*?\n\}/)?.[0] ?? '';
+      expect(block).toContain('--surface-page: #f0e2c4');
+      expect(block).toContain('--surface-card: #fff6e4');
+      expect(block).toContain('--theme-border: #5d846c');
+      expect(block).toContain('--theme-chrome-border: #1f4d36');
+      expect(block).toContain('--theme-action-primary: #8e141e');
+      expect(block).toContain('--accent-gold: #c4892a');
+      expect(block).toContain('--theme-text-body: #14261c');
+      expect(block).not.toContain('#f7f1e4');
+      expect(block).not.toContain('#d4e4d6');
+    });
+
+    it('clears overlay classes when switching to light', () => {
+      service.setTheme('christmas-light');
+      service.setTheme('light');
+      expect(document.documentElement.classList.contains('christmas-light')).toBe(false);
       expect(document.documentElement.classList.contains('dark')).toBe(false);
     });
   });

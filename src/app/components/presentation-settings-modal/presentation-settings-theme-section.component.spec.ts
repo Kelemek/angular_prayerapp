@@ -10,9 +10,15 @@ import type { PresentationSettingsThemeOption } from "./presentation-settings-th
 const componentDir = dirname(fileURLToPath(import.meta.url));
 
 function readComponentResource(url: string): string {
-  const path = join(componentDir, url);
-  if (existsSync(path)) {
-    return readFileSync(path, "utf-8");
+  const relative = url.replace(/^\.\//, '');
+  const paths = [
+    join(componentDir, url),
+    join(componentDir, "..", "theme-select-dropdown", relative),
+  ];
+  for (const path of paths) {
+    if (existsSync(path)) {
+      return readFileSync(path, "utf-8");
+    }
   }
   throw new Error(`Component resource not found: ${url}`);
 }
@@ -51,10 +57,17 @@ describe("PresentationSettingsThemeSectionComponent", () => {
     const emitted: PresentationSettingsThemeOption[] = [];
     component.themeChange.subscribe((value) => emitted.push(value));
 
-    const lightButton = Array.from(
-      fixture.nativeElement.querySelectorAll("button")
-    ).find((el: Element) => el.textContent?.includes("Light")) as HTMLButtonElement;
-    lightButton.click();
+    const trigger = fixture.nativeElement.querySelector(
+      'button[aria-haspopup="listbox"]',
+    ) as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+
+    const lightOption = Array.from(
+      fixture.nativeElement.querySelectorAll('[role="option"]'),
+    ).find((el: Element) => el.textContent?.includes("Light")) as HTMLElement;
+    lightOption.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    fixture.detectChanges();
 
     expect(emitted).toEqual(["light"]);
   });

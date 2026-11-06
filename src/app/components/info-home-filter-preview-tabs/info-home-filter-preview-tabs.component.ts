@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
+  HOME_MEMORIZE_PANEL_CHIP_THEMES,
   HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
   HOME_PUBLIC_STATUS_CHIP_THEMES,
   HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
@@ -85,7 +86,7 @@ export class InfoHomeFilterPreviewTabsComponent {
   }
 
   memorizeChipClass(active: boolean): string {
-    const theme = this.chipThemes.members;
+    const theme = HOME_MEMORIZE_PANEL_CHIP_THEMES;
     return buildHomeSubFilterChipButtonClass({
       base: this.chipButtonClass,
       active,

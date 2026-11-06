@@ -60,25 +60,134 @@ export type HomeFilterTabAccent =
   | "members"
   | "groups";
 
-/** Light-mode Personal tab/panel fill — church sage (`church-green-tint` in styles.css). */
+type HomeTabCssAccent =
+  | "public"
+  | "groups"
+  | "members"
+  | "personal"
+  | "memorize"
+  | "prompts";
+
+/** CSS variable names for tab/panel accents (see `--home-tab-*` in styles.css). */
+export const HOME_TAB_CSS_VAR = {
+  public: {
+    bg: "--home-tab-public-bg",
+    bgDark: "--home-tab-public-bg-dark",
+    border: "--home-tab-public-border",
+    inactiveBg: "--home-tab-public-inactive-bg",
+    inactiveBgDark: "--home-tab-public-inactive-bg-dark",
+    inactiveBorder: "--home-tab-public-inactive-border",
+    inactiveBorderDark: "--home-tab-public-inactive-border-dark",
+  },
+  groups: {
+    bg: "--home-tab-groups-bg",
+    bgDark: "--home-tab-groups-bg-dark",
+    border: "--home-tab-groups-border",
+    inactiveBg: "--home-tab-groups-inactive-bg",
+    inactiveBgDark: "--home-tab-groups-inactive-bg-dark",
+    inactiveBorder: "--home-tab-groups-inactive-border",
+    inactiveBorderDark: "--home-tab-groups-inactive-border-dark",
+  },
+  members: {
+    bg: "--home-tab-members-bg",
+    bgDark: "--home-tab-members-bg-dark",
+    border: "--home-tab-members-border",
+    inactiveBg: "--home-tab-members-inactive-bg",
+    inactiveBgDark: "--home-tab-members-inactive-bg-dark",
+    inactiveBorder: "--home-tab-members-inactive-border",
+    inactiveBorderDark: "--home-tab-members-inactive-border-dark",
+  },
+  personal: {
+    bg: "--home-tab-personal-bg",
+    bgDark: "--home-tab-personal-bg-dark",
+    border: "--home-tab-personal-border",
+    inactiveBg: "--home-tab-personal-inactive-bg",
+    inactiveBgDark: "--home-tab-personal-inactive-bg-dark",
+    inactiveBorder: "--home-tab-personal-inactive-border",
+    inactiveBorderDark: "--home-tab-personal-inactive-border-dark",
+  },
+  memorize: {
+    bg: "--home-tab-memorize-bg",
+    bgDark: "--home-tab-memorize-bg-dark",
+    border: "--home-tab-memorize-border",
+    inactiveBg: "--home-tab-memorize-inactive-bg",
+    inactiveBgDark: "--home-tab-memorize-inactive-bg-dark",
+    inactiveBorder: "--home-tab-memorize-inactive-border",
+    inactiveBorderDark: "--home-tab-memorize-inactive-border-dark",
+  },
+  prompts: {
+    bg: "--home-tab-prompts-bg",
+    bgDark: "--home-tab-prompts-bg-dark",
+    border: "--home-tab-prompts-border",
+    inactiveBg: "--home-tab-prompts-inactive-bg",
+    inactiveBgDark: "--home-tab-prompts-inactive-bg-dark",
+    inactiveBorder: "--home-tab-prompts-inactive-border",
+    inactiveBorderDark: "--home-tab-prompts-inactive-border-dark",
+  },
+} as const;
+
+/** Static literals so Tailwind content-scan emits `bg-[var(--home-tab-*)]` utilities. */
+export const HOME_TAB_PUBLIC_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-public-bg)] dark:bg-[var(--home-tab-public-bg-dark)] border-[var(--home-tab-public-border)] dark:border-[var(--home-tab-public-border)]";
+export const HOME_TAB_GROUPS_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-groups-bg)] dark:bg-[var(--home-tab-groups-bg-dark)] border-[var(--home-tab-groups-border)] dark:border-[var(--home-tab-groups-border)]";
+export const HOME_TAB_MEMBERS_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-members-bg)] dark:bg-[var(--home-tab-members-bg-dark)] border-[var(--home-tab-members-border)] dark:border-[var(--home-tab-members-border)]";
+export const HOME_TAB_PERSONAL_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-personal-bg)] dark:bg-[var(--home-tab-personal-bg-dark)] border-[var(--home-tab-personal-border)] dark:border-[var(--home-tab-personal-border)]";
+export const HOME_TAB_MEMORIZE_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-memorize-bg)] dark:bg-[var(--home-tab-memorize-bg-dark)] border-[var(--home-tab-memorize-border)] dark:border-[var(--home-tab-memorize-border)]";
+export const HOME_TAB_PROMPTS_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-prompts-bg)] dark:bg-[var(--home-tab-prompts-bg-dark)] border-[var(--home-tab-prompts-border)] dark:border-[var(--home-tab-prompts-border)]";
+
+export const HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-public-inactive-bg)] dark:bg-[var(--home-tab-public-inactive-bg-dark)] border-2 border-[var(--home-tab-public-inactive-border)] dark:border-[var(--home-tab-public-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_GROUPS_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-groups-inactive-bg)] dark:bg-[var(--home-tab-groups-inactive-bg-dark)] border-2 border-[var(--home-tab-groups-inactive-border)] dark:border-[var(--home-tab-groups-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_MEMBERS_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-members-inactive-bg)] dark:bg-[var(--home-tab-members-inactive-bg-dark)] border-2 border-[var(--home-tab-members-inactive-border)] dark:border-[var(--home-tab-members-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_PERSONAL_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-personal-inactive-bg)] dark:bg-[var(--home-tab-personal-inactive-bg-dark)] border-2 border-[var(--home-tab-personal-inactive-border)] dark:border-[var(--home-tab-personal-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_MEMORIZE_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-memorize-inactive-bg)] dark:bg-[var(--home-tab-memorize-inactive-bg-dark)] border-2 border-[var(--home-tab-memorize-inactive-border)] dark:border-[var(--home-tab-memorize-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_PROMPTS_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-prompts-inactive-bg)] dark:bg-[var(--home-tab-prompts-inactive-bg-dark)] border-2 border-[var(--home-tab-prompts-inactive-border)] dark:border-[var(--home-tab-prompts-inactive-border-dark)] home-filter-tab-inactive-chrome";
+
+export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-public-bg)] dark:bg-[var(--home-tab-public-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-public-border)] dark:border-[var(--home-tab-public-border)] px-3 py-2";
+export const HOME_GROUPS_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-groups-bg)] dark:bg-[var(--home-tab-groups-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-groups-border)] dark:border-[var(--home-tab-groups-border)] px-3 py-2";
+export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-personal-bg)] dark:bg-[var(--home-tab-personal-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-personal-border)] dark:border-[var(--home-tab-personal-border)] px-3 py-2";
+export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-memorize-bg)] dark:bg-[var(--home-tab-memorize-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-memorize-border)] dark:border-[var(--home-tab-memorize-border)] px-3 py-2";
+export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-prompts-bg)] dark:bg-[var(--home-tab-prompts-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-prompts-border)] dark:border-[var(--home-tab-prompts-border)] px-3 py-2";
+
+/** Light-mode Personal tab/panel fill — driven by `--home-tab-personal-*`. */
 export const HOME_PERSONAL_FILL_LIGHT_CLASS =
-  "bg-church-green-tint dark:bg-green-900/40";
+  "bg-[var(--home-tab-personal-bg)] dark:bg-[var(--home-tab-personal-bg-dark)]";
+
+export const HOME_FILTER_TAB_INACTIVE_FILL = {
+  public: HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS,
+  personal: HOME_TAB_PERSONAL_INACTIVE_FILL_CLASS,
+  prompts: HOME_TAB_PROMPTS_INACTIVE_FILL_CLASS,
+  memorize: HOME_TAB_MEMORIZE_INACTIVE_FILL_CLASS,
+  members: HOME_TAB_MEMBERS_INACTIVE_FILL_CLASS,
+  groups: HOME_TAB_GROUPS_INACTIVE_FILL_CLASS,
+} as const;
 
 /**
  * Fill + accent color only. Width is applied in {@link homeFilterTabClass}:
  * `border-[2px]` on a connected tab overrides `border-b-0` in the generated CSS.
  */
 export const HOME_FILTER_TAB_ACTIVE_FILL = {
-  public: "bg-blue-200 dark:bg-blue-950 border-[#0047AB] dark:border-[#0047AB]",
-  personal:
-    `${HOME_PERSONAL_FILL_LIGHT_CLASS} border-[#2F5F54] dark:border-[#2F5F54]`,
-  prompts:
-    "bg-stone-300 dark:bg-stone-900/40 border-[#988F83] dark:border-[#988F83]",
-  memorize: "bg-blue-200 dark:bg-blue-950 border-[#0047AB] dark:border-[#0047AB]",
-  members:
-    "bg-slate-200 dark:bg-blue-900/40 border-[#0047AB] dark:border-[#0047AB]",
-  groups:
-    "bg-slate-200 dark:bg-blue-900/40 border-[#0047AB] dark:border-[#0047AB]",
+  public: HOME_TAB_PUBLIC_ACTIVE_FILL_CLASS,
+  personal: HOME_TAB_PERSONAL_ACTIVE_FILL_CLASS,
+  prompts: HOME_TAB_PROMPTS_ACTIVE_FILL_CLASS,
+  memorize: HOME_TAB_MEMORIZE_ACTIVE_FILL_CLASS,
+  members: HOME_TAB_MEMBERS_ACTIVE_FILL_CLASS,
+  groups: HOME_TAB_GROUPS_ACTIVE_FILL_CLASS,
 } as const;
 
 /** Top + sides only so the tab joins the folder panel (no bottom stroke). */
@@ -93,7 +202,7 @@ export function homeFilterTabClass(options: {
   const { accent, active, hasSubRow } = options;
   const shape = hasSubRow ? "rounded-t-lg" : "rounded-lg";
   if (!active) {
-    return `${HOME_FILTER_TAB_BASE_CLASS} ${shape} ${HOME_FILTER_TAB_INACTIVE_CLASS}`;
+    return `${HOME_FILTER_TAB_BASE_CLASS} ${shape} ${HOME_FILTER_TAB_INACTIVE_FILL[accent]}`;
   }
   const fill = HOME_FILTER_TAB_ACTIVE_FILL[accent];
   const border = hasSubRow
@@ -182,87 +291,134 @@ export const HOME_PERSONAL_PANEL_CHIP_ACTIVE_FILL_CLASS =
 export const HOME_PROMPTS_PANEL_CHIP_ACTIVE_FILL_CLASS =
   "bg-home-panel-stone-chip-active dark:bg-home-panel-stone-chip-active-dark";
 
-const HOME_GREEN_STATUS_CHIP_ACTIVE_FILL_CLASS =
-  "bg-home-panel-green-status-chip-active dark:bg-home-panel-green-status-chip-active-dark";
+const HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-public-border)] dark:!border-[var(--home-tab-public-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-public-border)] dark:ring-[var(--home-tab-public-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-groups-border)] dark:!border-[var(--home-tab-groups-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-groups-border)] dark:ring-[var(--home-tab-groups-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_MEMBERS_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-members-border)] dark:!border-[var(--home-tab-members-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-members-border)] dark:ring-[var(--home-tab-members-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_PROMPTS_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-prompts-border)] dark:!border-[var(--home-tab-prompts-border)] bg-home-panel-stone-chip-active dark:bg-home-panel-stone-chip-active-dark ring ring-[var(--home-tab-prompts-border)] dark:ring-[var(--home-tab-prompts-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_MEMORIZE_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-memorize-border)] dark:!border-[var(--home-tab-memorize-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-memorize-border)] dark:ring-[var(--home-tab-memorize-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
 
-const HOME_AMBER_STATUS_CHIP_ACTIVE_FILL_CLASS =
-  "bg-home-panel-amber-status-chip-active dark:bg-home-panel-amber-status-chip-active-dark";
+const HOME_PUBLIC_STATUS_CHIP_INACTIVE =
+  HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+  " hover:border-[var(--home-tab-public-border)] dark:hover:border-[var(--home-tab-public-border)]";
 
-const HOME_GRAY_STATUS_CHIP_ACTIVE_FILL_CLASS =
-  "bg-home-panel-gray-status-chip-active dark:bg-home-panel-gray-status-chip-active-dark";
-
-/** Tailwind active/inactive pairs for public community sub-chips. */
+/** Church tab Current / Answered / Archived / Total / Prompts / Members — same selected styling (public accent). */
 export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
   current: {
-    active:
-      `border !border-[#0047AB] dark:!border-[#0047AB] ${HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[#0047AB] dark:hover:border-[#0047AB]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   answered: {
-    active:
-      `border !border-[#39704D] dark:!border-[#39704D] ${HOME_GREEN_STATUS_CHIP_ACTIVE_FILL_CLASS} ring ring-[#39704D] dark:ring-[#39704D] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[#39704D] dark:hover:border-[#39704D]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   archived: {
-    active:
-      `border !border-[#C9A961] dark:!border-[#C9A961] ${HOME_AMBER_STATUS_CHIP_ACTIVE_FILL_CLASS} ring ring-[#C9A961] dark:ring-[#C9A961] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[#C9A961] dark:hover:border-[#C9A961]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   total: {
-    active:
-      `border !border-gray-500 dark:!border-gray-400 ${HOME_GRAY_STATUS_CHIP_ACTIVE_FILL_CLASS} ring ring-gray-500 dark:ring-gray-400 ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-gray-500 dark:hover:border-gray-400",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   prompts: {
-    active:
-      `border !border-[#988F83] dark:!border-[#988F83] ${HOME_PROMPTS_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[#988F83] dark:ring-[#988F83] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[#988F83] dark:hover:border-[#988F83]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
   },
   members: {
-    active:
-      `border !border-[#0047AB] dark:!border-[#0047AB] ${HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`,
-    inactive:
-      HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-      " hover:border-[#0047AB] dark:hover:border-[#0047AB]",
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+    inactive: HOME_PUBLIC_STATUS_CHIP_INACTIVE,
+  },
+} as const;
+
+/** Memorize action row chips (same accent as Memorize tab). */
+export const HOME_MEMORIZE_PANEL_CHIP_THEMES = {
+  active: HOME_TAB_MEMORIZE_CHIP_ACTIVE_CLASS,
+  inactive:
+    HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+    " hover:border-[var(--home-tab-memorize-border)] dark:hover:border-[var(--home-tab-memorize-border)]",
+} as const;
+
+/** Groups tab status / group chips (Group tab accent). */
+export const HOME_GROUPS_PANEL_CHIP_THEMES = {
+  active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+  inactive:
+    HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+    " hover:border-[var(--home-tab-groups-border)] dark:hover:border-[var(--home-tab-groups-border)]",
+} as const;
+
+const HOME_GROUPS_STATUS_CHIP_INACTIVE =
+  HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+  " hover:border-[var(--home-tab-groups-border)] dark:hover:border-[var(--home-tab-groups-border)]";
+
+/** Group tab Current / Answered / Total — same selected styling (groups accent). */
+export const HOME_GROUPS_STATUS_CHIP_THEMES = {
+  current: {
+    active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+    inactive: HOME_GROUPS_STATUS_CHIP_INACTIVE,
+  },
+  answered: {
+    active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+    inactive: HOME_GROUPS_STATUS_CHIP_INACTIVE,
+  },
+  total: {
+    active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+    inactive: HOME_GROUPS_STATUS_CHIP_INACTIVE,
   },
 } as const;
 
 export const HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS =
   HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
-  " hover:border-[#2F5F54] dark:hover:border-[#2F5F54]";
+  " hover:border-[var(--home-tab-personal-border)] dark:hover:border-[var(--home-tab-personal-border)]";
 
 /** Personal sub-filters: selected chip (matches Personal tab accent). */
 export const HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS =
-  `border !border-[#2F5F54] dark:!border-[#2F5F54] ${HOME_PERSONAL_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[#2F5F54] dark:ring-[#2F5F54] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`;
+  `border !border-[var(--home-tab-personal-border)] dark:!border-[var(--home-tab-personal-border)] ${HOME_PERSONAL_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[var(--home-tab-personal-border)] dark:ring-[var(--home-tab-personal-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`;
 
-/** Tab accent hex values (documented; panel fills use full literals below for Tailwind). */
+/**
+ * Concatenated scan anchor — every home-tab arbitrary utility must appear as a static literal above.
+ * Referenced by regression spec; do not build tab/panel classes via template strings only.
+ */
+export const HOME_TAB_TAILWIND_SCAN_ANCHOR = [
+  HOME_TAB_PUBLIC_ACTIVE_FILL_CLASS,
+  HOME_TAB_GROUPS_ACTIVE_FILL_CLASS,
+  HOME_TAB_MEMBERS_ACTIVE_FILL_CLASS,
+  HOME_TAB_PERSONAL_ACTIVE_FILL_CLASS,
+  HOME_TAB_MEMORIZE_ACTIVE_FILL_CLASS,
+  HOME_TAB_PROMPTS_ACTIVE_FILL_CLASS,
+  HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS,
+  HOME_TAB_GROUPS_INACTIVE_FILL_CLASS,
+  HOME_TAB_MEMBERS_INACTIVE_FILL_CLASS,
+  HOME_TAB_PERSONAL_INACTIVE_FILL_CLASS,
+  HOME_TAB_MEMORIZE_INACTIVE_FILL_CLASS,
+  HOME_TAB_PROMPTS_INACTIVE_FILL_CLASS,
+  HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
+  HOME_GROUPS_SUB_FILTER_GROUP_CLASS,
+  HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
+  HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
+  HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
+  HOME_PERSONAL_FILL_LIGHT_CLASS,
+  HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+  HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+  HOME_TAB_MEMBERS_CHIP_ACTIVE_CLASS,
+  HOME_TAB_PROMPTS_CHIP_ACTIVE_CLASS,
+  HOME_TAB_MEMORIZE_CHIP_ACTIVE_CLASS,
+  HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS,
+  "hover:border-[var(--home-tab-public-border)]",
+  "hover:border-[var(--home-tab-groups-border)]",
+  "hover:border-[var(--home-tab-members-border)]",
+  "hover:border-[var(--home-tab-personal-border)]",
+  "hover:border-[var(--home-tab-memorize-border)]",
+  "hover:border-[var(--home-tab-prompts-border)]",
+].join(" ");
+
+/** Default tab accent borders (CSS variables resolve per theme on html). */
 export const HOME_FILTER_TAB_BORDER = {
-  public: "#0047AB",
-  personal: "#2F5F54",
-  prompts: "#988F83",
-  memorize: "#0047AB",
+  public: "var(--home-tab-public-border)",
+  personal: "var(--home-tab-personal-border)",
+  prompts: "var(--home-tab-prompts-border)",
+  memorize: "var(--home-tab-memorize-border)",
 } as const;
-
-/** Folder-tab body: fill + side/bottom accent; no top border so it joins the selected tab. */
-export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-blue-200 dark:bg-blue-950 border-x-[2px] border-b-[2px] border-t-0 border-[#0047AB] dark:border-[#0047AB] px-3 py-2";
-export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS =
-  `rounded-b-lg ${HOME_PERSONAL_FILL_LIGHT_CLASS} border-x-[2px] border-b-[2px] border-t-0 border-[#2F5F54] dark:border-[#2F5F54] px-3 py-2`;
-export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-stone-300 dark:bg-stone-900/40 border-x-[2px] border-b-[2px] border-t-0 border-[#988F83] dark:border-[#988F83] px-3 py-2";
-/** Same blue fill as Public — Memorize tab shares `#0047AB`. */
-export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
-  HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;
-/** Joins the Groups tab. Same blue edge as the Members chips. */
-export const HOME_GROUPS_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-slate-200 dark:bg-blue-900/40 border-x-[2px] border-b-[2px] border-t-0 border-[#0047AB] dark:border-[#0047AB] px-3 py-2";

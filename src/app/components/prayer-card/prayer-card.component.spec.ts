@@ -224,7 +224,7 @@ describe('PrayerCardComponent', () => {
     (component.prayer as any).status = 'current';
 
     expect(component.getBorderClass()).toContain('0047AB');
-    expect(component.getBorderClass()).toContain('ring-[#0047AB]');
+    expect(component.getBorderClass()).not.toContain('ring-[#0047AB]');
     expect(component.getBorderClass()).not.toContain('blue-600');
   });
 

@@ -984,7 +984,9 @@ describe('UserSettingsComponent', () => {
     });
 
     it('should handle all theme options', () => {
-      const themes: Array<'light' | 'dark' | 'black' | 'system'> = ['light', 'dark', 'black', 'system'];
+      const themes: Array<
+        'light' | 'dark' | 'black' | 'blossom' | 'christmas-light' | 'christmas-dark' | 'system'
+      > = ['light', 'dark', 'black', 'blossom', 'christmas-light', 'christmas-dark', 'system'];
       themes.forEach(theme => {
         component.handleThemeChange(theme);
         expect(component.theme).toBe(theme);
@@ -1023,12 +1025,13 @@ describe('UserSettingsComponent', () => {
 
   describe('Theme options', () => {
     it('should have all theme options defined', () => {
-      expect(component.themeOptions.length).toBe(4);
+      expect(component.themeOptions.length).toBe(7);
       expect(component.themeOptions[0].value).toBe('light');
       expect(component.themeOptions[1].value).toBe('dark');
       expect(component.themeOptions[2].value).toBe('black');
       expect(component.themeOptions[2].label).toBe('Night');
-      expect(component.themeOptions[3].value).toBe('system');
+      expect(component.themeOptions[3].value).toBe('blossom');
+      expect(component.themeOptions[6].value).toBe('system');
     });
   });
 

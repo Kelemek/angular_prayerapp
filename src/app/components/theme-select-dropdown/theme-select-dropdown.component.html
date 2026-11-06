@@ -1,0 +1,132 @@
+<div
+  class="theme-select-dropdown relative"
+  [id]="tourAnchorId || null"
+>
+  <button
+    #triggerButton
+    type="button"
+    class="flex w-full items-center gap-2 rounded-lg border border-church-surface-inactive-border bg-white px-3 py-2.5 text-left text-sm text-gray-800 transition-colors hover:border-blue-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-blue-600 sm:px-4 sm:py-3 sm:text-base"
+    [attr.data-settings-dropdown-trigger]="dropdownKey"
+    [attr.aria-expanded]="open"
+    aria-haspopup="listbox"
+    [attr.aria-controls]="dropdownKey + '-listbox'"
+    (click)="toggleOpen()"
+    (keydown)="onTriggerKeydown($event)"
+  >
+    <span class="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden="true">
+      <ng-container
+        [ngTemplateOutlet]="themeIcon"
+        [ngTemplateOutletContext]="{ $implicit: theme }"
+      />
+    </span>
+    <span class="min-w-0 flex-1 font-medium">{{ displayLabel }}</span>
+    <svg
+      class="h-5 w-5 shrink-0 text-gray-500 transition-transform dark:text-gray-400"
+      [class.rotate-180]="open"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+  @if (open) {
+    <ul
+      [id]="dropdownKey + '-listbox'"
+      role="listbox"
+      [attr.aria-activedescendant]="
+        activeIndex >= 0 ? dropdownKey + '-opt-' + options[activeIndex].value : null
+      "
+      class="absolute left-0 right-0 z-[70] mt-1 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+      [attr.data-settings-dropdown-panel]="dropdownKey"
+    >
+      @for (option of options; track option.value; let i = $index) {
+        <li
+          role="option"
+          [id]="option.tourOptionId ?? dropdownKey + '-opt-' + option.value"
+          [attr.aria-selected]="theme === option.value"
+          class="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-700 sm:px-4 sm:py-3 sm:text-base"
+          [class.bg-blue-50]="activeIndex === i"
+          [class.dark:bg-blue-900/20]="activeIndex === i"
+          (mousedown)="selectTheme(option.value); $event.preventDefault()"
+        >
+          <span class="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden="true">
+            <ng-container
+              [ngTemplateOutlet]="themeIcon"
+              [ngTemplateOutletContext]="{ $implicit: option.value }"
+            />
+          </span>
+          <span class="min-w-0 flex-1">{{ option.label }}</span>
+          @if (theme === option.value) {
+            <span class="text-green-600 dark:text-green-400" aria-hidden="true">✓</span>
+          }
+        </li>
+      }
+    </ul>
+  }
+  <ng-template #themeIcon let-iconTheme>
+    @switch (iconTheme) {
+      @case ('light') {
+        <svg width="20" height="20" class="text-amber-600" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"></path>
+        </svg>
+      }
+      @case ('dark') {
+        <svg width="20" height="20" class="text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      }
+      @case ('black') {
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"></circle>
+        </svg>
+      }
+      @case ('blossom') {
+        <svg width="20" height="20" class="text-[#C45B76]" viewBox="3.5 3.5 17 17" fill="none" stroke="currentColor" stroke-width="1">
+          <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
+          <circle cx="12" cy="7.1" r="2.65"></circle>
+          <circle cx="16.55" cy="10.45" r="2.65"></circle>
+          <circle cx="14.75" cy="15.45" r="2.65"></circle>
+          <circle cx="9.25" cy="15.45" r="2.65"></circle>
+          <circle cx="7.45" cy="10.45" r="2.65"></circle>
+        </svg>
+      }
+      @case ('christmas-light') {
+        <svg
+          width="20"
+          height="20"
+          class="christmas-light-theme-icon text-[#1F4D36] dark:text-emerald-300"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M12 2v3"></path>
+          <path d="M8 7l4-3 4 3"></path>
+          <path d="M6 11l6-4 6 4"></path>
+          <path d="M4 15l8-5 8 5"></path>
+          <path d="M3 19h18l-1.5 3h-15L3 19z"></path>
+          <circle class="fill-[#C4A35A] dark:fill-amber-300" cx="12" cy="10" r="1.5" stroke="none"></circle>
+        </svg>
+      }
+      @case ('christmas-dark') {
+        <svg width="20" height="20" class="text-[#C4A35A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v3"></path>
+          <path d="M8 7l4-3 4 3"></path>
+          <path d="M6 11l6-4 6 4"></path>
+          <path d="M4 15l8-5 8 5"></path>
+          <path d="M3 19h18l-1.5 3h-15L3 19z"></path>
+        </svg>
+      }
+      @default {
+        <svg width="20" height="20" class="text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+      }
+    }
+  </ng-template>
+</div>

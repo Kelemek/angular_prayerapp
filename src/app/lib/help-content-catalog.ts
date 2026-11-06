@@ -444,8 +444,8 @@ export function getDefaultHelpSections(): HelpSection[] {
             text: 'Access the settings icon during presentation mode to customize your experience. You can enable a timer to track prayer time, sort prayers by different criteria, and filter which prayers are displayed. These options help you control the flow and focus of your group prayer time.',
           },
           {
-            subtitle: 'Theme (Light, Dark, Night, System)',
-            text: 'In presentation **Settings**, choose the same theme options as Home **Settings**: **Light**, **Dark**, **Night**, or **System**. **Night** uses a true black background for low-light rooms; **Dark** uses the standard dark gray palette. **System** follows your device and does not pick **Night** automatically. The label is **Night** (circle outline icon), not “Black mode”. One choice applies across the app and presentation.',
+            subtitle: 'Theme (Light, Dark, Night, seasonal, System)',
+            text: 'In presentation **Settings**, open the **Theme** dropdown for the same options as Home **Settings**: **Light**, **Dark**, **Night**, **Blossom**, **Christmas Light**, **Christmas Dark**, or **System**. **Night** uses a true black background; **Christmas Dark** uses a pine palette with dark text styling. **Blossom** and **Christmas Light** are light seasonal palettes. **System** follows your device and only switches between standard light and dark—it never picks **Night** or seasonal themes automatically. One choice applies across the app and presentation.',
           },
         ],
         order: 9,
@@ -615,7 +615,7 @@ export function getDefaultHelpSections(): HelpSection[] {
           },
           {
             subtitle: 'Theme Options',
-            text: 'Open **Settings** (gear in the header) and choose **Light**, **Dark**, **Night**, or **System**. **Light** is best in bright rooms. **Dark** uses the app’s standard dark gray surfaces. **Night** is separate: true black background (`#000000`) with near-black cards for very low light (labeled **Night** in Settings and presentation settings, not “Black mode”). **System** follows your device light/dark preference and never picks Night automatically. Your choice saves to this device and syncs with your account preferences.',
+            text: 'Open **Settings** (gear in the header), use the **Theme** dropdown, and choose **Light**, **Dark**, **Night**, **Blossom**, **Christmas Light**, **Christmas Dark**, or **System**. **Night** is true black for very low light. **Blossom** and **Christmas Light** are optional light seasonal palettes. **Christmas Dark** is a pine-and-gold dark palette. **System** follows your device light/dark preference and never picks Night or seasonal themes automatically. Your choice saves to this device and syncs with your account preferences.',
           },
           {
             subtitle: 'Text size',

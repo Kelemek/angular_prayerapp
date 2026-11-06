@@ -193,6 +193,21 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     expect(promptRow).not.toContain('prayer-card-journal-button');
   });
 
+  it('keeps the prayed-for count off text-blue-700 so Blossom does not recolor it', () => {
+    const home = getPrayerCardVariantLayout('home');
+    const presentation = getPrayerCardVariantLayout('presentation');
+    for (const layout of [home, presentation]) {
+      expect(layout.prayedForBadgeClasses).toContain(
+        'prayer-card-prayed-for-badge'
+      );
+      expect(layout.prayedForBadgeClasses).not.toContain('text-blue-700');
+      expect(layout.prayedForBadgeClasses).not.toContain('text-blue-300');
+      expect(layout.prayedForBadgeClasses).toContain('border-current');
+      expect(layout.prayedForBadgeClasses).not.toContain('border-blue-600');
+      expect(layout.prayedForBadgeClasses).not.toContain('border-blue-500');
+    }
+  });
+
   it('hides the Journal word on a phone and keeps the restored padding and gap', () => {
     const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '../components');
     const prayerRow = readFileSync(
@@ -223,5 +238,21 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     expect(phoneLock).not.toContain('font-size: calc(10px / var(--os-text-zoom, 1))');
     expect(phoneLock).not.toContain('width: 32px');
     expect(css.slice(memorize)).not.toContain('.prayer-card-journal-label');
+  });
+
+  it('documents seasonal prayer update row body lighter than header band', () => {
+    const cssPath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../styles.css'
+    );
+    const css = readFileSync(cssPath, 'utf8');
+    expect(css).toContain('--color-card-meta-header-band: #d6d1cb');
+    expect(css).toContain('--theme-surface-inset: #e8e5e1');
+    const blossomBlock = css.match(/html\.blossom \{[\s\S]*?\n\}/);
+    expect(blossomBlock?.[0]).toContain('--color-card-meta-header-band: #f6d5de');
+    expect(blossomBlock?.[0]).toContain('--theme-surface-inset: #fff7f9');
+    expect(css).toContain('html.blossom app-prayer-update-row');
+    expect(css).toContain('--prayer-update-row-shell-bg: #fff7f9');
+    expect(css).toContain('app-prayer-update-row .bg-card-meta-header-band');
   });
 });

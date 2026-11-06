@@ -18,8 +18,18 @@ const CARD_SHELL_RADIUS_3XL = 'shell-radius-3xl';
 
 export const PRAYER_CARD_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_SHELL_BORDER_W_2}`;
 
-/** Seals update-row outer corners (1px border). Pair with `bg-inset-surface`. */
+/** Seals update-row outer corners (1px border). Pair with {@link PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS}. */
 export const PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_SHELL_BORDER_W_1}`;
+
+/** Shell inset fill; seasonal themes override `--theme-surface-inset` like default Light. */
+export const PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS = 'prayer-update-row-shell';
+
+/** Transparent wrapper; body shows shell inset (same as default Light). */
+export const PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS = 'prayer-update-row-body';
+
+/** @deprecated Use global `--color-card-meta-header-band` on update rows (Light mode pattern). */
+export const PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS =
+  'prayer-update-row-header-band';
 
 /** Top radius for meta header bands inside a 2px `rounded-lg` home shell. */
 export const PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES = `${CARD_SHELL_HEADER_BAND_ROUNDED} ${CARD_SHELL_RADIUS_LG} ${CARD_SHELL_BORDER_W_2}`;
@@ -148,7 +158,7 @@ const HOME_CARD_CHROME: CardVariantChrome = {
   actionButtonClasses:
     'flex-shrink-0 px-2 py-1 text-xs font-medium whitespace-nowrap',
   prayedForBadgeClasses:
-    'flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-200 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
+    'prayer-card-prayed-for-badge flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-200 dark:bg-blue-900/20 rounded-md border border-current whitespace-nowrap',
   showUnreadBadges: true,
 };
 
@@ -165,7 +175,7 @@ const PRESENTATION_CARD_CHROME: CardVariantChrome = {
   actionButtonClasses:
     'px-3 py-1.5 text-sm sm:px-4 sm:py-2 sm:text-base md:text-lg font-medium whitespace-nowrap',
   prayedForBadgeClasses:
-    'px-2 py-1.5 text-sm sm:px-3 sm:py-2 sm:text-base md:text-lg font-medium bg-blue-200 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
+    'prayer-card-prayed-for-badge px-2 py-1.5 text-sm sm:px-3 sm:py-2 sm:text-base md:text-lg font-medium bg-blue-200 dark:bg-blue-900/20 rounded-md border border-current whitespace-nowrap',
   showUnreadBadges: false,
 };
 

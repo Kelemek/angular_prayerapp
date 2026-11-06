@@ -80,7 +80,7 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     const churchChrome = fixture.nativeElement.querySelector(
       '[role="button"] > div'
     ) as HTMLElement;
-    expect(churchChrome.className).toContain("bg-blue-200");
+    expect(churchChrome.className).toContain("var(--home-tab-public-bg)");
     const promptsChip = [...fixture.nativeElement.querySelectorAll("button")].find(
       (button: HTMLButtonElement) =>
         button.textContent?.trim().startsWith("Prompts")

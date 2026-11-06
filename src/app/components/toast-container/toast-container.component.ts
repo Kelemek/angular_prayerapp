@@ -15,12 +15,14 @@ import { Observable } from "rxjs";
   template: `
     <!-- Toast Container: centered at top, respects safe area (notch, home indicator) -->
     <div
-      class="fixed top-0 left-0 right-0 z-[250] flex flex-col items-center space-y-2 w-full max-w-md mx-auto pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pointer-events-none"
+      class="contrast-chip-surface fixed top-0 left-0 right-0 z-[250] flex flex-col items-center space-y-2 w-full max-w-md mx-auto pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pointer-events-none"
     >
       @for (toast of toasts$ | async; track toast.id) {
       <div
         [class]="
-          'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg animate-slide-down ' +
+          'cp-toast pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg animate-slide-down ' +
+          toastVariantClass(toast.type) +
+          ' ' +
           toastService.getToastStyles(toast.type)
         "
       >
@@ -92,5 +94,22 @@ export class ToastContainerComponent implements OnInit {
 
   ngOnInit(): void {
     this.toasts$ = this.toastService.toasts$;
+  }
+
+  toastVariantClass(type: Toast["type"]): string {
+    switch (type) {
+      case "success":
+        return "cp-toast--success";
+      case "error":
+        return "cp-toast--error";
+      case "warning":
+        return "cp-toast--warning";
+      case "info":
+        return "cp-toast--info";
+      default: {
+        const unreachable: never = type;
+        return unreachable;
+      }
+    }
   }
 }

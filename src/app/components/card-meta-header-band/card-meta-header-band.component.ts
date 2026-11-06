@@ -20,6 +20,8 @@ import { META_HEADER_BORDER_BOTTOM_CLASSES } from '../../lib/prayer-status-heade
     <div
       [class]="
         'bg-card-meta-header-band ' +
+        bandSurfaceClasses +
+        ' ' +
         (layout === 'two-column'
           ? 'grid grid-cols-[minmax(0,1fr)_auto] items-stretch ' + bleedClasses + ' overflow-hidden ' + roundedClasses + ' ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses
           : 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ' + bleedClasses + ' overflow-hidden ' + roundedClasses + ' ' + borderBottomClasses + ' ' + bandMarginClasses + ' ' + minHeightClasses)
@@ -98,6 +100,8 @@ export class CardMetaHeaderBandComponent {
   @Input() compactActionsInset = false;
   /** Override actions-column inset when the card shell uses non-standard padding. */
   @Input() actionsInsetClasses: string | null = null;
+  /** Extra classes on the band surface (e.g. prayer update row seasonal header). */
+  @Input() bandSurfaceClasses = '';
 
   get layoutClasses() {
     return getMetaHeaderBandLayoutClasses(this.bandSize);

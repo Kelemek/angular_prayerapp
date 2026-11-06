@@ -75,19 +75,21 @@ export class ToastService {
 
   /**
    * Get CSS classes for toast type.
-   * Uses transparent background with backdrop blur; border and text carry the type color.
+   * Info matches the Request chip (`btn-chip-blue` on `contrast-chip-surface`):
+   * `bg-blue-200` / `dark:bg-blue-900/20`, not translucent `bg-blue-700/20`.
+   * Text and border stay on `btn-chip-blue` so Blossom does not remap `text-blue-700`.
    */
   getToastStyles(type: string): string {
-    const base = 'backdrop-blur-md border shadow-lg ';
+    const base = 'backdrop-blur-md shadow-lg ';
     switch (type) {
       case 'success':
-        return base + 'bg-green-700/20 dark:bg-green-800/25 text-green-800 dark:text-green-100 border-green-600 dark:border-green-600';
+        return base + 'border bg-green-700/20 dark:bg-green-800/25 text-green-800 dark:text-green-100 border-green-600 dark:border-green-600';
       case 'error':
-        return base + 'bg-red-700/20 dark:bg-red-800/25 text-red-800 dark:text-red-100 border-red-600 dark:border-red-600';
+        return base + 'border bg-red-700/20 dark:bg-red-800/25 text-red-800 dark:text-red-100 border-red-600 dark:border-red-600';
       case 'warning':
-        return base + 'bg-amber-600/20 dark:bg-amber-700/25 text-amber-900 dark:text-amber-100 border-amber-500 dark:border-amber-600';
+        return base + 'border bg-amber-600/20 dark:bg-amber-700/25 text-amber-900 dark:text-amber-100 border-amber-500 dark:border-amber-600';
       default:
-        return base + 'bg-blue-700/20 dark:bg-blue-800/25 text-blue-800 dark:text-blue-100 border-blue-600 dark:border-blue-600';
+        return base + 'btn-chip-blue bg-blue-200 hover:bg-blue-300 dark:bg-blue-900/20 dark:hover:bg-blue-900/30';
     }
   }
 }

@@ -1,6 +1,6 @@
 import { parsePresentationSettingsJson } from '../services/presentation-settings.service';
 import { getPresentationSettingsDefaults } from './presentation-settings-defaults';
-import type { Theme } from '../services/theme.service';
+import { isStoredTheme, type Theme } from '../services/theme.service';
 import type { TextSize } from '../services/text-size.service';
 import type { ClientPreferences } from '../types/client-preferences';
 import { isBibleTranslation } from '../types/memorization';
@@ -9,14 +9,12 @@ import { MEMORIZE_LISTEN_SPEEDS } from './memorization/memorizeListenSpeedStorag
 import type { MemorizeListenSpeed } from './memorization/memorizeListenSpeedStorage';
 
 const TEXT_SIZES: readonly TextSize[] = ['normal', 'large', 'largest'];
-const THEMES: readonly Theme[] = ['light', 'dark', 'black', 'system'];
-
 function isTextSize(value: unknown): value is TextSize {
   return typeof value === 'string' && (TEXT_SIZES as readonly string[]).includes(value);
 }
 
 function isTheme(value: unknown): value is Theme {
-  return typeof value === 'string' && (THEMES as readonly string[]).includes(value);
+  return typeof value === 'string' && isStoredTheme(value);
 }
 
 function isMemorizeListView(value: unknown): value is MemorizeListView {

@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   HOME_FILTER_TAB_ACTIVE_FILL,
+  HOME_FILTER_TAB_INACTIVE_FILL,
+  HOME_GROUPS_STATUS_CHIP_THEMES,
+  HOME_MEMORIZE_PANEL_CHIP_THEMES,
   HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
   HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
   HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
@@ -8,33 +11,49 @@ import {
   HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
   HOME_SHELL_FOOTER_BORDER_TOP_CLASS,
   HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS,
+  HOME_TAB_CSS_VAR,
+  HOME_TAB_GROUPS_ACTIVE_FILL_CLASS,
+  HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS,
+  HOME_TAB_TAILWIND_SCAN_ANCHOR,
   MODAL_CHROME_BORDER_BOTTOM_CLASS,
   MODAL_CHROME_BORDER_TOP_CLASS,
   homeFilterTabClass,
 } from "./home-sub-filter-chip-classes";
 
 describe("HOME_*_SUB_FILTER_GROUP_CLASS", () => {
-  it("uses static folder-panel fills matching each tab (Tailwind must see full literals)", () => {
-    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain("bg-church-green-tint");
+  it("uses CSS variables for folder-panel fills and borders (theme overrides on html)", () => {
     expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain(
-      "dark:bg-green-900/40"
+      "var(--home-tab-personal-bg)"
     );
-    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain("bg-stone-300");
-    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("bg-blue-200");
+    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-personal-border)"
+    );
+    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-prompts-bg)"
+    );
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-public-bg)"
+    );
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("rounded-b-lg");
-    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-[#0047AB]");
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-public-border)"
+    );
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-t-0");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-x-[2px]");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("border-b-[2px]");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS.split(" ")).not.toContain(
       "border-[2px]"
     );
-    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain("border-[#2F5F54]");
-    expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain("border-[#988F83]");
   });
 
-  it("aliases memorize group fill to public blue", () => {
-    expect(HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS).toBe(
+  it("uses memorize tab vars (not aliased to public)", () => {
+    expect(HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-memorize-bg)"
+    );
+    expect(HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-memorize-border)"
+    );
+    expect(HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS).not.toBe(
       HOME_PUBLIC_SUB_FILTER_GROUP_CLASS
     );
   });
@@ -88,8 +107,8 @@ describe("homeFilterTabClass", () => {
     expect(cls).toContain("border-x-[2px]");
     expect(cls).toContain("border-b-0");
     expect(cls).not.toContain("-mb-[2px]");
-    expect(cls).toContain("bg-blue-200");
-    expect(cls).toContain("border-[#0047AB]");
+    expect(cls).toContain("var(--home-tab-public-bg)");
+    expect(cls).toContain("var(--home-tab-public-border)");
     expect(tokens).not.toContain("border-[2px]");
   });
 
@@ -101,61 +120,134 @@ describe("homeFilterTabClass", () => {
     });
     expect(cls).toContain("rounded-lg");
     expect(cls).toContain(HOME_FILTER_TAB_ACTIVE_FILL.members.split(" ")[0]);
-    expect(cls).toContain("border-[#0047AB]");
+    expect(cls).toContain("var(--home-tab-members-border)");
     expect(cls).not.toContain("border-b-0");
   });
 
-  it("uses inactive chrome for unselected tabs", () => {
+  it("uses per-accent inactive CSS vars for unselected tabs", () => {
     const cls = homeFilterTabClass({
       accent: "personal",
       active: false,
       hasSubRow: true,
     });
     expect(cls).toContain("rounded-t-lg");
-    expect(cls).toContain("bg-home-filter-tab-inactive");
-    expect(cls).not.toContain("dark:bg-gray-800");
-    expect(cls).toContain("border-church-surface-inactive-tab-border");
+    expect(cls).toContain("var(--home-tab-personal-inactive-bg)");
+    expect(cls).toContain("var(--home-tab-personal-inactive-border)");
+    expect(cls).toContain("border-2");
+    expect(cls).toContain("home-filter-tab-inactive-chrome");
+    expect(cls).not.toContain("bg-home-filter-tab-inactive");
     expect(cls).not.toContain("border-[2px]");
     expect(cls).not.toContain("z-10");
   });
 });
 
 describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
-  it("uses bordered chips with accent rings", () => {
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain("ring");
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain(
-      "border-[#0047AB]"
+  it("uses public tab accent for all church status active chips", () => {
+    for (const key of [
+      "current",
+      "answered",
+      "archived",
+      "total",
+      "prompts",
+      "members",
+    ] as const) {
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toBe(
+        HOME_PUBLIC_STATUS_CHIP_THEMES.current.active
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toContain(
+        "var(--home-tab-public-border)"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toContain("ring");
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "#39704D"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "#C9A961"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "border-gray-500"
+      );
+      expect(HOME_PUBLIC_STATUS_CHIP_THEMES[key].active).toContain(
+        "bg-home-panel-blue-chip-active"
+      );
+    }
+  });
+
+  it("uses CSS variable tab fills and lighter chip fills than panels", () => {
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.public).toContain(
+      "var(--home-tab-public-bg)"
+    );
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.personal).toContain(
+      "var(--home-tab-personal-bg)"
+    );
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.prompts).toContain(
+      "var(--home-tab-prompts-bg)"
+    );
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.memorize).toContain(
+      "var(--home-tab-memorize-bg)"
     );
     expect(HOME_PUBLIC_STATUS_CHIP_THEMES.answered.active).toContain(
-      "border-[#39704D]"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.archived.active).toContain(
-      "border-[#C9A961]"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.total.active).toContain(
-      "border-gray-500"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.prompts.active).toContain(
-      "border-[#988F83]"
-    );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.members.active).toContain(
-      "border-[#0047AB]"
+      "bg-home-panel-blue-chip-active"
     );
   });
 
-  it("uses lighter light-mode fills than folder panels for selected chips", () => {
-    expect(HOME_FILTER_TAB_ACTIVE_FILL.public).toContain("bg-blue-200");
-    expect(HOME_FILTER_TAB_ACTIVE_FILL.personal).toContain("bg-church-green-tint");
-    expect(HOME_FILTER_TAB_ACTIVE_FILL.prompts).toContain("bg-stone-300");
-    expect(HOME_FILTER_TAB_ACTIVE_FILL.memorize).toContain("bg-blue-200");
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.current.active).toContain(
-      "bg-home-panel-blue-chip-active"
+  it("maps memorize panel chips to memorize tab CSS vars", () => {
+    expect(HOME_MEMORIZE_PANEL_CHIP_THEMES.active).toContain(
+      "var(--home-tab-memorize-border)"
     );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.answered.active).toContain(
-      "bg-home-panel-green-status-chip-active"
+    expect(HOME_TAB_CSS_VAR.memorize.border).toBe("--home-tab-memorize-border");
+  });
+
+  it("uses distinct CSS vars for inactive vs active tab fills", () => {
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.public).toContain(
+      "var(--home-tab-public-bg)"
     );
-    expect(HOME_PUBLIC_STATUS_CHIP_THEMES.archived.active).toContain(
-      "bg-home-panel-amber-status-chip-active"
+    expect(HOME_FILTER_TAB_INACTIVE_FILL.public).toContain(
+      "var(--home-tab-public-inactive-bg)"
     );
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.public).not.toBe(
+      HOME_FILTER_TAB_INACTIVE_FILL.public
+    );
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-public-bg)"
+    );
+  });
+
+  it("HOME_TAB_TAILWIND_SCAN_ANCHOR includes static literals for every accent", () => {
+    const required = [
+      "--home-tab-public-inactive-bg",
+      "--home-tab-groups-inactive-bg",
+      "--home-tab-personal-inactive-bg",
+      "--home-tab-memorize-inactive-bg",
+      "--home-tab-public-bg",
+      "--home-tab-groups-bg",
+      "--home-tab-memorize-bg",
+    ];
+    for (const token of required) {
+      expect(HOME_TAB_TAILWIND_SCAN_ANCHOR).toContain(token);
+    }
+    expect(HOME_FILTER_TAB_INACTIVE_FILL.public).toBe(
+      HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS
+    );
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.groups).toBe(
+      HOME_TAB_GROUPS_ACTIVE_FILL_CLASS
+    );
+  });
+});
+
+describe("HOME_GROUPS_STATUS_CHIP_THEMES", () => {
+  it("uses groups tab accent for current, answered, and total active chips", () => {
+    for (const key of ["current", "answered", "total"] as const) {
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).toBe(
+        HOME_GROUPS_STATUS_CHIP_THEMES.current.active
+      );
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).toContain(
+        "var(--home-tab-groups-border)"
+      );
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).not.toContain("#39704D");
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "border-gray-500"
+      );
+    }
   });
 });
