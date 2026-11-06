@@ -2393,6 +2393,15 @@ html.christmas-dark app-prayer-update-row {
   --prayer-update-row-shell-bg: #163328;
   --prayer-update-row-header-bg: rgb(10 31 24 / 0.72);
 }
+/*
+  Blossom Dark: prayer cards use --surface-card (e.g. dark:bg-gray-800 → #3b2434) while the
+  prayer-update-row utility fell back to --surface-inset, also #3b2434 — identical nested fills.
+  Nesting uses page-tint shell + raised header band (same relationship as light Blossom).
+*/
+html.dark.blossom-dark app-prayer-update-row {
+  --prayer-update-row-shell-bg: #2d1a28;
+  --prayer-update-row-header-bg: #4a2d40;
+}
 app-prayer-update-row .bg-card-meta-header-band {
   background-color: var(
     --prayer-update-row-header-bg,
