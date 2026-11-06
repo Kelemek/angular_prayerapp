@@ -1809,24 +1809,38 @@ html.christmas-light .settings-modal-footer {
   border-color: var(--theme-chrome-border);
 }
 
-/* Help modals: themed shell, scroll well, and section cards (bg-white otherwise wins). */
+/* Help, User Settings, and modal-shell dialogs: themed shell, scroll well, and section cards (bg-white otherwise wins). */
 html.blossom app-help-modal .modal-panel-edge,
 html.blossom app-admin-help-modal .modal-panel-edge,
 html.christmas-light app-help-modal .modal-panel-edge,
-html.christmas-light app-admin-help-modal .modal-panel-edge {
+html.christmas-light app-admin-help-modal .modal-panel-edge,
+html.blossom app-user-settings .settings-modal-panel,
+html.christmas-light app-user-settings .settings-modal-panel,
+html.blossom app-modal-shell .modal-shell-panel,
+html.christmas-light app-modal-shell .modal-shell-panel {
   background-color: var(--theme-surface-card) !important;
   border-color: var(--theme-chrome-border);
 }
 html.blossom app-help-modal .settings-modal-body,
 html.blossom app-admin-help-modal .settings-modal-body,
 html.christmas-light app-help-modal .settings-modal-body,
-html.christmas-light app-admin-help-modal .settings-modal-body {
+html.christmas-light app-admin-help-modal .settings-modal-body,
+html.blossom app-user-settings .settings-modal-body,
+html.christmas-light app-user-settings .settings-modal-body,
+html.blossom app-modal-shell .settings-modal-body,
+html.christmas-light app-modal-shell .settings-modal-body,
+html.blossom app-presentation-settings-modal .modal-shell-body,
+html.christmas-light app-presentation-settings-modal .modal-shell-body {
   background-color: var(--surface-page) !important;
 }
 html.blossom app-help-modal .settings-modal-section-card,
 html.blossom app-admin-help-modal .settings-modal-section-card,
 html.christmas-light app-help-modal .settings-modal-section-card,
-html.christmas-light app-admin-help-modal .settings-modal-section-card {
+html.christmas-light app-admin-help-modal .settings-modal-section-card,
+html.blossom app-user-settings .settings-modal-section-card,
+html.christmas-light app-user-settings .settings-modal-section-card,
+html.blossom app-modal-shell .settings-modal-section-card,
+html.christmas-light app-modal-shell .settings-modal-section-card {
   background-color: var(--theme-surface-card) !important;
   border-color: var(--theme-border) !important;
 }

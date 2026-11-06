@@ -2543,6 +2543,25 @@ describe('HelpModalComponent - Settings modal chrome', () => {
     expect(styles).toContain('html.blossom app-help-modal .settings-modal-body');
     expect(styles).toContain('html.blossom app-admin-help-modal .modal-panel-edge');
     expect(styles).toContain('html.christmas-light app-help-modal .settings-modal-section-card');
+    expect(styles).toContain('html.blossom app-user-settings .settings-modal-panel');
+    expect(styles).toContain('html.blossom app-user-settings .settings-modal-body');
+    expect(styles).toContain('html.christmas-light app-user-settings .settings-modal-section-card');
+    expect(styles).toContain('html.blossom app-modal-shell .modal-shell-panel');
+    expect(styles).toContain('html.blossom app-modal-shell .settings-modal-body');
+    expect(styles).toContain('html.christmas-light app-modal-shell .settings-modal-section-card');
+    expect(styles).toContain('html.blossom app-presentation-settings-modal .modal-shell-body');
+    const userSettings = readHelpModalResource('../user-settings/user-settings.component.html');
+    const userSettingsPanel = readHelpModalResource(
+      '../user-settings-panel/user-settings-panel.component.html'
+    );
+    const presentation = readHelpModalResource(
+      '../presentation-settings-modal/presentation-settings-modal.component.html'
+    );
+    expect(userSettings).toContain('settings-modal-panel');
+    expect(userSettings).toContain('bg-white');
+    expect(userSettingsPanel).toContain('settings-modal-body');
+    expect(presentation).toContain('app-modal-shell');
+    expect(presentation).toContain('settings-modal-body');
   });
 
   it('stacks the scrim and dialog above the scroll-to-top button', () => {
