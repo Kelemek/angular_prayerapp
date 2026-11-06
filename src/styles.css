@@ -1489,51 +1489,55 @@ html.black .dark\:hover\:bg-blue-700:is(.dark *):hover {
 }
 
 /*
-  Day (High Contrast light) — crisp paper, strong ink; inverse of Night’s OLED intent.
-  No .dark on html.
+  Day (High Contrast light) — cool slate canvas, pure white cards, strong edges.
+  Deliberately unlike Default Light’s warm cream: reads as the light counterpart
+  to Night’s separated layers (page vs card). No .dark on html.
 */
 html.day {
   color-scheme: light;
-  --surface-page: #f5f7fa;
+  /* Mid slate page so white/off-white surfaces pop (not pale blue-gray like before). */
+  --surface-page: #94a3b8;
   --surface-card: #ffffff;
-  --surface-raised: #e2e8f0;
-  --surface-inset: #f1f5f9;
+  --surface-raised: #f1f5f9;
+  --surface-inset: #f8fafc;
   --surface-inset-hover: #e2e8f0;
-  --theme-surface-page: #f5f7fa;
+  --theme-surface-page: #94a3b8;
   --theme-surface-card: #ffffff;
-  --theme-surface-raised: #e2e8f0;
-  --theme-surface-raised-alt: #cbd5e1;
-  --theme-surface-muted: #64748b;
-  --theme-surface-inset: #f1f5f9;
-  --theme-surface-inset-muted: #e2e8f0;
-  --theme-text-body: #0f172a;
-  --theme-text-secondary: #1e293b;
-  --theme-text-muted: #475569;
-  --theme-border: #94a3b8;
-  --theme-border-light: #e2e8f0;
-  --theme-action-primary: #0f172a;
-  --theme-action-primary-hover: #020617;
+  --theme-surface-raised: #f1f5f9;
+  --theme-surface-raised-alt: #e2e8f0;
+  --theme-surface-muted: #475569;
+  --theme-surface-inset: #f8fafc;
+  --theme-surface-inset-muted: #f1f5f9;
+  --theme-text-body: #020617;
+  --theme-text-secondary: #0f172a;
+  --theme-text-muted: #334155;
+  --theme-border: #475569;
+  --theme-border-light: #cbd5e1;
+  --theme-action-primary: #020617;
+  --theme-action-primary-hover: #000000;
   --theme-action-blue: #1d4ed8;
   --theme-action-blue-muted: #1e40af;
-  --theme-chrome-border: #0f172a;
-  --theme-safe-area-chrome: #f5f7fa;
-  --color-church-cream: #f5f7fa;
-  --color-church-gray-warm: #475569;
-  --color-church-navy: #0f172a;
-  --color-church-slate: #020617;
+  --theme-chrome-border: #020617;
+  --theme-safe-area-chrome: #94a3b8;
+  --color-church-cream: #94a3b8;
+  --color-church-gray-warm: #334155;
+  --color-church-navy: #020617;
+  --color-church-slate: #0f172a;
   --color-church-green: #0f766e;
   --color-church-green-medium: #115e59;
   --color-church-green-dark: #134e4a;
   --color-church-blue: #1d4ed8;
   --color-church-blue-dark: #1e3a8a;
-  --header-bg-light: rgb(245 247 250 / 0.92);
+  /* Modal chrome bands: slate step between page and white cards (not default cream). */
+  --color-card-meta-header-band: #e2e8f0;
+  --header-bg-light: rgb(148 163 184 / 0.92);
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f7fa;
+  --bg-secondary: #94a3b8;
   --bg-tertiary: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #1e293b;
-  --text-muted: #475569;
-  --border-color: #94a3b8;
+  --text-primary: #020617;
+  --text-secondary: #0f172a;
+  --text-muted: #334155;
+  --border-color: #475569;
 }
 
 html.day body,
@@ -2084,7 +2088,16 @@ html.christmas-light body::after {
 html.christmas-light .modal-chrome-header,
 html.christmas-light .modal-chrome-footer,
 html.christmas-light .settings-modal-header,
-html.christmas-light .settings-modal-footer {
+html.christmas-light .settings-modal-footer,
+html.day .modal-chrome-header,
+html.day .modal-chrome-footer,
+html.day .settings-modal-header,
+html.day .settings-modal-footer {
+  border-color: var(--theme-chrome-border);
+}
+
+html.day .modal-chrome-border-b,
+html.day .modal-chrome-border-t {
   border-color: var(--theme-chrome-border);
 }
 
@@ -2093,10 +2106,14 @@ html.blossom app-help-modal .modal-panel-edge,
 html.blossom app-admin-help-modal .modal-panel-edge,
 html.christmas-light app-help-modal .modal-panel-edge,
 html.christmas-light app-admin-help-modal .modal-panel-edge,
+html.day app-help-modal .modal-panel-edge,
+html.day app-admin-help-modal .modal-panel-edge,
 html.blossom app-user-settings .settings-modal-panel,
 html.christmas-light app-user-settings .settings-modal-panel,
+html.day app-user-settings .settings-modal-panel,
 html.blossom app-modal-shell .modal-shell-panel,
-html.christmas-light app-modal-shell .modal-shell-panel {
+html.christmas-light app-modal-shell .modal-shell-panel,
+html.day app-modal-shell .modal-shell-panel {
   background-color: var(--theme-surface-card) !important;
   border-color: var(--theme-chrome-border);
 }
@@ -2104,22 +2121,31 @@ html.blossom app-help-modal .settings-modal-body,
 html.blossom app-admin-help-modal .settings-modal-body,
 html.christmas-light app-help-modal .settings-modal-body,
 html.christmas-light app-admin-help-modal .settings-modal-body,
+html.day app-help-modal .settings-modal-body,
+html.day app-admin-help-modal .settings-modal-body,
 html.blossom app-user-settings .settings-modal-body,
 html.christmas-light app-user-settings .settings-modal-body,
+html.day app-user-settings .settings-modal-body,
 html.blossom app-modal-shell .settings-modal-body,
 html.christmas-light app-modal-shell .settings-modal-body,
+html.day app-modal-shell .settings-modal-body,
 html.blossom app-presentation-settings-modal .modal-shell-body,
-html.christmas-light app-presentation-settings-modal .modal-shell-body {
+html.christmas-light app-presentation-settings-modal .modal-shell-body,
+html.day app-presentation-settings-modal .modal-shell-body {
   background-color: var(--surface-page) !important;
 }
 html.blossom app-help-modal .settings-modal-section-card,
 html.blossom app-admin-help-modal .settings-modal-section-card,
 html.christmas-light app-help-modal .settings-modal-section-card,
 html.christmas-light app-admin-help-modal .settings-modal-section-card,
+html.day app-help-modal .settings-modal-section-card,
+html.day app-admin-help-modal .settings-modal-section-card,
 html.blossom app-user-settings .settings-modal-section-card,
 html.christmas-light app-user-settings .settings-modal-section-card,
+html.day app-user-settings .settings-modal-section-card,
 html.blossom app-modal-shell .settings-modal-section-card,
-html.christmas-light app-modal-shell .settings-modal-section-card {
+html.christmas-light app-modal-shell .settings-modal-section-card,
+html.day app-modal-shell .settings-modal-section-card {
   background-color: var(--theme-surface-card) !important;
   border-color: var(--theme-border) !important;
 }

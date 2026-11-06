@@ -118,7 +118,7 @@ describe('ThemeService', () => {
       meta.setAttribute('name', 'theme-color');
       document.head.appendChild(meta);
       service.setSelection({ family: 'high-contrast', mode: 'light' });
-      expect(meta.getAttribute('content')).toBe('#F5F7FA');
+      expect(meta.getAttribute('content')).toBe('#94A3B8');
       meta.remove();
     });
   });

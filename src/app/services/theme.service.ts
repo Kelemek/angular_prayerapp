@@ -46,7 +46,8 @@ export const THEME_COLOR_BLOSSOM_DARK = '#2D1A28';
 export const THEME_COLOR_CHRISTMAS_LIGHT = '#F0E2C4';
 export const THEME_COLOR_CHRISTMAS_DARK = '#0A1F18';
 /** High-contrast light “Day” — bright paper, distinct from Default warm gray. */
-export const THEME_COLOR_DAY = '#F5F7FA';
+/** Matches `html.day` `--surface-page` in styles.css and boot `theme-color` in index.html */
+export const THEME_COLOR_DAY = '#94A3B8';
 
 const THEME_FAMILIES: readonly ThemeFamily[] = [
   'default',

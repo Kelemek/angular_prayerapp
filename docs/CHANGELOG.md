@@ -4,6 +4,10 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### High Contrast Day contrast (November 6, 2026)
+- **High Contrast → Light (Day, `html.day`)** uses a **cool slate page** (`#94A3B8`) with **white cards** and **stronger borders/text** so it no longer reads like Default Light’s warm cream. [`THEME_COLOR_DAY`](../src/app/services/theme.service.ts), [`index.html`](../src/index.html) boot `theme-color`, and [`styles.css`](../src/styles.css) stay in sync.
+- **Day** also applies the same **page vs card** split to **modals** (Help, Settings, `app-modal-shell`, presentation settings): **slate scroll well**, **white shells/section cards**, and **slate header bands** with Day chrome borders instead of default cream + church green ([`styles.css`](../src/styles.css)).
+
 ### Blossom Dark home tabs (November 6, 2026)
 - **Blossom Dark** (`html.dark` + **`html.blossom-dark`**) now overrides **Home folder tab** `--home-tab-*` with a **plum–rose ladder** (replacing the default Church blue `#0047AB` tab borders from `:root`). Distinct **`--home-tab-*-bg`** vs **`--home-tab-*-bg-dark`** keep the same hue–shade relationship as light Blossom. Variables and belt-and-suspenders for inactive tabs and tour anchors use **`html.dark.blossom-dark`** so they win the cascade over the later **`:root { --home-tab-* }`** block ([`styles.css`](src/styles.css)).
 - Under **`html.dark.blossom-dark`**, **Home sub-filter rows** (status chips and inactive chip shells that use `--color-church-surface-inactive*` and **`--color-home-panel-green-status-chip-active-dark`**) are remixed to **rose/plum** so the second tab row matches light Blossom’s hue family instead of gray fills or forest-green “current” chips.
