@@ -370,6 +370,26 @@ export const HOME_GROUPS_PANEL_CHIP_THEMES = {
     " hover:border-[var(--home-tab-groups-border)] dark:hover:border-[var(--home-tab-groups-border)]",
 } as const;
 
+const HOME_GROUPS_STATUS_CHIP_INACTIVE =
+  HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
+  " hover:border-[var(--home-tab-groups-border)] dark:hover:border-[var(--home-tab-groups-border)]";
+
+/** Group tab Current / Answered / Total — same selected styling (groups accent). */
+export const HOME_GROUPS_STATUS_CHIP_THEMES = {
+  current: {
+    active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+    inactive: HOME_GROUPS_STATUS_CHIP_INACTIVE,
+  },
+  answered: {
+    active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+    inactive: HOME_GROUPS_STATUS_CHIP_INACTIVE,
+  },
+  total: {
+    active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+    inactive: HOME_GROUPS_STATUS_CHIP_INACTIVE,
+  },
+} as const;
+
 export const HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS =
   HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
   " hover:border-[var(--home-tab-personal-border)] dark:hover:border-[var(--home-tab-personal-border)]";

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   HOME_FILTER_TAB_ACTIVE_FILL,
   HOME_FILTER_TAB_INACTIVE_FILL,
+  HOME_GROUPS_STATUS_CHIP_THEMES,
   HOME_MEMORIZE_PANEL_CHIP_THEMES,
   HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
   HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
@@ -228,5 +229,22 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
     expect(HOME_FILTER_TAB_ACTIVE_FILL.groups).toBe(
       HOME_TAB_GROUPS_ACTIVE_FILL_CLASS
     );
+  });
+});
+
+describe("HOME_GROUPS_STATUS_CHIP_THEMES", () => {
+  it("uses groups tab accent for current, answered, and total active chips", () => {
+    for (const key of ["current", "answered", "total"] as const) {
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).toBe(
+        HOME_GROUPS_STATUS_CHIP_THEMES.current.active
+      );
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).toContain(
+        "var(--home-tab-groups-border)"
+      );
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).not.toContain("#39704D");
+      expect(HOME_GROUPS_STATUS_CHIP_THEMES[key].active).not.toContain(
+        "border-gray-500"
+      );
+    }
   });
 });
