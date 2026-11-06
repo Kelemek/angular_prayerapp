@@ -1,26 +1,31 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
-import { readFileSync, existsSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
-import { ɵresolveComponentResources as resolveComponentResources } from "@angular/core";
-import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { PresentationSettingsThemePickerComponent } from "./presentation-settings-theme-picker.component";
-import type { PresentationSettingsThemeOption } from "./presentation-settings-theme-section.component";
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { ɵresolveComponentResources as resolveComponentResources } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { PresentationSettingsThemePickerComponent } from './presentation-settings-theme-picker.component';
 
 const componentDir = dirname(fileURLToPath(import.meta.url));
 
 function readComponentResource(url: string): string {
-  const path = join(componentDir, url);
-  if (existsSync(path)) {
-    return readFileSync(path, "utf-8");
+  const relative = url.replace(/^\.\//, '');
+  const paths = [
+    join(componentDir, url),
+    join(componentDir, '..', 'theme-select-dropdown', relative),
+  ];
+  for (const path of paths) {
+    if (existsSync(path)) {
+      return readFileSync(path, 'utf-8');
+    }
   }
   throw new Error(`Component resource not found: ${url}`);
 }
 
-describe("PresentationSettingsThemePickerComponent", () => {
+describe('PresentationSettingsThemePickerComponent', () => {
   beforeAll(async () => {
     await resolveComponentResources((url) =>
-      Promise.resolve(readComponentResource(url))
+      Promise.resolve(readComponentResource(url)),
     );
   });
 
@@ -34,7 +39,7 @@ describe("PresentationSettingsThemePickerComponent", () => {
 
     fixture = TestBed.createComponent(PresentationSettingsThemePickerComponent);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput("theme", "light");
+    fixture.componentRef.setInput('theme', 'light');
     fixture.detectChanges();
   });
 
@@ -42,32 +47,39 @@ describe("PresentationSettingsThemePickerComponent", () => {
     fixture?.destroy();
   });
 
-  it.each<[string, PresentationSettingsThemeOption]>([
-    ["Dark", "dark"],
-    ["Night", "black"],
-    ["System", "system"],
-  ])('emits themeChange with "%s" when %s is clicked', (label, theme) => {
-    const emitted: PresentationSettingsThemeOption[] = [];
-    component.themeChange.subscribe((value) => emitted.push(value));
-
-    const button = Array.from(
-      fixture.nativeElement.querySelectorAll("button")
-    ).find((el: Element) => el.textContent?.includes(label)) as HTMLButtonElement;
-    button.click();
-
-    expect(emitted).toEqual([theme]);
-  });
-
-  it("highlights the active theme button", () => {
-    fixture.componentRef.setInput("theme", "dark");
+  it('renders a theme dropdown with seven options when opened', () => {
+    const trigger = fixture.nativeElement.querySelector(
+      'button[aria-haspopup="listbox"]',
+    ) as HTMLButtonElement;
+    expect(trigger).toBeTruthy();
+    trigger.click();
     fixture.detectChanges();
 
-    const buttons = fixture.nativeElement.querySelectorAll(
-      "button"
-    ) as NodeListOf<HTMLButtonElement>;
-    const darkButton = Array.from(buttons).find((button) =>
-      button.textContent?.includes("Dark")
-    );
-    expect(darkButton?.className).toContain("border-blue-500");
+    const options = fixture.nativeElement.querySelectorAll('[role="option"]');
+    expect(options.length).toBe(7);
+  });
+
+  it('emits themeChange when an option is chosen', () => {
+    const emitted: string[] = [];
+    component.themeChange.subscribe((value) => emitted.push(value));
+
+    const trigger = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+
+    const nightOption = Array.from(
+      fixture.nativeElement.querySelectorAll('[role="option"]'),
+    ).find((el: Element) => el.textContent?.includes('Night')) as HTMLElement;
+    nightOption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(emitted).toEqual(['black']);
+  });
+
+  it('shows the current theme label on the trigger', () => {
+    fixture.componentRef.setInput('theme', 'blossom');
+    fixture.detectChanges();
+    const trigger = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(trigger.textContent).toContain('Blossom');
   });
 });

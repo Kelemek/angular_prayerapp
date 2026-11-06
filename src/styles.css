@@ -1366,6 +1366,202 @@ html.black .dark\:hover\:bg-blue-700:is(.dark *):hover {
   background-color: var(--surface-inset-hover) !important;
 }
 
+/* Blossom — light floral palette (no .dark on html). */
+html.blossom {
+  color-scheme: light;
+  --surface-page: #fce8ee;
+  --surface-card: #fff7f9;
+  --surface-raised: #f6d5de;
+  --surface-inset: #f6d5de;
+  --surface-inset-hover: #efb6c4;
+  --color-church-cream: #fce8ee;
+  --color-church-navy: #6b1e33;
+  --color-church-slate: #4a1224;
+  --color-primary-800: #6b1e33;
+  --color-primary-900: #4a1224;
+  --header-bg-light: rgb(252 232 238 / 0.92);
+  --text-primary: #3b1520;
+  --text-secondary: #6b1e33;
+  --text-muted: #8e4a5e;
+  --accent-primary: #c45b76;
+  --color-church-green: #c45b76;
+  --color-church-green-medium: #a84862;
+}
+
+html.blossom body,
+html.blossom body::before,
+html.blossom body::after {
+  background-color: var(--surface-page);
+}
+
+html.blossom .bg-gray-900 {
+  background-color: var(--surface-page) !important;
+}
+
+html.blossom .bg-gray-800 {
+  background-color: var(--surface-card) !important;
+}
+
+html.blossom .bg-gray-100,
+html.blossom .bg-gray-700,
+html.blossom .bg-inset-surface,
+html.blossom .bg-inset-surface-muted {
+  background-color: var(--surface-raised) !important;
+}
+
+html.blossom .bg-gray-50 {
+  background-color: var(--surface-page) !important;
+}
+
+html.blossom .text-gray-800,
+html.blossom .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+html.blossom .text-gray-600,
+html.blossom .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+/* Christmas Light — cream and pine accents (no .dark on html). */
+html.christmas-light {
+  color-scheme: light;
+  --surface-page: #f7f1e4;
+  --surface-card: #fffcf6;
+  --surface-raised: #e8f0e6;
+  --surface-inset: #e8f0e6;
+  --surface-inset-hover: #d4e4d6;
+  --color-church-cream: #f7f1e4;
+  --color-church-navy: #1f4d36;
+  --color-church-slate: #0f2e22;
+  --color-primary-800: #1f4d36;
+  --color-primary-900: #0f2e22;
+  --header-bg-light: rgb(247 241 228 / 0.92);
+  --text-primary: #1a2e24;
+  --text-secondary: #1f4d36;
+  --text-muted: #3d5c4a;
+  --accent-primary: #1f4d36;
+  --accent-secondary: #c4a35a;
+  --accent-gold: #c4a35a;
+  --color-church-green: #1f4d36;
+  --color-church-gold: #c4a35a;
+}
+
+html.christmas-light body,
+html.christmas-light body::before,
+html.christmas-light body::after {
+  background-color: var(--surface-page);
+}
+
+html.christmas-light .bg-gray-900 {
+  background-color: var(--surface-page) !important;
+}
+
+html.christmas-light .bg-gray-800 {
+  background-color: var(--surface-card) !important;
+}
+
+html.christmas-light .bg-gray-100,
+html.christmas-light .bg-gray-700,
+html.christmas-light .bg-inset-surface,
+html.christmas-light .bg-inset-surface-muted {
+  background-color: var(--surface-raised) !important;
+}
+
+html.christmas-light .bg-gray-50 {
+  background-color: var(--surface-page) !important;
+}
+
+html.christmas-light .text-gray-800,
+html.christmas-light .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+html.christmas-light .text-gray-600,
+html.christmas-light .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+/*
+  Christmas Dark — dark class + overlay (like Night).
+  Surfaces: pine and forest greens with gold/crimson accents.
+*/
+html.christmas-dark {
+  color-scheme: dark;
+  --surface-page: #0a1f18;
+  --surface-card: #163328;
+  --surface-raised: #1f4d36;
+  --surface-inset: #1f4d36;
+  --surface-inset-hover: #2a5c42;
+  --color-gray-700: #1f4d36;
+  --color-gray-800: #163328;
+  --color-gray-900: #0a1f18;
+  --color-gray-950: #0a1f18;
+  --bg-primary: #163328;
+  --bg-secondary: #0a1f18;
+  --bg-tertiary: #1f4d36;
+  --header-bg-dark: rgb(10 31 24 / 0.92);
+  --color-church-navy: #1f4d36;
+  --color-church-slate: #0a1f18;
+  --color-primary-800: #0f2e22;
+  --color-primary-900: #163328;
+  --color-card-meta-header-band-dark: rgb(10 31 24 / 0.72);
+  --color-inset-surface-on-card-dark: #1f4d36;
+  --text-primary: #f7f1e4;
+  --text-secondary: #d4e4d6;
+  --accent-secondary: #c4a35a;
+  --accent-gold: #c4a35a;
+}
+
+html.christmas-dark body,
+html.christmas-dark.dark body,
+html.christmas-dark.dark body::before,
+html.christmas-dark.dark body::after {
+  background-color: var(--surface-page);
+}
+
+html.christmas-dark .dark\:bg-gray-50:is(.dark *),
+html.christmas-dark .dark\:bg-gray-900:is(.dark *) {
+  background-color: var(--surface-page) !important;
+}
+
+html.christmas-dark .dark\:bg-gray-800:is(.dark *),
+html.christmas-dark .dark\:bg-slate-800:is(.dark *) {
+  background-color: var(--surface-card) !important;
+}
+
+html.christmas-dark .dark\:bg-gray-100:is(.dark *),
+html.christmas-dark .dark\:bg-gray-300:is(.dark *),
+html.christmas-dark .dark\:bg-gray-700:is(.dark *),
+html.christmas-dark .dark\:bg-blue-700:is(.dark *) {
+  background-color: var(--surface-raised) !important;
+}
+
+html.christmas-dark .dark\:bg-gray-800\/50:is(.dark *),
+html.christmas-dark .dark\:bg-gray-800\/70:is(.dark *),
+html.christmas-dark .dark\:bg-gray-800\/80:is(.dark *),
+html.christmas-dark .dark\:bg-gray-800\/90:is(.dark *),
+html.christmas-dark .dark\:bg-gray-800\/95:is(.dark *),
+html.christmas-dark .dark\:bg-gray-950\/95:is(.dark *) {
+  background-color: rgb(10 31 24 / 0.92) !important;
+}
+
+html.christmas-dark .dark\:bg-gray-900\/20:is(.dark *),
+html.christmas-dark .dark\:bg-gray-900\/30:is(.dark *),
+html.christmas-dark .dark\:bg-gray-900\/40:is(.dark *),
+html.christmas-dark .dark\:bg-gray-900\/50:is(.dark *) {
+  background-color: var(--surface-card) !important;
+}
+
+html.christmas-dark .dark\:hover\:bg-gray-700:is(.dark *):hover,
+html.christmas-dark .dark\:hover\:bg-gray-700\/40:is(.dark *):hover,
+html.christmas-dark .dark\:hover\:bg-gray-700\/50:is(.dark *):hover,
+html.christmas-dark .dark\:hover\:bg-gray-800:is(.dark *):hover,
+html.christmas-dark .dark\:hover\:bg-gray-800\/70:is(.dark *):hover,
+html.christmas-dark .dark\:hover\:bg-blue-700:is(.dark *):hover {
+  background-color: var(--surface-inset-hover) !important;
+}
+
 /* Safari can leave content-visibility subtrees unpainted after a tab freeze. */
 html.cp-resume-paint .prayer-card,
 html.cp-resume-paint .prompt-card {

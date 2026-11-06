@@ -1,0 +1,117 @@
+<div
+  class="theme-select-dropdown relative"
+  [id]="tourAnchorId || null"
+>
+  <button
+    #triggerButton
+    type="button"
+    class="flex w-full items-center gap-2 rounded-lg border border-church-surface-inactive-border bg-white px-3 py-2.5 text-left text-sm text-gray-800 transition-colors hover:border-blue-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-blue-600 sm:px-4 sm:py-3 sm:text-base"
+    [attr.data-settings-dropdown-trigger]="dropdownKey"
+    [attr.aria-expanded]="open"
+    aria-haspopup="listbox"
+    [attr.aria-controls]="dropdownKey + '-listbox'"
+    (click)="toggleOpen()"
+    (keydown)="onTriggerKeydown($event)"
+  >
+    <span class="flex shrink-0 items-center justify-center text-current" aria-hidden="true">
+      @switch (theme) {
+        @case ('light') {
+          <svg width="20" height="20" class="text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+          </svg>
+        }
+        @case ('dark') {
+          <svg width="20" height="20" class="text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        }
+        @case ('black') {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"></circle>
+          </svg>
+        }
+        @case ('blossom') {
+          <svg width="20" height="20" class="text-[#C45B76]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"></circle>
+            <path d="M12 3c0 2.5-2 4-4 4 2 0 4 1.5 4 4 0-2.5 2-4 4-4-2 0-4-1.5-4-4z"></path>
+            <path d="M12 21c0-2.5 2-4 4-4-2 0-4-1.5-4-4 0 2.5-2 4-4 4 2 0 4 1.5 4 4z"></path>
+            <path d="M3 12c2.5 0 4-2 4-4 0 2 1.5 4 4 4-2.5 0-4 2-4 4 0-2-1.5-4-4-4 2.5 0 4 2 4 4z"></path>
+            <path d="M21 12c-2.5 0-4 2-4 4 0-2-1.5-4-4-4 2.5 0 4-2 4-4 0 2 1.5 4 4 4-2.5 0-4-2-4-4z"></path>
+          </svg>
+        }
+        @case ('christmas-light') {
+          <svg width="20" height="20" class="text-[#1F4D36]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v3"></path>
+            <path d="M8 7l4-3 4 3"></path>
+            <path d="M6 11l6-4 6 4"></path>
+            <path d="M4 15l8-5 8 5"></path>
+            <path d="M3 19h18l-1.5 3h-15L3 19z"></path>
+            <circle cx="12" cy="10" r="1.5" fill="#C4A35A" stroke="none"></circle>
+          </svg>
+        }
+        @case ('christmas-dark') {
+          <svg width="20" height="20" class="text-[#C4A35A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v3"></path>
+            <path d="M8 7l4-3 4 3"></path>
+            <path d="M6 11l6-4 6 4"></path>
+            <path d="M4 15l8-5 8 5"></path>
+            <path d="M3 19h18l-1.5 3h-15L3 19z"></path>
+          </svg>
+        }
+        @default {
+          <svg width="20" height="20" class="text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        }
+      }
+    </span>
+    <span class="min-w-0 flex-1 font-medium">{{ displayLabel }}</span>
+    <svg
+      class="h-5 w-5 shrink-0 text-gray-500 transition-transform dark:text-gray-400"
+      [class.rotate-180]="open"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+  @if (open) {
+    <ul
+      [id]="dropdownKey + '-listbox'"
+      role="listbox"
+      [attr.aria-activedescendant]="
+        activeIndex >= 0 ? dropdownKey + '-opt-' + options[activeIndex].value : null
+      "
+      class="absolute left-0 right-0 z-[70] mt-1 max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+      [attr.data-settings-dropdown-panel]="dropdownKey"
+    >
+      @for (option of options; track option.value; let i = $index) {
+        <li
+          role="option"
+          [id]="option.tourOptionId ?? dropdownKey + '-opt-' + option.value"
+          [attr.aria-selected]="theme === option.value"
+          class="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-700 sm:px-4 sm:py-3 sm:text-base"
+          [class.bg-blue-50]="activeIndex === i"
+          [class.dark:bg-blue-900/20]="activeIndex === i"
+          (mousedown)="selectTheme(option.value); $event.preventDefault()"
+        >
+          <span class="min-w-0 flex-1">{{ option.label }}</span>
+          @if (theme === option.value) {
+            <span class="text-green-600 dark:text-green-400" aria-hidden="true">✓</span>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

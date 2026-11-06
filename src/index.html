@@ -20,6 +20,9 @@
       /* Align dark body background with app shell container so header and safe-area overlay blend consistently */
       html.dark body { background-color: #2B2B2B; }
       html.black body { background-color: #000000; }
+      html.blossom body { background-color: #FCE8EE; }
+      html.christmas-light body { background-color: #F7F1E4; }
+      html.christmas-dark body { background-color: #0A1F18; }
       
       /* Prevent iOS zoom on input focus */
       input[type="text"], input[type="email"], textarea, select {
@@ -74,22 +77,36 @@
     <script>
       // Apply theme immediately to prevent flash and sync theme-color with header
       (function() {
-        const theme = localStorage.getItem('theme') || 'system';
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const isBlack = theme === 'black';
-        const isDark = isBlack || theme === 'dark' || (theme === 'system' && prefersDark);
+        var theme = localStorage.getItem('theme') || 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var validThemes = ['light', 'dark', 'black', 'blossom', 'christmas-light', 'christmas-dark', 'system'];
+        if (validThemes.indexOf(theme) === -1) {
+          theme = 'system';
+        }
+        var overlayClasses = ['black', 'blossom', 'christmas-light', 'christmas-dark'];
+        var isOverlay = overlayClasses.indexOf(theme) !== -1;
+        var isDark =
+          theme === 'dark' ||
+          theme === 'black' ||
+          theme === 'christmas-dark' ||
+          (theme === 'system' && prefersDark);
 
         if (isDark) {
           document.documentElement.classList.add('dark');
         }
-        if (isBlack) {
-          document.documentElement.classList.add('black');
+        if (isOverlay) {
+          document.documentElement.classList.add(theme);
         }
 
-        // Keep theme-color in sync with ThemeService (light #E8E5E1, dark #1F2937, black #000000).
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) {
-          meta.setAttribute('content', isBlack ? '#000000' : isDark ? '#1F2937' : '#E8E5E1');
+          var themeColor = '#E8E5E1';
+          if (theme === 'black') themeColor = '#000000';
+          else if (theme === 'blossom') themeColor = '#FCE8EE';
+          else if (theme === 'christmas-light') themeColor = '#F7F1E4';
+          else if (theme === 'christmas-dark') themeColor = '#0A1F18';
+          else if (theme === 'dark' || (theme === 'system' && prefersDark)) themeColor = '#1F2937';
+          meta.setAttribute('content', themeColor);
         }
       })();
       

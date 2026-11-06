@@ -4,7 +4,7 @@ import {
   parsePresentationSettingsJson,
 } from '../services/presentation-settings.service';
 import { getPresentationSettingsDefaults } from './presentation-settings-defaults';
-import type { Theme } from '../services/theme.service';
+import { isStoredTheme, type Theme } from '../services/theme.service';
 import type { TextSize } from '../services/text-size.service';
 import {
   DEFAULT_MEMORIZE_LIST_VIEW,
@@ -50,7 +50,7 @@ function readSkipPrayForModal(): boolean {
 function readTheme(): Theme | undefined {
   try {
     const theme = localStorage.getItem('theme');
-    if (theme === 'light' || theme === 'dark' || theme === 'black' || theme === 'system') {
+    if (theme && isStoredTheme(theme)) {
       return theme;
     }
   } catch {

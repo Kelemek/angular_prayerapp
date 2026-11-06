@@ -84,9 +84,15 @@ describe('PresentationSettingsModalComponent (template)', () => {
   const componentDir = dirname(fileURLToPath(import.meta.url));
 
   function readComponentResource(url: string): string {
-    const path = join(componentDir, url);
-    if (existsSync(path)) {
-      return readFileSync(path, 'utf-8');
+    const relative = url.replace(/^\.\//, '');
+    const paths = [
+      join(componentDir, url),
+      join(componentDir, '..', 'theme-select-dropdown', relative),
+    ];
+    for (const path of paths) {
+      if (existsSync(path)) {
+        return readFileSync(path, 'utf-8');
+      }
     }
     throw new Error(`Component resource not found: ${url}`);
   }
@@ -155,10 +161,19 @@ describe('PresentationSettingsModalComponent (template)', () => {
     const emitted: string[] = [];
     component.themeChange.subscribe((value) => emitted.push(value));
 
-    const lightButton = Array.from(
-      document.querySelectorAll('button')
-    ).find((el: Element) => el.textContent?.includes('Light')) as HTMLButtonElement;
-    lightButton.click();
+    const panel = document.querySelector('#tour-presentation-settings-modal');
+    const trigger = panel?.querySelector(
+      'button[aria-haspopup="listbox"]',
+    ) as HTMLButtonElement;
+    expect(trigger).toBeTruthy();
+    trigger.click();
+    fixture.detectChanges();
+
+    const lightOption = Array.from(
+      panel?.querySelectorAll('[role="option"]') ?? [],
+    ).find((el: Element) => el.textContent?.includes('Light')) as HTMLElement;
+    lightOption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    fixture.detectChanges();
 
     expect(emitted).toEqual(['light']);
   });

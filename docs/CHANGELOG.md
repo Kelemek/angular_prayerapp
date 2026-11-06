@@ -4,6 +4,11 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Blossom and Christmas appearance themes (November 6, 2026)
+- **Settings** and **presentation settings** use a shared **theme dropdown** ([`ThemeSelectDropdownComponent`](../src/app/components/theme-select-dropdown/theme-select-dropdown.component.ts)) instead of a four-button grid. Options: Light, Dark, Night, **Blossom**, **Christmas Light**, **Christmas Dark**, System ([`theme-options.ts`](../src/app/lib/theme-options.ts)).
+- [`ThemeService`](../src/app/services/theme.service.ts) adds `blossom`, `christmas-light`, and `christmas-dark` overlay classes on `html` with palette overrides in [`styles.css`](../src/styles.css). Blossom and Christmas Light stay in light mode (no `dark` on `html`). Christmas Dark uses `dark` plus `christmas-dark` (Night-style remaps). **System** still follows the device and only picks standard light or dark—never Night, Blossom, or Christmas automatically. Invalid stored values fall back to System. No database migration.
+- Help copy and guided tours mention the dropdown and seasonal palettes; tour anchors `#tour-settings-theme-night`, `#tour-settings-theme-blossom`, `#tour-settings-theme-christmas-light`, and `#tour-settings-theme-christmas-dark` (presentation equivalents use the `tour-presentation-setting-` prefix).
+
 ### Groups tab universal (November 5, 2026)
 - The **Group** Home tab renders immediately with **Personal** and **Memorize** during initial skeleton loading. It no longer waits on `session.prayerGroupsEnabled`. The **Church** tab still waits for a settled church-member session ([`home.component.html`](../src/app/pages/home/home.component.html), [`churchContentVisible`](../src/app/lib/prayer-groups-feature.ts)).
 - Retired the per-account **`prayer_groups_enabled`** rollout in the app. Admins no longer toggle Groups on the subscriber edit modal. Group **membership**, ownership, and RLS still gate data. Migration [`20261105040000_prayer_groups_universal_eligibility.sql`](../supabase/migrations/20261105040000_prayer_groups_universal_eligibility.sql) makes `prayer_groups_enabled()` true for any unblocked subscriber, backfills the column, and documents deferred column removal. Apply on test `jcdhajfqtzipltvfslhu` before relying on RLS there; production follows the usual fork sync.

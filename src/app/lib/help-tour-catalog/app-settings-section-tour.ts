@@ -108,7 +108,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Theme',
         description:
-          'Pick <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, or <strong>System</strong>. The next step focuses on <strong>Night</strong>. Your choice saves automatically.',
+          'Open the <strong>Theme</strong> dropdown for <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, <strong>Blossom</strong>, <strong>Christmas Light</strong>, <strong>Christmas Dark</strong>, or <strong>System</strong>. The next step focuses on <strong>Night</strong>. Your choice saves automatically.',
         side: 'bottom',
         align: 'start',
       },
@@ -119,7 +119,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Night vs Dark',
         description:
-          '<strong>Night</strong> (circle outline icon) uses a true black background for very low light—it is separate from <strong>Dark</strong>, which uses the standard dark gray palette. The same choice applies in <strong>presentation mode</strong> settings. <strong>System</strong> follows your device light or dark preference and never selects Night automatically.',
+          '<strong>Night</strong> uses a true black background for very low light—it is separate from <strong>Dark</strong>. <strong>Blossom</strong> and <strong>Christmas</strong> themes are optional seasonal palettes. <strong>System</strong> follows your device and only switches between standard <strong>Light</strong> and <strong>Dark</strong>—never Night, Blossom, or Christmas automatically. Open the dropdown and choose <strong>Night</strong> to try it.',
         side: 'bottom',
         align: 'start',
       },

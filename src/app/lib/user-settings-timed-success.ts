@@ -1,5 +1,6 @@
 import type { TextSize } from '../services/text-size.service';
 import type { UserSettingsFacade } from './user-settings-facade';
+import { THEME_SUCCESS_LABEL } from './theme-options';
 import type { ThemeOption } from './user-settings-types';
 
 export type UserSettingsSuccessField =
@@ -63,13 +64,6 @@ export function showUserSettingsTimedSuccess(
   }, SUCCESS_DISMISS_MS);
   map.set(field, id);
 }
-
-const THEME_SUCCESS_LABEL: Record<ThemeOption, string> = {
-  light: 'Light',
-  dark: 'Dark',
-  black: 'Night',
-  system: 'System',
-};
 
 const TEXT_SIZE_SUCCESS_LABEL: Record<TextSize, string> = {
   normal: 'Default',

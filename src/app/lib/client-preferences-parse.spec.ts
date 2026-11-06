@@ -8,8 +8,8 @@ describe('parseClientPreferencesJson', () => {
     expect(parseClientPreferencesJson('x')).toBeUndefined();
   });
 
-  it('parses black and drops an unknown theme string', () => {
-    expect(parseClientPreferencesJson({ theme: 'black' })?.theme).toBe('black');
+  it('parses blossom and drops an unknown theme string', () => {
+    expect(parseClientPreferencesJson({ theme: 'blossom' })?.theme).toBe('blossom');
     expect(parseClientPreferencesJson({ theme: 'oled', skipPrayForExplanationModal: true })?.theme).toBeUndefined();
   });
 

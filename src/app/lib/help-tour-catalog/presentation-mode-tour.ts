@@ -124,7 +124,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Theme',
         description:
-          'Pick <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, or <strong>System</strong>. The next step focuses on <strong>Night</strong>. One choice applies across presentation and the rest of the app.',
+          'Open the <strong>Theme</strong> dropdown for <strong>Light</strong>, <strong>Dark</strong>, <strong>Night</strong>, seasonal palettes, or <strong>System</strong>. The next step focuses on <strong>Night</strong>. One choice applies across presentation and the rest of the app.',
         side: 'bottom',
         align: 'start',
       },
@@ -135,7 +135,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: 'Night vs Dark',
         description:
-          '<strong>Night</strong> (circle outline icon) uses a true black background for low-light rooms—it is separate from <strong>Dark</strong>, which uses the standard dark gray palette. The label is <strong>Night</strong>, not “Black mode”. The same choice applies in Home <strong>Settings</strong>. <strong>System</strong> follows your device and never selects Night automatically.',
+          '<strong>Night</strong> uses true black for low-light rooms—separate from <strong>Dark</strong>. <strong>System</strong> follows your device and only picks standard light or dark—not Night or seasonal themes. Open the dropdown and select <strong>Night</strong> to highlight this option.',
         side: 'bottom',
         align: 'start',
       },
