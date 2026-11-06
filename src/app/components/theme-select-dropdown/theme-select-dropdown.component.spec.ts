@@ -166,6 +166,37 @@ describe('ThemeSelectDropdownComponent', () => {
     expect(html).toContain('track option.value');
   });
 
+  it('keeps the Christmas Light icon forest on light and lighter on a dark host', () => {
+    document.documentElement.classList.add('dark');
+    try {
+      fixture.componentRef.setInput('theme', 'christmas-light');
+      fixture.detectChanges();
+      component.toggleOpen();
+      fixture.detectChanges();
+
+      const triggerIcon = fixture.nativeElement.querySelector(
+        'button .christmas-light-theme-icon',
+      );
+      const rowIcon = fixture.nativeElement.querySelector(
+        '#tour-settings-theme-christmas-light .christmas-light-theme-icon',
+      );
+      expect(triggerIcon).toBeTruthy();
+      expect(rowIcon).toBeTruthy();
+
+      for (const icon of [triggerIcon, rowIcon]) {
+        const iconClass = icon.getAttribute('class') ?? '';
+        expect(iconClass).toContain('text-[#1F4D36]');
+        expect(iconClass).toContain('dark:text-emerald-300');
+        const ornament = icon.querySelector('circle');
+        const ornamentClass = ornament?.getAttribute('class') ?? '';
+        expect(ornamentClass).toContain('fill-[#C4A35A]');
+        expect(ornamentClass).toContain('dark:fill-amber-300');
+      }
+    } finally {
+      document.documentElement.classList.remove('dark');
+    }
+  });
+
   it('exposes tour anchor ids on seasonal options', () => {
     component.toggleOpen();
     fixture.detectChanges();

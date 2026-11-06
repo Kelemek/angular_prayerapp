@@ -14,6 +14,7 @@ Major features and milestones for the Prayer App.
 - The **Light** theme icon uses the gospel sun path (filled center and rays) instead of stroked lines that did not draw.
 - Every theme row in the shared dropdown shows that theme’s icon next to its label (Settings and Presentation). All seven options stay in the list.
 - **System** stays in that list for Settings and Presentation. The open list is `max-h-96` so the last row is not clipped the way `max-h-64` clipped it.
+- The **Christmas Light** dropdown icon stays forest green on light panels. In dark mode it uses a lighter green stroke and a brighter gold ornament so it stays visible on the dark list (`dark:text-emerald-300`, `dark:fill-amber-300`).
 - **Christmas Light** keeps the cream, forest, crimson, and gold palette, with warmer page `#F0E2C4`, stronger forest borders, richer tab fills, and gold `#C4892A` so it reads less pastel ([`styles.css`](../src/styles.css)).
 - **Members** prayer cards use the same 2px `#0047AB` outline as Current cards. The extra `ring` on `PLANNING_CENTER_MEMBER_BORDER_CLASS` is removed so the shell is not double-stroked ([`prayer-card-shell.ts`](../src/app/lib/prayer-card-shell.ts)).
 - The **N Praying** count uses `prayer-card-prayed-for-badge` (explicit blue-700 / blue-300) and `border-current` instead of `text-blue-700` / `border-blue-600`, so Blossom does not turn the label or outline burgundy while Journal and Pray For stay blue ([`prayer-card-layout.ts`](../src/app/lib/prayer-card-layout.ts), [`styles.css`](../src/styles.css)).
