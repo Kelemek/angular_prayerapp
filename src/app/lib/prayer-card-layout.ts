@@ -28,6 +28,9 @@ export const PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS = 'prayer-update-row-shell';
 export const PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS =
   'prayer-update-row-header-band';
 
+/** Content well below the update header band; lighter on seasonal themes. */
+export const PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS = 'prayer-update-row-body';
+
 /** Top radius for meta header bands inside a 2px `rounded-lg` home shell. */
 export const PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES = `${CARD_SHELL_HEADER_BAND_ROUNDED} ${CARD_SHELL_RADIUS_LG} ${CARD_SHELL_BORDER_W_2}`;
 

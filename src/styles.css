@@ -242,6 +242,9 @@ html.dark .home-filter-tab-inactive-chrome:hover {
     background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
 }
+@utility prayer-update-row-body {
+  background-color: transparent !important;
+}
 /* Meta header bands + rich-text toolbar + modal chrome headers/footers. */
 @utility bg-card-meta-header-band {
   background-color: var(--color-card-meta-header-band) !important;
@@ -1646,26 +1649,6 @@ html.blossom .border-blue-600 {
   border-color: var(--theme-action-blue) !important;
 }
 
-/*
-  Prayer update rows: meta header band darker than shell body on seasonal themes.
-  Uses dedicated surface classes (not generic bg-inset-surface / bg-card-meta-header-band).
-  Default Light keeps band (#d6d1cb) vs inset (#e8e5e1) via prayer-update-row-shell utility.
-*/
-html.blossom app-prayer-update-row .prayer-update-row-shell,
-html.christmas-light app-prayer-update-row .prayer-update-row-shell {
-  background-color: var(--color-update-row-body) !important;
-}
-html.christmas-dark app-prayer-update-row .prayer-update-row-shell {
-  background-color: var(--color-update-row-body-dark) !important;
-}
-html.blossom app-prayer-update-row .prayer-update-row-header-band,
-html.christmas-light app-prayer-update-row .prayer-update-row-header-band {
-  background-color: var(--color-update-row-header-band) !important;
-}
-html.christmas-dark app-prayer-update-row .prayer-update-row-header-band {
-  background-color: var(--color-update-row-header-band-dark) !important;
-}
-
 /* Christmas Light — cream, forest chrome, crimson CTAs (no .dark on html). */
 html.christmas-light {
   color-scheme: light;
@@ -2011,6 +1994,37 @@ html.christmas-dark .dark\:border-gray-700:is(.dark *) {
 html.cp-resume-paint .prayer-card,
 html.cp-resume-paint .prompt-card {
   content-visibility: visible;
+}
+
+/*
+  Prayer update rows — header band darker than body on seasonal themes.
+  EOF placement wins over @utility bg-card-meta-header-band / prayer-update-row-shell.
+  Default Light: shell inset fill + transparent body wrapper (unchanged look).
+*/
+html.blossom app-prayer-update-row .prayer-update-row-shell,
+html.christmas-light app-prayer-update-row .prayer-update-row-shell {
+  background-color: transparent !important;
+}
+html.christmas-dark app-prayer-update-row .prayer-update-row-shell {
+  background-color: transparent !important;
+}
+html.blossom app-prayer-update-row .prayer-update-row-body,
+html.christmas-light app-prayer-update-row .prayer-update-row-body {
+  background-color: var(--color-update-row-body, #fff7f9) !important;
+}
+html.christmas-dark app-prayer-update-row .prayer-update-row-body {
+  background-color: var(--color-update-row-body-dark, #163328) !important;
+}
+html.blossom app-prayer-update-row .bg-card-meta-header-band.prayer-update-row-header-band,
+html.christmas-light
+  app-prayer-update-row
+  .bg-card-meta-header-band.prayer-update-row-header-band {
+  background-color: var(--color-update-row-header-band, #efb6c4) !important;
+}
+html.christmas-dark
+  app-prayer-update-row
+  .bg-card-meta-header-band.prayer-update-row-header-band {
+  background-color: var(--color-update-row-header-band-dark) !important;
 }
 
 @media print {

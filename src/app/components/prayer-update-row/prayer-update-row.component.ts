@@ -16,6 +16,7 @@ import {
   PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS,
   PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES,
   PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS,
+  PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS,
   getUpdateRowHeaderBandRoundedClasses,
 } from '../../lib/prayer-card-layout';
 import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-classes';
@@ -58,6 +59,7 @@ import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-
         </div>
       </app-card-meta-header-band>
 
+      <div [class]="updateRowBodySurfaceClass">
       @if (showUpdatedBy) {
       <p [class]="updatedByClass">
         Updated by:
@@ -68,6 +70,7 @@ import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-
       <ng-content select="[updateCorner]" />
 
       <app-rich-text-view [class]="contentClass" [text]="update.content" />
+      </div>
     </div>
   `,
 })
@@ -79,6 +82,7 @@ export class PrayerUpdateRowComponent {
   readonly updateRowShellSurfaceClass = PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS;
   readonly updateRowHeaderBandSurfaceClass =
     PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS;
+  readonly updateRowBodySurfaceClass = PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS;
 
   @Input({ required: true }) update!: PrayerUpdateRecord;
   @Input() size = 'sm' as const;

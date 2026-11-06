@@ -7,6 +7,7 @@ import {
   PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES,
   PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS,
   PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS,
+  PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS,
   getUpdateRowHeaderBandRoundedClasses,
 } from '../../lib/prayer-card-layout';
 
@@ -25,6 +26,7 @@ describe('PrayerUpdateRowComponent', () => {
     expect(PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS).toBe(
       'prayer-update-row-header-band'
     );
+    expect(PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS).toBe('prayer-update-row-body');
   });
 
   it('derives header band radius from shellClass', () => {
