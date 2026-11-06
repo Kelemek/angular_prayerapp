@@ -231,7 +231,8 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
       '../../styles.css'
     );
     const css = readFileSync(cssPath, 'utf8');
-    expect(css).toContain('--color-prayer-update-row-body');
-    expect(css).toContain('app-prayer-update-row > div.bg-inset-surface');
+    expect(css).toContain('--color-update-row-body');
+    expect(css).toContain('app-prayer-update-row .bg-inset-surface');
+    expect(css).toContain('app-prayer-update-row .bg-card-meta-header-band');
   });
 });
