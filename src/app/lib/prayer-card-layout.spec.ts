@@ -202,6 +202,9 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
       );
       expect(layout.prayedForBadgeClasses).not.toContain('text-blue-700');
       expect(layout.prayedForBadgeClasses).not.toContain('text-blue-300');
+      expect(layout.prayedForBadgeClasses).toContain('border-current');
+      expect(layout.prayedForBadgeClasses).not.toContain('border-blue-600');
+      expect(layout.prayedForBadgeClasses).not.toContain('border-blue-500');
     }
   });
 

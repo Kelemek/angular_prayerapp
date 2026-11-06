@@ -20,7 +20,9 @@ import { Observable } from "rxjs";
       @for (toast of toasts$ | async; track toast.id) {
       <div
         [class]="
-          'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg animate-slide-down ' +
+          'cp-toast pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg animate-slide-down ' +
+          toastVariantClass(toast.type) +
+          ' ' +
           toastService.getToastStyles(toast.type)
         "
       >
@@ -92,5 +94,22 @@ export class ToastContainerComponent implements OnInit {
 
   ngOnInit(): void {
     this.toasts$ = this.toastService.toasts$;
+  }
+
+  toastVariantClass(type: Toast["type"]): string {
+    switch (type) {
+      case "success":
+        return "cp-toast--success";
+      case "error":
+        return "cp-toast--error";
+      case "warning":
+        return "cp-toast--warning";
+      case "info":
+        return "cp-toast--info";
+      default: {
+        const unreachable: never = type;
+        return unreachable;
+      }
+    }
   }
 }

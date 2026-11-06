@@ -61,6 +61,7 @@ describe('ToastContainerComponent', () => {
       
       const toasts = fixture.nativeElement.querySelectorAll('.animate-slide-down');
       expect(toasts).toHaveLength(1);
+      expect(toasts[0].className).toContain('cp-toast--success');
     });
 
     it('should display multiple toasts', async () => {

@@ -158,7 +158,7 @@ const HOME_CARD_CHROME: CardVariantChrome = {
   actionButtonClasses:
     'flex-shrink-0 px-2 py-1 text-xs font-medium whitespace-nowrap',
   prayedForBadgeClasses:
-    'prayer-card-prayed-for-badge flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-200 dark:bg-blue-900/20 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
+    'prayer-card-prayed-for-badge flex-shrink-0 px-1.5 py-1 text-xs font-medium bg-blue-200 dark:bg-blue-900/20 rounded-md border border-current whitespace-nowrap',
   showUnreadBadges: true,
 };
 
@@ -175,7 +175,7 @@ const PRESENTATION_CARD_CHROME: CardVariantChrome = {
   actionButtonClasses:
     'px-3 py-1.5 text-sm sm:px-4 sm:py-2 sm:text-base md:text-lg font-medium whitespace-nowrap',
   prayedForBadgeClasses:
-    'prayer-card-prayed-for-badge px-2 py-1.5 text-sm sm:px-3 sm:py-2 sm:text-base md:text-lg font-medium bg-blue-200 dark:bg-blue-900/20 rounded-md border border-blue-600 dark:border-blue-500 whitespace-nowrap',
+    'prayer-card-prayed-for-badge px-2 py-1.5 text-sm sm:px-3 sm:py-2 sm:text-base md:text-lg font-medium bg-blue-200 dark:bg-blue-900/20 rounded-md border border-current whitespace-nowrap',
   showUnreadBadges: false,
 };
 
