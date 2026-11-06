@@ -237,13 +237,22 @@ html.dark .home-filter-tab-inactive-chrome:hover {
 }
 /* Update row shell/body: same token split as Light — band uses --color-card-meta-header-band, shell uses --theme-surface-inset. */
 @utility prayer-update-row-shell {
-  background-color: var(--theme-surface-inset, #e8e5e1) !important;
+  background-color: var(
+    --prayer-update-row-shell-bg,
+    var(--theme-surface-inset, #e8e5e1)
+  ) !important;
   .dark & {
-    background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
+    background-color: var(
+      --prayer-update-row-shell-bg,
+      var(--surface-inset, rgb(55 65 81 / 0.6))
+    ) !important;
   }
 }
 @utility prayer-update-row-body {
-  background-color: transparent !important;
+  background-color: var(--prayer-update-row-shell-bg, transparent) !important;
+  .dark & {
+    background-color: var(--prayer-update-row-shell-bg, transparent) !important;
+  }
 }
 /* Meta header bands + rich-text toolbar + modal chrome headers/footers. */
 @utility bg-card-meta-header-band {
@@ -1988,6 +1997,32 @@ html.christmas-dark .dark\:border-gray-700:is(.dark *) {
 html.cp-resume-paint .prayer-card,
 html.cp-resume-paint .prompt-card {
   content-visibility: visible;
+}
+
+/* Update rows: host-scoped fills inherit into shell/body/header (Light + seasonal). */
+html.blossom app-prayer-update-row {
+  --prayer-update-row-shell-bg: #fff7f9;
+  --prayer-update-row-header-bg: #f6d5de;
+}
+html.christmas-light app-prayer-update-row {
+  --prayer-update-row-shell-bg: #fffcf6;
+  --prayer-update-row-header-bg: #e8f0e6;
+}
+html.christmas-dark app-prayer-update-row {
+  --prayer-update-row-shell-bg: #163328;
+  --prayer-update-row-header-bg: rgb(10 31 24 / 0.72);
+}
+app-prayer-update-row .bg-card-meta-header-band {
+  background-color: var(
+    --prayer-update-row-header-bg,
+    var(--color-card-meta-header-band)
+  ) !important;
+}
+.dark app-prayer-update-row .bg-card-meta-header-band {
+  background-color: var(
+    --prayer-update-row-header-bg,
+    var(--color-card-meta-header-band-dark)
+  ) !important;
 }
 
 @media print {

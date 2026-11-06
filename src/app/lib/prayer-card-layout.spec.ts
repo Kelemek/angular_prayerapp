@@ -236,7 +236,8 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     const blossomBlock = css.match(/html\.blossom \{[\s\S]*?\n\}/);
     expect(blossomBlock?.[0]).toContain('--color-card-meta-header-band: #f6d5de');
     expect(blossomBlock?.[0]).toContain('--theme-surface-inset: #fff7f9');
-    expect(css).toContain('prayer-update-row-shell');
-    expect(css).toContain('prayer-update-row-body');
+    expect(css).toContain('html.blossom app-prayer-update-row');
+    expect(css).toContain('--prayer-update-row-shell-bg: #fff7f9');
+    expect(css).toContain('app-prayer-update-row .bg-card-meta-header-band');
   });
 });
