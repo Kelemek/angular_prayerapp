@@ -116,7 +116,18 @@ describe('ThemeSelectDropdownComponent', () => {
     expect(christmasDark.querySelector('svg')?.getAttribute('class')).toContain(
       'text-[#C4A35A]',
     );
-    byId('user-settings-theme-opt-system');
+    const system = byId('user-settings-theme-opt-system');
+    expect(system.textContent).toContain('System');
+    expect(system.getAttribute('aria-selected')).toBe('false');
+    expect(THEME_SELECT_OPTIONS.map((option) => option.value)).toEqual([
+      'light',
+      'dark',
+      'black',
+      'blossom',
+      'christmas-light',
+      'christmas-dark',
+      'system',
+    ]);
   });
 
   it('renders an icon on every presentation theme row', () => {
@@ -140,6 +151,19 @@ describe('ThemeSelectDropdownComponent', () => {
         .querySelector('#tour-presentation-setting-theme-christmas-dark')
         ?.getAttribute('aria-selected'),
     ).toBe('true');
+    const system = fixture.nativeElement.querySelector('#presentation-theme-opt-system');
+    expect(system?.textContent).toContain('System');
+    expect(system?.querySelector('svg')).toBeTruthy();
+    expect(PRESENTATION_THEME_SELECT_OPTIONS.at(-1)?.value).toBe('system');
+  });
+
+  it('sizes the open list so System, the last theme, is not clipped', () => {
+    const html = readComponentResource('./theme-select-dropdown.component.html');
+    const list = html.slice(html.indexOf('role="listbox"'), html.indexOf('@for'));
+    expect(list).toContain('max-h-96');
+    expect(list).toContain('overflow-y-auto');
+    expect(list).not.toContain('max-h-64');
+    expect(html).toContain('track option.value');
   });
 
   it('exposes tour anchor ids on seasonal options', () => {
