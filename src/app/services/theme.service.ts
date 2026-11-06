@@ -15,7 +15,7 @@ export const THEME_COLOR_LIGHT = '#E8E5E1';
 export const THEME_COLOR_DARK = '#1F2937';
 export const THEME_COLOR_BLACK = '#000000';
 export const THEME_COLOR_BLOSSOM = '#FCE8EE';
-export const THEME_COLOR_CHRISTMAS_LIGHT = '#F7F1E4';
+export const THEME_COLOR_CHRISTMAS_LIGHT = '#F0E2C4';
 export const THEME_COLOR_CHRISTMAS_DARK = '#0A1F18';
 
 export const THEMES: readonly Theme[] = [

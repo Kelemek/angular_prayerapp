@@ -1679,47 +1679,48 @@ html.blossom.dark .cp-toast--success {
   border-color: var(--color-blue-500) !important;
 }
 
-/* Christmas Light — cream, forest chrome, crimson CTAs (no .dark on html). */
+/* Christmas Light — warmer cream, forest chrome, crimson CTAs, richer gold.
+   Deepened from #F7F1E4 / #FFFCF6 so fills and borders read less pastel. No .dark on html. */
 html.christmas-light {
   color-scheme: light;
-  --surface-page: #f7f1e4;
-  --surface-card: #fffcf6;
-  --surface-raised: #e8f0e6;
-  --surface-inset: #fffcf6;
-  --surface-inset-hover: #e8f0e6;
-  --theme-surface-page: #f7f1e4;
-  --theme-surface-card: #fffcf6;
-  --theme-surface-raised: #e8f0e6;
-  --theme-surface-raised-alt: #d4e4d6;
-  --theme-surface-muted: #3d5c4a;
-  --theme-surface-inset: #fffcf6;
-  --theme-surface-inset-muted: #e8f0e6;
-  --theme-text-body: #1a2e24;
-  --theme-text-secondary: #1f4d36;
-  --theme-text-muted: #3d5c4a;
-  --theme-border: #d4e4d6;
-  --theme-border-light: #f7f1e4;
+  --surface-page: #f0e2c4;
+  --surface-card: #fff6e4;
+  --surface-raised: #d7e6d2;
+  --surface-inset: #fff6e4;
+  --surface-inset-hover: #d7e6d2;
+  --theme-surface-page: #f0e2c4;
+  --theme-surface-card: #fff6e4;
+  --theme-surface-raised: #d7e6d2;
+  --theme-surface-raised-alt: #b9d0b4;
+  --theme-surface-muted: #2c4a38;
+  --theme-surface-inset: #fff6e4;
+  --theme-surface-inset-muted: #d7e6d2;
+  --theme-text-body: #14261c;
+  --theme-text-secondary: #1a4330;
+  --theme-text-muted: #2f4a3a;
+  --theme-border: #5d846c;
+  --theme-border-light: #c9dcc4;
   --theme-action-primary: #8e141e;
   --theme-action-primary-hover: #5c0d14;
   --theme-action-blue: #1f4d36;
   --theme-action-blue-muted: #0f2e22;
   --theme-chrome-border: #1f4d36;
-  --theme-safe-area-chrome: #f7f1e4;
-  --color-card-meta-header-band: #e8f0e6;
-  --color-church-cream: #f7f1e4;
-  --color-church-gray-warm: #3d5c4a;
+  --theme-safe-area-chrome: #f0e2c4;
+  --color-card-meta-header-band: #c5dcc0;
+  --color-church-cream: #f0e2c4;
+  --color-church-gray-warm: #2f4a3a;
   --color-church-navy: #1f4d36;
   --color-church-slate: #0f2e22;
   --color-church-green: #1f4d36;
   --color-church-green-medium: #1f4d36;
   --color-church-green-dark: #0f2e22;
-  --color-church-green-tint: color-mix(in srgb, #e8f0e6 62%, #f7f1e4);
+  --color-church-green-tint: color-mix(in srgb, #d7e6d2 70%, #f0e2c4);
   --color-church-green-chip-text: #1f4d36;
-  --color-church-green-chip-fill: rgb(31 77 54 / 0.18);
-  --color-church-green-chip-fill-hover: rgb(31 77 54 / 0.3);
-  --color-church-gold: #c4a35a;
+  --color-church-green-chip-fill: rgb(31 77 54 / 0.24);
+  --color-church-green-chip-fill-hover: rgb(31 77 54 / 0.36);
+  --color-church-gold: #c4892a;
   --color-church-gold-dark: #8e141e;
-  --color-church-gold-light: #c4a35a;
+  --color-church-gold-light: #e0ae3a;
   --color-church-blue: #1f4d36;
   --color-church-blue-dark: #0f2e22;
   --color-primary-500: #1f4d36;
@@ -1727,42 +1728,42 @@ html.christmas-light {
   --color-primary-700: #5c0d14;
   --color-primary-800: #1f4d36;
   --color-primary-900: #0f2e22;
-  --color-accent-200: #c4a35a;
-  --color-accent-300: #c4a35a;
+  --color-accent-200: #e0ae3a;
+  --color-accent-300: #c4892a;
   --color-accent-400: #8e141e;
-  --header-bg-light: rgb(247 241 228 / 0.92);
-  --bg-primary: #fffcf6;
-  --bg-secondary: #f7f1e4;
-  --bg-tertiary: #e8f0e6;
-  --text-primary: #1a2e24;
-  --text-secondary: #1f4d36;
-  --text-muted: #3d5c4a;
-  --border-color: #d4e4d6;
+  --header-bg-light: rgb(240 226 196 / 0.94);
+  --bg-primary: #fff6e4;
+  --bg-secondary: #f0e2c4;
+  --bg-tertiary: #d7e6d2;
+  --text-primary: #14261c;
+  --text-secondary: #1a4330;
+  --text-muted: #2f4a3a;
+  --border-color: #5d846c;
   --accent-primary: #8e141e;
-  --accent-secondary: #c4a35a;
-  --accent-gold: #c4a35a;
-  --home-tab-public-bg: #f0d4d6;
-  --home-tab-public-bg-dark: #f0d4d6;
+  --accent-secondary: #c4892a;
+  --accent-gold: #c4892a;
+  --home-tab-public-bg: #e7b4b8;
+  --home-tab-public-bg-dark: #e7b4b8;
   --home-tab-public-border: #8e141e;
-  --home-tab-groups-bg: #c8dcc4;
-  --home-tab-groups-bg-dark: #c8dcc4;
+  --home-tab-groups-bg: #b7d2b0;
+  --home-tab-groups-bg-dark: #b7d2b0;
   --home-tab-groups-border: #1f4d36;
-  --home-tab-members-bg: #c8dcc4;
-  --home-tab-members-bg-dark: #c8dcc4;
+  --home-tab-members-bg: #b7d2b0;
+  --home-tab-members-bg-dark: #b7d2b0;
   --home-tab-members-border: #1f4d36;
-  --home-tab-personal-bg: #ebd098;
-  --home-tab-personal-bg-dark: #ebd098;
+  --home-tab-personal-bg: #e4c06a;
+  --home-tab-personal-bg-dark: #e4c06a;
   --home-tab-personal-border: #8e141e;
-  --home-tab-memorize-bg: #d8888e;
-  --home-tab-memorize-bg-dark: #d8888e;
+  --home-tab-memorize-bg: #d47880;
+  --home-tab-memorize-bg-dark: #d47880;
   --home-tab-memorize-border: #5c0d14;
-  --home-tab-prompts-bg: #f0d4d6;
-  --home-tab-prompts-bg-dark: #f0d4d6;
+  --home-tab-prompts-bg: #e7b4b8;
+  --home-tab-prompts-bg-dark: #e7b4b8;
   --home-tab-prompts-border: #8e141e;
-  --home-tab-inactive-bg: #fde8ea;
-  --home-tab-inactive-bg-dark: #fde8ea;
-  --home-tab-inactive-border: #c45b76;
-  --home-tab-inactive-border-dark: #c45b76;
+  --home-tab-inactive-bg: #f3e6cc;
+  --home-tab-inactive-bg-dark: #f3e6cc;
+  --home-tab-inactive-border: #1f4d36;
+  --home-tab-inactive-border-dark: #1f4d36;
   --home-tab-public-inactive-bg: var(--home-tab-inactive-bg);
   --home-tab-public-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-public-inactive-border: var(--home-tab-inactive-border);
@@ -1787,14 +1788,14 @@ html.christmas-light {
   --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
   --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
-  --color-home-panel-blue-chip-active: color-mix(in srgb, #f0d4d6 50%, white);
-  --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #f0d4d6 50%, white);
-  --color-home-panel-personal-chip-active: color-mix(in srgb, #ebd098 52%, white);
-  --color-home-panel-personal-chip-active-dark: color-mix(in srgb, #ebd098 52%, white);
-  --color-home-panel-stone-chip-active: color-mix(in srgb, #f7f1e4 55%, #f0d4d6);
-  --color-home-panel-stone-chip-active-dark: color-mix(in srgb, #f7f1e4 55%, #f0d4d6);
-  --color-home-panel-green-status-chip-active: color-mix(in srgb, #1f4d36 22%, #bbf7d0);
-  --color-home-panel-amber-status-chip-active: color-mix(in srgb, #c4a35a 45%, #fde68a);
+  --color-home-panel-blue-chip-active: color-mix(in srgb, #e7b4b8 78%, white);
+  --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #e7b4b8 78%, white);
+  --color-home-panel-personal-chip-active: color-mix(in srgb, #e4c06a 78%, #fff6e4);
+  --color-home-panel-personal-chip-active-dark: color-mix(in srgb, #e4c06a 78%, #fff6e4);
+  --color-home-panel-stone-chip-active: color-mix(in srgb, #f0e2c4 62%, #e7b4b8);
+  --color-home-panel-stone-chip-active-dark: color-mix(in srgb, #f0e2c4 62%, #e7b4b8);
+  --color-home-panel-green-status-chip-active: color-mix(in srgb, #1f4d36 36%, #d7e6d2);
+  --color-home-panel-amber-status-chip-active: color-mix(in srgb, #c4892a 58%, #f6e2a8);
 }
 
 html.christmas-light body,
@@ -1864,7 +1865,7 @@ html.christmas-light .border-green-500 {
 
 html.christmas-light .bg-blue-50,
 html.christmas-light .hover\:bg-blue-50:hover {
-  background-color: color-mix(in srgb, #f7f1e4 65%, #e8f0e6) !important;
+  background-color: color-mix(in srgb, var(--surface-page) 55%, var(--surface-raised)) !important;
 }
 
 html.christmas-light .text-blue-700,
@@ -2064,8 +2065,8 @@ html.blossom app-prayer-update-row {
   --prayer-update-row-header-bg: #f6d5de;
 }
 html.christmas-light app-prayer-update-row {
-  --prayer-update-row-shell-bg: #fffcf6;
-  --prayer-update-row-header-bg: #e8f0e6;
+  --prayer-update-row-shell-bg: #fff6e4;
+  --prayer-update-row-header-bg: #c5dcc0;
 }
 html.christmas-dark app-prayer-update-row {
   --prayer-update-row-shell-bg: #163328;

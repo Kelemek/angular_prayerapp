@@ -1,6 +1,9 @@
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { firstValueFrom } from 'rxjs';
-import { ThemeService } from './theme.service';
+import { THEME_COLOR_CHRISTMAS_LIGHT, ThemeService } from './theme.service';
 
 describe('ThemeService', () => {
   let service: ThemeService;
@@ -238,6 +241,24 @@ describe('ThemeService', () => {
       expect(document.documentElement.classList.contains('dark')).toBe(true);
       expect(document.documentElement.classList.contains('christmas-dark')).toBe(true);
       expect(service.isDark()).toBe(true);
+    });
+
+    it('deepens Christmas Light past the original cream without dropping crimson or forest', () => {
+      expect(THEME_COLOR_CHRISTMAS_LIGHT).toBe('#F0E2C4');
+      const css = readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), '../../styles.css'),
+        'utf8'
+      );
+      const block = css.match(/html\.christmas-light \{[\s\S]*?\n\}/)?.[0] ?? '';
+      expect(block).toContain('--surface-page: #f0e2c4');
+      expect(block).toContain('--surface-card: #fff6e4');
+      expect(block).toContain('--theme-border: #5d846c');
+      expect(block).toContain('--theme-chrome-border: #1f4d36');
+      expect(block).toContain('--theme-action-primary: #8e141e');
+      expect(block).toContain('--accent-gold: #c4892a');
+      expect(block).toContain('--theme-text-body: #14261c');
+      expect(block).not.toContain('#f7f1e4');
+      expect(block).not.toContain('#d4e4d6');
     });
 
     it('clears overlay classes when switching to light', () => {
