@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   HOME_FILTER_TAB_ACTIVE_FILL,
+  HOME_FILTER_TAB_INACTIVE_FILL,
   HOME_MEMORIZE_PANEL_CHIP_THEMES,
   HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
   HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
@@ -188,5 +189,20 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
       "var(--home-tab-memorize-border)"
     );
     expect(HOME_TAB_CSS_VAR.memorize.border).toBe("--home-tab-memorize-border");
+  });
+
+  it("uses distinct CSS vars for inactive vs active tab fills", () => {
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.public).toContain(
+      "var(--home-tab-public-bg)"
+    );
+    expect(HOME_FILTER_TAB_INACTIVE_FILL.public).toContain(
+      "var(--home-tab-public-inactive-bg)"
+    );
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.public).not.toBe(
+      HOME_FILTER_TAB_INACTIVE_FILL.public
+    );
+    expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
+      "var(--home-tab-public-bg)"
+    );
   });
 });
