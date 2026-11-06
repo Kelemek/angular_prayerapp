@@ -2539,6 +2539,10 @@ describe('HelpModalComponent - Settings modal chrome', () => {
     expect(html).toContain('settings-modal-body');
     expect(html).toContain('settings-modal-section-card');
     expect(html).not.toContain('bg-inset-surface-interactive');
+    const styles = readHelpModalResource('../../../styles.css');
+    expect(styles).toContain('html.blossom app-help-modal .settings-modal-body');
+    expect(styles).toContain('html.blossom app-admin-help-modal .modal-panel-edge');
+    expect(styles).toContain('html.christmas-light app-help-modal .settings-modal-section-card');
   });
 
   it('stacks the scrim and dialog above the scroll-to-top button', () => {

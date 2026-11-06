@@ -1809,6 +1809,28 @@ html.christmas-light .settings-modal-footer {
   border-color: var(--theme-chrome-border);
 }
 
+/* Help modals: themed shell, scroll well, and section cards (bg-white otherwise wins). */
+html.blossom app-help-modal .modal-panel-edge,
+html.blossom app-admin-help-modal .modal-panel-edge,
+html.christmas-light app-help-modal .modal-panel-edge,
+html.christmas-light app-admin-help-modal .modal-panel-edge {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-chrome-border);
+}
+html.blossom app-help-modal .settings-modal-body,
+html.blossom app-admin-help-modal .settings-modal-body,
+html.christmas-light app-help-modal .settings-modal-body,
+html.christmas-light app-admin-help-modal .settings-modal-body {
+  background-color: var(--surface-page) !important;
+}
+html.blossom app-help-modal .settings-modal-section-card,
+html.blossom app-admin-help-modal .settings-modal-section-card,
+html.christmas-light app-help-modal .settings-modal-section-card,
+html.christmas-light app-admin-help-modal .settings-modal-section-card {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-border) !important;
+}
+
 html.christmas-light .text-green-600,
 html.christmas-light .text-green-700,
 html.christmas-light .text-green-800 {
