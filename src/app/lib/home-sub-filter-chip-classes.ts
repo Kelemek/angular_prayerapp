@@ -154,15 +154,15 @@ export const HOME_TAB_PROMPTS_INACTIVE_FILL_CLASS =
   "bg-[var(--home-tab-prompts-inactive-bg)] dark:bg-[var(--home-tab-prompts-inactive-bg-dark)] border-2 border-[var(--home-tab-prompts-inactive-border)] dark:border-[var(--home-tab-prompts-inactive-border-dark)] home-filter-tab-inactive-chrome";
 
 export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-[var(--home-tab-public-bg)] dark:bg-[var(--home-tab-public-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-public-border)] dark:border-[var(--home-tab-public-border)] px-3 py-2";
+  "rounded-b-lg bg-[var(--home-tab-public-sub-filter-bg)] dark:bg-[var(--home-tab-public-sub-filter-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-public-border)] dark:border-[var(--home-tab-public-border)] px-3 py-2";
 export const HOME_GROUPS_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-[var(--home-tab-groups-bg)] dark:bg-[var(--home-tab-groups-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-groups-border)] dark:border-[var(--home-tab-groups-border)] px-3 py-2";
+  "rounded-b-lg bg-[var(--home-tab-groups-sub-filter-bg)] dark:bg-[var(--home-tab-groups-sub-filter-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-groups-border)] dark:border-[var(--home-tab-groups-border)] px-3 py-2";
 export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-[var(--home-tab-personal-bg)] dark:bg-[var(--home-tab-personal-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-personal-border)] dark:border-[var(--home-tab-personal-border)] px-3 py-2";
+  "rounded-b-lg bg-[var(--home-tab-personal-sub-filter-bg)] dark:bg-[var(--home-tab-personal-sub-filter-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-personal-border)] dark:border-[var(--home-tab-personal-border)] px-3 py-2";
 export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-[var(--home-tab-memorize-bg)] dark:bg-[var(--home-tab-memorize-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-memorize-border)] dark:border-[var(--home-tab-memorize-border)] px-3 py-2";
+  "rounded-b-lg bg-[var(--home-tab-memorize-sub-filter-bg)] dark:bg-[var(--home-tab-memorize-sub-filter-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-memorize-border)] dark:border-[var(--home-tab-memorize-border)] px-3 py-2";
 export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS =
-  "rounded-b-lg bg-[var(--home-tab-prompts-bg)] dark:bg-[var(--home-tab-prompts-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-prompts-border)] dark:border-[var(--home-tab-prompts-border)] px-3 py-2";
+  "rounded-b-lg bg-[var(--home-tab-prompts-sub-filter-bg)] dark:bg-[var(--home-tab-prompts-sub-filter-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-prompts-border)] dark:border-[var(--home-tab-prompts-border)] px-3 py-2";
 
 /** Light-mode Personal tab/panel fill — driven by `--home-tab-personal-*`. */
 export const HOME_PERSONAL_FILL_LIGHT_CLASS =

@@ -25,16 +25,19 @@ import {
 describe("HOME_*_SUB_FILTER_GROUP_CLASS", () => {
   it("uses CSS variables for folder-panel fills and borders (theme overrides on html)", () => {
     expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain(
-      "var(--home-tab-personal-bg)"
+      "var(--home-tab-personal-sub-filter-bg)"
+    );
+    expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain(
+      "dark:bg-[var(--home-tab-personal-sub-filter-bg-dark)]"
     );
     expect(HOME_PERSONAL_SUB_FILTER_GROUP_CLASS).toContain(
       "var(--home-tab-personal-border)"
     );
     expect(HOME_PROMPTS_SUB_FILTER_GROUP_CLASS).toContain(
-      "var(--home-tab-prompts-bg)"
+      "var(--home-tab-prompts-sub-filter-bg)"
     );
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
-      "var(--home-tab-public-bg)"
+      "var(--home-tab-public-sub-filter-bg)"
     );
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain("rounded-b-lg");
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
@@ -50,7 +53,7 @@ describe("HOME_*_SUB_FILTER_GROUP_CLASS", () => {
 
   it("uses memorize tab vars (not aliased to public)", () => {
     expect(HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS).toContain(
-      "var(--home-tab-memorize-bg)"
+      "var(--home-tab-memorize-sub-filter-bg)"
     );
     expect(HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS).toContain(
       "var(--home-tab-memorize-border)"
@@ -211,7 +214,7 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
       HOME_FILTER_TAB_INACTIVE_FILL.public
     );
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
-      "var(--home-tab-public-bg)"
+      "var(--home-tab-public-sub-filter-bg)"
     );
   });
 
@@ -250,6 +253,9 @@ describe("Blossom dark home tab tokens", () => {
     const b = varBlock![0];
     expect(b).toContain("--home-tab-public-bg: #4a3048");
     expect(b).toContain("--home-tab-public-bg-dark: #3d2840");
+    expect(b).toContain(
+      "--home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg)"
+    );
     expect(b).toContain("--home-tab-personal-bg: #5c2d40");
     expect(b).toContain("--home-tab-personal-bg-dark: #4a3048");
     expect(b).toContain("--color-church-surface-inactive: color-mix(in srgb, #2a1822 78%, #6b2d45)");

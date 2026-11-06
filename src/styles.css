@@ -4,7 +4,7 @@
 
 @source './**/*.{html,ts}';
 @source inline(
-  "bg-[var(--home-tab-public-bg)] bg-[var(--home-tab-public-inactive-bg)] bg-[var(--home-tab-groups-bg)] bg-[var(--home-tab-groups-inactive-bg)] bg-[var(--home-tab-personal-bg)] bg-[var(--home-tab-personal-inactive-bg)] bg-[var(--home-tab-memorize-bg)] bg-[var(--home-tab-memorize-inactive-bg)] bg-[var(--home-tab-members-bg)] bg-[var(--home-tab-prompts-bg)]"
+  "bg-[var(--home-tab-public-bg)] bg-[var(--home-tab-public-sub-filter-bg)] dark:bg-[var(--home-tab-public-sub-filter-bg-dark)] bg-[var(--home-tab-public-inactive-bg)] bg-[var(--home-tab-groups-bg)] bg-[var(--home-tab-groups-sub-filter-bg)] dark:bg-[var(--home-tab-groups-sub-filter-bg-dark)] bg-[var(--home-tab-groups-inactive-bg)] bg-[var(--home-tab-personal-bg)] bg-[var(--home-tab-personal-sub-filter-bg)] dark:bg-[var(--home-tab-personal-sub-filter-bg-dark)] bg-[var(--home-tab-personal-inactive-bg)] bg-[var(--home-tab-memorize-bg)] bg-[var(--home-tab-memorize-sub-filter-bg)] dark:bg-[var(--home-tab-memorize-sub-filter-bg-dark)] bg-[var(--home-tab-memorize-inactive-bg)] bg-[var(--home-tab-members-bg)] bg-[var(--home-tab-prompts-bg)] bg-[var(--home-tab-prompts-sub-filter-bg)] dark:bg-[var(--home-tab-prompts-sub-filter-bg-dark)]"
 );
 
 @custom-variant dark (&:is(.dark *));
@@ -621,6 +621,19 @@ html.dark .personal-category-header-band {
   --home-tab-prompts-bg: #d6d3d1;
   --home-tab-prompts-bg-dark: rgb(28 25 23 / 0.4);
   --home-tab-prompts-border: #988f83;
+  /* Connected sub-filter rows: defaults match folder tab fills (themes may retune dark panel only). */
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   /* Inactive main tabs: shared church wash (per-accent vars for seasonal overrides). */
   --home-tab-public-inactive-bg: var(--color-church-surface-inactive);
   --home-tab-public-inactive-bg-dark: var(--surface-card, #1f2937);
@@ -1634,6 +1647,18 @@ html.blossom {
   --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
   --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   --color-home-panel-blue-chip-active: color-mix(in srgb, #f6d5de 44%, white);
   --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #f6d5de 44%, white);
   --color-home-panel-personal-chip-active: color-mix(in srgb, #dc8a9e 50%, white);
@@ -1835,6 +1860,23 @@ html.dark.blossom-dark {
   --color-home-panel-amber-status-chip-active: color-mix(in srgb, #c45b76 35%, #422006);
   --color-home-panel-gray-status-chip-active: color-mix(in srgb, #8e4a5e 40%, #4a3048);
   --color-home-panel-gray-status-chip-active-dark: color-mix(in srgb, #6b2d45 45%, #3d2840);
+  /*
+    Sub-filter panel fills: in dark mode the panel used `--home-tab-*-bg-dark` (step down) while
+    active folder tabs (and tour z-10 anchors) use the primary `--home-tab-*-bg`, so the row read
+    mismatched. Dark sub-filter row matches the tab / tour anchor fill; light half aliases to the same.
+  */
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg);
 }
 
 html.dark.blossom-dark body,
@@ -2001,6 +2043,18 @@ html.christmas-light {
   --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
   --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   --color-home-panel-blue-chip-active: color-mix(in srgb, #e7b4b8 78%, white);
   --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #e7b4b8 78%, white);
   --color-home-panel-personal-chip-active: color-mix(in srgb, #e4c06a 78%, #fff6e4);
@@ -2176,6 +2230,18 @@ html.christmas-dark {
   --home-tab-prompts-inactive-bg-dark: var(--home-tab-inactive-bg-dark);
   --home-tab-prompts-inactive-border: var(--home-tab-inactive-border);
   --home-tab-prompts-inactive-border-dark: var(--home-tab-inactive-border-dark);
+  --home-tab-public-sub-filter-bg: var(--home-tab-public-bg);
+  --home-tab-public-sub-filter-bg-dark: var(--home-tab-public-bg-dark);
+  --home-tab-groups-sub-filter-bg: var(--home-tab-groups-bg);
+  --home-tab-groups-sub-filter-bg-dark: var(--home-tab-groups-bg-dark);
+  --home-tab-members-sub-filter-bg: var(--home-tab-members-bg);
+  --home-tab-members-sub-filter-bg-dark: var(--home-tab-members-bg-dark);
+  --home-tab-personal-sub-filter-bg: var(--home-tab-personal-bg);
+  --home-tab-personal-sub-filter-bg-dark: var(--home-tab-personal-bg-dark);
+  --home-tab-memorize-sub-filter-bg: var(--home-tab-memorize-bg);
+  --home-tab-memorize-sub-filter-bg-dark: var(--home-tab-memorize-bg-dark);
+  --home-tab-prompts-sub-filter-bg: var(--home-tab-prompts-bg);
+  --home-tab-prompts-sub-filter-bg-dark: var(--home-tab-prompts-bg-dark);
   --color-home-panel-blue-chip-active: color-mix(in srgb, #3a1820 55%, #8e141e);
   --color-home-panel-blue-chip-active-dark: color-mix(in srgb, #3a1820 55%, #8e141e);
   --color-home-panel-personal-chip-active: color-mix(in srgb, #4a1224 50%, #c4a35a);
