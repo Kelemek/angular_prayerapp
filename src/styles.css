@@ -148,7 +148,7 @@
 
 @utility bg-gray-50 {
   /* Background colors - light theme (church cream so white cards have more contrast) */
-  @apply bg-[#E8E5E1]!;
+  background-color: var(--theme-surface-page, #e8e5e1) !important;
 
   /* Background colors - dark theme. Black mode overrides --surface-page. */
   .dark & {
@@ -156,37 +156,37 @@
   }
 }
 @utility bg-gray-100 {
-  @apply bg-[#DDD8D2]!;
+  background-color: var(--theme-surface-raised, #ddd8d2) !important;
   .dark & {
     background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @utility bg-gray-200 {
-  @apply bg-[#D1CCC4]!;
+  background-color: var(--theme-surface-raised-alt, #d1ccc4) !important;
   .dark & {
     @apply bg-[#2F5F54]!;
   }
 }
 @utility bg-gray-300 {
-  @apply bg-[#988F83]!;
+  background-color: var(--theme-surface-muted, #988f83) !important;
   .dark & {
     background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @utility bg-gray-700 {
-  @apply bg-[#6B6256]!;
+  background-color: var(--theme-text-secondary, #6b6256) !important;
   .dark & {
     background-color: var(--surface-raised, #3e5266) !important;
   }
 }
 @utility bg-gray-800 {
-  @apply bg-white!;
+  background-color: var(--theme-surface-card, #ffffff) !important;
   .dark & {
     background-color: var(--surface-card, #1f2937) !important;
   }
 }
 @utility bg-gray-900 {
-  @apply bg-[#E8E5E1]!;
+  background-color: var(--theme-surface-page, #e8e5e1) !important;
   .dark & {
     background-color: var(--surface-page, #2b2b2b) !important;
   }
@@ -194,7 +194,7 @@
 /* Inset field/panel fills: cream wells on white cards; dark semi-transparent gray-700.
    Do not use bg-gray-50/100 with dark:bg-gray-700/* — those utilities force solid dark fills. */
 @utility bg-inset-surface {
-  background-color: #e8e5e1 !important;
+  background-color: var(--theme-surface-inset, #e8e5e1) !important;
   .dark & {
     background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
@@ -217,7 +217,7 @@
   }
 }
 @utility bg-inset-surface-muted {
-  background-color: #ddd8d2 !important;
+  background-color: var(--theme-surface-inset-muted, #ddd8d2) !important;
   .dark & {
     background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
@@ -251,7 +251,9 @@
 }
 .btn-chip-green {
   color: var(--color-church-green-chip-text);
-  @apply border border-[#39704D] focus:ring-[#39704D];
+  border: 1px solid var(--theme-action-primary, #39704d);
+  @apply focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+  --tw-ring-color: var(--theme-action-primary, #39704d);
 }
 html:not(.dark) .btn-chip-green {
   background-color: var(--color-church-green-chip-fill);
@@ -274,7 +276,9 @@ html.dark .btn-chip-green {
 }
 .btn-chip-green-elevated {
   color: var(--color-church-green-chip-text);
-  @apply border border-[#39704D] shadow-sm focus:ring-[#39704D];
+  border: 1px solid var(--theme-action-primary, #39704d);
+  @apply shadow-sm focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+  --tw-ring-color: var(--theme-action-primary, #39704d);
 }
 html.dark .btn-chip-green-elevated {
   color: var(--color-church-green-chip-text-dark);
@@ -385,16 +389,16 @@ html.dark .personal-category-header-band {
     @apply border-[#2B2B2B]!;
   }
   & .bg-green-600 {
-    @apply bg-[#39704D]!;
+    background-color: var(--theme-action-primary, #39704d) !important;
   }
   & .bg-green-700 {
-    @apply bg-[#004B3D]!;
+    background-color: var(--theme-action-primary-hover, #004b3d) !important;
   }
   & .hover\:bg-green-700:hover {
-    @apply bg-[#004B3D]!;
+    background-color: var(--theme-action-primary-hover, #004b3d) !important;
   }
   & .bg-blue-600 {
-    @apply bg-[#0047AB]!;
+    background-color: var(--theme-action-blue, #0047ab) !important;
   }
   & .bg-blue-700 {
     background-color: var(--surface-raised, #3e5266) !important;
@@ -410,28 +414,28 @@ html.dark .personal-category-header-band {
 }
 @utility text-gray-400 {
   /* Text colors - light theme */
-  @apply text-[#988F83]!;
+  color: var(--theme-text-muted, #988f83) !important;
   .dark & {
     @apply text-[#988F83]!;
   }
 }
 @utility text-gray-500 {
-  @apply text-[#988F83]!;
+  color: var(--theme-text-muted, #988f83) !important;
   .dark & {
     @apply text-[#988F83]!;
   }
 }
 @utility text-gray-600 {
-  @apply text-[#6B6256]!;
+  color: var(--theme-text-secondary, #6b6256) !important;
 }
 @utility text-gray-700 {
-  @apply text-[#2B2B2B]!;
+  color: var(--theme-text-body, #2b2b2b) !important;
 }
 @utility text-gray-800 {
-  @apply text-[#2B2B2B]!;
+  color: var(--theme-text-body, #2b2b2b) !important;
 }
 @utility text-gray-900 {
-  @apply text-[#2B2B2B]!;
+  color: var(--theme-text-body, #2b2b2b) !important;
 }
 @utility text-gray-100 {
   /* Text colors - dark theme */
@@ -451,13 +455,13 @@ html.dark .personal-category-header-band {
 }
 @utility border-gray-100 {
   /* Border colors - light theme */
-  @apply border-[#E8E5E1]!;
+  border-color: var(--theme-border-light, #e8e5e1) !important;
 }
 @utility border-gray-200 {
-  @apply border-[#D1CCC4]!;
+  border-color: var(--theme-border, #d1ccc4) !important;
 }
 @utility border-gray-300 {
-  @apply border-[#D1CCC4]!;
+  border-color: var(--theme-border, #d1ccc4) !important;
 }
 @utility border-gray-600 {
   /* Border colors - dark theme */
@@ -477,26 +481,26 @@ html.dark .personal-category-header-band {
 }
 @utility bg-green-600 {
   /* Update green to use church green */
-  @apply bg-[#39704D]!;
+  background-color: var(--theme-action-primary, #39704d) !important;
   .dark & {
-    @apply bg-[#39704D]!;
+    background-color: var(--theme-action-primary, #39704d) !important;
   }
 }
 @utility bg-green-700 {
-  @apply bg-[#004B3D]!;
+  background-color: var(--theme-action-primary-hover, #004b3d) !important;
   .dark & {
-    @apply bg-[#004B3D]!;
+    background-color: var(--theme-action-primary-hover, #004b3d) !important;
   }
 }
 @utility bg-blue-600 {
   /* Update blue to use church blue */
-  @apply bg-[#0047AB]!;
+  background-color: var(--theme-action-blue, #0047ab) !important;
   .dark & {
-    @apply bg-[#0047AB]!;
+    background-color: var(--theme-action-blue, #0047ab) !important;
   }
 }
 @utility bg-blue-700 {
-  @apply bg-[#3E5266]!;
+  background-color: var(--theme-action-blue-muted, #3e5266) !important;
   .dark & {
     background-color: var(--surface-raised, #3e5266) !important;
   }
@@ -504,13 +508,13 @@ html.dark .personal-category-header-band {
 @layer utilities {
   /* Hover overrides for church green/blue (cannot be @utility in v4) */
   .hover\:bg-green-700:hover {
-    background-color: #004B3D !important;
+    background-color: var(--theme-action-primary-hover, #004b3d) !important;
   }
   .dark .hover\:bg-green-700:hover {
-    background-color: #004B3D !important;
+    background-color: var(--theme-action-primary-hover, #004b3d) !important;
   }
   .hover\:bg-blue-700:hover {
-    background-color: #3E5266 !important;
+    background-color: var(--theme-action-blue-muted, #3e5266) !important;
   }
   .dark .hover\:bg-blue-700:hover {
     background-color: var(--surface-raised, #3e5266) !important;
@@ -537,6 +541,26 @@ html.dark .personal-category-header-band {
   --accent-primary: #39704D;
   --accent-secondary: #C9A961;
   --accent-gold: #B8860B;
+  /* Light-mode theme bridge (html.blossom / html.christmas-light override). */
+  --theme-surface-page: #e8e5e1;
+  --theme-surface-card: #ffffff;
+  --theme-surface-raised: #ddd8d2;
+  --theme-surface-raised-alt: #d1ccc4;
+  --theme-surface-muted: #988f83;
+  --theme-surface-inset: #e8e5e1;
+  --theme-surface-inset-muted: #ddd8d2;
+  --theme-text-body: #2b2b2b;
+  --theme-text-secondary: #6b6256;
+  --theme-text-muted: #988f83;
+  --theme-border: #d1ccc4;
+  --theme-border-light: #e8e5e1;
+  --theme-action-primary: #39704d;
+  --theme-action-primary-hover: #004b3d;
+  --theme-action-blue: #0047ab;
+  --theme-action-blue-muted: #3e5266;
+  --theme-chrome-border: #2f5f54;
+  --theme-safe-area-chrome: #e8e5e1;
+  --theme-safe-area-chrome-dark: #1f2937;
 }
 
 html.dark {
@@ -1001,13 +1025,13 @@ html, body {
     right: 0;
     height: env(safe-area-inset-top);
     /* Make safe-area strip opaque so content never shows through while scrolling */
-    background-color: #E8E5E1;
+    background-color: var(--theme-safe-area-chrome, #e8e5e1);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     z-index: 9999;
   }
   html.dark body::before {
-    background-color: #1F2937;
+    background-color: var(--theme-safe-area-chrome-dark, #1f2937);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1020,11 +1044,11 @@ html, body {
     right: 0;
     bottom: 0;
     height: env(safe-area-inset-bottom);
-    background-color: #E8E5E1;
+    background-color: var(--theme-safe-area-chrome, #e8e5e1);
     z-index: 9999;
   }
   html.dark body::after {
-    background-color: #1F2937;
+    background-color: var(--theme-safe-area-chrome-dark, #1f2937);
   }
 
   /* Web/Safari: keep sticky header below safe area strip */
@@ -1374,18 +1398,57 @@ html.blossom {
   --surface-raised: #f6d5de;
   --surface-inset: #f6d5de;
   --surface-inset-hover: #efb6c4;
+  --theme-surface-page: #fce8ee;
+  --theme-surface-card: #fff7f9;
+  --theme-surface-raised: #f6d5de;
+  --theme-surface-raised-alt: #efb6c4;
+  --theme-surface-muted: #c45b76;
+  --theme-surface-inset: #f6d5de;
+  --theme-surface-inset-muted: #f6d5de;
+  --theme-text-body: #3b1520;
+  --theme-text-secondary: #6b1e33;
+  --theme-text-muted: #8e4a5e;
+  --theme-border: #efb6c4;
+  --theme-border-light: #fce8ee;
+  --theme-action-primary: #c45b76;
+  --theme-action-primary-hover: #a84862;
+  --theme-action-blue: #6b1e33;
+  --theme-action-blue-muted: #4a1224;
+  --theme-chrome-border: #6b1e33;
+  --theme-safe-area-chrome: #fce8ee;
+  --color-card-meta-header-band: #f6d5de;
   --color-church-cream: #fce8ee;
+  --color-church-gray-warm: #8e4a5e;
   --color-church-navy: #6b1e33;
   --color-church-slate: #4a1224;
+  --color-church-green: #c45b76;
+  --color-church-green-medium: #a84862;
+  --color-church-green-dark: #4a1224;
+  --color-church-green-tint: color-mix(in srgb, #fce8ee 55%, #efb6c4);
+  --color-church-green-chip-text: #6b1e33;
+  --color-church-green-chip-fill: rgb(196 91 118 / 0.24);
+  --color-church-green-chip-fill-hover: rgb(196 91 118 / 0.38);
+  --color-church-blue: #6b1e33;
+  --color-church-blue-dark: #4a1224;
+  --color-primary-500: #a84862;
+  --color-primary-600: #c45b76;
+  --color-primary-700: #a84862;
   --color-primary-800: #6b1e33;
   --color-primary-900: #4a1224;
+  --color-accent-500: #6b1e33;
+  --color-accent-600: #4a1224;
+  --color-accent-700: #4a1224;
   --header-bg-light: rgb(252 232 238 / 0.92);
+  --bg-primary: #fff7f9;
+  --bg-secondary: #fce8ee;
+  --bg-tertiary: #f6d5de;
   --text-primary: #3b1520;
   --text-secondary: #6b1e33;
   --text-muted: #8e4a5e;
+  --border-color: #efb6c4;
   --accent-primary: #c45b76;
-  --color-church-green: #c45b76;
-  --color-church-green-medium: #a84862;
+  --accent-secondary: #6b1e33;
+  --accent-gold: #c45b76;
 }
 
 html.blossom body,
@@ -1394,36 +1457,45 @@ html.blossom body::after {
   background-color: var(--surface-page);
 }
 
-html.blossom .bg-gray-900 {
-  background-color: var(--surface-page) !important;
+html.blossom .modal-chrome-header,
+html.blossom .modal-chrome-footer,
+html.blossom .settings-modal-header,
+html.blossom .settings-modal-footer {
+  border-color: var(--theme-chrome-border);
 }
 
-html.blossom .bg-gray-800 {
-  background-color: var(--surface-card) !important;
+html.blossom .text-green-600,
+html.blossom .text-green-700,
+html.blossom .text-green-800 {
+  color: var(--theme-action-primary) !important;
 }
 
-html.blossom .bg-gray-100,
-html.blossom .bg-gray-700,
-html.blossom .bg-inset-surface,
-html.blossom .bg-inset-surface-muted {
-  background-color: var(--surface-raised) !important;
+html.blossom .border-green-600,
+html.blossom .border-green-500 {
+  border-color: var(--theme-action-primary) !important;
 }
 
-html.blossom .bg-gray-50 {
-  background-color: var(--surface-page) !important;
+html.blossom .ring-church-green {
+  --tw-ring-color: var(--theme-action-primary) !important;
 }
 
-html.blossom .text-gray-800,
-html.blossom .text-gray-900 {
-  color: var(--text-primary) !important;
+html.blossom .bg-blue-50,
+html.blossom .hover\:bg-blue-50:hover {
+  background-color: color-mix(in srgb, #fce8ee 70%, #efb6c4) !important;
 }
 
-html.blossom .text-gray-600,
-html.blossom .text-gray-700 {
-  color: var(--text-secondary) !important;
+html.blossom .text-blue-700,
+html.blossom .text-blue-600 {
+  color: var(--theme-action-blue) !important;
 }
 
-/* Christmas Light — cream and pine accents (no .dark on html). */
+html.blossom .border-blue-300,
+html.blossom .border-blue-500,
+html.blossom .border-blue-600 {
+  border-color: var(--theme-action-blue) !important;
+}
+
+/* Christmas Light — cream, forest chrome, crimson CTAs (no .dark on html). */
 html.christmas-light {
   color-scheme: light;
   --surface-page: #f7f1e4;
@@ -1431,20 +1503,60 @@ html.christmas-light {
   --surface-raised: #e8f0e6;
   --surface-inset: #e8f0e6;
   --surface-inset-hover: #d4e4d6;
+  --theme-surface-page: #f7f1e4;
+  --theme-surface-card: #fffcf6;
+  --theme-surface-raised: #e8f0e6;
+  --theme-surface-raised-alt: #d4e4d6;
+  --theme-surface-muted: #3d5c4a;
+  --theme-surface-inset: #e8f0e6;
+  --theme-surface-inset-muted: #e8f0e6;
+  --theme-text-body: #1a2e24;
+  --theme-text-secondary: #1f4d36;
+  --theme-text-muted: #3d5c4a;
+  --theme-border: #d4e4d6;
+  --theme-border-light: #f7f1e4;
+  --theme-action-primary: #8e141e;
+  --theme-action-primary-hover: #5c0d14;
+  --theme-action-blue: #1f4d36;
+  --theme-action-blue-muted: #0f2e22;
+  --theme-chrome-border: #1f4d36;
+  --theme-safe-area-chrome: #f7f1e4;
+  --color-card-meta-header-band: #e8f0e6;
   --color-church-cream: #f7f1e4;
+  --color-church-gray-warm: #3d5c4a;
   --color-church-navy: #1f4d36;
   --color-church-slate: #0f2e22;
+  --color-church-green: #1f4d36;
+  --color-church-green-medium: #1f4d36;
+  --color-church-green-dark: #0f2e22;
+  --color-church-green-tint: color-mix(in srgb, #e8f0e6 62%, #f7f1e4);
+  --color-church-green-chip-text: #1f4d36;
+  --color-church-green-chip-fill: rgb(31 77 54 / 0.18);
+  --color-church-green-chip-fill-hover: rgb(31 77 54 / 0.3);
+  --color-church-gold: #c4a35a;
+  --color-church-gold-dark: #8e141e;
+  --color-church-gold-light: #c4a35a;
+  --color-church-blue: #1f4d36;
+  --color-church-blue-dark: #0f2e22;
+  --color-primary-500: #1f4d36;
+  --color-primary-600: #8e141e;
+  --color-primary-700: #5c0d14;
   --color-primary-800: #1f4d36;
   --color-primary-900: #0f2e22;
+  --color-accent-200: #c4a35a;
+  --color-accent-300: #c4a35a;
+  --color-accent-400: #8e141e;
   --header-bg-light: rgb(247 241 228 / 0.92);
+  --bg-primary: #fffcf6;
+  --bg-secondary: #f7f1e4;
+  --bg-tertiary: #e8f0e6;
   --text-primary: #1a2e24;
   --text-secondary: #1f4d36;
   --text-muted: #3d5c4a;
-  --accent-primary: #1f4d36;
+  --border-color: #d4e4d6;
+  --accent-primary: #8e141e;
   --accent-secondary: #c4a35a;
   --accent-gold: #c4a35a;
-  --color-church-green: #1f4d36;
-  --color-church-gold: #c4a35a;
 }
 
 html.christmas-light body,
@@ -1453,38 +1565,42 @@ html.christmas-light body::after {
   background-color: var(--surface-page);
 }
 
-html.christmas-light .bg-gray-900 {
-  background-color: var(--surface-page) !important;
+html.christmas-light .modal-chrome-header,
+html.christmas-light .modal-chrome-footer,
+html.christmas-light .settings-modal-header,
+html.christmas-light .settings-modal-footer {
+  border-color: var(--theme-chrome-border);
 }
 
-html.christmas-light .bg-gray-800 {
-  background-color: var(--surface-card) !important;
+html.christmas-light .text-green-600,
+html.christmas-light .text-green-700,
+html.christmas-light .text-green-800 {
+  color: var(--theme-action-primary) !important;
 }
 
-html.christmas-light .bg-gray-100,
-html.christmas-light .bg-gray-700,
-html.christmas-light .bg-inset-surface,
-html.christmas-light .bg-inset-surface-muted {
-  background-color: var(--surface-raised) !important;
+html.christmas-light .text-church-gold,
+html.christmas-light .text-amber-600 {
+  color: var(--accent-gold) !important;
 }
 
-html.christmas-light .bg-gray-50 {
-  background-color: var(--surface-page) !important;
+html.christmas-light .border-green-600,
+html.christmas-light .border-green-500 {
+  border-color: var(--theme-action-primary) !important;
 }
 
-html.christmas-light .text-gray-800,
-html.christmas-light .text-gray-900 {
-  color: var(--text-primary) !important;
+html.christmas-light .bg-blue-50,
+html.christmas-light .hover\:bg-blue-50:hover {
+  background-color: color-mix(in srgb, #f7f1e4 65%, #e8f0e6) !important;
 }
 
-html.christmas-light .text-gray-600,
-html.christmas-light .text-gray-700 {
-  color: var(--text-secondary) !important;
+html.christmas-light .text-blue-700,
+html.christmas-light .text-blue-600 {
+  color: var(--theme-action-blue) !important;
 }
 
 /*
   Christmas Dark — dark class + overlay (like Night).
-  Surfaces: pine and forest greens with gold/crimson accents.
+  Surfaces: pine greens; crimson primary actions; gold trim.
 */
 html.christmas-dark {
   color-scheme: dark;
@@ -1497,20 +1613,35 @@ html.christmas-dark {
   --color-gray-800: #163328;
   --color-gray-900: #0a1f18;
   --color-gray-950: #0a1f18;
+  --theme-action-primary: #8e141e;
+  --theme-action-primary-hover: #5c0d14;
+  --theme-action-blue: #1f4d36;
+  --theme-action-blue-muted: #2a5c42;
+  --theme-safe-area-chrome-dark: #0a1f18;
   --bg-primary: #163328;
   --bg-secondary: #0a1f18;
   --bg-tertiary: #1f4d36;
   --header-bg-dark: rgb(10 31 24 / 0.92);
   --color-church-navy: #1f4d36;
   --color-church-slate: #0a1f18;
+  --color-church-green: #2a5c42;
+  --color-church-green-medium: #1f4d36;
+  --color-church-green-dark: #0a1f18;
+  --color-church-green-chip-text-dark: #f7f1e4;
+  --color-church-green-chip-fill-dark: rgb(142 20 30 / 0.35);
+  --color-church-green-chip-fill-dark-hover: rgb(142 20 30 / 0.5);
   --color-primary-800: #0f2e22;
   --color-primary-900: #163328;
   --color-card-meta-header-band-dark: rgb(10 31 24 / 0.72);
   --color-inset-surface-on-card-dark: #1f4d36;
   --text-primary: #f7f1e4;
   --text-secondary: #d4e4d6;
+  --text-muted: #a8c4b4;
+  --border-color: #1f4d36;
+  --accent-primary: #8e141e;
   --accent-secondary: #c4a35a;
   --accent-gold: #c4a35a;
+  --theme-chrome-border: #1f4d36;
 }
 
 html.christmas-dark body,
@@ -1560,6 +1691,34 @@ html.christmas-dark .dark\:hover\:bg-gray-800:is(.dark *):hover,
 html.christmas-dark .dark\:hover\:bg-gray-800\/70:is(.dark *):hover,
 html.christmas-dark .dark\:hover\:bg-blue-700:is(.dark *):hover {
   background-color: var(--surface-inset-hover) !important;
+}
+
+html.christmas-dark .dark\:text-gray-100:is(.dark *),
+html.christmas-dark .dark\:text-gray-200:is(.dark *),
+html.christmas-dark .dark\:text-gray-300:is(.dark *) {
+  color: var(--text-primary) !important;
+}
+
+html.christmas-dark .dark\:text-gray-400:is(.dark *),
+html.christmas-dark .dark\:text-gray-500:is(.dark *) {
+  color: var(--text-muted) !important;
+}
+
+html.christmas-dark .dark\:text-green-300:is(.dark *),
+html.christmas-dark .dark\:text-green-400:is(.dark *) {
+  color: var(--accent-gold) !important;
+}
+
+html.christmas-dark .modal-chrome-header,
+html.christmas-dark .modal-chrome-footer,
+html.christmas-dark .settings-modal-header,
+html.christmas-dark .settings-modal-footer {
+  border-color: var(--theme-chrome-border);
+}
+
+html.christmas-dark .dark\:border-gray-600:is(.dark *),
+html.christmas-dark .dark\:border-gray-700:is(.dark *) {
+  border-color: var(--theme-chrome-border) !important;
 }
 
 /* Safari can leave content-visibility subtrees unpainted after a tab freeze. */
