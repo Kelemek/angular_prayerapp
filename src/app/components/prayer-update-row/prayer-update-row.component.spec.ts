@@ -5,6 +5,8 @@ import {
   PRAYER_CARD_HEADER_INSET_CLASSES,
   PRESENTATION_CARD_HEADER_BLEED_CLASSES,
   PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES,
+  PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS,
+  PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS,
   getUpdateRowHeaderBandRoundedClasses,
 } from '../../lib/prayer-card-layout';
 
@@ -19,6 +21,10 @@ describe('PrayerUpdateRowComponent', () => {
     );
     expect(component.headerInsetClasses).toBe(PRAYER_CARD_HEADER_INSET_CLASSES);
     expect(PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES).toContain('bg-shell-corner-seal');
+    expect(PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS).toBe('prayer-update-row-shell');
+    expect(PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS).toBe(
+      'prayer-update-row-header-band'
+    );
   });
 
   it('derives header band radius from shellClass', () => {

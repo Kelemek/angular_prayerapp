@@ -235,6 +235,13 @@ html.dark .home-filter-tab-inactive-chrome:hover {
     background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
 }
+/* Update row shell: default inset; seasonal body/header split in rules below. */
+@utility prayer-update-row-shell {
+  background-color: var(--theme-surface-inset, #e8e5e1) !important;
+  .dark & {
+    background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
+  }
+}
 /* Meta header bands + rich-text toolbar + modal chrome headers/footers. */
 @utility bg-card-meta-header-band {
   background-color: var(--color-card-meta-header-band) !important;
@@ -1640,24 +1647,22 @@ html.blossom .border-blue-600 {
 }
 
 /*
-  Prayer update rows: meta header band darker than inset body on seasonal themes.
-  Scoped to app-prayer-update-row so other bg-inset-surface wells are unchanged.
-  Default Light keeps band (#d6d1cb) vs inset (#e8e5e1) without this override.
+  Prayer update rows: meta header band darker than shell body on seasonal themes.
+  Uses dedicated surface classes (not generic bg-inset-surface / bg-card-meta-header-band).
+  Default Light keeps band (#d6d1cb) vs inset (#e8e5e1) via prayer-update-row-shell utility.
 */
-html.blossom app-prayer-update-row .bg-inset-surface,
-html.christmas-light app-prayer-update-row .bg-inset-surface {
+html.blossom app-prayer-update-row .prayer-update-row-shell,
+html.christmas-light app-prayer-update-row .prayer-update-row-shell {
   background-color: var(--color-update-row-body) !important;
 }
-html.christmas-dark app-prayer-update-row .bg-inset-surface {
+html.christmas-dark app-prayer-update-row .prayer-update-row-shell {
   background-color: var(--color-update-row-body-dark) !important;
 }
-html.blossom app-prayer-update-row .bg-card-meta-header-band {
+html.blossom app-prayer-update-row .prayer-update-row-header-band,
+html.christmas-light app-prayer-update-row .prayer-update-row-header-band {
   background-color: var(--color-update-row-header-band) !important;
 }
-html.christmas-light app-prayer-update-row .bg-card-meta-header-band {
-  background-color: var(--color-update-row-header-band) !important;
-}
-html.christmas-dark app-prayer-update-row .bg-card-meta-header-band {
+html.christmas-dark app-prayer-update-row .prayer-update-row-header-band {
   background-color: var(--color-update-row-header-band-dark) !important;
 }
 
