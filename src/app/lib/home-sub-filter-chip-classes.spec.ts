@@ -252,6 +252,11 @@ describe("Blossom dark home tab tokens", () => {
     expect(b).toContain("--home-tab-public-bg-dark: #3d2840");
     expect(b).toContain("--home-tab-personal-bg: #5c2d40");
     expect(b).toContain("--home-tab-personal-bg-dark: #4a3048");
+    expect(b).toContain("--color-church-surface-inactive: color-mix(in srgb, #2a1822 78%, #6b2d45)");
+    expect(b).toContain(
+      "--color-home-panel-green-status-chip-active-dark: color-mix(in srgb, #453040 48%, #c45b76)"
+    );
+    expect(b).not.toContain("--color-home-panel-green-status-chip-active-dark: color-mix(in srgb, #5c2d40 45%, #166534)");
     expect(css).toContain("html.blossom .home-filter-tab-inactive-chrome");
     expect(css).toContain("html.blossom-dark .home-filter-tab-inactive-chrome");
   });

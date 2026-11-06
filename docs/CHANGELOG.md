@@ -6,6 +6,7 @@ Major features and milestones for the Prayer App.
 
 ### Blossom Dark home tabs (November 6, 2026)
 - **Blossom Dark** (`html.dark` + **`html.blossom-dark`**) now overrides **Home folder tab** `--home-tab-*` with a **plum–rose ladder** (replacing the default Church blue `#0047AB` tab borders from `:root`). Distinct **`--home-tab-*-bg`** vs **`--home-tab-*-bg-dark`** keep the same hue–shade relationship as light Blossom. Belt-and-suspenders for inactive tabs and tour anchors use **`html.blossom-dark`** ([`styles.css`](src/styles.css)).
+- Under **`html.blossom-dark`**, **Home sub-filter rows** (status chips and inactive chip shells that use `--color-church-surface-inactive*` and **`--color-home-panel-green-status-chip-active-dark`**) are remixed to **rose/plum** so the second tab row matches light Blossom’s hue family instead of gray fills or forest-green “current” chips.
 
 ### Blossom and Christmas appearance themes (November 6, 2026)
 - **Settings** and **presentation settings** use two side-by-side [`ThemeSelectDropdownComponent`](../src/app/components/theme-select-dropdown/theme-select-dropdown.component.ts) controls: **Family** (Default, High Contrast, Blossom, Christmas) and **Mode** (Light, Dark, System). Options and labels live in [`theme-options.ts`](../src/app/lib/theme-options.ts). **System** is mode only—it follows the OS *within the selected family* (for example Christmas + System resolves to Christmas Light or Christmas Dark).

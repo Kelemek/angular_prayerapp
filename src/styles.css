@@ -1768,6 +1768,13 @@ html.blossom-dark {
   --theme-chrome-border: #6b2d45;
   --color-card-meta-header-band-dark: rgb(45 26 40 / 0.72);
   --color-inset-surface-on-card-dark: #3b2434;
+  /* Home sub-filter inactive chips: same rose/plum family as light Blossom (not gray/green church inactive). */
+  --color-church-cream: #2d1a28;
+  --color-church-gray-warm: #8e4a5e;
+  --color-church-surface-inactive: color-mix(in srgb, #2a1822 78%, #6b2d45);
+  --color-church-surface-inactive-hover: color-mix(in srgb, #2a1822 65%, #8e4a5e);
+  --color-church-surface-inactive-border: color-mix(in srgb, #8e4a5e 55%, #4a3048);
+  --color-church-surface-inactive-tab-border: color-mix(in srgb, #c45b76 55%, #2a1822);
   --home-tab-public-bg: #4a3048;
   --home-tab-public-bg-dark: #3d2840;
   --home-tab-public-border: #c45b76;
@@ -1820,8 +1827,9 @@ html.blossom-dark {
   --color-home-panel-personal-chip-active-dark: color-mix(in srgb, #4a3048 50%, #e8849a);
   --color-home-panel-stone-chip-active: color-mix(in srgb, #4a3048 52%, #f9a8d4);
   --color-home-panel-stone-chip-active-dark: color-mix(in srgb, #3d2840 55%, #c45b76);
-  --color-home-panel-green-status-chip-active: color-mix(in srgb, #6b3650 40%, #134e2a);
-  --color-home-panel-green-status-chip-active-dark: color-mix(in srgb, #5c2d40 45%, #166534);
+  /* “Success” status row: rose/plum ladder like light Blossom (no forest-green mix). */
+  --color-home-panel-green-status-chip-active: color-mix(in srgb, #523848 42%, #e8849a);
+  --color-home-panel-green-status-chip-active-dark: color-mix(in srgb, #453040 48%, #c45b76);
   --color-home-panel-amber-status-chip-active: color-mix(in srgb, #c45b76 35%, #422006);
   --color-home-panel-gray-status-chip-active: color-mix(in srgb, #8e4a5e 40%, #4a3048);
   --color-home-panel-gray-status-chip-active-dark: color-mix(in srgb, #6b2d45 45%, #3d2840);
