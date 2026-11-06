@@ -3,6 +3,9 @@
 @import './card-chrome.css';
 
 @source './**/*.{html,ts}';
+@source inline(
+  "bg-[var(--home-tab-public-bg)] bg-[var(--home-tab-public-inactive-bg)] bg-[var(--home-tab-groups-bg)] bg-[var(--home-tab-groups-inactive-bg)] bg-[var(--home-tab-personal-bg)] bg-[var(--home-tab-personal-inactive-bg)] bg-[var(--home-tab-memorize-bg)] bg-[var(--home-tab-memorize-inactive-bg)] bg-[var(--home-tab-members-bg)] bg-[var(--home-tab-prompts-bg)]"
+);
 
 @custom-variant dark (&:is(.dark *));
 
@@ -1561,6 +1564,47 @@ html.blossom body,
 html.blossom body::before,
 html.blossom body::after {
   background-color: var(--surface-page);
+}
+
+/* Belt-and-suspenders: home main tabs when Tailwind utilities are missing. */
+html.blossom #tour-filter-public.home-filter-tab-inactive-chrome,
+html.blossom #tour-filter-groups.home-filter-tab-inactive-chrome,
+html.blossom #tour-filter-personal.home-filter-tab-inactive-chrome,
+html.blossom #tour-filter-memorize.home-filter-tab-inactive-chrome {
+  border-style: solid;
+  border-width: 2px;
+}
+html.blossom #tour-filter-public.home-filter-tab-inactive-chrome {
+  background-color: var(--home-tab-public-inactive-bg) !important;
+  border-color: var(--home-tab-public-inactive-border) !important;
+}
+html.blossom #tour-filter-groups.home-filter-tab-inactive-chrome {
+  background-color: var(--home-tab-groups-inactive-bg) !important;
+  border-color: var(--home-tab-groups-inactive-border) !important;
+}
+html.blossom #tour-filter-personal.home-filter-tab-inactive-chrome {
+  background-color: var(--home-tab-personal-inactive-bg) !important;
+  border-color: var(--home-tab-personal-inactive-border) !important;
+}
+html.blossom #tour-filter-memorize.home-filter-tab-inactive-chrome {
+  background-color: var(--home-tab-memorize-inactive-bg) !important;
+  border-color: var(--home-tab-memorize-inactive-border) !important;
+}
+html.blossom #tour-filter-public.z-10 {
+  background-color: var(--home-tab-public-bg) !important;
+  border-color: var(--home-tab-public-border) !important;
+}
+html.blossom #tour-filter-groups.z-10 {
+  background-color: var(--home-tab-groups-bg) !important;
+  border-color: var(--home-tab-groups-border) !important;
+}
+html.blossom #tour-filter-personal.z-10 {
+  background-color: var(--home-tab-personal-bg) !important;
+  border-color: var(--home-tab-personal-border) !important;
+}
+html.blossom #tour-filter-memorize.z-10 {
+  background-color: var(--home-tab-memorize-bg) !important;
+  border-color: var(--home-tab-memorize-border) !important;
 }
 
 /* Inactive main tabs: step toward border on hover (not church cream on pink page). */

@@ -126,66 +126,68 @@ export const HOME_TAB_CSS_VAR = {
   },
 } as const;
 
-function homeTabAccentFillClasses(accent: HomeTabCssAccent): string {
-  const v = HOME_TAB_CSS_VAR[accent];
-  return [
-    `bg-[var(${v.bg})]`,
-    `dark:bg-[var(${v.bgDark})]`,
-    `border-[var(${v.border})]`,
-    `dark:border-[var(${v.border})]`,
-  ].join(" ");
-}
+/** Static literals so Tailwind content-scan emits `bg-[var(--home-tab-*)]` utilities. */
+export const HOME_TAB_PUBLIC_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-public-bg)] dark:bg-[var(--home-tab-public-bg-dark)] border-[var(--home-tab-public-border)] dark:border-[var(--home-tab-public-border)]";
+export const HOME_TAB_GROUPS_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-groups-bg)] dark:bg-[var(--home-tab-groups-bg-dark)] border-[var(--home-tab-groups-border)] dark:border-[var(--home-tab-groups-border)]";
+export const HOME_TAB_MEMBERS_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-members-bg)] dark:bg-[var(--home-tab-members-bg-dark)] border-[var(--home-tab-members-border)] dark:border-[var(--home-tab-members-border)]";
+export const HOME_TAB_PERSONAL_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-personal-bg)] dark:bg-[var(--home-tab-personal-bg-dark)] border-[var(--home-tab-personal-border)] dark:border-[var(--home-tab-personal-border)]";
+export const HOME_TAB_MEMORIZE_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-memorize-bg)] dark:bg-[var(--home-tab-memorize-bg-dark)] border-[var(--home-tab-memorize-border)] dark:border-[var(--home-tab-memorize-border)]";
+export const HOME_TAB_PROMPTS_ACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-prompts-bg)] dark:bg-[var(--home-tab-prompts-bg-dark)] border-[var(--home-tab-prompts-border)] dark:border-[var(--home-tab-prompts-border)]";
 
-/** Per-accent inactive tab chrome (defaults on :root = shared church inactive wash). */
-function homeTabInactiveClasses(accent: HomeTabCssAccent): string {
-  const v = HOME_TAB_CSS_VAR[accent];
-  return [
-    `bg-[var(${v.inactiveBg})]`,
-    `dark:bg-[var(${v.inactiveBgDark})]`,
-    "border-2",
-    `border-[var(${v.inactiveBorder})]`,
-    `dark:border-[var(${v.inactiveBorderDark})]`,
-    "home-filter-tab-inactive-chrome",
-  ].join(" ");
-}
+export const HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-public-inactive-bg)] dark:bg-[var(--home-tab-public-inactive-bg-dark)] border-2 border-[var(--home-tab-public-inactive-border)] dark:border-[var(--home-tab-public-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_GROUPS_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-groups-inactive-bg)] dark:bg-[var(--home-tab-groups-inactive-bg-dark)] border-2 border-[var(--home-tab-groups-inactive-border)] dark:border-[var(--home-tab-groups-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_MEMBERS_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-members-inactive-bg)] dark:bg-[var(--home-tab-members-inactive-bg-dark)] border-2 border-[var(--home-tab-members-inactive-border)] dark:border-[var(--home-tab-members-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_PERSONAL_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-personal-inactive-bg)] dark:bg-[var(--home-tab-personal-inactive-bg-dark)] border-2 border-[var(--home-tab-personal-inactive-border)] dark:border-[var(--home-tab-personal-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_MEMORIZE_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-memorize-inactive-bg)] dark:bg-[var(--home-tab-memorize-inactive-bg-dark)] border-2 border-[var(--home-tab-memorize-inactive-border)] dark:border-[var(--home-tab-memorize-inactive-border-dark)] home-filter-tab-inactive-chrome";
+export const HOME_TAB_PROMPTS_INACTIVE_FILL_CLASS =
+  "bg-[var(--home-tab-prompts-inactive-bg)] dark:bg-[var(--home-tab-prompts-inactive-bg-dark)] border-2 border-[var(--home-tab-prompts-inactive-border)] dark:border-[var(--home-tab-prompts-inactive-border-dark)] home-filter-tab-inactive-chrome";
 
-export const HOME_FILTER_TAB_INACTIVE_FILL = {
-  public: homeTabInactiveClasses("public"),
-  personal: homeTabInactiveClasses("personal"),
-  prompts: homeTabInactiveClasses("prompts"),
-  memorize: homeTabInactiveClasses("memorize"),
-  members: homeTabInactiveClasses("members"),
-  groups: homeTabInactiveClasses("groups"),
-} as const;
-
-function homeSubFilterGroupClass(accent: HomeTabCssAccent): string {
-  const v = HOME_TAB_CSS_VAR[accent];
-  return [
-    "rounded-b-lg",
-    `bg-[var(${v.bg})]`,
-    `dark:bg-[var(${v.bgDark})]`,
-    "border-x-[2px] border-b-[2px] border-t-0",
-    `border-[var(${v.border})]`,
-    `dark:border-[var(${v.border})]`,
-    "px-3 py-2",
-  ].join(" ");
-}
+export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-public-bg)] dark:bg-[var(--home-tab-public-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-public-border)] dark:border-[var(--home-tab-public-border)] px-3 py-2";
+export const HOME_GROUPS_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-groups-bg)] dark:bg-[var(--home-tab-groups-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-groups-border)] dark:border-[var(--home-tab-groups-border)] px-3 py-2";
+export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-personal-bg)] dark:bg-[var(--home-tab-personal-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-personal-border)] dark:border-[var(--home-tab-personal-border)] px-3 py-2";
+export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-memorize-bg)] dark:bg-[var(--home-tab-memorize-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-memorize-border)] dark:border-[var(--home-tab-memorize-border)] px-3 py-2";
+export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS =
+  "rounded-b-lg bg-[var(--home-tab-prompts-bg)] dark:bg-[var(--home-tab-prompts-bg-dark)] border-x-[2px] border-b-[2px] border-t-0 border-[var(--home-tab-prompts-border)] dark:border-[var(--home-tab-prompts-border)] px-3 py-2";
 
 /** Light-mode Personal tab/panel fill — driven by `--home-tab-personal-*`. */
 export const HOME_PERSONAL_FILL_LIGHT_CLASS =
   "bg-[var(--home-tab-personal-bg)] dark:bg-[var(--home-tab-personal-bg-dark)]";
+
+export const HOME_FILTER_TAB_INACTIVE_FILL = {
+  public: HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS,
+  personal: HOME_TAB_PERSONAL_INACTIVE_FILL_CLASS,
+  prompts: HOME_TAB_PROMPTS_INACTIVE_FILL_CLASS,
+  memorize: HOME_TAB_MEMORIZE_INACTIVE_FILL_CLASS,
+  members: HOME_TAB_MEMBERS_INACTIVE_FILL_CLASS,
+  groups: HOME_TAB_GROUPS_INACTIVE_FILL_CLASS,
+} as const;
 
 /**
  * Fill + accent color only. Width is applied in {@link homeFilterTabClass}:
  * `border-[2px]` on a connected tab overrides `border-b-0` in the generated CSS.
  */
 export const HOME_FILTER_TAB_ACTIVE_FILL = {
-  public: homeTabAccentFillClasses("public"),
-  personal: homeTabAccentFillClasses("personal"),
-  prompts: homeTabAccentFillClasses("prompts"),
-  memorize: homeTabAccentFillClasses("memorize"),
-  members: homeTabAccentFillClasses("members"),
-  groups: homeTabAccentFillClasses("groups"),
+  public: HOME_TAB_PUBLIC_ACTIVE_FILL_CLASS,
+  personal: HOME_TAB_PERSONAL_ACTIVE_FILL_CLASS,
+  prompts: HOME_TAB_PROMPTS_ACTIVE_FILL_CLASS,
+  memorize: HOME_TAB_MEMORIZE_ACTIVE_FILL_CLASS,
+  members: HOME_TAB_MEMBERS_ACTIVE_FILL_CLASS,
+  groups: HOME_TAB_GROUPS_ACTIVE_FILL_CLASS,
 } as const;
 
 /** Top + sides only so the tab joins the folder panel (no bottom stroke). */
@@ -298,23 +300,21 @@ const HOME_AMBER_STATUS_CHIP_ACTIVE_FILL_CLASS =
 const HOME_GRAY_STATUS_CHIP_ACTIVE_FILL_CLASS =
   "bg-home-panel-gray-status-chip-active dark:bg-home-panel-gray-status-chip-active-dark";
 
-function homeChipActiveClass(
-  accent: HomeTabCssAccent,
-  fillClass: string,
-): string {
-  const b = HOME_TAB_CSS_VAR[accent].border;
-  return [
-    `border !border-[var(${b})] dark:!border-[var(${b})]`,
-    fillClass,
-    `ring ring-[var(${b})] dark:ring-[var(${b})]`,
-    "ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md",
-  ].join(" ");
-}
+const HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-public-border)] dark:!border-[var(--home-tab-public-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-public-border)] dark:ring-[var(--home-tab-public-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-groups-border)] dark:!border-[var(--home-tab-groups-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-groups-border)] dark:ring-[var(--home-tab-groups-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_MEMBERS_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-members-border)] dark:!border-[var(--home-tab-members-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-members-border)] dark:ring-[var(--home-tab-members-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_PROMPTS_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-prompts-border)] dark:!border-[var(--home-tab-prompts-border)] bg-home-panel-stone-chip-active dark:bg-home-panel-stone-chip-active-dark ring ring-[var(--home-tab-prompts-border)] dark:ring-[var(--home-tab-prompts-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
+const HOME_TAB_MEMORIZE_CHIP_ACTIVE_CLASS =
+  "border !border-[var(--home-tab-memorize-border)] dark:!border-[var(--home-tab-memorize-border)] bg-home-panel-blue-chip-active dark:bg-home-panel-blue-chip-active-dark ring ring-[var(--home-tab-memorize-border)] dark:ring-[var(--home-tab-memorize-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md";
 
 /** Tailwind active/inactive pairs for public community sub-chips. */
 export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
   current: {
-    active: homeChipActiveClass("public", HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS),
+    active: HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
     inactive:
       HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
       " hover:border-[var(--home-tab-public-border)] dark:hover:border-[var(--home-tab-public-border)]",
@@ -341,13 +341,13 @@ export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
       " hover:border-gray-500 dark:hover:border-gray-400",
   },
   prompts: {
-    active: homeChipActiveClass("prompts", HOME_PROMPTS_PANEL_CHIP_ACTIVE_FILL_CLASS),
+    active: HOME_TAB_PROMPTS_CHIP_ACTIVE_CLASS,
     inactive:
       HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
       " hover:border-[var(--home-tab-prompts-border)] dark:hover:border-[var(--home-tab-prompts-border)]",
   },
   members: {
-    active: homeChipActiveClass("members", HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS),
+    active: HOME_TAB_MEMBERS_CHIP_ACTIVE_CLASS,
     inactive:
       HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
       " hover:border-[var(--home-tab-members-border)] dark:hover:border-[var(--home-tab-members-border)]",
@@ -356,7 +356,7 @@ export const HOME_PUBLIC_STATUS_CHIP_THEMES = {
 
 /** Memorize action row chips (same accent as Memorize tab). */
 export const HOME_MEMORIZE_PANEL_CHIP_THEMES = {
-  active: homeChipActiveClass("memorize", HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS),
+  active: HOME_TAB_MEMORIZE_CHIP_ACTIVE_CLASS,
   inactive:
     HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
     " hover:border-[var(--home-tab-memorize-border)] dark:hover:border-[var(--home-tab-memorize-border)]",
@@ -364,7 +364,7 @@ export const HOME_MEMORIZE_PANEL_CHIP_THEMES = {
 
 /** Groups tab status / group chips (Group tab accent). */
 export const HOME_GROUPS_PANEL_CHIP_THEMES = {
-  active: homeChipActiveClass("groups", HOME_PUBLIC_PANEL_CHIP_ACTIVE_FILL_CLASS),
+  active: HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
   inactive:
     HOME_SUB_FILTER_CHIP_INACTIVE_CLASS +
     " hover:border-[var(--home-tab-groups-border)] dark:hover:border-[var(--home-tab-groups-border)]",
@@ -378,6 +378,43 @@ export const HOME_PERSONAL_NAMED_CHIP_INACTIVE_CLASS =
 export const HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS =
   `border !border-[var(--home-tab-personal-border)] dark:!border-[var(--home-tab-personal-border)] ${HOME_PERSONAL_PANEL_CHIP_ACTIVE_FILL_CLASS} ring ring-[var(--home-tab-personal-border)] dark:ring-[var(--home-tab-personal-border)] ring-offset-0 text-gray-700 dark:text-gray-300 shadow-md`;
 
+/**
+ * Concatenated scan anchor — every home-tab arbitrary utility must appear as a static literal above.
+ * Referenced by regression spec; do not build tab/panel classes via template strings only.
+ */
+export const HOME_TAB_TAILWIND_SCAN_ANCHOR = [
+  HOME_TAB_PUBLIC_ACTIVE_FILL_CLASS,
+  HOME_TAB_GROUPS_ACTIVE_FILL_CLASS,
+  HOME_TAB_MEMBERS_ACTIVE_FILL_CLASS,
+  HOME_TAB_PERSONAL_ACTIVE_FILL_CLASS,
+  HOME_TAB_MEMORIZE_ACTIVE_FILL_CLASS,
+  HOME_TAB_PROMPTS_ACTIVE_FILL_CLASS,
+  HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS,
+  HOME_TAB_GROUPS_INACTIVE_FILL_CLASS,
+  HOME_TAB_MEMBERS_INACTIVE_FILL_CLASS,
+  HOME_TAB_PERSONAL_INACTIVE_FILL_CLASS,
+  HOME_TAB_MEMORIZE_INACTIVE_FILL_CLASS,
+  HOME_TAB_PROMPTS_INACTIVE_FILL_CLASS,
+  HOME_PUBLIC_SUB_FILTER_GROUP_CLASS,
+  HOME_GROUPS_SUB_FILTER_GROUP_CLASS,
+  HOME_PERSONAL_SUB_FILTER_GROUP_CLASS,
+  HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS,
+  HOME_PROMPTS_SUB_FILTER_GROUP_CLASS,
+  HOME_PERSONAL_FILL_LIGHT_CLASS,
+  HOME_TAB_PUBLIC_CHIP_ACTIVE_CLASS,
+  HOME_TAB_GROUPS_CHIP_ACTIVE_CLASS,
+  HOME_TAB_MEMBERS_CHIP_ACTIVE_CLASS,
+  HOME_TAB_PROMPTS_CHIP_ACTIVE_CLASS,
+  HOME_TAB_MEMORIZE_CHIP_ACTIVE_CLASS,
+  HOME_PERSONAL_SUB_FILTER_CHIP_ACTIVE_CLASS,
+  "hover:border-[var(--home-tab-public-border)]",
+  "hover:border-[var(--home-tab-groups-border)]",
+  "hover:border-[var(--home-tab-members-border)]",
+  "hover:border-[var(--home-tab-personal-border)]",
+  "hover:border-[var(--home-tab-memorize-border)]",
+  "hover:border-[var(--home-tab-prompts-border)]",
+].join(" ");
+
 /** Default tab accent borders (CSS variables resolve per theme on html). */
 export const HOME_FILTER_TAB_BORDER = {
   public: "var(--home-tab-public-border)",
@@ -385,15 +422,3 @@ export const HOME_FILTER_TAB_BORDER = {
   prompts: "var(--home-tab-prompts-border)",
   memorize: "var(--home-tab-memorize-border)",
 } as const;
-
-/** Folder-tab body: fill + side/bottom accent; no top border so it joins the selected tab. */
-export const HOME_PUBLIC_SUB_FILTER_GROUP_CLASS =
-  homeSubFilterGroupClass("public");
-export const HOME_PERSONAL_SUB_FILTER_GROUP_CLASS =
-  homeSubFilterGroupClass("personal");
-export const HOME_PROMPTS_SUB_FILTER_GROUP_CLASS =
-  homeSubFilterGroupClass("prompts");
-export const HOME_MEMORIZE_SUB_FILTER_GROUP_CLASS =
-  homeSubFilterGroupClass("memorize");
-export const HOME_GROUPS_SUB_FILTER_GROUP_CLASS =
-  homeSubFilterGroupClass("groups");

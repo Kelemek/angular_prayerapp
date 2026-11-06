@@ -11,6 +11,9 @@ import {
   HOME_SHELL_FOOTER_BORDER_TOP_CLASS,
   HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS,
   HOME_TAB_CSS_VAR,
+  HOME_TAB_GROUPS_ACTIVE_FILL_CLASS,
+  HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS,
+  HOME_TAB_TAILWIND_SCAN_ANCHOR,
   MODAL_CHROME_BORDER_BOTTOM_CLASS,
   MODAL_CHROME_BORDER_TOP_CLASS,
   homeFilterTabClass,
@@ -203,6 +206,27 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
     );
     expect(HOME_PUBLIC_SUB_FILTER_GROUP_CLASS).toContain(
       "var(--home-tab-public-bg)"
+    );
+  });
+
+  it("HOME_TAB_TAILWIND_SCAN_ANCHOR includes static literals for every accent", () => {
+    const required = [
+      "--home-tab-public-inactive-bg",
+      "--home-tab-groups-inactive-bg",
+      "--home-tab-personal-inactive-bg",
+      "--home-tab-memorize-inactive-bg",
+      "--home-tab-public-bg",
+      "--home-tab-groups-bg",
+      "--home-tab-memorize-bg",
+    ];
+    for (const token of required) {
+      expect(HOME_TAB_TAILWIND_SCAN_ANCHOR).toContain(token);
+    }
+    expect(HOME_FILTER_TAB_INACTIVE_FILL.public).toBe(
+      HOME_TAB_PUBLIC_INACTIVE_FILL_CLASS
+    );
+    expect(HOME_FILTER_TAB_ACTIVE_FILL.groups).toBe(
+      HOME_TAB_GROUPS_ACTIVE_FILL_CLASS
     );
   });
 });
