@@ -10,9 +10,9 @@ import {
   PERSONAL_PRAYER_BORDER_CLASSES,
 } from './prayer-status-header';
 
-/** Matches active **Members** stat tab — church blue `#0047AB`, not Tailwind blue-600. */
+/** Same 2px church-blue outline as Current cards (`getPrayerStatusBorderClasses('current')`). */
 export const PLANNING_CENTER_MEMBER_BORDER_CLASS =
-  '!border-[#0047AB] dark:!border-[#0047AB] ring ring-[#0047AB] dark:ring-[#0047AB] ring-offset-0';
+  '!border-[#0047AB] dark:!border-[#0047AB]';
 
 export function getPrayerCardBorderClass(
   prayerId: string,
