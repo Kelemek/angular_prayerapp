@@ -5,7 +5,10 @@ import { fileURLToPath } from 'url';
 import { ɵresolveComponentResources as resolveComponentResources } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ThemeSelectDropdownComponent } from './theme-select-dropdown.component';
-import { THEME_SELECT_OPTIONS } from '../../lib/theme-options';
+import {
+  PRESENTATION_THEME_SELECT_OPTIONS,
+  THEME_SELECT_OPTIONS,
+} from '../../lib/theme-options';
 
 const componentDir = dirname(fileURLToPath(import.meta.url));
 
@@ -74,6 +77,69 @@ describe('ThemeSelectDropdownComponent', () => {
     expect(html).toContain('<circle cx="9.25" cy="15.45" r="2.65"></circle>');
     expect(html).toContain('<circle cx="7.45" cy="10.45" r="2.65"></circle>');
     expect(html).not.toContain('M12 3c0 2.5');
+  });
+
+  it('renders an icon on every settings theme row', () => {
+    fixture.componentRef.setInput('dropdownKey', 'user-settings-theme');
+    fixture.detectChanges();
+    component.toggleOpen();
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('[role="option"]');
+    expect(rows).toHaveLength(THEME_SELECT_OPTIONS.length);
+    expect(THEME_SELECT_OPTIONS).toHaveLength(7);
+
+    const byId = (id: string): HTMLElement => {
+      const row = fixture.nativeElement.querySelector(`#${id}`);
+      expect(row, id).toBeTruthy();
+      expect(row.querySelector('svg'), id).toBeTruthy();
+      return row as HTMLElement;
+    };
+
+    const light = byId('user-settings-theme-opt-light');
+    expect(light.getAttribute('aria-selected')).toBe('true');
+    expect(light.querySelector('path')?.getAttribute('d')).toContain('M12 2.25');
+    expect(light.textContent).toContain('Light');
+    expect(light.textContent).toContain('✓');
+
+    const dark = byId('user-settings-theme-opt-dark');
+    expect(dark.getAttribute('aria-selected')).toBe('false');
+    expect(dark.querySelector('svg')?.getAttribute('class')).toContain('text-blue-600');
+
+    byId('tour-settings-theme-night');
+    const blossom = byId('tour-settings-theme-blossom');
+    expect(blossom.innerHTML).toContain('r="2.65"');
+    expect(blossom.querySelector('svg')?.getAttribute('class')).toContain('text-[#C45B76]');
+
+    byId('tour-settings-theme-christmas-light');
+    const christmasDark = byId('tour-settings-theme-christmas-dark');
+    expect(christmasDark.querySelector('svg')?.getAttribute('class')).toContain(
+      'text-[#C4A35A]',
+    );
+    byId('user-settings-theme-opt-system');
+  });
+
+  it('renders an icon on every presentation theme row', () => {
+    fixture.componentRef.setInput('dropdownKey', 'presentation-theme');
+    fixture.componentRef.setInput('options', PRESENTATION_THEME_SELECT_OPTIONS);
+    fixture.componentRef.setInput('theme', 'christmas-dark');
+    fixture.detectChanges();
+    component.toggleOpen();
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('[role="option"]');
+    expect(rows).toHaveLength(7);
+    for (const row of rows) {
+      expect(row.querySelector('svg')).toBeTruthy();
+    }
+    expect(
+      fixture.nativeElement.querySelector('#tour-presentation-setting-theme-blossom svg'),
+    ).toBeTruthy();
+    expect(
+      fixture.nativeElement
+        .querySelector('#tour-presentation-setting-theme-christmas-dark')
+        ?.getAttribute('aria-selected'),
+    ).toBe('true');
   });
 
   it('exposes tour anchor ids on seasonal options', () => {
