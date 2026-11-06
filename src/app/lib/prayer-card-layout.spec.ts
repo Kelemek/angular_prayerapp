@@ -193,6 +193,18 @@ describe('PRAYER_CARD_ACTION_ROW_MOBILE_LOCK_CLASS', () => {
     expect(promptRow).not.toContain('prayer-card-journal-button');
   });
 
+  it('keeps the prayed-for count off text-blue-700 so Blossom does not recolor it', () => {
+    const home = getPrayerCardVariantLayout('home');
+    const presentation = getPrayerCardVariantLayout('presentation');
+    for (const layout of [home, presentation]) {
+      expect(layout.prayedForBadgeClasses).toContain(
+        'prayer-card-prayed-for-badge'
+      );
+      expect(layout.prayedForBadgeClasses).not.toContain('text-blue-700');
+      expect(layout.prayedForBadgeClasses).not.toContain('text-blue-300');
+    }
+  });
+
   it('hides the Journal word on a phone and keeps the restored padding and gap', () => {
     const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '../components');
     const prayerRow = readFileSync(
