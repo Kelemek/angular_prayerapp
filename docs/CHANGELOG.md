@@ -4,6 +4,9 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+### Blossom Dark home tabs (November 6, 2026)
+- **Blossom Dark** (`html.dark` + **`html.blossom-dark`**) now overrides **Home folder tab** `--home-tab-*` with a **plum–rose ladder** (replacing the default Church blue `#0047AB` tab borders from `:root`). Distinct **`--home-tab-*-bg`** vs **`--home-tab-*-bg-dark`** keep the same hue–shade relationship as light Blossom. Belt-and-suspenders for inactive tabs and tour anchors use **`html.blossom-dark`** ([`styles.css`](src/styles.css)).
+
 ### Blossom and Christmas appearance themes (November 6, 2026)
 - **Settings** and **presentation settings** use two side-by-side [`ThemeSelectDropdownComponent`](../src/app/components/theme-select-dropdown/theme-select-dropdown.component.ts) controls: **Family** (Default, High Contrast, Blossom, Christmas) and **Mode** (Light, Dark, System). Options and labels live in [`theme-options.ts`](../src/app/lib/theme-options.ts). **System** is mode only—it follows the OS *within the selected family* (for example Christmas + System resolves to Christmas Light or Christmas Dark).
 - [`ThemeService`](../src/app/services/theme.service.ts) resolves **family + mode** to HTML classes: Default → `light` / `dark`; High Contrast → `day` / `black` (Night); Blossom → `blossom` / `blossom-dark`; Christmas → `christmas-light` / `christmas-dark`. Palette overrides live in [`styles.css`](../src/styles.css). Legacy single-string `theme` in localStorage / `client_preferences` migrates once to `themeFamily` and `themeMode` (no SQL migration). Invalid stored values fall back to Default + System.

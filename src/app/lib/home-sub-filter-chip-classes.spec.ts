@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   HOME_FILTER_TAB_ACTIVE_FILL,
@@ -232,6 +234,26 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
     expect(HOME_FILTER_TAB_ACTIVE_FILL.groups).toBe(
       HOME_TAB_GROUPS_ACTIVE_FILL_CLASS
     );
+  });
+});
+
+describe("Blossom dark home tab tokens", () => {
+  it("defines a distinct dark ladder on html.blossom-dark (styles.css)", () => {
+    const css = readFileSync(join(process.cwd(), "src/styles.css"), "utf8").replace(
+      /\r\n/g,
+      "\n"
+    );
+    const varBlock = css.match(
+      /html\.blossom-dark \{[^}]*--home-tab-public-bg:[^}]*\n\}/
+    );
+    expect(varBlock?.[0]).toBeDefined();
+    const b = varBlock![0];
+    expect(b).toContain("--home-tab-public-bg: #4a3048");
+    expect(b).toContain("--home-tab-public-bg-dark: #3d2840");
+    expect(b).toContain("--home-tab-personal-bg: #5c2d40");
+    expect(b).toContain("--home-tab-personal-bg-dark: #4a3048");
+    expect(css).toContain("html.blossom .home-filter-tab-inactive-chrome");
+    expect(css).toContain("html.blossom-dark .home-filter-tab-inactive-chrome");
   });
 });
 
