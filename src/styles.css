@@ -1766,6 +1766,16 @@ html.dark.blossom-dark {
   --surface-raised: #4a2d40;
   --surface-inset: #3b2434;
   --surface-inset-hover: #4a2d40;
+  /* Modal/settings scroll well vs section cards (mirror light Blossom --theme-surface-* split). */
+  --theme-surface-page: #2d1a28;
+  --theme-surface-card: #3b2434;
+  --theme-surface-raised: #4a2d40;
+  --theme-surface-raised-alt: #523848;
+  --theme-surface-muted: #8e4a5e;
+  --theme-surface-inset: #3b2434;
+  --theme-surface-inset-muted: #4a2d40;
+  --theme-border: #6b2d45;
+  --theme-border-light: color-mix(in srgb, #6b2d45 70%, #4a3048);
   --color-gray-700: #4a2d40;
   --color-gray-800: #3b2434;
   --color-gray-900: #2d1a28;
@@ -2112,6 +2122,38 @@ html.blossom app-modal-shell .settings-modal-section-card,
 html.christmas-light app-modal-shell .settings-modal-section-card {
   background-color: var(--theme-surface-card) !important;
   border-color: var(--theme-border) !important;
+}
+
+/*
+  Blossom Dark: modal shells use themed card fill; scroll wells use page tint (same split as light Blossom).
+  Covers Help, Settings, app-modal-shell, group modals, pray-for, memorize practice, admin dialogs, etc.
+*/
+html.dark.blossom-dark .modal-panel-edge,
+html.dark.blossom-dark .modal-shell-panel,
+html.dark.blossom-dark .settings-modal-panel {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-chrome-border);
+}
+html.dark.blossom-dark .modal-shell-body {
+  background-color: var(--theme-surface-page) !important;
+}
+html.dark.blossom-dark app-help-modal .settings-modal-body,
+html.dark.blossom-dark app-admin-help-modal .settings-modal-body,
+html.dark.blossom-dark app-user-settings .settings-modal-body,
+html.dark.blossom-dark app-modal-shell .settings-modal-body,
+html.dark.blossom-dark app-presentation-settings-modal .modal-shell-body {
+  background-color: var(--theme-surface-page) !important;
+}
+html.dark.blossom-dark app-help-modal .settings-modal-section-card,
+html.dark.blossom-dark app-admin-help-modal .settings-modal-section-card,
+html.dark.blossom-dark app-user-settings .settings-modal-section-card,
+html.dark.blossom-dark app-modal-shell .settings-modal-section-card {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-border) !important;
+}
+/* Memorize practice: inner scroll strips use the same utility as the shell unless this class overrides (Blossom Dark). */
+html.dark.blossom-dark .memorize-practice-scroll-well {
+  background-color: var(--theme-surface-page) !important;
 }
 
 html.christmas-light .text-green-600,

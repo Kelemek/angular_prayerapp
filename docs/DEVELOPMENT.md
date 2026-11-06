@@ -408,6 +408,8 @@ Home and presentation cards no longer show a tight 16px icon row in the meta hea
 
 Modal headers and footers use the same band fill as card meta headers via `.modal-chrome-header` / `.modal-chrome-footer` (and `.settings-modal-header` / `.settings-modal-footer` for Settings). Colors are tokenized as `--color-card-meta-header-band` in [`styles.css`](../src/styles.css).
 
+On **Blossom** and **Christmas Light**, Help, Admin Help, User Settings, shared modal shell, and presentation settings use **`.settings-modal-body`** (scroll well) with **`--surface-page`** / **`--theme-surface-page`** and **`.settings-modal-section-card`** with **`--theme-surface-card`**, so the well reads slightly darker than the cards. **Blossom Dark** (`html.dark.blossom-dark`) defines the same **`--theme-surface-*` / `--theme-border*`** split: **`.modal-panel-edge`** / **`.modal-shell-panel`** / **`.settings-modal-panel`** use the card fill; **`.modal-shell-body`** and **`.settings-modal-body`** (and presentation’s **`.modal-shell-body`**) use the page tint; memorize practice adds **`.memorize-practice-scroll-well`** on inner scroll strips so they match the tint under a **`.modal-panel-edge`** shell.
+
 Parents build the item list from existing flags: reminder (`showReminder`), personal answered + edit (`isPersonal`), delete (`showDelete`); prompt cards contribute reminder + admin delete; update rows contribute personal edit, member check+edit, and delete. Each item carries `onSelect`; confirmation dialogs and reminder/edit modals stay on the parent. The Info personal mock uses the same menu. Memorize verse cards do not.
 
 #### BadgeService
