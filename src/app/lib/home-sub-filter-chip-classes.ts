@@ -142,7 +142,7 @@ function homeTabInactiveClasses(accent: HomeTabCssAccent): string {
   return [
     `bg-[var(${v.inactiveBg})]`,
     `dark:bg-[var(${v.inactiveBgDark})]`,
-    "border",
+    "border-2",
     `border-[var(${v.inactiveBorder})]`,
     `dark:border-[var(${v.inactiveBorderDark})]`,
     "home-filter-tab-inactive-chrome",

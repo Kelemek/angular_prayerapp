@@ -1506,17 +1506,17 @@ html.blossom {
   --home-tab-public-bg: #fff7f9;
   --home-tab-public-bg-dark: #fff7f9;
   --home-tab-public-border: #efb6c4;
-  --home-tab-groups-bg: #fce8ee;
-  --home-tab-groups-bg-dark: #fce8ee;
-  --home-tab-groups-border: #e8a0b0;
-  --home-tab-members-bg: #fce8ee;
-  --home-tab-members-bg-dark: #fce8ee;
-  --home-tab-members-border: #e8a0b0;
-  --home-tab-personal-bg: #f6d5de;
-  --home-tab-personal-bg-dark: #f6d5de;
-  --home-tab-personal-border: #c45b76;
-  --home-tab-memorize-bg: #efb6c4;
-  --home-tab-memorize-bg-dark: #efb6c4;
+  --home-tab-groups-bg: #f6d5de;
+  --home-tab-groups-bg-dark: #f6d5de;
+  --home-tab-groups-border: #c45b76;
+  --home-tab-members-bg: #f6d5de;
+  --home-tab-members-bg-dark: #f6d5de;
+  --home-tab-members-border: #c45b76;
+  --home-tab-personal-bg: #efb6c4;
+  --home-tab-personal-bg-dark: #efb6c4;
+  --home-tab-personal-border: #a84862;
+  --home-tab-memorize-bg: #d4788f;
+  --home-tab-memorize-bg-dark: #d4788f;
   --home-tab-memorize-border: #6b1e33;
   --home-tab-prompts-bg: #fff7f9;
   --home-tab-prompts-bg-dark: #fff7f9;
@@ -1525,20 +1525,20 @@ html.blossom {
   --home-tab-public-inactive-bg-dark: #fff7f9;
   --home-tab-public-inactive-border: #efb6c4;
   --home-tab-public-inactive-border-dark: #efb6c4;
-  --home-tab-groups-inactive-bg: #fce8ee;
-  --home-tab-groups-inactive-bg-dark: #fce8ee;
-  --home-tab-groups-inactive-border: #e8a0b0;
-  --home-tab-groups-inactive-border-dark: #e8a0b0;
-  --home-tab-members-inactive-bg: #fce8ee;
-  --home-tab-members-inactive-bg-dark: #fce8ee;
-  --home-tab-members-inactive-border: #e8a0b0;
-  --home-tab-members-inactive-border-dark: #e8a0b0;
-  --home-tab-personal-inactive-bg: #f6d5de;
-  --home-tab-personal-inactive-bg-dark: #f6d5de;
-  --home-tab-personal-inactive-border: #c45b76;
-  --home-tab-personal-inactive-border-dark: #c45b76;
-  --home-tab-memorize-inactive-bg: #efb6c4;
-  --home-tab-memorize-inactive-bg-dark: #efb6c4;
+  --home-tab-groups-inactive-bg: #f6d5de;
+  --home-tab-groups-inactive-bg-dark: #f6d5de;
+  --home-tab-groups-inactive-border: #c45b76;
+  --home-tab-groups-inactive-border-dark: #c45b76;
+  --home-tab-members-inactive-bg: #f6d5de;
+  --home-tab-members-inactive-bg-dark: #f6d5de;
+  --home-tab-members-inactive-border: #c45b76;
+  --home-tab-members-inactive-border-dark: #c45b76;
+  --home-tab-personal-inactive-bg: #efb6c4;
+  --home-tab-personal-inactive-bg-dark: #efb6c4;
+  --home-tab-personal-inactive-border: #a84862;
+  --home-tab-personal-inactive-border-dark: #a84862;
+  --home-tab-memorize-inactive-bg: #d4788f;
+  --home-tab-memorize-inactive-bg-dark: #d4788f;
   --home-tab-memorize-inactive-border: #6b1e33;
   --home-tab-memorize-inactive-border-dark: #6b1e33;
   --home-tab-prompts-inactive-bg: #fff7f9;
@@ -1551,6 +1551,20 @@ html.blossom body,
 html.blossom body::before,
 html.blossom body::after {
   background-color: var(--surface-page);
+}
+
+/* Inactive main tabs: step toward border on hover (not church cream on pink page). */
+html.blossom #tour-filter-public.home-filter-tab-inactive-chrome:hover {
+  background-color: #fce8ee !important;
+}
+html.blossom #tour-filter-groups.home-filter-tab-inactive-chrome:hover {
+  background-color: #efb6c4 !important;
+}
+html.blossom #tour-filter-personal.home-filter-tab-inactive-chrome:hover {
+  background-color: #dc8a9e !important;
+}
+html.blossom #tour-filter-memorize.home-filter-tab-inactive-chrome:hover {
+  background-color: #c45b76 !important;
 }
 
 html.blossom .modal-chrome-header,

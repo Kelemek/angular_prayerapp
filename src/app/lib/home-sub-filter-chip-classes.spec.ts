@@ -128,6 +128,7 @@ describe("homeFilterTabClass", () => {
     expect(cls).toContain("rounded-t-lg");
     expect(cls).toContain("var(--home-tab-personal-inactive-bg)");
     expect(cls).toContain("var(--home-tab-personal-inactive-border)");
+    expect(cls).toContain("border-2");
     expect(cls).toContain("home-filter-tab-inactive-chrome");
     expect(cls).not.toContain("bg-home-filter-tab-inactive");
     expect(cls).not.toContain("border-[2px]");
