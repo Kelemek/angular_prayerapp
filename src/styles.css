@@ -1731,8 +1731,10 @@ html.blossom .cp-toast--success {
 /*
   Blossom Dark — resolved `blossom-dark`: html.dark + html.blossom-dark overlay.
   Plum surfaces + Home --home-tab-* ladder (not default Church blue tab borders).
+  Use html.dark.blossom-dark (not html.blossom-dark alone): :root { --home-tab-* } appears
+  later in the stylesheet and would otherwise win the cascade for inherited custom props on html.
 */
-html.blossom-dark {
+html.dark.blossom-dark {
   color-scheme: dark;
   --surface-page: #2d1a28;
   --surface-card: #3b2434;
@@ -1835,57 +1837,56 @@ html.blossom-dark {
   --color-home-panel-gray-status-chip-active-dark: color-mix(in srgb, #6b2d45 45%, #3d2840);
 }
 
-html.blossom-dark body,
-html.blossom-dark.dark body,
-html.blossom-dark.dark body::before,
-html.blossom-dark.dark body::after {
+html.dark.blossom-dark body,
+html.dark.blossom-dark body::before,
+html.dark.blossom-dark body::after {
   background-color: var(--surface-page);
 }
 
-html.blossom-dark .home-filter-tab-inactive-chrome {
+html.dark.blossom-dark .home-filter-tab-inactive-chrome {
   background-color: var(--home-tab-inactive-bg-dark) !important;
   border-color: var(--home-tab-inactive-border-dark) !important;
   border-style: solid;
   border-width: 2px;
 }
-html.blossom-dark #tour-filter-public.z-10 {
+html.dark.blossom-dark #tour-filter-public.z-10 {
   background-color: var(--home-tab-public-bg) !important;
   border-color: var(--home-tab-public-border) !important;
 }
-html.blossom-dark #tour-filter-groups.z-10 {
+html.dark.blossom-dark #tour-filter-groups.z-10 {
   background-color: var(--home-tab-groups-bg) !important;
   border-color: var(--home-tab-groups-border) !important;
 }
-html.blossom-dark #tour-filter-personal.z-10 {
+html.dark.blossom-dark #tour-filter-personal.z-10 {
   background-color: var(--home-tab-personal-bg) !important;
   border-color: var(--home-tab-personal-border) !important;
 }
-html.blossom-dark #tour-filter-memorize.z-10 {
+html.dark.blossom-dark #tour-filter-memorize.z-10 {
   background-color: var(--home-tab-memorize-bg) !important;
   border-color: var(--home-tab-memorize-border) !important;
 }
-html.blossom-dark .home-filter-tab-inactive-chrome:hover {
+html.dark.blossom-dark .home-filter-tab-inactive-chrome:hover {
   background-color: var(--surface-inset-hover) !important;
 }
 
-html.blossom-dark .dark\:bg-gray-50:is(.dark *),
-html.blossom-dark .dark\:bg-gray-900:is(.dark *) {
+html.dark.blossom-dark .dark\:bg-gray-50:is(.dark *),
+html.dark.blossom-dark .dark\:bg-gray-900:is(.dark *) {
   background-color: var(--surface-page) !important;
 }
 
-html.blossom-dark .dark\:bg-gray-800:is(.dark *),
-html.blossom-dark .dark\:bg-slate-800:is(.dark *) {
+html.dark.blossom-dark .dark\:bg-gray-800:is(.dark *),
+html.dark.blossom-dark .dark\:bg-slate-800:is(.dark *) {
   background-color: var(--surface-card) !important;
 }
 
-html.blossom-dark .dark\:bg-gray-100:is(.dark *),
-html.blossom-dark .dark\:bg-gray-300:is(.dark *),
-html.blossom-dark .dark\:bg-gray-700:is(.dark *),
-html.blossom-dark .dark\:bg-blue-700:is(.dark *) {
+html.dark.blossom-dark .dark\:bg-gray-100:is(.dark *),
+html.dark.blossom-dark .dark\:bg-gray-300:is(.dark *),
+html.dark.blossom-dark .dark\:bg-gray-700:is(.dark *),
+html.dark.blossom-dark .dark\:bg-blue-700:is(.dark *) {
   background-color: var(--surface-raised) !important;
 }
 
-html.blossom-dark .cp-toast--success {
+html.dark.blossom-dark .cp-toast--success {
   background-color: color-mix(in oklab, var(--color-blue-900) 22%, transparent) !important;
   color: rgb(147 197 253) !important;
   border-color: rgb(96 165 250) !important;

@@ -238,13 +238,13 @@ describe("HOME_PUBLIC_STATUS_CHIP_THEMES", () => {
 });
 
 describe("Blossom dark home tab tokens", () => {
-  it("defines a distinct dark ladder on html.blossom-dark (styles.css)", () => {
+  it("defines a distinct dark ladder on html.dark.blossom-dark (styles.css)", () => {
     const css = readFileSync(join(process.cwd(), "src/styles.css"), "utf8").replace(
       /\r\n/g,
       "\n"
     );
     const varBlock = css.match(
-      /html\.blossom-dark \{[^}]*--home-tab-public-bg:[^}]*\n\}/
+      /html\.dark\.blossom-dark \{[^}]*--home-tab-public-bg:[^}]*\n\}/
     );
     expect(varBlock?.[0]).toBeDefined();
     const b = varBlock![0];
@@ -258,7 +258,7 @@ describe("Blossom dark home tab tokens", () => {
     );
     expect(b).not.toContain("--color-home-panel-green-status-chip-active-dark: color-mix(in srgb, #5c2d40 45%, #166534)");
     expect(css).toContain("html.blossom .home-filter-tab-inactive-chrome");
-    expect(css).toContain("html.blossom-dark .home-filter-tab-inactive-chrome");
+    expect(css).toContain("html.dark.blossom-dark .home-filter-tab-inactive-chrome");
   });
 });
 
