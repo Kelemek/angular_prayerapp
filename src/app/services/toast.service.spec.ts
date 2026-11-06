@@ -193,17 +193,20 @@ describe('ToastService', () => {
 
     it('should return info styles for info type (default)', () => {
       const styles = service.getToastStyles('info');
-      expect(styles).toContain('bg-blue-700');
-      expect(styles).toContain('text-blue-800');
-      expect(styles).toContain('border-blue-600');
+      expect(styles).toContain('btn-chip-blue');
+      expect(styles).toContain('bg-blue-200');
+      expect(styles).toContain('dark:bg-blue-900/20');
+      expect(styles).not.toContain('bg-blue-700');
+      expect(styles).not.toContain('text-blue-700');
+      expect(styles).not.toContain('border-blue-600');
       expect(styles).toContain('backdrop-blur-md');
     });
 
     it('should return default info styles for any other type', () => {
       const styles = service.getToastStyles('custom');
-      expect(styles).toContain('bg-blue-700');
-      expect(styles).toContain('text-blue-800');
-      expect(styles).toContain('border-blue-600');
+      expect(styles).toContain('btn-chip-blue');
+      expect(styles).toContain('bg-blue-200');
+      expect(styles).not.toContain('bg-blue-700');
       expect(styles).toContain('backdrop-blur-md');
     });
   });

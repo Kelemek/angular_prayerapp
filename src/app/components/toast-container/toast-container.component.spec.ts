@@ -129,7 +129,9 @@ describe('ToastContainerComponent', () => {
       
       await vi.waitFor(() => {
         const toast = fixture.nativeElement.querySelector('.animate-slide-down');
-        expect(toast?.className).toContain('bg-blue-700');
+        expect(toast?.className).toContain('btn-chip-blue');
+      expect(toast?.className).toContain('bg-blue-200');
+      expect(fixture.nativeElement.querySelector('.contrast-chip-surface')).toBeTruthy();
       });
     });
   });

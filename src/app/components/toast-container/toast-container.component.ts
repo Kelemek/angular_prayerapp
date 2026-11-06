@@ -15,7 +15,7 @@ import { Observable } from "rxjs";
   template: `
     <!-- Toast Container: centered at top, respects safe area (notch, home indicator) -->
     <div
-      class="fixed top-0 left-0 right-0 z-[250] flex flex-col items-center space-y-2 w-full max-w-md mx-auto pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pointer-events-none"
+      class="contrast-chip-surface fixed top-0 left-0 right-0 z-[250] flex flex-col items-center space-y-2 w-full max-w-md mx-auto pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pointer-events-none"
     >
       @for (toast of toasts$ | async; track toast.id) {
       <div
