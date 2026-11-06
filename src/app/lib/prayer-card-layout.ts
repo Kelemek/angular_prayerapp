@@ -21,15 +21,15 @@ export const PRAYER_CARD_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_
 /** Seals update-row outer corners (1px border). Pair with {@link PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS}. */
 export const PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES = `${CARD_SHELL_CORNER_SEAL} ${CARD_SHELL_BORDER_W_1}`;
 
-/** Shell inset fill; seasonal themes override via `.prayer-update-row-shell` in styles.css. */
+/** Shell inset fill; seasonal themes override `--theme-surface-inset` like default Light. */
 export const PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS = 'prayer-update-row-shell';
 
-/** Stronger meta band on update rows under seasonal themes (scoped in styles.css). */
+/** Transparent wrapper; body shows shell inset (same as default Light). */
+export const PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS = 'prayer-update-row-body';
+
+/** @deprecated Use global `--color-card-meta-header-band` on update rows (Light mode pattern). */
 export const PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS =
   'prayer-update-row-header-band';
-
-/** Content well below the update header band; lighter on seasonal themes. */
-export const PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS = 'prayer-update-row-body';
 
 /** Top radius for meta header bands inside a 2px `rounded-lg` home shell. */
 export const PRAYER_CARD_HEADER_BAND_ROUNDED_CLASSES = `${CARD_SHELL_HEADER_BAND_ROUNDED} ${CARD_SHELL_RADIUS_LG} ${CARD_SHELL_BORDER_W_2}`;

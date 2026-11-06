@@ -13,7 +13,6 @@ import {
   PRAYER_CARD_HEADER_BLEED_CLASSES,
   PRAYER_CARD_HEADER_INSET_CLASSES,
   PRAYER_CARD_SHELL_PADDING_CLASSES,
-  PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS,
   PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES,
   PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS,
   PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS,
@@ -44,7 +43,6 @@ import { CHURCH_GREEN_SHELL_BORDER_CLASS } from '../../lib/home-sub-filter-chip-
       "
     >
       <app-card-meta-header-band
-        [bandSurfaceClasses]="updateRowHeaderBandSurfaceClass"
         [centerDate]="displayDateParts.date"
         [centerTime]="displayDateParts.time"
         [bandSize]="size"
@@ -80,8 +78,6 @@ export class PrayerUpdateRowComponent {
   readonly headerInsetClasses = PRAYER_CARD_HEADER_INSET_CLASSES;
   readonly updateRowShellFillClasses = PRAYER_UPDATE_ROW_SHELL_FILL_CLASSES;
   readonly updateRowShellSurfaceClass = PRAYER_UPDATE_ROW_SHELL_SURFACE_CLASS;
-  readonly updateRowHeaderBandSurfaceClass =
-    PRAYER_UPDATE_ROW_HEADER_BAND_SURFACE_CLASS;
   readonly updateRowBodySurfaceClass = PRAYER_UPDATE_ROW_BODY_SURFACE_CLASS;
 
   @Input({ required: true }) update!: PrayerUpdateRecord;

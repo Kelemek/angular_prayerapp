@@ -235,7 +235,7 @@ html.dark .home-filter-tab-inactive-chrome:hover {
     background-color: var(--surface-inset, rgb(55 65 81 / 0.6)) !important;
   }
 }
-/* Update row shell: default inset; seasonal body/header split in rules below. */
+/* Update row shell/body: same token split as Light — band uses --color-card-meta-header-band, shell uses --theme-surface-inset. */
 @utility prayer-update-row-shell {
   background-color: var(--theme-surface-inset, #e8e5e1) !important;
   .dark & {
@@ -1463,15 +1463,15 @@ html.blossom {
   --surface-page: #fce8ee;
   --surface-card: #fff7f9;
   --surface-raised: #f6d5de;
-  --surface-inset: #f6d5de;
-  --surface-inset-hover: #efb6c4;
+  --surface-inset: #fff7f9;
+  --surface-inset-hover: #fce8ee;
   --theme-surface-page: #fce8ee;
   --theme-surface-card: #fff7f9;
   --theme-surface-raised: #f6d5de;
   --theme-surface-raised-alt: #efb6c4;
   --theme-surface-muted: #c45b76;
-  --theme-surface-inset: #f6d5de;
-  --theme-surface-inset-muted: #f6d5de;
+  --theme-surface-inset: #fff7f9;
+  --theme-surface-inset-muted: #fce8ee;
   --theme-text-body: #3b1520;
   --theme-text-secondary: #6b1e33;
   --theme-text-muted: #8e4a5e;
@@ -1484,8 +1484,6 @@ html.blossom {
   --theme-chrome-border: #6b1e33;
   --theme-safe-area-chrome: #fce8ee;
   --color-card-meta-header-band: #f6d5de;
-  --color-update-row-body: #fff7f9;
-  --color-update-row-header-band: #efb6c4;
   --color-church-cream: #fce8ee;
   --color-church-gray-warm: #8e4a5e;
   --color-church-navy: #6b1e33;
@@ -1655,14 +1653,14 @@ html.christmas-light {
   --surface-page: #f7f1e4;
   --surface-card: #fffcf6;
   --surface-raised: #e8f0e6;
-  --surface-inset: #e8f0e6;
-  --surface-inset-hover: #d4e4d6;
+  --surface-inset: #fffcf6;
+  --surface-inset-hover: #e8f0e6;
   --theme-surface-page: #f7f1e4;
   --theme-surface-card: #fffcf6;
   --theme-surface-raised: #e8f0e6;
   --theme-surface-raised-alt: #d4e4d6;
   --theme-surface-muted: #3d5c4a;
-  --theme-surface-inset: #e8f0e6;
+  --theme-surface-inset: #fffcf6;
   --theme-surface-inset-muted: #e8f0e6;
   --theme-text-body: #1a2e24;
   --theme-text-secondary: #1f4d36;
@@ -1676,8 +1674,6 @@ html.christmas-light {
   --theme-chrome-border: #1f4d36;
   --theme-safe-area-chrome: #f7f1e4;
   --color-card-meta-header-band: #e8f0e6;
-  --color-update-row-body: #fffcf6;
-  --color-update-row-header-band: #e8f0e6;
   --color-church-cream: #f7f1e4;
   --color-church-gray-warm: #3d5c4a;
   --color-church-navy: #1f4d36;
@@ -1817,8 +1813,8 @@ html.christmas-dark {
   --surface-page: #0a1f18;
   --surface-card: #163328;
   --surface-raised: #1f4d36;
-  --surface-inset: #1f4d36;
-  --surface-inset-hover: #2a5c42;
+  --surface-inset: #163328;
+  --surface-inset-hover: #1f4d36;
   --color-gray-700: #1f4d36;
   --color-gray-800: #163328;
   --color-gray-900: #0a1f18;
@@ -1843,9 +1839,7 @@ html.christmas-dark {
   --color-primary-800: #0f2e22;
   --color-primary-900: #163328;
   --color-card-meta-header-band-dark: rgb(10 31 24 / 0.72);
-  --color-update-row-body-dark: #163328;
-  --color-update-row-header-band-dark: rgb(10 31 24 / 0.72);
-  --color-inset-surface-on-card-dark: #1f4d36;
+  --color-inset-surface-on-card-dark: #163328;
   --text-primary: #f7f1e4;
   --text-secondary: #d4e4d6;
   --text-muted: #a8c4b4;
@@ -1994,37 +1988,6 @@ html.christmas-dark .dark\:border-gray-700:is(.dark *) {
 html.cp-resume-paint .prayer-card,
 html.cp-resume-paint .prompt-card {
   content-visibility: visible;
-}
-
-/*
-  Prayer update rows — header band darker than body on seasonal themes.
-  EOF placement wins over @utility bg-card-meta-header-band / prayer-update-row-shell.
-  Default Light: shell inset fill + transparent body wrapper (unchanged look).
-*/
-html.blossom app-prayer-update-row .prayer-update-row-shell,
-html.christmas-light app-prayer-update-row .prayer-update-row-shell {
-  background-color: transparent !important;
-}
-html.christmas-dark app-prayer-update-row .prayer-update-row-shell {
-  background-color: transparent !important;
-}
-html.blossom app-prayer-update-row .prayer-update-row-body,
-html.christmas-light app-prayer-update-row .prayer-update-row-body {
-  background-color: var(--color-update-row-body, #fff7f9) !important;
-}
-html.christmas-dark app-prayer-update-row .prayer-update-row-body {
-  background-color: var(--color-update-row-body-dark, #163328) !important;
-}
-html.blossom app-prayer-update-row .bg-card-meta-header-band.prayer-update-row-header-band,
-html.christmas-light
-  app-prayer-update-row
-  .bg-card-meta-header-band.prayer-update-row-header-band {
-  background-color: var(--color-update-row-header-band, #efb6c4) !important;
-}
-html.christmas-dark
-  app-prayer-update-row
-  .bg-card-meta-header-band.prayer-update-row-header-band {
-  background-color: var(--color-update-row-header-band-dark) !important;
 }
 
 @media print {
