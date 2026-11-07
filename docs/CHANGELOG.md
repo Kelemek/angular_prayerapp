@@ -4,6 +4,8 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+- **Christmas Dark** (`html.christmas-dark`) sets **`--theme-surface-page` / `--theme-surface-card` / `--theme-border*`** and modal rules mirroring **Blossom Dark**, so Settings/Help/**`app-modal-shell`** scroll wells use the **darker page tint** (`#0a1f18`) and **section cards** use **card fill** (`#163328`) instead of both matching `dark:bg-gray-800` ([`styles.css`](../src/styles.css)).
+
 ### High Contrast Day contrast (November 6, 2026)
 - **High Contrast → Light (Day, `html.day`)** uses a **cool slate page** (`#94A3B8`) with **white cards** and **stronger borders/text** so it no longer reads like Default Light’s warm cream. [`THEME_COLOR_DAY`](../src/app/services/theme.service.ts), [`index.html`](../src/index.html) boot `theme-color`, and [`styles.css`](../src/styles.css) stay in sync.
 - **Day** also applies the same **page vs card** split to **modals** (Help, Settings, `app-modal-shell`, presentation settings): **slate scroll well**, **white shells/section cards**, and **slate header bands** with Day chrome borders instead of default cream + church green ([`styles.css`](../src/styles.css)).
