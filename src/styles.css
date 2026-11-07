@@ -2182,6 +2182,37 @@ html.dark.blossom-dark .memorize-practice-scroll-well {
   background-color: var(--theme-surface-page) !important;
 }
 
+/*
+  Christmas Dark: modal shells use themed card fill; scroll wells use page tint (same split as Blossom Dark).
+  Covers Help, Settings, app-modal-shell, group modals, pray-for, memorize practice, admin dialogs, etc.
+*/
+html.christmas-dark .modal-panel-edge,
+html.christmas-dark .modal-shell-panel,
+html.christmas-dark .settings-modal-panel {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-chrome-border);
+}
+html.christmas-dark .modal-shell-body {
+  background-color: var(--theme-surface-page) !important;
+}
+html.christmas-dark app-help-modal .settings-modal-body,
+html.christmas-dark app-admin-help-modal .settings-modal-body,
+html.christmas-dark app-user-settings .settings-modal-body,
+html.christmas-dark app-modal-shell .settings-modal-body,
+html.christmas-dark app-presentation-settings-modal .modal-shell-body {
+  background-color: var(--theme-surface-page) !important;
+}
+html.christmas-dark app-help-modal .settings-modal-section-card,
+html.christmas-dark app-admin-help-modal .settings-modal-section-card,
+html.christmas-dark app-user-settings .settings-modal-section-card,
+html.christmas-dark app-modal-shell .settings-modal-section-card {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-border) !important;
+}
+html.christmas-dark .memorize-practice-scroll-well {
+  background-color: var(--theme-surface-page) !important;
+}
+
 html.christmas-light .text-green-600,
 html.christmas-light .text-green-700,
 html.christmas-light .text-green-800 {
@@ -2219,6 +2250,16 @@ html.christmas-dark {
   --surface-raised: #1f4d36;
   --surface-inset: #163328;
   --surface-inset-hover: #1f4d36;
+  /* Modal/settings scroll well vs section cards (mirror Christmas Light --theme-surface-* split). */
+  --theme-surface-page: #0a1f18;
+  --theme-surface-card: #163328;
+  --theme-surface-raised: #1f4d36;
+  --theme-surface-raised-alt: #2a5c42;
+  --theme-surface-muted: #2a5c42;
+  --theme-surface-inset: #163328;
+  --theme-surface-inset-muted: #1f4d36;
+  --theme-border: #1f4d36;
+  --theme-border-light: color-mix(in srgb, #1f4d36 70%, #0a1f18);
   --color-gray-700: #1f4d36;
   --color-gray-800: #163328;
   --color-gray-900: #0a1f18;
