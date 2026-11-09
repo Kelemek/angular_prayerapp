@@ -5,7 +5,15 @@ description: Drive the Prayer App web UI locally (Angular + Supabase test projec
 
 # Verify Prayer App (web)
 
-Agents prove behavior in the **real Angular dev server** talking to the **configured Supabase project** in `src/environments/environment.ts` (dev points at test `jcdhajfqtzipltvfslhu`). This is **not** a substitute for `npm run pre-handoff`; run both when changing auth/RLS.
+Agents prove behavior in the **real Angular dev server** talking to the **test Supabase project** in `src/environments/environment.ts` (ref **`jcdhajfqtzipltvfslhu`**). Verification runs **`ng serve` only** against that dev file — **never** production project **`eqiafsygvfaifhoaewxi`**, the **cp-church** production fork, or `environment.prod.ts`, unless a human operator explicitly overrides build config and accepts risk (cloud agents must not).
+
+This is **not** a substitute for `npm run pre-handoff`; run both when changing auth/RLS.
+
+## Environment safety
+
+- **Allowed:** local `ng serve` + committed dev environment (test DB).
+- **Forbidden:** prod DB queries, prod Edge Function invokes, or syncing verification evidence from production tenants.
+- **Env vars (names only):** `PRAYERAPP_VERIFY_RUN_ID`, `PRAYERAPP_VERIFY_PORT`, `PRAYERAPP_VERIFY_URL`, optional `PRAYERAPP_VERIFY_EMAIL` when an operator approved interactive MFA — never log or commit MFA codes, service role keys, or `supabase` secrets.
 
 ## Launch
 
@@ -49,7 +57,10 @@ Read the feature map index first: [features/README.md](./features/README.md).
 | Script | Purpose |
 |--------|---------|
 | `scripts/verify-prayerapp/drive-public-info.sh` | Public `/info` marketing page |
+| `scripts/verify-prayerapp/drive-privacy.sh` | Public `/privacy` policy page |
+| `scripts/verify-prayerapp/drive-support.sh` | Public `/support` page |
 | `scripts/verify-prayerapp/drive-login-shell.sh` | `/login` email step UI (no MFA send) |
+| `scripts/verify-prayerapp/drive-home-gate.sh` | `/` redirects unauthenticated users to login |
 | `scripts/verify-prayerapp/drive-admin-gate.sh` | `/admin` redirects unauthenticated users to login with `returnUrl` |
 
 Example:
