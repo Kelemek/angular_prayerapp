@@ -4,6 +4,8 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+- **Settings → Verse Memorization → Post verse prayer** on iPhone: the optional-message dialog now uses [`app-modal-shell`](src/app/components/modal-shell/modal-shell.component.ts) so the panel shrinks with `visualViewport`, the body scrolls, and the Post control stays reachable above the software keyboard ([`verse-memorization-prayer-manager`](src/app/components/verse-memorization-prayer-manager/verse-memorization-prayer-manager.component.ts)).
+
 - **Christmas Dark** (`html.christmas-dark`) sets **`--theme-surface-page` / `--theme-surface-card` / `--theme-border*`** and modal rules mirroring **Blossom Dark**, so Settings/Help/**`app-modal-shell`** scroll wells use the **darker page tint** (`#0a1f18`) and **section cards** use **card fill** (`#163328`) instead of both matching `dark:bg-gray-800` ([`styles.css`](../src/styles.css)).
 
 ### High Contrast Day contrast (November 6, 2026)

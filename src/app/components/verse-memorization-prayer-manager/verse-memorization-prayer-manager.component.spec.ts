@@ -1,9 +1,12 @@
 import { ApplicationRef, ChangeDetectorRef } from '@angular/core';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VerseMemorizationPrayerManagerComponent } from './verse-memorization-prayer-manager.component';
 import type { VerseMemorizationPrayerBroadcastPayload } from '../../services/verse-memorization-prayer.service';
 
-describe('VerseMemorizationPrayerManagerComponent', () => {
+describe('VerseMemorizationPrayerManagerComponent (unit)', () => {
   let component: VerseMemorizationPrayerManagerComponent;
   let mockVersePrayer: {
     createVerseMemorizationPrayer: ReturnType<typeof vi.fn>;
@@ -119,5 +122,23 @@ describe('VerseMemorizationPrayerManagerComponent', () => {
 
     expect(mockVersePrayer.createVerseMemorizationPrayer).toHaveBeenCalledTimes(1);
     expect(component.showSendNotificationDialog).toBe(true);
+  });
+});
+
+describe('VerseMemorizationPrayerManagerComponent send panel', () => {
+  it('routes Post verse prayer through ModalShell instead of a fixed bottom sheet', () => {
+    const componentPath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      'verse-memorization-prayer-manager.component.ts'
+    );
+    const source = readFileSync(componentPath, 'utf8');
+    const sendPanelStart = source.indexOf('showSendPanel && pendingReference');
+    expect(sendPanelStart).toBeGreaterThan(-1);
+    const sendPanel = source.slice(sendPanelStart, sendPanelStart + 2500);
+
+    expect(sendPanel).toContain('<app-modal-shell');
+    expect(sendPanel).toContain('verse-send-admin-message');
+    expect(sendPanel).not.toContain('fixed inset-0 z-[60]');
+    expect(sendPanel).not.toContain('items-end sm:items-center');
   });
 });
