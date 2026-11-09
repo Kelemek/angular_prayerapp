@@ -173,7 +173,7 @@ describe("InfoComponent", () => {
       expect(el.textContent).toContain("Play Store");
     });
 
-    it("should show filter tabs with Church, Personal, Memorize, and Church chips including Prompts", async () => {
+    it("should show filter tabs with Church, Group, Personal, Memorize, and Church chips including Prompts", async () => {
       await component.ngOnInit();
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
@@ -182,6 +182,7 @@ describe("InfoComponent", () => {
       ) as HTMLElement | null;
       const previewText = previewTabs?.textContent?.replace(/\s+/g, " ") ?? "";
       expect(previewText).toContain("Church");
+      expect(previewText).toContain("Group");
       expect(previewText).toContain("Current");
       expect(previewText).toContain("Answered");
       expect(previewText).toContain("Total");
@@ -230,6 +231,26 @@ describe("InfoComponent", () => {
       });
       expect(modalShellOverlayRoot()).toBeTruthy();
       expect(modalShellOverlayText()).toContain("Pray view");
+    });
+
+    it("opens groups explainer on first Group tab visit and via +", async () => {
+      await component.ngOnInit();
+      fixture.detectChanges();
+      const groupTab = [...fixture.nativeElement.querySelectorAll("button")].find(
+        (button: HTMLButtonElement) => button.textContent?.trim() === "Group"
+      ) as HTMLButtonElement;
+      groupTab.click();
+      fixture.detectChanges();
+      expect(previewModals().activeModal).toEqual({ kind: "groups" });
+      previewModals().closeModal();
+      fixture.detectChanges();
+
+      const add = fixture.nativeElement.querySelector(
+        'button[aria-label="Add a prayer or group"]'
+      ) as HTMLButtonElement;
+      add.click();
+      fixture.detectChanges();
+      expect(previewModals().activeModal).toEqual({ kind: "groups" });
     });
 
     it("opens a Bible Books explanation about memorizing book names", async () => {

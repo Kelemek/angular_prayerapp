@@ -83,6 +83,13 @@ describe("InfoPreviewModalsComponent", () => {
       expect(component.activeModal).toBeNull();
     });
 
+    it("opens and closes groups modal", () => {
+      component.openModal({ kind: "groups" });
+      expect(component.isModalOpen("groups")).toBe(true);
+      component.closeModal();
+      expect(component.activeModal).toBeNull();
+    });
+
     it("replaces the active modal when opening a different one", () => {
       component.openModal({ kind: "badges" });
       component.openModal({ kind: "header", action: "settings" });

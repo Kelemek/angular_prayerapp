@@ -12,6 +12,7 @@ import { InfoPreviewPersonalActionModalComponent } from "../info-preview-persona
 import { InfoPreviewPersonalCategoriesModalComponent } from "../info-preview-personal-categories-modal/info-preview-personal-categories-modal.component";
 import { InfoPreviewMemorizeActionModalComponent } from "../info-preview-memorize-action-modal/info-preview-memorize-action-modal.component";
 import { InfoPreviewMemorizePracticeModalComponent } from "../info-preview-memorize-practice-modal/info-preview-memorize-practice-modal.component";
+import { InfoPreviewGroupsModalComponent } from "../info-preview-groups-modal/info-preview-groups-modal.component";
 
 @Component({
   selector: "app-info-preview-modals",
@@ -24,6 +25,7 @@ import { InfoPreviewMemorizePracticeModalComponent } from "../info-preview-memor
     InfoPreviewPersonalCategoriesModalComponent,
     InfoPreviewMemorizeActionModalComponent,
     InfoPreviewMemorizePracticeModalComponent,
+    InfoPreviewGroupsModalComponent,
   ],
   templateUrl: "./info-preview-modals.component.html",
 })

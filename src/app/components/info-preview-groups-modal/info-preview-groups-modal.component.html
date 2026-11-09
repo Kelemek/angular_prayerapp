@@ -1,0 +1,31 @@
+@if (open) {
+<app-modal-shell
+  [showHeader]="false"
+  ariaLabel="About prayer groups"
+  panelClass="max-w-md border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl"
+  (close)="closeModal.emit()"
+>
+  <div class="p-5 sm:p-6 space-y-3 text-gray-800 dark:text-gray-200">
+    <p class="font-medium text-gray-900 dark:text-gray-100 text-base">
+      Prayer Groups
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      The <strong class="text-gray-800 dark:text-gray-200">Group</strong> tab is
+      for signed-in church members. A group is a private prayer list shared only
+      with people you invite—your family, care team, or small group.
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Tap <strong class="text-gray-800 dark:text-gray-200">+</strong> to add a
+      group prayer or create a new group. Use
+      <strong class="text-gray-800 dark:text-gray-200">Current</strong>,
+      <strong class="text-gray-800 dark:text-gray-200">Answered</strong>, and
+      <strong class="text-gray-800 dark:text-gray-200">Total</strong> to filter
+      requests. Group name chips narrow the list to one group.
+    </p>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Invite others with their email from the group’s members screen. They receive
+      one welcome email with a link to open your group in the app.
+    </p>
+  </div>
+</app-modal-shell>
+}

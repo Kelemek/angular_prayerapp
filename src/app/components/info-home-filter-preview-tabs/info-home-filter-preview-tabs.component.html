@@ -1,28 +1,33 @@
-<!-- Filter-style preview tabs (mock of home filters): Church, Personal, Memorize -->
+<!-- Filter-style preview tabs (mock of home filters): Church, Group, Personal, Memorize -->
 <div class="flex w-full gap-1 mb-0">
-  <div
-    class="relative z-20 flex-1 min-w-0"
-    role="button"
-    tabindex="0"
+  <button
+    type="button"
     (click)="selectPublicPreviewTab()"
-    (keydown.enter)="selectPublicPreviewTab()"
-    (keydown.space)="selectPublicPreviewTab(); $event.preventDefault()"
+    title="Show church prayers"
+    [class]="tabClass('public', isPublicTabActive())"
   >
-    <div [class]="publicTabClass() + ' w-full'">Church</div>
-    <button
-      type="button"
-      (click)="$event.stopPropagation(); openBadges.emit()"
-      class="absolute -top-2 -right-2 z-20 inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-[#39704D] dark:bg-[#39704D] text-white rounded-full text-xs font-bold hover:bg-[#2d5a3f] dark:hover:bg-[#2d5a3f] focus:outline-none focus:ring-2 focus:ring-[#39704D] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors cursor-pointer"
+    <app-home-filter-badge-button
+      [count]="1"
+      [compact]="true"
       title="About badges"
-      aria-label="About badges"
-    >
-      1
-    </button>
-  </div>
+      ariaLabel="About badges"
+      (markRead)="openBadges.emit()"
+    />
+    Church
+  </button>
+  <button
+    type="button"
+    (click)="selectGroupsPreviewTab()"
+    title="Show group prayers"
+    [class]="tabClass('groups', isGroupsTabActive())"
+  >
+    Group
+  </button>
   <button
     type="button"
     (click)="setPreviewFilter('personal')"
-    [class]="personalTabClass()"
+    title="Show your personal prayers"
+    [class]="tabClass('personal', previewFilter === 'personal')"
   >
     Personal
   </button>
@@ -30,7 +35,8 @@
     type="button"
     id="tour-filter-memorize"
     (click)="setPreviewFilter('memorize')"
-    [class]="memorizeTabClass()"
+    title="Memorize Bible verses"
+    [class]="tabClass('memorize', previewFilter === 'memorize')"
   >
     Memorize
   </button>
@@ -38,52 +44,98 @@
 
 @if (isPublicTabActive()) {
 <div [class]="publicPanelGroupClass + ' ' + chipRowClass">
-  <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('current')"
-      [class]="subFilterChipClass('current')"
+  <app-home-sub-filter-chip
+    chipAriaLabel="Add a church prayer"
+    [stretch]="false"
+    [active]="false"
+    [layoutClass]="addPrayerChipLayoutClass"
+    [activeClass]="chipThemes.current.active"
+    [inactiveClass]="chipThemes.current.inactive"
+    (chipClick)="openAddChurchPrayer.emit()"
+  >
+    <svg
+      class="size-6 shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.25"
+      stroke-linecap="round"
+      aria-hidden="true"
     >
-      Current (22)
-    </button>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  </app-home-sub-filter-chip>
+
+  <div [class]="chipHostClass">
+    <app-home-sub-filter-chip
+      [active]="previewFilter === 'current'"
+      [layoutClass]="chipButtonClass"
+      [activeClass]="chipThemes.current.active"
+      [inactiveClass]="chipThemes.current.inactive"
+      (chipClick)="setPreviewFilter('current')"
+    >
+      Current (9)
+    </app-home-sub-filter-chip>
   </div>
+
   <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('answered')"
-      [class]="subFilterChipClass('answered')"
+    <app-home-sub-filter-chip
+      [active]="previewFilter === 'answered'"
+      [layoutClass]="chipButtonClass"
+      [activeClass]="chipThemes.answered.active"
+      [inactiveClass]="chipThemes.answered.inactive"
+      (chipClick)="setPreviewFilter('answered')"
     >
-      Answered (4)
-    </button>
+      Answered (2)
+    </app-home-sub-filter-chip>
   </div>
+
   <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('archived')"
-      [class]="subFilterChipClass('archived')"
+    <app-home-sub-filter-chip
+      [active]="previewFilter === 'archived'"
+      [layoutClass]="chipButtonClass"
+      [activeClass]="chipThemes.archived.active"
+      [inactiveClass]="chipThemes.archived.inactive"
+      (chipClick)="setPreviewFilter('archived')"
     >
-      Archived (21)
-    </button>
+      Archived (8)
+    </app-home-sub-filter-chip>
   </div>
+
   <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('total')"
-      [class]="subFilterChipClass('total')"
+    <app-home-sub-filter-chip
+      [active]="previewFilter === 'total'"
+      [layoutClass]="chipButtonClass"
+      [activeClass]="chipThemes.total.active"
+      [inactiveClass]="chipThemes.total.inactive"
+      (chipClick)="setPreviewFilter('total')"
     >
-      Total (47)
-    </button>
+      Total (19)
+    </app-home-sub-filter-chip>
   </div>
+
   <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('prompts')"
-      [class]="subFilterChipClass('prompts')"
+    <app-home-sub-filter-chip
+      [active]="previewFilter === 'prompts'"
+      [layoutClass]="chipButtonClass"
+      [activeClass]="chipThemes.prompts.active"
+      [inactiveClass]="chipThemes.prompts.inactive"
+      (chipClick)="setPreviewFilter('prompts')"
     >
-      Prompts (76)
-    </button>
+      Prompts (12)
+    </app-home-sub-filter-chip>
   </div>
 </div>
+}
+
+@if (isGroupsTabActive()) {
+<app-info-home-filter-preview-groups-filters
+  [status]="groupsPreviewStatus()"
+  [selectedGroupChip]="selectedGroupChip"
+  (statusChange)="setGroupsStatus($event)"
+  (selectedGroupChipChange)="setSelectedGroupChip($event)"
+  (openGroupsExplainer)="openGroupsExplainer.emit()"
+/>
 }
 
 @if (previewFilter === 'personal') {

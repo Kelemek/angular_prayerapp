@@ -1,27 +1,51 @@
 <div>
   <div [class]="personalSubFilterGroupClass">
   <div [class]="chipRowClass">
-    <button
-      type="button"
-      (click)="openPersonalCategories.emit()"
-      [class]="subFilterChipBaseClass + ' flex-1 cursor-pointer ' + personalSubFilterChipActiveClass"
+    <app-home-sub-filter-chip
+      chipAriaLabel="Add a prayer or category"
+      [stretch]="false"
+      [active]="false"
+      [layoutClass]="addCategoryChipLayoutClass"
+      [activeClass]="personalSubFilterChipActiveClass"
+      [inactiveClass]="namedChipInactiveClass"
+      (chipClick)="openPersonalCategories.emit()"
+    >
+      <svg
+        class="size-6 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.25"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </app-home-sub-filter-chip>
+    <app-home-sub-filter-chip
+      [active]="true"
+      [activeClass]="personalSubFilterChipActiveClass"
+      [inactiveClass]="namedChipInactiveClass"
+      (chipClick)="openPersonalCategories.emit()"
     >
       Current (10)
-    </button>
-    <button
-      type="button"
-      (click)="openPersonalCategories.emit()"
-      [class]="subFilterChipBaseClass + ' flex-1 cursor-pointer ' + namedChipInactiveClass"
+    </app-home-sub-filter-chip>
+    <app-home-sub-filter-chip
+      [active]="false"
+      [activeClass]="personalSubFilterChipActiveClass"
+      [inactiveClass]="namedChipInactiveClass"
+      (chipClick)="openPersonalCategories.emit()"
     >
       Answered (3)
-    </button>
-    <button
-      type="button"
-      (click)="openPersonalCategories.emit()"
-      [class]="subFilterChipBaseClass + ' flex-1 cursor-pointer ' + namedChipInactiveClass"
+    </app-home-sub-filter-chip>
+    <app-home-sub-filter-chip
+      [active]="false"
+      [activeClass]="personalSubFilterChipActiveClass"
+      [inactiveClass]="namedChipInactiveClass"
+      (chipClick)="openPersonalCategories.emit()"
     >
       Total (13)
-    </button>
+    </app-home-sub-filter-chip>
   </div>
   <div [class]="chipRowClass + ' mt-2'">
     <button

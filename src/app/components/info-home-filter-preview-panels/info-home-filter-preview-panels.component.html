@@ -22,6 +22,30 @@
       (openPersonalAction)="openPersonalAction.emit($event)"
     />
   }
+  @case ('groups') {
+    <app-info-home-filter-preview-groups-card
+      [status]="groupsPreviewStatus()"
+      [selectedGroupChip]="selectedGroupChip"
+    />
+  }
+  @case ('groups-current') {
+    <app-info-home-filter-preview-groups-card
+      [status]="groupsPreviewStatus()"
+      [selectedGroupChip]="selectedGroupChip"
+    />
+  }
+  @case ('groups-answered') {
+    <app-info-home-filter-preview-groups-card
+      [status]="groupsPreviewStatus()"
+      [selectedGroupChip]="selectedGroupChip"
+    />
+  }
+  @case ('groups-total') {
+    <app-info-home-filter-preview-groups-card
+      [status]="groupsPreviewStatus()"
+      [selectedGroupChip]="selectedGroupChip"
+    />
+  }
   @case ('memorize') {
     <app-info-home-filter-preview-memorize-card
       (openPracticePreview)="openMemorizePractice.emit()"

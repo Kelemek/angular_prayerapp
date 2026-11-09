@@ -9,17 +9,26 @@ import {
   HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
   homeFilterTabClass,
+  HOME_NAV_TAB_TEXT_LOCK_CLASS,
+  type HomeFilterTabAccent,
 } from "../../lib/home-sub-filter-chip-classes";
+import { HomeFilterBadgeButtonComponent } from "../home-filter-badge-button/home-filter-badge-button.component";
 import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
 import {
+  groupsPreviewStatusFromFilter,
+  isGroupsAreaPreviewFilter,
   isMemorizePreviewFilter,
   isPublicAreaPreviewFilter,
   isPublicPreviewFilter,
+  type InfoGroupsPreviewStatus,
   type InfoMemorizeActionPreview,
   type InfoPreviewFilter,
+  type InfoPreviewMockGroupChip,
 } from "../../lib/info-home-filter-preview.types";
 import { InfoHomeFilterPreviewPersonalFiltersComponent } from "../info-home-filter-preview-personal-filters/info-home-filter-preview-personal-filters.component";
 import { InfoHomeFilterPreviewPromptsFiltersComponent } from "../info-home-filter-preview-prompts-filters/info-home-filter-preview-prompts-filters.component";
+import { InfoHomeFilterPreviewGroupsFiltersComponent } from "../info-home-filter-preview-groups-filters/info-home-filter-preview-groups-filters.component";
+import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
 
 @Component({
   selector: "app-info-home-filter-preview-tabs",
@@ -28,6 +37,9 @@ import { InfoHomeFilterPreviewPromptsFiltersComponent } from "../info-home-filte
     CommonModule,
     InfoHomeFilterPreviewPersonalFiltersComponent,
     InfoHomeFilterPreviewPromptsFiltersComponent,
+    InfoHomeFilterPreviewGroupsFiltersComponent,
+    HomeFilterBadgeButtonComponent,
+    HomeSubFilterChipComponent,
   ],
   templateUrl: "./info-home-filter-preview-tabs.component.html",
   host: { class: "block" },
@@ -36,15 +48,22 @@ export class InfoHomeFilterPreviewTabsComponent {
   @Input() previewFilter: InfoPreviewFilter = "current";
   @Output() previewFilterChange = new EventEmitter<InfoPreviewFilter>();
   @Output() openBadges = new EventEmitter<void>();
+  @Output() openAddChurchPrayer = new EventEmitter<void>();
   @Output() openPromptCategories = new EventEmitter<void>();
   @Output() openPersonalCategories = new EventEmitter<void>();
+  @Output() openGroupsExplainer = new EventEmitter<void>();
   @Output() openMemorizeAction = new EventEmitter<InfoMemorizeActionPreview>();
+  @Input() selectedGroupChip: InfoPreviewMockGroupChip = "larson";
+  @Output() selectedGroupChipChange =
+    new EventEmitter<InfoPreviewMockGroupChip>();
 
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS;
   readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
   readonly chipThemes = HOME_PUBLIC_STATUS_CHIP_THEMES;
   readonly publicSubFilterGroupClass = HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;
+  readonly addPrayerChipLayoutClass =
+    "inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all";
 
   isPublicTabActive(): boolean {
     return isPublicAreaPreviewFilter(this.previewFilter);
@@ -57,28 +76,29 @@ export class InfoHomeFilterPreviewTabsComponent {
     return `${base} ${shape}`;
   }
 
-  publicTabClass(): string {
-    return homeFilterTabClass({
-      accent: "public",
-      active: this.isPublicTabActive(),
-      hasSubRow: true,
-    });
+  isGroupsTabActive(): boolean {
+    return isGroupsAreaPreviewFilter(this.previewFilter);
   }
 
-  personalTabClass(): string {
-    return homeFilterTabClass({
-      accent: "personal",
-      active: this.previewFilter === "personal",
-      hasSubRow: true,
-    });
+  groupsPreviewStatus(): InfoGroupsPreviewStatus {
+    return groupsPreviewStatusFromFilter(this.previewFilter);
   }
 
-  memorizeTabClass(): string {
-    return homeFilterTabClass({
-      accent: "memorize",
-      active: isMemorizePreviewFilter(this.previewFilter),
-      hasSubRow: true,
-    });
+  hasSubFilterRowBelowTabs(): boolean {
+    return (
+      isPublicAreaPreviewFilter(this.previewFilter) ||
+      isGroupsAreaPreviewFilter(this.previewFilter) ||
+      this.previewFilter === "personal" ||
+      isMemorizePreviewFilter(this.previewFilter)
+    );
+  }
+
+  tabClass(accent: HomeFilterTabAccent, active: boolean): string {
+    return `${homeFilterTabClass({
+      accent,
+      active,
+      hasSubRow: this.hasSubFilterRowBelowTabs(),
+    })} ${HOME_NAV_TAB_TEXT_LOCK_CLASS}`;
   }
 
   memorizePanelGroupClass(): string {
@@ -116,5 +136,25 @@ export class InfoHomeFilterPreviewTabsComponent {
 
   setPreviewFilter(filter: InfoPreviewFilter): void {
     this.previewFilterChange.emit(filter);
+  }
+
+  selectGroupsPreviewTab(): void {
+    if (!isGroupsAreaPreviewFilter(this.previewFilter)) {
+      this.previewFilterChange.emit("groups-current");
+    }
+  }
+
+  setGroupsStatus(status: InfoGroupsPreviewStatus): void {
+    const filter: InfoPreviewFilter =
+      status === "answered"
+        ? "groups-answered"
+        : status === "total"
+          ? "groups-total"
+          : "groups-current";
+    this.previewFilterChange.emit(filter);
+  }
+
+  setSelectedGroupChip(chip: InfoPreviewMockGroupChip): void {
+    this.selectedGroupChipChange.emit(chip);
   }
 }

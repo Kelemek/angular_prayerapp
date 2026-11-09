@@ -1,0 +1,65 @@
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { InfoHomeFilterPreviewGroupsFiltersComponent } from "./info-home-filter-preview-groups-filters.component";
+import { setupInfoPreviewComponentResources } from "../info-preview-component-resources.spec-helper";
+
+describe("InfoHomeFilterPreviewGroupsFiltersComponent", () => {
+  beforeAll(async () => {
+    await setupInfoPreviewComponentResources();
+  });
+
+  let fixture: ComponentFixture<InfoHomeFilterPreviewGroupsFiltersComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [InfoHomeFilterPreviewGroupsFiltersComponent],
+    }).compileComponents();
+    fixture = TestBed.createComponent(InfoHomeFilterPreviewGroupsFiltersComponent);
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+  });
+
+  it("emits openGroupsExplainer when + is clicked", () => {
+    const emitted: boolean[] = [];
+    fixture.componentInstance.openGroupsExplainer.subscribe(() => emitted.push(true));
+    fixture.detectChanges();
+    const add = fixture.nativeElement.querySelector(
+      'button[aria-label="Add a prayer or group"]'
+    ) as HTMLButtonElement;
+    add.click();
+    expect(emitted).toEqual([true]);
+  });
+
+  it("matches Home: add and status chips share the first chip row", () => {
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll(
+      ".flex.w-full.flex-wrap.items-center.gap-2"
+    );
+    expect(rows).toHaveLength(2);
+    const statusRow = rows[0] as HTMLElement;
+    expect(
+      statusRow.querySelector('button[aria-label="Add a prayer or group"]')
+    ).toBeTruthy();
+    expect(statusRow.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
+      4
+    );
+    expect(statusRow.textContent).not.toContain("Larson Family");
+    const groupRow = rows[1] as HTMLElement;
+    expect(groupRow.textContent).toContain("Larson Family");
+  });
+
+  it("emits selected group chip without opening explainer", () => {
+    const chips: string[] = [];
+    fixture.componentInstance.selectedGroupChipChange.subscribe((chip) =>
+      chips.push(chip)
+    );
+    fixture.detectChanges();
+    const care = [...fixture.nativeElement.querySelectorAll("button")].find(
+      (button: HTMLButtonElement) => button.textContent?.includes("Care Team")
+    ) as HTMLButtonElement;
+    care.click();
+    expect(chips).toEqual(["care"]);
+  });
+});

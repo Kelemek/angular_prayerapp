@@ -1,18 +1,25 @@
-<div class="contrast-chip-surface flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-  <div class="flex items-center gap-3 shrink-0">
+<div class="contrast-chip-surface flex items-center gap-2 min-w-0 sm:justify-between">
+  <div [class]="logoToolbarSlotClass">
     <img
       [src]="brandingImageUrl || '/favicon.ico'"
       alt="Church Logo"
-      class="h-10 w-auto max-w-[160px] object-contain rounded"
+      class="h-10 w-auto max-w-full object-contain object-left rounded"
     />
   </div>
-  <div class="flex items-center gap-2 flex-wrap">
+  <div class="flex items-center gap-1 sm:gap-2 flex-nowrap shrink-0">
     <button
       type="button"
       (click)="openHeaderPreview.emit('help')"
-      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-gray"
+      [class]="headerChipClass + ' btn-chip btn-chip-gray'"
+      title="Help & Guidance"
+      aria-label="Help & Guidance"
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <svg
+        [class]="headerIconClass"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+      >
         <circle
           cx="12"
           cy="12"
@@ -26,7 +33,7 @@
           y="16"
           text-anchor="middle"
           fill="currentColor"
-          font-size="12"
+          font-size="14"
           font-weight="bold"
         >
           ?
@@ -40,11 +47,10 @@
       aria-controls="info-mock-search-panel"
       title="Search"
       aria-label="Search"
-      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-gray"
+      [class]="headerChipClass + ' btn-chip btn-chip-gray'"
     >
       <svg
-        width="18"
-        height="18"
+        [class]="headerIconClass"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -60,17 +66,19 @@
     <button
       type="button"
       (click)="openHeaderPreview.emit('settings')"
-      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-gray"
+      [class]="headerChipClass + ' btn-chip btn-chip-gray'"
+      title="Settings"
+      aria-label="Settings"
     >
       <svg
-        width="18"
-        height="18"
+        [class]="headerIconClass"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
+        aria-hidden="true"
       >
         <path
           d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
@@ -81,14 +89,16 @@
     <button
       type="button"
       (click)="openHeaderPreview.emit('pray')"
-      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-green"
+      [class]="headerChipClass + ' btn-chip btn-chip-green'"
+      title="Pray"
     >
       <span>Pray</span>
     </button>
     <button
       type="button"
       (click)="openHeaderPreview.emit('request')"
-      class="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-medium btn-chip btn-chip-blue"
+      [class]="headerChipClass + ' btn-chip btn-chip-blue'"
+      title="Request"
     >
       <span>Request</span>
     </button>

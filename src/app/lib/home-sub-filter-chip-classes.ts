@@ -7,6 +7,13 @@ export const HOME_NAV_CHIP_TEXT_LOCK_CLASS = "home-nav-chip-text-lock";
 /** Below `sm`, fixed chip box + label size in styles.css (Home header toolbar). */
 export const HOME_HEADER_CHIP_SIZE_LOCK_CLASS = "home-header-chip-size-lock";
 
+/** Fluid logo/title in the home toolbar on narrow viewports (see `HomeHeaderComponent`). */
+export const HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS =
+  "min-w-0 flex-1 overflow-hidden sm:flex-initial sm:overflow-visible " +
+  "[&_img]:max-h-10 [&_img]:sm:max-h-none [&_img]:sm:h-16 [&_img]:max-w-full [&_img]:sm:max-w-xs [&_img]:w-auto [&_img]:h-auto [&_img]:object-contain [&_img]:object-left " +
+  "[&_h1]:text-base [&_h1]:leading-tight [&_h1]:sm:text-xl [&_h1]:sm:leading-normal [&_h1]:font-bold [&_h1]:truncate " +
+  "[&_p]:hidden [&_p]:sm:block";
+
 /** Folder-tab chrome shared by Home and the Info filter mock (label typography included). */
 export const HOME_FILTER_TAB_BASE_CLASS =
   "flex-1 min-w-0 px-3 py-2 text-center text-base font-semibold leading-tight text-gray-700 dark:text-gray-300 transition-all duration-200 cursor-pointer relative flex flex-col items-center justify-center";

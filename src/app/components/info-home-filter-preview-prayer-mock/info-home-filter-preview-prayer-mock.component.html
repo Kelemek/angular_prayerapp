@@ -1,0 +1,25 @@
+<div [class]="shellClasses">
+  <app-prayer-card-meta-header
+    [bandSize]="layout.bandSize"
+    [bleedClasses]="layout.headerBleedClasses"
+    [roundedClasses]="layout.headerBandRoundedClasses"
+    [headerInsetClasses]="layout.headerInsetClasses"
+    [prayerCreatedAt]="prayerCreatedAt"
+    [isPersonal]="isPersonal"
+    [category]="category"
+    [groupName]="groupName"
+    [groupColor]="groupColor"
+    [status]="status"
+    [showStatus]="showStatus"
+    [showDelete]="showDelete"
+    [showReminder]="false"
+    [canEditGroupPrayer]="!!groupName"
+    [canMarkGroupPrayerAnswered]="!!groupName"
+    (toggleAnswered)="toggleAnswered.emit()"
+    (edit)="editPrayer.emit()"
+    (delete)="deletePrayer.emit()"
+  />
+  <div [class]="layout.shellPaddingClasses + ' ' + layout.shellBottomPadding">
+    <ng-content />
+  </div>
+</div>
