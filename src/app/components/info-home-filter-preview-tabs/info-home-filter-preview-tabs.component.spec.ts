@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { InfoHomeFilterPreviewTabsComponent } from "./info-home-filter-preview-tabs.component";
 import { setupInfoPreviewComponentResources } from "../info-preview-component-resources.spec-helper";
+import { HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS } from "../../lib/home-sub-filter-chip-classes";
 
 describe("InfoHomeFilterPreviewTabsComponent", () => {
   beforeAll(async () => {
@@ -112,20 +113,34 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     expect(emitted).toEqual(["groups-current"]);
   });
 
-  it("keeps church add and status chips on one row without wrap flex hosts", () => {
+  it("wraps church status chips with flex-wrap hosts like Home public filters", () => {
     fixture.detectChanges();
+    const statusLabels = [
+      "Current (9)",
+      "Answered (2)",
+      "Archived (8)",
+      "Total (19)",
+      "Prompts (12)",
+    ];
+    for (const label of statusLabels) {
+      const button = [...fixture.nativeElement.querySelectorAll("button")].find(
+        (el: HTMLButtonElement) =>
+          el.textContent?.replace(/\s+/g, " ").trim() === label
+      ) as HTMLButtonElement;
+      expect(button).toBeTruthy();
+      const host = button.closest("div") as HTMLElement;
+      expect(host.className).toContain("flex-[1_1_0]");
+      expect(host.className).toContain("min-w-max");
+      expect(button.className).toContain(
+        HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS.split(" ")[0]
+      );
+    }
     const add = fixture.nativeElement.querySelector(
       'button[aria-label="Add a church prayer"]'
     ) as HTMLButtonElement;
-    expect(add).toBeTruthy();
     expect(add.className).toContain("size-9");
-    expect(add.className).not.toContain("w-full");
-    const statusRow = add.closest(
-      ".flex.w-full.flex-wrap.items-center.gap-2"
-    ) as HTMLElement;
-    expect(statusRow).toBeTruthy();
-    expect(statusRow.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
-      6
+    expect(add.parentElement?.parentElement?.className).not.toContain(
+      "flex-[1_1_0]"
     );
   });
 

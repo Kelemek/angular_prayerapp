@@ -23,19 +23,22 @@ describe("InfoHomeFilterPreviewPersonalFiltersComponent", () => {
     fixture?.destroy();
   });
 
-  it("keeps add and status chips on one row", () => {
+  it("keeps Current Answered Total on the first chip row", () => {
     fixture.detectChanges();
-    const add = fixture.nativeElement.querySelector(
-      'button[aria-label="Add a prayer or category"]'
-    ) as HTMLButtonElement;
-    expect(add).toBeTruthy();
-    expect(add.className).toContain("size-9");
-    const statusRow = add.closest(
+    const rows = fixture.nativeElement.querySelectorAll(
       ".flex.w-full.flex-wrap.items-center.gap-2"
-    ) as HTMLElement;
-    expect(statusRow?.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
-      4
     );
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    const statusRow = rows[0] as HTMLElement;
+    expect(statusRow.textContent).toContain("Current (10)");
+    expect(statusRow.textContent).not.toContain("Health (4)");
+    expect(statusRow.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
+      3
+    );
+    const addRow = rows[1] as HTMLElement;
+    expect(
+      addRow.querySelector('button[aria-label="Add a prayer or category"]')
+    ).toBeTruthy();
   });
 
   it("emits openPersonalCategories when + is clicked", () => {

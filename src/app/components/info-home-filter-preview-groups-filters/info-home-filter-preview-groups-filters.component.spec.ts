@@ -32,23 +32,21 @@ describe("InfoHomeFilterPreviewGroupsFiltersComponent", () => {
     expect(emitted).toEqual([true]);
   });
 
-  it("keeps add and status chips on one row without wrap flex hosts", () => {
+  it("keeps Current Answered Total on the first chip row", () => {
     fixture.detectChanges();
-    const statusRow = fixture.nativeElement.querySelector(
+    const rows = fixture.nativeElement.querySelectorAll(
       ".flex.w-full.flex-wrap.items-center.gap-2"
-    ) as HTMLElement;
-    expect(statusRow).toBeTruthy();
-    const addHost = statusRow.querySelector(
-      "app-home-sub-filter-chip"
-    ) as HTMLElement;
-    expect(addHost).toBeTruthy();
-    expect(addHost.className).not.toContain("flex-[1_1_0]");
-    expect(statusRow.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
-      4
     );
-    const addButton = addHost.querySelector("button") as HTMLButtonElement;
-    expect(addButton.className).toContain("size-9");
-    expect(addButton.className).not.toContain("w-full");
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    const statusRow = rows[0] as HTMLElement;
+    expect(statusRow.textContent).toContain("Current (3)");
+    expect(statusRow.textContent).toContain("Answered (1)");
+    expect(statusRow.textContent).toContain("Total (4)");
+    expect(statusRow.textContent).not.toContain("Larson Family");
+    const addRow = rows[1] as HTMLElement;
+    expect(
+      addRow.querySelector('button[aria-label="Add a prayer or group"]')
+    ).toBeTruthy();
   });
 
   it("emits selected group chip without opening explainer", () => {
