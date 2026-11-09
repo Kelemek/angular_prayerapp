@@ -28,6 +28,7 @@ import {
 import { InfoHomeFilterPreviewPersonalFiltersComponent } from "../info-home-filter-preview-personal-filters/info-home-filter-preview-personal-filters.component";
 import { InfoHomeFilterPreviewPromptsFiltersComponent } from "../info-home-filter-preview-prompts-filters/info-home-filter-preview-prompts-filters.component";
 import { InfoHomeFilterPreviewGroupsFiltersComponent } from "../info-home-filter-preview-groups-filters/info-home-filter-preview-groups-filters.component";
+import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
 
 @Component({
   selector: "app-info-home-filter-preview-tabs",
@@ -38,6 +39,7 @@ import { InfoHomeFilterPreviewGroupsFiltersComponent } from "../info-home-filter
     InfoHomeFilterPreviewPromptsFiltersComponent,
     InfoHomeFilterPreviewGroupsFiltersComponent,
     HomeFilterBadgeButtonComponent,
+    HomeSubFilterChipComponent,
   ],
   templateUrl: "./info-home-filter-preview-tabs.component.html",
   host: { class: "block" },
@@ -46,6 +48,7 @@ export class InfoHomeFilterPreviewTabsComponent {
   @Input() previewFilter: InfoPreviewFilter = "current";
   @Output() previewFilterChange = new EventEmitter<InfoPreviewFilter>();
   @Output() openBadges = new EventEmitter<void>();
+  @Output() openAddChurchPrayer = new EventEmitter<void>();
   @Output() openPromptCategories = new EventEmitter<void>();
   @Output() openPersonalCategories = new EventEmitter<void>();
   @Output() openGroupsExplainer = new EventEmitter<void>();
@@ -59,6 +62,8 @@ export class InfoHomeFilterPreviewTabsComponent {
   readonly chipRowClass = HOME_SUB_FILTER_CHIP_ROW_CLASS;
   readonly chipThemes = HOME_PUBLIC_STATUS_CHIP_THEMES;
   readonly publicSubFilterGroupClass = HOME_PUBLIC_SUB_FILTER_GROUP_CLASS;
+  readonly addPrayerChipLayoutClass =
+    "inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all";
 
   isPublicTabActive(): boolean {
     return isPublicAreaPreviewFilter(this.previewFilter);

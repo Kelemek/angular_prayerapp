@@ -112,23 +112,32 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     expect(emitted).toEqual(["groups-current"]);
   });
 
-  it("wraps public preview chips with the same flex-wrap host as prompt types", () => {
+  it("keeps church add and status chips on one row without wrap flex hosts", () => {
     fixture.detectChanges();
-    const buttons = fixture.nativeElement.querySelectorAll(
-      "button"
-    ) as NodeListOf<HTMLButtonElement>;
-    const publicChips = [...buttons].filter((button) =>
-      /^(Current|Answered|Archived|Total|Prompts) \(/.test(
-        button.textContent?.trim() ?? ""
-      )
+    const add = fixture.nativeElement.querySelector(
+      'button[aria-label="Add a church prayer"]'
+    ) as HTMLButtonElement;
+    expect(add).toBeTruthy();
+    expect(add.className).toContain("size-9");
+    expect(add.className).not.toContain("w-full");
+    const statusRow = add.closest(
+      ".flex.w-full.flex-wrap.items-center.gap-2"
+    ) as HTMLElement;
+    expect(statusRow).toBeTruthy();
+    expect(statusRow.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
+      6
     );
-    expect(publicChips).toHaveLength(5);
-    for (const button of publicChips) {
-      const host = button.parentElement as HTMLElement;
-      expect(host.className).toContain("flex-[1_1_0]");
-      expect(button.className).toContain("min-w-max");
-      expect(button.className).not.toContain("flex-1");
-    }
+  });
+
+  it("emits openAddChurchPrayer when church + is clicked", () => {
+    const emitted: boolean[] = [];
+    component.openAddChurchPrayer.subscribe(() => emitted.push(true));
+    fixture.detectChanges();
+    const add = fixture.nativeElement.querySelector(
+      'button[aria-label="Add a church prayer"]'
+    ) as HTMLButtonElement;
+    add.click();
+    expect(emitted).toEqual([true]);
   });
 
   it("does not show a Members chip", () => {

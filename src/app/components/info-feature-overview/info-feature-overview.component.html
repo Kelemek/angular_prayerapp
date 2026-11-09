@@ -45,6 +45,7 @@
                     (previewFilterChange)="onPreviewFilterChange($event)"
                     (selectedGroupChipChange)="selectedGroupChip = $event"
                     (openBadges)="openPreviewModal.emit({ kind: 'badges' })"
+                    (openAddChurchPrayer)="openPreviewModal.emit({ kind: 'header', action: 'request' })"
                     (openPromptCategories)="openPreviewModal.emit({ kind: 'promptCategories' })"
                     (openPersonalCategories)="openPreviewModal.emit({ kind: 'personalCategories' })"
                     (openGroupsExplainer)="openPreviewModal.emit({ kind: 'groups' })"

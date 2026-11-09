@@ -44,51 +44,67 @@
 
 @if (isPublicTabActive()) {
 <div [class]="publicPanelGroupClass + ' ' + chipRowClass">
-  <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('current')"
-      [class]="subFilterChipClass('current')"
+  <app-home-sub-filter-chip
+    chipAriaLabel="Add a church prayer"
+    [stretch]="false"
+    [active]="false"
+    [layoutClass]="addPrayerChipLayoutClass"
+    [activeClass]="chipThemes.current.active"
+    [inactiveClass]="chipThemes.current.inactive"
+    (chipClick)="openAddChurchPrayer.emit()"
+  >
+    <svg
+      class="size-6 shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.25"
+      stroke-linecap="round"
+      aria-hidden="true"
     >
-      Current (9)
-    </button>
-  </div>
-  <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('answered')"
-      [class]="subFilterChipClass('answered')"
-    >
-      Answered (2)
-    </button>
-  </div>
-  <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('archived')"
-      [class]="subFilterChipClass('archived')"
-    >
-      Archived (8)
-    </button>
-  </div>
-  <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('total')"
-      [class]="subFilterChipClass('total')"
-    >
-      Total (19)
-    </button>
-  </div>
-  <div [class]="chipHostClass">
-    <button
-      type="button"
-      (click)="setPreviewFilter('prompts')"
-      [class]="subFilterChipClass('prompts')"
-    >
-      Prompts (12)
-    </button>
-  </div>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  </app-home-sub-filter-chip>
+  <app-home-sub-filter-chip
+    [active]="previewFilter === 'current'"
+    [activeClass]="chipThemes.current.active"
+    [inactiveClass]="chipThemes.current.inactive"
+    (chipClick)="setPreviewFilter('current')"
+  >
+    Current (9)
+  </app-home-sub-filter-chip>
+  <app-home-sub-filter-chip
+    [active]="previewFilter === 'answered'"
+    [activeClass]="chipThemes.answered.active"
+    [inactiveClass]="chipThemes.answered.inactive"
+    (chipClick)="setPreviewFilter('answered')"
+  >
+    Answered (2)
+  </app-home-sub-filter-chip>
+  <app-home-sub-filter-chip
+    [active]="previewFilter === 'archived'"
+    [activeClass]="chipThemes.archived.active"
+    [inactiveClass]="chipThemes.archived.inactive"
+    (chipClick)="setPreviewFilter('archived')"
+  >
+    Archived (8)
+  </app-home-sub-filter-chip>
+  <app-home-sub-filter-chip
+    [active]="previewFilter === 'total'"
+    [activeClass]="chipThemes.total.active"
+    [inactiveClass]="chipThemes.total.inactive"
+    (chipClick)="setPreviewFilter('total')"
+  >
+    Total (19)
+  </app-home-sub-filter-chip>
+  <app-home-sub-filter-chip
+    [active]="previewFilter === 'prompts'"
+    [activeClass]="chipThemes.prompts.active"
+    [inactiveClass]="chipThemes.prompts.inactive"
+    (chipClick)="setPreviewFilter('prompts')"
+  >
+    Prompts (12)
+  </app-home-sub-filter-chip>
 </div>
 }
 
