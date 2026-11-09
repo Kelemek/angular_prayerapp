@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { BiblePassagePickerModalComponent } from '../bible-passage-picker-modal/bible-passage-picker-modal.component';
 import { ScriptureHoverPreviewComponent } from '../scripture-hover-preview/scripture-hover-preview.component';
 import { SendNotificationDialogComponent } from '../send-notification-dialog/send-notification-dialog.component';
+import { ModalShellComponent } from '../modal-shell/modal-shell.component';
 import { MemorizationService } from '../../services/memorization.service';
 import { ToastService } from '../../services/toast.service';
 import {
@@ -24,6 +25,7 @@ import type { BibleTranslation } from '../../types/memorization';
     BiblePassagePickerModalComponent,
     ScriptureHoverPreviewComponent,
     SendNotificationDialogComponent,
+    ModalShellComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -107,53 +109,31 @@ import type { BibleTranslation } from '../../types/memorization';
     />
 
     @if (showSendPanel && pendingReference) {
-      <div
-        class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-gray-900/50 p-0 sm:p-4 safe-area-overlay overscroll-none touch-none"
-        style="padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom));"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="verse-send-title"
-        (click)="cancelSend()"
+      <app-modal-shell
+        title="Post verse prayer"
+        titleId="verse-send-title"
+        panelClass="sm:max-w-lg modal-panel-edge border border-gray-200 dark:border-gray-700 rounded-t-2xl sm:rounded-lg"
+        closeAriaLabel="Close"
+        (close)="cancelSend()"
       >
-        <div
-          class="w-full sm:max-w-lg flex flex-col bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 modal-panel-edge touch-none"
-          (click)="$event.stopPropagation()"
-        >
-          <div
-            class="shrink-0 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 modal-chrome-header touch-none"
+        <div class="px-4 sm:px-6 py-3 space-y-4">
+          <app-scripture-hover-preview
+            class="block"
+            [reference]="pendingReference"
+            [translation]="pickerTranslation"
           >
-            <h2
-              id="verse-send-title"
-              class="text-lg font-semibold text-gray-900 dark:text-gray-100"
-            >
-              Post verse prayer
-            </h2>
-            <button
-              type="button"
-              (click)="cancelSend()"
-              class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              aria-label="Close"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ pendingReference }}</p>
+          </app-scripture-hover-preview>
 
-          <div class="px-4 sm:px-6 py-3">
-            <app-scripture-hover-preview
-              class="mb-4 block"
-              [reference]="pendingReference"
-              [translation]="pickerTranslation"
+          <div>
+            <label
+              for="verse-send-admin-message"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
-              <p class="font-medium text-gray-900 dark:text-gray-100">{{ pendingReference }}</p>
-            </app-scripture-hover-preview>
-
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Optional message
             </label>
             <textarea
+              id="verse-send-admin-message"
               [(ngModel)]="adminMessage"
               rows="4"
               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm"
@@ -162,7 +142,7 @@ import type { BibleTranslation } from '../../types/memorization';
           </div>
 
           <div
-            class="shrink-0 modal-chrome-footer px-4 sm:px-6 py-3 touch-none"
+            class="modal-chrome-footer -mx-4 sm:-mx-6 px-4 sm:px-6 py-3"
             style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
           >
             <button
@@ -175,7 +155,7 @@ import type { BibleTranslation } from '../../types/memorization';
             </button>
           </div>
         </div>
-      </div>
+      </app-modal-shell>
     }
 
     @if (showSendNotificationDialog) {
