@@ -1,6 +1,27 @@
 <div [class]="groupsPanelClass">
   <div [class]="chipRowClass">
     <app-home-sub-filter-chip
+      chipAriaLabel="Add a prayer or group"
+      [stretch]="false"
+      [active]="false"
+      [layoutClass]="addGroupChipLayoutClass"
+      [activeClass]="groupChipActive"
+      [inactiveClass]="groupChipInactive"
+      (chipClick)="openGroupsExplainer.emit()"
+    >
+      <svg
+        class="size-6 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.25"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </app-home-sub-filter-chip>
+    <app-home-sub-filter-chip
       [active]="status === 'current'"
       [activeClass]="statusThemes.current.active"
       [inactiveClass]="groupChipInactive"
@@ -23,30 +44,6 @@
       (chipClick)="selectStatus('total')"
     >
       Total (4)
-    </app-home-sub-filter-chip>
-  </div>
-
-  <div [class]="chipRowClass + ' mt-2'">
-    <app-home-sub-filter-chip
-      chipAriaLabel="Add a prayer or group"
-      [stretch]="false"
-      [active]="false"
-      [layoutClass]="addGroupChipLayoutClass"
-      [activeClass]="groupChipActive"
-      [inactiveClass]="groupChipInactive"
-      (chipClick)="openGroupsExplainer.emit()"
-    >
-      <svg
-        class="size-6 shrink-0"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.25"
-        stroke-linecap="round"
-        aria-hidden="true"
-      >
-        <path d="M12 5v14M5 12h14" />
-      </svg>
     </app-home-sub-filter-chip>
   </div>
 

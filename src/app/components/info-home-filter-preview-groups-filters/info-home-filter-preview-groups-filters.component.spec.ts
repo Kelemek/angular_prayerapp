@@ -32,21 +32,22 @@ describe("InfoHomeFilterPreviewGroupsFiltersComponent", () => {
     expect(emitted).toEqual([true]);
   });
 
-  it("keeps Current Answered Total on the first chip row", () => {
+  it("matches Home: add and status chips share the first chip row", () => {
     fixture.detectChanges();
     const rows = fixture.nativeElement.querySelectorAll(
       ".flex.w-full.flex-wrap.items-center.gap-2"
     );
-    expect(rows.length).toBeGreaterThanOrEqual(2);
+    expect(rows).toHaveLength(2);
     const statusRow = rows[0] as HTMLElement;
-    expect(statusRow.textContent).toContain("Current (3)");
-    expect(statusRow.textContent).toContain("Answered (1)");
-    expect(statusRow.textContent).toContain("Total (4)");
-    expect(statusRow.textContent).not.toContain("Larson Family");
-    const addRow = rows[1] as HTMLElement;
     expect(
-      addRow.querySelector('button[aria-label="Add a prayer or group"]')
+      statusRow.querySelector('button[aria-label="Add a prayer or group"]')
     ).toBeTruthy();
+    expect(statusRow.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
+      4
+    );
+    expect(statusRow.textContent).not.toContain("Larson Family");
+    const groupRow = rows[1] as HTMLElement;
+    expect(groupRow.textContent).toContain("Larson Family");
   });
 
   it("emits selected group chip without opening explainer", () => {
