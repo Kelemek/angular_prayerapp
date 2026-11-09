@@ -53,35 +53,35 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     const row = fixture.nativeElement.querySelector(
       ".flex.w-full.gap-1.mb-0"
     ) as HTMLElement;
-    const publicTab = row.querySelector('[role="button"]') as HTMLElement;
     const topButtons = row.querySelectorAll(
       ":scope > button"
     ) as NodeListOf<HTMLButtonElement>;
     const normalize = (el: HTMLElement) =>
       el.textContent?.replace(/\s+/g, " ").trim() ?? "";
 
-    expect(normalize(publicTab)).toBe("Church 1");
-    expect(publicTab.className).toContain("z-20");
-    const badge = publicTab.querySelector(
+    expect(topButtons).toHaveLength(4);
+    expect(normalize(topButtons[0]!)).toMatch(/Church/);
+    expect(normalize(topButtons[0]!)).toContain("1");
+    expect(normalize(topButtons[1]!)).toBe("Group");
+    expect(normalize(topButtons[2]!)).toBe("Personal");
+    expect(normalize(topButtons[3]!)).toBe("Memorize");
+    for (const button of topButtons) {
+      expect(button.className).toContain("home-nav-tab-text-lock");
+      expect(button.className).toContain("flex-1");
+    }
+    const badge = topButtons[0]!.querySelector(
       'button[aria-label="About badges"]'
     ) as HTMLButtonElement;
-    const tabChrome = publicTab.firstElementChild as HTMLElement;
-    expect(tabChrome.textContent?.trim()).toBe("Church");
-    expect(badge.previousElementSibling).toBe(tabChrome);
-    expect(badge.className).toContain("z-20");
-    expect(topButtons).toHaveLength(3);
-    expect(normalize(topButtons[0]!)).toBe("Group");
-    expect(normalize(topButtons[1]!)).toBe("Personal");
-    expect(normalize(topButtons[2]!)).toBe("Memorize");
+    expect(badge).toBeTruthy();
   });
 
   it("highlights Church and shows a Prompts chip when previewFilter is prompts", () => {
     component.previewFilter = "prompts";
     fixture.detectChanges();
-    const churchChrome = fixture.nativeElement.querySelector(
-      '[role="button"] > div'
-    ) as HTMLElement;
-    expect(churchChrome.className).toContain("var(--home-tab-public-bg)");
+    const churchTab = [...fixture.nativeElement.querySelectorAll("button")].find(
+      (button: HTMLButtonElement) => button.textContent?.includes("Church")
+    ) as HTMLButtonElement;
+    expect(churchTab.className).toContain("var(--home-tab-public-bg)");
     const promptsChip = [...fixture.nativeElement.querySelectorAll("button")].find(
       (button: HTMLButtonElement) =>
         button.textContent?.trim().startsWith("Prompts")

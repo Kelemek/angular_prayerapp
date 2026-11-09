@@ -4,6 +4,7 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+- Info preview main tabs now use the same direct `<button>` row and `home-nav-tab-text-lock` chrome as Home, so four folder tabs share equal width without the Church label overflowing at narrow widths ([`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html)).
 - The Info page interactive preview matches Home’s main row (**Church** → **Group** → **Personal** → **Memorize**). The **Group** mock shows **+**, **Current** / **Answered** / **Total**, sample chips **Larson Family** and **Care Team**, and a group prayer card using `HOME_GROUPS_*` / `homeFilterTabClass({ accent: "groups" })`. The first visit to **Group** opens [`info-preview-groups-modal`](src/app/components/info-preview-groups-modal/info-preview-groups-modal.component.html); **+** reopens it. Copy describes groups for **signed-in church members** (one-line invite email note, no group-only account paragraph). Narrow mock counts avoid clipping four main tabs at ~375px.
 
 - **Agent verify-prayerapp skill:** Expanded feature map (prayers, updates, admin approvals, settings/themes, memorization), test-only Supabase guardrails in [`SKILL.md`](.cursor/skills/verify-prayerapp/SKILL.md), and new public/auth gate drive scripts [`drive-home-gate.sh`](scripts/verify-prayerapp/drive-home-gate.sh), [`drive-privacy.sh`](scripts/verify-prayerapp/drive-privacy.sh), [`drive-support.sh`](scripts/verify-prayerapp/drive-support.sh).

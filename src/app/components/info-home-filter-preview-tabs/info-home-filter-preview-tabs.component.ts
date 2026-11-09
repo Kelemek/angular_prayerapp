@@ -9,7 +9,10 @@ import {
   HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
   HOME_WRAP_FILTER_CHIP_FLEX_CLASS,
   homeFilterTabClass,
+  HOME_NAV_TAB_TEXT_LOCK_CLASS,
+  type HomeFilterTabAccent,
 } from "../../lib/home-sub-filter-chip-classes";
+import { HomeFilterBadgeButtonComponent } from "../home-filter-badge-button/home-filter-badge-button.component";
 import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
 import {
   groupsPreviewStatusFromFilter,
@@ -34,6 +37,7 @@ import { InfoHomeFilterPreviewGroupsFiltersComponent } from "../info-home-filter
     InfoHomeFilterPreviewPersonalFiltersComponent,
     InfoHomeFilterPreviewPromptsFiltersComponent,
     InfoHomeFilterPreviewGroupsFiltersComponent,
+    HomeFilterBadgeButtonComponent,
   ],
   templateUrl: "./info-home-filter-preview-tabs.component.html",
   host: { class: "block" },
@@ -67,44 +71,29 @@ export class InfoHomeFilterPreviewTabsComponent {
     return `${base} ${shape}`;
   }
 
-  publicTabClass(): string {
-    return homeFilterTabClass({
-      accent: "public",
-      active: this.isPublicTabActive(),
-      hasSubRow: true,
-    });
-  }
-
   isGroupsTabActive(): boolean {
     return isGroupsAreaPreviewFilter(this.previewFilter);
-  }
-
-  groupsTabClass(): string {
-    return homeFilterTabClass({
-      accent: "groups",
-      active: this.isGroupsTabActive(),
-      hasSubRow: true,
-    });
   }
 
   groupsPreviewStatus(): InfoGroupsPreviewStatus {
     return groupsPreviewStatusFromFilter(this.previewFilter);
   }
 
-  personalTabClass(): string {
-    return homeFilterTabClass({
-      accent: "personal",
-      active: this.previewFilter === "personal",
-      hasSubRow: true,
-    });
+  hasSubFilterRowBelowTabs(): boolean {
+    return (
+      isPublicAreaPreviewFilter(this.previewFilter) ||
+      isGroupsAreaPreviewFilter(this.previewFilter) ||
+      this.previewFilter === "personal" ||
+      isMemorizePreviewFilter(this.previewFilter)
+    );
   }
 
-  memorizeTabClass(): string {
-    return homeFilterTabClass({
-      accent: "memorize",
-      active: isMemorizePreviewFilter(this.previewFilter),
-      hasSubRow: true,
-    });
+  tabClass(accent: HomeFilterTabAccent, active: boolean): string {
+    return `${homeFilterTabClass({
+      accent,
+      active,
+      hasSubRow: this.hasSubFilterRowBelowTabs(),
+    })} ${HOME_NAV_TAB_TEXT_LOCK_CLASS}`;
   }
 
   memorizePanelGroupClass(): string {
