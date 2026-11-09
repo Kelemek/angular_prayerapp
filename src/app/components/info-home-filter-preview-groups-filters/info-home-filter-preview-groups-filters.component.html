@@ -1,52 +1,50 @@
 <div [class]="groupsPanelClass">
   <div [class]="chipRowClass">
-    <div class="flex min-w-max flex-[1_1_0] max-w-[min(100%,max(calc((100%-0.5rem)/2),max-content))] sm:max-w-[min(100%,max(calc((100%-1rem)/3),max-content))]">
-      <button
-        type="button"
-        aria-label="Add a prayer or group"
-        (click)="openGroupsExplainer.emit()"
-        [class]="addGroupChipLayoutClass + ' ' + groupChipInactive + ' cursor-pointer w-full'"
+    <app-home-sub-filter-chip
+      chipAriaLabel="Add a prayer or group"
+      [stretch]="false"
+      [active]="false"
+      [layoutClass]="addGroupChipLayoutClass"
+      [activeClass]="groupChipActive"
+      [inactiveClass]="groupChipInactive"
+      (chipClick)="openGroupsExplainer.emit()"
+    >
+      <svg
+        class="size-6 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.25"
+        stroke-linecap="round"
+        aria-hidden="true"
       >
-        <svg
-          class="size-6 shrink-0"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.25"
-          stroke-linecap="round"
-          aria-hidden="true"
-        >
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </button>
-    </div>
-    <div [class]="chipHostClass">
-      <button
-        type="button"
-        (click)="selectStatus('current')"
-        [class]="statusChipClass(status === 'current', 'current')"
-      >
-        Current (3)
-      </button>
-    </div>
-    <div [class]="chipHostClass">
-      <button
-        type="button"
-        (click)="selectStatus('answered')"
-        [class]="statusChipClass(status === 'answered', 'answered')"
-      >
-        Answered (1)
-      </button>
-    </div>
-    <div [class]="chipHostClass">
-      <button
-        type="button"
-        (click)="selectStatus('total')"
-        [class]="statusChipClass(status === 'total', 'total')"
-      >
-        Total (4)
-      </button>
-    </div>
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </app-home-sub-filter-chip>
+    <app-home-sub-filter-chip
+      [active]="status === 'current'"
+      [activeClass]="statusThemes.current.active"
+      [inactiveClass]="groupChipInactive"
+      (chipClick)="selectStatus('current')"
+    >
+      Current (3)
+    </app-home-sub-filter-chip>
+    <app-home-sub-filter-chip
+      [active]="status === 'answered'"
+      [activeClass]="statusThemes.answered.active"
+      [inactiveClass]="groupChipInactive"
+      (chipClick)="selectStatus('answered')"
+    >
+      Answered (1)
+    </app-home-sub-filter-chip>
+    <app-home-sub-filter-chip
+      [active]="status === 'total'"
+      [activeClass]="statusThemes.total.active"
+      [inactiveClass]="groupChipInactive"
+      (chipClick)="selectStatus('total')"
+    >
+      Total (4)
+    </app-home-sub-filter-chip>
   </div>
 
   <div [class]="chipRowClass + ' mt-2'">

@@ -13,11 +13,12 @@ import type {
   InfoGroupsPreviewStatus,
   InfoPreviewMockGroupChip,
 } from "../../lib/info-home-filter-preview.types";
+import { HomeSubFilterChipComponent } from "../home-sub-filter-chip/home-sub-filter-chip.component";
 
 @Component({
   selector: "app-info-home-filter-preview-groups-filters",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HomeSubFilterChipComponent],
   templateUrl: "./info-home-filter-preview-groups-filters.component.html",
   host: { class: "block" },
 })
@@ -29,6 +30,7 @@ export class InfoHomeFilterPreviewGroupsFiltersComponent {
   readonly statusThemes = HOME_GROUPS_STATUS_CHIP_THEMES;
   readonly groupChipActive = HOME_GROUPS_PANEL_CHIP_THEMES.active;
   readonly groupChipInactive = HOME_GROUPS_PANEL_CHIP_THEMES.inactive;
+  /** Square chip the same height as the other filters; the plus is drawn inside it. */
   readonly addGroupChipLayoutClass =
     "inline-flex size-9 shrink-0 items-center justify-center rounded-lg p-0 text-xs font-medium transition-all";
 
@@ -39,16 +41,6 @@ export class InfoHomeFilterPreviewGroupsFiltersComponent {
   @Output() selectedGroupChipChange =
     new EventEmitter<InfoPreviewMockGroupChip>();
   @Output() openGroupsExplainer = new EventEmitter<void>();
-
-  statusChipClass(active: boolean, key: keyof typeof HOME_GROUPS_STATUS_CHIP_THEMES): string {
-    const theme = this.statusThemes[key];
-    return buildHomeSubFilterChipButtonClass({
-      base: this.chipButtonClass,
-      active,
-      activeClass: theme.active,
-      inactiveClass: theme.inactive,
-    });
-  }
 
   groupChipClass(active: boolean): string {
     return buildHomeSubFilterChipButtonClass({

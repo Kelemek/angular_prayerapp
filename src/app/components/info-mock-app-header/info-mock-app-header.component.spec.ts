@@ -110,6 +110,19 @@ describe("InfoMockAppHeaderComponent", () => {
     expect(toggled).toBe(true);
   });
 
+  it("keeps logo and toolbar chips on one row at narrow widths", () => {
+    const row = fixture.nativeElement.querySelector(
+      ".contrast-chip-surface.flex.items-center"
+    ) as HTMLElement;
+    expect(row).toBeTruthy();
+    expect(row.className).not.toContain("flex-col");
+    const toolbar = row.querySelector(
+      ".flex-nowrap.shrink-0"
+    ) as HTMLElement;
+    expect(toolbar).toBeTruthy();
+    expect(toolbar.querySelectorAll("button")).toHaveLength(5);
+  });
+
   it("reflects showSearchPanel on the search chip aria-expanded", () => {
     const button = fixture.nativeElement.querySelector(
       'button[title="Search"]'

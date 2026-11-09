@@ -32,6 +32,25 @@ describe("InfoHomeFilterPreviewGroupsFiltersComponent", () => {
     expect(emitted).toEqual([true]);
   });
 
+  it("keeps add and status chips on one row without wrap flex hosts", () => {
+    fixture.detectChanges();
+    const statusRow = fixture.nativeElement.querySelector(
+      ".flex.w-full.flex-wrap.items-center.gap-2"
+    ) as HTMLElement;
+    expect(statusRow).toBeTruthy();
+    const addHost = statusRow.querySelector(
+      "app-home-sub-filter-chip"
+    ) as HTMLElement;
+    expect(addHost).toBeTruthy();
+    expect(addHost.className).not.toContain("flex-[1_1_0]");
+    expect(statusRow.querySelectorAll("app-home-sub-filter-chip")).toHaveLength(
+      4
+    );
+    const addButton = addHost.querySelector("button") as HTMLButtonElement;
+    expect(addButton.className).toContain("size-9");
+    expect(addButton.className).not.toContain("w-full");
+  });
+
   it("emits selected group chip without opening explainer", () => {
     const chips: string[] = [];
     fixture.componentInstance.selectedGroupChipChange.subscribe((chip) =>

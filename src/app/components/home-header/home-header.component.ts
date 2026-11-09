@@ -7,6 +7,7 @@ import { AdminPendingCountService } from "../../services/admin-pending-count.ser
 import type { HomeHeaderHandlers } from "../../lib/home-header-handlers";
 import {
   HOME_HEADER_CHIP_SIZE_LOCK_CLASS,
+  HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS,
   HOME_SHELL_HEADER_BORDER_BOTTOM_CLASS,
 } from "../../lib/home-sub-filter-chip-classes";
 import {
@@ -16,12 +17,8 @@ import {
   TOUR_SETTINGS_BTN_ID,
 } from "../../lib/help-tour-ids";
 
-/** Fluid logo/title in the home toolbar on narrow viewports (see `HomeHeaderComponent`). */
-export const HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS =
-  "min-w-0 flex-1 overflow-hidden sm:flex-initial sm:overflow-visible " +
-  "[&_img]:max-h-10 [&_img]:sm:max-h-none [&_img]:sm:h-16 [&_img]:max-w-full [&_img]:sm:max-w-xs [&_img]:w-auto [&_img]:h-auto [&_img]:object-contain [&_img]:object-left " +
-  "[&_h1]:text-base [&_h1]:leading-tight [&_h1]:sm:text-xl [&_h1]:sm:leading-normal [&_h1]:font-bold [&_h1]:truncate " +
-  "[&_p]:hidden [&_p]:sm:block";
+/** @deprecated Import from `home-sub-filter-chip-classes` instead. */
+export { HOME_HEADER_LOGO_TOOLBAR_SLOT_CLASS } from "../../lib/home-sub-filter-chip-classes";
 
 @Component({
   selector: "app-home-header",
