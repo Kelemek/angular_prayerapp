@@ -1,4 +1,4 @@
-<!-- Filter-style preview tabs (mock of home filters): Church, Personal, Memorize -->
+<!-- Filter-style preview tabs (mock of home filters): Church, Group, Personal, Memorize -->
 <div class="flex w-full gap-1 mb-0">
   <div
     class="relative z-20 flex-1 min-w-0"
@@ -19,6 +19,13 @@
       1
     </button>
   </div>
+  <button
+    type="button"
+    (click)="selectGroupsPreviewTab()"
+    [class]="groupsTabClass()"
+  >
+    Group
+  </button>
   <button
     type="button"
     (click)="setPreviewFilter('personal')"
@@ -44,7 +51,7 @@
       (click)="setPreviewFilter('current')"
       [class]="subFilterChipClass('current')"
     >
-      Current (22)
+      Current (9)
     </button>
   </div>
   <div [class]="chipHostClass">
@@ -53,7 +60,7 @@
       (click)="setPreviewFilter('answered')"
       [class]="subFilterChipClass('answered')"
     >
-      Answered (4)
+      Answered (2)
     </button>
   </div>
   <div [class]="chipHostClass">
@@ -62,7 +69,7 @@
       (click)="setPreviewFilter('archived')"
       [class]="subFilterChipClass('archived')"
     >
-      Archived (21)
+      Archived (8)
     </button>
   </div>
   <div [class]="chipHostClass">
@@ -71,7 +78,7 @@
       (click)="setPreviewFilter('total')"
       [class]="subFilterChipClass('total')"
     >
-      Total (47)
+      Total (19)
     </button>
   </div>
   <div [class]="chipHostClass">
@@ -80,10 +87,20 @@
       (click)="setPreviewFilter('prompts')"
       [class]="subFilterChipClass('prompts')"
     >
-      Prompts (76)
+      Prompts (12)
     </button>
   </div>
 </div>
+}
+
+@if (isGroupsTabActive()) {
+<app-info-home-filter-preview-groups-filters
+  [status]="groupsPreviewStatus()"
+  [selectedGroupChip]="selectedGroupChip"
+  (statusChange)="setGroupsStatus($event)"
+  (selectedGroupChipChange)="setSelectedGroupChip($event)"
+  (openGroupsExplainer)="openGroupsExplainer.emit()"
+/>
 }
 
 @if (previewFilter === 'personal') {

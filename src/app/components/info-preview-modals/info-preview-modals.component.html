@@ -18,6 +18,10 @@
   [open]="isModalOpen('personalCategories')"
   (closeModal)="closeModal()"
 />
+<app-info-preview-groups-modal
+  [open]="isModalOpen('groups')"
+  (closeModal)="closeModal()"
+/>
 <app-info-preview-memorize-action-modal
   [previewAction]="memorizePreviewAction()"
   (closeModal)="closeModal()"

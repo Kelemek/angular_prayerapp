@@ -41,14 +41,18 @@
                 <div class="mt-4 space-y-4">
                   <app-info-home-filter-preview-tabs
                     [previewFilter]="previewFilter"
-                    (previewFilterChange)="previewFilter = $event"
+                    [selectedGroupChip]="selectedGroupChip"
+                    (previewFilterChange)="onPreviewFilterChange($event)"
+                    (selectedGroupChipChange)="selectedGroupChip = $event"
                     (openBadges)="openPreviewModal.emit({ kind: 'badges' })"
                     (openPromptCategories)="openPreviewModal.emit({ kind: 'promptCategories' })"
                     (openPersonalCategories)="openPreviewModal.emit({ kind: 'personalCategories' })"
+                    (openGroupsExplainer)="openPreviewModal.emit({ kind: 'groups' })"
                     (openMemorizeAction)="openPreviewModal.emit({ kind: 'memorizeAction', action: $event })"
                   />
                   <app-info-home-filter-preview-panels
                     [previewFilter]="previewFilter"
+                    [selectedGroupChip]="selectedGroupChip"
                     (openBadges)="openPreviewModal.emit({ kind: 'badges' })"
                     (openPersonalAction)="openPreviewModal.emit({ kind: 'personalAction', action: $event })"
                     (openHeaderPreview)="openPreviewModal.emit({ kind: 'header', action: $event })"

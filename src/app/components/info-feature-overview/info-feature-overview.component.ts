@@ -6,7 +6,9 @@ import { InfoMockSearchBarComponent } from "../info-mock-search-bar/info-mock-se
 import type {
   InfoPreviewFilter,
   InfoPreviewModalState,
+  InfoPreviewMockGroupChip,
 } from "../../lib/info-home-filter-preview.types";
+import { isGroupsAreaPreviewFilter } from "../../lib/info-home-filter-preview.types";
 
 @Component({
   selector: "app-info-feature-overview",
@@ -26,4 +28,16 @@ export class InfoFeatureOverviewComponent {
 
   previewFilter: InfoPreviewFilter = "current";
   showSearchPanel = false;
+  selectedGroupChip: InfoPreviewMockGroupChip = "larson";
+  private groupsTabOpenedOnce = false;
+
+  onPreviewFilterChange(next: InfoPreviewFilter): void {
+    const enteringGroups =
+      isGroupsAreaPreviewFilter(next) && !isGroupsAreaPreviewFilter(this.previewFilter);
+    this.previewFilter = next;
+    if (enteringGroups && !this.groupsTabOpenedOnce) {
+      this.groupsTabOpenedOnce = true;
+      this.openPreviewModal.emit({ kind: "groups" });
+    }
+  }
 }

@@ -12,14 +12,19 @@ import {
 } from "../../lib/home-sub-filter-chip-classes";
 import { buildHomeSubFilterChipButtonClass } from "../../lib/home-sub-filter-chip-button-class";
 import {
+  groupsPreviewStatusFromFilter,
+  isGroupsAreaPreviewFilter,
   isMemorizePreviewFilter,
   isPublicAreaPreviewFilter,
   isPublicPreviewFilter,
+  type InfoGroupsPreviewStatus,
   type InfoMemorizeActionPreview,
   type InfoPreviewFilter,
+  type InfoPreviewMockGroupChip,
 } from "../../lib/info-home-filter-preview.types";
 import { InfoHomeFilterPreviewPersonalFiltersComponent } from "../info-home-filter-preview-personal-filters/info-home-filter-preview-personal-filters.component";
 import { InfoHomeFilterPreviewPromptsFiltersComponent } from "../info-home-filter-preview-prompts-filters/info-home-filter-preview-prompts-filters.component";
+import { InfoHomeFilterPreviewGroupsFiltersComponent } from "../info-home-filter-preview-groups-filters/info-home-filter-preview-groups-filters.component";
 
 @Component({
   selector: "app-info-home-filter-preview-tabs",
@@ -28,6 +33,7 @@ import { InfoHomeFilterPreviewPromptsFiltersComponent } from "../info-home-filte
     CommonModule,
     InfoHomeFilterPreviewPersonalFiltersComponent,
     InfoHomeFilterPreviewPromptsFiltersComponent,
+    InfoHomeFilterPreviewGroupsFiltersComponent,
   ],
   templateUrl: "./info-home-filter-preview-tabs.component.html",
   host: { class: "block" },
@@ -38,7 +44,11 @@ export class InfoHomeFilterPreviewTabsComponent {
   @Output() openBadges = new EventEmitter<void>();
   @Output() openPromptCategories = new EventEmitter<void>();
   @Output() openPersonalCategories = new EventEmitter<void>();
+  @Output() openGroupsExplainer = new EventEmitter<void>();
   @Output() openMemorizeAction = new EventEmitter<InfoMemorizeActionPreview>();
+  @Input() selectedGroupChip: InfoPreviewMockGroupChip = "larson";
+  @Output() selectedGroupChipChange =
+    new EventEmitter<InfoPreviewMockGroupChip>();
 
   readonly chipHostClass = HOME_WRAP_FILTER_CHIP_FLEX_CLASS;
   readonly chipButtonClass = HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS;
@@ -63,6 +73,22 @@ export class InfoHomeFilterPreviewTabsComponent {
       active: this.isPublicTabActive(),
       hasSubRow: true,
     });
+  }
+
+  isGroupsTabActive(): boolean {
+    return isGroupsAreaPreviewFilter(this.previewFilter);
+  }
+
+  groupsTabClass(): string {
+    return homeFilterTabClass({
+      accent: "groups",
+      active: this.isGroupsTabActive(),
+      hasSubRow: true,
+    });
+  }
+
+  groupsPreviewStatus(): InfoGroupsPreviewStatus {
+    return groupsPreviewStatusFromFilter(this.previewFilter);
   }
 
   personalTabClass(): string {
@@ -116,5 +142,25 @@ export class InfoHomeFilterPreviewTabsComponent {
 
   setPreviewFilter(filter: InfoPreviewFilter): void {
     this.previewFilterChange.emit(filter);
+  }
+
+  selectGroupsPreviewTab(): void {
+    if (!isGroupsAreaPreviewFilter(this.previewFilter)) {
+      this.previewFilterChange.emit("groups-current");
+    }
+  }
+
+  setGroupsStatus(status: InfoGroupsPreviewStatus): void {
+    const filter: InfoPreviewFilter =
+      status === "answered"
+        ? "groups-answered"
+        : status === "total"
+          ? "groups-total"
+          : "groups-current";
+    this.previewFilterChange.emit(filter);
+  }
+
+  setSelectedGroupChip(chip: InfoPreviewMockGroupChip): void {
+    this.selectedGroupChipChange.emit(chip);
   }
 }

@@ -69,9 +69,10 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     expect(tabChrome.textContent?.trim()).toBe("Church");
     expect(badge.previousElementSibling).toBe(tabChrome);
     expect(badge.className).toContain("z-20");
-    expect(topButtons).toHaveLength(2);
-    expect(normalize(topButtons[0]!)).toBe("Personal");
-    expect(normalize(topButtons[1]!)).toBe("Memorize");
+    expect(topButtons).toHaveLength(3);
+    expect(normalize(topButtons[0]!)).toBe("Group");
+    expect(normalize(topButtons[1]!)).toBe("Personal");
+    expect(normalize(topButtons[2]!)).toBe("Memorize");
   });
 
   it("highlights Church and shows a Prompts chip when previewFilter is prompts", () => {
@@ -87,8 +88,28 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     ) as HTMLButtonElement | undefined;
     expect(promptsChip).toBeTruthy();
     expect(promptsChip!.textContent?.replace(/\s+/g, " ").trim()).toBe(
-      "Prompts (76)"
+      "Prompts (12)"
     );
+  });
+
+  it("shows groups filters when Group tab is selected", () => {
+    component.previewFilter = "groups-current";
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Larson Family");
+    expect(fixture.nativeElement.textContent).toContain("Care Team");
+    expect(
+      fixture.nativeElement.querySelector(
+        'button[aria-label="Add a prayer or group"]'
+      )
+    ).toBeTruthy();
+  });
+
+  it("selectGroupsPreviewTab emits groups-current when not on groups", () => {
+    const emitted: string[] = [];
+    component.previewFilterChange.subscribe((value) => emitted.push(value));
+    component.previewFilter = "personal";
+    component.selectGroupsPreviewTab();
+    expect(emitted).toEqual(["groups-current"]);
   });
 
   it("wraps public preview chips with the same flex-wrap host as prompt types", () => {

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  groupsPreviewStatusFromFilter,
+  isGroupsAreaPreviewFilter,
   isMemorizePreviewFilter,
   isPublicAreaPreviewFilter,
   isPublicPreviewFilter,
+  normalizeGroupsPreviewFilter,
 } from "./info-home-filter-preview.types";
 
 describe("isPublicPreviewFilter", () => {
@@ -13,10 +16,11 @@ describe("isPublicPreviewFilter", () => {
     expect(isPublicPreviewFilter("total")).toBe(true);
   });
 
-  it("returns false for Prompts, Personal, and Memorize", () => {
+  it("returns false for Prompts, Personal, Memorize, and Groups", () => {
     expect(isPublicPreviewFilter("prompts")).toBe(false);
     expect(isPublicPreviewFilter("personal")).toBe(false);
     expect(isPublicPreviewFilter("memorize")).toBe(false);
+    expect(isPublicPreviewFilter("groups-current")).toBe(false);
   });
 });
 
@@ -27,9 +31,35 @@ describe("isPublicAreaPreviewFilter", () => {
     expect(isPublicAreaPreviewFilter("total")).toBe(true);
   });
 
-  it("returns false for Personal and Memorize", () => {
+  it("returns false for Personal, Memorize, and Groups", () => {
     expect(isPublicAreaPreviewFilter("personal")).toBe(false);
     expect(isPublicAreaPreviewFilter("memorize")).toBe(false);
+    expect(isPublicAreaPreviewFilter("groups-current")).toBe(false);
+  });
+});
+
+describe("isGroupsAreaPreviewFilter", () => {
+  it("includes groups slug filters", () => {
+    expect(isGroupsAreaPreviewFilter("groups")).toBe(true);
+    expect(isGroupsAreaPreviewFilter("groups-current")).toBe(true);
+    expect(isGroupsAreaPreviewFilter("groups-answered")).toBe(true);
+    expect(isGroupsAreaPreviewFilter("groups-total")).toBe(true);
+    expect(isGroupsAreaPreviewFilter("current")).toBe(false);
+  });
+});
+
+describe("groupsPreviewStatusFromFilter", () => {
+  it("maps groups-* filters to status", () => {
+    expect(groupsPreviewStatusFromFilter("groups-current")).toBe("current");
+    expect(groupsPreviewStatusFromFilter("groups-answered")).toBe("answered");
+    expect(groupsPreviewStatusFromFilter("groups-total")).toBe("total");
+  });
+});
+
+describe("normalizeGroupsPreviewFilter", () => {
+  it("normalizes bare groups to groups-current", () => {
+    expect(normalizeGroupsPreviewFilter("groups")).toBe("groups-current");
+    expect(normalizeGroupsPreviewFilter("personal")).toBe("personal");
   });
 });
 

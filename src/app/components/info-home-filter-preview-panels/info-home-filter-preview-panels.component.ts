@@ -6,10 +6,16 @@ import { InfoHomeFilterPreviewPublicTotalPanelComponent } from "../info-home-fil
 import { InfoHomeFilterPreviewPromptsCardComponent } from "../info-home-filter-preview-prompts-card/info-home-filter-preview-prompts-card.component";
 import { InfoHomeFilterPreviewPersonalCardComponent } from "../info-home-filter-preview-personal-card/info-home-filter-preview-personal-card.component";
 import { InfoHomeFilterPreviewMemorizeCardComponent } from "../info-home-filter-preview-memorize-card/info-home-filter-preview-memorize-card.component";
+import { InfoHomeFilterPreviewGroupsCardComponent } from "../info-home-filter-preview-groups-card/info-home-filter-preview-groups-card.component";
 import type {
   InfoHeaderPreviewAction,
   InfoPersonalActionPreview,
   InfoPreviewFilter,
+  InfoPreviewMockGroupChip,
+} from "../../lib/info-home-filter-preview.types";
+import {
+  groupsPreviewStatusFromFilter,
+  isGroupsAreaPreviewFilter,
 } from "../../lib/info-home-filter-preview.types";
 
 @Component({
@@ -23,14 +29,24 @@ import type {
     InfoHomeFilterPreviewPromptsCardComponent,
     InfoHomeFilterPreviewPersonalCardComponent,
     InfoHomeFilterPreviewMemorizeCardComponent,
+    InfoHomeFilterPreviewGroupsCardComponent,
   ],
   templateUrl: "./info-home-filter-preview-panels.component.html",
 })
 export class InfoHomeFilterPreviewPanelsComponent {
   @Input() previewFilter: InfoPreviewFilter = "current";
+  @Input() selectedGroupChip: InfoPreviewMockGroupChip = "larson";
 
   @Output() openBadges = new EventEmitter<void>();
   @Output() openPersonalAction = new EventEmitter<InfoPersonalActionPreview>();
   @Output() openHeaderPreview = new EventEmitter<InfoHeaderPreviewAction>();
   @Output() openMemorizePractice = new EventEmitter<void>();
+
+  showGroupsPanel(): boolean {
+    return isGroupsAreaPreviewFilter(this.previewFilter);
+  }
+
+  groupsPreviewStatus() {
+    return groupsPreviewStatusFromFilter(this.previewFilter);
+  }
 }
