@@ -56,12 +56,18 @@ Read the feature map index first: [features/README.md](./features/README.md).
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/verify-prayerapp/drive-public-info.sh` | Public `/info` marketing page |
+| `scripts/verify-prayerapp/drive-public-info.sh` | `/info` shell smoke |
+| `scripts/verify-prayerapp/drive-info-preview-tabs.sh` | `/info` Church/Group/Personal/Memorize tabs |
+| `scripts/verify-prayerapp/drive-info-preview-groups.sh` | `/info` Group + chip filters |
+| `scripts/verify-prayerapp/drive-info-memorize-practice-modal.sh` | `/info` memorize practice carousel |
 | `scripts/verify-prayerapp/drive-privacy.sh` | Public `/privacy` policy page |
 | `scripts/verify-prayerapp/drive-support.sh` | Public `/support` page |
 | `scripts/verify-prayerapp/drive-login-shell.sh` | `/login` email step UI (no MFA send) |
 | `scripts/verify-prayerapp/drive-home-gate.sh` | `/` redirects unauthenticated users to login |
 | `scripts/verify-prayerapp/drive-admin-gate.sh` | `/admin` redirects unauthenticated users to login with `returnUrl` |
+| `scripts/verify-prayerapp/drive-home-groups-tab.sh` | Home **Group** tab (MFA or inconclusive) |
+| `scripts/verify-prayerapp/drive-theme-picker.sh` | Settings theme family + mode dropdowns |
+| `scripts/verify-prayerapp/drive-verse-prayer-modal.sh` | Admin **Post verse prayer** flow |
 
 Example:
 
@@ -94,6 +100,7 @@ All scripts are executable bash under `scripts/verify-prayerapp/`. They honor:
 - `PRAYERAPP_VERIFY_RUN_ID`
 - `PRAYERAPP_VERIFY_PORT`
 - `PRAYERAPP_VERIFY_URL` (drive scripts)
+- `PRAYERAPP_VERIFY_STORAGE_STATE` (optional path to Playwright storage JSON after operator MFA — enables signed-in drive scripts without embedding tokens in the repo)
 
 First Playwright run may download Chromium (`npx playwright install chromium` is invoked by drive scripts when needed).
 

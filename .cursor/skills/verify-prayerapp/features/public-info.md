@@ -1,14 +1,14 @@
-# Public info page
+# Public info page (shell)
 
-Visitors can open the marketing/info experience without signing in. Proves the Angular app boots and public routing works.
+Visitors open `/info` without signing in. Quick smoke that the Angular app boots and the marketing shell renders.
 
 ## Sub-features
 
-- **info-shell** — `/info` renders the hero and page chrome.
+- **info-shell** — `.info-page-shell`, hero **Cross Pointe** / **Prayer Community**.
 
 ## How to get to it (user POV)
 
-- Open `/info` directly (bookmark, email link, or type URL).
+- Open `/info` directly.
 
 ## Driving it with Playwright (npx)
 
@@ -18,10 +18,9 @@ Preconditions:
 
 Steps:
 
-- Run `scripts/verify-prayerapp/drive-public-info.sh`.
-- Expect `evidence/public-info.png` showing `.info-page-shell` and hero title text **Cross Pointe** / **Prayer Community**.
+- `scripts/verify-prayerapp/drive-public-info.sh` → `evidence/public-info.png`.
+- For tabs, groups mock, and memorize preview modals see [Info interactive preview](./info-interactive-preview.md).
 
 ## Gotchas
 
-- Does not exercise Supabase RLS or prayer data.
-- Branding images load from `/CrossPointPrayer.jpg`; offline CDN issues can break hero image but shell should still appear.
+- Does not exercise Supabase RLS or interactive tab flows (use info preview drives).

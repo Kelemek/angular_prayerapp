@@ -11,7 +11,7 @@ After MFA, home shows community and personal prayer lists. Users browse cards, o
 ## How to get to it (user POV)
 
 - Sign in at `/login`, land on `/`.
-- Switch Church / Personal / Groups tabs and category chips as applicable.
+- Switch **Church** / **Group** / **Personal** / **Memorize** tabs and category chips as applicable.
 - Use **Add prayer** (or group equivalent) from the active tab.
 
 ## Driving it with Playwright (npx)
