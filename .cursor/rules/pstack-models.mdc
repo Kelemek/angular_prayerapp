@@ -1,0 +1,25 @@
+---
+description: pstack per-role model choices (overrides skill defaults)
+alwaysApply: true
+---
+# pstack model configuration. One line per role. Delete a line to fall back to the skill default.
+# Mark (2026-11-10): first-party models only (Grok, Composer). Never fast variants; never third-party models (Claude, GPT, Gemini, others).
+# grok-4.7-xhigh means model grok-4.7 with reasoning_effort xhigh and fast false. composer-2.5 means fast false.
+# budget: large (xhigh)
+feature, refactoring: grok-4.7-xhigh
+bug-fix: grok-4.7-xhigh
+perf-issue: grok-4.7-xhigh
+hillclimb: grok-4.7-xhigh
+judgment and prose: grok-4.7-xhigh
+hardest tasks: grok-4.7-xhigh
+how explorer: grok-4.7-xhigh
+how explainer: grok-4.7-xhigh
+why investigators: grok-4.7-xhigh
+why synthesizer: grok-4.7-xhigh
+reflect tooling: grok-4.7-xhigh
+reflect judgment, divergent, synthesizer: grok-4.7-xhigh
+arena runners: grok-4.7-xhigh, composer-2.5
+arena cross-judge pool: composer-2.5, grok-4.7-xhigh
+swarm workers: grok-4.7-xhigh
+architect runners: grok-4.7-xhigh, composer-2.5
+interrogate reviewers: grok-4.7-xhigh, composer-2.5
