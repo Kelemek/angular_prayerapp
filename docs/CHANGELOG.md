@@ -4,7 +4,7 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
-- **Agent setup:** Added [`.cursor/rules/pstack-models.mdc`](.cursor/rules/pstack-models.mdc) — first-party Grok/Composer per-role overrides for pstack (no fast or third-party models).
+- **Agent setup:** Added [`.cursor/rules/pstack-models.mdc`](.cursor/rules/pstack-models.mdc) — first-party pstack overrides: non-fast Grok 4.7 (`xhigh`) for complex roles, non-fast Composer 2.5 for the rest (no fast or third-party models).
 
 - **Dependency security:** Bumped Angular framework packages to 22.2.5, `@angular/cdk` to 22.2.6, `dompurify` to 3.4.17, `@tiptap/*` to 3.33.0, `posthog-js` to 1.447.5, and `@supabase/supabase-js` to 2.119.0 (Angular CLI / `@angular-devkit/build-angular` stay on 22.0.4 for production bundle budget).
 
