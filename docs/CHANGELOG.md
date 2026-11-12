@@ -4,6 +4,8 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+- **Agent setup:** Added [`.cursor/rules/pstack-models.mdc`](.cursor/rules/pstack-models.mdc) — first-party pstack overrides: non-fast Grok 4.7 (`xhigh`) for complex roles, non-fast Composer 2.5 for the rest (no fast or third-party models).
+
 - **Dependency security:** Bumped Angular framework packages to 22.2.5, `@angular/cdk` to 22.2.6, `dompurify` to 3.4.17, `@tiptap/*` to 3.33.0, `posthog-js` to 1.447.5, and `@supabase/supabase-js` to 2.119.0 (Angular CLI / `@angular-devkit/build-angular` stay on 22.0.4 for production bundle budget).
 
 - Info preview mock cards use real prayer shells and `app-card-meta-header-band` (via [`info-home-filter-preview-prayer-mock`](src/app/components/info-home-filter-preview-prayer-mock/info-home-filter-preview-prayer-mock.component.ts)) on Church Current, Group, and Personal samples; update rows use [`app-prayer-update-row`](src/app/components/prayer-update-row/prayer-update-row.component.ts) instead of floating dates.
