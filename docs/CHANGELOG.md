@@ -4,6 +4,8 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+- **Welcome emails:** **`subscriber_welcome`** and **`group_welcome`** now include **Get the app** links to the App Store and Google Play (table-based HTML + plain-text on `group_welcome` and on `subscriber_welcome` when `text_body` is set). Canonical store URLs live in [`app-store-links.ts`](../src/lib/app-store-links.ts) (shared with [`/info`](../src/app/components/info-hero-section/info-hero-section.component.ts)); migration [`20261119140000_welcome_emails_app_store_links.sql`](../supabase/migrations/20261119140000_welcome_emails_app_store_links.sql).
+
 - **Agent setup:** Added [`.cursor/rules/pstack-models.mdc`](.cursor/rules/pstack-models.mdc) — first-party pstack overrides: non-fast Grok 4.7 (`xhigh`) for complex roles, non-fast Composer 2.5 for the rest (no fast or third-party models).
 
 - **Dependency security:** Bumped Angular framework packages to 22.2.5, `@angular/cdk` to 22.2.6, `dompurify` to 3.4.17, `@tiptap/*` to 3.33.0, `posthog-js` to 1.447.5, and `@supabase/supabase-js` to 2.119.0 (Angular CLI / `@angular-devkit/build-angular` stay on 22.0.4 for production bundle budget).
